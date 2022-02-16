@@ -1,0 +1,15 @@
+[package]
+name = "log"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+quick-error = "2"
+serde = { version = "1", features = ["derive"] }
+worker = { version = "0.0.9", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+surf = { version = "2", default-features = false, features = ["wasm-client"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+surf = { version = "2", default-features = false, features = ["h1-client-rustls"] }
