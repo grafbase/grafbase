@@ -6,10 +6,9 @@ edition = "2021"
 [dependencies]
 quick-error = "2"
 serde = { version = "1", features = ["derive"] }
-worker = { version = "0.0.9", optional = true }
 
 [features]
-with-worker = ["worker"]
+with-worker = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
