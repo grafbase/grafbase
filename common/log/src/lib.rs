@@ -1,5 +1,3 @@
-#![allow(clippy::redundant_pub_crate)] // for "use debug/info"
-
 use quick_error::quick_error;
 
 use std::sync::atomic::AtomicBool;
