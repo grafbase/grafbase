@@ -23,7 +23,7 @@ thread_local! {
 
 #[macro_export]
 macro_rules! debug {
-    ($request_id:expr, $($t:tt)*) => {
+    ($request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         #[cfg(feature = "with-worker")]
         worker::console_debug!("{}", message);
@@ -33,12 +33,12 @@ macro_rules! debug {
                 .expect("reentrance is impossible in our single-threaded runtime")
                 .push(($request_id.to_string(), message)));
         }
-    }
+    } }
 }
 
 #[macro_export]
 macro_rules! info {
-    ($request_id:expr, $($t:tt)*) => {
+    ($request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         #[cfg(feature = "with-worker")]
         worker::console_log!("{}", message);
@@ -48,12 +48,12 @@ macro_rules! info {
                 .expect("reentrance is impossible in our single-threaded runtime")
                 .push(($request_id.to_string(), message)));
         }
-    }
+    } }
 }
 
 #[macro_export]
 macro_rules! error {
-    ($request_id:expr, $($t:tt)*) => {
+    ($request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         #[cfg(feature = "with-worker")]
         worker::console_error!("{}", message);
@@ -63,7 +63,7 @@ macro_rules! error {
                 .expect("reentrance is impossible in our single-threaded runtime")
                 .push(($request_id.to_string(), message)));
         }
-    }
+    } }
 }
 
 #[derive(serde::Serialize)]
