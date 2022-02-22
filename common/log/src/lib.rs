@@ -25,7 +25,7 @@ thread_local! {
 macro_rules! debug {
     ($request_id:expr, $($t:tt)*) => {
         let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "worker")]
+        #[cfg(feature = "with-worker")]
         worker::console_debug!("{}", message);
         if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
@@ -40,7 +40,7 @@ macro_rules! debug {
 macro_rules! info {
     ($request_id:expr, $($t:tt)*) => {
         let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "worker")]
+        #[cfg(feature = "with-worker")]
         worker::console_log!("{}", message);
         if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
@@ -55,7 +55,7 @@ macro_rules! info {
 macro_rules! error {
     ($request_id:expr, $($t:tt)*) => {
         let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "worker")]
+        #[cfg(feature = "with-worker")]
         worker::console_error!("{}", message);
         if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
