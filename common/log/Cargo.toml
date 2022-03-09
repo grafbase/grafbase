@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 quick-error = "2"
 serde = { version = "1", features = ["derive"] }
+strum = { version = "0.24", features = ["derive"] }
 
 [features]
 with-worker = []
