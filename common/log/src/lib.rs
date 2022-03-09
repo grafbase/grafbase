@@ -30,8 +30,8 @@ thread_local! {
 }
 
 #[macro_export]
-macro_rules! debug {
-    ($request_id:expr, $($t:tt)*) => { {
+macro_rules! log {
+    ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         #[cfg(feature = "with-worker")]
         worker::console_debug!("{}", message);
@@ -39,38 +39,29 @@ macro_rules! debug {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
                 .try_borrow_mut()
                 .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), $crate::LogSeverity::Debug, message)));
+                .push(($request_id.to_string(), $status, message)));
         }
+    } }
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Debug, $($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! info {
-    ($request_id:expr, $($t:tt)*) => { {
-        let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
-        worker::console_log!("{}", message);
-        if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
-            $crate::LOG_ENTRIES.with(|log_entries| log_entries
-                .try_borrow_mut()
-                .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), $crate::LogSeverity::Info, message)));
-        }
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Info, $($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! error {
-    ($request_id:expr, $($t:tt)*) => { {
-        let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
-        worker::console_error!("{}", message);
-        if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
-            $crate::LOG_ENTRIES.with(|log_entries| log_entries
-                .try_borrow_mut()
-                .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), $crate::LogSeverity::Error, message)));
-        }
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Error, $($t)*);
     } }
 }
 
