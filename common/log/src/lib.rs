@@ -14,16 +14,24 @@ quick_error! {
     }
 }
 
+#[derive(strum::Display)]
+#[strum(serialize_all = "snake_case")]
+pub enum LogSeverity {
+    Debug,
+    Info,
+    Error,
+}
+
 pub static ENABLE_LOGGING: AtomicBool = AtomicBool::new(false);
 
 thread_local! {
-    pub static LOG_ENTRIES: std::cell::RefCell<Vec<(String, String)>> =
+    pub static LOG_ENTRIES: std::cell::RefCell<Vec<(String, LogSeverity, String)>> =
         std::cell::RefCell::new(Vec::new());
 }
 
 #[macro_export]
-macro_rules! debug {
-    ($request_id:expr, $($t:tt)*) => { {
+macro_rules! log {
+    ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         #[cfg(feature = "with-worker")]
         worker::console_debug!("{}", message);
@@ -31,38 +39,29 @@ macro_rules! debug {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
                 .try_borrow_mut()
                 .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), message)));
+                .push(($request_id.to_string(), $status, message)));
         }
+    } }
+}
+
+#[macro_export]
+macro_rules! debug {
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Debug, $($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! info {
-    ($request_id:expr, $($t:tt)*) => { {
-        let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
-        worker::console_log!("{}", message);
-        if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
-            $crate::LOG_ENTRIES.with(|log_entries| log_entries
-                .try_borrow_mut()
-                .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), message)));
-        }
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Info, $($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! error {
-    ($request_id:expr, $($t:tt)*) => { {
-        let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
-        worker::console_error!("{}", message);
-        if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
-            $crate::LOG_ENTRIES.with(|log_entries| log_entries
-                .try_borrow_mut()
-                .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), message)));
-        }
+    ($($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Error, $($t)*);
     } }
 }
 
@@ -73,6 +72,7 @@ pub struct DatadogLogEntry {
     hostname: String,
     message: String,
     service: String,
+    status: String,
 }
 
 pub fn set_logging_enabled(enabled: bool) {
@@ -96,13 +96,14 @@ fn collect_logs_to_be_pushed(request_id: &str, request_host_name: &str) -> Vec<D
             .expect("reentrance is impossible in our single-threaded runtime")
             .iter()
             // FIXME: Replace with `Vec::drain_filter()` when it's stable.
-            .filter(|(entry_request_id, _)| entry_request_id == request_id)
-            .map(|(_, message)| DatadogLogEntry {
+            .filter(|(entry_request_id, _, _)| entry_request_id == request_id)
+            .map(|(_, severity, message)| DatadogLogEntry {
                 ddsource: "grafbase.api".to_owned(),
                 ddtags: tag_string.clone(),
                 hostname: request_host_name.to_owned(),
                 message: message.clone(),
                 service: "api".to_owned(),
+                status: severity.to_string(),
             })
             .collect::<Vec<_>>()
     });
@@ -111,7 +112,7 @@ fn collect_logs_to_be_pushed(request_id: &str, request_host_name: &str) -> Vec<D
         log_entries
             .try_borrow_mut()
             .expect("reentrance is impossible in our single-threaded runtime")
-            .retain(|(entry_request_id, _)| entry_request_id != request_id)
+            .retain(|(entry_request_id, _, _)| entry_request_id != request_id)
     });
 
     entries
