@@ -79,11 +79,26 @@ pub fn set_logging_enabled(enabled: bool) {
     ENABLE_LOGGING.store(enabled, std::sync::atomic::Ordering::Relaxed);
 }
 
-fn collect_logs_to_be_pushed(service_name: &str, request_id: &str, request_host_name: &str) -> Vec<DatadogLogEntry> {
+pub struct LogConfig {
+    pub api_key: String,
+    pub service_name: &'static str,
+    pub environment: &'static str,
+    pub branch: Option<&'static str>,
+}
+
+fn collect_logs_to_be_pushed(
+    log_config: &LogConfig,
+    request_id: &str,
+    request_host_name: &str,
+) -> Vec<DatadogLogEntry> {
     #[rustfmt::skip]
-    let tags = vec![
+    let mut tags = vec![
         ("request_id", request_id),
+        ("environment", log_config.environment),
     ];
+    if let Some(branch) = log_config.branch.as_ref() {
+        tags.push(("branch", branch));
+    }
     let tag_string = tags
         .iter()
         .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
@@ -102,7 +117,7 @@ fn collect_logs_to_be_pushed(service_name: &str, request_id: &str, request_host_
                 ddtags: tag_string.clone(),
                 hostname: request_host_name.to_owned(),
                 message: message.clone(),
-                service: service_name.to_owned(),
+                service: log_config.service_name.to_owned(),
                 status: severity.to_string(),
             })
             .collect::<Vec<_>>()
@@ -119,8 +134,7 @@ fn collect_logs_to_be_pushed(service_name: &str, request_id: &str, request_host_
 }
 
 pub async fn push_logs_to_datadog(
-    api_key: String,
-    service_name: &'static str,
+    log_config: LogConfig,
     request_id: String,
     request_host_name: String,
 ) -> Result<(), Error> {
@@ -128,12 +142,12 @@ pub async fn push_logs_to_datadog(
         return Ok(());
     }
 
-    let entries = collect_logs_to_be_pushed(service_name, &request_id, &request_host_name);
+    let entries = collect_logs_to_be_pushed(&log_config, &request_id, &request_host_name);
 
     const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
 
     let mut res = surf::post(URL)
-        .header("DD-API-KEY", api_key)
+        .header("DD-API-KEY", &log_config.api_key)
         .body_json(&entries)
         .map_err(Error::DatadogRequest)?
         .send()
