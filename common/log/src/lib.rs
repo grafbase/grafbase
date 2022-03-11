@@ -79,7 +79,7 @@ pub fn set_logging_enabled(enabled: bool) {
     ENABLE_LOGGING.store(enabled, std::sync::atomic::Ordering::Relaxed);
 }
 
-fn collect_logs_to_be_pushed(request_id: &str, request_host_name: &str) -> Vec<DatadogLogEntry> {
+fn collect_logs_to_be_pushed(service_name: &str, request_id: &str, request_host_name: &str) -> Vec<DatadogLogEntry> {
     #[rustfmt::skip]
     let tags = vec![
         ("request_id", request_id),
@@ -102,7 +102,7 @@ fn collect_logs_to_be_pushed(request_id: &str, request_host_name: &str) -> Vec<D
                 ddtags: tag_string.clone(),
                 hostname: request_host_name.to_owned(),
                 message: message.clone(),
-                service: "api".to_owned(),
+                service: service_name.to_owned(),
                 status: severity.to_string(),
             })
             .collect::<Vec<_>>()
@@ -118,12 +118,17 @@ fn collect_logs_to_be_pushed(request_id: &str, request_host_name: &str) -> Vec<D
     entries
 }
 
-pub async fn push_logs_to_datadog(api_key: String, request_id: String, request_host_name: String) -> Result<(), Error> {
+pub async fn push_logs_to_datadog(
+    api_key: String,
+    service_name: &'static str,
+    request_id: String,
+    request_host_name: String,
+) -> Result<(), Error> {
     if !ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
         return Ok(());
     }
 
-    let entries = collect_logs_to_be_pushed(&request_id, &request_host_name);
+    let entries = collect_logs_to_be_pushed(service_name, &request_id, &request_host_name);
 
     const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
 
