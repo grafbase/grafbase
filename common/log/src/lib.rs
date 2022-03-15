@@ -84,8 +84,8 @@ pub fn set_logging_enabled(enabled: bool) {
 pub struct LogConfig {
     pub api_key: String,
     pub service_name: &'static str,
-    pub environment: &'static str,
-    pub branch: Option<&'static str>,
+    pub environment: String,
+    pub branch: Option<String>,
 }
 
 fn collect_logs_to_be_pushed(
@@ -96,10 +96,10 @@ fn collect_logs_to_be_pushed(
     #[rustfmt::skip]
     let mut tags = vec![
         ("request_id", request_id),
-        ("environment", log_config.environment),
+        ("environment", &log_config.environment),
     ];
     if let Some(branch) = log_config.branch.as_ref() {
-        tags.push(("branch", branch));
+        tags.push(("branch", branch.as_str()));
     }
     let tag_string = tags
         .iter()
