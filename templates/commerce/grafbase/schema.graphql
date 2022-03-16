@@ -1,0 +1,58 @@
+type Address @model {
+  id: ID!
+  customer: Customer!
+  company: String
+  firstName: String!
+  lastName: String!
+  street1: String!
+  street2: String
+  city: String!
+  country: String!
+  zip: String!
+}
+
+type Cart @model {
+  id: ID!
+  customer: Customer
+  order: Order
+  shippingTotal: Float!
+  discountTotal: Float!
+  total: Float!
+}
+
+type Customer @model {
+  id: ID!
+  firstName: String!
+  lastName: String!
+  email: String!
+  phoneNumber: String
+  billingAddress: Address
+  shippingAddresses: [Address] @relation
+}
+
+type Order @model {
+  id: ID!
+  cart: Cart
+  lineItems: [LineItem] @relation
+  shippingTotal: Float!
+  discountTotal: Float!
+  total: Float!
+}
+
+type LineItem @model {
+  id: ID!
+  order: Order!
+  product: Product!
+  quantity: Int!
+}
+
+type Product @model {
+  id: ID!
+  sku: String!
+  name: String!
+  price: Float!
+  imageUrl: String!
+  description: String!
+  stock: Int!
+  brand: String
+}

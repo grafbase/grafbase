@@ -1,19 +1,14 @@
-<p align="center">
-  <a href="https://grafbase.com">
-    <img src="https://grafbase.com/favicon.png" height="96">
-    <h3 align="center">Grafbase</h3>
-  </a>
-</p>
+<a href="https://grafbase.com">
+  <img src="https://grafbase.com/favicon.png" height="96">
+  <h3>Grafbase</h3>
+</a>
 
-<p align="center">
-  The data platform for developers.
-</p>
+The data platform for developers.
 
-<p align="center">
-  <a href="https://grafbase.com/docs"><strong>Documentation</strong></a> ·
-</p>
-<br/>
+* <strong>[CLI](cli)</strong>
+* <a href="https://grafbase.com/docs"><strong>Documentation</strong></a>
+* <strong>[Templates](templates)</strong>
 
 ## Grafbase
 
-Grafbase is a platform for deploying serverless backends to the edge.
+Grafbase is a platform for serverless GraphQL backends deployed to the edge.
