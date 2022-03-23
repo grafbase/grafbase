@@ -15,9 +15,11 @@ type Cart @model {
   id: ID!
   customer: Customer
   order: Order
+  lineItems: [LineItem] @relation
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
+  currency: String!
 }
 
 type Customer @model {
@@ -37,22 +39,32 @@ type Order @model {
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
+  currency: String!
 }
 
 type LineItem @model {
   id: ID!
   order: Order!
-  product: Product!
+  variant: Variant!
   quantity: Int!
 }
 
 type Product @model {
   id: ID!
-  sku: String!
-  name: String!
-  price: Float!
+  title: String!
   imageUrl: String!
   description: String!
   stock: Int!
+  slug: String!
+  variants: [Variant] @relation
   brand: String
+}
+
+type Variant @model {
+  id: ID!
+  title: String!
+  product: Product!
+  sku: String!
+  price: Float!
+  currency: String!
 }
