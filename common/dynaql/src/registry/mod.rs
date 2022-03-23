@@ -1,0 +1,1574 @@
+mod cache_control;
+mod export_sdl;
+mod stringify_exec_doc;
+
+use std::collections::hash_map::DefaultHasher;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::hash::{Hash, Hasher};
+use std::str::FromStr;
+
+use async_graphql_value::to_value;
+use dynamodb::DynamoDBContext;
+use dynomite::AttributeValue;
+use indexmap::map::IndexMap;
+use indexmap::set::IndexSet;
+#[cfg(feature = "tracing_worker")]
+use logworker::info;
+
+pub use crate::model::__DirectiveLocation;
+use crate::model::{__Schema, __Type};
+use crate::parser::types::{
+    BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
+};
+use crate::resolver_utils::resolve_container;
+use crate::{
+    model, Any, Context, Error, InputType, OutputType, Positioned, ServerError, ServerResult,
+    SubscriptionType, Value, VisitorContext, ID,
+};
+
+pub use cache_control::CacheControl;
+
+fn strip_brackets(type_name: &str) -> Option<&str> {
+    type_name
+        .strip_prefix('[')
+        .map(|rest| &rest[..rest.len() - 1])
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum MetaTypeName<'a> {
+    List(&'a str),
+    NonNull(&'a str),
+    Named(&'a str),
+}
+
+impl<'a> std::fmt::Display for MetaTypeName<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MetaTypeName::Named(name) => write!(f, "{}", name),
+            MetaTypeName::NonNull(name) => write!(f, "{}!", name),
+            MetaTypeName::List(name) => write!(f, "[{}]", name),
+        }
+    }
+}
+
+impl<'a> MetaTypeName<'a> {
+    #[inline]
+    pub fn create(type_name: &str) -> MetaTypeName {
+        if let Some(type_name) = type_name.strip_suffix('!') {
+            MetaTypeName::NonNull(type_name)
+        } else if let Some(type_name) = strip_brackets(type_name) {
+            MetaTypeName::List(type_name)
+        } else {
+            MetaTypeName::Named(type_name)
+        }
+    }
+
+    #[inline]
+    pub fn concrete_typename(type_name: &str) -> &str {
+        match MetaTypeName::create(type_name) {
+            MetaTypeName::List(type_name) => Self::concrete_typename(type_name),
+            MetaTypeName::NonNull(type_name) => Self::concrete_typename(type_name),
+            MetaTypeName::Named(type_name) => type_name,
+        }
+    }
+
+    #[inline]
+    pub fn is_non_null(&self) -> bool {
+        matches!(self, MetaTypeName::NonNull(_))
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn unwrap_non_null(&self) -> Self {
+        match self {
+            MetaTypeName::NonNull(ty) => MetaTypeName::create(ty),
+            _ => *self,
+        }
+    }
+
+    #[inline]
+    pub fn is_subtype(&self, sub: &MetaTypeName<'_>) -> bool {
+        match (self, sub) {
+            (MetaTypeName::NonNull(super_type), MetaTypeName::NonNull(sub_type))
+            | (MetaTypeName::Named(super_type), MetaTypeName::NonNull(sub_type)) => {
+                MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type))
+            }
+            (MetaTypeName::Named(super_type), MetaTypeName::Named(sub_type)) => {
+                super_type == sub_type
+            }
+            (MetaTypeName::List(super_type), MetaTypeName::List(sub_type)) => {
+                MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type))
+            }
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_list(&self) -> bool {
+        match self {
+            MetaTypeName::List(_) => true,
+            MetaTypeName::NonNull(ty) => MetaTypeName::create(ty).is_list(),
+            MetaTypeName::Named(name) => name.ends_with(']'),
+        }
+    }
+}
+
+#[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
+pub struct MetaInputValue {
+    pub name: String,
+    pub description: Option<String>,
+    pub ty: String,
+    pub default_value: Option<String>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
+    pub visible: Option<MetaVisibleFn>,
+    pub is_secret: bool,
+}
+
+impl MetaInputValue {
+    /// We should be able to link every variables listed in the registry with the actual request.
+    fn transform_to_variables_resolved<'a>(
+        &'a self,
+        ctx: &'a Context<'a>,
+    ) -> Option<(&'a str, Value)> {
+        let variable = match self.ty.as_ref() {
+            "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, None),
+            "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
+            "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
+            "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
+            _ => None,
+        };
+
+        variable
+    }
+}
+
+type ComputeComplexityFn = fn(
+    &VisitorContext<'_>,
+    &[Positioned<VariableDefinition>],
+    &Field,
+    usize,
+) -> ServerResult<usize>;
+
+#[derive(Clone)]
+pub enum ComplexityType {
+    Const(usize),
+    Fn(ComputeComplexityFn),
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub enum Deprecation {
+    NoDeprecated,
+    Deprecated { reason: Option<String> },
+}
+
+impl Default for Deprecation {
+    fn default() -> Self {
+        Deprecation::NoDeprecated
+    }
+}
+
+impl Deprecation {
+    #[inline]
+    pub fn is_deprecated(&self) -> bool {
+        matches!(self, Deprecation::Deprecated { .. })
+    }
+
+    #[inline]
+    pub fn reason(&self) -> Option<&str> {
+        match self {
+            Deprecation::NoDeprecated => None,
+            Deprecation::Deprecated { reason } => reason.as_deref(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Resolver {
+    /// Unique id to identify Resolver.
+    pub id: Option<String>,
+    pub r#type: ResolverType,
+}
+
+/// A way to get a Variable
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+pub enum VariableResolveDefinition {
+    InputTypeName(String),
+}
+
+impl VariableResolveDefinition {
+    /// Resolve the first variable with this definition
+    fn param<'a>(&self, ctx: &'a Context<'a>) -> Option<&'a Value> {
+        match self {
+            Self::InputTypeName(name) => ctx.query_resolvers.iter().rev().find_map(|(_, _, x)| {
+                x.as_ref()
+                    .map(|y| y.iter().find(|(var_name, _)| var_name == name))
+                    .flatten()
+                    .map(|(_, x)| x)
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum ContextResolver {
+    Select {
+        /// A JsonPath
+        /// TODO: Use a jsonpath lib.
+        from: String,
+    },
+}
+
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+pub enum DynamoResolver {
+    /// A Query based on the PK and the SK
+    QueryPKSK {
+        pk: VariableResolveDefinition,
+        sk: VariableResolveDefinition,
+    },
+}
+
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum DebugResolver {
+    Value { inner: serde_json::Value },
+}
+
+#[async_trait::async_trait]
+pub trait ResolverTrait {
+    // TODO: Add Memoization
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error>;
+
+    /// When the resolver is able to be memoized, you should implement this function.
+    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        self.resolve(ctx).await
+    }
+
+    /// Compute the hash from the resolver for memoization
+    fn hash_resolver(&self) -> u64;
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for DebugResolver {
+    async fn resolve(&self, _ctx: &Context<'_>) -> Result<Value, Error> {
+        match &self {
+            Self::Value { inner } => to_value(inner).map_err(|err| Error::new(err.to_string())),
+        }
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        let mut hasher = DefaultHasher::default();
+        match &self {
+            Self::Value { inner } => format!("Debug_{}", inner),
+        }
+        .hash(&mut hasher);
+        hasher.finish()
+    }
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for DynamoResolver {
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        let dynamodb_ctx = ctx.data::<DynamoDBContext>()?;
+        match self {
+            DynamoResolver::QueryPKSK { pk, sk } => {
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "{:?}", pk.param(ctx));
+
+                let pk = match pk.param(ctx).expect("can't fail") {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let sk = match sk.param(ctx).expect("can't fail") {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let dyna = dynamodb_ctx.get_item_pk_sk(pk, sk).await?.item;
+
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "{:?}", &dyna);
+
+                #[cfg(feature = "tracing_worker")]
+                {
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "{:?}", &ctx.query_resolvers);
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                }
+
+                // TODO: We should take transformers from the last resolver
+                let transformers = ctx
+                    .query_resolvers
+                    .iter()
+                    .map(|(_, transformers, _)| transformers.as_ref());
+
+                let transformers: Vec<&Vec<Transformer>> =
+                    transformers.fold(vec![], |mut acc, cur| {
+                        if let Some(trans) = cur {
+                            acc.push(trans);
+                        }
+                        acc
+                    });
+
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "transforms {:?}", &transformers);
+
+                let result = serde_json::to_value(dyna)?;
+
+                let b = transformers
+                    .into_iter()
+                    .try_fold(result, |acc, cur| cur.transform(acc))?;
+
+                Value::from_json(b).map_err(|err| Error::new(err.to_string()))
+            }
+        }
+    }
+
+    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        let hash = self.hash_resolver();
+        if let Some(value) = ctx
+            .resolvers_cache
+            .try_read()
+            .expect("read_rw_lock_issue")
+            .get(&hash)
+        {
+            // TODO: Never works.
+            #[cfg(feature = "tracing_worker")]
+            info!("dynamodb-resolver", "Cache hit");
+            return value.clone();
+        }
+        let value = self.resolve(ctx).await;
+        ctx.resolvers_cache
+            .try_write()
+            .expect("write_rw_lock_issue")
+            .insert(hash, value.clone());
+
+        value
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        let mut hasher = DefaultHasher::default();
+        self.hash(&mut hasher);
+        hasher.finish()
+    }
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for Resolver {
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        match &self.r#type {
+            ResolverType::DebugResolver(debug) => debug.resolve_memoized(ctx).await,
+            ResolverType::DynamoResolver(dynamodb) => dynamodb.resolve_memoized(ctx).await,
+            _ => unimplemented!(),
+        }
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        match &self.r#type {
+            ResolverType::DebugResolver(debug) => debug.hash_resolver(),
+            ResolverType::DynamoResolver(dynamodb) => dynamodb.hash_resolver(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+/// Resolvers describe the way this Data should be resolved
+/// Describe the transport used.
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum ResolverType {
+    ContextResolver(ContextResolver),
+    DynamoResolver(DynamoResolver),
+    DebugResolver(DebugResolver),
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum JSONFunction {
+    ExtractCompositeID,
+}
+
+#[async_trait::async_trait]
+pub trait TransformerTrait {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error>;
+}
+
+fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
+    let AttributeValue {
+        bool,
+        b,
+        l,
+        m,
+        n,
+        s,
+        bs,
+        ns,
+        ss,
+        null,
+    } = value;
+
+    if let Some(bool_value) = bool {
+        return serde_json::Value::Bool(bool_value);
+    }
+
+    if let Some(list) = l {
+        return serde_json::Value::Array(list.into_iter().map(attribute_to_value).collect());
+    }
+
+    if let Some(_object) = m {
+        unimplemented!("not yet");
+    }
+
+    if let Some(number) = n {
+        return serde_json::Value::Number(
+            serde_json::Number::from_str(&number).expect("can't fail"),
+        );
+    }
+
+    if let Some(str_value) = s {
+        return serde_json::Value::String(str_value);
+    }
+
+    if let Some(_vec_bytes) = bs {
+        unimplemented!("not yet");
+    }
+
+    if let Some(number_set) = ns {
+        return serde_json::Value::Array(
+            number_set
+                .into_iter()
+                .map(|str_value| {
+                    serde_json::Value::Number(
+                        serde_json::Number::from_str(&str_value).expect("can't fail"),
+                    )
+                })
+                .collect(),
+        );
+    }
+
+    if let Some(string_set) = ss {
+        return serde_json::Value::Array(
+            string_set
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
+        );
+    }
+
+    if let Some(_null) = null {
+        return serde_json::Value::Null;
+    }
+
+    if let Some(_bytes) = b {
+        unimplemented!("not yet");
+    }
+
+    serde_json::Value::Null
+}
+
+impl TransformerTrait for Transformer {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        match &self {
+            Self::Functions { .. } => unimplemented!(),
+            Self::JSONSelect { .. } => unimplemented!(),
+            Self::DynamoSelect { property } => {
+                let cast: Option<HashMap<String, AttributeValue>> = serde_json::from_value(value)?;
+
+                let result = cast
+                    .map(|mut x| x.remove(property))
+                    .flatten()
+                    .map(attribute_to_value)
+                    .unwrap_or_else(|| serde_json::Value::Null);
+
+                Ok(result)
+            }
+        }
+    }
+}
+
+/// Merge JSON together
+fn merge(a: &mut serde_json::Value, b: serde_json::Value) {
+    match (a, b) {
+        (a @ &mut serde_json::Value::Object(_), serde_json::Value::Object(b)) => {
+            let a = a.as_object_mut().expect("can't fail");
+            for (k, v) in b {
+                merge(a.entry(k).or_insert(serde_json::Value::Null), v);
+            }
+        }
+        (a, b) => *a = b,
+    }
+}
+
+impl TransformerTrait for Vec<Transformer> {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        self.iter()
+            .map(|x| x.transform(value.clone()))
+            .collect::<Result<Vec<serde_json::Value>, Error>>()
+            .map(|x| {
+                x.into_iter().fold(serde_json::json!({}), |mut acc, cur| {
+                    merge(&mut acc, cur);
+                    acc
+                })
+            })
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum Transformer {
+    Functions {
+        /// Functions to be applied to a Value.
+        functions: Vec<JSONFunction>,
+    },
+    DynamoSelect {
+        /// The key where this select
+        property: String,
+    },
+    JSONSelect {
+        /// The key where this select
+        property: String,
+        /// A JsonPath
+        /// TODO: Use a jsonpath lib.
+        from: String,
+        /// Functions to be applied to a Value.
+        functions: Vec<JSONFunction>,
+    },
+}
+
+#[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
+pub struct MetaField {
+    pub name: String,
+    pub description: Option<String>,
+    pub args: IndexMap<String, MetaInputValue>,
+    pub ty: String,
+    pub deprecation: Deprecation,
+    pub cache_control: CacheControl,
+    pub external: bool,
+    pub requires: Option<String>,
+    pub provides: Option<String>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
+    pub visible: Option<MetaVisibleFn>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
+    pub compute_complexity: Option<ComplexityType>,
+    pub resolve: Option<Resolver>,
+    /// Ordered transformations to be applied after a Resolver has been called.
+    /// They are applied Serially and merged at the end.
+    pub transforms: Option<Vec<Transformer>>,
+}
+
+impl MetaField {
+    /// The whole logic to link resolver and transformers for each fields.
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
+        let registry = &ctx.schema_env.registry;
+
+        // For every arguments, we should try to have his param value and depending on the native
+        // Scalar, associate him to a primitive.
+        let variables = Some(
+            self.args
+                .values()
+                .map(|x| x.transform_to_variables_resolved(ctx).expect("We must be able to transform any types into transformed variable, if we aren't some primitives aren't managed"))
+                .collect(),
+        );
+
+        #[cfg(feature = "tracing_worker")]
+        {
+            info!("field", "Field {:?}", &ctx.query_resolvers);
+        }
+
+        let ctx_obj = ctx.with_selection_set(
+            &ctx.item.node.selection_set,
+            vec![(&self.resolve, &self.transforms, &variables)],
+        );
+
+        match &ctx.item.node.selection_set.node.items.is_empty() {
+            true => {
+                // Take the last available resolver
+                let last_resolvers = ctx_obj
+                    .query_resolvers
+                    .iter()
+                    .rev()
+                    .find_map(|(x, _, _)| x.as_ref())
+                    .expect("should have a resolver");
+
+                let result = last_resolvers
+                    .resolve(&ctx.clone().add_resolvers(vec![(
+                        &self.resolve,
+                        &self.transforms,
+                        &variables,
+                    )]))
+                    .await
+                    .map_err(|err| err.into_server_error(ctx.item.pos));
+
+                match result {
+                    Ok(result) => {
+                        if self.ty.ends_with('!') && result == Value::Null {
+                            Err(ServerError::new(
+                                format!(
+                                    "An error happened while fetching {:?}",
+                                    ctx.item.node.name
+                                ),
+                                Some(ctx.item.pos),
+                            ))
+                        } else {
+                            Ok(result)
+                        }
+                    }
+                    Err(err) => {
+                        if self.ty.ends_with('!') {
+                            Err(err)
+                        } else {
+                            ctx.add_error(err);
+                            Ok(Value::Null)
+                        }
+                    }
+                }
+            }
+            false => {
+                let container_type = registry.types.get(&self.ty).ok_or_else(|| {
+                    ServerError::new("An internal error happened", Some(ctx.item.pos))
+                })?;
+
+                match resolve_container(&ctx_obj, container_type).await {
+                    result @ Ok(_) => result,
+                    Err(err) => {
+                        if self.ty.ends_with('!') {
+                            Err(err)
+                        } else {
+                            ctx.add_error(err);
+                            Ok(Value::Null)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct MetaEnumValue {
+    pub name: String,
+    pub description: Option<String>,
+    pub deprecation: Deprecation,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
+    pub visible: Option<MetaVisibleFn>,
+}
+
+type MetaVisibleFn = fn(&Context<'_>) -> bool;
+
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub enum MetaType {
+    Scalar {
+        name: String,
+        description: Option<String>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        is_valid: Option<fn(value: &Value) -> bool>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        specified_by_url: Option<String>,
+    },
+    Object {
+        name: String,
+        description: Option<String>,
+        fields: IndexMap<String, MetaField>,
+        cache_control: CacheControl,
+        extends: bool,
+        keys: Option<Vec<String>>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        is_subscription: bool,
+        rust_typename: String,
+    },
+    Interface {
+        name: String,
+        description: Option<String>,
+        fields: IndexMap<String, MetaField>,
+        possible_types: IndexSet<String>,
+        extends: bool,
+        keys: Option<Vec<String>>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        rust_typename: String,
+    },
+    Union {
+        name: String,
+        description: Option<String>,
+        possible_types: IndexSet<String>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        rust_typename: String,
+    },
+    Enum {
+        name: String,
+        description: Option<String>,
+        enum_values: IndexMap<String, MetaEnumValue>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        rust_typename: String,
+    },
+    InputObject {
+        name: String,
+        description: Option<String>,
+        input_fields: IndexMap<String, MetaInputValue>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        visible: Option<MetaVisibleFn>,
+        rust_typename: String,
+        oneof: bool,
+    },
+}
+
+impl MetaType {
+    #[inline]
+    pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
+        self.fields().and_then(|fields| fields.get(name))
+    }
+
+    #[inline]
+    pub fn fields(&self) -> Option<&IndexMap<String, MetaField>> {
+        match self {
+            MetaType::Object { fields, .. } => Some(&fields),
+            MetaType::Interface { fields, .. } => Some(&fields),
+            _ => None,
+        }
+    }
+
+    #[inline]
+    pub fn is_visible(&self, ctx: &Context<'_>) -> bool {
+        let visible = match self {
+            MetaType::Scalar { visible, .. } => visible,
+            MetaType::Object { visible, .. } => visible,
+            MetaType::Interface { visible, .. } => visible,
+            MetaType::Union { visible, .. } => visible,
+            MetaType::Enum { visible, .. } => visible,
+            MetaType::InputObject { visible, .. } => visible,
+        };
+        is_visible(ctx, visible)
+    }
+
+    #[inline]
+    pub fn name(&self) -> &str {
+        match self {
+            MetaType::Scalar { name, .. } => &name,
+            MetaType::Object { name, .. } => name,
+            MetaType::Interface { name, .. } => name,
+            MetaType::Union { name, .. } => name,
+            MetaType::Enum { name, .. } => name,
+            MetaType::InputObject { name, .. } => name,
+        }
+    }
+
+    #[inline]
+    pub fn is_composite(&self) -> bool {
+        matches!(
+            self,
+            MetaType::Object { .. } | MetaType::Interface { .. } | MetaType::Union { .. }
+        )
+    }
+
+    #[inline]
+    pub fn is_abstract(&self) -> bool {
+        matches!(self, MetaType::Interface { .. } | MetaType::Union { .. })
+    }
+
+    #[inline]
+    pub fn is_leaf(&self) -> bool {
+        matches!(self, MetaType::Enum { .. } | MetaType::Scalar { .. })
+    }
+
+    #[inline]
+    pub fn is_input(&self) -> bool {
+        matches!(
+            self,
+            MetaType::Enum { .. } | MetaType::Scalar { .. } | MetaType::InputObject { .. }
+        )
+    }
+
+    #[inline]
+    pub fn is_possible_type(&self, type_name: &str) -> bool {
+        match self {
+            MetaType::Interface { possible_types, .. } => possible_types.contains(type_name),
+            MetaType::Union { possible_types, .. } => possible_types.contains(type_name),
+            MetaType::Object { name, .. } => name == type_name,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn possible_types(&self) -> Option<&IndexSet<String>> {
+        match self {
+            MetaType::Interface { possible_types, .. } => Some(possible_types),
+            MetaType::Union { possible_types, .. } => Some(possible_types),
+            _ => None,
+        }
+    }
+
+    pub fn type_overlap(&self, ty: &MetaType) -> bool {
+        if std::ptr::eq(self, ty) {
+            return true;
+        }
+
+        match (self.is_abstract(), ty.is_abstract()) {
+            (true, true) => self
+                .possible_types()
+                .iter()
+                .copied()
+                .flatten()
+                .any(|type_name| ty.is_possible_type(type_name)),
+            (true, false) => self.is_possible_type(ty.name()),
+            (false, true) => ty.is_possible_type(self.name()),
+            (false, false) => false,
+        }
+    }
+
+    pub fn rust_typename(&self) -> Option<&String> {
+        match self {
+            MetaType::Scalar { .. } => None,
+            MetaType::Object { rust_typename, .. } => Some(rust_typename),
+            MetaType::Interface { rust_typename, .. } => Some(rust_typename),
+            MetaType::Union { rust_typename, .. } => Some(rust_typename),
+            MetaType::Enum { rust_typename, .. } => Some(rust_typename),
+            MetaType::InputObject { rust_typename, .. } => Some(rust_typename),
+        }
+    }
+}
+
+#[derive(derivative::Derivative, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub struct MetaDirective {
+    pub name: String,
+    pub description: Option<String>,
+    pub locations: Vec<model::__DirectiveLocation>,
+    pub args: IndexMap<String, MetaInputValue>,
+    pub is_repeatable: bool,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
+    pub visible: Option<MetaVisibleFn>,
+}
+
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Registry {
+    pub types: BTreeMap<String, MetaType>,
+    pub directives: HashMap<String, MetaDirective>,
+    pub implements: HashMap<String, HashSet<String>>,
+    pub query_type: String,
+    pub mutation_type: Option<String>,
+    pub subscription_type: Option<String>,
+    pub disable_introspection: bool,
+    pub enable_federation: bool,
+    pub federation_subscription: bool,
+}
+
+impl Registry {
+    pub fn query_root(&self) -> &MetaType {
+        self.types.get(&self.query_type).unwrap()
+    }
+
+    pub fn mutation_root(&self) -> &MetaType {
+        // TODO: Fix this.
+        self.types
+            .get(self.mutation_type.as_deref().unwrap())
+            .unwrap()
+    }
+
+    /// Resolve fields based on where you are inside
+    pub async fn resolve_field(
+        &self,
+        ctx: &Context<'_>,
+        root: &MetaType,
+    ) -> ServerResult<Option<Value>> {
+        // If QueryRoot -> root then
+        let _registry = &ctx.schema_env.registry;
+
+        if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
+            if ctx.item.node.name.node == "__schema" {
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
+                return OutputType::resolve(
+                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
+                    &ctx_obj,
+                    ctx.item,
+                )
+                .await
+                .map(Some);
+            } else if ctx.item.node.name.node == "__type" {
+                let (_, type_name) = ctx.param_value::<String>("name", None)?;
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
+                return OutputType::resolve(
+                    &ctx.schema_env
+                        .registry
+                        .types
+                        .get(&type_name)
+                        .filter(|_| visible_types.contains(type_name.as_str()))
+                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
+                    &ctx_obj,
+                    ctx.item,
+                )
+                .await
+                .map(Some);
+            }
+        }
+
+        // TODO: Federation
+
+        let field_name = &ctx.item.node.name.node;
+
+        // let ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
+        if let Some(field) = root.field_by_name(field_name.as_str()) {
+            // let pos = ctx.item.pos;
+            let resolver = async move { field.resolve(&ctx).await };
+
+            let obj = resolver.await.map_err(|err| ctx.set_error_path(err))?;
+            // let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+
+            return Ok(Some(obj));
+
+            // If it's a primitive or a scalar, let's return it, or we need to redo a pass.
+        }
+        Ok(None)
+        // let ret = resolver_utils::resolve_container(&ctx).await.map(Some);
+        // ret
+    }
+
+    /// Introspection type name
+    ///
+    /// Is the return value of field `__typename`, the interface and union should return the current type, and the others return `Type::type_name`.
+    pub fn introspection_type_name<'a>(&self, node: &'a MetaType) -> &'a str {
+        node.name()
+    }
+}
+
+impl Registry {
+    pub fn create_input_type<T: InputType + ?Sized, F: FnMut(&mut Registry) -> MetaType>(
+        &mut self,
+        mut f: F,
+    ) -> String {
+        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        T::qualified_type_name()
+    }
+
+    pub fn create_output_type<T: OutputType + ?Sized, F: FnMut(&mut Registry) -> MetaType>(
+        &mut self,
+        mut f: F,
+    ) -> String {
+        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        T::qualified_type_name()
+    }
+
+    pub fn create_subscription_type<
+        T: SubscriptionType + ?Sized,
+        F: FnMut(&mut Registry) -> MetaType,
+    >(
+        &mut self,
+        mut f: F,
+    ) -> String {
+        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        T::qualified_type_name()
+    }
+
+    pub fn create_type<F: FnMut(&mut Registry) -> MetaType>(
+        &mut self,
+        f: &mut F,
+        name: &str,
+        rust_typename: &str,
+    ) {
+        match self.types.get(name) {
+            Some(ty) => {
+                if let Some(prev_typename) = ty.rust_typename() {
+                    if prev_typename.ne("__fake_type__") && prev_typename.ne(rust_typename) {
+                        panic!(
+                            "`{}` and `{}` have the same GraphQL name `{}`",
+                            prev_typename, rust_typename, name,
+                        );
+                    }
+                }
+            }
+            None => {
+                // Inserting a fake type before calling the function allows recursive types to exist.
+                self.types.insert(
+                    name.to_string(),
+                    MetaType::Object {
+                        name: "".to_string(),
+                        description: None,
+                        fields: Default::default(),
+                        cache_control: Default::default(),
+                        extends: false,
+                        keys: None,
+                        visible: None,
+                        is_subscription: false,
+                        rust_typename: "__fake_type__".to_string(),
+                    },
+                );
+                let ty = f(self);
+                *self.types.get_mut(&*name).unwrap() = ty;
+            }
+        }
+    }
+
+    pub fn create_fake_output_type<T: OutputType>(&mut self) -> MetaType {
+        T::create_type_info(self);
+        self.types
+            .get(&*T::type_name())
+            .cloned()
+            .expect("You definitely encountered a bug!")
+    }
+
+    pub fn create_fake_input_type<T: InputType>(&mut self) -> MetaType {
+        T::create_type_info(self);
+        self.types
+            .get(&*T::type_name())
+            .cloned()
+            .expect("You definitely encountered a bug!")
+    }
+
+    pub fn create_fake_subscription_type<T: SubscriptionType>(&mut self) -> MetaType {
+        T::create_type_info(self);
+        self.types
+            .get(&*T::type_name())
+            .cloned()
+            .expect("You definitely encountered a bug!")
+    }
+
+    pub fn add_directive(&mut self, directive: MetaDirective) {
+        self.directives
+            .insert(directive.name.to_string(), directive);
+    }
+
+    pub fn add_implements(&mut self, ty: &str, interface: &str) {
+        self.implements
+            .entry(ty.to_string())
+            .and_modify(|interfaces| {
+                interfaces.insert(interface.to_string());
+            })
+            .or_insert({
+                let mut interfaces = HashSet::new();
+                interfaces.insert(interface.to_string());
+                interfaces
+            });
+    }
+
+    pub fn add_keys(&mut self, ty: &str, keys: &str) {
+        let all_keys = match self.types.get_mut(ty) {
+            Some(MetaType::Object { keys: all_keys, .. }) => all_keys,
+            Some(MetaType::Interface { keys: all_keys, .. }) => all_keys,
+            _ => return,
+        };
+        if let Some(all_keys) = all_keys {
+            all_keys.push(keys.to_string());
+        } else {
+            *all_keys = Some(vec![keys.to_string()]);
+        }
+    }
+
+    pub fn concrete_type_by_name(&self, type_name: &str) -> Option<&MetaType> {
+        self.types.get(MetaTypeName::concrete_typename(type_name))
+    }
+
+    pub fn concrete_type_by_parsed_type(&self, query_type: &ParsedType) -> Option<&MetaType> {
+        match &query_type.base {
+            ParsedBaseType::Named(name) => self.types.get(name.as_str()),
+            ParsedBaseType::List(ty) => self.concrete_type_by_parsed_type(ty),
+        }
+    }
+
+    pub(crate) fn has_entities(&self) -> bool {
+        self.types.values().any(|ty| match ty {
+            MetaType::Object {
+                keys: Some(keys), ..
+            }
+            | MetaType::Interface {
+                keys: Some(keys), ..
+            } => !keys.is_empty(),
+            _ => false,
+        })
+    }
+
+    /// Each type annotated with @key should be added to the _Entity union.
+    /// If no types are annotated with the key directive, then the _Entity union
+    /// and Query._entities field should be removed from the schema.
+    ///
+    /// [Reference](https://www.apollographql.com/docs/federation/federation-spec/#resolve-requests-for-entities).
+    fn create_entity_type_and_root_field(&mut self) {
+        let possible_types: IndexSet<String> = self
+            .types
+            .values()
+            .filter_map(|ty| match ty {
+                MetaType::Object {
+                    name,
+                    keys: Some(keys),
+                    ..
+                } if !keys.is_empty() => Some(name.clone()),
+                MetaType::Interface {
+                    name,
+                    keys: Some(keys),
+                    ..
+                } if !keys.is_empty() => Some(name.clone()),
+                _ => None,
+            })
+            .collect();
+
+        if !possible_types.is_empty() {
+            self.types.insert(
+                "_Entity".to_string(),
+                MetaType::Union {
+                    name: "_Entity".to_string(),
+                    description: None,
+                    possible_types,
+                    visible: None,
+                    rust_typename: "async_graphql::federation::Entity".to_string(),
+                },
+            );
+
+            let query_root = self.types.get_mut(&self.query_type).unwrap();
+            if let MetaType::Object { fields, .. } = query_root {
+                fields.insert(
+                    "_service".to_string(),
+                    MetaField {
+                        name: "_service".to_string(),
+                        description: None,
+                        args: Default::default(),
+                        ty: "_Service!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
+                    },
+                );
+
+                fields.insert(
+                    "_entities".to_string(),
+                    MetaField {
+                        name: "_entities".to_string(),
+                        description: None,
+                        args: {
+                            let mut args = IndexMap::new();
+                            args.insert(
+                                "representations".to_string(),
+                                MetaInputValue {
+                                    name: "representations".to_string(),
+                                    description: None,
+                                    ty: "[_Any!]!".to_string(),
+                                    default_value: None,
+                                    visible: None,
+                                    is_secret: false,
+                                },
+                            );
+                            args
+                        },
+                        ty: "[_Entity]!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
+                    },
+                );
+            }
+        }
+    }
+
+    pub(crate) fn create_federation_types(&mut self) {
+        <Any as InputType>::create_type_info(self);
+
+        self.types.insert(
+            "_Service".to_string(),
+            MetaType::Object {
+                name: "_Service".to_string(),
+                description: None,
+                fields: {
+                    let mut fields = IndexMap::new();
+                    fields.insert(
+                        "sdl".to_string(),
+                        MetaField {
+                            name: "sdl".to_string(),
+                            description: None,
+                            args: Default::default(),
+                            ty: "String".to_string(),
+                            deprecation: Default::default(),
+                            cache_control: Default::default(),
+                            external: false,
+                            requires: None,
+                            provides: None,
+                            visible: None,
+                            compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
+                        },
+                    );
+                    fields
+                },
+                cache_control: Default::default(),
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                rust_typename: "async_graphql::federation::Service".to_string(),
+            },
+        );
+
+        self.create_entity_type_and_root_field();
+    }
+
+    pub fn names(&self) -> Vec<String> {
+        let mut names = HashSet::new();
+
+        for d in self.directives.values() {
+            names.insert(d.name.to_string());
+            names.extend(d.args.values().map(|arg| arg.name.to_string()));
+        }
+
+        for ty in self.types.values() {
+            match ty {
+                MetaType::Scalar { name, .. } | MetaType::Union { name, .. } => {
+                    names.insert(name.clone());
+                }
+                MetaType::Object { name, fields, .. }
+                | MetaType::Interface { name, fields, .. } => {
+                    names.insert(name.clone());
+                    names.extend(
+                        fields
+                            .values()
+                            .map(|field| {
+                                std::iter::once(field.name.clone())
+                                    .chain(field.args.values().map(|arg| arg.name.to_string()))
+                            })
+                            .flatten(),
+                    );
+                }
+                MetaType::Enum {
+                    name, enum_values, ..
+                } => {
+                    names.insert(name.clone());
+                    names.extend(enum_values.values().map(|value| value.name.to_string()));
+                }
+                MetaType::InputObject {
+                    name, input_fields, ..
+                } => {
+                    names.insert(name.clone());
+                    names.extend(input_fields.values().map(|field| field.name.to_string()));
+                }
+            }
+        }
+
+        names.into_iter().collect()
+    }
+
+    pub fn set_description(&mut self, name: &str, desc: &'static str) {
+        match self.types.get_mut(name) {
+            Some(MetaType::Scalar { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Object { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Interface { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Union { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Enum { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::InputObject { description, .. }) => {
+                *description = Some(desc.to_string())
+            }
+            None => {}
+        }
+    }
+
+    pub fn remove_unused_types(&mut self) {
+        let mut used_types = BTreeSet::new();
+        let mut unused_types = BTreeSet::new();
+
+        fn traverse_field<'a>(
+            types: &'a BTreeMap<String, MetaType>,
+            used_types: &mut BTreeSet<&'a str>,
+            field: &'a MetaField,
+        ) {
+            traverse_type(
+                types,
+                used_types,
+                MetaTypeName::concrete_typename(&field.ty),
+            );
+            for arg in field.args.values() {
+                traverse_input_value(types, used_types, arg);
+            }
+        }
+
+        fn traverse_input_value<'a>(
+            types: &'a BTreeMap<String, MetaType>,
+            used_types: &mut BTreeSet<&'a str>,
+            input_value: &'a MetaInputValue,
+        ) {
+            traverse_type(
+                types,
+                used_types,
+                MetaTypeName::concrete_typename(&input_value.ty),
+            );
+        }
+
+        fn traverse_type<'a>(
+            types: &'a BTreeMap<String, MetaType>,
+            used_types: &mut BTreeSet<&'a str>,
+            type_name: &'a str,
+        ) {
+            if used_types.contains(type_name) {
+                return;
+            }
+
+            if let Some(ty) = types.get(type_name) {
+                used_types.insert(type_name);
+                match ty {
+                    MetaType::Object { fields, .. } => {
+                        for field in fields.values() {
+                            traverse_field(types, used_types, field);
+                        }
+                    }
+                    MetaType::Interface {
+                        fields,
+                        possible_types,
+                        ..
+                    } => {
+                        for field in fields.values() {
+                            traverse_field(types, used_types, field);
+                        }
+                        for type_name in possible_types.iter() {
+                            traverse_type(types, used_types, type_name);
+                        }
+                    }
+                    MetaType::Union { possible_types, .. } => {
+                        for type_name in possible_types.iter() {
+                            traverse_type(types, used_types, type_name);
+                        }
+                    }
+                    MetaType::InputObject { input_fields, .. } => {
+                        for field in input_fields.values() {
+                            traverse_input_value(types, used_types, field);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        for directive in self.directives.values() {
+            for arg in directive.args.values() {
+                traverse_input_value(&self.types, &mut used_types, arg);
+            }
+        }
+
+        for type_name in Some(&self.query_type)
+            .into_iter()
+            .chain(self.mutation_type.iter())
+            .chain(self.subscription_type.iter())
+        {
+            traverse_type(&self.types, &mut used_types, type_name);
+        }
+
+        for ty in self.types.values().filter(|ty| match ty {
+            MetaType::Object {
+                keys: Some(keys), ..
+            }
+            | MetaType::Interface {
+                keys: Some(keys), ..
+            } => !keys.is_empty(),
+            _ => false,
+        }) {
+            traverse_type(&self.types, &mut used_types, ty.name());
+        }
+
+        for ty in self.types.values() {
+            let name = ty.name();
+            if !is_system_type(name) && !used_types.contains(name) {
+                unused_types.insert(name.to_string());
+            }
+        }
+
+        for type_name in unused_types {
+            self.types.remove(&type_name);
+        }
+    }
+
+    pub fn find_visible_types(&self, ctx: &Context<'_>) -> HashSet<&str> {
+        let mut visible_types = HashSet::new();
+
+        fn traverse_field<'a>(
+            ctx: &Context<'_>,
+            types: &'a BTreeMap<String, MetaType>,
+            visible_types: &mut HashSet<&'a str>,
+            field: &'a MetaField,
+        ) {
+            if !is_visible(ctx, &field.visible) {
+                return;
+            }
+
+            traverse_type(
+                ctx,
+                types,
+                visible_types,
+                MetaTypeName::concrete_typename(&field.ty),
+            );
+            for arg in field.args.values() {
+                traverse_input_value(ctx, types, visible_types, arg);
+            }
+        }
+
+        fn traverse_input_value<'a>(
+            ctx: &Context<'_>,
+            types: &'a BTreeMap<String, MetaType>,
+            visible_types: &mut HashSet<&'a str>,
+            input_value: &'a MetaInputValue,
+        ) {
+            if !is_visible(ctx, &input_value.visible) {
+                return;
+            }
+
+            traverse_type(
+                ctx,
+                types,
+                visible_types,
+                MetaTypeName::concrete_typename(&input_value.ty),
+            );
+        }
+
+        fn traverse_type<'a>(
+            ctx: &Context<'_>,
+            types: &'a BTreeMap<String, MetaType>,
+            visible_types: &mut HashSet<&'a str>,
+            type_name: &'a str,
+        ) {
+            if visible_types.contains(type_name) {
+                return;
+            }
+
+            if let Some(ty) = types.get(type_name) {
+                if !ty.is_visible(ctx) {
+                    return;
+                }
+
+                visible_types.insert(type_name);
+                match ty {
+                    MetaType::Object { fields, .. } => {
+                        for field in fields.values() {
+                            traverse_field(ctx, types, visible_types, field);
+                        }
+                    }
+                    MetaType::Interface {
+                        fields,
+                        possible_types,
+                        ..
+                    } => {
+                        for field in fields.values() {
+                            traverse_field(ctx, types, visible_types, field);
+                        }
+                        for type_name in possible_types.iter() {
+                            traverse_type(ctx, types, visible_types, type_name);
+                        }
+                    }
+                    MetaType::Union { possible_types, .. } => {
+                        for type_name in possible_types.iter() {
+                            traverse_type(ctx, types, visible_types, type_name);
+                        }
+                    }
+                    MetaType::InputObject { input_fields, .. } => {
+                        for field in input_fields.values() {
+                            traverse_input_value(ctx, types, visible_types, field);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+
+        for directive in self.directives.values() {
+            if is_visible(ctx, &directive.visible) {
+                for arg in directive.args.values() {
+                    traverse_input_value(ctx, &self.types, &mut visible_types, arg);
+                }
+            }
+        }
+
+        for type_name in Some(&self.query_type)
+            .into_iter()
+            .chain(self.mutation_type.iter())
+            .chain(self.subscription_type.iter())
+        {
+            traverse_type(ctx, &self.types, &mut visible_types, type_name);
+        }
+
+        for ty in self.types.values().filter(|ty| match ty {
+            MetaType::Object {
+                keys: Some(keys), ..
+            }
+            | MetaType::Interface {
+                keys: Some(keys), ..
+            } => !keys.is_empty(),
+            _ => false,
+        }) {
+            traverse_type(ctx, &self.types, &mut visible_types, ty.name());
+        }
+
+        for ty in self.types.values() {
+            if let MetaType::Interface { possible_types, .. } = ty {
+                if ty.is_visible(ctx) && !visible_types.contains(ty.name()) {
+                    for type_name in possible_types.iter() {
+                        if visible_types.contains(type_name.as_str()) {
+                            traverse_type(ctx, &self.types, &mut visible_types, ty.name());
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        self.types
+            .values()
+            .filter_map(|ty| {
+                let name = ty.name();
+                if is_system_type(name) || visible_types.contains(name) {
+                    Some(name)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+}
+
+pub(crate) fn is_visible(ctx: &Context<'_>, visible: &Option<MetaVisibleFn>) -> bool {
+    match visible {
+        Some(f) => f(ctx),
+        None => true,
+    }
+}
+
+fn is_system_type(name: &str) -> bool {
+    if name.starts_with("__") {
+        return true;
+    }
+
+    name == "Boolean" || name == "Int" || name == "Float" || name == "String" || name == "ID"
+}
