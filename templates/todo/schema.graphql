@@ -1,0 +1,11 @@
+type List @model {
+  id: ID!
+  title: String!
+  items: [Item]
+}
+
+type Item @model {
+  id: ID!
+  title: String!
+  description: String!
+}
