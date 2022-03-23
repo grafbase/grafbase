@@ -1,11 +1,9 @@
 use quick_error::quick_error;
-#[cfg(feature = "with-worker")]
-pub use worker;
-
 // FIXME: To keep Clippy happy.
 pub use log_;
 
 use std::sync::atomic::AtomicBool;
+pub use worker;
 
 quick_error! {
     #[derive(Debug)]
@@ -38,7 +36,6 @@ thread_local! {
 macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
         $crate::worker::console_debug!("{}", message);
         if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries

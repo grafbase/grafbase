@@ -16,9 +16,6 @@ rusoto_dynamodb = "0.47"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 
-[features]
-with-log = ["log/with-worker"]
-
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
 
