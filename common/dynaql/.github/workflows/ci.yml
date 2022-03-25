@@ -1,0 +1,128 @@
+name: CI
+
+on: [push, workflow_dispatch]
+
+permissions:
+  # Allow checks read
+  checks: read
+  # Allow repo checkout
+  contents: write
+
+env:
+  CARGO_INCREMENTAL: 0
+  CARGO_TERM_COLOR: always
+  RUST_VERSION: 1.59
+
+concurrency:
+  group: ${{ github.ref_name }}
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.API_DEPLOY_KEY }}
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
+        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
+        # Once it does, we should be able to remove the `with` block entirely.
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.API_DEPLOY_KEY }}
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
+        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
+        # Once it does, we should be able to remove the `with` block entirely.
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          components: rustfmt, clippy
+          override: true
+
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+
+      - name: Check formatting of Rust code
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+      - name: Lint
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.API_DEPLOY_KEY }}
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
+        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
+        # Once it does, we should be able to remove the `with` block entirely.
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo
+            target
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test

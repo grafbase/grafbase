@@ -14,7 +14,7 @@ command = ["cargo", "check", "--color", "always", "--all-features", "--package",
 need_stdout = false
 
 [jobs.check-all]
-command = ["cargo", "check", "--all-targets", "--color", "always"]
+command = ["cargo", "check", "--all-targets", "--color", "always", "--all"]
 need_stdout = false
 watch = ["tests", "benches", "examples"]
 

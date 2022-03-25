@@ -1,0 +1,26 @@
+name: Pull request assignee
+
+on:
+  pull_request:
+    types: [assigned, unassigned, synchronize]
+
+jobs:
+  assignee:
+    name: 'check assignee'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check if there is at least one assignee
+      uses: actions/github-script@v2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { data: pull } = await github.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number,
+          });
+          if (pull.assignees.length > 0) {
+            return;
+          }
+          throw new Error('Should have at least one assignee');
