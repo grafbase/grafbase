@@ -2,6 +2,9 @@ use quick_error::quick_error;
 #[cfg(feature = "with-worker")]
 pub use worker;
 
+// FIXME: To keep Clippy happy.
+pub use log_;
+
 use std::sync::atomic::AtomicBool;
 
 quick_error! {
@@ -48,22 +51,25 @@ macro_rules! log {
 
 #[macro_export]
 macro_rules! debug {
-    ($($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Debug, $($t)*);
+    ($request_id:expr, $($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Debug, $request_id, $($t)*);
+        $crate::log_::debug!($($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! info {
-    ($($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Info, $($t)*);
+    ($request_id:expr, $($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Info, $request_id, $($t)*);
+        $crate::log_::info!($($t)*);
     } }
 }
 
 #[macro_export]
 macro_rules! error {
-    ($($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Error, $($t)*);
+    ($request_id:expr, $($t:tt)*) => { {
+        $crate::log!($crate::LogSeverity::Error, $request_id, $($t)*);
+        $crate::log_::error!($($t)*);
     } }
 }
 
