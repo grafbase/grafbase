@@ -6,7 +6,7 @@ type declaration as the GraphQL type description, you can use that derived macro
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 /// This is MyObj

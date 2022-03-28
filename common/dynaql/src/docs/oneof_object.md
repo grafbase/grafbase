@@ -22,7 +22,7 @@ Define a GraphQL oneof input object
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(OneofObject)]

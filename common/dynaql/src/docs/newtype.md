@@ -16,7 +16,7 @@ It also implements `From<InnerType>` and `Into<InnerType>`.
 
 ## Use the original scalar name
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(NewType)]
@@ -72,7 +72,7 @@ assert_eq!(res, value!({
 
 ## Define a new scalar
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 /// Widget NewType

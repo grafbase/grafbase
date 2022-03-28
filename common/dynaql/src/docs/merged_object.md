@@ -15,7 +15,7 @@ Define a merged object with multiple object types.
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(SimpleObject)]

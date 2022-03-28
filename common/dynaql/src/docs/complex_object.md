@@ -53,7 +53,7 @@ some simple fields, and use the `ComplexObject` macro to define some other field
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(SimpleObject)]

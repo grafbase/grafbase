@@ -24,7 +24,7 @@ Define a GraphQL enum
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]

@@ -13,7 +13,7 @@ Define a merged subscription with multiple subscription types.
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 use futures_util::stream::Stream;
 
