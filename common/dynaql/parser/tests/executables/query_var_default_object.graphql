@@ -1,3 +1,0 @@
-query Foo($site: Site = {url: null}) {
-  field
-}

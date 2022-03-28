@@ -1,3 +1,0 @@
-query {
-  node(id: 1, obj: {key1: 123, key2: 456})
-}

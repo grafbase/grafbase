@@ -1,2 +1,0 @@
-"This is the best scalar type"
-scalar BestType @perfectness(value: 100500)

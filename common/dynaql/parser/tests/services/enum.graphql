@@ -1,4 +1,0 @@
-enum Site {
-  DESKTOP
-  MOBILE
-}

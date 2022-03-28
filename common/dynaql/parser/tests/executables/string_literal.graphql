@@ -1,3 +1,0 @@
-query {
-  node(id: "hello")
-}
