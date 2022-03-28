@@ -4,7 +4,7 @@ use crate::model::__InputValue;
 use crate::{registry, Enum, Object};
 
 /// A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.
-#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq, serde::Deserialize, serde::Serialize)]
 #[graphql(internal, name = "__DirectiveLocation")]
 #[allow(non_camel_case_types)]
 pub enum __DirectiveLocation {
@@ -79,12 +79,12 @@ pub struct __Directive<'a> {
 impl<'a> __Directive<'a> {
     #[inline]
     async fn name(&self) -> &str {
-        self.directive.name
+        &self.directive.name
     }
 
     #[inline]
     async fn description(&self) -> Option<&str> {
-        self.directive.description
+        self.directive.description.as_deref()
     }
 
     #[inline]

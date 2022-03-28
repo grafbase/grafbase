@@ -46,7 +46,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&object_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let mut get_fields = Vec::new();
@@ -165,7 +165,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         let visible = visible_fn(&field.visible);
         schema_fields.push(quote! {
             fields.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
-                name: #name,
+                name: ::std::borrow::ToOwned::to_owned(#name),
                 description: #desc,
                 ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                 default_value: #schema_default,
@@ -222,7 +222,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                             fields
                         },
                         visible: #visible,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         oneof: false,
                     })
                 }

@@ -30,7 +30,7 @@ impl<'de> Deserialize<'de> for ConstValue {
             type Value = ConstValue;
 
             #[inline]
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
                 formatter.write_str("any valid value")
             }
 
@@ -173,7 +173,7 @@ impl<'de> Deserialize<'de> for Value {
             type Value = Value;
 
             #[inline]
-            fn expecting(&self, formatter: &mut Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
                 formatter.write_str("any valid value")
             }
 

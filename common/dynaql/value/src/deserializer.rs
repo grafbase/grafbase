@@ -1,3 +1,4 @@
+#![allow(clippy::use_self)]
 use std::{fmt, vec};
 
 use indexmap::IndexMap;
@@ -30,7 +31,7 @@ impl std::error::Error for DeserializerError {
 
 impl fmt::Display for DeserializerError {
     #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DeserializerError(msg) => write!(f, "{}", msg),
         }
@@ -46,7 +47,7 @@ impl From<de::value::Error> for DeserializerError {
 
 impl ConstValue {
     #[inline]
-    fn unexpected(&self) -> Unexpected {
+    fn unexpected(&self) -> Unexpected<'_> {
         match self {
             ConstValue::Null => Unexpected::Unit,
             ConstValue::Number(_) => Unexpected::Other("number"),
@@ -478,7 +479,7 @@ struct NameDeserializer {
 
 impl NameDeserializer {
     #[inline]
-    fn new(value: Name) -> Self {
+    const fn new(value: Name) -> Self {
         NameDeserializer { value }
     }
 }

@@ -161,7 +161,7 @@ pub enum Selection {
 impl Selection {
     /// Get a reference to the directives of the selection.
     #[must_use]
-    pub fn directives(&self) -> &Vec<Positioned<Directive>> {
+    pub const fn directives(&self) -> &Vec<Positioned<Directive>> {
         match self {
             Self::Field(field) => &field.node.directives,
             Self::FragmentSpread(spread) => &spread.node.directives,

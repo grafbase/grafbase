@@ -27,7 +27,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&union_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let mut registry_types = Vec::new();
@@ -124,7 +124,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
             }
 
             collect_all_fields.push(quote! {
-                #ident::#enum_name(obj) => obj.collect_all_fields(ctx, fields)
+                #ident::#enum_name(obj) => obj.collect_all_fields_native(ctx, fields)
             });
         } else {
             return Err(Error::new_spanned(ty, "Invalid type").into());
@@ -151,7 +151,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                 ::std::result::Result::Ok(::std::option::Option::None)
             }
 
-            fn collect_all_fields<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSet<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
+            fn collect_all_fields_native<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSet<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
                 match self {
                     #(#collect_all_fields),*
                 }
@@ -184,13 +184,13 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                             possible_types
                         },
                         visible: #visible,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     }
                 })
             }
 
             async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::Value> {
-                #crate_name::resolver_utils::resolve_container(ctx, self).await
+                #crate_name::resolver_utils::resolve_container_native(ctx, self).await
             }
         }
 

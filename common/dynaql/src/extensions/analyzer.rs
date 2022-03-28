@@ -87,6 +87,7 @@ mod tests {
         }
     }
 
+    /*
     #[tokio::test]
     async fn analyzer() {
         let schema = Schema::build(Query, EmptyMutation, EmptySubscription)
@@ -117,4 +118,5 @@ mod tests {
             }))
         );
     }
+    */
 }

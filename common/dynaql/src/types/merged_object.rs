@@ -6,9 +6,10 @@ use indexmap::IndexMap;
 use crate::futures_util::Stream;
 use crate::parser::types::Field;
 use crate::registry::{MetaType, Registry};
+use crate::SimpleObject;
 use crate::{
     CacheControl, ContainerType, Context, ContextSelectionSet, OutputType, Positioned, Response,
-    ServerResult, SimpleObject, SubscriptionType, Value,
+    ServerResult, SubscriptionType, Value,
 };
 
 #[doc(hidden)]
@@ -81,7 +82,7 @@ where
                 keys: None,
                 visible: None,
                 is_subscription: false,
-                rust_typename: std::any::type_name::<Self>(),
+                rust_typename: std::any::type_name::<Self>().to_owned(),
             }
         })
     }
@@ -139,7 +140,7 @@ where
                 keys: None,
                 visible: None,
                 is_subscription: false,
-                rust_typename: std::any::type_name::<Self>(),
+                rust_typename: std::any::type_name::<Self>().to_owned(),
             }
         })
     }
@@ -172,7 +173,7 @@ impl SubscriptionType for MergedObjectTail {
             keys: None,
             visible: None,
             is_subscription: false,
-            rust_typename: std::any::type_name::<Self>(),
+            rust_typename: std::any::type_name::<Self>().to_owned(),
         })
     }
 

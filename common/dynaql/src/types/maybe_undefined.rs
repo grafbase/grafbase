@@ -11,7 +11,7 @@ use crate::{registry, InputType, InputValueError, InputValueResult, Value};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 ///
 /// struct Query;

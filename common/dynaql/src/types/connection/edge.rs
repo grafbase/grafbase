@@ -48,7 +48,7 @@ where
 {
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
         if ctx.item.node.name.node == "node" {
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
             return OutputType::resolve(&self.node, &ctx_obj, ctx.item)
                 .await
                 .map(Some);
@@ -83,7 +83,7 @@ where
 
             registry::MetaType::Object {
                 name: Self::type_name().to_string(),
-                description: Some("An edge in a connection."),
+                description: Some("An edge in a connection.".to_owned()),
                 fields: {
                     let mut fields = IndexMap::new();
 
@@ -91,7 +91,7 @@ where
                         "node".to_string(),
                         registry::MetaField {
                             name: "node".to_string(),
-                            description: Some("The item at the end of the edge"),
+                            description: Some("The item at the end of the edge".to_owned()),
                             args: Default::default(),
                             ty: T::create_type_info(registry),
                             deprecation: Default::default(),
@@ -101,6 +101,8 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
                         },
                     );
 
@@ -108,7 +110,7 @@ where
                         "cursor".to_string(),
                         registry::MetaField {
                             name: "cursor".to_string(),
-                            description: Some("A cursor for use in pagination"),
+                            description: Some("A cursor for use in pagination".to_owned()),
                             args: Default::default(),
                             ty: String::create_type_info(registry),
                             deprecation: Default::default(),
@@ -118,6 +120,8 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
                         },
                     );
 
@@ -129,7 +133,7 @@ where
                 keys: None,
                 visible: None,
                 is_subscription: false,
-                rust_typename: std::any::type_name::<Self>(),
+                rust_typename: std::any::type_name::<Self>().to_owned(),
             }
         })
     }
@@ -139,7 +143,14 @@ where
         ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_container(ctx, self).await
+        resolve_container(
+            ctx,
+            ctx.registry()
+                .types
+                .get(Self::type_name().as_ref())
+                .unwrap(),
+        )
+        .await
     }
 }
 

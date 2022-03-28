@@ -166,7 +166,7 @@ mod tests {
     }
 
     fn check_complex(query: &str, expect_complex: usize) {
-        let registry = Schema::<Query, EmptyMutation, Subscription>::create_registry();
+        let registry = Schema::create_registry_static::<Query, EmptyMutation, Subscription>();
         let doc = parse_query(query).unwrap();
         let mut ctx = VisitorContext::new(&registry, &doc, None);
         let mut complex = 0;

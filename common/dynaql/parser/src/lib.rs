@@ -7,6 +7,9 @@
 #![allow(clippy::unnecessary_wraps)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::needless_question_mark)]
+#![allow(elided_lifetimes_in_paths)]
+#![allow(clippy::debug_assert_with_mut_call)]
+#![allow(clippy::use_self)]
 #![forbid(unsafe_code)]
 
 use crate::types::OperationType;
@@ -85,7 +88,7 @@ impl Error {
     ///
     /// The iterator is ordered from most important to least important position.
     #[must_use]
-    pub fn positions(&self) -> ErrorPositions {
+    pub const fn positions(&self) -> ErrorPositions {
         match self {
             Self::Syntax {
                 start,
@@ -157,13 +160,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct ErrorPositions(ErrorPositionsInner);
 
 impl ErrorPositions {
-    fn new_0() -> Self {
+    const fn new_0() -> Self {
         Self(ErrorPositionsInner::None)
     }
-    fn new_1(a: Pos) -> Self {
+    const fn new_1(a: Pos) -> Self {
         Self(ErrorPositionsInner::One(a))
     }
-    fn new_2(a: Pos, b: Pos) -> Self {
+    const fn new_2(a: Pos, b: Pos) -> Self {
         Self(ErrorPositionsInner::Two(a, b))
     }
 }

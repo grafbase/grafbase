@@ -21,7 +21,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&enum_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let mut enum_items = Vec::new();
@@ -48,7 +48,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
         });
         let item_deprecation = gen_deprecation(&variant.deprecation, &crate_name);
         let item_desc = get_rustdoc(&variant.attrs)?
-            .map(|s| quote! { ::std::option::Option::Some(#s) })
+            .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
             .unwrap_or_else(|| quote! {::std::option::Option::None});
 
         enum_items.push(item_ident);
@@ -61,8 +61,8 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
 
         let visible = visible_fn(&variant.visible);
         schema_enum_items.push(quote! {
-            enum_items.insert(#gql_item_name, #crate_name::registry::MetaEnumValue {
-                name: #gql_item_name,
+            enum_items.insert(::std::borrow::ToOwned::to_owned(#gql_item_name), #crate_name::registry::MetaEnumValue {
+                name: ::std::borrow::ToOwned::to_owned(#gql_item_name),
                 description: #item_desc,
                 deprecation: #item_deprecation,
                 visible: #visible,
@@ -140,7 +140,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                             enum_items
                         },
                         visible: #visible,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     }
                 })
             }

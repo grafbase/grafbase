@@ -26,7 +26,7 @@ impl SubscriptionType for EmptySubscription {
             keys: None,
             visible: None,
             is_subscription: true,
-            rust_typename: std::any::type_name::<Self>(),
+            rust_typename: std::any::type_name::<Self>().to_owned(),
         })
     }
 

@@ -24,8 +24,8 @@ pub use service::parse_schema;
 struct GraphQLParser;
 
 fn parse_operation_type(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
+    pair: Pair<'_, Rule>,
+    pc: &mut PositionCalculator<'_>,
 ) -> Result<Positioned<OperationType>> {
     debug_assert_eq!(pair.as_rule(), Rule::operation_type);
 
@@ -43,15 +43,15 @@ fn parse_operation_type(
 }
 
 fn parse_default_value(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
+    pair: Pair<'_, Rule>,
+    pc: &mut PositionCalculator<'_>,
 ) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::default_value);
 
     parse_const_value(exactly_one(pair.into_inner()), pc)
 }
 
-fn parse_type(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<Type>> {
+fn parse_type(pair: Pair<'_, Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<Type>> {
     debug_assert_eq!(pair.as_rule(), Rule::type_);
 
     Ok(Positioned::new(
@@ -61,8 +61,8 @@ fn parse_type(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positione
 }
 
 fn parse_const_value(
-    pair: Pair<Rule>,
-    pc: &mut PositionCalculator,
+    pair: Pair<'_, Rule>,
+    pc: &mut PositionCalculator<'_>,
 ) -> Result<Positioned<ConstValue>> {
     debug_assert_eq!(pair.as_rule(), Rule::const_value);
 
@@ -102,7 +102,7 @@ fn parse_const_value(
         pos,
     ))
 }
-fn parse_value(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positioned<Value>> {
+fn parse_value(pair: Pair<Rule>, pc: &mut PositionCalculator<'_>) -> Result<Positioned<Value>> {
     debug_assert_eq!(pair.as_rule(), Rule::value);
 
     let pos = pc.step(&pair);

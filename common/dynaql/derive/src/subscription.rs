@@ -30,10 +30,10 @@ pub fn generate(
         .unwrap_or_else(|| RenameTarget::Type.rename(self_name.clone()));
 
     let desc = if subscription_args.use_type_description {
-        quote! { ::std::option::Option::Some(<Self as #crate_name::Description>::description()) }
+        quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(<Self as #crate_name::Description>::description())) }
     } else {
         get_rustdoc(&item_impl.attrs)?
-            .map(|s| quote!(::std::option::Option::Some(#s)))
+            .map(|s| quote!(::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))))
             .unwrap_or_else(|| quote!(::std::option::Option::None))
     };
 
@@ -55,7 +55,7 @@ pub fn generate(
                     .rename(method.sig.ident.unraw().to_string(), RenameTarget::Field)
             });
             let field_desc = get_rustdoc(&method.attrs)?
-                .map(|s| quote! {::std::option::Option::Some(#s)})
+                .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
                 .unwrap_or_else(|| quote! {::std::option::Option::None});
             let field_deprecation = gen_deprecation(&field.deprecation, &crate_name);
             let cfg_attrs = get_cfg_attrs(&method.attrs);
@@ -163,7 +163,7 @@ pub fn generate(
                 });
                 let desc = desc
                     .as_ref()
-                    .map(|s| quote! {::std::option::Option::Some(#s)})
+                    .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
                     .unwrap_or_else(|| quote! {::std::option::Option::None});
                 let default = generate_default(default, default_with)?;
 
@@ -180,8 +180,8 @@ pub fn generate(
 
                 let visible = visible_fn(arg_visible);
                 schema_args.push(quote! {
-                    args.insert(#name, #crate_name::registry::MetaInputValue {
-                        name: #name,
+                    args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
+                        name: ::std::borrow::ToOwned::to_owned(#name),
                         description: #desc,
                         ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                         default_value: #schema_default,
@@ -307,6 +307,8 @@ pub fn generate(
                     provides: ::std::option::Option::None,
                     visible: #visible,
                     compute_complexity: #complexity,
+                    resolve: ::std::option::Option::None,
+                    transforms: ::std::option::Option::None,
                 });
             });
 
@@ -447,7 +449,7 @@ pub fn generate(
                     keys: ::std::option::Option::None,
                     visible: #visible,
                     is_subscription: true,
-                    rust_typename: ::std::any::type_name::<Self>(),
+                    rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                 })
             }
 

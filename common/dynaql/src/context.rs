@@ -4,7 +4,7 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
 use async_graphql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
@@ -17,6 +17,7 @@ use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
+use crate::registry::{Registry, Resolver, Transformer};
 use crate::schema::SchemaEnv;
 use crate::{
     Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
@@ -65,6 +66,7 @@ impl Data {
         self.0.insert(TypeId::of::<D>(), Box::new(data));
     }
 
+    #[allow(dead_code)]
     pub(crate) fn merge(&mut self, other: Data) {
         self.0.extend(other.0);
     }
@@ -231,6 +233,11 @@ pub struct ContextBase<'a, T> {
     pub schema_env: &'a SchemaEnv,
     #[doc(hidden)]
     pub query_env: &'a QueryEnv,
+    #[doc(hidden)]
+    pub resolvers_cache: Arc<RwLock<HashMap<u64, Result<Value, Error>>>>,
+    #[doc(hidden)]
+    /// Ordered list of the resolvers + transformer for a value.
+    pub query_resolvers: ResolverChanges<'a>,
 }
 
 #[doc(hidden)]
@@ -278,6 +285,8 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
+            query_resolvers: Vec::new(),
+            resolvers_cache: Default::default(),
         }
     }
 }
@@ -296,11 +305,18 @@ impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
     }
 }
 
+type ResolverChanges<'a> = Vec<(
+    &'a Option<Resolver>,
+    &'a Option<Vec<Transformer>>,
+    &'a Option<Vec<(&'a str, Value)>>,
+)>;
+
 impl<'a, T> ContextBase<'a, T> {
     #[doc(hidden)]
     pub fn with_field(
         &'a self,
         field: &'a Positioned<Field>,
+        mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<Field>> {
         ContextBase {
             path_node: Some(QueryPathNode {
@@ -310,6 +326,12 @@ impl<'a, T> ContextBase<'a, T> {
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            query_resolvers: {
+                let mut q = self.query_resolvers.clone();
+                q.append(&mut resolve);
+                q
+            },
+            resolvers_cache: self.resolvers_cache.clone(),
         }
     }
 
@@ -317,12 +339,35 @@ impl<'a, T> ContextBase<'a, T> {
     pub fn with_selection_set(
         &self,
         selection_set: &'a Positioned<SelectionSet>,
+        mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: self.path_node,
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            query_resolvers: {
+                let mut q = self.query_resolvers.clone();
+                q.append(&mut resolve);
+                q
+            },
+            resolvers_cache: self.resolvers_cache.clone(),
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn add_resolvers(self, mut resolve: ResolverChanges<'a>) -> Self {
+        ContextBase {
+            path_node: self.path_node,
+            item: self.item,
+            schema_env: self.schema_env,
+            query_env: self.query_env,
+            query_resolvers: {
+                let mut q = self.query_resolvers.clone();
+                q.append(&mut resolve);
+                q
+            },
+            resolvers_cache: self.resolvers_cache.clone(),
         }
     }
 
@@ -563,6 +608,7 @@ impl<'a, T> ContextBase<'a, T> {
             .find(|(n, _)| n.node.as_str() == name)
             .map(|(_, value)| value)
             .cloned();
+
         if value.is_none() {
             if let Some(default) = default {
                 return Ok((Pos::default(), default()));
@@ -572,6 +618,7 @@ impl<'a, T> ContextBase<'a, T> {
             Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
             None => (Pos::default(), None),
         };
+
         InputType::parse(value)
             .map(|value| (pos, value))
             .map_err(|e| e.into_server_error(pos))
@@ -590,7 +637,14 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            query_resolvers: self.query_resolvers.clone(),
+            resolvers_cache: self.resolvers_cache.clone(),
         }
+    }
+
+    /// Get the registry
+    pub fn registry(&'a self) -> &'a Registry {
+        &self.schema_env.registry
     }
 }
 
@@ -602,6 +656,17 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         default: Option<fn() -> T>,
     ) -> ServerResult<(Pos, T)> {
         self.get_param_value(&self.item.node.arguments, name, default)
+    }
+
+    #[doc(hidden)]
+    pub fn param_value_dynamic<'b: 'a, T: InputType>(
+        &self,
+        name: &'b str,
+        default: Option<fn() -> T>,
+    ) -> Option<(&'a str, Value)> {
+        self.get_param_value(&self.item.node.arguments, name, default)
+            .map(|(_, x)| (name, InputType::to_value(&x)))
+            .ok()
     }
 
     /// Creates a uniform interface to inspect the forthcoming selections.
@@ -648,7 +713,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use async_graphql::*;
     ///
     /// #[derive(SimpleObject)]

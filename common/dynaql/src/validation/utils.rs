@@ -72,7 +72,7 @@ pub fn is_valid_input_value(
 
             match registry.types.get(type_name).unwrap() {
                 registry::MetaType::Scalar { is_valid, .. } => {
-                    if is_valid(&value) {
+                    if is_valid.map(|f| f(&value)).unwrap_or(true) {
                         None
                     } else {
                         Some(valid_error(
@@ -123,19 +123,19 @@ pub fn is_valid_input_value(
                     ..
                 } => match value {
                     ConstValue::Object(values) => {
-                        let mut input_names =
+                        let mut input_names: HashSet<&str> =
                             values.keys().map(AsRef::as_ref).collect::<HashSet<_>>();
 
                         for field in input_fields.values() {
-                            input_names.remove(field.name);
-                            if let Some(value) = values.get(field.name) {
+                            input_names.remove::<str>(&field.name);
+                            if let Some(value) = values.get::<str>(&field.name) {
                                 if let Some(reason) = is_valid_input_value(
                                     registry,
                                     &field.ty,
                                     value,
                                     QueryPathNode {
                                         parent: Some(&path_node),
-                                        segment: QueryPathSegment::Name(field.name),
+                                        segment: QueryPathSegment::Name(&field.name),
                                     },
                                 ) {
                                     return Some(reason);

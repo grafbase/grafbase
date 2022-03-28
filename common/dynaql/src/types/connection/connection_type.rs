@@ -135,12 +135,12 @@ where
                 start_cursor: self.edges.first().map(|edge| edge.cursor.encode_cursor()),
                 end_cursor: self.edges.last().map(|edge| edge.cursor.encode_cursor()),
             };
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
             return OutputType::resolve(&page_info, &ctx_obj, ctx.item)
                 .await
                 .map(Some);
         } else if ctx.item.node.name.node == "edges" {
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
             return OutputType::resolve(&self.edges, &ctx_obj, ctx.item)
                 .await
                 .map(Some);
@@ -183,7 +183,7 @@ where
                         "pageInfo".to_string(),
                         registry::MetaField {
                             name: "pageInfo".to_string(),
-                            description: Some("Information to aid in pagination."),
+                            description: Some("Information to aid in pagination.".to_owned()),
                             args: Default::default(),
                             ty: PageInfo::create_type_info(registry),
                             deprecation: Default::default(),
@@ -193,6 +193,8 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
                         },
                     );
 
@@ -200,7 +202,7 @@ where
                         "edges".to_string(),
                         registry::MetaField {
                             name: "edges".to_string(),
-                            description: Some("A list of edges."),
+                            description: Some("A list of edges.".to_owned()),
                             args: Default::default(),
                             ty: <Option<Vec<Option<Edge<C, T, EE>>>> as OutputType>::create_type_info(
                                 registry,
@@ -212,6 +214,8 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
                         },
                     );
 
@@ -223,7 +227,7 @@ where
                 keys: None,
                 visible: None,
                 is_subscription: false,
-                rust_typename: std::any::type_name::<Self>(),
+                rust_typename: std::any::type_name::<Self>().to_owned(),
             }
         })
     }
@@ -233,7 +237,14 @@ where
         ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_container(ctx, self).await
+        resolve_container(
+            ctx,
+            ctx.registry()
+                .types
+                .get(Self::type_name().as_ref())
+                .unwrap(),
+        )
+        .await
     }
 }
 

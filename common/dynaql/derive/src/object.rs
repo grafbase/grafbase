@@ -31,10 +31,10 @@ pub fn generate(
         .unwrap_or_else(|| RenameTarget::Type.rename(self_name.clone()));
 
     let desc = if object_args.use_type_description {
-        quote! { ::std::option::Option::Some(<Self as #crate_name::Description>::description()) }
+        quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(<Self as #crate_name::Description>::description())) }
     } else {
         get_rustdoc(&item_impl.attrs)?
-            .map(|s| quote!(::std::option::Option::Some(#s)))
+            .map(|s| quote!(::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))))
             .unwrap_or_else(|| quote!(::std::option::Option::None))
     };
 
@@ -248,7 +248,7 @@ pub fn generate(
                                     #do_find
                                 };
                                 let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                                 return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                             }
                         }
@@ -303,7 +303,7 @@ pub fn generate(
                         .rename(method.sig.ident.unraw().to_string(), RenameTarget::Field)
                 });
                 let field_desc = get_rustdoc(&method.attrs)?
-                    .map(|s| quote! { ::std::option::Option::Some(#s) })
+                    .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
                     .unwrap_or_else(|| quote! {::std::option::Option::None});
                 let field_deprecation = gen_deprecation(&method_args.deprecation, &crate_name);
                 let external = method_args.external;
@@ -363,7 +363,7 @@ pub fn generate(
                     });
                     let desc = desc
                         .as_ref()
-                        .map(|s| quote! {::std::option::Option::Some(#s)})
+                        .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
                         .unwrap_or_else(|| quote! {::std::option::Option::None});
                     let default = generate_default(default, default_with)?;
                     let schema_default = default
@@ -379,8 +379,8 @@ pub fn generate(
 
                     let visible = visible_fn(visible);
                     schema_args.push(quote! {
-                        args.insert(#name, #crate_name::registry::MetaInputValue {
-                            name: #name,
+                        args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
+                            name: ::std::borrow::ToOwned::to_owned(#name),
                             description: #desc,
                             ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                             default_value: #schema_default,
@@ -485,6 +485,8 @@ pub fn generate(
                         requires: #requires,
                         visible: #visible,
                         compute_complexity: #complexity,
+                        resolve: None,
+                        transforms: None,
                     });
                 });
 
@@ -529,7 +531,7 @@ pub fn generate(
                             #resolve_obj
                         };
                         let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                         return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                     }
                 });
@@ -563,9 +565,9 @@ pub fn generate(
 
     let visible = visible_fn(&object_args.visible);
     let resolve_container = if object_args.serial {
-        quote! { #crate_name::resolver_utils::resolve_container_serial(ctx, self).await }
+        quote! { #crate_name::resolver_utils::resolve_container_serial_native(ctx, self).await }
     } else {
-        quote! { #crate_name::resolver_utils::resolve_container(ctx, self).await }
+        quote! { #crate_name::resolver_utils::resolve_container_native(ctx, self).await }
     };
 
     let expanded = if object_args.concretes.is_empty() {
@@ -619,7 +621,7 @@ pub fn generate(
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     });
                     #(#create_entity_types)*
                     #(#add_keys)*
@@ -658,7 +660,7 @@ pub fn generate(
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     });
                     #(#create_entity_types)*
                     #(#add_keys)*

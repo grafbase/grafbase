@@ -29,7 +29,7 @@ impl Default for CacheControl {
 }
 
 impl CacheControl {
-    pub fn is_public(&self) -> bool {
+    pub const fn is_public(&self) -> bool {
         !self.private && self.public
     }
 }
@@ -645,7 +645,7 @@ pub enum RenameTarget {
 }
 
 impl RenameTarget {
-    fn rule(&self) -> RenameRule {
+    const fn rule(&self) -> RenameRule {
         match self {
             RenameTarget::Type => RenameRule::Pascal,
             RenameTarget::EnumItem => RenameRule::ScreamingSnake,

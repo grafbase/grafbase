@@ -47,7 +47,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
             Selection::Field(field) => streams.push(Box::pin({
                 let ctx = ctx.clone();
                 async_stream::stream! {
-                    let ctx = ctx.with_field(field);
+                    let ctx = ctx.with_field(field, Vec::new());
                     let field_name = ctx.item.node.response_key().node.clone();
                     let stream = root.create_field_stream(&ctx);
                     if let Some(mut stream) = stream {
@@ -68,7 +68,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                     .get(&fragment_spread.node.fragment_name.node)
                 {
                     collect_subscription_streams(
-                        &ctx.with_selection_set(&fragment.node.selection_set),
+                        &ctx.with_selection_set(&fragment.node.selection_set, Vec::new()),
                         root,
                         streams,
                     )?;
@@ -83,14 +83,14 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                 {
                     if name.node.as_str() == T::type_name() {
                         collect_subscription_streams(
-                            &ctx.with_selection_set(&inline_fragment.node.selection_set),
+                            &ctx.with_selection_set(&inline_fragment.node.selection_set, Vec::new()),
                             root,
                             streams,
                         )?;
                     }
                 } else {
                     collect_subscription_streams(
-                        &ctx.with_selection_set(&inline_fragment.node.selection_set),
+                        &ctx.with_selection_set(&inline_fragment.node.selection_set, Vec::new()),
                         root,
                         streams,
                     )?;

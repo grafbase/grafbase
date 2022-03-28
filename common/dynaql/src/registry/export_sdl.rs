@@ -52,7 +52,7 @@ impl Registry {
                 writeln!(
                     sdl,
                     "\t\"\"\"\n\t{}\n\t\"\"\"",
-                    field.description.unwrap().replace('\n', "\n\t")
+                    field.description.as_deref().unwrap().replace('\n', "\n\t")
                 )
                 .ok();
             }
@@ -73,10 +73,10 @@ impl Registry {
                 if field.external {
                     write!(sdl, " @external").ok();
                 }
-                if let Some(requires) = field.requires {
+                if let Some(requires) = field.requires.as_deref() {
                     write!(sdl, " @requires(fields: \"{}\")", requires).ok();
                 }
-                if let Some(provides) = field.provides {
+                if let Some(provides) = field.provides.as_deref() {
                     write!(sdl, " @provides(fields: \"{}\")", provides).ok();
                 }
             }
@@ -98,7 +98,7 @@ impl Registry {
                 }
                 if export_scalar {
                     if description.is_some() {
-                        writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                        writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                     }
                     writeln!(sdl, "scalar {}", name).ok();
                 }
@@ -134,7 +134,7 @@ impl Registry {
                 }
 
                 if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
                 if federation && *extends {
                     write!(sdl, "extend ").ok();
@@ -163,7 +163,7 @@ impl Registry {
                 ..
             } => {
                 if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
                 if federation && *extends {
                     write!(sdl, "extend ").ok();
@@ -189,7 +189,7 @@ impl Registry {
                 ..
             } => {
                 if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
                 write!(sdl, "enum {} ", name).ok();
                 writeln!(sdl, "{{").ok();
@@ -207,7 +207,7 @@ impl Registry {
                 ..
             } => {
                 if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
                 write!(sdl, "input {} ", name).ok();
                 #[cfg(feature = "unstable_oneof")]
@@ -216,7 +216,7 @@ impl Registry {
                 }
                 writeln!(sdl, "{{").ok();
                 for field in input_fields.values() {
-                    if let Some(description) = field.description {
+                    if let Some(description) = field.description.as_deref() {
                         writeln!(sdl, "\t\"\"\"\n\t{}\n\t\"\"\"", description).ok();
                     }
                     writeln!(sdl, "\t{}", export_input_value(&field)).ok();
@@ -230,7 +230,7 @@ impl Registry {
                 ..
             } => {
                 if description.is_some() {
-                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.unwrap()).ok();
+                    writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
                 write!(sdl, "union {} =", name).ok();
                 for ty in possible_types {

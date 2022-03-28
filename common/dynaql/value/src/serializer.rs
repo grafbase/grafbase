@@ -12,7 +12,7 @@ use crate::{ConstValue, Name, Number};
 pub struct SerializerError(String);
 
 impl fmt::Display for SerializerError {
-    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             SerializerError(ref s) => fmt.write_str(s),
         }

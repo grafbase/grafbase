@@ -1,0 +1,14 @@
+compatibility_date = "2021-11-03"
+name = "static_schema"
+type = "javascript"
+workers_dev = true
+
+[build]
+command = "worker-build --release"
+[build.upload]
+dir = "build/worker"
+format = "modules"
+main = "./shim.mjs"
+[[build.upload.rules]]
+globs = ["**/*.wasm"]
+type = "CompiledWasm"

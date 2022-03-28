@@ -28,13 +28,13 @@
 
 `Async-graphql` is a high-performance server-side library that supports all GraphQL specifications.
 
-* [Feature Comparison](feature-comparison.md)
-* [Book](https://async-graphql.github.io/async-graphql/en/index.html)
-* [中文文档](https://async-graphql.github.io/async-graphql/zh-CN/index.html)
-* [Docs](https://docs.rs/async-graphql)
-* [GitHub repository](https://github.com/async-graphql/async-graphql)
-* [Cargo package](https://crates.io/crates/async-graphql)
-* Minimum supported Rust version: 1.56.1 or later
+- [Feature Comparison](feature-comparison.md)
+- [Book](https://async-graphql.github.io/async-graphql/en/index.html)
+- [中文文档](https://async-graphql.github.io/async-graphql/zh-CN/index.html)
+- [Docs](https://docs.rs/async-graphql)
+- [GitHub repository](https://github.com/async-graphql/async-graphql)
+- [Cargo package](https://crates.io/crates/async-graphql)
+- Minimum supported Rust version: 1.56.1 or later
 
 ## Safety
 
@@ -42,21 +42,21 @@ This crate uses `#![forbid(unsafe_code)]` to ensure everything is implemented in
 
 ## Features
 
-* Fully supports async/await
-* Type safety
-* Rustfmt friendly (Procedural Macro)
-* Custom scalars
-* Minimal overhead
-* Easy integration ([poem](https://crates.io/crates/poem), actix_web, tide, warp, rocket ...)
-* Upload files (Multipart request)
-* Subscriptions (WebSocket transport)
-* Custom extensions
-* Apollo Tracing extension
-* Limit query complexity/depth
-* Error Extensions
-* Apollo Federation
-* Batch Queries
-* Apollo Persisted Queries
+- Fully supports async/await
+- Type safety
+- Rustfmt friendly (Procedural Macro)
+- Custom scalars
+- Minimal overhead
+- Easy integration ([poem](https://crates.io/crates/poem), actix_web, tide, warp, rocket ...)
+- Upload files (Multipart request)
+- Subscriptions (WebSocket transport)
+- Custom extensions
+- Apollo Tracing extension
+- Limit query complexity/depth
+- Error Extensions
+- Apollo Federation
+- Batch Queries
+- Apollo Persisted Queries
 
 ## Crate features
 
@@ -101,12 +101,12 @@ cd examples && cargo run --bin [name]
 
 ## Integrations
 
-* Poem [async-graphql-poem](https://crates.io/crates/async-graphql-poem)
-* Actix-web [async-graphql-actix-web](https://crates.io/crates/async-graphql-actix-web)
-* Warp [async-graphql-warp](https://crates.io/crates/async-graphql-warp)
-* Tide [async-graphql-tide](https://crates.io/crates/async-graphql-tide)
-* Rocket [async-graphql-rocket](https://github.com/async-graphql/async-graphql/tree/master/integrations/rocket)
-* Axum [async-graphql-axum](https://github.com/async-graphql/async-graphql/tree/master/integrations/axum)
+- Poem [async-graphql-poem](https://crates.io/crates/async-graphql-poem)
+- Actix-web [async-graphql-actix-web](https://crates.io/crates/async-graphql-actix-web)
+- Warp [async-graphql-warp](https://crates.io/crates/async-graphql-warp)
+- Tide [async-graphql-tide](https://crates.io/crates/async-graphql-tide)
+- Rocket [async-graphql-rocket](https://github.com/async-graphql/async-graphql/tree/master/integrations/rocket)
+- Axum [async-graphql-axum](https://github.com/async-graphql/async-graphql/tree/master/integrations/axum)
 
 ## Who's using Async-graphql in production?
 
@@ -143,19 +143,19 @@ cd examples && cargo run --bin [name]
 
 Licensed under either of
 
-* Apache License, Version 2.0,
+- Apache License, Version 2.0,
   ([LICENSE-APACHE](./LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- MIT license ([LICENSE-MIT](./LICENSE-MIT) or http://opensource.org/licenses/MIT)
   at your option.
 
 ## References
 
-* [GraphQL](https://graphql.org)
-* [GraphQL Multipart Request](https://github.com/jaydenseric/graphql-multipart-request-spec)
-* [GraphQL Cursor Connections Specification](https://facebook.github.io/relay/graphql/connections.htm)
-* [GraphQL over WebSocket Protocol](https://github.com/apollographql/subscriptions-transport-ws/blob/master/PROTOCOL.md)
-* [Apollo Tracing](https://github.com/apollographql/apollo-tracing)
-* [Apollo Federation](https://www.apollographql.com/docs/apollo-server/federation/introduction)
+- [GraphQL](https://graphql.org)
+- [GraphQL Multipart Request](https://github.com/jaydenseric/graphql-multipart-request-spec)
+- [GraphQL Cursor Connections Specification](https://facebook.github.io/relay/graphql/connections.htm)
+- [GraphQL over WebSocket Protocol](https://github.com/apollographql/subscriptions-transport-ws/blob/master/PROTOCOL.md)
+- [Apollo Tracing](https://github.com/apollographql/apollo-tracing)
+- [Apollo Federation](https://www.apollographql.com/docs/apollo-server/federation/introduction)
 
 ## Contribute
 
