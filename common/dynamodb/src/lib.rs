@@ -90,7 +90,7 @@ impl DynamoDBContext {
                 .parse()
                 .expect("the name of the region is certainly valid");
 
-        log::info!(
+        log::debug!(
             &trace_id,
             "Picked the closest region {} for coordinates (lat {}, lon {})",
             closest_region.name(),
