@@ -3,6 +3,8 @@ use quick_error::quick_error;
 pub use log_;
 
 use std::sync::atomic::AtomicBool;
+
+#[cfg(feature = "with-worker")]
 pub use worker;
 
 quick_error! {
@@ -36,7 +38,15 @@ thread_local! {
 macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
-        $crate::worker::console_debug!("{}", message);
+        #[cfg(feature = "with-worker")]
+        match status {
+            LogSeverity::Debug =>
+                $crate::worker::console_debug!("{}", message),
+            LogSeverity::Info =>
+                $crate::worker::console_log!("{}", message),
+            LogSeverity::Error =>
+                $crate::worker::console_error!("{}", message),
+        }
         if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
                 .try_borrow_mut()
