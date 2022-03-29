@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]
@@ -355,8 +356,13 @@ impl Subscription {
     }
 }
 
-static TEST_HARNESS: Lazy<Schema<Query, Mutation, Subscription>> =
-    Lazy::new(|| Schema::new(Query, Mutation, Subscription));
+static TEST_HARNESS: Lazy<Schema> = Lazy::new(|| {
+    Schema::new(Schema::create_registry_static::<
+        Query,
+        Mutation,
+        Subscription,
+    >())
+});
 
 pub(crate) fn validate<'a, V, F>(
     doc: &'a ExecutableDocument,

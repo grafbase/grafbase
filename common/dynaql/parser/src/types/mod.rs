@@ -31,7 +31,7 @@ pub enum OperationType {
 }
 
 impl Display for OperationType {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Query => "query",
             Self::Mutation => "mutation",
@@ -55,11 +55,9 @@ impl Type {
     /// Create a type from the type string.
     #[must_use]
     pub fn new(ty: &str) -> Option<Self> {
-        let (nullable, ty) = if let Some(rest) = ty.strip_suffix('!') {
-            (false, rest)
-        } else {
-            (true, ty)
-        };
+        let (nullable, ty) = ty
+            .strip_suffix('!')
+            .map_or((true, ty), |rest| (false, rest));
 
         Some(Self {
             base: if let Some(ty) = ty.strip_prefix('[') {
@@ -73,7 +71,7 @@ impl Type {
 }
 
 impl Display for Type {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.base.fmt(f)?;
         if !self.nullable {
             f.write_char('!')?;

@@ -2,7 +2,7 @@ use std::io;
 use std::io::ErrorKind;
 
 use async_graphql::http::MultipartOptions;
-use async_graphql::{BatchRequest, ObjectType, Schema, SubscriptionType};
+use async_graphql::{BatchRequest, Schema};
 use futures_util::TryStreamExt;
 use warp::reply::Response as WarpResponse;
 use warp::{Buf, Filter, Rejection, Reply};
@@ -12,29 +12,17 @@ use crate::GraphQLBadRequest;
 /// GraphQL batch request filter
 ///
 /// It outputs a tuple containing the `async_graphql::Schema` and `async_graphql::BatchRequest`.
-pub fn graphql_batch<Query, Mutation, Subscription>(
-    schema: Schema<Query, Mutation, Subscription>,
-) -> impl Filter<Extract = ((Schema<Query, Mutation, Subscription>, BatchRequest),), Error = Rejection>
-       + Clone
-where
-    Query: ObjectType + 'static,
-    Mutation: ObjectType + 'static,
-    Subscription: SubscriptionType + 'static,
-{
+pub fn graphql_batch(
+    schema: Schema,
+) -> impl Filter<Extract = ((Schema, BatchRequest),), Error = Rejection> + Clone {
     graphql_batch_opts(schema, Default::default())
 }
 
 /// Similar to graphql_batch, but you can set the options with :`async_graphql::MultipartOptions`.
-pub fn graphql_batch_opts<Query, Mutation, Subscription>(
-    schema: Schema<Query, Mutation, Subscription>,
+pub fn graphql_batch_opts(
+    schema: Schema,
     opts: MultipartOptions,
-) -> impl Filter<Extract = ((Schema<Query, Mutation, Subscription>, BatchRequest),), Error = Rejection>
-       + Clone
-where
-    Query: ObjectType + 'static,
-    Mutation: ObjectType + 'static,
-    Subscription: SubscriptionType + 'static,
-{
+) -> impl Filter<Extract = ((Schema, BatchRequest),), Error = Rejection> + Clone {
     warp::any()
         .and(warp::get().and(warp::query()).map(BatchRequest::Single))
         .or(warp::post()

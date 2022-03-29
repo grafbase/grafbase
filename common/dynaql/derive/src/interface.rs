@@ -36,7 +36,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&interface_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let mut registry_types = Vec::new();
@@ -106,7 +106,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             });
 
             collect_all_fields.push(quote! {
-                #ident::#enum_name(obj) => obj.collect_all_fields(ctx, fields)
+                #ident::#enum_name(obj) => obj.collect_all_fields_native(ctx, fields)
             });
         } else {
             return Err(Error::new_spanned(ty, "Invalid type").into());
@@ -138,6 +138,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         visible,
     } in &interface_args.fields
     {
+        #[allow(clippy::option_if_let_else)]
         let (name, method_name) = if let Some(method) = method {
             (name.to_string(), Ident::new(method, Span::call_site()))
         } else {
@@ -159,11 +160,15 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         let mut get_params = Vec::new();
         let mut schema_args = Vec::new();
         let requires = match &requires {
-            Some(requires) => quote! { ::std::option::Option::Some(#requires) },
+            Some(requires) => {
+                quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#requires)) }
+            }
             None => quote! { ::std::option::Option::None },
         };
         let provides = match &provides {
-            Some(provides) => quote! { ::std::option::Option::Some(#provides) },
+            Some(provides) => {
+                quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#provides)) }
+            }
             None => quote! { ::std::option::Option::None },
         };
 
@@ -216,8 +221,8 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 .unwrap_or_else(|| quote! {::std::option::Option::None});
             let visible = visible_fn(visible);
             schema_args.push(quote! {
-                args.insert(#name, #crate_name::registry::MetaInputValue {
-                    name: #name,
+                args.insert(::std::string::ToString::to_string(#name), #crate_name::registry::MetaInputValue {
+                    name: ::std::string::ToString::to_string(#name),
                     description: #desc,
                     ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                     default_value: #schema_default,
@@ -237,7 +242,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
 
         let desc = desc
             .as_ref()
-            .map(|s| quote! {::std::option::Option::Some(#s)})
+            .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
             .unwrap_or_else(|| quote! {::std::option::Option::None});
         let deprecation = gen_deprecation(deprecation, &crate_name);
 
@@ -275,6 +280,8 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 requires: #requires,
                 visible: #visible,
                 compute_complexity: ::std::option::Option::None,
+                resolve: ::std::option::Option::None,
+                transforms: ::std::option::Option::None,
             });
         });
 
@@ -287,7 +294,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         resolvers.push(quote! {
             if ctx.item.node.name.node == #name {
                 #(#get_params)*
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, vec![]);
                 return #crate_name::OutputType::resolve(&#resolve_obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
             }
         });
@@ -320,7 +327,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 ::std::result::Result::Ok(::std::option::Option::None)
             }
 
-            fn collect_all_fields<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSet<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
+            fn collect_all_fields_native<'__life>(&'__life self, ctx: &#crate_name::ContextSelectionSet<'__life>, fields: &mut #crate_name::resolver_utils::Fields<'__life>) -> #crate_name::ServerResult<()> {
                 match self {
                     #(#collect_all_fields),*
                 }
@@ -358,7 +365,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                         extends: #extends,
                         keys: ::std::option::Option::None,
                         visible: #visible,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     }
                 })
             }
@@ -368,7 +375,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 ctx: &#crate_name::ContextSelectionSet<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>,
             ) -> #crate_name::ServerResult<#crate_name::Value> {
-                #crate_name::resolver_utils::resolve_container(ctx, self).await
+                #crate_name::resolver_utils::resolve_container_native(ctx, self).await
             }
         }
 

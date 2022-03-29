@@ -29,7 +29,7 @@ Define a directive for query.
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 struct ConcatDirective {

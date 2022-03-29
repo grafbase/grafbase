@@ -49,7 +49,7 @@ Similar to `Object`, but defined on a structure that automatically generates get
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(SimpleObject)]

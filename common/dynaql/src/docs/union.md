@@ -20,7 +20,7 @@ Define a GraphQL union
 
 Define TypeA, TypeB, ... as MyUnion
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(SimpleObject)]

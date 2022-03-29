@@ -1,8 +1,7 @@
 #![allow(clippy::cognitive_complexity)]
 #![allow(clippy::vec_init_then_push)]
+#![allow(clippy::use_self)]
 #![forbid(unsafe_code)]
-
-extern crate proc_macro;
 
 mod args;
 mod complex_object;

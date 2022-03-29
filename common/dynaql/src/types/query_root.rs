@@ -26,8 +26,9 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
+
                 return OutputType::resolve(
                     &__Schema::new(&ctx.schema_env.registry, &visible_types),
                     &ctx_obj,
@@ -37,7 +38,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 .map(Some);
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &ctx.schema_env
@@ -67,7 +68,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 .await?;
                 return Ok(Some(Value::List(res)));
             } else if ctx.item.node.name.node == "_service" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                 return OutputType::resolve(
                     &Service {
                         sdl: Some(ctx.schema_env.registry.export_sdl(true)),
@@ -102,7 +103,9 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                     "__schema".to_string(),
                     registry::MetaField {
                         name: "__schema".to_string(),
-                        description: Some("Access the current type schema of this server."),
+                        description: Some(
+                            "Access the current type schema of this server.".to_string(),
+                        ),
                         args: Default::default(),
                         ty: schema_type,
                         deprecation: Default::default(),
@@ -112,6 +115,8 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
                     },
                 );
 
@@ -119,13 +124,15 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                     "__type".to_string(),
                     registry::MetaField {
                         name: "__type".to_string(),
-                        description: Some("Request the type information of a single type."),
+                        description: Some(
+                            "Request the type information of a single type.".to_string(),
+                        ),
                         args: {
                             let mut args = IndexMap::new();
                             args.insert(
-                                "name",
+                                "name".to_string(),
                                 registry::MetaInputValue {
-                                    name: "name",
+                                    name: "name".to_string(),
                                     description: None,
                                     ty: "String!".to_string(),
                                     default_value: None,
@@ -143,6 +150,8 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
                     },
                 );
             }
@@ -156,7 +165,14 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
         ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_container(ctx, self).await
+        resolve_container(
+            ctx,
+            ctx.registry()
+                .types
+                .get(Self::type_name().as_ref())
+                .unwrap(),
+        )
+        .await
     }
 }
 

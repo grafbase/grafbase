@@ -19,10 +19,10 @@ pub fn generate(
         .unwrap_or_else(|| RenameTarget::Type.rename(self_name.clone()));
 
     let desc = if scalar_args.use_type_description {
-        quote! { ::std::option::Option::Some(<Self as #crate_name::Description>::description()) }
+        quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(<Self as #crate_name::Description>::description())) }
     } else {
         get_rustdoc(&item_impl.attrs)?
-            .map(|s| quote!(::std::option::Option::Some(#s)))
+            .map(|s| quote!(::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))))
             .unwrap_or_else(|| quote!(::std::option::Option::None))
     };
 
@@ -31,7 +31,9 @@ pub fn generate(
     let where_clause = &item_impl.generics.where_clause;
     let visible = visible_fn(&scalar_args.visible);
     let specified_by_url = match &scalar_args.specified_by_url {
-        Some(specified_by_url) => quote! { ::std::option::Option::Some(#specified_by_url) },
+        Some(specified_by_url) => {
+            quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#specified_by_url)) }
+        }
         None => quote! { ::std::option::Option::None },
     };
 
@@ -50,7 +52,7 @@ pub fn generate(
                 registry.create_input_type::<#self_ty, _>(|_| #crate_name::registry::MetaType::Scalar {
                     name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                     description: #desc,
-                    is_valid: |value| <#self_ty as #crate_name::ScalarType>::is_valid(value),
+                    is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
                     visible: #visible,
                     specified_by_url: #specified_by_url,
                 })
@@ -80,7 +82,7 @@ pub fn generate(
                 registry.create_output_type::<#self_ty, _>(|_| #crate_name::registry::MetaType::Scalar {
                     name: ::std::borrow::ToOwned::to_owned(#gql_typename),
                     description: #desc,
-                    is_valid: |value| <#self_ty as #crate_name::ScalarType>::is_valid(value),
+                    is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
                     visible: #visible,
                     specified_by_url: #specified_by_url,
                 })

@@ -30,7 +30,7 @@ Define a GraphQL input object
 
 # Examples
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 #[derive(InputObject)]

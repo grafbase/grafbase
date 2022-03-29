@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 use async_graphql_value::*;
 use bytes::Bytes;
 use serde::de::DeserializeOwned;

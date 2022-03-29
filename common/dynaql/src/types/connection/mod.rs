@@ -24,7 +24,7 @@ pub struct EmptyFields;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 /// use async_graphql::connection::*;
 ///
@@ -114,7 +114,7 @@ where
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 /// use async_graphql::connection::*;
 ///

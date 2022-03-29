@@ -2,7 +2,7 @@
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 ///
 /// struct Query;
@@ -27,7 +27,7 @@
 /// assert_eq!(schema.execute("{ value1 value2 }").await.into_result().unwrap().cache_control, CacheControl { public: false, max_age: 30 });
 /// # });
 /// ```
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize)]
 pub struct CacheControl {
     /// Scope is public, default is true.
     pub public: bool,

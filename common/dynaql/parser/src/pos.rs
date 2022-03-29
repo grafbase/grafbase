@@ -59,13 +59,14 @@ impl<T> Positioned<T> {
     /// This is most useful in callback chains where `Positioned::into_inner` is easier to read than
     /// `|positioned| positioned.node`.
     #[inline]
+    #[allow(clippy::missing_const_for_fn)]
     pub fn into_inner(self) -> T {
         self.node
     }
 
     /// Create a new positioned node with the same position as this one.
     #[must_use]
-    pub fn position_node<U>(&self, other: U) -> Positioned<U> {
+    pub const fn position_node<U>(&self, other: U) -> Positioned<U> {
         Positioned::new(other, self.pos)
     }
 
@@ -115,7 +116,7 @@ impl BorrowMut<str> for Positioned<String> {
     }
 }
 
-pub(crate) struct PositionCalculator<'a> {
+pub struct PositionCalculator<'a> {
     input: Chars<'a>,
     pos: usize,
     line: usize,

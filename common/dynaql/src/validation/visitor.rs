@@ -551,6 +551,8 @@ fn visit_operation_definition<'a, V: Visitor<'a>>(
         OperationType::Mutation => ctx.registry.mutation_type.as_deref(),
         OperationType::Subscription => ctx.registry.subscription_type.as_deref(),
     };
+
+    dbg!(&root_name);
     if let Some(root_name) = root_name {
         ctx.with_type(Some(&ctx.registry.types[&*root_name]), |ctx| {
             visit_variable_definitions(v, ctx, &operation.node.variable_definitions);

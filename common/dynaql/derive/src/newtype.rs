@@ -1,3 +1,4 @@
+#![allow(clippy::option_if_let_else)]
 use darling::ast::{Data, Style};
 use proc_macro::TokenStream;
 use quote::quote;

@@ -48,7 +48,8 @@ The filter function should be synchronous.
 
 # Examples
 
-```rust
+
+```rust, ignore
 use async_graphql::*;
 use futures_util::stream::{Stream, StreamExt};
 

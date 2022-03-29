@@ -48,8 +48,8 @@ impl<T: DeserializeOwned + Serialize + Send + Sync> InputType for Json<T> {
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_input_type::<Json<T>, _>(|_| MetaType::Scalar {
             name: <Self as InputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON value."),
-            is_valid: |_| true,
+            description: Some("A scalar that can represent any JSON value.".to_string()),
+            is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
         })
@@ -77,8 +77,8 @@ impl<T: Serialize + Send + Sync> OutputType for Json<T> {
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_output_type::<Json<T>, _>(|_| MetaType::Scalar {
             name: <Self as OutputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON value."),
-            is_valid: |_| true,
+            description: Some("A scalar that can represent any JSON value.".to_string()),
+            is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
         })
@@ -103,8 +103,8 @@ impl InputType for serde_json::Value {
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_input_type::<serde_json::Value, _>(|_| MetaType::Scalar {
             name: <Self as InputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON value."),
-            is_valid: |_| true,
+            description: Some("A scalar that can represent any JSON value.".to_string()),
+            is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
         })
@@ -132,8 +132,8 @@ impl OutputType for serde_json::Value {
     fn create_type_info(registry: &mut Registry) -> String {
         registry.create_output_type::<serde_json::Value, _>(|_| MetaType::Scalar {
             name: <Self as OutputType>::type_name().to_string(),
-            description: Some("A scalar that can represent any JSON value."),
-            is_valid: |_| true,
+            description: Some("A scalar that can represent any JSON value.".to_string()),
+            is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
         })
@@ -148,6 +148,7 @@ impl OutputType for serde_json::Value {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use crate::*;
@@ -228,3 +229,4 @@ mod test {
         );
     }
 }
+*/

@@ -85,7 +85,7 @@ impl ServerError {
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use async_graphql::*;
     /// use std::io::ErrorKind;
     ///

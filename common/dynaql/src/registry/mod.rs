@@ -2,18 +2,28 @@ mod cache_control;
 mod export_sdl;
 mod stringify_exec_doc;
 
+use std::collections::hash_map::DefaultHasher;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::hash::{Hash, Hasher};
+use std::str::FromStr;
 
+use async_graphql_value::to_value;
+use dynamodb::DynamoDBContext;
+use dynomite::AttributeValue;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
+#[cfg(feature = "tracing_worker")]
+use logworker::info;
 
 pub use crate::model::__DirectiveLocation;
+use crate::model::{__Schema, __Type};
 use crate::parser::types::{
     BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
 };
+use crate::resolver_utils::resolve_container;
 use crate::{
-    model, Any, Context, InputType, OutputType, Positioned, ServerResult, SubscriptionType, Value,
-    VisitorContext,
+    model, Any, Context, Error, InputType, OutputType, Positioned, ServerError, ServerResult,
+    SubscriptionType, Value, VisitorContext, ID,
 };
 
 pub use cache_control::CacheControl;
@@ -103,14 +113,35 @@ impl<'a> MetaTypeName<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
 pub struct MetaInputValue {
-    pub name: &'static str,
-    pub description: Option<&'static str>,
+    pub name: String,
+    pub description: Option<String>,
     pub ty: String,
     pub default_value: Option<String>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
     pub visible: Option<MetaVisibleFn>,
     pub is_secret: bool,
+}
+
+impl MetaInputValue {
+    /// We should be able to link every variables listed in the registry with the actual request.
+    fn transform_to_variables_resolved<'a>(
+        &'a self,
+        ctx: &'a Context<'a>,
+    ) -> Option<(&'a str, Value)> {
+        let variable = match self.ty.as_ref() {
+            "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, None),
+            "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
+            "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
+            "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
+            _ => None,
+        };
+
+        variable
+    }
 }
 
 type ComputeComplexityFn = fn(
@@ -126,10 +157,10 @@ pub enum ComplexityType {
     Fn(ComputeComplexityFn),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub enum Deprecation {
     NoDeprecated,
-    Deprecated { reason: Option<&'static str> },
+    Deprecated { reason: Option<String> },
 }
 
 impl Default for Deprecation {
@@ -153,81 +184,558 @@ impl Deprecation {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Resolver {
+    /// Unique id to identify Resolver.
+    pub id: Option<String>,
+    pub r#type: ResolverType,
+}
+
+/// A way to get a Variable
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+pub enum VariableResolveDefinition {
+    InputTypeName(String),
+}
+
+impl VariableResolveDefinition {
+    /// Resolve the first variable with this definition
+    fn param<'a>(&self, ctx: &'a Context<'a>) -> Option<&'a Value> {
+        match self {
+            Self::InputTypeName(name) => ctx.query_resolvers.iter().rev().find_map(|(_, _, x)| {
+                x.as_ref()
+                    .map(|y| y.iter().find(|(var_name, _)| var_name == name))
+                    .flatten()
+                    .map(|(_, x)| x)
+            }),
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum ContextResolver {
+    Select {
+        /// A JsonPath
+        /// TODO: Use a jsonpath lib.
+        from: String,
+    },
+}
+
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+pub enum DynamoResolver {
+    /// A Query based on the PK and the SK
+    QueryPKSK {
+        pk: VariableResolveDefinition,
+        sk: VariableResolveDefinition,
+    },
+}
+
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum DebugResolver {
+    Value { inner: serde_json::Value },
+}
+
+#[async_trait::async_trait]
+pub trait ResolverTrait {
+    // TODO: Add Memoization
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error>;
+
+    /// When the resolver is able to be memoized, you should implement this function.
+    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        self.resolve(ctx).await
+    }
+
+    /// Compute the hash from the resolver for memoization
+    fn hash_resolver(&self) -> u64;
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for DebugResolver {
+    async fn resolve(&self, _ctx: &Context<'_>) -> Result<Value, Error> {
+        match &self {
+            Self::Value { inner } => to_value(inner).map_err(|err| Error::new(err.to_string())),
+        }
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        let mut hasher = DefaultHasher::default();
+        match &self {
+            Self::Value { inner } => format!("Debug_{}", inner),
+        }
+        .hash(&mut hasher);
+        hasher.finish()
+    }
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for DynamoResolver {
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        let dynamodb_ctx = ctx.data::<DynamoDBContext>()?;
+        match self {
+            DynamoResolver::QueryPKSK { pk, sk } => {
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "{:?}", pk.param(ctx));
+
+                let pk = match pk.param(ctx).expect("can't fail") {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let sk = match sk.param(ctx).expect("can't fail") {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let dyna = dynamodb_ctx.get_item_pk_sk(pk, sk).await?.item;
+
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "{:?}", &dyna);
+
+                #[cfg(feature = "tracing_worker")]
+                {
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "{:?}", &ctx.query_resolvers);
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                    info!("dynamodb-resolver", "------------");
+                }
+
+                // TODO: We should take transformers from the last resolver
+                let transformers = ctx
+                    .query_resolvers
+                    .iter()
+                    .map(|(_, transformers, _)| transformers.as_ref());
+
+                let transformers: Vec<&Vec<Transformer>> =
+                    transformers.fold(vec![], |mut acc, cur| {
+                        if let Some(trans) = cur {
+                            acc.push(trans);
+                        }
+                        acc
+                    });
+
+                #[cfg(feature = "tracing_worker")]
+                info!("dynamodb-resolver", "transforms {:?}", &transformers);
+
+                let result = serde_json::to_value(dyna)?;
+
+                let b = transformers
+                    .into_iter()
+                    .try_fold(result, |acc, cur| cur.transform(acc))?;
+
+                Value::from_json(b).map_err(|err| Error::new(err.to_string()))
+            }
+        }
+    }
+
+    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        let hash = self.hash_resolver();
+        if let Some(value) = ctx
+            .resolvers_cache
+            .try_read()
+            .expect("read_rw_lock_issue")
+            .get(&hash)
+        {
+            // TODO: Never works.
+            #[cfg(feature = "tracing_worker")]
+            info!("dynamodb-resolver", "Cache hit");
+            return value.clone();
+        }
+        let value = self.resolve(ctx).await;
+        ctx.resolvers_cache
+            .try_write()
+            .expect("write_rw_lock_issue")
+            .insert(hash, value.clone());
+
+        value
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        let mut hasher = DefaultHasher::default();
+        self.hash(&mut hasher);
+        hasher.finish()
+    }
+}
+
+#[async_trait::async_trait]
+impl ResolverTrait for Resolver {
+    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
+        match &self.r#type {
+            ResolverType::DebugResolver(debug) => debug.resolve_memoized(ctx).await,
+            ResolverType::DynamoResolver(dynamodb) => dynamodb.resolve_memoized(ctx).await,
+            _ => unimplemented!(),
+        }
+    }
+
+    fn hash_resolver(&self) -> u64 {
+        match &self.r#type {
+            ResolverType::DebugResolver(debug) => debug.hash_resolver(),
+            ResolverType::DynamoResolver(dynamodb) => dynamodb.hash_resolver(),
+            _ => unimplemented!(),
+        }
+    }
+}
+
+/// Resolvers describe the way this Data should be resolved
+/// Describe the transport used.
+#[non_exhaustive]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum ResolverType {
+    ContextResolver(ContextResolver),
+    DynamoResolver(DynamoResolver),
+    DebugResolver(DebugResolver),
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum JSONFunction {
+    ExtractCompositeID,
+}
+
+#[async_trait::async_trait]
+pub trait TransformerTrait {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error>;
+}
+
+fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
+    let AttributeValue {
+        bool,
+        b,
+        l,
+        m,
+        n,
+        s,
+        bs,
+        ns,
+        ss,
+        null,
+    } = value;
+
+    if let Some(bool_value) = bool {
+        return serde_json::Value::Bool(bool_value);
+    }
+
+    if let Some(list) = l {
+        return serde_json::Value::Array(list.into_iter().map(attribute_to_value).collect());
+    }
+
+    if let Some(_object) = m {
+        unimplemented!("not yet");
+    }
+
+    if let Some(number) = n {
+        return serde_json::Value::Number(
+            serde_json::Number::from_str(&number).expect("can't fail"),
+        );
+    }
+
+    if let Some(str_value) = s {
+        return serde_json::Value::String(str_value);
+    }
+
+    if let Some(_vec_bytes) = bs {
+        unimplemented!("not yet");
+    }
+
+    if let Some(number_set) = ns {
+        return serde_json::Value::Array(
+            number_set
+                .into_iter()
+                .map(|str_value| {
+                    serde_json::Value::Number(
+                        serde_json::Number::from_str(&str_value).expect("can't fail"),
+                    )
+                })
+                .collect(),
+        );
+    }
+
+    if let Some(string_set) = ss {
+        return serde_json::Value::Array(
+            string_set
+                .into_iter()
+                .map(serde_json::Value::String)
+                .collect(),
+        );
+    }
+
+    if let Some(_null) = null {
+        return serde_json::Value::Null;
+    }
+
+    if let Some(_bytes) = b {
+        unimplemented!("not yet");
+    }
+
+    serde_json::Value::Null
+}
+
+impl TransformerTrait for Transformer {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        match &self {
+            Self::Functions { .. } => unimplemented!(),
+            Self::JSONSelect { .. } => unimplemented!(),
+            Self::DynamoSelect { property } => {
+                let cast: Option<HashMap<String, AttributeValue>> = serde_json::from_value(value)?;
+
+                let result = cast
+                    .map(|mut x| x.remove(property))
+                    .flatten()
+                    .map(attribute_to_value)
+                    .unwrap_or_else(|| serde_json::Value::Null);
+
+                Ok(result)
+            }
+        }
+    }
+}
+
+/// Merge JSON together
+fn merge(a: &mut serde_json::Value, b: serde_json::Value) {
+    match (a, b) {
+        (a @ &mut serde_json::Value::Object(_), serde_json::Value::Object(b)) => {
+            let a = a.as_object_mut().expect("can't fail");
+            for (k, v) in b {
+                merge(a.entry(k).or_insert(serde_json::Value::Null), v);
+            }
+        }
+        (a, b) => *a = b,
+    }
+}
+
+impl TransformerTrait for Vec<Transformer> {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        self.iter()
+            .map(|x| x.transform(value.clone()))
+            .collect::<Result<Vec<serde_json::Value>, Error>>()
+            .map(|x| {
+                x.into_iter().fold(serde_json::json!({}), |mut acc, cur| {
+                    merge(&mut acc, cur);
+                    acc
+                })
+            })
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub enum Transformer {
+    Functions {
+        /// Functions to be applied to a Value.
+        functions: Vec<JSONFunction>,
+    },
+    DynamoSelect {
+        /// The key where this select
+        property: String,
+    },
+    JSONSelect {
+        /// The key where this select
+        property: String,
+        /// A JsonPath
+        /// TODO: Use a jsonpath lib.
+        from: String,
+        /// Functions to be applied to a Value.
+        functions: Vec<JSONFunction>,
+    },
+}
+
+#[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derivative(Debug)]
 pub struct MetaField {
     pub name: String,
-    pub description: Option<&'static str>,
-    pub args: IndexMap<&'static str, MetaInputValue>,
+    pub description: Option<String>,
+    pub args: IndexMap<String, MetaInputValue>,
     pub ty: String,
     pub deprecation: Deprecation,
     pub cache_control: CacheControl,
     pub external: bool,
-    pub requires: Option<&'static str>,
-    pub provides: Option<&'static str>,
+    pub requires: Option<String>,
+    pub provides: Option<String>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
     pub visible: Option<MetaVisibleFn>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
+    pub resolve: Option<Resolver>,
+    /// Ordered transformations to be applied after a Resolver has been called.
+    /// They are applied Serially and merged at the end.
+    pub transforms: Option<Vec<Transformer>>,
 }
 
-#[derive(Clone)]
+impl MetaField {
+    /// The whole logic to link resolver and transformers for each fields.
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
+        let registry = &ctx.schema_env.registry;
+
+        // For every arguments, we should try to have his param value and depending on the native
+        // Scalar, associate him to a primitive.
+        let variables = Some(
+            self.args
+                .values()
+                .map(|x| x.transform_to_variables_resolved(ctx).expect("We must be able to transform any types into transformed variable, if we aren't some primitives aren't managed"))
+                .collect(),
+        );
+
+        #[cfg(feature = "tracing_worker")]
+        {
+            info!("field", "Field {:?}", &ctx.query_resolvers);
+        }
+
+        let ctx_obj = ctx.with_selection_set(
+            &ctx.item.node.selection_set,
+            vec![(&self.resolve, &self.transforms, &variables)],
+        );
+
+        match &ctx.item.node.selection_set.node.items.is_empty() {
+            true => {
+                // Take the last available resolver
+                let last_resolvers = ctx_obj
+                    .query_resolvers
+                    .iter()
+                    .rev()
+                    .find_map(|(x, _, _)| x.as_ref())
+                    .expect("should have a resolver");
+
+                let result = last_resolvers
+                    .resolve(&ctx.clone().add_resolvers(vec![(
+                        &self.resolve,
+                        &self.transforms,
+                        &variables,
+                    )]))
+                    .await
+                    .map_err(|err| err.into_server_error(ctx.item.pos));
+
+                match result {
+                    Ok(result) => {
+                        if self.ty.ends_with('!') && result == Value::Null {
+                            Err(ServerError::new(
+                                format!(
+                                    "An error happened while fetching {:?}",
+                                    ctx.item.node.name
+                                ),
+                                Some(ctx.item.pos),
+                            ))
+                        } else {
+                            Ok(result)
+                        }
+                    }
+                    Err(err) => {
+                        if self.ty.ends_with('!') {
+                            Err(err)
+                        } else {
+                            ctx.add_error(err);
+                            Ok(Value::Null)
+                        }
+                    }
+                }
+            }
+            false => {
+                let container_type = registry.types.get(&self.ty).ok_or_else(|| {
+                    ServerError::new("An internal error happened", Some(ctx.item.pos))
+                })?;
+
+                match resolve_container(&ctx_obj, container_type).await {
+                    result @ Ok(_) => result,
+                    Err(err) => {
+                        if self.ty.ends_with('!') {
+                            Err(err)
+                        } else {
+                            ctx.add_error(err);
+                            Ok(Value::Null)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
 pub struct MetaEnumValue {
-    pub name: &'static str,
-    pub description: Option<&'static str>,
+    pub name: String,
+    pub description: Option<String>,
     pub deprecation: Deprecation,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore")]
     pub visible: Option<MetaVisibleFn>,
 }
 
 type MetaVisibleFn = fn(&Context<'_>) -> bool;
 
-#[derive(Clone)]
+#[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
 pub enum MetaType {
     Scalar {
         name: String,
-        description: Option<&'static str>,
-        is_valid: fn(value: &Value) -> bool,
+        description: Option<String>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
+        is_valid: Option<fn(value: &Value) -> bool>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
-        specified_by_url: Option<&'static str>,
+        specified_by_url: Option<String>,
     },
     Object {
         name: String,
-        description: Option<&'static str>,
+        description: Option<String>,
         fields: IndexMap<String, MetaField>,
         cache_control: CacheControl,
         extends: bool,
         keys: Option<Vec<String>>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         is_subscription: bool,
-        rust_typename: &'static str,
+        rust_typename: String,
     },
     Interface {
         name: String,
-        description: Option<&'static str>,
+        description: Option<String>,
         fields: IndexMap<String, MetaField>,
         possible_types: IndexSet<String>,
         extends: bool,
         keys: Option<Vec<String>>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
-        rust_typename: &'static str,
+        rust_typename: String,
     },
     Union {
         name: String,
-        description: Option<&'static str>,
+        description: Option<String>,
         possible_types: IndexSet<String>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
-        rust_typename: &'static str,
+        rust_typename: String,
     },
     Enum {
         name: String,
-        description: Option<&'static str>,
-        enum_values: IndexMap<&'static str, MetaEnumValue>,
+        description: Option<String>,
+        enum_values: IndexMap<String, MetaEnumValue>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
-        rust_typename: &'static str,
+        rust_typename: String,
     },
     InputObject {
         name: String,
-        description: Option<&'static str>,
+        description: Option<String>,
         input_fields: IndexMap<String, MetaInputValue>,
+        #[derivative(Debug = "ignore")]
+        #[serde(skip)]
         visible: Option<MetaVisibleFn>,
-        rust_typename: &'static str,
+        rust_typename: String,
         oneof: bool,
     },
 }
@@ -335,7 +843,7 @@ impl MetaType {
         }
     }
 
-    pub fn rust_typename(&self) -> Option<&'static str> {
+    pub fn rust_typename(&self) -> Option<&String> {
         match self {
             MetaType::Scalar { .. } => None,
             MetaType::Object { rust_typename, .. } => Some(rust_typename),
@@ -347,16 +855,20 @@ impl MetaType {
     }
 }
 
+#[derive(derivative::Derivative, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
 pub struct MetaDirective {
-    pub name: &'static str,
-    pub description: Option<&'static str>,
+    pub name: String,
+    pub description: Option<String>,
     pub locations: Vec<model::__DirectiveLocation>,
-    pub args: IndexMap<&'static str, MetaInputValue>,
+    pub args: IndexMap<String, MetaInputValue>,
     pub is_repeatable: bool,
+    #[derivative(Debug = "ignore")]
+    #[serde(skip)]
     pub visible: Option<MetaVisibleFn>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
     pub directives: HashMap<String, MetaDirective>,
@@ -367,6 +879,86 @@ pub struct Registry {
     pub disable_introspection: bool,
     pub enable_federation: bool,
     pub federation_subscription: bool,
+}
+
+impl Registry {
+    pub fn query_root(&self) -> &MetaType {
+        self.types.get(&self.query_type).unwrap()
+    }
+
+    pub fn mutation_root(&self) -> &MetaType {
+        // TODO: Fix this.
+        self.types
+            .get(self.mutation_type.as_deref().unwrap())
+            .unwrap()
+    }
+
+    /// Resolve fields based on where you are inside
+    pub async fn resolve_field(
+        &self,
+        ctx: &Context<'_>,
+        root: &MetaType,
+    ) -> ServerResult<Option<Value>> {
+        // If QueryRoot -> root then
+        let _registry = &ctx.schema_env.registry;
+
+        if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
+            if ctx.item.node.name.node == "__schema" {
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
+                return OutputType::resolve(
+                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
+                    &ctx_obj,
+                    ctx.item,
+                )
+                .await
+                .map(Some);
+            } else if ctx.item.node.name.node == "__type" {
+                let (_, type_name) = ctx.param_value::<String>("name", None)?;
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
+                return OutputType::resolve(
+                    &ctx.schema_env
+                        .registry
+                        .types
+                        .get(&type_name)
+                        .filter(|_| visible_types.contains(type_name.as_str()))
+                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
+                    &ctx_obj,
+                    ctx.item,
+                )
+                .await
+                .map(Some);
+            }
+        }
+
+        // TODO: Federation
+
+        let field_name = &ctx.item.node.name.node;
+
+        // let ctx = ctx.with_selection_set(&ctx.item.node.selection_set);
+        if let Some(field) = root.field_by_name(field_name.as_str()) {
+            // let pos = ctx.item.pos;
+            let resolver = async move { field.resolve(&ctx).await };
+
+            let obj = resolver.await.map_err(|err| ctx.set_error_path(err))?;
+            // let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+
+            return Ok(Some(obj));
+
+            // If it's a primitive or a scalar, let's return it, or we need to redo a pass.
+        }
+        Ok(None)
+        // let ret = resolver_utils::resolve_container(&ctx).await.map(Some);
+        // ret
+    }
+
+    /// Introspection type name
+    ///
+    /// Is the return value of field `__typename`, the interface and union should return the current type, and the others return `Type::type_name`.
+    pub fn introspection_type_name<'a>(&self, node: &'a MetaType) -> &'a str {
+        node.name()
+    }
 }
 
 impl Registry {
@@ -397,7 +989,7 @@ impl Registry {
         T::qualified_type_name()
     }
 
-    fn create_type<F: FnMut(&mut Registry) -> MetaType>(
+    pub fn create_type<F: FnMut(&mut Registry) -> MetaType>(
         &mut self,
         f: &mut F,
         name: &str,
@@ -406,7 +998,7 @@ impl Registry {
         match self.types.get(name) {
             Some(ty) => {
                 if let Some(prev_typename) = ty.rust_typename() {
-                    if prev_typename != "__fake_type__" && rust_typename != prev_typename {
+                    if prev_typename.ne("__fake_type__") && prev_typename.ne(rust_typename) {
                         panic!(
                             "`{}` and `{}` have the same GraphQL name `{}`",
                             prev_typename, rust_typename, name,
@@ -427,7 +1019,7 @@ impl Registry {
                         keys: None,
                         visible: None,
                         is_subscription: false,
-                        rust_typename: "__fake_type__",
+                        rust_typename: "__fake_type__".to_string(),
                     },
                 );
                 let ty = f(self);
@@ -546,7 +1138,7 @@ impl Registry {
                     description: None,
                     possible_types,
                     visible: None,
-                    rust_typename: "async_graphql::federation::Entity",
+                    rust_typename: "async_graphql::federation::Entity".to_string(),
                 },
             );
 
@@ -566,6 +1158,8 @@ impl Registry {
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
                     },
                 );
 
@@ -577,9 +1171,9 @@ impl Registry {
                         args: {
                             let mut args = IndexMap::new();
                             args.insert(
-                                "representations",
+                                "representations".to_string(),
                                 MetaInputValue {
-                                    name: "representations",
+                                    name: "representations".to_string(),
                                     description: None,
                                     ty: "[_Any!]!".to_string(),
                                     default_value: None,
@@ -597,6 +1191,8 @@ impl Registry {
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        resolve: None,
+                        transforms: None,
                     },
                 );
             }
@@ -627,6 +1223,8 @@ impl Registry {
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            resolve: None,
+                            transforms: None,
                         },
                     );
                     fields
@@ -636,7 +1234,7 @@ impl Registry {
                 keys: None,
                 visible: None,
                 is_subscription: false,
-                rust_typename: "async_graphql::federation::Service",
+                rust_typename: "async_graphql::federation::Service".to_string(),
             },
         );
 
@@ -689,12 +1287,14 @@ impl Registry {
 
     pub fn set_description(&mut self, name: &str, desc: &'static str) {
         match self.types.get_mut(name) {
-            Some(MetaType::Scalar { description, .. }) => *description = Some(desc),
-            Some(MetaType::Object { description, .. }) => *description = Some(desc),
-            Some(MetaType::Interface { description, .. }) => *description = Some(desc),
-            Some(MetaType::Union { description, .. }) => *description = Some(desc),
-            Some(MetaType::Enum { description, .. }) => *description = Some(desc),
-            Some(MetaType::InputObject { description, .. }) => *description = Some(desc),
+            Some(MetaType::Scalar { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Object { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Interface { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Union { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::Enum { description, .. }) => *description = Some(desc.to_string()),
+            Some(MetaType::InputObject { description, .. }) => {
+                *description = Some(desc.to_string())
+            }
             None => {}
         }
     }

@@ -64,7 +64,7 @@ enum MyInterface {
 The type, name, and parameter fields of the interface must exactly match the type of the
 implementation interface, but Result can be omitted.
 
-```rust
+```rust, ignore
 use async_graphql::*;
 
 struct TypeA {

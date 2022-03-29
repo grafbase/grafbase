@@ -1,3 +1,5 @@
+#![allow(clippy::option_if_let_else)]
+#![allow(clippy::useless_let_if_seq)]
 use darling::ast::Data;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -35,7 +37,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&object_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let s = match &object_args.data {
@@ -52,7 +54,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     let mut resolvers = Vec::new();
     let mut schema_fields = Vec::new();
 
-    let mut processed_fields: Vec<SimpleObjectFieldGenerator> = vec![];
+    let mut processed_fields: Vec<SimpleObjectFieldGenerator<'_>> = vec![];
 
     // Before processing the fields, we generate the derivated fields
     for field in &s.fields {
@@ -114,7 +116,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 .rename(ident.unraw().to_string(), RenameTarget::Field)
         });
         let field_desc = get_rustdoc(&field.attrs)?
-            .map(|s| quote! {::std::option::Option::Some(#s)})
+            .map(|s| quote! {::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s))})
             .unwrap_or_else(|| quote! {::std::option::Option::None});
         let field_deprecation = gen_deprecation(&field.deprecation, &crate_name);
         let external = field.external;
@@ -167,6 +169,8 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
+                    resolve: None,
+                    transforms: None,
                 });
             });
         } else {
@@ -230,7 +234,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         self.#ident(ctx).await.map_err(|err| err.into_server_error(ctx.item.pos))
                     };
                     let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
+                    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
                     return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                 }
             });
@@ -281,7 +285,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     let resolve_container = if object_args.serial {
         quote! { #crate_name::resolver_utils::resolve_container_serial(ctx, self).await }
     } else {
-        quote! { #crate_name::resolver_utils::resolve_container(ctx, self).await }
+        quote! { #crate_name::resolver_utils::resolve_container_native(ctx, self).await }
     };
 
     let expanded = if object_args.concretes.is_empty() {
@@ -324,7 +328,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     })
                 }
 
@@ -388,7 +392,9 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        resolve: None,
+                        transforms: None,
                     })
                 }
 

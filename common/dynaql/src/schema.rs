@@ -23,11 +23,8 @@ use crate::{
 };
 
 /// Schema builder
-pub struct SchemaBuilder<Query, Mutation, Subscription> {
+pub struct SchemaBuilder {
     validation_mode: ValidationMode,
-    query: QueryRoot<Query>,
-    mutation: Mutation,
-    subscription: Subscription,
     registry: Registry,
     data: Data,
     complexity: Option<usize>,
@@ -36,7 +33,7 @@ pub struct SchemaBuilder<Query, Mutation, Subscription> {
     custom_directives: HashMap<&'static str, Box<dyn CustomDirectiveFactory>>,
 }
 
-impl<Query, Mutation, Subscription> SchemaBuilder<Query, Mutation, Subscription> {
+impl SchemaBuilder {
     /// Manually register a input type in the schema.
     ///
     /// You can use this function to register schema types that are not directly referenced.
@@ -80,7 +77,7 @@ impl<Query, Mutation, Subscription> SchemaBuilder<Query, Mutation, Subscription>
     ///
     /// # Examples
     ///
-    /// ```rust
+    /// ```rust, ignore
     /// use async_graphql::*;
     ///
     /// struct Query;
@@ -169,7 +166,7 @@ impl<Query, Mutation, Subscription> SchemaBuilder<Query, Mutation, Subscription>
     }
 
     /// Build schema.
-    pub fn finish(mut self) -> Schema<Query, Mutation, Subscription> {
+    pub fn finish(mut self) -> Schema {
         // federation
         if self.registry.enable_federation || self.registry.has_entities() {
             self.registry.create_federation_types();
@@ -177,9 +174,6 @@ impl<Query, Mutation, Subscription> SchemaBuilder<Query, Mutation, Subscription>
 
         Schema(Arc::new(SchemaInner {
             validation_mode: self.validation_mode,
-            query: self.query,
-            mutation: self.mutation,
-            subscription: self.subscription,
             complexity: self.complexity,
             depth: self.depth,
             extensions: self.extensions,
@@ -212,11 +206,8 @@ impl Deref for SchemaEnv {
 }
 
 #[doc(hidden)]
-pub struct SchemaInner<Query, Mutation, Subscription> {
+pub struct SchemaInner {
     pub(crate) validation_mode: ValidationMode,
-    pub(crate) query: QueryRoot<Query>,
-    pub(crate) mutation: Mutation,
-    pub(crate) subscription: Subscription,
     pub(crate) complexity: Option<usize>,
     pub(crate) depth: Option<usize>,
     pub(crate) extensions: Vec<Box<dyn ExtensionFactory>>,
@@ -226,59 +217,38 @@ pub struct SchemaInner<Query, Mutation, Subscription> {
 /// GraphQL schema.
 ///
 /// Cloning a schema is cheap, so it can be easily shared.
-pub struct Schema<Query, Mutation, Subscription>(Arc<SchemaInner<Query, Mutation, Subscription>>);
+pub struct Schema(Arc<SchemaInner>);
 
-impl<Query, Mutation, Subscription> Clone for Schema<Query, Mutation, Subscription> {
+impl Clone for Schema {
     fn clone(&self) -> Self {
         Schema(self.0.clone())
     }
 }
 
-impl<Query, Mutation, Subscription> Default for Schema<Query, Mutation, Subscription>
-where
-    Query: Default + ObjectType + 'static,
-    Mutation: Default + ObjectType + 'static,
-    Subscription: Default + SubscriptionType + 'static,
-{
+impl Default for Schema {
     fn default() -> Self {
-        Schema::new(
-            Query::default(),
-            Mutation::default(),
-            Subscription::default(),
-        )
+        Schema::new(Self::create_registry())
     }
 }
 
-impl<Query, Mutation, Subscription> Deref for Schema<Query, Mutation, Subscription> {
-    type Target = SchemaInner<Query, Mutation, Subscription>;
+impl Deref for Schema {
+    type Target = SchemaInner;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 
-impl<Query, Mutation, Subscription> Schema<Query, Mutation, Subscription>
-where
-    Query: ObjectType + 'static,
-    Mutation: ObjectType + 'static,
-    Subscription: SubscriptionType + 'static,
-{
+impl Schema {
     /// Create a schema builder
     ///
     /// The root object for the query and Mutation needs to be specified.
     /// If there is no mutation, you can use `EmptyMutation`.
     /// If there is no subscription, you can use `EmptySubscription`.
-    pub fn build(
-        query: Query,
-        mutation: Mutation,
-        subscription: Subscription,
-    ) -> SchemaBuilder<Query, Mutation, Subscription> {
+    pub fn build(registry: Registry) -> SchemaBuilder {
         SchemaBuilder {
             validation_mode: ValidationMode::Strict,
-            query: QueryRoot { inner: query },
-            mutation,
-            subscription,
-            registry: Self::create_registry(),
+            registry,
             data: Default::default(),
             complexity: None,
             depth: None,
@@ -287,7 +257,12 @@ where
         }
     }
 
-    pub(crate) fn create_registry() -> Registry {
+    pub fn create_registry_static<Query, Mutation, Subscription>() -> Registry
+    where
+        Query: ObjectType + 'static,
+        Mutation: ObjectType + 'static,
+        Subscription: SubscriptionType + 'static,
+    {
         let mut registry = Registry {
             types: Default::default(),
             directives: Default::default(),
@@ -309,8 +284,8 @@ where
         };
 
         registry.add_directive(MetaDirective {
-            name: "include",
-            description: Some("Directs the executor to include this field or fragment only when the `if` argument is true."),
+            name: "include".to_string(),
+            description: Some("Directs the executor to include this field or fragment only when the `if` argument is true.".to_string()),
             locations: vec![
                 __DirectiveLocation::FIELD,
                 __DirectiveLocation::FRAGMENT_SPREAD,
@@ -318,9 +293,9 @@ where
             ],
             args: {
                 let mut args = IndexMap::new();
-                args.insert("if", MetaInputValue {
-                    name: "if",
-                    description: Some("Included when true."),
+                args.insert("if".to_string(), MetaInputValue {
+                    name: "if".to_string(),
+                    description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
                     visible: None,
@@ -333,8 +308,8 @@ where
         });
 
         registry.add_directive(MetaDirective {
-            name: "skip",
-            description: Some("Directs the executor to skip this field or fragment when the `if` argument is true."),
+            name: "skip".to_string(),
+            description: Some("Directs the executor to skip this field or fragment when the `if` argument is true.".to_string()),
             locations: vec![
                 __DirectiveLocation::FIELD,
                 __DirectiveLocation::FRAGMENT_SPREAD,
@@ -342,9 +317,9 @@ where
             ],
             args: {
                 let mut args = IndexMap::new();
-                args.insert("if", MetaInputValue {
-                    name: "if",
-                    description: Some("Skipped when true."),
+                args.insert("if".to_string(), MetaInputValue {
+                    name: "if".to_string(),
+                    description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
                     visible: None,
@@ -375,13 +350,81 @@ where
         registry
     }
 
+    pub fn create_registry() -> Registry {
+        let mut registry = Registry {
+            types: Default::default(),
+            directives: Default::default(),
+            implements: Default::default(),
+            query_type: "Query".to_string(),
+            mutation_type: None,
+            subscription_type: None,
+            disable_introspection: false,
+            enable_federation: false,
+            federation_subscription: false,
+        };
+
+        registry.add_directive(MetaDirective {
+            name: "include".to_string(),
+            description: Some("Directs the executor to include this field or fragment only when the `if` argument is true.".to_string()),
+            locations: vec![
+                __DirectiveLocation::FIELD,
+                __DirectiveLocation::FRAGMENT_SPREAD,
+                __DirectiveLocation::INLINE_FRAGMENT
+            ],
+            args: {
+                let mut args = IndexMap::new();
+                args.insert("if".to_string(), MetaInputValue {
+                    name: "if".to_string(),
+                    description: Some("Included when true.".to_string()),
+                    ty: "Boolean!".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                });
+                args
+            },
+            is_repeatable: false,
+            visible: None,
+        });
+
+        registry.add_directive(MetaDirective {
+            name: "skip".to_string(),
+            description: Some("Directs the executor to skip this field or fragment when the `if` argument is true.".to_string()),
+            locations: vec![
+                __DirectiveLocation::FIELD,
+                __DirectiveLocation::FRAGMENT_SPREAD,
+                __DirectiveLocation::INLINE_FRAGMENT
+            ],
+            args: {
+                let mut args = IndexMap::new();
+                args.insert("if".to_string(), MetaInputValue {
+                    name: "if".to_string(),
+                    description: Some("Skipped when true.".to_string()),
+                    ty: "Boolean!".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                });
+                args
+            },
+            is_repeatable: false,
+            visible: None,
+        });
+
+        // register scalars
+        <bool as InputType>::create_type_info(&mut registry);
+        <i32 as InputType>::create_type_info(&mut registry);
+        <f32 as InputType>::create_type_info(&mut registry);
+        <String as InputType>::create_type_info(&mut registry);
+        <ID as InputType>::create_type_info(&mut registry);
+
+        registry.remove_unused_types();
+        registry
+    }
+
     /// Create a schema
-    pub fn new(
-        query: Query,
-        mutation: Mutation,
-        subscription: Subscription,
-    ) -> Schema<Query, Mutation, Subscription> {
-        Self::build(query, mutation, subscription).finish()
+    pub fn new(registry: Registry) -> Schema {
+        Self::build(registry).finish()
     }
 
     #[inline]
@@ -522,11 +565,17 @@ where
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
+            query_resolvers: Vec::new(),
+            resolvers_cache: Default::default(),
         };
 
+        let query = ctx.registry().query_root();
+
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_container(&ctx, &self.query).await,
-            OperationType::Mutation => resolve_container_serial(&ctx, &self.mutation).await,
+            OperationType::Query => resolve_container(&ctx, query).await,
+            OperationType::Mutation => {
+                resolve_container_serial(&ctx, ctx.registry().mutation_root()).await
+            }
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
                 None,
@@ -621,7 +670,8 @@ where
                 );
 
                 let mut streams = Vec::new();
-                if let Err(err) = collect_subscription_streams(&ctx, &schema.subscription, &mut streams) {
+                // if let Err(err) = collect_subscription_streams(&ctx, &schema.subscription, &mut streams) {
+                if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
                     yield Response::from_errors(vec![err]);
                 }
 
@@ -637,9 +687,10 @@ where
     /// Execute a GraphQL subscription.
     pub fn execute_stream(
         &self,
-        request: impl Into<Request>,
+        _request: impl Into<Request>,
     ) -> impl Stream<Item = Response> + Send + Unpin {
-        self.execute_stream_with_session_data(request.into(), Default::default())
+        futures_util::stream::empty()
+        // self.execute_stream_with_session_data(request.into(), Default::default())
     }
 }
 

@@ -160,9 +160,9 @@
 #![allow(clippy::redundant_pub_crate)]
 #![allow(clippy::cognitive_complexity)]
 #![allow(clippy::useless_let_if_seq)]
-#![warn(missing_docs)]
 #![allow(clippy::trivially_copy_pass_by_ref)]
 #![allow(clippy::upper_case_acronyms)]
+#![allow(elided_lifetimes_in_paths)]
 #![recursion_limit = "256"]
 #![forbid(unsafe_code)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
@@ -172,7 +172,8 @@ mod custom_directive;
 mod error;
 mod guard;
 mod look_ahead;
-mod model;
+#[doc(hidden)]
+pub mod model;
 mod request;
 mod response;
 mod schema;

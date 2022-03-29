@@ -223,7 +223,7 @@ impl<'a> __Type<'a> {
             specified_by_url, ..
         }) = &self.detail
         {
-            *specified_by_url
+            specified_by_url.as_deref()
         } else {
             None
         }

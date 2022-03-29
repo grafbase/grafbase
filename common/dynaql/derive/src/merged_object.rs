@@ -18,7 +18,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
         .unwrap_or_else(|| RenameTarget::Type.rename(ident.to_string()));
 
     let desc = get_rustdoc(&object_args.attrs)?
-        .map(|s| quote! { ::std::option::Option::Some(#s) })
+        .map(|s| quote! { ::std::option::Option::Some(::std::borrow::ToOwned::to_owned(#s)) })
         .unwrap_or_else(|| quote! {::std::option::Option::None});
 
     let s = match &object_args.data {
@@ -56,9 +56,9 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
 
     let visible = visible_fn(&object_args.visible);
     let resolve_container = if object_args.serial {
-        quote! { #crate_name::resolver_utils::resolve_container_serial(ctx, self).await }
+        quote! { #crate_name::resolver_utils::resolve_container_serial_native(ctx, self).await }
     } else {
-        quote! { #crate_name::resolver_utils::resolve_container(ctx, self).await }
+        quote! { #crate_name::resolver_utils::resolve_container_native(ctx, self).await }
     };
 
     let expanded = quote! {
@@ -104,7 +104,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
-                        rust_typename: ::std::any::type_name::<Self>(),
+                        rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     }
                 })
             }

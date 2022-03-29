@@ -1,5 +1,5 @@
 use async_graphql::http::MultipartOptions;
-use async_graphql::{BatchRequest, ObjectType, Request, Schema, SubscriptionType};
+use async_graphql::{BatchRequest, Request, Schema};
 use warp::reply::Response as WarpResponse;
 use warp::{Filter, Rejection, Reply};
 
@@ -40,33 +40,17 @@ use crate::{graphql_batch_opts, GraphQLBadRequest, GraphQLBatchResponse};
 /// warp::serve(filter).run(([0, 0, 0, 0], 8000)).await;
 /// # });
 /// ```
-pub fn graphql<Query, Mutation, Subscription>(
-    schema: Schema<Query, Mutation, Subscription>,
-) -> impl Filter<
-    Extract = ((
-        Schema<Query, Mutation, Subscription>,
-        async_graphql::Request,
-    ),),
-    Error = Rejection,
-> + Clone
-where
-    Query: ObjectType + 'static,
-    Mutation: ObjectType + 'static,
-    Subscription: SubscriptionType + 'static,
-{
+pub fn graphql(
+    schema: Schema,
+) -> impl Filter<Extract = ((Schema, async_graphql::Request),), Error = Rejection> + Clone {
     graphql_opts(schema, Default::default())
 }
 
 /// Similar to graphql, but you can set the options `async_graphql::MultipartOptions`.
-pub fn graphql_opts<Query, Mutation, Subscription>(
-    schema: Schema<Query, Mutation, Subscription>,
+pub fn graphql_opts(
+    schema: Schema,
     opts: MultipartOptions,
-) -> impl Filter<Extract = ((Schema<Query, Mutation, Subscription>, Request),), Error = Rejection> + Clone
-where
-    Query: ObjectType + 'static,
-    Mutation: ObjectType + 'static,
-    Subscription: SubscriptionType + 'static,
-{
+) -> impl Filter<Extract = ((Schema, Request),), Error = Rejection> + Clone {
     graphql_batch_opts(schema, opts).and_then(|(schema, batch): (_, BatchRequest)| async move {
         <Result<_, Rejection>>::Ok((
             schema,

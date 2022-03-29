@@ -13,7 +13,7 @@ use crate::{
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 ///
 /// struct Query;
@@ -58,7 +58,7 @@ impl OutputType for EmptyMutation {
             keys: None,
             visible: None,
             is_subscription: false,
-            rust_typename: std::any::type_name::<Self>(),
+            rust_typename: std::any::type_name::<Self>().to_owned(),
         })
     }
 

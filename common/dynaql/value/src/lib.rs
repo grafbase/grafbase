@@ -2,6 +2,7 @@
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
+#![allow(clippy::use_self)]
 
 mod deserializer;
 mod macros;
@@ -72,7 +73,7 @@ impl Deref for Name {
 }
 
 impl Display for Name {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
     }
 }

@@ -6,7 +6,7 @@ use crate::{InputValueResult, Value};
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 ///
 /// struct MyInt(i32);
@@ -49,7 +49,7 @@ pub trait ScalarType: Sized + Send {
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust, ignore
 /// use async_graphql::*;
 /// use serde::{Serialize, Deserialize};
 /// use std::collections::HashMap;
