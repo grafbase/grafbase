@@ -2,7 +2,7 @@ use quick_error::quick_error;
 // FIXME: To keep Clippy happy.
 pub use log_;
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicU8, Ordering};
 
 #[cfg(feature = "with-worker")]
 pub use worker;
@@ -27,7 +27,19 @@ pub enum LogSeverity {
     Error,
 }
 
-pub static ENABLE_LOGGING: AtomicBool = AtomicBool::new(false);
+bitflags::bitflags! {
+    pub struct Config: u8 {
+        const DATADOG = 0b00000001;
+        const WORKER  = 0b00000010;
+        const STDLOG  = 0b00000100;
+    }
+}
+
+pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
+
+pub fn configure(config: Config) {
+    LOG_CONFIG.store(config.bits(), Ordering::SeqCst);
+}
 
 thread_local! {
     pub static LOG_ENTRIES: std::cell::RefCell<Vec<(String, LogSeverity, String)>> =
@@ -38,16 +50,28 @@ thread_local! {
 macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
-        #[cfg(feature = "with-worker")]
-        match status {
-            LogSeverity::Debug =>
-                $crate::worker::console_debug!("{}", message),
-            LogSeverity::Info =>
-                $crate::worker::console_log!("{}", message),
-            LogSeverity::Error =>
-                $crate::worker::console_error!("{}", message),
+        let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
+        if config.contains($crate::Config::WORKER) {
+            match $status {
+                $crate::LogSeverity::Debug =>
+                    $crate::worker::console_debug!("{}", message),
+                $crate::LogSeverity::Info =>
+                    $crate::worker::console_log!("{}", message),
+                $crate::LogSeverity::Error =>
+                    $crate::worker::console_error!("{}", message),
+            }
         }
-        if $crate::ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
+        if config.contains($crate::Config::STDLOG) {
+            match $status {
+                $crate::LogSeverity::Debug =>
+                    $crate::log_::debug!("{}", message),
+                $crate::LogSeverity::Info =>
+                    $crate::log_::info!("{}", message),
+                $crate::LogSeverity::Error =>
+                    $crate::log_::error!("{}", message),
+            }
+        }
+        if config.contains($crate::Config::DATADOG) {
             $crate::LOG_ENTRIES.with(|log_entries| log_entries
                 .try_borrow_mut()
                 .expect("reentrance is impossible in our single-threaded runtime")
@@ -58,26 +82,23 @@ macro_rules! log {
 
 #[macro_export]
 macro_rules! debug {
-    ($request_id:expr, $($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Debug, $request_id, $($t)*);
-        $crate::log_::debug!($($t)*);
-    } }
+    ($request_id:expr, $($t:tt)*) => {
+        $crate::log!($crate::LogSeverity::Debug, $request_id, $($t)*)
+    }
 }
 
 #[macro_export]
 macro_rules! info {
-    ($request_id:expr, $($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Info, $request_id, $($t)*);
-        $crate::log_::info!($($t)*);
-    } }
+    ($request_id:expr, $($t:tt)*) => {
+        $crate::log!($crate::LogSeverity::Info, $request_id, $($t)*)
+    }
 }
 
 #[macro_export]
 macro_rules! error {
-    ($request_id:expr, $($t:tt)*) => { {
-        $crate::log!($crate::LogSeverity::Error, $request_id, $($t)*);
-        $crate::log_::error!($($t)*);
-    } }
+    ($request_id:expr, $($t:tt)*) => {
+        $crate::log!($crate::LogSeverity::Error, $request_id, $($t)*)
+    }
 }
 
 #[derive(serde::Serialize)]
@@ -88,10 +109,6 @@ pub struct DatadogLogEntry {
     message: String,
     service: String,
     status: String,
-}
-
-pub fn set_logging_enabled(enabled: bool) {
-    ENABLE_LOGGING.store(enabled, std::sync::atomic::Ordering::Relaxed);
 }
 
 pub struct LogConfig {
@@ -153,7 +170,8 @@ pub async fn push_logs_to_datadog(
     request_id: String,
     request_host_name: String,
 ) -> Result<(), Error> {
-    if !ENABLE_LOGGING.load(std::sync::atomic::Ordering::Relaxed) {
+    let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
+    if config.contains(Config::DATADOG) {
         return Ok(());
     }
 
