@@ -65,7 +65,7 @@ iso8601-duration = { version = "0.1.0", optional = true }
 log = { version = "0.4.14", optional = true }
 secrecy = { version = "0.8.0", optional = true }
 tracinglib = { version = "0.1.25", optional = true, package = "tracing" }
-logworker = { path = "../api/common/log", optional = true, package = "log" }
+logworker = { git = "ssh://git@github.com/grafbase/api", branch = "agriffon/gb-787-parsing-schema-to-generate-registry", package = "log", optional = true }
 tracing-futures = { version = "0.2.5", optional = true, features = ["std-future", "futures-03"] }
 opentelemetry = { version = "0.17.0", optional = true, default-features = false, features = ["trace"] }
 uuid = { version = "0.8.2", optional = true, features = ["v4", "serde"] }
