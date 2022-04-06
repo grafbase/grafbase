@@ -110,7 +110,7 @@ pub(crate) fn add_create_mutation<'a>(
 
     // createQuery
     ctx.mutations.push(MetaField {
-        name: format!("unstable_{}Create", type_name.to_lowercase()),
+        name: format!("{}Create", type_name.to_lowercase()),
         description: Some(format!("Create a {}", type_name)),
         args: {
             let mut args = IndexMap::new();
@@ -203,7 +203,7 @@ pub(crate) fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &Fiel
 
     // deleteMutation
     ctx.mutations.push(MetaField {
-        name: format!("unstable_{}Delete", type_name.to_lowercase()),
+        name: format!("{}Delete", type_name.to_lowercase()),
         description: Some(format!("Delete a {} by ID", type_name)),
         args: {
             let mut args = IndexMap::new();
