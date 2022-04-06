@@ -10,13 +10,18 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 
+type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
+
 /// The VisitorContext to visit every types from the Schema.
 pub struct VisitorContext<'a> {
+    #[allow(dead_code)]
     pub(crate) directives: HashMap<String, &'a Positioned<DirectiveDefinition>>,
+    #[allow(dead_code)]
     pub(crate) types: HashMap<String, &'a Positioned<TypeDefinition>>,
+    #[allow(dead_code)]
     pub(crate) schema: Vec<&'a Positioned<SchemaDefinition>>,
     pub(crate) errors: Vec<RuleError>,
-    pub(crate) type_stack: Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>,
+    pub(crate) type_stack: TypeStackType<'a>,
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
     pub registry: RefCell<Registry>,
@@ -137,10 +142,12 @@ impl<'a> VisitorContext<'a> {
         registry
     }
 
+    #[allow(dead_code)]
     pub(crate) fn report_error<T: Into<String>>(&mut self, locations: Vec<Pos>, msg: T) {
         self.errors.push(RuleError::new(locations, msg));
     }
 
+    #[allow(dead_code)]
     pub(crate) fn append_errors(&mut self, errors: Vec<RuleError>) {
         self.errors.extend(errors);
     }
@@ -243,7 +250,7 @@ pub trait Visitor<'a> {
 pub struct VisitorNil;
 
 impl VisitorNil {
-    pub(crate) fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
+    pub(crate) const fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
         VisitorCons(visitor, self)
     }
 }
@@ -252,7 +259,8 @@ impl VisitorNil {
 pub struct VisitorCons<A, B>(A, B);
 
 impl<A, B> VisitorCons<A, B> {
-    pub(crate) fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
+    #[allow(dead_code)]
+    pub(crate) const fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
         VisitorCons(visitor, self)
     }
 }
@@ -373,6 +381,7 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
     ctx: &mut VisitorContext<'a>,
     operation: &'a TypeSystemDefinition,
 ) {
+    #[allow(clippy::single_match)]
     match operation {
         TypeSystemDefinition::Type(ty) => {
             v.enter_type_definition(ctx, ty);

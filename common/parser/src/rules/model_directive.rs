@@ -52,9 +52,9 @@ impl<'a> Visitor<'a> for ModelDirective {
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
-            if directives.iter().find(|directive| directive.node.name.node == MODEL_DIRECTIVE).is_some();
+            if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
-            if object.fields.iter().find(|x| !is_type_primitive(&x.node)).is_none();
+            if !object.fields.iter().any(|x| !is_type_primitive(&x.node));
             if let Some(id_field) = object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node));
             then {
                 let type_name = type_definition.node.name.node.to_string();

@@ -147,7 +147,7 @@ pub struct LruCache {
 
 impl LruCache {
     /// Creates a new LRU Cache that holds at most `cap` items.
-    pub fn new(cap: usize) -> Self {
+    pub const fn new(cap: usize) -> Self {
         Self { cap }
     }
 }

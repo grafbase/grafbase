@@ -216,7 +216,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     pub async fn load_many<K, I>(&self, keys: I) -> Result<HashMap<K, T::Value>, T::Error>
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
-        I: IntoIterator<Item = K>,
+        I: IntoIterator<Item = K> + Send,
         T: Loader<K>,
     {
         enum Action<K: Send + Sync + Hash + Eq + Clone + 'static, T: Loader<K>> {
@@ -314,7 +314,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     pub async fn feed_many<K, I>(&self, values: I)
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,
-        I: IntoIterator<Item = (K, T::Value)>,
+        I: IntoIterator<Item = (K, T::Value)> + Send,
         T: Loader<K>,
     {
         let tid = TypeId::of::<K>();

@@ -10,14 +10,7 @@ use async_graphql_parser::types::{BaseType, FieldDefinition};
 ///   - ID
 pub fn is_type_primitive(field: &FieldDefinition) -> bool {
     match &field.ty.node.base {
-        BaseType::Named(name) => match name.as_ref() {
-            "String" => true,
-            "Float" => true,
-            "Boolean" => true,
-            "ID" => true,
-            "Int" => true,
-            _ => false,
-        },
+        BaseType::Named(name) => matches!(name.as_ref(), "String" | "Float" | "Boolean" | "ID" | "Int"),
         _ => false,
     }
 }
@@ -25,10 +18,7 @@ pub fn is_type_primitive(field: &FieldDefinition) -> bool {
 /// Check if the given type is a non-nullable ID type
 pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
     match &field.ty.node.base {
-        BaseType::Named(name) => match name.as_ref() {
-            "ID" => true,
-            _ => false,
-        },
+        BaseType::Named(name) => matches!(name.as_ref(), "ID"),
         _ => false,
     }
 }
