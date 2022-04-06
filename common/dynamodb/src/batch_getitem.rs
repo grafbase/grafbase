@@ -63,7 +63,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 
         request_items.insert((&self.ctx.dynamodb_table_name).clone(), keys_and_attributes);
 
-        let get_items = (&self)
+        let get_items = self
             .ctx
             .dynamodb_client
             .batch_get_item(BatchGetItemInput {
@@ -78,8 +78,8 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .ok_or(BatchGetItemLoaderError::UnknowError)?
             .into_iter()
             .fold(HashMap::new(), |mut acc, cur| {
-                let pk = cur.get("pk").map(|x| x.s.clone()).flatten().unwrap();
-                let sk = cur.get("sk").map(|x| x.s.clone()).flatten().unwrap();
+                let pk = cur.get("pk").and_then(|x| x.s.clone()).unwrap();
+                let sk = cur.get("sk").and_then(|x| x.s.clone()).unwrap();
                 acc.insert((pk, sk), cur);
                 acc
             });
@@ -88,13 +88,13 @@ impl Loader<(String, String)> for BatchGetItemLoader {
     }
 }
 
-pub(crate) fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
-    let loader = DataLoader::with_cache(
+pub fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
+    
+    DataLoader::with_cache(
         BatchGetItemLoader { ctx },
         wasm_bindgen_futures::spawn_local,
         LruCache::new(256),
     )
     .max_batch_size(100)
-    .delay(Duration::from_millis(2));
-    loader
+    .delay(Duration::from_millis(2))
 }

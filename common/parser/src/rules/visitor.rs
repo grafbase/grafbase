@@ -162,7 +162,7 @@ impl<'a> VisitorContext<'a> {
     }
 }
 
-pub(crate) trait Visitor<'a> {
+pub trait Visitor<'a> {
     fn directives(&self) -> String;
 
     fn enter_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}
@@ -240,7 +240,7 @@ pub(crate) trait Visitor<'a> {
 }
 
 /// Empty Value
-pub(crate) struct VisitorNil;
+pub struct VisitorNil;
 
 impl VisitorNil {
     pub(crate) fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
@@ -249,7 +249,7 @@ impl VisitorNil {
 }
 
 /// Concat rule
-pub(crate) struct VisitorCons<A, B>(A, B);
+pub struct VisitorCons<A, B>(A, B);
 
 impl<A, B> VisitorCons<A, B> {
     pub(crate) fn with<V>(self, visitor: V) -> VisitorCons<V, Self> {
@@ -358,7 +358,7 @@ where
     }
 }
 
-pub(crate) fn visit<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, doc: &'a ServiceDocument) {
+pub fn visit<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, doc: &'a ServiceDocument) {
     v.enter_document(ctx, doc);
 
     for operation in doc.definitions.iter() {
@@ -377,7 +377,7 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
         TypeSystemDefinition::Type(ty) => {
             v.enter_type_definition(ctx, ty);
 
-            ctx.with_definition_type(Some(&ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
+            ctx.with_definition_type(Some(ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
             visit_directives(v, ctx, &ty.node.directives);
             // Inside Type Definition we should visit_field
             match &ty.node.kind {

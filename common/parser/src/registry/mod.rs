@@ -11,7 +11,7 @@ use case::CaseExt;
 /// Add the create Mutation for a given Object
 ///
 /// You must ensure the fields are primitive types.
-pub(crate) fn add_create_mutation<'a>(
+pub fn add_create_mutation<'a>(
     ctx: &mut VisitorContext<'a>,
     object: &ObjectType,
     id_field: &FieldDefinition,
@@ -127,7 +127,7 @@ pub(crate) fn add_create_mutation<'a>(
             );
             args
         },
-        ty: create_payload_name.clone(),
+        ty: create_payload_name,
         deprecation: async_graphql::registry::Deprecation::NoDeprecated,
         cache_control: async_graphql::CacheControl {
             public: true,
@@ -149,7 +149,7 @@ pub(crate) fn add_create_mutation<'a>(
 }
 
 /// Add the remove mutation for a given Object
-pub(crate) fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefinition, type_name: &str) {
+pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefinition, type_name: &str) {
     let type_name = type_name.to_string();
     let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
 
@@ -220,7 +220,7 @@ pub(crate) fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &Fiel
             );
             args
         },
-        ty: delete_payload_name.clone(),
+        ty: delete_payload_name,
         deprecation: async_graphql::registry::Deprecation::NoDeprecated,
         cache_control: async_graphql::CacheControl {
             public: true,

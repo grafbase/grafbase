@@ -82,13 +82,13 @@ impl Loader<TxItem> for TransactionLoader {
     }
 }
 
-pub(crate) fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<TransactionLoader, LruCache> {
-    let loader = DataLoader::with_cache(
+pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<TransactionLoader, LruCache> {
+    
+    DataLoader::with_cache(
         TransactionLoader { ctx },
         wasm_bindgen_futures::spawn_local,
         LruCache::new(128),
     )
     .max_batch_size(25)
-    .delay(Duration::from_millis(2));
-    loader
+    .delay(Duration::from_millis(2))
 }

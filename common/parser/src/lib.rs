@@ -1,6 +1,6 @@
 use async_graphql::registry::Registry;
-use async_graphql::Schema;
-use async_graphql_parser::types::ServiceDocument;
+
+
 use async_graphql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 
@@ -44,8 +44,8 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
 
 #[cfg(test)]
 mod tests {
-    use async_graphql::{Positioned, Schema};
-    use async_graphql_parser::types::TypeDefinition;
+    use async_graphql::{Schema};
+    
     use serde_json as _;
 
     #[test]

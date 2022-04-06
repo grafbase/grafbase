@@ -289,7 +289,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                 let delay = self.delay;
 
                 (self.spawner)(Box::pin(async move {
-                    Delay::new(delay.clone()).await;
+                    Delay::new(delay).await;
 
                     let keys = {
                         let mut request = inner.requests.lock().unwrap();
