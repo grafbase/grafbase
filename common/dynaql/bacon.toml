@@ -6,7 +6,7 @@ default_job = "check"
 [jobs]
 
 [jobs.check]
-command = ["cargo", "check", "--color", "always", "--package", "async-graphql"]
+command = ["cargo", "check", "--color", "always", "--package", "async-graphql", "--features", "tracing_worker"]
 need_stdout = false
 
 [jobs.check-h]

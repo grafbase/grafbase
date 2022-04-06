@@ -567,6 +567,7 @@ impl Schema {
             query_env: &env,
             query_resolvers: Vec::new(),
             resolvers_cache: Default::default(),
+            resolvers_data: Default::default(),
         };
 
         let query = ctx.registry().query_root();
