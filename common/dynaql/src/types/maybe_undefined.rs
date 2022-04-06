@@ -375,11 +375,11 @@ mod tests {
 
     #[test]
     fn test_as_opt_ref() {
-        let mut value: MaybeUndefined<String>;
-        let mut r: Option<Option<&String>>;
+        
+        
 
-        value = MaybeUndefined::Undefined;
-        r = value.as_opt_ref();
+        let mut value: MaybeUndefined<String> = MaybeUndefined::Undefined;
+        let mut r: Option<Option<&String>> = value.as_opt_ref();
         assert_eq!(r, None);
 
         value = MaybeUndefined::Null;
@@ -393,11 +393,11 @@ mod tests {
 
     #[test]
     fn test_as_opt_deref() {
-        let mut value: MaybeUndefined<String>;
-        let mut r: Option<Option<&str>>;
+        
+        
 
-        value = MaybeUndefined::Undefined;
-        r = value.as_opt_deref();
+        let mut value: MaybeUndefined<String> = MaybeUndefined::Undefined;
+        let mut r: Option<Option<&str>> = value.as_opt_deref();
         assert_eq!(r, None);
 
         value = MaybeUndefined::Null;

@@ -32,7 +32,7 @@ impl ResolverTrait for ContextDataResolver {
                     })
                     .expect("Error")
                     .get(key)
-                    .map(|x| x.clone())
+                    .map(std::clone::Clone::clone)
                     .unwrap_or(Value::Null);
 
                 let transformers = resolver_ctx.transforms;
@@ -41,7 +41,7 @@ impl ResolverTrait for ContextDataResolver {
                 // Apply transformers
                 if let Some(transformers) = transformers {
                     let transformed = transformers
-                        .into_iter()
+                        .iter()
                         .try_fold(result, |acc, cur| cur.transform(acc))?;
 
                     return Value::from_json(transformed)

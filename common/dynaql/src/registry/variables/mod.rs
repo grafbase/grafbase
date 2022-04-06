@@ -43,7 +43,7 @@ impl VariableResolveDefinition {
                 })
                 .expect("blbl")
                 .get(key)
-                .map(|x| x.clone()),
+                .map(std::clone::Clone::clone),
         }
     }
 }

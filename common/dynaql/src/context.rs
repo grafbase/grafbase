@@ -223,7 +223,9 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
-trait FutureSend: Future<Output = Result<Value, Error>> + Send {}
+type ResolverCacheType = Arc<
+    RwLock<HashMap<u64, Option<Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + Sync>>>>>,
+>;
 
 /// Query context.
 ///
@@ -239,11 +241,7 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     pub query_env: &'a QueryEnv,
     #[doc(hidden)]
-    pub resolvers_cache: Arc<
-        RwLock<
-            HashMap<u64, Option<Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + Sync>>>>,
-        >,
-    >,
+    pub resolvers_cache: ResolverCacheType,
     #[doc(hidden)]
     /// Ordered list of the resolvers + transformer for a value.
     pub query_resolvers: ResolverChanges<'a>,

@@ -42,7 +42,7 @@ impl ResolverTrait for DynamoResolver {
                 let dyna = batchers
                     .load_one((pk.clone(), sk))
                     .await?
-                    .ok_or(Error::new("Internal Error: Failed to fetch the node"))?;
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
 
                 let transformers = resolver_ctx.transforms;
                 let result = serde_json::to_value(dyna)?;
@@ -50,7 +50,7 @@ impl ResolverTrait for DynamoResolver {
                 // Apply transformers
                 if let Some(transformers) = transformers {
                     let transformed = transformers
-                        .into_iter()
+                        .iter()
                         .try_fold(result, |acc, cur| cur.transform(acc))?;
 
                     return Value::from_json(transformed)
