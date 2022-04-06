@@ -103,7 +103,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 }, &type_name, &type_name);
 
                 ctx.queries.push(MetaField {
-                    name: format!("unstable_{}byID", type_name.to_lowercase()),
+                    name: format!("{}byID", type_name.to_lowercase()),
                     description: Some(format!("Get a {} by his ID", type_name)),
                     args: {
                         let mut args = IndexMap::new();
