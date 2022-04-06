@@ -18,7 +18,6 @@ quick_error! {
             display("")
         }
     }
-
 }
 
 pub struct BatchGetItemLoader {
@@ -89,7 +88,6 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 }
 
 pub fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
-    
     DataLoader::with_cache(
         BatchGetItemLoader { ctx },
         wasm_bindgen_futures::spawn_local,

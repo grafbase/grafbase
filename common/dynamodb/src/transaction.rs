@@ -83,7 +83,6 @@ impl Loader<TxItem> for TransactionLoader {
 }
 
 pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<TransactionLoader, LruCache> {
-    
     DataLoader::with_cache(
         TransactionLoader { ctx },
         wasm_bindgen_futures::spawn_local,
