@@ -1,17 +1,17 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 77
+assertion_line: 68
 expression: sdl
 ---
 type Mutation {
 	"""
 	Create a Product
 	"""
-	unstable_productCreate(input: ProductCreateInput!): ProductCreatePayload
+	productCreate(input: ProductCreateInput!): ProductCreatePayload
 	"""
 	Delete a Product by ID
 	"""
-	unstable_productDelete(id: ID!): ProductDeletePayload
+	productDelete(id: ID!): ProductDeletePayload
 }
 type Product {
 	id: ID!
@@ -41,7 +41,7 @@ type Query {
 	"""
 	Get a Product by his ID
 	"""
-	unstable_productbyID(id: ID!): Product
+	productbyID(id: ID!): Product
 }
 schema {
 	query: Query
