@@ -171,7 +171,7 @@ pub async fn push_logs_to_datadog(
     request_host_name: String,
 ) -> Result<(), Error> {
     let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
-    if config.contains(Config::DATADOG) {
+    if !config.contains(Config::DATADOG) {
         return Ok(());
     }
 
