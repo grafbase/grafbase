@@ -10,19 +10,11 @@ pub use worker;
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        DatadogRequest(err: surf::Error, entries: Vec<DatadogLogEntry>) {
-            display("HTTP: {}", err)
+        DatadogRequest(err: surf::Error) {
+            display("HTTP: {err}")
         }
-        DatadogPushFailed(response: String, entries: Vec<DatadogLogEntry>) {
-            display("Datadog: {}", response)
-        }
-    }
-}
-
-impl Error {
-    pub fn entries(&self) -> &[DatadogLogEntry] {
-        match *self {
-            Self::DatadogRequest(_, ref entries) | Self::DatadogPushFailed(_, ref entries) => entries.as_slice(),
+        DatadogPushFailed(status_code: surf::StatusCode, response: Option<String>) {
+            display("Datadog: [status = {status_code}] {response:?}")
         }
     }
 }
@@ -126,7 +118,7 @@ pub struct LogConfig {
     pub branch: Option<String>,
 }
 
-fn collect_logs_to_be_pushed(
+pub fn collect_logs_to_be_pushed(
     log_config: &LogConfig,
     request_id: &str,
     request_host_name: &str,
@@ -173,35 +165,26 @@ fn collect_logs_to_be_pushed(
     entries
 }
 
-pub async fn push_logs_to_datadog(
-    log_config: LogConfig,
-    request_id: String,
-    request_host_name: String,
-) -> Result<(), Error> {
+pub async fn push_logs_to_datadog(log_config: LogConfig, entries: &[DatadogLogEntry]) -> Result<(), Error> {
     let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
     if !config.contains(Config::DATADOG) {
         return Ok(());
     }
-
-    let entries = collect_logs_to_be_pushed(&log_config, &request_id, &request_host_name);
 
     const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
 
     let mut res = surf::post(URL)
         .header("DD-API-KEY", &log_config.api_key)
         .body_json(&entries)
-        .map_err(|err| Error::DatadogRequest(err, entries.clone()))?
+        .map_err(Error::DatadogRequest)?
         .send()
         .await
-        .map_err(|err| Error::DatadogRequest(err, entries.clone()))?;
+        .map_err(Error::DatadogRequest)?;
 
     if res.status().is_success() {
         Ok(())
     } else {
-        let response = res
-            .body_string()
-            .await
-            .expect("must be able to get the response as a string");
-        Err(Error::DatadogPushFailed(response, entries))
+        let response = res.body_string().await.ok();
+        Err(Error::DatadogPushFailed(res.status(), response))
     }
 }
