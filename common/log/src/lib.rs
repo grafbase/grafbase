@@ -10,11 +10,19 @@ pub use worker;
 quick_error! {
     #[derive(Debug)]
     pub enum Error {
-        DatadogRequest(err: surf::Error) {
-            display("{}", err)
+        DatadogRequest(err: surf::Error, entries: Vec<DatadogLogEntry>) {
+            display("HTTP: {}", err)
         }
-        DatadogPushFailed(response: String) {
-            display("{}", response)
+        DatadogPushFailed(response: String, entries: Vec<DatadogLogEntry>) {
+            display("Datadog: {}", response)
+        }
+    }
+}
+
+impl Error {
+    pub fn entries(&self) -> &[DatadogLogEntry] {
+        match *self {
+            Self::DatadogRequest(_, ref entries) | Self::DatadogPushFailed(_, ref entries) => entries.as_slice(),
         }
     }
 }
@@ -101,7 +109,7 @@ macro_rules! error {
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct DatadogLogEntry {
     ddsource: String,
     ddtags: String,
@@ -182,18 +190,18 @@ pub async fn push_logs_to_datadog(
     let mut res = surf::post(URL)
         .header("DD-API-KEY", &log_config.api_key)
         .body_json(&entries)
-        .map_err(Error::DatadogRequest)?
+        .map_err(|err| Error::DatadogRequest(err, entries.clone()))?
         .send()
         .await
-        .map_err(Error::DatadogRequest)?;
+        .map_err(|err| Error::DatadogRequest(err, entries.clone()))?;
 
-    if !res.status().is_success() {
+    if res.status().is_success() {
+        Ok(())
+    } else {
         let response = res
             .body_string()
             .await
             .expect("must be able to get the response as a string");
-        return Err(Error::DatadogPushFailed(response));
+        Err(Error::DatadogPushFailed(response, entries))
     }
-
-    Ok(())
 }
