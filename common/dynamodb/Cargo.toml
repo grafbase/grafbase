@@ -13,7 +13,7 @@ fnv = "1.0.7"
 futures-channel = { version = "0.3.13" }
 futures-timer = { version = "3.0.2", features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
-log = { path = "../log" }
+log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.7.1" }
 quick-error = "2"
 rusoto_core = "0.47"

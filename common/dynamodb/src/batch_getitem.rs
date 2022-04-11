@@ -8,14 +8,15 @@ use std::time::Duration;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::DynamoDBContext;
 
+// TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
     #[derive(Debug, Clone)]
     pub enum BatchGetItemLoaderError {
         UnknowError {
-            display("")
+            display("An internal error happened")
         }
         DynamoError {
-            display("")
+            display("An internal error happened while fetching entities")
         }
     }
 }
