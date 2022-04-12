@@ -653,14 +653,9 @@ impl<'a, T> ContextBase<'a, T> {
             .map(|(_, value)| value)
             .cloned();
 
-        if value.is_none() {
-            if let Some(default) = default {
-                return Ok((Pos::default(), default()));
-            }
-        }
         let (pos, value) = match value {
             Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
-            None => (Pos::default(), None),
+            None => (Pos::default(), default.map(|f| f())),
         };
 
         value
