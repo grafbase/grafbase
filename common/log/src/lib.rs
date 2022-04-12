@@ -30,6 +30,7 @@ pub enum LogSeverity {
 bitflags::bitflags! {
     pub struct Config: u8 {
         const DATADOG = 0b00000001;
+        #[cfg(feature = "with-worker")]
         const WORKER  = 0b00000010;
         const STDLOG  = 0b00000100;
     }
@@ -51,6 +52,7 @@ macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
+        #[cfg(feature = "with-worker")]
         if config.contains($crate::Config::WORKER) {
             match $status {
                 $crate::LogSeverity::Debug =>
