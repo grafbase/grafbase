@@ -60,11 +60,11 @@ mod tests {
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut CheckBeginWithUnderscore, &mut ctx, &schema);
 
-        assert!(!ctx.errors.is_empty(), "should be empty");
+        assert!(!ctx.errors.is_empty(), "shouldn't be empty");
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "Field _price shouldn't start with an underscore.",
-            "should be empty"
+            "should match"
         );
     }
 }
