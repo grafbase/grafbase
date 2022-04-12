@@ -195,8 +195,20 @@ pub trait Visitor<'a> {
     fn enter_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<ConstDirective>) {}
     fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<ConstDirective>) {}
 
-    fn enter_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<FieldDefinition>) {}
-    fn exit_field(&mut self, _ctx: &mut VisitorContext<'a>, _field: &'a Positioned<FieldDefinition>) {}
+    fn enter_field(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _field: &'a Positioned<FieldDefinition>,
+        _parent_type: &'a Positioned<TypeDefinition>,
+    ) {
+    }
+    fn exit_field(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _field: &'a Positioned<FieldDefinition>,
+        _parent_type: &'a Positioned<TypeDefinition>,
+    ) {
+    }
 
     fn enter_input_value_definition(
         &mut self,
@@ -320,13 +332,23 @@ where
         self.1.exit_object_definition(ctx, object_definition);
     }
 
-    fn enter_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<FieldDefinition>) {
-        self.0.enter_field(ctx, field);
-        self.1.enter_field(ctx, field);
+    fn enter_field(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        field: &'a Positioned<FieldDefinition>,
+        parent_type: &'a Positioned<TypeDefinition>,
+    ) {
+        self.0.enter_field(ctx, field, parent_type);
+        self.1.enter_field(ctx, field, parent_type);
     }
-    fn exit_field(&mut self, ctx: &mut VisitorContext<'a>, field: &'a Positioned<FieldDefinition>) {
-        self.0.exit_field(ctx, field);
-        self.1.exit_field(ctx, field);
+    fn exit_field(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        field: &'a Positioned<FieldDefinition>,
+        parent_type: &'a Positioned<TypeDefinition>,
+    ) {
+        self.0.exit_field(ctx, field, parent_type);
+        self.1.exit_field(ctx, field, parent_type);
     }
 
     fn enter_input_value_definition(
@@ -393,7 +415,7 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
                 TypeKind::Object(object) => {
                     v.enter_object_definition(ctx, object);
                     for field in &object.fields {
-                        visit_field(v, ctx, field);
+                        visit_field(v, ctx, field, ty);
                     }
                     v.exit_object_definition(ctx, object);
                 }
@@ -405,8 +427,13 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
     };
 }
 
-fn visit_field<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, field: &'a Positioned<FieldDefinition>) {
-    v.enter_field(ctx, field);
+fn visit_field<'a, V: Visitor<'a>>(
+    v: &mut V,
+    ctx: &mut VisitorContext<'a>,
+    field: &'a Positioned<FieldDefinition>,
+    parent_type: &'a Positioned<TypeDefinition>,
+) {
+    v.enter_field(ctx, field, parent_type);
 
     for value in &field.node.arguments {
         v.enter_input_value_definition(ctx, value);
@@ -417,7 +444,7 @@ fn visit_field<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, fiel
     }
 
     visit_directives(v, ctx, &field.node.directives);
-    v.exit_field(ctx, field);
+    v.exit_field(ctx, field, parent_type);
 }
 
 fn visit_directives<'a, V: Visitor<'a>>(
