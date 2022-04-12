@@ -23,7 +23,7 @@ impl<'a> Visitor<'a> for CheckBeginWithUnderscore {
     ) {
         if_chain! {
             let name = &field.node.name.node;
-            if name.starts_with("_");
+            if name.starts_with('_');
             then {
                 ctx.report_error(
                     vec![field.pos],
