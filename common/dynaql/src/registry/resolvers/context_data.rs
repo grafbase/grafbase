@@ -36,16 +36,13 @@ impl ResolverTrait for ContextDataResolver {
                     .unwrap_or(Value::Null);
 
                 let transformers = resolver_ctx.transforms;
-                let result = serde_json::to_value(ctx_value)?;
 
+                let mut result = serde_json::to_value(ctx_value)?;
                 // Apply transformers
                 if let Some(transformers) = transformers {
-                    let transformed = transformers
+                    result = transformers
                         .iter()
                         .try_fold(result, |acc, cur| cur.transform(acc))?;
-
-                    return Value::from_json(transformed)
-                        .map_err(|err| Error::new(err.to_string()));
                 }
                 Value::from_json(result).map_err(|err| Error::new(err.to_string()))
             }

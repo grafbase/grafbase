@@ -45,16 +45,13 @@ impl ResolverTrait for DynamoResolver {
                     .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
 
                 let transformers = resolver_ctx.transforms;
-                let result = serde_json::to_value(dyna)?;
 
+                let mut result = serde_json::to_value(dyna)?;
                 // Apply transformers
                 if let Some(transformers) = transformers {
-                    let transformed = transformers
+                    result = transformers
                         .iter()
                         .try_fold(result, |acc, cur| cur.transform(acc))?;
-
-                    return Value::from_json(transformed)
-                        .map_err(|err| Error::new(err.to_string()));
                 }
                 Value::from_json(result).map_err(|err| Error::new(err.to_string()))
             }
