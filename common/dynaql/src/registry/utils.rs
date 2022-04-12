@@ -39,47 +39,24 @@ pub fn value_to_attribute(value: serde_json::Value) -> AttributeValue {
 }
 
 pub fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
-    let AttributeValue {
-        bool,
-        b,
-        l,
-        m,
-        n,
-        s,
-        bs,
-        ns,
-        ss,
-        null,
-    } = value;
-
-    if let Some(bool_value) = bool {
-        return serde_json::Value::Bool(bool_value);
-    }
-
-    if let Some(list) = l {
-        return serde_json::Value::Array(list.into_iter().map(attribute_to_value).collect());
-    }
-
-    if let Some(_object) = m {
-        unimplemented!("not yet");
-    }
-
-    if let Some(number) = n {
-        return serde_json::Value::Number(
-            serde_json::Number::from_str(&number).expect("can't fail"),
-        );
-    }
-
-    if let Some(str_value) = s {
-        return serde_json::Value::String(str_value);
-    }
-
-    if let Some(_vec_bytes) = bs {
-        unimplemented!("not yet");
-    }
-
-    if let Some(number_set) = ns {
-        return serde_json::Value::Array(
+    match value {
+        AttributeValue {
+            bool: Some(bool_value),
+            ..
+        } => serde_json::Value::Bool(bool_value),
+        AttributeValue { l: Some(list), .. } => {
+            serde_json::Value::Array(list.into_iter().map(attribute_to_value).collect())
+        }
+        AttributeValue {
+            n: Some(number), ..
+        } => serde_json::Value::Number(serde_json::Number::from_str(&number).expect("can't fail")),
+        AttributeValue {
+            s: Some(str_value), ..
+        } => serde_json::Value::String(str_value),
+        AttributeValue {
+            ns: Some(number_set),
+            ..
+        } => serde_json::Value::Array(
             number_set
                 .into_iter()
                 .map(|str_value| {
@@ -88,27 +65,27 @@ pub fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
                     )
                 })
                 .collect(),
-        );
-    }
-
-    if let Some(string_set) = ss {
-        return serde_json::Value::Array(
+        ),
+        AttributeValue {
+            ss: Some(string_set),
+            ..
+        } => serde_json::Value::Array(
             string_set
                 .into_iter()
                 .map(serde_json::Value::String)
                 .collect(),
-        );
+        ),
+        AttributeValue { null: Some(_), .. } => serde_json::Value::Null,
+        AttributeValue {
+            m: Some(_object), ..
+        } => unimplemented!("not yet"),
+        AttributeValue { b: Some(_), .. } => unimplemented!(),
+        AttributeValue {
+            bs: Some(_vec_bytes),
+            ..
+        } => unimplemented!(),
+        _ => serde_json::Value::Null,
     }
-
-    if let Some(_null) = null {
-        return serde_json::Value::Null;
-    }
-
-    if let Some(_bytes) = b {
-        unimplemented!("not yet");
-    }
-
-    serde_json::Value::Null
 }
 
 /// Merge JSON together
