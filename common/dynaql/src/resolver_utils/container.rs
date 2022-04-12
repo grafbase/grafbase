@@ -336,6 +336,7 @@ impl<'a> Fields<'a> {
                                                 query_env: ctx_field.query_env,
                                                 query_resolvers: ctx_field.query_resolvers.clone(),
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
+                                                resolvers_data: ctx_field.resolvers_data.clone(),
                                             };
                                             let directive_instance = directive_factory
                                                 .create(&ctx_directive, &directive.node)?;
@@ -517,6 +518,7 @@ impl<'a> Fields<'a> {
                                                 query_env: ctx_field.query_env,
                                                 query_resolvers: ctx.query_resolvers.clone(),
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
+                                                resolvers_data: ctx_field.resolvers_data.clone(),
                                             };
                                             let directive_instance = directive_factory
                                                 .create(&ctx_directive, &directive.node)?;

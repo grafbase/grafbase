@@ -1,19 +1,15 @@
 mod cache_control;
 mod export_sdl;
+pub mod resolvers;
 mod stringify_exec_doc;
+pub mod transformers;
+pub mod utils;
+pub mod variables;
 
-use std::collections::hash_map::DefaultHasher;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
-
-use async_graphql_value::to_value;
-use dynamodb::DynamoDBContext;
-use dynomite::AttributeValue;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
-#[cfg(feature = "tracing_worker")]
-use logworker::info;
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use ulid::Ulid;
 
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
@@ -22,11 +18,14 @@ use crate::parser::types::{
 };
 use crate::resolver_utils::resolve_container;
 use crate::{
-    model, Any, Context, Error, InputType, OutputType, Positioned, ServerError, ServerResult,
+    model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext, ID,
 };
 
 pub use cache_control::CacheControl;
+
+use self::resolvers::{Resolver, ResolverContext, ResolverTrait};
+use self::transformers::Transformer;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -137,7 +136,7 @@ impl MetaInputValue {
             "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
             "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
             "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
-            _ => None,
+            _ => ctx.param_value_dynamic_unchecked(&self.name, None),
         };
 
         variable
@@ -184,368 +183,6 @@ impl Deprecation {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub struct Resolver {
-    /// Unique id to identify Resolver.
-    pub id: Option<String>,
-    pub r#type: ResolverType,
-}
-
-/// A way to get a Variable
-#[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
-pub enum VariableResolveDefinition {
-    InputTypeName(String),
-}
-
-impl VariableResolveDefinition {
-    /// Resolve the first variable with this definition
-    fn param<'a>(&self, ctx: &'a Context<'a>) -> Option<&'a Value> {
-        match self {
-            Self::InputTypeName(name) => ctx.query_resolvers.iter().rev().find_map(|(_, _, x)| {
-                x.as_ref()
-                    .map(|y| y.iter().find(|(var_name, _)| var_name == name))
-                    .flatten()
-                    .map(|(_, x)| x)
-            }),
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum ContextResolver {
-    Select {
-        /// A JsonPath
-        /// TODO: Use a jsonpath lib.
-        from: String,
-    },
-}
-
-#[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
-pub enum DynamoResolver {
-    /// A Query based on the PK and the SK
-    QueryPKSK {
-        pk: VariableResolveDefinition,
-        sk: VariableResolveDefinition,
-    },
-}
-
-#[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum DebugResolver {
-    Value { inner: serde_json::Value },
-}
-
-#[async_trait::async_trait]
-pub trait ResolverTrait {
-    // TODO: Add Memoization
-    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error>;
-
-    /// When the resolver is able to be memoized, you should implement this function.
-    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
-        self.resolve(ctx).await
-    }
-
-    /// Compute the hash from the resolver for memoization
-    fn hash_resolver(&self) -> u64;
-}
-
-#[async_trait::async_trait]
-impl ResolverTrait for DebugResolver {
-    async fn resolve(&self, _ctx: &Context<'_>) -> Result<Value, Error> {
-        match &self {
-            Self::Value { inner } => to_value(inner).map_err(|err| Error::new(err.to_string())),
-        }
-    }
-
-    fn hash_resolver(&self) -> u64 {
-        let mut hasher = DefaultHasher::default();
-        match &self {
-            Self::Value { inner } => format!("Debug_{}", inner),
-        }
-        .hash(&mut hasher);
-        hasher.finish()
-    }
-}
-
-#[async_trait::async_trait]
-impl ResolverTrait for DynamoResolver {
-    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
-        let dynamodb_ctx = ctx.data::<DynamoDBContext>()?;
-        match self {
-            DynamoResolver::QueryPKSK { pk, sk } => {
-                #[cfg(feature = "tracing_worker")]
-                info!("dynamodb-resolver", "{:?}", pk.param(ctx));
-
-                let pk = match pk.param(ctx).expect("can't fail") {
-                    Value::String(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
-
-                let sk = match sk.param(ctx).expect("can't fail") {
-                    Value::String(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
-
-                let dyna = dynamodb_ctx.get_item_pk_sk(pk, sk).await?.item;
-
-                #[cfg(feature = "tracing_worker")]
-                info!("dynamodb-resolver", "{:?}", &dyna);
-
-                #[cfg(feature = "tracing_worker")]
-                {
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "{:?}", &ctx.query_resolvers);
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "------------");
-                    info!("dynamodb-resolver", "------------");
-                }
-
-                // TODO: We should take transformers from the last resolver
-                let transformers = ctx
-                    .query_resolvers
-                    .iter()
-                    .map(|(_, transformers, _)| transformers.as_ref());
-
-                let transformers: Vec<&Vec<Transformer>> =
-                    transformers.fold(vec![], |mut acc, cur| {
-                        if let Some(trans) = cur {
-                            acc.push(trans);
-                        }
-                        acc
-                    });
-
-                #[cfg(feature = "tracing_worker")]
-                info!("dynamodb-resolver", "transforms {:?}", &transformers);
-
-                let result = serde_json::to_value(dyna)?;
-
-                let b = transformers
-                    .into_iter()
-                    .try_fold(result, |acc, cur| cur.transform(acc))?;
-
-                Value::from_json(b).map_err(|err| Error::new(err.to_string()))
-            }
-        }
-    }
-
-    async fn resolve_memoized(&self, ctx: &Context<'_>) -> Result<Value, Error> {
-        let hash = self.hash_resolver();
-        if let Some(value) = ctx
-            .resolvers_cache
-            .try_read()
-            .expect("read_rw_lock_issue")
-            .get(&hash)
-        {
-            // TODO: Never works.
-            #[cfg(feature = "tracing_worker")]
-            info!("dynamodb-resolver", "Cache hit");
-            return value.clone();
-        }
-        let value = self.resolve(ctx).await;
-        ctx.resolvers_cache
-            .try_write()
-            .expect("write_rw_lock_issue")
-            .insert(hash, value.clone());
-
-        value
-    }
-
-    fn hash_resolver(&self) -> u64 {
-        let mut hasher = DefaultHasher::default();
-        self.hash(&mut hasher);
-        hasher.finish()
-    }
-}
-
-#[async_trait::async_trait]
-impl ResolverTrait for Resolver {
-    async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, Error> {
-        match &self.r#type {
-            ResolverType::DebugResolver(debug) => debug.resolve_memoized(ctx).await,
-            ResolverType::DynamoResolver(dynamodb) => dynamodb.resolve_memoized(ctx).await,
-            _ => unimplemented!(),
-        }
-    }
-
-    fn hash_resolver(&self) -> u64 {
-        match &self.r#type {
-            ResolverType::DebugResolver(debug) => debug.hash_resolver(),
-            ResolverType::DynamoResolver(dynamodb) => dynamodb.hash_resolver(),
-            _ => unimplemented!(),
-        }
-    }
-}
-
-/// Resolvers describe the way this Data should be resolved
-/// Describe the transport used.
-#[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum ResolverType {
-    ContextResolver(ContextResolver),
-    DynamoResolver(DynamoResolver),
-    DebugResolver(DebugResolver),
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum JSONFunction {
-    ExtractCompositeID,
-}
-
-#[async_trait::async_trait]
-pub trait TransformerTrait {
-    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error>;
-}
-
-fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
-    let AttributeValue {
-        bool,
-        b,
-        l,
-        m,
-        n,
-        s,
-        bs,
-        ns,
-        ss,
-        null,
-    } = value;
-
-    if let Some(bool_value) = bool {
-        return serde_json::Value::Bool(bool_value);
-    }
-
-    if let Some(list) = l {
-        return serde_json::Value::Array(list.into_iter().map(attribute_to_value).collect());
-    }
-
-    if let Some(_object) = m {
-        unimplemented!("not yet");
-    }
-
-    if let Some(number) = n {
-        return serde_json::Value::Number(
-            serde_json::Number::from_str(&number).expect("can't fail"),
-        );
-    }
-
-    if let Some(str_value) = s {
-        return serde_json::Value::String(str_value);
-    }
-
-    if let Some(_vec_bytes) = bs {
-        unimplemented!("not yet");
-    }
-
-    if let Some(number_set) = ns {
-        return serde_json::Value::Array(
-            number_set
-                .into_iter()
-                .map(|str_value| {
-                    serde_json::Value::Number(
-                        serde_json::Number::from_str(&str_value).expect("can't fail"),
-                    )
-                })
-                .collect(),
-        );
-    }
-
-    if let Some(string_set) = ss {
-        return serde_json::Value::Array(
-            string_set
-                .into_iter()
-                .map(serde_json::Value::String)
-                .collect(),
-        );
-    }
-
-    if let Some(_null) = null {
-        return serde_json::Value::Null;
-    }
-
-    if let Some(_bytes) = b {
-        unimplemented!("not yet");
-    }
-
-    serde_json::Value::Null
-}
-
-impl TransformerTrait for Transformer {
-    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
-        match &self {
-            Self::Functions { .. } => unimplemented!(),
-            Self::JSONSelect { .. } => unimplemented!(),
-            Self::DynamoSelect { property } => {
-                let cast: Option<HashMap<String, AttributeValue>> = serde_json::from_value(value)?;
-
-                let result = cast
-                    .map(|mut x| x.remove(property))
-                    .flatten()
-                    .map(attribute_to_value)
-                    .unwrap_or_else(|| serde_json::Value::Null);
-
-                Ok(result)
-            }
-        }
-    }
-}
-
-/// Merge JSON together
-fn merge(a: &mut serde_json::Value, b: serde_json::Value) {
-    match (a, b) {
-        (a @ &mut serde_json::Value::Object(_), serde_json::Value::Object(b)) => {
-            let a = a.as_object_mut().expect("can't fail");
-            for (k, v) in b {
-                merge(a.entry(k).or_insert(serde_json::Value::Null), v);
-            }
-        }
-        (a, b) => *a = b,
-    }
-}
-
-impl TransformerTrait for Vec<Transformer> {
-    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
-        self.iter()
-            .map(|x| x.transform(value.clone()))
-            .collect::<Result<Vec<serde_json::Value>, Error>>()
-            .map(|x| {
-                x.into_iter().fold(serde_json::json!({}), |mut acc, cur| {
-                    merge(&mut acc, cur);
-                    acc
-                })
-            })
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
-pub enum Transformer {
-    Functions {
-        /// Functions to be applied to a Value.
-        functions: Vec<JSONFunction>,
-    },
-    DynamoSelect {
-        /// The key where this select
-        property: String,
-    },
-    JSONSelect {
-        /// The key where this select
-        property: String,
-        /// A JsonPath
-        /// TODO: Use a jsonpath lib.
-        from: String,
-        /// Functions to be applied to a Value.
-        functions: Vec<JSONFunction>,
-    },
-}
-
 #[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -573,6 +210,7 @@ pub struct MetaField {
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
+        let execution_id = Ulid::new();
         let registry = &ctx.schema_env.registry;
 
         // For every arguments, we should try to have his param value and depending on the native
@@ -584,32 +222,46 @@ impl MetaField {
                 .collect(),
         );
 
-        #[cfg(feature = "tracing_worker")]
-        {
-            info!("field", "Field {:?}", &ctx.query_resolvers);
-        }
-
         let ctx_obj = ctx.with_selection_set(
             &ctx.item.node.selection_set,
-            vec![(&self.resolve, &self.transforms, &variables)],
+            vec![(&execution_id, &self.resolve, &self.transforms, &variables)],
         );
 
         match &ctx.item.node.selection_set.node.items.is_empty() {
+            // When you are resolving a Primitive
             true => {
-                // Take the last available resolver
-                let last_resolvers = ctx_obj
+                let resolvers = ctx_obj
                     .query_resolvers
                     .iter()
-                    .rev()
-                    .find_map(|(x, _, _)| x.as_ref())
-                    .expect("should have a resolver");
+                    .filter_map(|(id, x, t, v)| x.as_ref().map(|value| (id, value, t, v)));
+
+                let (last_resolver_exectution_id, last_resolvers, _, _) =
+                    resolvers.clone().last().expect("Should have a resolver");
+
+                for (resolver_execution_id, resolver, transformers, _) in resolvers {
+                    let resolver_ctx = ResolverContext::new(resolver_execution_id)
+                        .with_resolver_id(resolver.id.as_deref())
+                        .with_transforms(transformers.as_ref());
+                    resolver
+                        .resolve(&ctx, &resolver_ctx)
+                        .await
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                }
+
+                let last_resolver_ctx = ResolverContext::new(last_resolver_exectution_id)
+                    .with_resolver_id(last_resolvers.id.as_deref())
+                    .with_transforms((&self.transforms).as_ref());
 
                 let result = last_resolvers
-                    .resolve(&ctx.clone().add_resolvers(vec![(
-                        &self.resolve,
-                        &self.transforms,
-                        &variables,
-                    )]))
+                    .resolve(
+                        &ctx.clone().add_resolvers(vec![(
+                            &execution_id,
+                            &self.resolve,
+                            &self.transforms,
+                            &variables,
+                        )]),
+                        &last_resolver_ctx,
+                    )
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -637,6 +289,7 @@ impl MetaField {
                     }
                 }
             }
+            // Container
             false => {
                 let container_type = registry.types.get(&self.ty).ok_or_else(|| {
                     ServerError::new("An internal error happened", Some(ctx.item.pos))

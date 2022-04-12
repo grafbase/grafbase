@@ -4,20 +4,23 @@ use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Deref;
+use std::pin::Pin;
 use std::sync::{Arc, Mutex, RwLock};
 
 use async_graphql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
+use futures_util::Future;
 use http::header::{AsHeaderName, HeaderMap, IntoHeaderName};
 use http::HeaderValue;
 use serde::ser::{SerializeSeq, Serializer};
 use serde::Serialize;
+use ulid::Ulid;
 
 use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
-use crate::registry::{Registry, Resolver, Transformer};
+use crate::registry::{resolvers::Resolver, transformers::Transformer, Registry};
 use crate::schema::SchemaEnv;
 use crate::{
     Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
@@ -220,6 +223,10 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
+type ResolverCacheType = Arc<
+    RwLock<HashMap<u64, Option<Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + Sync>>>>>,
+>;
+
 /// Query context.
 ///
 /// **This type is not stable and should not be used directly.**
@@ -234,10 +241,13 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     pub query_env: &'a QueryEnv,
     #[doc(hidden)]
-    pub resolvers_cache: Arc<RwLock<HashMap<u64, Result<Value, Error>>>>,
+    pub resolvers_cache: ResolverCacheType,
     #[doc(hidden)]
     /// Ordered list of the resolvers + transformer for a value.
     pub query_resolvers: ResolverChanges<'a>,
+    #[doc(hidden)]
+    /// Every Resolvers are able to store a Value inside this cache
+    pub resolvers_data: Arc<RwLock<HashMap<String, Value>>>,
 }
 
 #[doc(hidden)]
@@ -287,6 +297,7 @@ impl QueryEnv {
             query_env: self,
             query_resolvers: Vec::new(),
             resolvers_cache: Default::default(),
+            resolvers_data: Default::default(),
         }
     }
 }
@@ -306,6 +317,7 @@ impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
 }
 
 type ResolverChanges<'a> = Vec<(
+    &'a Ulid,
     &'a Option<Resolver>,
     &'a Option<Vec<Transformer>>,
     &'a Option<Vec<(&'a str, Value)>>,
@@ -332,6 +344,7 @@ impl<'a, T> ContextBase<'a, T> {
                 q
             },
             resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
         }
     }
 
@@ -352,6 +365,7 @@ impl<'a, T> ContextBase<'a, T> {
                 q
             },
             resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
         }
     }
 
@@ -368,6 +382,7 @@ impl<'a, T> ContextBase<'a, T> {
                 q
             },
             resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
         }
     }
 
@@ -623,6 +638,32 @@ impl<'a, T> ContextBase<'a, T> {
             .map(|value| (pos, value))
             .map_err(|e| e.into_server_error(pos))
     }
+
+    #[doc(hidden)]
+    /// Get a param value with unchecked type check to allow dynamic mapping.
+    fn get_param_value_unchecked(
+        &self,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
+        name: &str,
+        default: Option<fn() -> Value>,
+    ) -> ServerResult<(Pos, Value)> {
+        let value = arguments
+            .iter()
+            .find(|(n, _)| n.node.as_str() == name)
+            .map(|(_, value)| value)
+            .cloned();
+
+        let (pos, value) = match value {
+            Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
+            None => (Pos::default(), default.map(|f| f())),
+        };
+
+        value
+            .ok_or_else(|| {
+                ServerError::new(format!("Failed to parse variable {}", name), Some(pos))
+            })
+            .map(|value| (pos, value))
+    }
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
@@ -639,6 +680,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             query_env: self.query_env,
             query_resolvers: self.query_resolvers.clone(),
             resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
         }
     }
 
@@ -666,6 +708,17 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     ) -> Option<(&'a str, Value)> {
         self.get_param_value(&self.item.node.arguments, name, default)
             .map(|(_, x)| (name, InputType::to_value(&x)))
+            .ok()
+    }
+
+    #[doc(hidden)]
+    pub fn param_value_dynamic_unchecked<'b: 'a>(
+        &self,
+        name: &'b str,
+        default: Option<fn() -> Value>,
+    ) -> Option<(&'a str, Value)> {
+        self.get_param_value_unchecked(&self.item.node.arguments, name, default)
+            .map(|(_, x)| (name, x))
             .ok()
     }
 
