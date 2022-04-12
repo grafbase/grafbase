@@ -1,26 +1,31 @@
 use async_stream as _;
+use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
 use composite_id as _;
-use dynomite::{AttributeError, AttributeValue};
+use dataloader::{DataLoader, LruCache};
+use dynomite::AttributeError;
 use futures_util as _;
-use log::{error, info};
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
-use rusoto_dynamodb::{
-    DynamoDb, DynamoDbClient, GetItemError, GetItemInput, GetItemOutput, PutItemError, QueryError,
-    TransactWriteItemsError,
-};
+use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, TransactWriteItemsError};
 use serde as _;
-use std::collections::HashMap;
+use std::sync::Arc;
 use strum as _;
 use surf as _;
+use transaction::{get_loader_transaction, TransactionLoader};
+
+mod batch_getitem;
+pub mod dataloader;
+mod transaction;
+pub use transaction::TxItem;
 
 /// The DynamoDBContext that is needed to query the Database
+#[derive(Clone)]
 pub struct DynamoDBContext {
     // TODO: When going with tracing, remove this trace_id, useless.
     trace_id: String,
     dynamodb_client: rusoto_dynamodb::DynamoDbClient,
-    dynamodb_table_name: String,
+    pub dynamodb_table_name: String,
 }
 
 quick_error! {
@@ -56,6 +61,9 @@ quick_error! {
             source(err)
             display("An internal error happened - EI7")
             from()
+        }
+        TransactionNoChanges {
+            display("An internal error happened - EI8")
         }
     }
 }
@@ -107,46 +115,18 @@ impl DynamoDBContext {
             dynamodb_table_name,
         }
     }
+}
 
-    /// We Get an item with PK and SK
-    pub async fn get_item_pk_sk<PK: AsRef<str> + Send, SK: AsRef<str> + Send>(
-        &self,
-        pk: PK,
-        sk: SK,
-    ) -> Result<GetItemOutput, DynamoDBError> {
-        info!(&self.trace_id, "Querying DynamoDB");
-        info!(&self.trace_id, "pk: {} | sk : {}", &pk.as_ref(), &sk.as_ref());
+pub struct DynamoDBBatchersData {
+    pub transaction: DataLoader<TransactionLoader, LruCache>,
+    pub loader: DataLoader<BatchGetItemLoader, LruCache>,
+}
 
-        let mut key = HashMap::with_capacity(2);
-        key.insert(
-            "pk".to_string(),
-            AttributeValue {
-                s: Some(pk.as_ref().to_string()),
-                ..Default::default()
-            },
-        );
-        key.insert(
-            "sk".to_string(),
-            AttributeValue {
-                s: Some(sk.as_ref().to_string()),
-                ..Default::default()
-            },
-        );
-
-        let input = GetItemInput {
-            table_name: self.dynamodb_table_name.to_string(),
-            consistent_read: Some(false),
-            key,
-            ..Default::default()
-        };
-
-        info!(&self.trace_id, "{:?}", &input);
-        let result = self.dynamodb_client.get_item(input).await.map_err(|err| {
-            error!(&self.trace_id, "{:?}", err);
-            err
-        });
-        info!(&self.trace_id, "{:?}", &result);
-
-        Ok(result?)
+impl DynamoDBBatchersData {
+    pub fn new(ctx: &Arc<DynamoDBContext>) -> Self {
+        Self {
+            transaction: get_loader_transaction(Arc::clone(ctx)),
+            loader: get_loader_batch_transaction(Arc::clone(ctx)),
+        }
     }
 }

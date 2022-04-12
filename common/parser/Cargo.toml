@@ -1,0 +1,16 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-graphql-parser = { git = "ssh://git@github.com/grafbase/dynaql.git", branch = "main", package = "async-graphql-parser" }
+async-graphql-value = { git = "ssh://git@github.com/grafbase/dynaql.git", branch = "main", package = "async-graphql-value" }
+async-graphql = { git = "ssh://git@github.com/grafbase/dynaql.git", branch = "main", features = ["tracing_worker"] }
+case = "1.0.0"
+if_chain = "1.0.2"
+quick-error = "2"
+
+[dev-dependencies]
+insta = "1.13.0"
+serde_json = "1"
