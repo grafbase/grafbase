@@ -115,6 +115,18 @@ impl DynamoDBContext {
             dynamodb_table_name,
         }
     }
+
+    #[allow(dead_code)]
+    /// GSI name used to access to items with a specific type.
+    pub(crate) const fn index_type() -> &'static str {
+        "gsi1"
+    }
+
+    #[allow(dead_code)]
+    /// GSI name used to reverse lockup
+    pub(crate) const fn index_reverse_lockup() -> &'static str {
+        "gsi2"
+    }
 }
 
 pub struct DynamoDBBatchersData {
