@@ -1,6 +1,6 @@
 //! ### What it does
 //!
-//! Check than the types inputed by the user doesn't begin by two underscores
+//! Check that types input by the user don't begin with double underscores
 //! on @models only.
 //!
 //! ### Why?
