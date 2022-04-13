@@ -11,9 +11,9 @@ use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use if_chain::if_chain;
 
-pub struct CheckBeginWithUnderscore;
+pub struct CheckBeginsWithDoubleUnderscore;
 
-impl<'a> Visitor<'a> for CheckBeginWithUnderscore {
+impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
     fn directives(&self) -> String {
         String::new()
     }
@@ -41,7 +41,7 @@ impl<'a> Visitor<'a> for CheckBeginWithUnderscore {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::check_types_underscore::CheckBeginWithUnderscore;
+    use crate::rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
     use crate::rules::visitor::{visit, VisitorContext};
     use async_graphql_parser::parse_schema;
     use serde_json as _;
@@ -62,7 +62,7 @@ mod tests {
         let schema = parse_schema(schema).expect("");
 
         let mut ctx = VisitorContext::new(&schema);
-        visit(&mut CheckBeginWithUnderscore, &mut ctx, &schema);
+        visit(&mut CheckBeginsWithDoubleUnderscore, &mut ctx, &schema);
 
         assert!(!ctx.errors.is_empty(), "shouldn't be empty");
         assert_eq!(ctx.errors.len(), 1, "should have one error");
@@ -89,7 +89,7 @@ mod tests {
         let schema = parse_schema(schema).expect("");
 
         let mut ctx = VisitorContext::new(&schema);
-        visit(&mut CheckBeginWithUnderscore, &mut ctx, &schema);
+        visit(&mut CheckBeginsWithDoubleUnderscore, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should not have any error");
     }

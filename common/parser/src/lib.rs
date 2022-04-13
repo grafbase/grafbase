@@ -1,7 +1,7 @@
 use async_graphql::registry::Registry;
 use async_graphql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
-use rules::check_types_underscore::CheckBeginWithUnderscore;
+use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::model_directive::ModelDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
@@ -28,7 +28,7 @@ quick_error! {
 pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     let mut rules = rules::visitor::VisitorNil
         .with(ModelDirective)
-        .with(CheckBeginWithUnderscore);
+        .with(CheckBeginsWithDoubleUnderscore);
 
     let schema = parse_schema(format!("{}\n{}", rules.directives(), input.as_ref()))?;
 
