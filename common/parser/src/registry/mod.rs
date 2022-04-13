@@ -142,6 +142,7 @@ pub fn add_create_mutation<'a>(
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
                 input: VariableResolveDefinition::InputTypeName("input".to_owned()),
+                ty: type_name.clone(),
             }),
         }),
         transforms: None,

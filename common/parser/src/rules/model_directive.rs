@@ -82,7 +82,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 resolve: None,
                                 transforms: Some(vec![Transformer::DynamoSelect {
                                     property: if name == "id" {
-                                        "pk".to_string()
+                                        "__pk".to_string()
                                     } else {
                                         name
                                     },

@@ -49,7 +49,7 @@ mod tests {
     use serde_json as _;
 
     #[test]
-    fn test_simple() {
+    fn test_simple_product() {
         let result = super::to_registry(
             r#"
             type Product @model {
