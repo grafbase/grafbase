@@ -31,7 +31,7 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
             then {
                 ctx.report_error(
                     vec![field.pos],
-                    format!("Field {name} shouldn't start with an underscore.", name = name),
+                    format!("Field {name} shouldn't start with double underscore.", name = name),
                 );
 
             }
@@ -68,7 +68,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Field __price shouldn't start with an underscore.",
+            "Field __price shouldn't start with double underscore.",
             "should match"
         );
     }
