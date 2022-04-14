@@ -167,9 +167,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     transaction: TransactWriteItem {
                         delete: Some(Delete {
                             expression_attribute_names: Some({
-                                let mut h = HashMap::new();
-                                h.insert("#pk".to_string(), "__pk".to_string());
-                                h
+                                HashMap::from([("#pk".to_string(), "__pk".to_string())])
                             }),
                             condition_expression: Some("attribute_exists(#pk)".to_string()),
                             table_name: dynamodb_ctx.dynamodb_table_name.clone(),
