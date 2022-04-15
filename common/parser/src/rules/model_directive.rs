@@ -52,9 +52,7 @@ impl<'a> Visitor<'a> for ModelDirective {
         if_chain! {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
-            // if !object.fields.iter().any(|x| !is_type_primitive(&x.node));
             if let Some(id_field) = object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node));
-            // if !object.fields.iter().any(|f| !is_type_basic_type(&ctx.types, &f.node.ty.node));
             then {
                 let type_name = type_definition.node.name.node.to_string();
                 // If it's a modeled Type, we create the associated type into the registry.
