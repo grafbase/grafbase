@@ -16,12 +16,10 @@
 //!
 //! TODO: Should have either: an ID or a PK
 
+use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_create_mutation;
 use crate::registry::add_remove_query;
 use crate::utils::is_id_type_and_non_nullable;
-use crate::utils::is_type_primitive;
-
-use super::visitor::{Visitor, VisitorContext};
 use async_graphql::indexmap::IndexMap;
 use async_graphql::registry::resolvers::dynamo_querying::DynamoResolver;
 use async_graphql::registry::MetaField;
@@ -35,7 +33,7 @@ use if_chain::if_chain;
 
 pub struct ModelDirective;
 
-pub const MODEL_DIRECTIVE: &str = "model";
+pub(crate) const MODEL_DIRECTIVE: &str = "model";
 
 impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {
@@ -54,8 +52,9 @@ impl<'a> Visitor<'a> for ModelDirective {
         if_chain! {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
-            if !object.fields.iter().any(|x| !is_type_primitive(&x.node));
+            // if !object.fields.iter().any(|x| !is_type_primitive(&x.node));
             if let Some(id_field) = object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node));
+            // if !object.fields.iter().any(|f| !is_type_basic_type(&ctx.types, &f.node.ty.node));
             then {
                 let type_name = type_definition.node.name.node.to_string();
                 // If it's a modeled Type, we create the associated type into the registry.

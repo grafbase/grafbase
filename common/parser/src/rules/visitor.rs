@@ -139,6 +139,7 @@ impl<'a> VisitorContext<'a> {
             );
         }
 
+        registry.remove_unused_types();
         registry
     }
 
@@ -170,7 +171,9 @@ impl<'a> VisitorContext<'a> {
 }
 
 pub trait Visitor<'a> {
-    fn directives(&self) -> String;
+    fn directives(&self) -> String {
+        String::new()
+    }
 
     fn enter_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}
     fn exit_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}
