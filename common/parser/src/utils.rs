@@ -65,7 +65,7 @@ fn to_input_base_type(base_type: BaseType) -> BaseType {
 }
 
 /// Get the base type string for a type.
-pub(crate) fn to_base_type_str(ty: &BaseType) -> String {
+pub fn to_base_type_str(ty: &BaseType) -> String {
     match ty {
         BaseType::Named(name) => name.to_string(),
         BaseType::List(ty_list) => to_base_type_str(&ty_list.base),

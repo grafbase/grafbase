@@ -33,7 +33,7 @@ use if_chain::if_chain;
 
 pub struct ModelDirective;
 
-pub(crate) const MODEL_DIRECTIVE: &str = "model";
+pub const MODEL_DIRECTIVE: &str = "model";
 
 impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {

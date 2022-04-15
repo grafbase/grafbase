@@ -68,7 +68,7 @@ impl<'a> Visitor<'a> for BasicType {
                     rust_typename: type_name.clone(),
                 }, &type_name, &type_name);
 
-                add_input_type_non_primitive(ctx, &object, &type_name);
+                add_input_type_non_primitive(ctx, object, &type_name);
             }
         }
     }
