@@ -11,8 +11,7 @@
 
 use self::debug::DebugResolver;
 
-use super::transformers::Transformer;
-use crate::{Context, Error, Value};
+use crate::{Context, Error};
 use context_data::ContextDataResolver;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
@@ -47,27 +46,18 @@ pub struct ResolverContext<'a> {
     /// When a resolver is executed, it gains a Resolver unique ID for his
     /// execution, this ID is used for internal cache strategy
     pub execution_id: &'a Ulid,
-    /// Describe the list of transformations to be executed when resolving
-    /// this resovler.
-    pub transforms: Option<&'a Vec<Transformer>>,
 }
 
 impl<'a> ResolverContext<'a> {
     pub fn new(id: &'a Ulid) -> Self {
         Self {
             resolver_id: None,
-            transforms: None,
             execution_id: id,
         }
     }
 
     pub fn with_resolver_id(mut self, id: Option<&'a str>) -> Self {
         self.resolver_id = id;
-        self
-    }
-
-    pub fn with_transforms(mut self, transforms: Option<&'a Vec<Transformer>>) -> Self {
-        self.transforms = transforms;
         self
     }
 }
@@ -78,7 +68,7 @@ pub trait ResolverTrait: Sync {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-    ) -> Result<Value, Error>;
+    ) -> Result<serde_json::Value, Error>;
 }
 
 #[async_trait::async_trait]
@@ -87,7 +77,7 @@ impl ResolverTrait for Resolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-    ) -> Result<Value, Error> {
+    ) -> Result<serde_json::Value, Error> {
         match &self.r#type {
             ResolverType::DebugResolver(debug) => debug.resolve(ctx, resolver_ctx).await,
             ResolverType::DynamoResolver(dynamodb) => dynamodb.resolve(ctx, resolver_ctx).await,

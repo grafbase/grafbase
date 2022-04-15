@@ -77,8 +77,13 @@ pub fn attribute_to_value(value: AttributeValue) -> serde_json::Value {
         ),
         AttributeValue { null: Some(_), .. } => serde_json::Value::Null,
         AttributeValue {
-            m: Some(_object), ..
-        } => unimplemented!("not yet"),
+            m: Some(object), ..
+        } => serde_json::Value::Object(
+            object
+                .into_iter()
+                .map(|(key, x)| (key, attribute_to_value(x)))
+                .collect(),
+        ),
         AttributeValue { b: Some(_), .. } => unimplemented!(),
         AttributeValue {
             bs: Some(_vec_bytes),
