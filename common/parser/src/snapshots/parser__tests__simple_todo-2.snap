@@ -1,0 +1,57 @@
+---
+source: common/parser/src/lib.rs
+assertion_line: 105
+expression: sdl
+---
+type Author {
+	name: String!
+	lastname: String!
+	pseudo: String
+}
+"""
+Author input type.
+"""
+input AuthorInput {
+	name: String!
+	lastname: String!
+	pseudo: String
+}
+type Mutation {
+	"""
+	Create a Todo
+	"""
+	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	"""
+	Delete a Todo by ID
+	"""
+	todoDelete(id: ID!): TodoDeletePayload
+}
+type Query {
+	"""
+	Get a Todo by his ID
+	"""
+	todobyID(id: ID!): Todo
+}
+type Todo {
+	id: ID!
+	content: String!
+	author: Author
+}
+"""
+Input to create a new Todo
+"""
+input TodoCreateInput {
+	content: String!
+	author: AuthorInput
+}
+type TodoCreatePayload {
+	todo: Todo
+}
+type TodoDeletePayload {
+	deletedId: ID!
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+
