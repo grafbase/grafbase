@@ -47,21 +47,28 @@ thread_local! {
         std::cell::RefCell::new(Vec::new());
 }
 
+#[cfg(not(feature = "with-worker"))]
+fn print_with_worker() {
+    unreachable!("WORKER flag cannot be enabled unless 'with-worker' feature is set");
+}
+
+#[cfg(feature = "with-worker")]
+pub fn print_with_worker(status: LogSeverity, message: &str) {
+    match status {
+        LogSeverity::Debug => worker::console_debug!("{}", message),
+        LogSeverity::Info => worker::console_log!("{}", message),
+        LogSeverity::Error => worker::console_error!("{}", message),
+    }
+}
+
 #[macro_export]
 macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
         let message = format_args!($($t)*).to_string();
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
-        #[cfg(feature = "with-worker")]
+
         if config.contains($crate::Config::WORKER) {
-            match $status {
-                $crate::LogSeverity::Debug =>
-                    $crate::worker::console_debug!("{}", message),
-                $crate::LogSeverity::Info =>
-                    $crate::worker::console_log!("{}", message),
-                $crate::LogSeverity::Error =>
-                    $crate::worker::console_error!("{}", message),
-            }
+            $crate::print_with_worker($status, &message);
         }
         if config.contains($crate::Config::STDLOG) {
             match $status {
