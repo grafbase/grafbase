@@ -21,35 +21,33 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
         _parent_type: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
     ) {
         let base_type = to_base_type_str(&field.node.ty.node.base);
-        let is_not_primitive_and_not_found = !is_type_primitive(&field.node) && ctx.types.get(&base_type).is_none();
-        let is_not_primitive_and_found_not_basic = !is_type_primitive(&field.node)
-            && ctx
-                .types
-                .get(&base_type)
-                .map(|x| x.node.directives.iter().any(|d| d.node.name.node == MODEL_DIRECTIVE))
-                .unwrap_or(false);
-        // We check if it's a primitive, if it's not, it should be on list types, if it's not then
-        // it's an error.
-        if is_not_primitive_and_not_found {
-            ctx.report_error(
-                vec![field.pos],
-                format!(
-                    "Field `{name}` got an undefined type: `{ty}`.",
-                    name = field.node.name.node,
-                    ty = base_type
-                ),
-            );
+        if is_type_primitive(&field.node) {
+            return;
         }
 
-        if is_not_primitive_and_found_not_basic {
-            ctx.report_error(
-                vec![field.pos],
-                format!(
-                    "Field `{name}` got a modelized type: `{ty}` but modelized types are not valid as field yet.",
-                    name = field.node.name.node,
-                    ty = base_type
-                ),
-            );
+        match ctx.types.get(&base_type) {
+            Some(ty) => {
+                if ty.node.directives.iter().any(|d| d.node.name.node == MODEL_DIRECTIVE) {
+                    ctx.report_error(
+                        vec![field.pos],
+                        format!(
+                            "Field `{name}` got an undefined type: `{ty}`.",
+                            name = field.node.name.node,
+                            ty = base_type
+                        ),
+                    );
+                }
+            }
+            None => {
+                ctx.report_error(
+                    vec![field.pos],
+                    format!(
+                        "Field `{name}` got an undefined type: `{ty}`.",
+                        name = field.node.name.node,
+                        ty = base_type
+                    ),
+                );
+            }
         }
     }
 }
