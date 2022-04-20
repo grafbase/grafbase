@@ -2,7 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use crate::parser::types::Field;
-use crate::resolver_utils::resolve_list;
+use crate::resolver_utils::resolve_list_native;
 use crate::{
     registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
     Positioned, ServerResult, Value,
@@ -28,7 +28,7 @@ impl<'a, T: OutputType + 'a> OutputType for &'a [T] {
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_list(ctx, field, self.iter(), Some(self.len())).await
+        resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
     }
 }
 
@@ -54,7 +54,7 @@ macro_rules! impl_output_slice_for_smart_ptr {
                 ctx: &ContextSelectionSet<'_>,
                 field: &Positioned<Field>,
             ) -> ServerResult<Value> {
-                resolve_list(ctx, field, self.iter(), Some(self.len())).await
+                resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
             }
         }
     };

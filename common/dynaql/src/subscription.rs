@@ -47,7 +47,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
             Selection::Field(field) => streams.push(Box::pin({
                 let ctx = ctx.clone();
                 async_stream::stream! {
-                    let ctx = ctx.with_field(field, Vec::new());
+                    let ctx = ctx.with_field(field, None, Vec::new());
                     let field_name = ctx.item.node.response_key().node.clone();
                     let stream = root.create_field_stream(&ctx);
                     if let Some(mut stream) = stream {

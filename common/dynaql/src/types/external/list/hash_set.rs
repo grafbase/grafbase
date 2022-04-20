@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 use crate::parser::types::Field;
-use crate::resolver_utils::resolve_list;
+use crate::resolver_utils::resolve_list_native;
 use crate::{
     registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
     Positioned, Result, ServerResult, Value,
@@ -70,6 +70,6 @@ impl<T: OutputType + Hash + Eq> OutputType for HashSet<T> {
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_list(ctx, field, self, Some(self.len())).await
+        resolve_list_native(ctx, field, self, Some(self.len())).await
     }
 }
