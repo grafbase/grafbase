@@ -49,11 +49,8 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         // actual modelization.
         // It's supposed to be removed in the future. (cf. @miaxos)
         if let Some(parent) = self.parent {
-            let parent_ctx = ResolverContext::new(&parent.execution_id).with_resolver_id(
-                parent
-                    .resolver
-                    .and_then(|resolver| resolver.id.as_deref()),
-            );
+            let parent_ctx = ResolverContext::new(&parent.execution_id)
+                .with_resolver_id(parent.resolver.and_then(|resolver| resolver.id.as_deref()));
             final_result = parent.resolve(ctx, &parent_ctx).await?;
         }
 
@@ -66,8 +63,8 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         }
 
         if let Some(actual) = self.resolver {
-            let current_ctx = ResolverContext::new(&self.execution_id)
-                .with_resolver_id(actual.id.as_deref());
+            let current_ctx =
+                ResolverContext::new(&self.execution_id).with_resolver_id(actual.id.as_deref());
             final_result = actual.resolve(ctx, &current_ctx).await?;
         }
 
