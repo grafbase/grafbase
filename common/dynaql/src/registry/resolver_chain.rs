@@ -52,7 +52,7 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
             let parent_ctx = ResolverContext::new(&parent.execution_id).with_resolver_id(
                 parent
                     .resolver
-                    .and_then(|resolver| resolver.id.as_ref().map(|x| x.as_str())),
+                    .and_then(|resolver| resolver.id.as_deref()),
             );
             final_result = parent.resolve(ctx, &parent_ctx).await?;
         }
@@ -61,13 +61,13 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
             // If we are in a segment, it means we do not have a current resolver (YET).
             final_result = final_result
                 .get_mut(idx)
-                .map(|x| x.take())
+                .map(serde_json::Value::take)
                 .unwrap_or(serde_json::Value::Null);
         }
 
         if let Some(actual) = self.resolver {
             let current_ctx = ResolverContext::new(&self.execution_id)
-                .with_resolver_id(actual.id.as_ref().map(|x| x.as_str()));
+                .with_resolver_id(actual.id.as_deref());
             final_result = actual.resolve(ctx, &current_ctx).await?;
         }
 

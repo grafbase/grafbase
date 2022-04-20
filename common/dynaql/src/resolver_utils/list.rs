@@ -36,7 +36,7 @@ pub async fn resolve_list<'a>(
                             Some(ty) => &ty,
                             None => {
                                 return Err(ServerError::new(
-                                    format!(r#"An internal error happened"#,),
+                                    r#"An internal error happened"#.to_string(),
                                     Some(ctx_idx.item.pos),
                                 ));
                             }

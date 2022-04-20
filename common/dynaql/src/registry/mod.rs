@@ -288,10 +288,9 @@ impl MetaField {
             CurrentResolverType::CONTAINER => {
                 let container_type = registry
                     .types
-                    .get(&type_to_base_type(&self.ty).ok_or(ServerError::new(
-                        "An internal error happened",
-                        Some(ctx.item.pos),
-                    ))?)
+                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?)
                     .ok_or_else(|| {
                         ServerError::new("An internal error happened", Some(ctx.item.pos))
                     })?;
@@ -311,10 +310,9 @@ impl MetaField {
             CurrentResolverType::ARRAY => {
                 let container_type = registry
                     .types
-                    .get(&type_to_base_type(&self.ty).ok_or(ServerError::new(
-                        "An internal error happened",
-                        Some(ctx.item.pos),
-                    ))?)
+                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?)
                     .ok_or_else(|| {
                         ServerError::new("An internal error happened", Some(ctx.item.pos))
                     })?;

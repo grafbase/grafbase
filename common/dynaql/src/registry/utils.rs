@@ -10,7 +10,7 @@ fn to_base_type_str(ty: &BaseType) -> String {
     }
 }
 
-pub fn type_to_base_type(value: &String) -> Option<String> {
+pub fn type_to_base_type(value: &str) -> Option<String> {
     Type::new(value).map(|x| to_base_type_str(&x.base))
 }
 
