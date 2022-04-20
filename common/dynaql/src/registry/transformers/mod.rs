@@ -29,9 +29,6 @@ pub enum Transformer {
     JSONSelect {
         /// The key where this select
         property: String,
-        /// A JsonPath
-        /// TODO: Use a jsonpath lib.
-        from: String,
         /// Functions to be applied to a Value.
         functions: Vec<JSONFunction>,
     },
@@ -48,23 +45,38 @@ pub trait TransformerTrait {
     fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error>;
 }
 
+impl<'a, T: TransformerTrait + 'a> TransformerTrait for &'a T {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        (**self).transform(value)
+    }
+}
+
+impl<'a, T: TransformerTrait + 'a> TransformerTrait for Box<T> {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        (**self).transform(value)
+    }
+}
+
 /// Empty Value
 pub struct TransformerNil;
 
-impl TransformerNil {
-    pub fn with<T: TransformerTrait>(self, transformer: T) -> TransformerCons<T, Self> {
-        TransformerCons(transformer, self)
+#[derive(Debug)]
+pub enum TransformationVisitor<T: TransformerTrait> {
+    Nil,
+    Cons(T, Box<TransformationVisitor<T>>),
+}
+
+impl<'a, T: TransformerTrait + 'a> TransformerTrait for TransformationVisitor<T> {
+    fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
+        match self {
+            Self::Nil => Ok(value),
+            Self::Cons(v, rest) => v.transform(rest.transform(value)?),
+        }
     }
 }
 
 /// Concat rule
 pub struct TransformerCons<A: TransformerTrait, B: TransformerTrait>(A, B);
-
-impl<A: TransformerTrait, B: TransformerTrait> TransformerCons<A, B> {
-    pub fn with<T: TransformerTrait>(self, transformer: T) -> TransformerCons<T, Self> {
-        TransformerCons(transformer, self)
-    }
-}
 
 impl TransformerTrait for TransformerNil {
     fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
@@ -87,7 +99,13 @@ impl TransformerTrait for Transformer {
     fn transform(&self, value: serde_json::Value) -> Result<serde_json::Value, Error> {
         match &self {
             Self::Functions { .. } => unimplemented!(),
-            Self::JSONSelect { .. } => unimplemented!(),
+            Self::JSONSelect { property, .. } => {
+                let result = value
+                    .get(property)
+                    .map(std::borrow::ToOwned::to_owned)
+                    .unwrap_or_else(|| serde_json::Value::Null);
+                Ok(result)
+            }
             Self::DynamoSelect { property } => {
                 let cast: Option<HashMap<String, AttributeValue>> = serde_json::from_value(value)?;
 

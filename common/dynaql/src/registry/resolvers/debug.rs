@@ -1,5 +1,5 @@
 use super::{ResolverContext, ResolverTrait};
-use crate::{to_value, Context, Error, Value};
+use crate::{Context, Error};
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -13,9 +13,9 @@ impl ResolverTrait for DebugResolver {
         &self,
         _ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
-    ) -> Result<Value, Error> {
+    ) -> Result<serde_json::Value, Error> {
         match &self {
-            Self::Value { inner } => to_value(inner).map_err(|err| Error::new(err.to_string())),
+            Self::Value { inner } => Ok(inner.clone()),
         }
     }
 }

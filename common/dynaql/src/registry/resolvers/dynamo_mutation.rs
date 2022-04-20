@@ -28,7 +28,7 @@ impl ResolverTrait for DynamoMutationResolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-    ) -> Result<Value, Error> {
+    ) -> Result<serde_json::Value, Error> {
         let batchers = &ctx.data::<DynamoDBBatchersData>()?.transaction;
         let dynamodb_ctx = ctx.data::<DynamoDBContext>()?;
         match self {
@@ -135,7 +135,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 };
 
                 batchers.load_one(t).await?;
-                Ok(Value::Null)
+                Ok(serde_json::Value::Null)
             }
             DynamoMutationResolver::DeleteNode { id } => {
                 let id_to_be_deleted = match id.param(ctx).expect("can't fail") {
@@ -190,7 +190,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         );
                 }
 
-                Ok(Value::Null)
+                Ok(serde_json::Value::Null)
             }
         }
     }

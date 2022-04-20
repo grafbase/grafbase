@@ -1,5 +1,4 @@
 use super::ResolverTrait;
-use crate::registry::transformers::TransformerTrait;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::DynamoDBBatchersData;
@@ -20,8 +19,8 @@ impl ResolverTrait for DynamoResolver {
     async fn resolve(
         &self,
         ctx: &Context<'_>,
-        resolver_ctx: &ResolverContext<'_>,
-    ) -> Result<Value, Error> {
+        _resolver_ctx: &ResolverContext<'_>,
+    ) -> Result<serde_json::Value, Error> {
         let batchers = &ctx.data::<DynamoDBBatchersData>()?.loader;
         match self {
             DynamoResolver::QueryPKSK { pk, sk } => {
@@ -44,16 +43,7 @@ impl ResolverTrait for DynamoResolver {
                     .await?
                     .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
 
-                let transformers = resolver_ctx.transforms;
-
-                let mut result = serde_json::to_value(dyna)?;
-                // Apply transformers
-                if let Some(transformers) = transformers {
-                    result = transformers
-                        .iter()
-                        .try_fold(result, |acc, cur| cur.transform(acc))?;
-                }
-                Value::from_json(result).map_err(|err| Error::new(err.to_string()))
+                serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))
             }
         }
     }

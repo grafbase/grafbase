@@ -25,7 +25,7 @@ use crate::{
 pub use cache_control::CacheControl;
 
 use self::resolvers::{Resolver, ResolverContext, ResolverTrait};
-use self::transformers::Transformer;
+use self::transformers::{TransformationVisitor, Transformer, TransformerTrait};
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -238,10 +238,21 @@ impl MetaField {
                 let (last_resolver_exectution_id, last_resolvers, _, _) =
                     resolvers.clone().last().expect("Should have a resolver");
 
-                for (resolver_execution_id, resolver, transformers, _) in resolvers {
+                let merged_transformers = ctx_obj
+                    .query_resolvers
+                    .iter()
+                    .skip_while(|(id, _, _, _)| id != last_resolver_exectution_id)
+                    .fold(TransformationVisitor::Nil, |acc, cur| {
+                        if let Some(transformers) = cur.2 {
+                            TransformationVisitor::Cons(transformers.clone(), Box::new(acc))
+                        } else {
+                            acc
+                        }
+                    });
+
+                for (resolver_execution_id, resolver, _, _) in resolvers {
                     let resolver_ctx = ResolverContext::new(resolver_execution_id)
-                        .with_resolver_id(resolver.id.as_deref())
-                        .with_transforms(transformers.as_ref());
+                        .with_resolver_id(resolver.id.as_deref());
                     resolver
                         .resolve(&ctx, &resolver_ctx)
                         .await
@@ -249,25 +260,25 @@ impl MetaField {
                 }
 
                 let last_resolver_ctx = ResolverContext::new(last_resolver_exectution_id)
-                    .with_resolver_id(last_resolvers.id.as_deref())
-                    .with_transforms((&self.transforms).as_ref());
+                    .with_resolver_id(last_resolvers.id.as_deref());
 
                 let result = last_resolvers
                     .resolve(
                         &ctx.clone().add_resolvers(vec![(
                             &execution_id,
                             &self.resolve,
-                            &self.transforms,
+                            &None,
                             &variables,
                         )]),
                         &last_resolver_ctx,
                     )
-                    .await
-                    .map_err(|err| err.into_server_error(ctx.item.pos));
+                    .await;
 
-                match result {
+                let resolved_value = result.map_err(|err| err.into_server_error(ctx.item.pos));
+
+                let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.ends_with('!') && result == Value::Null {
+                        if self.ty.ends_with('!') && result == serde_json::Value::Null {
                             Err(ServerError::new(
                                 format!(
                                     "An error happened while fetching {:?}",
@@ -284,10 +295,17 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(Value::Null)
+                            Ok(serde_json::Value::Null)
                         }
                     }
-                }
+                };
+
+                let transformed_value = merged_transformers
+                    .transform(result?)
+                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
+                Value::from_json(transformed_value)
+                    .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
             }
             // Container
             false => {
