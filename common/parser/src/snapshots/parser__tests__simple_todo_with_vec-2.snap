@@ -30,9 +30,15 @@ type Mutation {
 }
 type Query {
 	"""
+<<<<<<< HEAD
 	Get a Todo by ID
 	"""
 	todo(id: ID!): Todo
+=======
+	Get a Todo by his ID
+	"""
+	todobyID(id: ID!): Todo
+>>>>>>> 858f84bf (feat: add basic type generation with nested array)
 }
 type Todo {
 	id: ID!
