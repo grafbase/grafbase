@@ -3,8 +3,8 @@ use async_graphql::{Name, Positioned};
 use async_graphql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition};
 use std::collections::HashMap;
 
-fn is_type_primitive_internal(name: &Name) -> bool {
-    matches!(name.as_ref(), "String" | "Float" | "Boolean" | "ID" | "Int")
+fn is_type_primitive_internal(name: &str) -> bool {
+    matches!(name, "String" | "Float" | "Boolean" | "ID" | "Int")
 }
 
 /// Check if the given type is a primitive
@@ -17,7 +17,7 @@ fn is_type_primitive_internal(name: &Name) -> bool {
 ///   - ID
 pub fn is_type_primitive(field: &FieldDefinition) -> bool {
     match &field.ty.node.base {
-        BaseType::Named(name) => is_type_primitive_internal(name),
+        BaseType::Named(name) => is_type_primitive_internal(name.as_ref()),
         _ => false,
     }
 }
@@ -54,7 +54,7 @@ pub fn is_type_basic_type<'a>(ctx: &HashMap<String, &'a Positioned<TypeDefinitio
 fn to_input_base_type(base_type: BaseType) -> BaseType {
     match base_type {
         BaseType::Named(name) => {
-            if is_type_primitive_internal(&name) {
+            if is_type_primitive_internal(&name.as_ref()) {
                 BaseType::Named(name)
             } else {
                 BaseType::Named(Name::new(format!("{}Input", name)))
