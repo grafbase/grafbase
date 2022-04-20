@@ -31,7 +31,7 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
                     ctx.report_error(
                         vec![field.pos],
                         format!(
-                            "Field `{name}` got an undefined type: `{ty}`.",
+                            "Field `{name}` got a modelized type: `{ty}`.",
                             name = field.node.name.node,
                             ty = base_type
                         ),
@@ -131,7 +131,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Field `__price` got a modelized type: `Truc` but modelized types are not valid as field yet.",
+            "Field `__price` got a modelized type: `Truc`.",
             "should match"
         );
     }
