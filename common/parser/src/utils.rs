@@ -60,7 +60,10 @@ fn to_input_base_type(base_type: BaseType) -> BaseType {
                 BaseType::Named(Name::new(format!("{}Input", name)))
             }
         }
-        BaseType::List(list) => to_input_base_type(list.base),
+        BaseType::List(list) => BaseType::List(Box::new(Type {
+            base: to_input_base_type(list.base),
+            nullable: list.nullable,
+        })),
     }
 }
 
