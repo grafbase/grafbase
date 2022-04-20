@@ -96,3 +96,21 @@ pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
         _ => false,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use async_graphql::Name;
+    use async_graphql_parser::types::{BaseType, Type};
+
+    use super::to_input_type;
+
+    #[test]
+    fn check_to_input_type_primitive() {
+        let result = to_input_type(Type {
+            base: BaseType::Named(Name::new("String")),
+            nullable: true,
+        });
+
+        assert_eq!(result.to_string(), "String".to_string(), "Should be a String");
+    }
+}
