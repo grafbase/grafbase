@@ -54,7 +54,7 @@ pub fn is_type_basic_type<'a>(ctx: &HashMap<String, &'a Positioned<TypeDefinitio
 fn to_input_base_type(base_type: BaseType) -> BaseType {
     match base_type {
         BaseType::Named(name) => {
-            if is_type_primitive_internal(&name.as_ref()) {
+            if is_type_primitive_internal(name.as_ref()) {
                 BaseType::Named(name)
             } else {
                 BaseType::Named(Name::new(format!("{}Input", name)))
