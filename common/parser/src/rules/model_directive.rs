@@ -100,8 +100,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 }, &type_name, &type_name);
 
                 ctx.queries.push(MetaField {
-                    name: format!("{}byID", type_name.to_lowercase()),
-                    description: Some(format!("Get a {} by his ID", type_name)),
+                    // byID query
+                    name: type_name.to_lowercase(),
+                    description: Some(format!("Get a {} by ID", type_name)),
                     args: {
                         let mut args = IndexMap::new();
                         args.insert(
