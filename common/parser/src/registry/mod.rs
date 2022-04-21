@@ -30,8 +30,7 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
                         MetaInputValue {
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
-                            // TODO: Must check it's not a primitive.
-                            ty: to_input_type(field.node.ty.clone().node).to_string(),
+                            ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -81,7 +80,7 @@ pub fn add_create_mutation<'a>(
                             MetaInputValue {
                                 name: name.to_string(),
                                 description: field.node.description.clone().map(|x| x.node),
-                                ty: to_input_type(field.node.ty.clone().node).to_string(),
+                                ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
                                 visible: None,
                                 default_value: None,
                                 is_secret: false,

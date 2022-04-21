@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 120
+assertion_line: 183
 expression: sdl
 ---
 type Author {
@@ -30,27 +30,36 @@ type Mutation {
 }
 type Query {
 	"""
-	Get a Todo by ID
+	Get a Todo by his ID
 	"""
-	todo(id: ID!): Todo
+	todobyID(id: ID!): Todo
 }
 type Todo {
 	id: ID!
 	content: String!
-	author: Author
+	authors: [Author]
+	ty: TodoType!
 }
 """
 Input to create a new Todo
 """
 input TodoCreateInput {
 	content: String!
-	author: AuthorInput
+	authors: [AuthorInput]
+	ty: TodoType!
 }
 type TodoCreatePayload {
 	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!
+}
+"""
+A TodoType
+"""
+enum TodoType {
+	TODO1
+	TODO2
 }
 type Truc {
 	name: String!

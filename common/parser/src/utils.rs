@@ -1,6 +1,7 @@
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use async_graphql::{Name, Positioned};
-use async_graphql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition};
+use async_graphql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 fn is_type_primitive_internal(name: &str) -> bool {
@@ -51,17 +52,19 @@ pub fn is_type_basic_type<'a>(ctx: &HashMap<String, &'a Positioned<TypeDefinitio
     is_a_basic_type
 }
 
-fn to_input_base_type(base_type: BaseType) -> BaseType {
+fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>, base_type: BaseType) -> BaseType {
     match base_type {
         BaseType::Named(name) => {
-            if is_type_primitive_internal(name.as_ref()) {
-                BaseType::Named(name)
-            } else {
-                BaseType::Named(Name::new(format!("{}Input", name)))
+            let type_def = ctx.get(name.as_ref()).map(|x| &x.node.kind);
+            match type_def {
+                Some(TypeKind::Scalar) => BaseType::Named(name),
+                Some(TypeKind::Enum(_)) => BaseType::Named(name),
+                Some(TypeKind::Object(_)) => BaseType::Named(Name::new(format!("{}Input", name))),
+                _ => BaseType::Named(Name::new("Error")),
             }
         }
         BaseType::List(list) => BaseType::List(Box::new(Type {
-            base: to_input_base_type(list.base),
+            base: to_input_base_type(ctx, list.base),
             nullable: list.nullable,
         })),
     }
@@ -82,9 +85,12 @@ pub fn to_base_type_str(ty: &BaseType) -> String {
 /// For Author -> AuthorInput
 /// For [String!]! -> [String!]!
 /// For [Author!] -> [AuthorInput!]
-pub fn to_input_type(Type { base, nullable }: Type) -> Type {
+pub fn to_input_type(
+    ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>,
+    Type { base, nullable }: Type,
+) -> Type {
     Type {
-        base: to_input_base_type(base),
+        base: to_input_base_type(ctx, base),
         nullable,
     }
 }
@@ -94,23 +100,5 @@ pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
     match &field.ty.node.base {
         BaseType::Named(name) => matches!(name.as_ref(), "ID"),
         _ => false,
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use async_graphql::Name;
-    use async_graphql_parser::types::{BaseType, Type};
-
-    use super::to_input_type;
-
-    #[test]
-    fn check_to_input_type_primitive() {
-        let result = to_input_type(Type {
-            base: BaseType::Named(Name::new("String")),
-            nullable: true,
-        });
-
-        assert_eq!(result.to_string(), "String".to_string(), "Should be a String");
     }
 }

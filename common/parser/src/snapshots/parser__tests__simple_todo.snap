@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 105
+assertion_line: 119
 expression: reg_string
 ---
 <<<<<<< HEAD
