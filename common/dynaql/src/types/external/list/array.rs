@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use crate::parser::types::Field;
-use crate::resolver_utils::resolve_list;
+use crate::resolver_utils::resolve_list_native;
 use crate::{
     registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
     Positioned, ServerResult, Value,
@@ -74,6 +74,6 @@ impl<T: OutputType, const N: usize> OutputType for [T; N] {
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
     ) -> ServerResult<Value> {
-        resolve_list(ctx, field, self.iter(), Some(self.len())).await
+        resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
     }
 }

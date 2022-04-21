@@ -1,5 +1,6 @@
 mod cache_control;
 mod export_sdl;
+pub mod resolver_chain;
 pub mod resolvers;
 mod stringify_exec_doc;
 pub mod transformers;
@@ -16,16 +17,16 @@ use crate::model::{__Schema, __Type};
 use crate::parser::types::{
     BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
 };
-use crate::resolver_utils::resolve_container;
+use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::{
     model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext, ID,
 };
-
 pub use cache_control::CacheControl;
 
 use self::resolvers::{Resolver, ResolverContext, ResolverTrait};
-use self::transformers::{TransformationVisitor, Transformer, TransformerTrait};
+use self::transformers::Transformer;
+use self::utils::type_to_base_type;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -207,6 +208,25 @@ pub struct MetaField {
     pub transforms: Option<Vec<Transformer>>,
 }
 
+enum CurrentResolverType {
+    PRIMITIVE,
+    ARRAY,
+    CONTAINER,
+}
+
+impl CurrentResolverType {
+    fn new(current_field: &MetaField, ctx: &Context<'_>) -> Self {
+        if current_field.ty.starts_with('[') {
+            return CurrentResolverType::ARRAY;
+        }
+
+        match &ctx.item.node.selection_set.node.items.is_empty() {
+            true => CurrentResolverType::PRIMITIVE,
+            false => CurrentResolverType::CONTAINER,
+        }
+    }
+}
+
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
@@ -227,54 +247,16 @@ impl MetaField {
             vec![(&execution_id, &self.resolve, &self.transforms, &variables)],
         );
 
-        match &ctx.item.node.selection_set.node.items.is_empty() {
+        let current_resolver_type = CurrentResolverType::new(&self, ctx);
+
+        match current_resolver_type {
             // When you are resolving a Primitive
-            true => {
-                let resolvers = ctx_obj
-                    .query_resolvers
-                    .iter()
-                    .filter_map(|(id, x, t, v)| x.as_ref().map(|value| (id, value, t, v)));
-
-                let (last_resolver_exectution_id, last_resolvers, _, _) =
-                    resolvers.clone().last().expect("Should have a resolver");
-
-                let merged_transformers = ctx_obj
-                    .query_resolvers
-                    .iter()
-                    .skip_while(|(id, _, _, _)| id != last_resolver_exectution_id)
-                    .fold(TransformationVisitor::Nil, |acc, cur| {
-                        if let Some(transformers) = cur.2 {
-                            TransformationVisitor::Cons(transformers.clone(), Box::new(acc))
-                        } else {
-                            acc
-                        }
-                    });
-
-                for (resolver_execution_id, resolver, _, _) in resolvers {
-                    let resolver_ctx = ResolverContext::new(resolver_execution_id)
-                        .with_resolver_id(resolver.id.as_deref());
-                    resolver
-                        .resolve(&ctx, &resolver_ctx)
-                        .await
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
-                }
-
-                let last_resolver_ctx = ResolverContext::new(last_resolver_exectution_id)
-                    .with_resolver_id(last_resolvers.id.as_deref());
-
-                let result = last_resolvers
-                    .resolve(
-                        &ctx.clone().add_resolvers(vec![(
-                            &execution_id,
-                            &self.resolve,
-                            &None,
-                            &variables,
-                        )]),
-                        &last_resolver_ctx,
-                    )
-                    .await;
-
-                let resolved_value = result.map_err(|err| err.into_server_error(ctx.item.pos));
+            CurrentResolverType::PRIMITIVE => {
+                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolved_value = resolvers
+                    .resolve(&ctx, &ResolverContext::new(&execution_id))
+                    .await
+                    .map_err(|err| err.into_server_error(ctx.item.pos));
 
                 let result = match resolved_value {
                     Ok(result) => {
@@ -300,20 +282,55 @@ impl MetaField {
                     }
                 };
 
-                let transformed_value = merged_transformers
-                    .transform(result?)
-                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
-
-                Value::from_json(transformed_value)
+                Value::from_json(result?)
                     .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
             }
-            // Container
-            false => {
-                let container_type = registry.types.get(&self.ty).ok_or_else(|| {
-                    ServerError::new("An internal error happened", Some(ctx.item.pos))
-                })?;
+            CurrentResolverType::CONTAINER => {
+                let container_type = registry
+                    .types
+                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?)
+                    .ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?;
 
                 match resolve_container(&ctx_obj, container_type).await {
+                    result @ Ok(_) => result,
+                    Err(err) => {
+                        if self.ty.ends_with('!') {
+                            Err(err)
+                        } else {
+                            ctx.add_error(err);
+                            Ok(Value::Null)
+                        }
+                    }
+                }
+            }
+            CurrentResolverType::ARRAY => {
+                let container_type = registry
+                    .types
+                    .get(&type_to_base_type(&self.ty).ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?)
+                    .ok_or_else(|| {
+                        ServerError::new("An internal error happened", Some(ctx.item.pos))
+                    })?;
+
+                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolved_value = resolvers
+                    .resolve(&ctx, &ResolverContext::new(&execution_id))
+                    .await
+                    .map_err(|err| err.into_server_error(ctx.item.pos));
+
+                let resolved_value = match resolved_value? {
+                    serde_json::Value::Array(arr) => arr,
+                    _ => panic!(),
+                };
+
+                let len = resolved_value.len();
+
+                match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
                     result @ Ok(_) => result,
                     Err(err) => {
                         if self.ty.ends_with('!') {

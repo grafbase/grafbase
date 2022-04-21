@@ -250,7 +250,7 @@ impl<'a> Fields<'a> {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
-                        let ctx_field = ctx.with_field(field, Vec::new());
+                        let ctx_field = ctx.with_field(field, Some(root), Vec::new());
                         let field_name = ctx_field.item.node.response_key().node.clone();
                         let typename = registry.introspection_type_name(root).to_owned();
 
@@ -263,7 +263,7 @@ impl<'a> Fields<'a> {
                     let resolve_fut = Box::pin({
                         let ctx = ctx.clone();
                         async move {
-                            let ctx_field = ctx.with_field(field, Vec::new());
+                            let ctx_field = ctx.with_field(field, Some(root), Vec::new());
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
 
@@ -331,6 +331,7 @@ impl<'a> Fields<'a> {
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
+                                                resolver_node: ctx_field.resolver_node,
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
@@ -435,7 +436,7 @@ impl<'a> Fields<'a> {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
-                        let ctx_field = ctx.with_field(field, Vec::new());
+                        let ctx_field = ctx.with_field(field, None, Vec::new());
                         let field_name = ctx_field.item.node.response_key().node.clone();
                         let typename = root.introspection_type_name().into_owned();
 
@@ -448,7 +449,7 @@ impl<'a> Fields<'a> {
                     let resolve_fut = Box::pin({
                         let ctx = ctx.clone();
                         async move {
-                            let ctx_field = ctx.with_field(field, Vec::new());
+                            let ctx_field = ctx.with_field(field, None, Vec::new());
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
 
@@ -513,6 +514,7 @@ impl<'a> Fields<'a> {
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
+                                                resolver_node: ctx_field.resolver_node,
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,

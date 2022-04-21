@@ -562,6 +562,7 @@ impl Schema {
         // execute
         let ctx = ContextBase {
             path_node: None,
+            resolver_node: None,
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
@@ -666,6 +667,7 @@ impl Schema {
 
                 let ctx = env.create_context(
                     &schema.env,
+                    None,
                     None,
                     &env.operation.node.selection_set,
                 );

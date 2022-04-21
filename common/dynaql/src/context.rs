@@ -20,6 +20,8 @@ use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
+use crate::registry::resolver_chain::ResolverChainNode;
+use crate::registry::MetaType;
 use crate::registry::{resolvers::Resolver, transformers::Transformer, Registry};
 use crate::schema::SchemaEnv;
 use crate::{
@@ -234,6 +236,8 @@ type ResolverCacheType = Arc<
 pub struct ContextBase<'a, T> {
     /// The current path node being resolved.
     pub path_node: Option<QueryPathNode<'a>>,
+    /// The current resolver path being resolved.
+    pub resolver_node: Option<ResolverChainNode<'a>>,
     #[doc(hidden)]
     pub item: T,
     #[doc(hidden)]
@@ -288,10 +292,12 @@ impl QueryEnv {
         &'a self,
         schema_env: &'a SchemaEnv,
         path_node: Option<QueryPathNode<'a>>,
+        resolver_node: Option<ResolverChainNode<'a>>,
         item: T,
     ) -> ContextBase<'a, T> {
         ContextBase {
             path_node,
+            resolver_node,
             item,
             schema_env,
             query_env: self,
@@ -324,16 +330,28 @@ type ResolverChanges<'a> = Vec<(
 )>;
 
 impl<'a, T> ContextBase<'a, T> {
-    #[doc(hidden)]
+    /// We add a new field with the Context with the proper execution_id generated.
     pub fn with_field(
         &'a self,
         field: &'a Positioned<Field>,
+        ty: Option<&'a MetaType>,
         mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<Field>> {
         ContextBase {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
+            }),
+            resolver_node: Some(ResolverChainNode {
+                parent: self.resolver_node.as_ref(),
+                segment: QueryPathSegment::Name(&field.node.response_key().node),
+                resolver: ty
+                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
+                    .and_then(|x| x.resolve.as_ref()),
+                transformers: ty
+                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
+                    .and_then(|x| x.transforms.as_ref()),
+                execution_id: Ulid::new(),
             }),
             item: field,
             schema_env: self.schema_env,
@@ -356,6 +374,7 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: self.path_node,
+            resolver_node: self.resolver_node,
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
@@ -373,6 +392,7 @@ impl<'a, T> ContextBase<'a, T> {
     pub fn add_resolvers(self, mut resolve: ResolverChanges<'a>) -> Self {
         ContextBase {
             path_node: self.path_node,
+            resolver_node: self.resolver_node,
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
@@ -674,6 +694,13 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
                 segment: QueryPathSegment::Index(idx),
+            }),
+            resolver_node: Some(ResolverChainNode {
+                parent: self.resolver_node.as_ref(),
+                segment: QueryPathSegment::Index(idx),
+                resolver: None,
+                transformers: None,
+                execution_id: Ulid::new(),
             }),
             item: self.item,
             schema_env: self.schema_env,

@@ -359,6 +359,7 @@ pub fn generate(
                                     parent: ::std::option::Option::None,
                                     segment: #crate_name::QueryPathSegment::Name(&field_name),
                                 }),
+                                None,
                                 &field.node.selection_set,
                             );
 

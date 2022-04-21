@@ -1,6 +1,18 @@
+use async_graphql_parser::types::{BaseType, Type};
 use dynomite::AttributeValue;
 use std::collections::HashMap;
 use std::str::FromStr;
+
+fn to_base_type_str(ty: &BaseType) -> String {
+    match ty {
+        BaseType::Named(name) => name.to_string(),
+        BaseType::List(ty_list) => to_base_type_str(&ty_list.base),
+    }
+}
+
+pub fn type_to_base_type(value: &str) -> Option<String> {
+    Type::new(value).map(|x| to_base_type_str(&x.base))
+}
 
 pub fn value_to_attribute(value: serde_json::Value) -> AttributeValue {
     match value {
