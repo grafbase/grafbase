@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 106
+assertion_line: 137
 expression: sdl
 ---
 type Author {
@@ -37,14 +37,14 @@ type Query {
 type Todo {
 	id: ID!
 	content: String!
-	author: Author
+	authors: [Author]
 }
 """
 Input to create a new Todo
 """
 input TodoCreateInput {
 	content: String!
-	author: AuthorInput
+	authors: [AuthorInput]
 }
 type TodoCreatePayload {
 	todo: Todo

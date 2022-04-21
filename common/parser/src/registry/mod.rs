@@ -24,13 +24,13 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
                 let mut input_fields = IndexMap::new();
                 for field in &object.fields {
                     let name = &field.node.name.node;
+
                     input_fields.insert(
                         name.clone().to_string(),
                         MetaInputValue {
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
-                            // TODO: Must check it's not a primitive.
-                            ty: field.node.ty.clone().node.to_string(),
+                            ty: to_input_type(field.node.ty.clone().node).to_string(),
                             visible: None,
                             default_value: None,
                             is_secret: false,

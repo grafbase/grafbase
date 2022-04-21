@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql-parser = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "5204397a968d606f72025b0852729a08a03e16ce", package = "async-graphql-parser" }
-async-graphql-value = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "5204397a968d606f72025b0852729a08a03e16ce", package = "async-graphql-value" }
-async-graphql = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "5204397a968d606f72025b0852729a08a03e16ce", features = ["tracing_worker"] }
+async-graphql-parser = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "9ff227189e738bc5ecc6d85069c2915a7702db9f", package = "async-graphql-parser" }
+async-graphql-value = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "9ff227189e738bc5ecc6d85069c2915a7702db9f", package = "async-graphql-value" }
+async-graphql = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "9ff227189e738bc5ecc6d85069c2915a7702db9f", features = ["tracing_worker"] }
 case = "1.0.0"
 if_chain = "1.0.2"
 quick-error = "2"

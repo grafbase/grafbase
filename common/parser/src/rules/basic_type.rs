@@ -68,6 +68,10 @@ impl<'a> Visitor<'a> for BasicType {
                     rust_typename: type_name.clone(),
                 }, &type_name, &type_name);
 
+                // If the type is a non primitive and also not modelized, it means we need to
+                // create the Input version of it.
+                // If the input is non used by other queries/mutation, it'll be removed from the
+                // final schema.
                 add_input_type_non_primitive(ctx, object, &type_name);
             }
         }

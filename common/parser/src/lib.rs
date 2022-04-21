@@ -89,6 +89,38 @@ mod tests {
               name: String!
               lastname: String!
               pseudo: String
+              truc: Truc!
+            }
+
+            type Truc {
+              name: String!
+            }
+            "#,
+        )
+        .unwrap();
+
+        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let sdl = Schema::new(result).sdl();
+
+        insta::assert_snapshot!(reg_string);
+        insta::assert_snapshot!(sdl);
+    }
+
+    #[test]
+    fn test_simple_todo_with_vec() {
+        let result = super::to_registry(
+            r#"
+            type Todo @model {
+              id: ID!
+              content: String!
+              authors: [Author]
+            }
+
+            type Author {
+              name: String!
+              lastname: String!
+              pseudo: String
+              truc: Truc!
             }
 
             type Truc {
