@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 151
+assertion_line: 139
 expression: sdl
 ---
 type Author {
@@ -30,15 +30,9 @@ type Mutation {
 }
 type Query {
 	"""
-<<<<<<< HEAD
 	Get a Todo by ID
 	"""
 	todo(id: ID!): Todo
-=======
-	Get a Todo by his ID
-	"""
-	todobyID(id: ID!): Todo
->>>>>>> 858f84bf (feat: add basic type generation with nested array)
 }
 type Todo {
 	id: ID!

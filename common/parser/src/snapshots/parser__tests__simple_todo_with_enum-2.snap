@@ -30,9 +30,9 @@ type Mutation {
 }
 type Query {
 	"""
-	Get a Todo by his ID
+	Get a Todo by ID
 	"""
-	todobyID(id: ID!): Todo
+	todo(id: ID!): Todo
 }
 type Todo {
 	id: ID!
