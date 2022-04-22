@@ -4,6 +4,7 @@ use quick_error::quick_error;
 use rules::basic_type::BasicType;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
+use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
@@ -32,6 +33,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(ModelDirective)
         .with(CheckBeginsWithDoubleUnderscore)
         .with(BasicType)
+        .with(EnumType)
         .with(CheckTypeValidity);
 
     let schema = parse_schema(format!("{}\n{}", rules.directives(), input.as_ref()))?;
@@ -114,6 +116,50 @@ mod tests {
               id: ID!
               content: String!
               authors: [Author]
+            }
+
+            type Author {
+              name: String!
+              lastname: String!
+              pseudo: String
+              truc: Truc!
+            }
+
+            type Truc {
+              name: String!
+            }
+            "#,
+        )
+        .unwrap();
+
+        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let sdl = Schema::new(result).sdl();
+
+        insta::assert_snapshot!(reg_string);
+        insta::assert_snapshot!(sdl);
+    }
+
+    #[test]
+    fn test_simple_todo_with_enum() {
+        let result = super::to_registry(
+            r#"
+            """
+            A TodoType
+            """
+            enum TodoType {
+              TODO1
+
+              """
+              A Type 2 for TODO
+              """
+              TODO2
+            }
+
+            type Todo @model {
+              id: ID!
+              content: String!
+              authors: [Author]
+              ty: TodoType!
             }
 
             type Author {

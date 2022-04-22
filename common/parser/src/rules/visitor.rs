@@ -6,7 +6,9 @@ use async_graphql_parser::types::{
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use async_graphql_value::ConstValue;
+use std::borrow::Cow;
 use std::cell::RefCell;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 
@@ -17,7 +19,7 @@ pub struct VisitorContext<'a> {
     #[allow(dead_code)]
     pub(crate) directives: HashMap<String, &'a Positioned<DirectiveDefinition>>,
     #[allow(dead_code)]
-    pub(crate) types: HashMap<String, &'a Positioned<TypeDefinition>>,
+    pub(crate) types: HashMap<String, Cow<'a, Positioned<TypeDefinition>>>,
     #[allow(dead_code)]
     pub(crate) schema: Vec<&'a Positioned<SchemaDefinition>>,
     pub(crate) errors: Vec<RuleError>,
@@ -25,6 +27,27 @@ pub struct VisitorContext<'a> {
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
     pub registry: RefCell<Registry>,
+}
+
+/// Add a fake scalar to the types HashMap if it isn't added by the schema.
+fn add_fake_scalar<'a>(types: &mut HashMap<String, Cow<'a, Positioned<TypeDefinition>>>, name: &str) {
+    match types.entry(name.to_string()) {
+        Entry::Vacant(v) => {
+            let pos = Positioned::new(
+                TypeDefinition {
+                    extend: false,
+                    kind: TypeKind::Scalar,
+                    name: Positioned::new(Name::new(name), Pos { line: 0, column: 0 }),
+                    description: None,
+                    directives: vec![],
+                },
+                Pos { line: 0, column: 0 },
+            );
+
+            v.insert(Cow::Owned(pos));
+        }
+        Entry::Occupied(_) => {}
+    };
 }
 
 impl<'a> VisitorContext<'a> {
@@ -36,7 +59,7 @@ impl<'a> VisitorContext<'a> {
         for type_def in &document.definitions {
             match type_def {
                 TypeSystemDefinition::Type(ty) => {
-                    types.insert(ty.node.name.node.to_string(), ty);
+                    types.insert(ty.node.name.node.to_string(), Cow::Borrowed(ty));
                 }
                 TypeSystemDefinition::Schema(schema_ty) => {
                     schema.push(schema_ty);
@@ -46,6 +69,13 @@ impl<'a> VisitorContext<'a> {
                 }
             }
         }
+
+        // Built-in scalars
+        add_fake_scalar(&mut types, "String");
+        add_fake_scalar(&mut types, "ID");
+        add_fake_scalar(&mut types, "Int");
+        add_fake_scalar(&mut types, "Float");
+        add_fake_scalar(&mut types, "Boolean");
 
         Self {
             directives,

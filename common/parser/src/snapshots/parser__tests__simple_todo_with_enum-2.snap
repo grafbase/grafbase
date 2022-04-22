@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 139
+assertion_line: 183
 expression: sdl
 ---
 type Author {
@@ -38,6 +38,7 @@ type Todo {
 	id: ID!
 	content: String!
 	authors: [Author]
+	ty: TodoType!
 }
 """
 Input to create a new Todo
@@ -45,12 +46,20 @@ Input to create a new Todo
 input TodoCreateInput {
 	content: String!
 	authors: [AuthorInput]
+	ty: TodoType!
 }
 type TodoCreatePayload {
 	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!
+}
+"""
+A TodoType
+"""
+enum TodoType {
+	TODO1
+	TODO2
 }
 type Truc {
 	name: String!
