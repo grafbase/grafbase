@@ -12,5 +12,5 @@ if_chain = "1.0.2"
 quick-error = "2"
 
 [dev-dependencies]
-insta = "1.13.0"
+insta = "1.14.0"
 serde_json = "1"
