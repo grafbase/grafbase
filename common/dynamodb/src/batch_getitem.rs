@@ -31,6 +31,8 @@ impl Loader<(String, String)> for BatchGetItemLoader {
     type Error = BatchGetItemLoaderError;
 
     async fn load(&self, keys: &[(String, String)]) -> Result<HashMap<(String, String), Self::Value>, Self::Error> {
+        use futures_util::TryFutureExt;
+
         let mut request_items = HashMap::new();
         let mut keys_to_send = vec![];
         for (pk, sk) in keys {
@@ -70,6 +72,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
                 request_items,
                 return_consumed_capacity: None,
             })
+            .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
             .await
             .map_err(|_| BatchGetItemLoaderError::DynamoError)?
             .responses
