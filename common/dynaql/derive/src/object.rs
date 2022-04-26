@@ -485,7 +485,7 @@ pub fn generate(
                         requires: #requires,
                         visible: #visible,
                         compute_complexity: #complexity,
-                        is_edge: false,
+                        is_edge: None,
                         resolve: None,
                         transforms: None,
                     });

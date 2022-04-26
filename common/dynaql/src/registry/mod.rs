@@ -202,8 +202,9 @@ pub struct MetaField {
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
-    /// Define if the current field is an edge of a Node.
-    pub is_edge: bool,
+    /// Define if the current field is an edge of an existing Node, and if it's an edge, got the
+    /// Node name.
+    pub is_edge: Option<String>,
     pub resolve: Option<Resolver>,
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
@@ -361,6 +362,16 @@ pub struct MetaEnumValue {
 
 type MetaVisibleFn = fn(&Context<'_>) -> bool;
 
+/// Define an Edge for a Node.
+pub struct Edge<'a>(pub &'a str);
+
+impl MetaType {
+    /// Get the edges of a current type.
+    pub fn edges(&self) -> Vec<Edge> {
+        todo!()
+    }
+}
+
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
@@ -433,12 +444,6 @@ pub enum MetaType {
 }
 
 impl MetaType {
-    /// Describe the edges inside this MetaType.
-    ///
-    /// An Edge is a modelized type
-    #[inline]
-    pub fn edges() -> () {}
-
     #[inline]
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields().and_then(|fields| fields.get(name))
@@ -856,7 +861,7 @@ impl Registry {
                         requires: None,
                         provides: None,
                         visible: None,
-                        is_edge: false,
+                        is_edge: None,
                         compute_complexity: None,
                         resolve: None,
                         transforms: None,
@@ -888,7 +893,7 @@ impl Registry {
                         cache_control: Default::default(),
                         external: false,
                         requires: None,
-                        is_edge: false,
+                        is_edge: None,
                         provides: None,
                         visible: None,
                         compute_complexity: None,
@@ -924,7 +929,7 @@ impl Registry {
                             provides: None,
                             visible: None,
                             compute_complexity: None,
-                            is_edge: false,
+                            is_edge: None,
                             resolve: None,
                             transforms: None,
                         },
