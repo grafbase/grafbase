@@ -367,8 +367,21 @@ pub struct Edge<'a>(pub &'a str);
 
 impl MetaType {
     /// Get the edges of a current type.
-    pub fn edges(&self) -> Vec<Edge> {
-        todo!()
+    /// The edges are only for the top level.
+    /// If one of the edge is a node with edges, those won't appear here.
+    pub fn edges<'a>(&'a self) -> Vec<Edge<'a>> {
+        let mut result: Vec<Edge<'a>> = vec![];
+
+        match self {
+            MetaType::Object { fields, .. } => {
+                for (_, f) in fields {
+                    f.is_edge.as_ref().map(|x| result.push(Edge(x.as_str())));
+                }
+            }
+            _ => {}
+        };
+
+        result
     }
 }
 
