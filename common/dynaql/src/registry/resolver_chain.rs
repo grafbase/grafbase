@@ -8,7 +8,10 @@ use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;
 
-use super::resolvers::{ResolverContext, ResolverTrait};
+use super::{
+    resolvers::{ResolverContext, ResolverTrait},
+    MetaType,
+};
 
 /// A path to the current query with resolvers, transformers and associated type.
 /// Reverse linked list used to help us construct the whole resolving flow.
@@ -19,6 +22,9 @@ pub struct ResolverChainNode<'a> {
 
     /// The current path segment being resolved.
     pub segment: QueryPathSegment<'a>,
+
+    /// The current Type being resolved if it exists.
+    pub ty: Option<&'a MetaType>,
 
     /// The current execution_id for this node.
     /// A ResolverChainNode must have a execution_id to allow caching.

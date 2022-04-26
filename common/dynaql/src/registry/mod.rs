@@ -202,6 +202,8 @@ pub struct MetaField {
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
+    /// Define if the current field is an edge of a Node.
+    pub is_edge: bool,
     pub resolve: Option<Resolver>,
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
@@ -384,6 +386,8 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         is_subscription: bool,
+        /// Define if the current Object if a Node
+        is_node: bool,
         rust_typename: String,
     },
     Interface {
@@ -429,6 +433,12 @@ pub enum MetaType {
 }
 
 impl MetaType {
+    /// Describe the edges inside this MetaType.
+    ///
+    /// An Edge is a modelized type
+    #[inline]
+    pub fn edges() -> () {}
+
     #[inline]
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
         self.fields().and_then(|fields| fields.get(name))
@@ -707,6 +717,7 @@ impl Registry {
                         keys: None,
                         visible: None,
                         is_subscription: false,
+                        is_node: false,
                         rust_typename: "__fake_type__".to_string(),
                     },
                 );
@@ -845,6 +856,7 @@ impl Registry {
                         requires: None,
                         provides: None,
                         visible: None,
+                        is_edge: false,
                         compute_complexity: None,
                         resolve: None,
                         transforms: None,
@@ -876,6 +888,7 @@ impl Registry {
                         cache_control: Default::default(),
                         external: false,
                         requires: None,
+                        is_edge: false,
                         provides: None,
                         visible: None,
                         compute_complexity: None,
@@ -911,6 +924,7 @@ impl Registry {
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            is_edge: false,
                             resolve: None,
                             transforms: None,
                         },
@@ -922,6 +936,7 @@ impl Registry {
                 keys: None,
                 visible: None,
                 is_subscription: false,
+                is_node: false,
                 rust_typename: "async_graphql::federation::Service".to_string(),
             },
         );

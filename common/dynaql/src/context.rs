@@ -345,6 +345,7 @@ impl<'a, T> ContextBase<'a, T> {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
+                ty,
                 resolver: ty
                     .and_then(|ty| ty.field_by_name(&field.node.name.node))
                     .and_then(|x| x.resolve.as_ref()),
@@ -698,6 +699,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Index(idx),
+                ty: self.resolver_node.as_ref().map(|x| x.ty).flatten(),
                 resolver: None,
                 transformers: None,
                 execution_id: Ulid::new(),
