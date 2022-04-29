@@ -28,7 +28,7 @@ need_stdout = false
 watch = ["tests", "benches", "examples"]
 
 [jobs.test]
-command = ["cargo", "test", "--color", "always", "--all-features"]
+command = ["cargo", "test", "--color", "always"]
 need_stdout = true
 watch = ["tests"]
 
