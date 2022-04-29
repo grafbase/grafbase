@@ -119,6 +119,7 @@ impl<'a> VisitorContext<'a> {
                                 visible: None,
                                 compute_complexity: None,
                                 resolve: None,
+                                is_edge: None,
                                 transforms: None,
                             },
                         );
@@ -135,6 +136,7 @@ impl<'a> VisitorContext<'a> {
                     keys: ::std::option::Option::None,
                     visible: ::std::option::Option::None,
                     is_subscription: false,
+                    is_node: false,
                     rust_typename: "Query".to_owned(),
                 }
             },
@@ -162,6 +164,7 @@ impl<'a> VisitorContext<'a> {
                     keys: ::std::option::Option::None,
                     visible: ::std::option::Option::None,
                     is_subscription: false,
+                    is_node: false,
                     rust_typename: "Mutation".to_owned(),
                 },
                 "Mutation",

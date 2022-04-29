@@ -50,8 +50,6 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
 }
 
 /// Add the create Mutation for a given Object
-///
-/// You must ensure the fields are primitive types.
 pub fn add_create_mutation<'a>(
     ctx: &mut VisitorContext<'a>,
     object: &ObjectType,
@@ -119,6 +117,7 @@ pub fn add_create_mutation<'a>(
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        is_edge: None,
                         resolve: Some(Resolver {
                             id: Some(format!("{}_resolver", type_name.to_lowercase())),
                             r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
@@ -145,6 +144,7 @@ pub fn add_create_mutation<'a>(
             keys: None,
             visible: None,
             is_subscription: false,
+            is_node: false,
             rust_typename: create_payload_name.clone(),
         },
         &create_payload_name,
@@ -180,6 +180,7 @@ pub fn add_create_mutation<'a>(
         provides: None,
         requires: None,
         visible: None,
+        is_edge: None,
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
@@ -220,6 +221,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                         provides: None,
                         visible: None,
                         compute_complexity: None,
+                        is_edge: None,
                         resolve: Some(Resolver {
                             id: Some(format!("{}_delete_payload_resolver", type_name.to_lowercase())),
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::Key {
@@ -237,6 +239,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
             },
             extends: false,
             keys: None,
+            is_node: false,
             visible: None,
             is_subscription: false,
             rust_typename: delete_payload_name.clone(),
@@ -274,6 +277,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         provides: None,
         requires: None,
         visible: None,
+        is_edge: None,
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),

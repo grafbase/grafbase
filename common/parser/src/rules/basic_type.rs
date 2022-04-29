@@ -49,6 +49,7 @@ impl<'a> Visitor<'a> for BasicType {
                                 visible: None,
                                 compute_complexity: None,
                                 resolve: None,
+                                is_edge: None,
                                 transforms: Some(vec![Transformer::JSONSelect {
                                     property: name,
                                     functions: Vec::new(),
@@ -64,6 +65,7 @@ impl<'a> Visitor<'a> for BasicType {
                     extends: false,
                     keys: None,
                     visible: None,
+                    is_node: false,
                     is_subscription: false,
                     rust_typename: type_name.clone(),
                 }, &type_name, &type_name);

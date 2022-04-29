@@ -55,11 +55,21 @@ pub fn is_type_basic_type<'a>(ctx: &HashMap<String, &'a Positioned<TypeDefinitio
 fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>, base_type: BaseType) -> BaseType {
     match base_type {
         BaseType::Named(name) => {
-            let type_def = ctx.get(name.as_ref()).map(|x| &x.node.kind);
-            match type_def {
-                Some(TypeKind::Scalar) => BaseType::Named(name),
-                Some(TypeKind::Enum(_)) => BaseType::Named(name),
-                Some(TypeKind::Object(_)) => BaseType::Named(Name::new(format!("{}Input", name))),
+            let ty = ctx.get(name.as_ref());
+            let type_def = ty.map(|x| &x.node.kind);
+            let is_modelized = ty
+                .map(|ty| {
+                    ty.node
+                        .directives
+                        .iter()
+                        .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+                })
+                .unwrap_or(false);
+            match (type_def, is_modelized) {
+                (Some(TypeKind::Scalar), _) => BaseType::Named(name),
+                (Some(TypeKind::Enum(_)), _) => BaseType::Named(name),
+                (Some(TypeKind::Object(_)), false) => BaseType::Named(Name::new(format!("{}Input", name))),
+                (Some(TypeKind::Object(_)), true) => BaseType::Named(Name::new("ID")),
                 _ => BaseType::Named(Name::new("Error")),
             }
         }
@@ -67,6 +77,31 @@ fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>
             base: to_input_base_type(ctx, list.base),
             nullable: list.nullable,
         })),
+    }
+}
+
+fn is_modelized_node_base_type<'a>(
+    ctx: &'a HashMap<String, Cow<'a, Positioned<TypeDefinition>>>,
+    base_type: &'a BaseType,
+) -> Option<&'a Cow<'a, Positioned<TypeDefinition>>> {
+    match base_type {
+        BaseType::Named(name) => {
+            let ty = ctx.get(name.as_ref());
+            let type_def = ty.map(|x| &x.node.kind);
+            let is_modelized = ty
+                .map(|ty| {
+                    ty.node
+                        .directives
+                        .iter()
+                        .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
+                })
+                .unwrap_or(false);
+            match (type_def, is_modelized) {
+                (Some(TypeKind::Object(_)), true) => ty,
+                _ => None,
+            }
+        }
+        BaseType::List(list) => is_modelized_node_base_type(ctx, &list.base),
     }
 }
 
@@ -81,10 +116,15 @@ pub fn to_base_type_str(ty: &BaseType) -> String {
 /// Transform a type into his associated input Type.
 /// The type must not be a modelized type.
 ///
+/// For a modelized type, the return type id `ID`.
+///
+/// # Examples
+///
 /// For String -> String
 /// For Author -> AuthorInput
 /// For [String!]! -> [String!]!
 /// For [Author!] -> [AuthorInput!]
+///
 pub fn to_input_type(
     ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>,
     Type { base, nullable }: Type,
@@ -93,6 +133,14 @@ pub fn to_input_type(
         base: to_input_base_type(ctx, base),
         nullable,
     }
+}
+
+/// Tell if the type is a Modelized Node.
+pub fn is_modelized_node<'a>(
+    ctx: &'a HashMap<String, Cow<'_, Positioned<TypeDefinition>>>,
+    Type { base, .. }: &'a Type,
+) -> Option<&'a Cow<'a, Positioned<TypeDefinition>>> {
+    is_modelized_node_base_type(ctx, base)
 }
 
 /// Check if the given type is a non-nullable ID type
