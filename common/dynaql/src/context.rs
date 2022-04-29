@@ -1,6 +1,7 @@
 //! Query context.
 
 use std::any::{Any, TypeId};
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::ops::Deref;
@@ -21,7 +22,7 @@ use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
 use crate::registry::resolver_chain::ResolverChainNode;
-use crate::registry::MetaType;
+use crate::registry::{get_basic_type, MetaType};
 use crate::registry::{resolvers::Resolver, transformers::Transformer, Registry};
 use crate::schema::SchemaEnv;
 use crate::{
@@ -251,7 +252,7 @@ pub struct ContextBase<'a, T> {
     pub query_resolvers: ResolverChanges<'a>,
     #[doc(hidden)]
     /// Every Resolvers are able to store a Value inside this cache
-    pub resolvers_data: Arc<RwLock<HashMap<String, Value>>>,
+    pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
 }
 
 #[doc(hidden)]
@@ -308,6 +309,27 @@ impl QueryEnv {
     }
 }
 
+/// We suppose each time it's a [`crate::Value`] but it could happens it's not.
+/// See specialized behavior of internal cache on documentation.
+pub fn resolver_data_get_opt_ref<'a, D: Any + Send + Sync>(
+    store: &'a FnvHashMap<String, Box<dyn Any + Sync + Send>>,
+    key: &'a str,
+) -> Option<&'a D> {
+    store.get(key).and_then(|d| d.downcast_ref::<D>())
+}
+
+impl<'a, T> ContextBase<'a, T> {
+    /// Only insert a value if a value wasn't there before.
+    pub fn resolver_data_insert<D: Any + Send + Sync>(&'a self, key: String, data: D) {
+        match self.resolvers_data.write().expect("to handle").entry(key) {
+            Entry::Vacant(vac) => {
+                vac.insert(Box::new(data));
+            }
+            Entry::Occupied(_) => {}
+        }
+    }
+}
+
 impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
     fn data<D: Any + Send + Sync>(&self) -> Result<&'a D> {
         ContextBase::data::<D>(self)
@@ -335,8 +357,16 @@ impl<'a, T> ContextBase<'a, T> {
         &'a self,
         field: &'a Positioned<Field>,
         ty: Option<&'a MetaType>,
+        selections: Option<&'a SelectionSet>,
         mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<Field>> {
+        let registry = &self.schema_env.registry;
+
+        let meta = ty
+            .and_then(|x| x.field_by_name(field.node.name.node.as_str()))
+            .map(|x| get_basic_type(x.ty.as_str()))
+            .and_then(|x| registry.types.get(x));
+
         ContextBase {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
@@ -345,7 +375,8 @@ impl<'a, T> ContextBase<'a, T> {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
-                ty,
+                ty: meta,
+                field: ty.and_then(|ty| ty.field_by_name(&field.node.name.node)),
                 resolver: ty
                     .and_then(|ty| ty.field_by_name(&field.node.name.node))
                     .and_then(|x| x.resolve.as_ref()),
@@ -353,6 +384,7 @@ impl<'a, T> ContextBase<'a, T> {
                     .and_then(|ty| ty.field_by_name(&field.node.name.node))
                     .and_then(|x| x.transforms.as_ref()),
                 execution_id: Ulid::new(),
+                selections,
             }),
             item: field,
             schema_env: self.schema_env,
@@ -690,7 +722,11 @@ impl<'a, T> ContextBase<'a, T> {
 impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
     #[doc(hidden)]
     #[must_use]
-    pub fn with_index(&'a self, idx: usize) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
+    pub fn with_index(
+        &'a self,
+        idx: usize,
+        selections: Option<&'a SelectionSet>,
+    ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
@@ -699,10 +735,12 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Index(idx),
+                field: self.resolver_node.as_ref().map(|x| x.field).flatten(),
                 ty: self.resolver_node.as_ref().map(|x| x.ty).flatten(),
                 resolver: None,
                 transformers: None,
                 execution_id: Ulid::new(),
+                selections,
             }),
             item: self.item,
             schema_env: self.schema_env,
@@ -720,6 +758,11 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
+    /// Get the registry
+    pub fn registry(&'a self) -> &'a Registry {
+        &self.schema_env.registry
+    }
+
     #[doc(hidden)]
     pub fn param_value<T: InputType>(
         &self,

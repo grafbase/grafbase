@@ -1,7 +1,9 @@
 use super::ResolverTrait;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
-use dynamodb::DynamoDBBatchersData;
+use dynamodb::{DynamoDBBatchersData, QueryKey};
+use dynomite::AttributeValue;
+use std::collections::HashMap;
 use std::hash::Hash;
 
 #[non_exhaustive]
@@ -14,14 +16,28 @@ pub enum DynamoResolver {
     },
 }
 
+pub(crate) type QueryResult = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
+
 #[async_trait::async_trait]
 impl ResolverTrait for DynamoResolver {
     async fn resolve(
         &self,
         ctx: &Context<'_>,
-        _resolver_ctx: &ResolverContext<'_>,
+        resolver_ctx: &ResolverContext<'_>,
     ) -> Result<serde_json::Value, Error> {
-        let batchers = &ctx.data::<DynamoDBBatchersData>()?.loader;
+        let loader_item = &ctx.data::<DynamoDBBatchersData>()?.loader;
+        let query_loader = &ctx.data::<DynamoDBBatchersData>()?.query;
+
+        let ctx_ty = resolver_ctx
+            .ty
+            .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
+        let current_ty = ctx_ty.name();
+
+        // TODO: Here we ask from the Type definition the associated edges, but what
+        // we should ask is the edges associated FROM the SelectedSet.
+        let edges = ctx_ty.edges();
+        let edges_len = edges.len();
+
         match self {
             DynamoResolver::QueryPKSK { pk, sk } => {
                 let pk = match pk.param(ctx).expect("can't fail") {
@@ -38,12 +54,66 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
-                let dyna = batchers
-                    .load_one((pk.clone(), sk))
-                    .await?
-                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
+                if edges_len == 0 {
+                    let dyna = loader_item
+                        .load_one((pk.clone(), sk))
+                        .await?
+                        .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
 
-                serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))
+                    return serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()));
+                }
+
+                let query_result: QueryResult = query_loader
+                    .load_one(QueryKey {
+                        pk,
+                        edges: {
+                            // When we query a Node with the Query Dataloader, we have to indicate
+                            // which Edges should be getted with it because we are able to retreive
+                            // a Node with his edges in one network request.
+                            // We could also request to have only the node edges and not the node
+                            // data.
+                            //
+                            // We add the Node to the edges to also ask for the Node Data.
+                            let mut edges = edges
+                                .iter()
+                                .map(|(_, x)| x.0.to_string())
+                                .collect::<Vec<_>>();
+                            edges.push(current_ty.to_string());
+                            edges
+                        },
+                    })
+                    .await?
+                    .ok_or_else(|| {
+                        Error::new("Internal Error: Failed to fetch the associated nodes.")
+                    })?;
+
+                // We get the actual requested edge.
+                let dyna = query_result
+                    .get(current_ty)
+                    .map(|x| x.first())
+                    .flatten()
+                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?
+                    .clone();
+
+                if resolver_ctx.resolver_id.is_some() {
+                    // TODO: Try a Entity type repartition shared cache instead of a Query result
+                    // based Cache. It should reduce the complexity and be more future proof.
+                    let key = format!(
+                        "{}_resolver_query_edges",
+                        resolver_ctx
+                            .ty
+                            .ok_or_else(|| {
+                                Error::new(
+                                    "Internal Error: Failed to process the associated nodes.",
+                                )
+                            })?
+                            .name()
+                            .to_lowercase()
+                    );
+                    ctx.resolver_data_insert(key, query_result);
+                }
+
+                serde_json::to_value(dyna).map_err(Error::new_with_source)
             }
         }
     }

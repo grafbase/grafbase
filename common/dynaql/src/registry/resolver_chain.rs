@@ -4,13 +4,14 @@ use crate::registry::{
 };
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
+use async_graphql_parser::types::SelectionSet;
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;
 
 use super::{
     resolvers::{ResolverContext, ResolverTrait},
-    MetaType,
+    MetaField, MetaType,
 };
 
 /// A path to the current query with resolvers, transformers and associated type.
@@ -23,8 +24,14 @@ pub struct ResolverChainNode<'a> {
     /// The current path segment being resolved.
     pub segment: QueryPathSegment<'a>,
 
-    /// The current Type being resolved if it exists.
+    /// The current field being resolved if we know it.
+    pub field: Option<&'a MetaField>,
+
+    /// The current Type being resolved if we know it.
     pub ty: Option<&'a MetaType>,
+
+    /// The current SelectionSet.
+    pub selections: Option<&'a SelectionSet>,
 
     /// The current execution_id for this node.
     /// A ResolverChainNode must have a execution_id to allow caching.
@@ -40,6 +47,8 @@ pub struct ResolverChainNode<'a> {
 
 #[async_trait::async_trait]
 impl<'a> ResolverTrait for ResolverChainNode<'a> {
+    // TODO: As there is no memoization implemented for resolvers yet, when we got an error, we
+    // may have the same error multiple time.
     async fn resolve(
         &self,
         ctx: &Context<'_>,
@@ -48,7 +57,6 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         // TODO: Memoization
         // We can create a little quick hack to allow some kind of modelization, we have to check
         // if the execution_id was already requested before.
-
         let mut final_result = serde_json::Value::Null;
 
         // We must run this if it's not run because some resolvers can have side effect with the
@@ -56,7 +64,10 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         // It's supposed to be removed in the future. (cf. @miaxos)
         if let Some(parent) = self.parent {
             let parent_ctx = ResolverContext::new(&parent.execution_id)
-                .with_resolver_id(parent.resolver.and_then(|resolver| resolver.id.as_deref()));
+                .with_ty(parent.ty)
+                .with_resolver_id(parent.resolver.and_then(|resolver| resolver.id.as_deref()))
+                .with_selection_set(parent.selections)
+                .with_field(parent.field);
             final_result = parent.resolve(ctx, &parent_ctx).await?;
         }
 
@@ -69,9 +80,13 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         }
 
         if let Some(actual) = self.resolver {
-            let current_ctx =
-                ResolverContext::new(&self.execution_id).with_resolver_id(actual.id.as_deref());
-            final_result = actual.resolve(ctx, &current_ctx).await?;
+            let current_ctx = ResolverContext::new(&self.execution_id)
+                .with_resolver_id(actual.id.as_deref())
+                .with_ty(self.ty)
+                .with_selection_set(self.selections)
+                .with_field(self.field);
+            let temp = actual.resolve(ctx, &current_ctx).await?;
+            final_result = temp;
         }
 
         if let Some(transformers) = self.transformers {

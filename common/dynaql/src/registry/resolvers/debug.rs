@@ -14,6 +14,9 @@ impl ResolverTrait for DebugResolver {
         _ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
     ) -> Result<serde_json::Value, Error> {
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!("", "",);
+
         match &self {
             Self::Value { inner } => Ok(inner.clone()),
         }

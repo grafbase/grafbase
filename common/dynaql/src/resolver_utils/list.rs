@@ -19,7 +19,7 @@ pub async fn resolve_list<'a>(
                 let ctx = ctx.clone();
                 let type_name = ty.name();
                 async move {
-                    let ctx_idx = ctx.with_index(idx);
+                    let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
                     let extensions = &ctx.query_env.extensions;
 
                     let resolve_info = ResolveInfo {
@@ -64,7 +64,7 @@ pub async fn resolve_list<'a>(
     } else {
         let mut futures = Vec::with_capacity(len);
         for idx in 0..len {
-            let ctx_idx = ctx.with_index(idx);
+            let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
             futures.push(async move {
                 resolve_container(&ctx_idx, ty)
                     .await
@@ -91,7 +91,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
             futures.push({
                 let ctx = ctx.clone();
                 async move {
-                    let ctx_idx = ctx.with_index(idx);
+                    let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
                     let extensions = &ctx.query_env.extensions;
 
                     let resolve_info = ResolveInfo {
@@ -121,7 +121,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
     } else {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
         for (idx, item) in iter.into_iter().enumerate() {
-            let ctx_idx = ctx.with_index(idx);
+            let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
             futures.push(async move {
                 OutputType::resolve(&item, &ctx_idx, field)
                     .await
