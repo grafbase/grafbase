@@ -45,6 +45,7 @@ pub enum DynamoMutationResolver {
     ///
     /// A node with two edges:
     ///
+    /// ```ignore
     ///                     ┌────────┐
     ///                 ┌───┤ Edge 1 │
     ///                 │   └────────┘
@@ -54,9 +55,11 @@ pub enum DynamoMutationResolver {
     ///                 │   ┌────────┐
     ///                 └───┤ Edge 2 │
     ///                     └────────┘
+    /// ```
     ///
     /// When we delete this node, we'll update the graph to become:
     ///
+    /// ```ignore
     ///                     ┌────────┐
     ///                     │ Edge 1 │
     ///                     └────────┘
@@ -66,6 +69,7 @@ pub enum DynamoMutationResolver {
     ///                     ┌────────┐
     ///                     │ Edge 2 │
     ///                     └────────┘
+    /// ```
     ///
     /// And as every edges of a Node are a Node too, they are still reachable.
     ///
