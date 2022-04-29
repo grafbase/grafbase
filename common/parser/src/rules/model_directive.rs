@@ -182,5 +182,5 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_remove_query(ctx, &id_field.node, &type_name)
             }
         }
-    }
+   }
 }
