@@ -1,0 +1,28 @@
+type User @model {
+  id: ID!
+  name: String!
+  email: String!
+  posts: [Post]
+  comments: [Comment]
+}
+
+type Post @model {
+  id: ID!
+  author: User!
+  title: String!
+  url: Url!
+  votes: [Vote]
+}
+
+type Comment @model {
+  id: ID!
+  author: User!
+  post: User!
+  content: String!
+}
+
+type Vote @model {
+  id: ID!
+  user: User!
+  post: Post!
+}
