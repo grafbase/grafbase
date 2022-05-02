@@ -306,6 +306,7 @@ pub fn generate(
                     requires: ::std::option::Option::None,
                     provides: ::std::option::Option::None,
                     visible: #visible,
+                    is_edge: None,
                     compute_complexity: #complexity,
                     resolve: ::std::option::Option::None,
                     transforms: ::std::option::Option::None,
@@ -450,6 +451,7 @@ pub fn generate(
                     keys: ::std::option::Option::None,
                     visible: #visible,
                     is_subscription: true,
+                    is_node: false,
                     rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                 })
             }

@@ -169,6 +169,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
+                    is_edge: None,
                     resolve: None,
                     transforms: None,
                 });
@@ -328,6 +329,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
+                        is_node: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     })
                 }
@@ -392,6 +394,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         keys: ::std::option::Option::None,
                         visible: #visible,
                         is_subscription: false,
+                        is_node: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         resolve: None,
                         transforms: None,

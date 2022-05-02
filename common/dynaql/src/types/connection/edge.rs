@@ -101,6 +101,7 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            is_edge: None,
                             resolve: None,
                             transforms: None,
                         },
@@ -120,6 +121,7 @@ where
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            is_edge: None,
                             resolve: None,
                             transforms: None,
                         },
@@ -133,6 +135,7 @@ where
                 keys: None,
                 visible: None,
                 is_subscription: false,
+                is_node: false,
                 rust_typename: std::any::type_name::<Self>().to_owned(),
             }
         })

@@ -202,10 +202,49 @@ pub struct MetaField {
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
+    /// Define if the current field is an edge of an existing Node, and if it's an edge, got the
+    /// Node name.
+    pub is_edge: Option<String>,
     pub resolve: Option<Resolver>,
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
+}
+
+/// Utility function
+/// From a given type, check if the type is an Array Nullable/NonNullable.
+pub fn is_array_basic_type(meta: &str) -> bool {
+    let mut nested = Some(meta);
+
+    if meta.starts_with('[') && meta.ends_with(']') {
+        return true;
+    }
+
+    if meta.ends_with('!') {
+        nested = nested.and_then(|x| x.strip_suffix('!'));
+        return is_array_basic_type(nested.expect("Can't fail"));
+    }
+
+    false
+}
+
+/// Utility function
+/// From a given type, get the base type.
+pub fn get_basic_type(meta: &str) -> &str {
+    let mut nested = Some(meta);
+
+    if meta.starts_with('[') && meta.ends_with(']') {
+        nested = nested.and_then(|x| x.strip_prefix('['));
+        nested = nested.and_then(|x| x.strip_suffix(']'));
+        return get_basic_type(nested.expect("Can't fail"));
+    }
+
+    if meta.ends_with('!') {
+        nested = nested.and_then(|x| x.strip_suffix('!'));
+        return get_basic_type(nested.expect("Can't fail"));
+    }
+
+    nested.expect("Can't fail")
 }
 
 enum CurrentResolverType {
@@ -359,6 +398,29 @@ pub struct MetaEnumValue {
 
 type MetaVisibleFn = fn(&Context<'_>) -> bool;
 
+/// Define an Edge for a Node.
+#[derive(Debug)]
+pub struct Edge<'a>(pub &'a str);
+
+impl MetaType {
+    /// Get the edges of a current type.
+    /// The edges are only for the top level.
+    /// If one of the edge is a node with edges, those won't appear here.
+    pub fn edges<'a>(&'a self) -> HashMap<&'a str, Edge<'a>> {
+        let mut result: HashMap<&'a str, Edge<'a>> = HashMap::new();
+
+        if let MetaType::Object { fields, .. } = self {
+            for (field, ty) in fields {
+                ty.is_edge
+                    .as_ref()
+                    .map(|x| result.insert(field.as_str(), Edge(x.as_str())));
+            }
+        };
+
+        result
+    }
+}
+
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
@@ -384,6 +446,8 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         is_subscription: bool,
+        /// Define if the current Object if a Node
+        is_node: bool,
         rust_typename: String,
     },
     Interface {
@@ -707,6 +771,7 @@ impl Registry {
                         keys: None,
                         visible: None,
                         is_subscription: false,
+                        is_node: false,
                         rust_typename: "__fake_type__".to_string(),
                     },
                 );
@@ -845,6 +910,7 @@ impl Registry {
                         requires: None,
                         provides: None,
                         visible: None,
+                        is_edge: None,
                         compute_complexity: None,
                         resolve: None,
                         transforms: None,
@@ -876,6 +942,7 @@ impl Registry {
                         cache_control: Default::default(),
                         external: false,
                         requires: None,
+                        is_edge: None,
                         provides: None,
                         visible: None,
                         compute_complexity: None,
@@ -911,6 +978,7 @@ impl Registry {
                             provides: None,
                             visible: None,
                             compute_complexity: None,
+                            is_edge: None,
                             resolve: None,
                             transforms: None,
                         },
@@ -922,6 +990,7 @@ impl Registry {
                 keys: None,
                 visible: None,
                 is_subscription: false,
+                is_node: false,
                 rust_typename: "async_graphql::federation::Service".to_string(),
             },
         );

@@ -12,10 +12,13 @@
 use self::debug::DebugResolver;
 
 use crate::{Context, Error};
+use async_graphql_parser::types::SelectionSet;
 use context_data::ContextDataResolver;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use ulid::Ulid;
+
+use super::{MetaField, MetaType};
 
 pub mod context_data;
 pub mod debug;
@@ -46,6 +49,12 @@ pub struct ResolverContext<'a> {
     /// When a resolver is executed, it gains a Resolver unique ID for his
     /// execution, this ID is used for internal cache strategy
     pub execution_id: &'a Ulid,
+    /// The current Type being resolved if we know it. It's the type linked to the resolver.
+    pub ty: Option<&'a MetaType>,
+    /// The current SelectionSet.
+    pub selections: Option<&'a SelectionSet>,
+    /// The current field being resolved if we know it.
+    pub field: Option<&'a MetaField>,
 }
 
 impl<'a> ResolverContext<'a> {
@@ -53,11 +62,29 @@ impl<'a> ResolverContext<'a> {
         Self {
             resolver_id: None,
             execution_id: id,
+            ty: None,
+            selections: None,
+            field: None,
         }
     }
 
     pub fn with_resolver_id(mut self, id: Option<&'a str>) -> Self {
         self.resolver_id = id;
+        self
+    }
+
+    pub fn with_ty(mut self, ty: Option<&'a MetaType>) -> Self {
+        self.ty = ty;
+        self
+    }
+
+    pub fn with_field(mut self, field: Option<&'a MetaField>) -> Self {
+        self.field = field;
+        self
+    }
+
+    pub fn with_selection_set(mut self, selections: Option<&'a SelectionSet>) -> Self {
+        self.selections = selections;
         self
     }
 }

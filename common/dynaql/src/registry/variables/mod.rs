@@ -4,14 +4,17 @@
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
 
-use crate::{Context, Value};
-#[cfg(feature = "tracing_worker")]
-use logworker::info;
+use crate::{context::resolver_data_get_opt_ref, Context, Value};
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub enum VariableResolveDefinition {
+    /// A Debug VariableResolveDefinition where you can just put the Value you
+    /// would like to have.
+    /// This VariableResolveDefinition is not made to be inside the Registry.
+    #[serde(skip)]
+    DebugString(String),
     /// Check the last Resolver in the Query Graph and try to resolve the
     /// variable defined in this field.
     InputTypeName(String),
@@ -33,17 +36,11 @@ impl VariableResolveDefinition {
                         .map(|(_, x)| x.clone())
                 })
             }
-            Self::ResolverData(key) => ctx
-                .resolvers_data
-                .read()
-                .map_err(|x| {
-                    #[cfg(feature = "tracing_worker")]
-                    info!("dynamodb-resolver", "BL {:?}", &x);
-                    x
-                })
-                .expect("blbl")
-                .get(key)
-                .map(std::clone::Clone::clone),
+            Self::ResolverData(key) => {
+                resolver_data_get_opt_ref::<Value>(&ctx.resolvers_data.read().expect("handle"), key)
+                    .map(std::clone::Clone::clone)
+            }
+            Self::DebugString(inner) => Some(Value::String(inner.clone())),
         }
     }
 }

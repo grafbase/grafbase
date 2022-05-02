@@ -485,6 +485,7 @@ pub fn generate(
                         requires: #requires,
                         visible: #visible,
                         compute_complexity: #complexity,
+                        is_edge: None,
                         resolve: None,
                         transforms: None,
                     });
@@ -619,6 +620,7 @@ pub fn generate(
                         cache_control: #cache_control,
                         extends: #extends,
                         keys: ::std::option::Option::None,
+                        is_node: false,
                         visible: #visible,
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
@@ -659,6 +661,7 @@ pub fn generate(
                         extends: #extends,
                         keys: ::std::option::Option::None,
                         visible: #visible,
+                        is_node: false,
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                     });
