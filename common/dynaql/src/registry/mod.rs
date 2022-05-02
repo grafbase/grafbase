@@ -293,7 +293,7 @@ impl MetaField {
             CurrentResolverType::PRIMITIVE => {
                 let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
                 let resolved_value = resolvers
-                    .resolve(&ctx, &ResolverContext::new(&execution_id))
+                    .resolve(&ctx, &ResolverContext::new(&execution_id), None)
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
@@ -358,7 +358,7 @@ impl MetaField {
 
                 let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
                 let resolved_value = resolvers
-                    .resolve(&ctx, &ResolverContext::new(&execution_id))
+                    .resolve(&ctx, &ResolverContext::new(&execution_id), None)
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 

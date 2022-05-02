@@ -58,6 +58,7 @@ impl ResolverTrait for ContextDataResolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
         let current_ty = resolver_ctx.ty.unwrap().name();
 
@@ -116,9 +117,13 @@ impl ResolverTrait for ContextDataResolver {
                         };
                         let sk = VariableResolveDefinition::DebugString(sk);
 
-                        let result = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
-                            .resolve(ctx, resolver_ctx)
-                            .await?;
+                        let result = DynamoResolver::QueryPKSK {
+                            pk: sk.clone(),
+                            sk,
+                            fat: false,
+                        }
+                        .resolve(ctx, resolver_ctx, last_resolver_value)
+                        .await?;
 
                         return Ok(result);
                     }
@@ -155,9 +160,13 @@ impl ResolverTrait for ContextDataResolver {
                             };
                             let sk = VariableResolveDefinition::DebugString(sk);
                             let result = Box::pin(async move {
-                                DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
-                                    .resolve(ctx, resolver_ctx)
-                                    .await
+                                DynamoResolver::QueryPKSK {
+                                    pk: sk.clone(),
+                                    sk,
+                                    fat: false,
+                                }
+                                .resolve(ctx, resolver_ctx, last_resolver_value)
+                                .await
                             });
 
                             array_result.push(result);

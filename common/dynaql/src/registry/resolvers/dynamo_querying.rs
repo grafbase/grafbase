@@ -13,6 +13,8 @@ pub enum DynamoResolver {
     QueryPKSK {
         pk: VariableResolveDefinition,
         sk: VariableResolveDefinition,
+        /// Define if we need to query the FatIndex to get the associated nodes and edges.
+        fat: bool,
     },
 }
 
@@ -24,9 +26,11 @@ impl ResolverTrait for DynamoResolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
         let loader_item = &ctx.data::<DynamoDBBatchersData>()?.loader;
         let query_loader = &ctx.data::<DynamoDBBatchersData>()?.query;
+        let query_loader_fat = &ctx.data::<DynamoDBBatchersData>()?.query_fat;
 
         let ctx_ty = resolver_ctx
             .ty
@@ -39,15 +43,15 @@ impl ResolverTrait for DynamoResolver {
         let edges_len = edges.len();
 
         match self {
-            DynamoResolver::QueryPKSK { pk, sk } => {
-                let pk = match pk.param(ctx).expect("can't fail") {
+            DynamoResolver::QueryPKSK { pk, sk, fat } => {
+                let pk = match pk.param(ctx, last_resolver_value).expect("can't fail") {
                     Value::String(inner) => inner,
                     _ => {
                         return Err(Error::new("Internal Error: failed to infer key"));
                     }
                 };
 
-                let sk = match sk.param(ctx).expect("can't fail") {
+                let sk = match sk.param(ctx, last_resolver_value).expect("can't fail") {
                     Value::String(inner) => inner,
                     _ => {
                         return Err(Error::new("Internal Error: failed to infer key"));
@@ -63,37 +67,46 @@ impl ResolverTrait for DynamoResolver {
                     return serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()));
                 }
 
+                let query_loader = if *fat { query_loader_fat } else { query_loader };
                 let query_result: QueryResult = query_loader
-                    .load_one(QueryKey {
-                        pk,
-                        edges: {
-                            // When we query a Node with the Query Dataloader, we have to indicate
-                            // which Edges should be getted with it because we are able to retreive
-                            // a Node with his edges in one network request.
-                            // We could also request to have only the node edges and not the node
-                            // data.
-                            //
-                            // We add the Node to the edges to also ask for the Node Data.
-                            let mut edges = edges
-                                .iter()
-                                .map(|(_, x)| x.0.to_string())
-                                .collect::<Vec<_>>();
-                            edges.push(current_ty.to_string());
-                            edges
-                        },
-                    })
+                    .load_one(QueryKey::new(pk, {
+                        // When we query a Node with the Query Dataloader, we have to indicate
+                        // which Edges should be getted with it because we are able to retreive
+                        // a Node with his edges in one network request.
+                        // We could also request to have only the node edges and not the node
+                        // data.
+                        //
+                        // We add the Node to the edges to also ask for the Node Data.
+                        let mut edges = edges
+                            .iter()
+                            .map(|(_, x)| x.0.to_string())
+                            .collect::<Vec<_>>();
+                        edges.push(current_ty.to_string());
+                        edges
+                    }))
                     .await?
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
 
                 // We get the actual requested edge.
-                let dyna = query_result
-                    .get(current_ty)
-                    .map(|x| x.first())
-                    .flatten()
-                    .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?
-                    .clone();
+                let dyna = if *fat {
+                    serde_json::to_value(
+                        query_result
+                            .get(current_ty)
+                            .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?
+                            .clone(),
+                    )
+                } else {
+                    serde_json::to_value(
+                        query_result
+                            .get(current_ty)
+                            .map(|x| x.first())
+                            .flatten()
+                            .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?
+                            .clone(),
+                    )
+                };
 
                 if resolver_ctx.resolver_id.is_some() {
                     // TODO: Try a Entity type repartition shared cache instead of a Query result
@@ -113,7 +126,7 @@ impl ResolverTrait for DynamoResolver {
                     ctx.resolver_data_insert(key, query_result);
                 }
 
-                serde_json::to_value(dyna).map_err(Error::new_with_source)
+                dyna.map_err(Error::new_with_source)
             }
         }
     }

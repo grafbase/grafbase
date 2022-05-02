@@ -13,6 +13,7 @@ impl ResolverTrait for DebugResolver {
         &self,
         _ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
+        _last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
         #[cfg(feature = "tracing_worker")]
         logworker::info!("", "",);
