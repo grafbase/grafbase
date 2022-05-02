@@ -68,7 +68,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         for field in &object.fields {
                             let name = field.node.name.node.to_string();
                             let ty = is_modelized_node(&ctx.types, &field.node.ty.node);
-                            eprintln!("Ty: {:?}", &ty);
                             let is_node = ty.and_then(|x| {
                                 match &x.node.kind {
                                     TypeKind::Object(obj) => Some(obj),
@@ -77,7 +76,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                             }).and_then(|obj| {
                                 obj.fields.iter().find(|field| is_modelized_node(&ctx.types, &field.node.ty.node).is_some())
                             }).is_some();
-                            eprintln!("Node: {:?}", is_node);
                             let is_edge = ty.is_some();
                             let transforms = if is_edge {
                                 None

@@ -38,8 +38,6 @@ impl Loader<QueryKey> for QueryLoader {
     type Value = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
     type Error = QueryLoaderError;
 
-    // TODO: We could add a way to select only the edges that we want and split the result based on
-    // the edge.
     async fn load(&self, keys: &[QueryKey]) -> Result<HashMap<QueryKey, Self::Value>, Self::Error> {
         log::info!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
