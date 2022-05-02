@@ -182,4 +182,42 @@ mod tests {
         insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
+
+    #[test]
+    fn test_simple_post_with_relation() {
+        let result = super::to_registry(
+            r#"
+            enum Country {
+              FRANCE
+              NOT_FRANCE
+            }
+
+            type Blog @model {
+              id: ID!
+              posts: [Post] 
+              owner: Author!
+            }
+
+            type Post @model {
+              id: ID!
+              content: String!
+              authors: [Author] 
+            }
+
+            type Author @model {
+              id: ID!
+              name: String!
+              lastname: String!
+              country: Country!
+            }
+            "#,
+        )
+        .unwrap();
+
+        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let sdl = Schema::new(result).sdl();
+
+        insta::assert_snapshot!(reg_string);
+        insta::assert_snapshot!(sdl);
+    }
 }

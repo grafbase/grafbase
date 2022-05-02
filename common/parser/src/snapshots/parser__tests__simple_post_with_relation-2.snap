@@ -1,0 +1,110 @@
+---
+source: common/parser/src/lib.rs
+assertion_line: 221
+expression: sdl
+---
+type Author {
+	id: ID!
+	name: String!
+	lastname: String!
+	country: Country!
+}
+"""
+Input to create a new Author
+"""
+input AuthorCreateInput {
+	name: String!
+	lastname: String!
+	country: Country!
+}
+type AuthorCreatePayload {
+	author: Author
+}
+type AuthorDeletePayload {
+	deletedId: ID!
+}
+type Blog {
+	id: ID!
+	posts: [Post]
+	owner: Author!
+}
+"""
+Input to create a new Blog
+"""
+input BlogCreateInput {
+	posts: [ID]
+	owner: ID!
+}
+type BlogCreatePayload {
+	blog: Blog
+}
+type BlogDeletePayload {
+	deletedId: ID!
+}
+enum Country {
+	FRANCE
+	NOT_FRANCE
+}
+type Mutation {
+	"""
+	Create a Blog
+	"""
+	blogCreate(input: BlogCreateInput!): BlogCreatePayload
+	"""
+	Delete a Blog by ID
+	"""
+	blogDelete(id: ID!): BlogDeletePayload
+	"""
+	Create a Post
+	"""
+	postCreate(input: PostCreateInput!): PostCreatePayload
+	"""
+	Delete a Post by ID
+	"""
+	postDelete(id: ID!): PostDeletePayload
+	"""
+	Create a Author
+	"""
+	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	"""
+	Delete a Author by ID
+	"""
+	authorDelete(id: ID!): AuthorDeletePayload
+}
+type Post {
+	id: ID!
+	content: String!
+	authors: [Author]
+}
+"""
+Input to create a new Post
+"""
+input PostCreateInput {
+	content: String!
+	authors: [ID]
+}
+type PostCreatePayload {
+	post: Post
+}
+type PostDeletePayload {
+	deletedId: ID!
+}
+type Query {
+	"""
+	Get a Blog by ID
+	"""
+	blog(id: ID!): Blog
+	"""
+	Get a Post by ID
+	"""
+	post(id: ID!): Post
+	"""
+	Get a Author by ID
+	"""
+	author(id: ID!): Author
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

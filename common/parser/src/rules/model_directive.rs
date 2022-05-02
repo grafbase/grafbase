@@ -20,7 +20,10 @@ use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_create_mutation;
 use crate::registry::add_remove_query;
 use crate::utils::is_id_type_and_non_nullable;
+use crate::utils::is_modelized_node;
+use crate::utils::to_base_type_str;
 use async_graphql::indexmap::IndexMap;
+use async_graphql::registry::resolvers::context_data::ContextDataResolver;
 use async_graphql::registry::resolvers::dynamo_querying::DynamoResolver;
 use async_graphql::registry::MetaField;
 use async_graphql::registry::MetaInputValue;
@@ -64,8 +67,42 @@ impl<'a> Visitor<'a> for ModelDirective {
                         let mut fields = IndexMap::new();
                         for field in &object.fields {
                             let name = field.node.name.node.to_string();
+                            let ty = is_modelized_node(&ctx.types, &field.node.ty.node);
+                            let is_node = ty.and_then(|x| {
+                                match &x.node.kind {
+                                    TypeKind::Object(obj) => Some(obj),
+                                    _ => None
+                                }
+                            }).and_then(|obj| {
+                                obj.fields.iter().find(|field| is_modelized_node(&ctx.types, &field.node.ty.node).is_some())
+                            }).is_some();
+                            let is_edge = ty.is_some();
+                            let transforms = if is_edge {
+                                None
+                            } else {
+                                Some(vec![Transformer::DynamoSelect {
+                                    property: if name == "id" {
+                                        "__sk".to_string()
+                                    } else {
+                                        name.clone()
+                                    },
+                                }])
+                            };
+
+                            let resolve = if is_edge {
+                                Some(Resolver {
+                                    id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
+                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
+                                        key: format!("{}_resolver_query_edges", type_name.to_lowercase()),
+                                        is_node,
+                                    }),
+                                })
+                            } else {
+                                None
+                            };
+
                             fields.insert(name.clone(), MetaField {
-                                name: name.clone(),
+                                name,
                                 description: field.node.description.clone().map(|x| x.node),
                                 args: Default::default(),
                                 ty: field.node.ty.clone().node.to_string(),
@@ -76,14 +113,13 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 provides: None,
                                 visible: None,
                                 compute_complexity: None,
-                                resolve: None,
-                                transforms: Some(vec![Transformer::DynamoSelect {
-                                    property: if name == "id" {
-                                        "__pk".to_string()
-                                    } else {
-                                        name
-                                    },
-                                }]),
+                                resolve,
+                                is_edge: if is_edge {
+                                    Some(to_base_type_str(&field.node.ty.node.base))
+                                } else {
+                                    None
+                                },
+                                transforms,
                             });
                         };
                         fields
@@ -96,6 +132,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     keys: None,
                     visible: None,
                     is_subscription: false,
+                    is_node: true,
                     rust_typename: type_name.clone(),
                 }, &type_name, &type_name);
 
@@ -129,6 +166,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     requires: None,
                     visible: None,
                     compute_complexity: None,
+                    is_edge: None,
                     resolve: Some(Resolver {
                         id: Some(format!("{}_resolver", type_name.to_lowercase())),
                         // TODO: Should be defined as a ResolveNode

@@ -4,6 +4,7 @@ use composite_id as _;
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
 use futures_util as _;
+use query::get_loader_query;
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -16,7 +17,10 @@ use transaction::{get_loader_transaction, TransactionLoader};
 
 mod batch_getitem;
 pub mod dataloader;
+mod query;
 mod transaction;
+pub use batch_getitem::BatchGetItemLoaderError;
+pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use transaction::TxItem;
 
 /// The DynamoDBContext that is needed to query the Database
@@ -130,15 +134,22 @@ impl DynamoDBContext {
 }
 
 pub struct DynamoDBBatchersData {
+    pub ctx: Arc<DynamoDBContext>,
+    /// Used to batch transactions.
     pub transaction: DataLoader<TransactionLoader, LruCache>,
+    /// Used to load items knowing the `PK` and `SK`
     pub loader: DataLoader<BatchGetItemLoader, LruCache>,
+    /// Used to load items with only PK
+    pub query: DataLoader<QueryLoader, LruCache>,
 }
 
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Self {
         Self {
+            ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
+            query: get_loader_query(Arc::clone(ctx)),
         }
     }
 }

@@ -6,7 +6,6 @@
 //! ### Why?
 //!
 //! To avoid having an invalid schema
-use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::utils::is_type_primitive;
 use crate::utils::to_base_type_str;
@@ -26,18 +25,7 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
         }
 
         match ctx.types.get(&base_type) {
-            Some(ty) => {
-                if ty.node.directives.iter().any(|d| d.node.name.node == MODEL_DIRECTIVE) {
-                    ctx.report_error(
-                        vec![field.pos],
-                        format!(
-                            "Field `{name}` got a modelized type: `{ty}`.",
-                            name = field.node.name.node,
-                            ty = base_type
-                        ),
-                    );
-                }
-            }
+            Some(_ty) => {}
             None => {
                 ctx.report_error(
                     vec![field.pos],
@@ -106,7 +94,7 @@ mod tests {
     }
 
     #[test]
-    fn should_error_with_model_type() {
+    fn should_not_error_with_model_type() {
         let schema = r#"
             type Truc @model {
                 name: String!
@@ -127,13 +115,7 @@ mod tests {
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut CheckTypeValidity, &mut ctx, &schema);
 
-        assert!(!ctx.errors.is_empty(), "shouldn't be empty");
-        assert_eq!(ctx.errors.len(), 1, "should have one error");
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "Field `__price` got a modelized type: `Truc`.",
-            "should match"
-        );
+        assert!(ctx.errors.is_empty(), "should be empty");
     }
 
     #[test]
