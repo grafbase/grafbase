@@ -1,5 +1,5 @@
 <a href="https://grafbase.com">
-  <img src="https://grafbase.com/favicon.png" height="96">
+  <img src="https://grafbase.com/images/other/grafbase-logo-circle.png" height="96">
   <h3>Grafbase</h3>
 </a>
 
