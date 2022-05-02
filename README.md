@@ -5,10 +5,11 @@
 
 The data platform for developers.
 
-* <strong>[CLI](cli)</strong>
 * <a href="https://grafbase.com/docs"><strong>Documentation</strong></a>
 * <strong>[Templates](templates)</strong>
 
 ## Grafbase
 
-Grafbase is a platform for serverless GraphQL backends deployed to the edge.
+Grafbase accelerates backend development with next-generation tooling.
+
+Deploy globally fast GraphQL APIs with a top-notch developer experience.
