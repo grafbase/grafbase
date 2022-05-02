@@ -16,8 +16,8 @@ futures-util = { version = "0.3", default-features = false, features = ["std", "
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.7" }
 quick-error = "2"
-rusoto_core = "0.48"
-rusoto_dynamodb = "0.48"
+rusoto_core = "0.47"
+rusoto_dynamodb = "0.47"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 wasm-bindgen-futures = "0.4"
