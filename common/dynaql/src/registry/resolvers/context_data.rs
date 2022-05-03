@@ -14,7 +14,10 @@ use std::pin::Pin;
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub enum ContextDataResolver {
     /// Key based Resolver for ResolverContext
+    #[deprecated = "Should not use Context anymore in SDL def"]
     Key { key: String },
+    /// Key based Resolver for ResolverContext
+    LocalKey { key: String },
     /// ContextDataResolver based on Edges.
     ///
     /// When we fetch a Node, we'll also fetch the Edges of that node if needed.
@@ -49,7 +52,11 @@ pub enum ContextDataResolver {
     /// resolver it's a Node, so we'll know we need to check at request-time, if
     /// the sub-level edges are requested, and if they are, we'll need to perform
     /// a second query accross our database.
-    Edge { key: String, is_node: bool },
+    Edge {
+        key: String,
+        /// Is the actual edge also a Node?
+        is_node: bool,
+    },
 }
 
 #[async_trait::async_trait]
@@ -63,6 +70,10 @@ impl ResolverTrait for ContextDataResolver {
         let current_ty = resolver_ctx.ty.unwrap().name();
 
         match self {
+            ContextDataResolver::LocalKey { key } => Ok(last_resolver_value
+                .and_then(|x| x.get(key))
+                .map(std::clone::Clone::clone)
+                .unwrap_or(serde_json::Value::Null)),
             ContextDataResolver::Key { key } => {
                 let store = ctx
                     .resolvers_data
@@ -74,32 +85,24 @@ impl ResolverTrait for ContextDataResolver {
                 Ok(serde_json::to_value(ctx_value)?)
             }
             ContextDataResolver::Edge { key, is_node } => {
-                let is_array = is_array_basic_type(&resolver_ctx.field.unwrap().ty);
+                // As we are in an Edge, the result from ancestor should be an array.
+                let old_val = match last_resolver_value.and_then(|x| x.get(key)) {
+                    Some(serde_json::Value::Array(arr)) => arr,
+                    _ => return Ok(serde_json::Value::Null),
+                };
 
-                let mut ctx_value = Vec::new();
-                {
-                    let store = ctx
-                        .resolvers_data
-                        .read()
-                        .map_err(|_| Error::new("Internal error"))?;
-                    if let Some(value) = resolver_data_get_opt_ref::<QueryResult>(&store, key)
-                        .and_then(|x| x.get(current_ty))
-                    {
-                        ctx_value = value.clone();
-                    }
-                }
+                let is_expecting_array = is_array_basic_type(&resolver_ctx.field.unwrap().ty);
 
-                if !is_array && ctx_value.len() > 1 {
+                // Check than the old_val is an array with only 1 element.
+                if !is_expecting_array && old_val.len() > 1 {
                     ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
                 }
 
-                if !is_array {
-                    let result = ctx_value
+                if !is_expecting_array {
+                    let result = old_val
                         .first()
-                        .map(serde_json::to_value)
-                        .transpose()
-                        .map(|x| x.unwrap_or(serde_json::Value::Null))
-                        .map_err(|_| Error::new("Internal error while manipulating data"))?;
+                        .map(std::clone::Clone::clone)
+                        .unwrap_or(serde_json::Value::Null);
 
                     // If we do have a node, we'll need to fetch the Edges linked to this node.
                     // TODO: Optimize fetch by only fetching REQUESTED edges.
@@ -108,6 +111,7 @@ impl ResolverTrait for ContextDataResolver {
                             property: "__sk".to_string(),
                         }
                         .transform(result)?;
+
                         let sk = match sk {
                             serde_json::Value::String(inner) => inner,
                             _ => {
@@ -117,24 +121,16 @@ impl ResolverTrait for ContextDataResolver {
                         };
                         let sk = VariableResolveDefinition::DebugString(sk);
 
-                        let result = DynamoResolver::QueryPKSK {
-                            pk: sk.clone(),
-                            sk,
-                            fat: false,
-                        }
-                        .resolve(ctx, resolver_ctx, last_resolver_value)
-                        .await?;
+                        let result = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
+                            .resolve(ctx, resolver_ctx, last_resolver_value)
+                            .await?;
 
                         return Ok(result);
                     }
 
-                    Ok(result)
+                    Ok(serde_json::json!({ key: result }))
                 } else {
-                    let array = ctx_value
-                        .into_iter()
-                        .map(serde_json::to_value)
-                        .map(|x| x.ok().unwrap_or(serde_json::Value::Null))
-                        .collect::<Vec<_>>();
+                    let array = old_val;
 
                     // If we do have a node, we'll need to fetch the Edges linked to this node.
                     // TODO: Optimize fetch by only fetching REQUESTED edges.
@@ -147,7 +143,7 @@ impl ResolverTrait for ContextDataResolver {
                             let sk = Transformer::DynamoSelect {
                                 property: "__sk".to_string(),
                             }
-                            .transform(result)?;
+                            .transform(result.clone())?;
                             let sk = match sk {
                                 serde_json::Value::String(inner) => inner,
                                 _ => {
@@ -160,13 +156,9 @@ impl ResolverTrait for ContextDataResolver {
                             };
                             let sk = VariableResolveDefinition::DebugString(sk);
                             let result = Box::pin(async move {
-                                DynamoResolver::QueryPKSK {
-                                    pk: sk.clone(),
-                                    sk,
-                                    fat: false,
-                                }
-                                .resolve(ctx, resolver_ctx, last_resolver_value)
-                                .await
+                                DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
+                                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                                    .await
                             });
 
                             array_result.push(result);
@@ -176,7 +168,20 @@ impl ResolverTrait for ContextDataResolver {
                         return Ok(serde_json::Value::Array(arr));
                     }
 
-                    Ok(serde_json::Value::Array(array))
+                    // If we do not have a Node, it means we need to return an array like
+                    //
+                    // ```json
+                    // [{
+                    //   "Blog": <Value>,
+                    //   "<Node>": <Value>,
+                    // }]
+                    // ```
+                    Ok(serde_json::Value::Array(
+                        array
+                            .into_iter()
+                            .map(|x| serde_json::json!({ key: x }))
+                            .collect(),
+                    ))
                 }
             }
         }

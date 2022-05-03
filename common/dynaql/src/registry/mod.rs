@@ -363,6 +363,7 @@ impl MetaField {
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
                 let resolved_value = match resolved_value? {
+                    serde_json::Value::Null => Vec::new(),
                     serde_json::Value::Array(arr) => arr,
                     _ => panic!(),
                 };
