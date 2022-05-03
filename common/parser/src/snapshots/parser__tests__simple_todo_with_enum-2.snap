@@ -34,9 +34,9 @@ type Query {
 	"""
 	todo(id: ID!): Todo
 	"""
-	List Todo
+	Unpaginated query to fetch the whole list of `Todo`.
 	"""
-	todoList: [Todo]
+	todoCollection: [Todo]
 }
 type Todo {
 	id: ID!

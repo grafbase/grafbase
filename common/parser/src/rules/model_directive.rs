@@ -184,7 +184,7 @@ impl<'a> Visitor<'a> for ModelDirective {
 
                 ctx.queries.push(MetaField {
                     name: format!("{}Collection",type_name.to_lowercase()),
-                    description: Some(format!("Unpaginated query to fetch the whole list of `{}`. This query", type_name)),
+                    description: Some(format!("Unpaginated query to fetch the whole list of `{}`.", type_name)),
                     args: IndexMap::new(),
                     ty: format!("[{}]", type_name.clone()),
                     deprecation: async_graphql::registry::Deprecation::NoDeprecated,
@@ -212,5 +212,5 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_remove_query(ctx, &id_field.node, &type_name)
             }
         }
-   }
+    }
 }

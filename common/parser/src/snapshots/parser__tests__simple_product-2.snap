@@ -43,9 +43,9 @@ type Query {
 	"""
 	product(id: ID!): Product
 	"""
-	List Product
+	Unpaginated query to fetch the whole list of `Product`.
 	"""
-	productList: [Product]
+	productCollection: [Product]
 }
 schema {
 	query: Query

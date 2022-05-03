@@ -95,25 +95,25 @@ type Query {
 	"""
 	blog(id: ID!): Blog
 	"""
-	List Blog
+	Unpaginated query to fetch the whole list of `Blog`.
 	"""
-	blogList: [Blog]
+	blogCollection: [Blog]
 	"""
 	Get a Post by ID
 	"""
 	post(id: ID!): Post
 	"""
-	List Post
+	Unpaginated query to fetch the whole list of `Post`.
 	"""
-	postList: [Post]
+	postCollection: [Post]
 	"""
 	Get a Author by ID
 	"""
 	author(id: ID!): Author
 	"""
-	List Author
+	Unpaginated query to fetch the whole list of `Author`.
 	"""
-	authorList: [Author]
+	authorCollection: [Author]
 }
 schema {
 	query: Query
