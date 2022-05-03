@@ -1,6 +1,7 @@
 use crate::rules::visitor::VisitorContext;
 use crate::utils::to_input_type;
 use async_graphql::indexmap::IndexMap;
+use async_graphql::registry::transformers::Transformer;
 use async_graphql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
@@ -120,15 +121,10 @@ pub fn add_create_mutation<'a>(
                         is_edge: None,
                         resolve: Some(Resolver {
                             id: Some(format!("{}_resolver", type_name.to_lowercase())),
+                            // Single entity
                             r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                                pk: VariableResolveDefinition::ResolverData(format!(
-                                    "{}_create_resolver_id",
-                                    type_name.to_lowercase()
-                                )),
-                                sk: VariableResolveDefinition::ResolverData(format!(
-                                    "{}_create_resolver_id",
-                                    type_name.to_lowercase()
-                                )),
+                                pk: VariableResolveDefinition::LocalData("id".to_string()),
+                                sk: VariableResolveDefinition::LocalData("id".to_string()),
                             }),
                         }),
                         transforms: None,
@@ -222,13 +218,11 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                         visible: None,
                         compute_complexity: None,
                         is_edge: None,
-                        resolve: Some(Resolver {
-                            id: Some(format!("{}_delete_payload_resolver", type_name.to_lowercase())),
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::Key {
-                                key: format!("{}_delete_resolver_deleted_id", type_name.to_lowercase()),
-                            }),
-                        }),
-                        transforms: None,
+                        resolve: None,
+                        transforms: Some(vec![Transformer::JSONSelect {
+                            property: "id".to_string(),
+                            functions: vec![],
+                        }]),
                     },
                 );
                 fields

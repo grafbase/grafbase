@@ -33,6 +33,10 @@ type Query {
 	Get a Todo by ID
 	"""
 	todo(id: ID!): Todo
+	"""
+	List Todo
+	"""
+	todoList: [Todo]
 }
 type Todo {
 	id: ID!

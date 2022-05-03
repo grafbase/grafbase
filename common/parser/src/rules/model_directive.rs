@@ -93,12 +93,15 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 Some(Resolver {
                                     id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
-                                        key: format!("{}_resolver_query_edges", type_name.to_lowercase()),
+                                        key: to_base_type_str(&field.node.ty.node.base),
                                         is_node,
                                     }),
                                 })
                             } else {
-                                None
+                                Some(Resolver {
+                                    id: None,
+                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey { key: type_name.to_string() }),
+                                })
                             };
 
                             fields.insert(name.clone(), MetaField {
@@ -170,9 +173,36 @@ impl<'a> Visitor<'a> for ModelDirective {
                     resolve: Some(Resolver {
                         id: Some(format!("{}_resolver", type_name.to_lowercase())),
                         // TODO: Should be defined as a ResolveNode
+                        // Single entity
                         r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
                             pk: VariableResolveDefinition::InputTypeName("id".to_owned()),
                             sk: VariableResolveDefinition::InputTypeName("id".to_owned()),
+                        })
+                    }),
+                    transforms: None,
+                });
+
+                ctx.queries.push(MetaField {
+                    name: format!("{}Collection",type_name.to_lowercase()),
+                    description: Some(format!("Unpaginated query to fetch the whole list of `{}`. This query", type_name)),
+                    args: IndexMap::new(),
+                    ty: format!("[{}]", type_name.clone()),
+                    deprecation: async_graphql::registry::Deprecation::NoDeprecated,
+                    cache_control: async_graphql::CacheControl {
+                        public: true,
+                        max_age: 0usize,
+                    },
+                    external: false,
+                    provides: None,
+                    requires: None,
+                    visible: None,
+                    compute_complexity: None,
+                    is_edge: None,
+                    resolve: Some(Resolver {
+                        id: Some(format!("{}_resolver", type_name.to_lowercase())),
+                        // Multiple entities
+                        r#type: ResolverType::DynamoResolver(DynamoResolver::ListResultByType {
+                            r#type: VariableResolveDefinition::DebugString(type_name.clone()),
                         })
                     }),
                     transforms: None,

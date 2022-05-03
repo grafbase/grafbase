@@ -5,6 +5,7 @@ use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
 use futures_util as _;
 use query::get_loader_query;
+use query_by_type::get_loader_query_type;
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -18,9 +19,11 @@ use transaction::{get_loader_transaction, TransactionLoader};
 mod batch_getitem;
 pub mod dataloader;
 mod query;
+mod query_by_type;
 mod transaction;
 pub use batch_getitem::BatchGetItemLoaderError;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
+pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
 pub use transaction::TxItem;
 
 /// The DynamoDBContext that is needed to query the Database
@@ -30,6 +33,43 @@ pub struct DynamoDBContext {
     trace_id: String,
     dynamodb_client: rusoto_dynamodb::DynamoDbClient,
     pub dynamodb_table_name: String,
+}
+
+/// Describe DynamoDBTables available in a GlobalDB Project.
+pub enum DynamoDBRequestedIndex {
+    None,
+    /// The reverse Index where the PK and SK are reversed.
+    ReverseIndex,
+    /// The fat partition Index where the PK is stripped of his ULID and is
+    /// corresponding of the type.
+    FatPartitionIndex,
+}
+
+impl DynamoDBRequestedIndex {
+    fn to_index_name(&self) -> Option<String> {
+        match self {
+            DynamoDBRequestedIndex::None => None,
+            DynamoDBRequestedIndex::ReverseIndex => Some("gsi2".to_string()),
+            DynamoDBRequestedIndex::FatPartitionIndex => Some("gsi1".to_string()),
+        }
+    }
+
+    fn pk(&self) -> String {
+        match self {
+            DynamoDBRequestedIndex::None => "__pk".to_string(),
+            DynamoDBRequestedIndex::ReverseIndex => "__gsi2pk".to_string(),
+            DynamoDBRequestedIndex::FatPartitionIndex => "__gsi1pk".to_string(),
+        }
+    }
+
+    #[allow(dead_code)]
+    fn sk(&self) -> String {
+        match self {
+            DynamoDBRequestedIndex::None => "__sk".to_string(),
+            DynamoDBRequestedIndex::ReverseIndex => "__gsi2sk".to_string(),
+            DynamoDBRequestedIndex::FatPartitionIndex => "__gsi1sk".to_string(),
+        }
+    }
 }
 
 quick_error! {
@@ -137,10 +177,12 @@ pub struct DynamoDBBatchersData {
     pub ctx: Arc<DynamoDBContext>,
     /// Used to batch transactions.
     pub transaction: DataLoader<TransactionLoader, LruCache>,
-    /// Used to load items knowing the `PK` and `SK`
+    /// Used to load items knowing the `PK` and `SK` from table
     pub loader: DataLoader<BatchGetItemLoader, LruCache>,
-    /// Used to load items with only PK
+    /// Used to load items with only PK from table
     pub query: DataLoader<QueryLoader, LruCache>,
+    /// Used to load items with only PK from FatPartition
+    pub query_fat: DataLoader<QueryTypeLoader, LruCache>,
 }
 
 impl DynamoDBBatchersData {
@@ -149,7 +191,8 @@ impl DynamoDBBatchersData {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
-            query: get_loader_query(Arc::clone(ctx)),
+            query: get_loader_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
+            query_fat: get_loader_query_type(Arc::clone(ctx), DynamoDBRequestedIndex::FatPartitionIndex),
         }
     }
 }

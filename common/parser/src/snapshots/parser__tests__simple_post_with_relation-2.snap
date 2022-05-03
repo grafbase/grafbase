@@ -95,13 +95,25 @@ type Query {
 	"""
 	blog(id: ID!): Blog
 	"""
+	List Blog
+	"""
+	blogList: [Blog]
+	"""
 	Get a Post by ID
 	"""
 	post(id: ID!): Post
 	"""
+	List Post
+	"""
+	postList: [Post]
+	"""
 	Get a Author by ID
 	"""
 	author(id: ID!): Author
+	"""
+	List Author
+	"""
+	authorList: [Author]
 }
 schema {
 	query: Query
