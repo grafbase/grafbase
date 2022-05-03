@@ -178,7 +178,7 @@ impl ResolverTrait for ContextDataResolver {
                     // ```
                     Ok(serde_json::Value::Array(
                         array
-                            .into_iter()
+                            .iter()
                             .map(|x| serde_json::json!({ key: x }))
                             .collect(),
                     ))
