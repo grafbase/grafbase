@@ -1,3 +1,5 @@
+#![allow(deprecated)]
+
 //! Variable Resolving definition strategy is explained here.
 //!
 //! When you need a Variable inside a Resolver, you can use a
@@ -41,6 +43,7 @@ impl VariableResolveDefinition {
                         .map(|(_, x)| x.clone())
                 })
             }
+            #[allow(deprecated)]
             Self::ResolverData(key) => {
                 resolver_data_get_opt_ref::<Value>(&ctx.resolvers_data.read().expect("handle"), key)
                     .map(std::clone::Clone::clone)

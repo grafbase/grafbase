@@ -1,12 +1,13 @@
-use futures_util::Future;
+#![allow(deprecated)]
 
-use super::dynamo_querying::{DynamoResolver, QueryResult};
+use super::dynamo_querying::DynamoResolver;
 use super::ResolverTrait;
 use crate::registry::is_array_basic_type;
 use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::{Transformer, TransformerTrait};
 use crate::registry::variables::VariableResolveDefinition;
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
+use futures_util::Future;
 use std::hash::Hash;
 use std::pin::Pin;
 
@@ -67,13 +68,12 @@ impl ResolverTrait for ContextDataResolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
-        let current_ty = resolver_ctx.ty.unwrap().name();
-
         match self {
             ContextDataResolver::LocalKey { key } => Ok(last_resolver_value
                 .and_then(|x| x.get(key))
                 .map(std::clone::Clone::clone)
                 .unwrap_or(serde_json::Value::Null)),
+            #[allow(deprecated)]
             ContextDataResolver::Key { key } => {
                 let store = ctx
                     .resolvers_data
