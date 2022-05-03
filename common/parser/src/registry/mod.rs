@@ -3,9 +3,9 @@ use crate::utils::to_input_type;
 use async_graphql::indexmap::IndexMap;
 use async_graphql::registry::transformers::Transformer;
 use async_graphql::registry::{
-    resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
-    resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
+    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
+    resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
+    MetaType,
 };
 use async_graphql_parser::types::{FieldDefinition, ObjectType};
 use case::CaseExt;
