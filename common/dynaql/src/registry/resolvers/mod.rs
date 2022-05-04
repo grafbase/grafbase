@@ -95,24 +95,44 @@ pub trait ResolverTrait: Sync {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error>;
 }
 
 #[async_trait::async_trait]
 impl ResolverTrait for Resolver {
+    /// The `[ResolverTrait]` should be a core element of the resolver chain.
+    /// When you cross the ResolverChain, every Resolver Result is passed on the Children
+    /// By Reference.
+    ///
+    /// WE MUST ENSURE EVERY VALUES ACCEDED BY THE RESOLVER COULD BE GETTED.
+    /// Why? To ensure security.
+    ///
+    /// We resolver can only access the TRANSFORMED result from his resolver ancestor.
     async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
         match &self.r#type {
-            ResolverType::DebugResolver(debug) => debug.resolve(ctx, resolver_ctx).await,
-            ResolverType::DynamoResolver(dynamodb) => dynamodb.resolve(ctx, resolver_ctx).await,
+            ResolverType::DebugResolver(debug) => {
+                debug.resolve(ctx, resolver_ctx, last_resolver_value).await
+            }
+            ResolverType::DynamoResolver(dynamodb) => {
+                dynamodb
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
+            }
             ResolverType::DynamoMutationResolver(dynamodb) => {
-                dynamodb.resolve(ctx, resolver_ctx).await
+                dynamodb
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
             }
             ResolverType::ContextDataResolver(ctx_data) => {
-                ctx_data.resolve(ctx, resolver_ctx).await
+                ctx_data
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
             }
         }
     }

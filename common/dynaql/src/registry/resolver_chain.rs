@@ -53,6 +53,7 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         &self,
         ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
         // TODO: Memoization
         // We can create a little quick hack to allow some kind of modelization, we have to check
@@ -68,7 +69,9 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .with_resolver_id(parent.resolver.and_then(|resolver| resolver.id.as_deref()))
                 .with_selection_set(parent.selections)
                 .with_field(parent.field);
-            final_result = parent.resolve(ctx, &parent_ctx).await?;
+            final_result = parent
+                .resolve(ctx, &parent_ctx, last_resolver_value)
+                .await?;
         }
 
         if let QueryPathSegment::Index(idx) = self.segment {
@@ -85,7 +88,9 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .with_ty(self.ty)
                 .with_selection_set(self.selections)
                 .with_field(self.field);
-            let temp = actual.resolve(ctx, &current_ctx).await?;
+            let temp = actual
+                .resolve(ctx, &current_ctx, Some(&final_result))
+                .await?;
             final_result = temp;
         }
 

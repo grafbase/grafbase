@@ -35,7 +35,8 @@ async-graphql-parser = { path = "parser", version = "3.0.31" }
 async-stream = "0.3.0"
 async-trait = "0.1.48"
 derivative = "2.2"
-dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "20ab6484c6578f4106c2313fe2c34a5dba706833" }
+# dynamodb = { path = "../api/common/dynamodb" }
+dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "0a6d1d2a7cbd4984d3269eed3250ee55cc3aca35" }
 dynomite = { git = "https://github.com/softprops/dynomite.git" }
 fnv = "1.0.7"
 futures-util = { version = "0.3.0", default-features = false, features = ["io", "sink"] }
