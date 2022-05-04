@@ -48,7 +48,7 @@ mod tests {
     use serde_json as _;
 
     #[test]
-    fn should_error_on_underscore() {
+    fn should_error_on_reserved_keyword() {
         let schema = r#"
             type Product @model {
                 id: ID!
@@ -76,7 +76,7 @@ mod tests {
     }
 
     #[test]
-    fn should_allow_underscore_on_non_model() {
+    fn should_allow_reserved_keyword_on_non_model() {
         let schema = r#"
             type Product {
                 id: ID!
