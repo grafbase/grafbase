@@ -10,7 +10,7 @@ type Post @model {
   id: ID!
   author: User!
   title: String!
-  url: Url!
+  url: String!
   votes: [Vote]
 }
 
