@@ -55,6 +55,14 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         _resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<serde_json::Value, Error> {
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!(
+            "",
+            "{} | last {}",
+            &self,
+            serde_json::to_string_pretty(&last_resolver_value).unwrap()
+        );
+
         // TODO: Memoization
         // We can create a little quick hack to allow some kind of modelization, we have to check
         // if the execution_id was already requested before.
@@ -74,6 +82,9 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .await?;
         }
 
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!("", "{} | Resolved Parent", &self,);
+
         if let QueryPathSegment::Index(idx) = self.segment {
             // If we are in a segment, it means we do not have a current resolver (YET).
             final_result = final_result
@@ -81,6 +92,9 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .map(serde_json::Value::take)
                 .unwrap_or(serde_json::Value::Null);
         }
+
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!("", "{} | Resolving actual", &self,);
 
         if let Some(actual) = self.resolver {
             let current_ctx = ResolverContext::new(&self.execution_id)
@@ -90,9 +104,21 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .with_field(self.field);
             let temp = actual
                 .resolve(ctx, &current_ctx, Some(&final_result))
-                .await?;
+                .await
+                .map_err(|err| {
+                    ctx.add_error(err.clone().into_server_error(ctx.item.pos));
+                    err
+                })?;
             final_result = temp;
         }
+
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!(
+            "",
+            "{} | Resolved actual {}",
+            &self,
+            serde_json::to_string_pretty(&final_result).unwrap()
+        );
 
         if let Some(transformers) = self.transformers {
             final_result = transformers.transform(final_result)?;

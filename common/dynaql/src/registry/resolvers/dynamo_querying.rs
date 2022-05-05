@@ -84,6 +84,8 @@ impl ResolverTrait for DynamoResolver {
             .ty
             .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
         let current_ty = ctx_ty.name();
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!("", "Current TY: {}", &current_ty,);
 
         // TODO: Here we ask from the Type definition the associated edges, but what
         // we should ask is the edges associated FROM the SelectedSet.
@@ -110,10 +112,10 @@ impl ResolverTrait for DynamoResolver {
                     .iter()
                     .map(|(_, x)| x.0.to_string())
                     .collect::<Vec<_>>();
-                edges.push(current_ty.to_string());
+                edges.push(pk.clone());
 
                 let query_result: QueryTypeResult = query_loader_fat
-                    .load_one(QueryTypeKey::new(pk, edges))
+                    .load_one(QueryTypeKey::new(pk.clone(), edges))
                     .await?
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
@@ -126,7 +128,7 @@ impl ResolverTrait for DynamoResolver {
                         let value: Map<String, serde_json::Value> = edges.into_iter().fold(
                             Map::with_capacity(len),
                             |mut acc, (edge_key, dyna_value)| {
-                                let value = if edge_key == current_ty {
+                                let value = if edge_key == pk {
                                     serde_json::to_value(dyna_value.first())
                                 } else {
                                     serde_json::to_value(dyna_value)

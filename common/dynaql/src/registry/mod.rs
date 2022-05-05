@@ -7,6 +7,7 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
+use async_graphql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -131,12 +132,14 @@ impl MetaInputValue {
     fn transform_to_variables_resolved<'a>(
         &'a self,
         ctx: &'a Context<'a>,
-    ) -> Option<(&'a str, Value)> {
+    ) -> ServerResult<(Pos, Value)> {
         let variable = match self.ty.as_ref() {
             "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, None),
             "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
             "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
             "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
+            "Int" => ctx.param_value_dynamic::<Option<i64>>(&self.name, None),
+            "Int!" => ctx.param_value_dynamic::<i64>(&self.name, None),
             _ => ctx.param_value_dynamic_unchecked(&self.name, None),
         };
 
@@ -274,11 +277,14 @@ impl MetaField {
 
         // For every arguments, we should try to have his param value and depending on the native
         // Scalar, associate him to a primitive.
-        let variables = Some(
+        let variables: Option<Vec<(&str, Value)>> = Some(
             self.args
                 .values()
-                .map(|x| x.transform_to_variables_resolved(ctx).expect("We must be able to transform any types into transformed variable, if we aren't some primitives aren't managed"))
-                .collect(),
+                .map(|x| {
+                    x.transform_to_variables_resolved(ctx)
+                        .map(|(_, value)| (x.name.as_ref(), value))
+                })
+                .collect::<Result<Vec<(&str, Value)>, ServerError>>()?,
         );
 
         let ctx_obj = ctx.with_selection_set(

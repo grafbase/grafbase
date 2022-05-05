@@ -777,10 +777,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         &self,
         name: &'b str,
         default: Option<fn() -> T>,
-    ) -> Option<(&'a str, Value)> {
+    ) -> ServerResult<(Pos, Value)> {
         self.get_param_value(&self.item.node.arguments, name, default)
-            .map(|(_, x)| (name, InputType::to_value(&x)))
-            .ok()
+            .map(|(pos, x)| (pos, InputType::to_value(&x)))
     }
 
     #[doc(hidden)]
@@ -788,10 +787,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         &self,
         name: &'b str,
         default: Option<fn() -> Value>,
-    ) -> Option<(&'a str, Value)> {
+    ) -> ServerResult<(Pos, Value)> {
         self.get_param_value_unchecked(&self.item.node.arguments, name, default)
-            .map(|(_, x)| (name, x))
-            .ok()
     }
 
     /// Creates a uniform interface to inspect the forthcoming selections.
