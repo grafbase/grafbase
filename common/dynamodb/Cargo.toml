@@ -8,7 +8,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 aws-region-nearby = "0.1"
 composite-id = { path = "../composite-id", features = ["with-dynomite", "with-named-type"] }
-dynomite = { git = "https://github.com/softprops/dynomite.git" }
+dynomite = "0.10"
 fnv = "1"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
@@ -16,15 +16,14 @@ futures-util = { version = "0.3", default-features = false, features = ["std", "
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.7" }
 quick-error = "2"
-rusoto_core = "0.47"
-rusoto_dynamodb = "0.47"
+rusoto_core = "0.48"
+rusoto_dynamodb = "0.48"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 wasm-bindgen-futures = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
-
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
