@@ -31,7 +31,7 @@ pub use transaction::TxItem;
 pub struct DynamoDBContext {
     // TODO: When going with tracing, remove this trace_id, useless.
     trace_id: String,
-    dynamodb_client: rusoto_dynamodb::DynamoDbClient,
+    pub dynamodb_client: rusoto_dynamodb::DynamoDbClient,
     pub dynamodb_table_name: String,
 }
 
