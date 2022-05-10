@@ -1,8 +1,5 @@
-use dynomite::{Attribute, AttributeValue, DynamoDbExt};
-use futures_util::TryStreamExt;
+use dynomite::AttributeValue;
 use quick_error::quick_error;
-use rusoto_dynamodb::QueryInput;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;

@@ -50,6 +50,10 @@ quick_error! {
 
 impl PaginatedCursor {
     /// To create the Cursor from GraphQL Input
+    #[allow(
+        clippy::missing_const_for_fn,
+        /* reason = "False positive, destructors cannot be evaluated at compile-time" */
+    )]
     pub fn from_graphql(
         first: Option<usize>,
         last: Option<usize>,
@@ -72,42 +76,10 @@ impl PaginatedCursor {
         }
     }
 
-    fn scan_index_forward(&self) -> bool {
+    const fn scan_index_forward(&self) -> bool {
         match self {
             PaginatedCursor::Forward { .. } => false,
             PaginatedCursor::Backward { .. } => true,
-        }
-    }
-
-    fn exclusive_start_key(&self, ty: String) -> Option<HashMap<String, AttributeValue>> {
-        match self {
-            PaginatedCursor::Forward { exclusive_last_key, .. } => exclusive_last_key.clone().map(|x| {
-                dynomite::attr_map! {
-                    "__gsi1pk" => ty.clone(),
-                    "__gsi1sk" => x.clone(),
-                    "__pk" => x.clone(),
-                    "__sk" => x,
-                }
-            }),
-            PaginatedCursor::Backward {
-                exclusive_first_key, ..
-            } => exclusive_first_key.clone().map(|x| {
-                dynomite::attr_map! {
-                    "__gsi1pk" => ty.clone(),
-                    "__gsi1sk" => x.clone(),
-                    "__pk" => x.clone(),
-                    "__sk" => x,
-                }
-            }),
-        }
-    }
-
-    fn test(&self) -> Option<String> {
-        match self {
-            PaginatedCursor::Forward { exclusive_last_key, .. } => exclusive_last_key.clone(),
-            PaginatedCursor::Backward {
-                exclusive_first_key, ..
-            } => exclusive_first_key.clone(),
         }
     }
 
@@ -120,10 +92,10 @@ impl PaginatedCursor {
         }
     }
 
-    fn limit(&self) -> usize {
+    const fn limit(&self) -> usize {
         match self {
-            PaginatedCursor::Forward { first, .. } => first.clone(),
-            PaginatedCursor::Backward { last, .. } => last.clone(),
+            PaginatedCursor::Forward { first, .. } => *first,
+            PaginatedCursor::Backward { last, .. } => *last,
         }
     }
 }
@@ -208,8 +180,8 @@ where
         ]);
         let pagination_string = cursor.pagination_string();
         let key_condition_expression = match (&pagination_string, &cursor) {
-            (Some(_), PaginatedCursor::Forward { .. }) => Some(format!("#pk = :pk AND #sk < :pkorder")),
-            (Some(_), PaginatedCursor::Backward { .. }) => Some(format!("#pk = :pk AND #sk > :pkorder")),
+            (Some(_), PaginatedCursor::Forward { .. }) => Some("#pk = :pk AND #sk < :pkorder".to_string()),
+            (Some(_), PaginatedCursor::Backward { .. }) => Some("#pk = :pk AND #sk > :pkorder".to_string()),
             _ => Some("#pk = :pk".to_string()),
         };
 
@@ -281,10 +253,8 @@ where
 
                             if sk.starts_with(&node) {
                                 value.node = Some(x.clone());
-                            } else {
-                                if let Some(edge) = edges.iter().find(|edge| sk.starts_with(edge.as_str())) {
-                                    value.edges.insert(edge.clone(), vec![x.clone()]);
-                                }
+                            } else if let Some(edge) = edges.iter().find(|edge| sk.starts_with(edge.as_str())) {
+                                value.edges.insert(edge.clone(), vec![x.clone()]);
                             }
 
                             vac.insert(value);
