@@ -66,7 +66,7 @@ impl QueryTypePaginatedKey {
 /// When we query the GSI1 we do have the entities stored together, it means that if we
 /// ask Node of a type A we would have this kind of answer:
 ///
-/// ```
+/// ```ignore
 /// ┌────────┐
 /// │Node A  │
 /// ├────────┤
