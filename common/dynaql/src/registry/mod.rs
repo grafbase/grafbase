@@ -422,7 +422,7 @@ impl MetaType {
 
         if let MetaType::Object { fields, .. } = self {
             for (field, ty) in fields {
-                if ty.edges.len() > 0 {
+                if !ty.edges.is_empty() {
                     let edges: Vec<Edge<'a>> = ty.edges.iter().map(|x| Edge(x.as_str())).collect();
                     result.insert(field.as_str(), edges);
                 }

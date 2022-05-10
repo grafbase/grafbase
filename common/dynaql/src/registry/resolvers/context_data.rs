@@ -1,7 +1,7 @@
 #![allow(deprecated)]
 
 use super::dynamo_querying::DynamoResolver;
-use super::{ResolvedValue, ResolverTrait};
+use super::{ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 use crate::registry::is_array_basic_type;
 use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::{Transformer, TransformerTrait};
@@ -73,9 +73,10 @@ impl ResolverTrait for ContextDataResolver {
     ) -> Result<ResolvedValue, Error> {
         match self {
             ContextDataResolver::LocalKey { key } => Ok(ResolvedValue::new(
+                // TODO: Think again with internal modelization
                 last_resolver_value
                     .and_then(|x| x.data_resolved.get(key))
-                    .map(|x| x.clone()) // TODO: Think again with internal modelization
+                    .cloned()
                     .unwrap_or(serde_json::Value::Null),
             )),
             #[allow(deprecated)]
@@ -93,7 +94,7 @@ impl ResolverTrait for ContextDataResolver {
             ContextDataResolver::PaginationData => {
                 let pagination = last_resolver_value
                     .and_then(|x| x.pagination.as_ref())
-                    .map(|x| x.output());
+                    .map(ResolvedPaginationInfo::output);
                 Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
             }
             ContextDataResolver::Edge { key, is_node } => {

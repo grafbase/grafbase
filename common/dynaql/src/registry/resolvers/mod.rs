@@ -142,15 +142,15 @@ impl ResolvedPaginationInfo {
     }
 
     pub fn output(&self) -> serde_json::Value {
-        let has_next_page = match (&self.direction, self.more_data) {
-            (&ResolvedPaginationDirection::Forward, true) => true,
-            _ => false,
-        };
+        let has_next_page = matches!(
+            (&self.direction, self.more_data),
+            (&ResolvedPaginationDirection::Forward, true)
+        );
 
-        let has_previous_page = match (&self.direction, self.more_data) {
-            (&ResolvedPaginationDirection::Backward, true) => true,
-            _ => false,
-        };
+        let has_previous_page = matches!(
+            (&self.direction, self.more_data),
+            (&ResolvedPaginationDirection::Backward, true)
+        );
 
         serde_json::json!({
             "has_next_page": has_next_page,
