@@ -1,0 +1,110 @@
+---
+source: common/parser/src/lib.rs
+assertion_line: 134
+expression: sdl
+---
+type Mutation {
+	"""
+	Create a TodoList
+	"""
+	todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
+	"""
+	Delete a TodoList by ID
+	"""
+	todoListDelete(id: ID!): TodoListDeletePayload
+	"""
+	Create a Todo
+	"""
+	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	"""
+	Delete a Todo by ID
+	"""
+	todoDelete(id: ID!): TodoDeletePayload
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Query {
+	"""
+	Get a TodoList by ID
+	"""
+	todoList(id: ID!): TodoList
+	"""
+	Unpaginated query to fetch the whole list of `TodoList`.
+	"""
+	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
+	"""
+	Get a Todo by ID
+	"""
+	todo(id: ID!): Todo
+	"""
+	Unpaginated query to fetch the whole list of `Todo`.
+	"""
+	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
+}
+type Todo {
+	id: ID!
+	title: String!
+	complete: Boolean
+}
+type TodoConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [TodoEdge]
+}
+"""
+Input to create a new Todo
+"""
+input TodoCreateInput {
+	title: String!
+	complete: Boolean
+}
+type TodoCreatePayload {
+	todo: Todo
+}
+type TodoDeletePayload {
+	deletedId: ID!
+}
+type TodoEdge {
+	node: Todo!
+	cursor: String!
+}
+type TodoList {
+	id: ID!
+	title: String!
+	todos: [Todo]
+}
+type TodoListConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [TodoListEdge]
+}
+"""
+Input to create a new TodoList
+"""
+input TodoListCreateInput {
+	title: String!
+	todos: [ID]
+}
+type TodoListCreatePayload {
+	todoList: TodoList
+}
+type TodoListDeletePayload {
+	deletedId: ID!
+}
+type TodoListEdge {
+	node: TodoList!
+	cursor: String!
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

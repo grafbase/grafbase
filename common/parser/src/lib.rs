@@ -111,6 +111,30 @@ mod tests {
     }
 
     #[test]
+    fn test_simple_todo_from_template() {
+        let result = super::to_registry(
+            r#"
+            type TodoList @model {
+              id: ID!
+              title: String!
+              todos: [Todo]
+            }
+
+            type Todo @model {
+              id: ID!
+              title: String!
+              complete: Boolean
+            }
+            "#,
+        )
+        .unwrap();
+
+        let sdl = Schema::new(result).sdl();
+
+        insta::assert_snapshot!(sdl);
+    }
+
+    #[test]
     fn test_simple_todo_with_vec() {
         let result = super::to_registry(
             r#"
