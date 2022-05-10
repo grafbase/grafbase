@@ -3,10 +3,8 @@ use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefi
 use crate::{Context, Error, Value};
 use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QueryTypeKey, QueryTypePaginatedKey,
-    QueryTypePaginatedValue,
 };
 use dynomite::AttributeValue;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;
 use std::borrow::Borrow;

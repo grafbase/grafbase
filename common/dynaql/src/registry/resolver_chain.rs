@@ -7,7 +7,6 @@ use crate::{Context, Error, QueryPathSegment};
 use async_graphql_parser::types::SelectionSet;
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
-use std::{borrow::Cow, sync::Arc};
 use ulid::Ulid;
 
 use super::{

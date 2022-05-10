@@ -9,11 +9,7 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use std::borrow::Cow;
-use std::sync::Arc;
-
 use self::debug::DebugResolver;
-
 use crate::{Context, Error};
 use async_graphql_parser::types::SelectionSet;
 use context_data::ContextDataResolver;
@@ -166,16 +162,6 @@ impl ResolvedPaginationInfo {
 /// example Pagination Details.
 #[derive(Debug)]
 pub struct ResolvedValue {
-    /// We do have an Arc, because we need to pass the values fetched inside the function.
-    /// So either we give it by Arc or by Moving arround the Value.
-    ///
-    /// The issue with moving arround the vales is that we may find ourselves doing a lot of
-    /// cloning for transformers.
-    /// With the Arc, we'll be able to execute some Transformers without having to call a
-    /// `clone()`.
-    ///
-    /// It'll leave us the possibility to optimize.
-    // pub parent_value: Option<ResolvedValue<'a>>,
     /// Data Resolved by the current Resolver
     pub data_resolved: serde_json::Value,
     pub pagination: Option<ResolvedPaginationInfo>,

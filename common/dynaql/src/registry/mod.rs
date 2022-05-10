@@ -10,9 +10,7 @@ pub mod variables;
 use async_graphql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
-use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::ops::Deref;
 use ulid::Ulid;
 
 pub use crate::model::__DirectiveLocation;

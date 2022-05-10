@@ -7,8 +7,7 @@ use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::{Transformer, TransformerTrait};
 use crate::registry::variables::VariableResolveDefinition;
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
-use futures_util::{Future, TryFutureExt};
-use std::borrow::Cow;
+use futures_util::Future;
 use std::hash::Hash;
 use std::pin::Pin;
 

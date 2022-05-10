@@ -7,7 +7,7 @@ use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, DynamoDBContext, T
 use dynomite::dynamodb::{Delete, Put, TransactWriteItem};
 use dynomite::{Attribute, AttributeValue};
 use futures_util::FutureExt;
-use std::borrow::{Borrow, Cow};
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::Hash;
@@ -164,7 +164,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     >,
                 > = edges
                     .into_iter()
-                    .map(|(field, edge)| {
+                    .map(|(field, _)| {
                         // If it's an edge, we can only have an ID or an Array of ID
                         // as it's how we modelized the relations.
                         // Or it can also be null.
