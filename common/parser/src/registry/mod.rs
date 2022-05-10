@@ -256,8 +256,8 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
             is_node: false,
             rust_typename: page_info.to_string(),
         },
-        &page_info,
-        &page_info,
+        page_info,
+        page_info,
     );
 
     // Connection
@@ -376,7 +376,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
             );
             args
         },
-        ty: connection.clone(),
+        ty: connection,
         deprecation: async_graphql::registry::Deprecation::NoDeprecated,
         cache_control: async_graphql::CacheControl {
             public: true,

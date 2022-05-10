@@ -86,7 +86,11 @@ impl QueryTypePaginatedKey {
 /// └────────┘
 /// ```
 ///
+/// **Note about cursors: a cursor is not a start key, it's an indice that could
+/// be removed later but still be used.**
+///
 /// **Sorted by**: Creation date.
+/// The sort must be: **Stable**
 ///
 /// **Even if we disconnect/connect edges later, it would still be grouped that way**.
 pub struct QueryTypePaginatedValue {
