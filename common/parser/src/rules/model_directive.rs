@@ -18,6 +18,7 @@
 
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_create_mutation;
+use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
 use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
@@ -58,6 +59,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             if let Some(id_field) = object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node));
             then {
                 let type_name = type_definition.node.name.node.to_string();
+                let mut connection_edges = Vec::new();
                 // If it's a modeled Type, we create the associated type into the registry.
                 // Without more data, we infer it's from our modelization.
                 ctx.registry.get_mut().create_type(&mut |_| MetaType::Object {
@@ -117,10 +119,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 visible: None,
                                 compute_complexity: None,
                                 resolve,
-                                is_edge: if is_edge {
-                                    Some(to_base_type_str(&field.node.ty.node.base))
+                                edges: if is_edge {
+                                    let edge_type = to_base_type_str(&field.node.ty.node.base);
+                                    connection_edges.push(edge_type.clone());
+                                    vec![edge_type]
                                 } else {
-                                    None
+                                    Vec::new()
                                 },
                                 transforms,
                             });
@@ -169,7 +173,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     requires: None,
                     visible: None,
                     compute_complexity: None,
-                    is_edge: None,
+                    edges: Vec::new(),
                     resolve: Some(Resolver {
                         id: Some(format!("{}_resolver", type_name.to_lowercase())),
                         // TODO: Should be defined as a ResolveNode
@@ -182,32 +186,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     transforms: None,
                 });
 
-                ctx.queries.push(MetaField {
-                    name: format!("{}Collection",type_name.to_lowercase()),
-                    description: Some(format!("Unpaginated query to fetch the whole list of `{}`.", type_name)),
-                    args: IndexMap::new(),
-                    ty: format!("[{}]", type_name.clone()),
-                    deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-                    cache_control: async_graphql::CacheControl {
-                        public: true,
-                        max_age: 0usize,
-                    },
-                    external: false,
-                    provides: None,
-                    requires: None,
-                    visible: None,
-                    compute_complexity: None,
-                    is_edge: None,
-                    resolve: Some(Resolver {
-                        id: Some(format!("{}_resolver", type_name.to_lowercase())),
-                        // Multiple entities
-                        r#type: ResolverType::DynamoResolver(DynamoResolver::ListResultByType {
-                            r#type: VariableResolveDefinition::DebugString(type_name.clone()),
-                        })
-                    }),
-                    transforms: None,
-                });
-
+                add_list_query_paginated(ctx, &type_name, connection_edges);
                 add_create_mutation(ctx, object, &id_field.node, &type_name);
                 add_remove_query(ctx, &id_field.node, &type_name)
             }

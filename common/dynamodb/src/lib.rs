@@ -3,9 +3,11 @@ use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
 use composite_id as _;
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
+use futures as _;
 use futures_util as _;
 use query::get_loader_query;
 use query_by_type::get_loader_query_type;
+use query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -18,12 +20,16 @@ use transaction::{get_loader_transaction, TransactionLoader};
 
 mod batch_getitem;
 pub mod dataloader;
+mod paginated;
 mod query;
 mod query_by_type;
+mod query_by_type_paginated;
 mod transaction;
 pub use batch_getitem::BatchGetItemLoaderError;
+pub use paginated::PaginatedCursor;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
+pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
 pub use transaction::TxItem;
 
 /// The DynamoDBContext that is needed to query the Database
@@ -36,6 +42,7 @@ pub struct DynamoDBContext {
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
+#[derive(Clone)]
 pub enum DynamoDBRequestedIndex {
     None,
     /// The reverse Index where the PK and SK are reversed.
@@ -183,6 +190,8 @@ pub struct DynamoDBBatchersData {
     pub query: DataLoader<QueryLoader, LruCache>,
     /// Used to load items with only PK from FatPartition
     pub query_fat: DataLoader<QueryTypeLoader, LruCache>,
+    /// Used to laod items with only PK from FatPartition with Pagination
+    pub paginated_query_fat: DataLoader<QueryTypePaginatedLoader, LruCache>,
 }
 
 impl DynamoDBBatchersData {
@@ -193,6 +202,10 @@ impl DynamoDBBatchersData {
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
             query: get_loader_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
             query_fat: get_loader_query_type(Arc::clone(ctx), DynamoDBRequestedIndex::FatPartitionIndex),
+            paginated_query_fat: get_loader_paginated_query_type(
+                Arc::clone(ctx),
+                DynamoDBRequestedIndex::FatPartitionIndex,
+            ),
         }
     }
 }

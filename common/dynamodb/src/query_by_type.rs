@@ -53,7 +53,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     /// ```json
     /// {
     ///   "Blog#PK": {
-    ///     "Blog": HashMap<String, AttributeValue>,
+    ///     "Blog": Vec<HashMap<String, AttributeValue>>,
     ///     "Author": Vec<HashMap<String, AttributeValue>>,
     ///     "Edge": Vec<HashMap<String, AttributeValue>>,
     ///   }
@@ -62,8 +62,6 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     type Value = HashMap<String, HashMap<String, Vec<HashMap<String, AttributeValue>>>>;
     type Error = QueryTypeLoaderError;
 
-    // TODO: We could add a way to select only the edges that we want and split the result based on
-    // the edge.
     async fn load(&self, keys: &[QueryTypeKey]) -> Result<HashMap<QueryTypeKey, Self::Value>, Self::Error> {
         log::info!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
