@@ -1,13 +1,14 @@
 #![allow(deprecated)]
 
 use super::dynamo_querying::DynamoResolver;
-use super::ResolverTrait;
+use super::{ResolvedValue, ResolverTrait};
 use crate::registry::is_array_basic_type;
 use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::{Transformer, TransformerTrait};
 use crate::registry::variables::VariableResolveDefinition;
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
-use futures_util::Future;
+use futures_util::{Future, TryFutureExt};
+use std::borrow::Cow;
 use std::hash::Hash;
 use std::pin::Pin;
 
@@ -58,6 +59,8 @@ pub enum ContextDataResolver {
         /// Is the actual edge also a Node?
         is_node: bool,
     },
+    /// This resolver get the PaginationData
+    PaginationData,
 }
 
 #[async_trait::async_trait]
@@ -66,13 +69,15 @@ impl ResolverTrait for ContextDataResolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error> {
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
         match self {
-            ContextDataResolver::LocalKey { key } => Ok(last_resolver_value
-                .and_then(|x| x.get(key))
-                .map(std::clone::Clone::clone)
-                .unwrap_or(serde_json::Value::Null)),
+            ContextDataResolver::LocalKey { key } => Ok(ResolvedValue::new(
+                last_resolver_value
+                    .and_then(|x| x.data_resolved.get(key))
+                    .map(|x| x.clone()) // TODO: Think again with internal modelization
+                    .unwrap_or(serde_json::Value::Null),
+            )),
             #[allow(deprecated)]
             ContextDataResolver::Key { key } => {
                 let store = ctx
@@ -82,13 +87,20 @@ impl ResolverTrait for ContextDataResolver {
                 let ctx_value = resolver_data_get_opt_ref::<Value>(&store, key)
                     .map(std::clone::Clone::clone)
                     .unwrap_or(Value::Null);
-                Ok(serde_json::to_value(ctx_value)?)
+
+                Ok(ResolvedValue::new(serde_json::to_value(ctx_value)?))
+            }
+            ContextDataResolver::PaginationData => {
+                let pagination = last_resolver_value
+                    .and_then(|x| x.pagination.as_ref())
+                    .map(|x| x.output());
+                Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
             }
             ContextDataResolver::Edge { key, is_node } => {
                 // As we are in an Edge, the result from ancestor should be an array.
-                let old_val = match last_resolver_value.and_then(|x| x.get(key)) {
+                let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => arr,
-                    _ => return Ok(serde_json::Value::Null),
+                    _ => return Ok(ResolvedValue::new(serde_json::Value::Null)),
                 };
 
                 let is_expecting_array = is_array_basic_type(&resolver_ctx.field.unwrap().ty);
@@ -116,19 +128,19 @@ impl ResolverTrait for ContextDataResolver {
                             serde_json::Value::String(inner) => inner,
                             _ => {
                                 ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
-                                return Ok(serde_json::Value::Null);
+                                return Ok(ResolvedValue::new(serde_json::Value::Null));
                             }
                         };
                         let sk = VariableResolveDefinition::DebugString(sk);
 
-                        let result = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
+                        let a = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
                             .resolve(ctx, resolver_ctx, last_resolver_value)
                             .await?;
 
-                        return Ok(result);
+                        return Ok(a);
                     }
 
-                    Ok(serde_json::json!({ key: result }))
+                    Ok(ResolvedValue::new(serde_json::json!({ key: result })))
                 } else {
                     let array = old_val;
 
@@ -159,29 +171,32 @@ impl ResolverTrait for ContextDataResolver {
                                 DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
                                     .resolve(ctx, resolver_ctx, last_resolver_value)
                                     .await
+                                    .map(|x| x.data_resolved)
                             });
 
                             array_result.push(result);
                         }
                         let arr = futures_util::future::try_join_all(array_result).await?;
 
-                        return Ok(serde_json::Value::Array(arr));
+                        return Ok(ResolvedValue::new(serde_json::Value::Array(arr)));
                     }
 
                     // If we do not have a Node, it means we need to return an array like
                     //
                     // ```json
-                    // [{
-                    //   "Blog": <Value>,
-                    //   "<Node>": <Value>,
-                    // }]
+                    // {
+                    //   data: [{
+                    //     "Blog": <Value>,
+                    //     "<Node>": <Value>,
+                    //   }]
+                    // }
                     // ```
-                    Ok(serde_json::Value::Array(
+                    Ok(ResolvedValue::new(serde_json::Value::Array(
                         array
                             .iter()
                             .map(|x| serde_json::json!({ key: x }))
                             .collect(),
-                    ))
+                    )))
                 }
             }
         }

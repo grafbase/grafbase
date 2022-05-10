@@ -7,10 +7,11 @@ use crate::{Context, Error, QueryPathSegment};
 use async_graphql_parser::types::SelectionSet;
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
+use std::{borrow::Cow, sync::Arc};
 use ulid::Ulid;
 
 use super::{
-    resolvers::{ResolverContext, ResolverTrait},
+    resolvers::{ResolvedValue, ResolverContext, ResolverTrait},
     MetaField, MetaType,
 };
 
@@ -53,20 +54,12 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         &self,
         ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error> {
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!(
-            "",
-            "{} | last {}",
-            &self,
-            serde_json::to_string_pretty(&last_resolver_value).unwrap()
-        );
-
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
         // TODO: Memoization
         // We can create a little quick hack to allow some kind of modelization, we have to check
         // if the execution_id was already requested before.
-        let mut final_result = serde_json::Value::Null;
+        let mut final_result = ResolvedValue::new(serde_json::Value::Null);
 
         // We must run this if it's not run because some resolvers can have side effect with the
         // actual modelization.
@@ -82,19 +75,16 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .await?;
         }
 
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!("", "{} | Resolved Parent", &self,);
-
         if let QueryPathSegment::Index(idx) = self.segment {
             // If we are in a segment, it means we do not have a current resolver (YET).
-            final_result = final_result
-                .get_mut(idx)
-                .map(serde_json::Value::take)
-                .unwrap_or(serde_json::Value::Null);
+            final_result = ResolvedValue::new(
+                final_result
+                    .data_resolved
+                    .get_mut(idx)
+                    .map(serde_json::Value::take)
+                    .unwrap_or(serde_json::Value::Null),
+            );
         }
-
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!("", "{} | Resolving actual", &self,);
 
         if let Some(actual) = self.resolver {
             let current_ctx = ResolverContext::new(&self.execution_id)
@@ -102,26 +92,19 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .with_ty(self.ty)
                 .with_selection_set(self.selections)
                 .with_field(self.field);
-            let temp = actual
+
+            final_result = actual
                 .resolve(ctx, &current_ctx, Some(&final_result))
-                .await
-                .map_err(|err| {
-                    ctx.add_error(err.clone().into_server_error(ctx.item.pos));
-                    err
-                })?;
-            final_result = temp;
+                .await?;
         }
 
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!(
-            "",
-            "{} | Resolved actual {}",
-            &self,
-            serde_json::to_string_pretty(&final_result).unwrap()
-        );
-
         if let Some(transformers) = self.transformers {
-            final_result = transformers.transform(final_result)?;
+            // TODO: Ensure it doesn't fail by changing the way the data is modelized withing
+            // resolver, we shouldn't have dynamic typing here.
+            //
+            // It can be done by transforming the Resolver Return type to a struct with the result
+            // and with the extra data, where each resolver can add extra data.
+            final_result.data_resolved = transformers.transform(final_result.data_resolved)?;
         }
 
         Ok(final_result)

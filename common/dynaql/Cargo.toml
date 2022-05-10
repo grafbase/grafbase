@@ -41,6 +41,7 @@ dynomite = "0.10"
 fnv = "1.0.7"
 futures-util = { version = "0.3.0", default-features = false, features = ["io", "sink"] }
 indexmap = "~1.6.2"
+itertools = "0.10.3"
 pin-project-lite = "0.2.6"
 regex = "1.4.5"
 serde = { version = "1.0.125", features = ["derive"] }

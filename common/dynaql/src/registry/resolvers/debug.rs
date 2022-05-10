@@ -1,4 +1,4 @@
-use super::{ResolverContext, ResolverTrait};
+use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::{Context, Error};
 
 #[non_exhaustive]
@@ -13,13 +13,13 @@ impl ResolverTrait for DebugResolver {
         &self,
         _ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
-        _last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error> {
+        _last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
         #[cfg(feature = "tracing_worker")]
         logworker::info!("", "",);
 
         match &self {
-            Self::Value { inner } => Ok(inner.clone()),
+            Self::Value { inner } => Ok(ResolvedValue::new(inner.clone())),
         }
     }
 }

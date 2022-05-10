@@ -1,9 +1,15 @@
-use super::ResolverTrait;
+use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
-use dynamodb::{DynamoDBBatchersData, QueryKey, QueryTypeKey};
+use dynamodb::{
+    DynamoDBBatchersData, PaginatedCursor, QueryKey, QueryTypeKey, QueryTypePaginatedKey,
+    QueryTypePaginatedValue,
+};
 use dynomite::AttributeValue;
+use indexmap::IndexMap;
+use itertools::Itertools;
 use serde_json::Map;
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::hash::Hash;
 
@@ -23,9 +29,11 @@ pub enum DynamoResolver {
     ///
     /// ```json
     /// {
-    ///   "Blog": HashMap<String, AttributeValue>,
-    ///   "Author": Vec<HashMap<String, AttributeValue>>,
-    ///   "Edge2": Vec<HashMap<String, AttributeValue>>,
+    ///   data: {
+    ///     "Blog": HashMap<String, AttributeValue>,
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///     "Edge2": Vec<HashMap<String, AttributeValue>>,
+    ///   }
     /// }
     /// ```
     ///
@@ -55,13 +63,51 @@ pub enum DynamoResolver {
     /// With a Blog example where Author would be an Edge:
     ///
     /// ```json
-    /// [{
-    ///   "Blog": HashMap<String, AttributeValue>,
-    ///   "Author": Vec<HashMap<String, AttributeValue>>,
-    ///   "Edge2": Vec<HashMap<String, AttributeValue>>,
-    /// }]
+    /// {
+    ///   data: [{
+    ///     "Blog": HashMap<String, AttributeValue>,
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///     "Edge2": Vec<HashMap<String, AttributeValue>>,
+    ///    }]
+    /// }
     /// ```
     ListResultByType { r#type: VariableResolveDefinition },
+    /// A Paginated Query based on the type of the entity.
+    ///
+    /// We query the reverted index by type to get a node and his edges.
+    /// This Resolver is paginated.
+    ///
+    /// # Returns
+    ///
+    /// We expect this resolver to return a Value with this type, if for example.
+    ///
+    /// With a Blog example where Author would be an Edge:
+    ///
+    /// ```json
+    /// {
+    ///   paginationInfo: {
+    ///     has_next: bool,
+    ///     last_cursor: Option<String>
+    ///
+    ///     has_previous: bool,
+    ///     first_cursor: Option<String>,
+    ///
+    ///     count: i32,
+    ///   },
+    ///   data: [{
+    ///     "Blog": HashMap<String, AttributeValue>,
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///     "Edge2": Vec<HashMap<String, AttributeValue>>,
+    ///   }]
+    /// }
+    /// ```
+    ListResultByTypePaginated {
+        r#type: VariableResolveDefinition,
+        first: VariableResolveDefinition,
+        last: VariableResolveDefinition,
+        after: VariableResolveDefinition,
+        before: VariableResolveDefinition,
+    },
 }
 
 pub(crate) type QueryResult = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
@@ -74,18 +120,18 @@ impl ResolverTrait for DynamoResolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error> {
-        let loader_item = &ctx.data::<DynamoDBBatchersData>()?.loader;
-        let query_loader = &ctx.data::<DynamoDBBatchersData>()?.query;
-        let query_loader_fat = &ctx.data::<DynamoDBBatchersData>()?.query_fat;
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
+        let batchers = &ctx.data::<DynamoDBBatchersData>()?;
+        let loader_item = &batchers.loader;
+        let query_loader = &batchers.query;
+        let query_loader_fat = &batchers.query_fat;
+        let query_loader_fat_paginated = &batchers.paginated_query_fat;
 
         let ctx_ty = resolver_ctx
             .ty
             .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
         let current_ty = ctx_ty.name();
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!("", "Current TY: {}", &current_ty,);
 
         // TODO: Here we ask from the Type definition the associated edges, but what
         // we should ask is the edges associated FROM the SelectedSet.
@@ -93,8 +139,120 @@ impl ResolverTrait for DynamoResolver {
         let edges_len = edges.len();
 
         match self {
+            DynamoResolver::ListResultByTypePaginated {
+                r#type,
+                before,
+                after,
+                last,
+                first,
+            } => {
+                let number_limit: usize = 100;
+
+                let pk = r#type
+                    .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                let first = first.expect_opt_int(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                    number_limit,
+                )?;
+                let after = after.expect_opt_string(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                )?;
+                let before = before.expect_opt_string(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                )?;
+
+                let last = last.expect_opt_int(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                    number_limit,
+                )?;
+                let edges: Vec<String> = edges
+                    .iter()
+                    .map(|(_, x)| x)
+                    .fold(Vec::new(), |mut acc, cur| {
+                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc
+                    })
+                    .into_iter()
+                    .unique()
+                    .collect();
+                let len = edges.len();
+
+                let cursor = PaginatedCursor::from_graphql(first, last, after, before)?;
+                let mut pagination = ResolvedPaginationInfo::new(
+                    ResolvedPaginationDirection::from_paginated_cursor(&cursor),
+                );
+                let result = query_loader_fat_paginated
+                    .load_one(QueryTypePaginatedKey {
+                        r#type: pk.clone(),
+                        edges,
+                        cursor,
+                    })
+                    .await?;
+
+                let result = result.ok_or_else(|| {
+                    Error::new("Internal Error: Failed to fetch the associated nodes.")
+                })?;
+
+                pagination = pagination
+                    .with_start(result.values.iter().next().map(|(pk, _)| pk.clone()))
+                    .with_end(result.values.iter().last().map(|(pk, _)| pk.clone()))
+                    .with_more_data(result.last_evaluated_key.is_some());
+                let result: Vec<serde_json::Value> = result
+                    .values
+                    .into_iter()
+                    .map(|(_, query_value)| {
+                        let mut value_result: Map<String, serde_json::Value> =
+                            query_value.edges.into_iter().fold(
+                                Map::with_capacity(len),
+                                |mut acc, (edge_key, dyna_value)| {
+                                    let value = serde_json::to_value(dyna_value);
+
+                                    match value {
+                                        Ok(value) => {
+                                            acc.insert(edge_key, value);
+                                        }
+                                        Err(err) => {
+                                            acc.insert(edge_key, serde_json::Value::Null);
+                                            ctx.add_error(
+                                                Error::new_with_source(err)
+                                                    .into_server_error(ctx.item.pos),
+                                            );
+                                        }
+                                    }
+                                    acc
+                                },
+                            );
+
+                        match serde_json::to_value(query_value.node) {
+                            Ok(value) => {
+                                value_result.insert(pk.clone(), value);
+                            }
+                            Err(err) => {
+                                value_result.insert(pk.clone(), serde_json::Value::Null);
+                                ctx.add_error(
+                                    Error::new_with_source(err).into_server_error(ctx.item.pos),
+                                );
+                            }
+                        };
+
+                        serde_json::Value::Object(value_result)
+                    })
+                    .collect();
+
+                Ok(
+                    ResolvedValue::new(serde_json::Value::Array(result))
+                        .with_pagination(pagination),
+                )
+            }
             DynamoResolver::ListResultByType { r#type } => {
-                let pk = match r#type.param(ctx, last_resolver_value).expect("can't fail") {
+                let pk = match r#type
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .expect("can't fail")
+                {
                     Value::String(inner) => inner,
                     _ => {
                         return Err(Error::new("Internal Error: failed to infer key"));
@@ -108,10 +266,17 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let mut edges = edges
+                let mut edges: Vec<String> = edges
                     .iter()
-                    .map(|(_, x)| x.0.to_string())
-                    .collect::<Vec<_>>();
+                    .map(|(_, x)| x)
+                    .fold(Vec::new(), |mut acc, cur| {
+                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc
+                    })
+                    .into_iter()
+                    .unique()
+                    .collect();
+
                 edges.push(pk.clone());
 
                 let query_result: QueryTypeResult = query_loader_fat
@@ -154,17 +319,23 @@ impl ResolverTrait for DynamoResolver {
                     })
                     .collect();
 
-                Ok(serde_json::Value::Array(result))
+                Ok(ResolvedValue::new(serde_json::Value::Array(result)))
             }
             DynamoResolver::QueryPKSK { pk, sk } => {
-                let pk = match pk.param(ctx, last_resolver_value).expect("can't fail") {
+                let pk = match pk
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .expect("can't fail")
+                {
                     Value::String(inner) => inner,
                     _ => {
                         return Err(Error::new("Internal Error: failed to infer key"));
                     }
                 };
 
-                let sk = match sk.param(ctx, last_resolver_value).expect("can't fail") {
+                let sk = match sk
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .expect("can't fail")
+                {
                     Value::String(inner) => inner,
                     _ => {
                         return Err(Error::new("Internal Error: failed to infer key"));
@@ -179,9 +350,9 @@ impl ResolverTrait for DynamoResolver {
 
                     let value =
                         serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
-                    return Ok(serde_json::json!({
+                    return Ok(ResolvedValue::new(serde_json::json!({
                         current_ty: value,
-                    }));
+                    })));
                 }
 
                 // When we query a Node with the Query Dataloader, we have to indicate
@@ -191,10 +362,16 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let mut edges = edges
+                let mut edges: Vec<String> = edges
                     .iter()
-                    .map(|(_, x)| x.0.to_string())
-                    .collect::<Vec<_>>();
+                    .map(|(_, x)| x)
+                    .fold(Vec::new(), |mut acc, cur| {
+                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc
+                    })
+                    .into_iter()
+                    .unique()
+                    .collect();
                 edges.push(current_ty.to_string());
 
                 let query_result: QueryResult = query_loader
@@ -229,7 +406,7 @@ impl ResolverTrait for DynamoResolver {
                             acc
                         });
 
-                Ok(serde_json::Value::Object(result))
+                Ok(ResolvedValue::new(serde_json::Value::Object(result)))
             }
         }
     }
