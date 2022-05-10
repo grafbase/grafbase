@@ -8,7 +8,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 aws-region-nearby = "0.1"
 composite-id = { path = "../composite-id", features = ["with-dynomite", "with-named-type"] }
-dynomite = "0.10"
+dynomite = { git = "https://github.com/softprops/dynomite.git" }
 fnv = "1"
 futures = "0.3"
 futures-channel = { version = "0.3" }
