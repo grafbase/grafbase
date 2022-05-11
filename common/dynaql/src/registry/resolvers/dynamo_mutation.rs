@@ -202,23 +202,9 @@ impl ResolverTrait for DynamoMutationResolver {
                                 fetch_edge_id_future
                             }
                             None => {
-                                let a: Pin<
-                                    Box<
-                                        dyn Future<
-                                                Output = Result<
-                                                    (
-                                                        String,
-                                                        HashMap<
-                                                            (String, String),
-                                                            HashMap<String, AttributeValue>,
-                                                        >,
-                                                    ),
-                                                    BatchGetItemLoaderError,
-                                                >,
-                                            > + Send,
-                                    >,
-                                > = Box::pin(|| async move { Ok(HashMap::new()) });
-                                a
+                                let b =
+                                    Box::pin(async move { Ok((field.to_owned(), HashMap::new())) });
+                                b
                             }
                         }
                     })
