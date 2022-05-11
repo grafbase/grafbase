@@ -201,11 +201,7 @@ impl ResolverTrait for DynamoMutationResolver {
                                 );
                                 fetch_edge_id_future
                             }
-                            None => {
-                                let b =
-                                    Box::pin(async move { Ok((field.to_owned(), HashMap::new())) });
-                                b
-                            }
+                            None => Box::pin(async move { Ok((field.to_owned(), HashMap::new())) }),
                         }
                     })
                     .collect();
