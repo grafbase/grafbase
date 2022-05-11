@@ -163,41 +163,46 @@ impl ResolverTrait for DynamoMutationResolver {
                     .map(|(field, _edge)| {
                         // If it's an edge, we can only have an ID or an Array of ID
                         // as it's how we modelized the relations.
-                        let field_value = match input.get(field).expect("can't fail") {
-                            Value::String(inner) => vec![(inner.clone(), inner.clone())],
-                            Value::List(list) => list
-                                .iter()
-                                .map(|value| match value {
-                                    Value::String(inner) => (inner.clone(), inner.clone()),
-                                    _ => panic!(),
-                                })
-                                .collect(),
-                            _ => {
-                                panic!()
-                            }
-                        };
+                        // Or it can also be null.
+                        let field_value = input.get(field).and_then(|value| match value {
+                            Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+                            Value::List(list) => Some(
+                                list.iter()
+                                    .map(|value| match value {
+                                        Value::String(inner) => (inner.clone(), inner.clone()),
+                                        _ => panic!(),
+                                    })
+                                    .collect(),
+                            ),
+                            _ => None,
+                        });
 
-                        let fetch_edge_id_future: Pin<
-                            Box<
-                                dyn Future<
-                                        Output = Result<
-                                            (
-                                                String,
-                                                HashMap<
-                                                    (String, String),
-                                                    HashMap<String, AttributeValue>,
+                        match field_value {
+                            Some(field_value) => {
+                                let fetch_edge_id_future: Pin<
+                                    Box<
+                                        dyn Future<
+                                                Output = Result<
+                                                    (
+                                                        String,
+                                                        HashMap<
+                                                            (String, String),
+                                                            HashMap<String, AttributeValue>,
+                                                        >,
+                                                    ),
+                                                    BatchGetItemLoaderError,
                                                 >,
-                                            ),
-                                            BatchGetItemLoaderError,
-                                        >,
-                                    > + Send,
-                            >,
-                        > = Box::pin(
-                            loader_batcher
-                                .load_many(field_value)
-                                .map(|x| x.map(|r| (field.to_owned(), r))),
-                        );
-                        fetch_edge_id_future
+                                            > + Send,
+                                    >,
+                                > = Box::pin(
+                                    loader_batcher
+                                        .load_many(field_value)
+                                        .map(|x| x.map(|r| (field.to_owned(), r))),
+                                );
+                                fetch_edge_id_future
+                            }
+                            None => Box::pin(async move { Ok((field.to_owned(), HashMap::new())) }),
+                        }
                     })
                     .collect();
 
