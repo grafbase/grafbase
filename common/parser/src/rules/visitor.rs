@@ -119,7 +119,7 @@ impl<'a> VisitorContext<'a> {
                                 visible: None,
                                 compute_complexity: None,
                                 resolve: None,
-                                is_edge: None,
+                                edges: Vec::new(),
                                 transforms: None,
                             },
                         );

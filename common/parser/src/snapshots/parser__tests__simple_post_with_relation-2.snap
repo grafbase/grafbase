@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 221
+assertion_line: 247
 expression: sdl
 ---
 type Author {
@@ -8,6 +8,13 @@ type Author {
 	name: String!
 	lastname: String!
 	country: Country!
+}
+type AuthorConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [AuthorEdge]
 }
 """
 Input to create a new Author
@@ -23,10 +30,21 @@ type AuthorCreatePayload {
 type AuthorDeletePayload {
 	deletedId: ID!
 }
+type AuthorEdge {
+	node: Author!
+	cursor: String!
+}
 type Blog {
 	id: ID!
 	posts: [Post]
 	owner: Author!
+}
+type BlogConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [BlogEdge]
 }
 """
 Input to create a new Blog
@@ -40,6 +58,10 @@ type BlogCreatePayload {
 }
 type BlogDeletePayload {
 	deletedId: ID!
+}
+type BlogEdge {
+	node: Blog!
+	cursor: String!
 }
 enum Country {
 	FRANCE
@@ -71,10 +93,23 @@ type Mutation {
 	"""
 	authorDelete(id: ID!): AuthorDeletePayload
 }
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
 type Post {
 	id: ID!
 	content: String!
 	authors: [Author]
+}
+type PostConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [PostEdge]
 }
 """
 Input to create a new Post
@@ -89,6 +124,10 @@ type PostCreatePayload {
 type PostDeletePayload {
 	deletedId: ID!
 }
+type PostEdge {
+	node: Post!
+	cursor: String!
+}
 type Query {
 	"""
 	Get a Blog by ID
@@ -97,7 +136,7 @@ type Query {
 	"""
 	Unpaginated query to fetch the whole list of `Blog`.
 	"""
-	blogCollection: [Blog]
+	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
 	Get a Post by ID
 	"""
@@ -105,7 +144,7 @@ type Query {
 	"""
 	Unpaginated query to fetch the whole list of `Post`.
 	"""
-	postCollection: [Post]
+	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
 	Get a Author by ID
 	"""
@@ -113,7 +152,7 @@ type Query {
 	"""
 	Unpaginated query to fetch the whole list of `Author`.
 	"""
-	authorCollection: [Author]
+	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
 }
 schema {
 	query: Query

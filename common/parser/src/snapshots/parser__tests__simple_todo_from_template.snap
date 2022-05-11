@@ -1,24 +1,17 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 165
+assertion_line: 134
 expression: sdl
 ---
-type Author {
-	name: String!
-	lastname: String!
-	pseudo: String
-	truc: Truc!
-}
-"""
-Author input type.
-"""
-input AuthorInput {
-	name: String!
-	lastname: String!
-	pseudo: String
-	truc: TrucInput!
-}
 type Mutation {
+	"""
+	Create a TodoList
+	"""
+	todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
+	"""
+	Delete a TodoList by ID
+	"""
+	todoListDelete(id: ID!): TodoListDeletePayload
 	"""
 	Create a Todo
 	"""
@@ -36,6 +29,14 @@ type PageInfo {
 }
 type Query {
 	"""
+	Get a TodoList by ID
+	"""
+	todoList(id: ID!): TodoList
+	"""
+	Unpaginated query to fetch the whole list of `TodoList`.
+	"""
+	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
+	"""
 	Get a Todo by ID
 	"""
 	todo(id: ID!): Todo
@@ -46,8 +47,8 @@ type Query {
 }
 type Todo {
 	id: ID!
-	content: String!
-	authors: [Author]
+	title: String!
+	complete: Boolean
 }
 type TodoConnection {
 	"""
@@ -60,8 +61,8 @@ type TodoConnection {
 Input to create a new Todo
 """
 input TodoCreateInput {
-	content: String!
-	authors: [AuthorInput]
+	title: String!
+	complete: Boolean
 }
 type TodoCreatePayload {
 	todo: Todo
@@ -73,14 +74,34 @@ type TodoEdge {
 	node: Todo!
 	cursor: String!
 }
-type Truc {
-	name: String!
+type TodoList {
+	id: ID!
+	title: String!
+	todos: [Todo]
+}
+type TodoListConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [TodoListEdge]
 }
 """
-Truc input type.
+Input to create a new TodoList
 """
-input TrucInput {
-	name: String!
+input TodoListCreateInput {
+	title: String!
+	todos: [ID]
+}
+type TodoListCreatePayload {
+	todoList: TodoList
+}
+type TodoListDeletePayload {
+	deletedId: ID!
+}
+type TodoListEdge {
+	node: TodoList!
+	cursor: String!
 }
 schema {
 	query: Query

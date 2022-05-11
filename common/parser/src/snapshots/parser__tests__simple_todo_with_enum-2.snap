@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 183
+assertion_line: 209
 expression: sdl
 ---
 type Author {
@@ -28,6 +28,12 @@ type Mutation {
 	"""
 	todoDelete(id: ID!): TodoDeletePayload
 }
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
 type Query {
 	"""
 	Get a Todo by ID
@@ -36,13 +42,20 @@ type Query {
 	"""
 	Unpaginated query to fetch the whole list of `Todo`.
 	"""
-	todoCollection: [Todo]
+	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }
 type Todo {
 	id: ID!
 	content: String!
 	authors: [Author]
 	ty: TodoType!
+}
+type TodoConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [TodoEdge]
 }
 """
 Input to create a new Todo
@@ -57,6 +70,10 @@ type TodoCreatePayload {
 }
 type TodoDeletePayload {
 	deletedId: ID!
+}
+type TodoEdge {
+	node: Todo!
+	cursor: String!
 }
 """
 A TodoType

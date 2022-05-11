@@ -2,6 +2,7 @@ use async_graphql::registry::Registry;
 use async_graphql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::basic_type::BasicType;
+use rules::check_field_not_reserved::CheckModelizedFieldReserved;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::enum_type::EnumType;
@@ -32,6 +33,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     let mut rules = rules::visitor::VisitorNil
         .with(ModelDirective)
         .with(CheckBeginsWithDoubleUnderscore)
+        .with(CheckModelizedFieldReserved)
         .with(BasicType)
         .with(EnumType)
         .with(CheckTypeValidity);
@@ -105,6 +107,30 @@ mod tests {
         let sdl = Schema::new(result).sdl();
 
         insta::assert_snapshot!(reg_string);
+        insta::assert_snapshot!(sdl);
+    }
+
+    #[test]
+    fn test_simple_todo_from_template() {
+        let result = super::to_registry(
+            r#"
+            type TodoList @model {
+              id: ID!
+              title: String!
+              todos: [Todo]
+            }
+
+            type Todo @model {
+              id: ID!
+              title: String!
+              complete: Boolean
+            }
+            "#,
+        )
+        .unwrap();
+
+        let sdl = Schema::new(result).sdl();
+
         insta::assert_snapshot!(sdl);
     }
 

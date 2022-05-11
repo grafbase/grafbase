@@ -1,42 +1,20 @@
-use quick_error::quick_error;
+#[macro_use]
+extern crate maplit;
+
+mod types;
+
 // FIXME: To keep Clippy happy.
 pub use log_;
-
+use sentry_cf_worker::{send_envelope, Envelope, Event, Level, SentryError};
 use std::sync::atomic::{AtomicU8, Ordering};
+pub use types::*;
 
 #[cfg(feature = "with-worker")]
 pub use worker;
 
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        DatadogRequest(err: surf::Error) {
-            display("HTTP: {err}")
-        }
-        DatadogPushFailed(status_code: surf::StatusCode, response: Option<String>) {
-            display("Datadog: [status = {status_code}] {response:?}")
-        }
-    }
-}
-
-#[derive(strum::Display)]
-#[strum(serialize_all = "snake_case")]
-pub enum LogSeverity {
-    Debug,
-    Info,
-    Error,
-}
-
-bitflags::bitflags! {
-    pub struct Config: u8 {
-        const DATADOG = 0b00000001;
-        #[cfg(feature = "with-worker")]
-        const WORKER  = 0b00000010;
-        const STDLOG  = 0b00000100;
-    }
-}
-
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
+
+pub static MODULE: &str = "API";
 
 pub fn configure(config: Config) {
     LOG_CONFIG.store(config.bits(), Ordering::SeqCst);
@@ -45,11 +23,6 @@ pub fn configure(config: Config) {
 thread_local! {
     pub static LOG_ENTRIES: std::cell::RefCell<Vec<(String, LogSeverity, String)>> =
         std::cell::RefCell::new(Vec::new());
-}
-
-#[cfg(not(feature = "with-worker"))]
-fn print_with_worker() {
-    unreachable!("WORKER flag cannot be enabled unless 'with-worker' feature is set");
 }
 
 #[cfg(feature = "with-worker")]
@@ -67,9 +40,12 @@ macro_rules! log {
         let message = format_args!($($t)*).to_string();
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
 
-        if config.contains($crate::Config::WORKER) {
-            $crate::print_with_worker($status, &message);
+        #[cfg(feature = "with-worker")] {
+            if config.contains($crate::Config::WORKER) {
+                $crate::print_with_worker($status, &message);
+            }
         }
+
         if config.contains($crate::Config::STDLOG) {
             match $status {
                 $crate::LogSeverity::Debug =>
@@ -80,12 +56,16 @@ macro_rules! log {
                     $crate::log_::error!("{}", message),
             }
         }
-        if config.contains($crate::Config::DATADOG) {
-            $crate::LOG_ENTRIES.with(|log_entries| log_entries
-                .try_borrow_mut()
-                .expect("reentrance is impossible in our single-threaded runtime")
-                .push(($request_id.to_string(), $status, message)));
+        if config.intersects($crate::Config::DATADOG | $crate::Config::SENTRY) {
+            let should_log = config.contains($crate::Config::DATADOG) || $status == $crate::LogSeverity::Error;
+            if should_log {
+                $crate::LOG_ENTRIES.with(|log_entries| log_entries
+                    .try_borrow_mut()
+                    .expect("reentrance is impossible in our single-threaded runtime")
+                    .push(($request_id.to_string(), $status, message)));
+            }
         }
+
     } }
 }
 
@@ -110,28 +90,11 @@ macro_rules! error {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct DatadogLogEntry {
-    ddsource: String,
-    ddtags: String,
-    hostname: String,
-    message: String,
-    service: String,
-    status: String,
-}
-
-pub struct LogConfig {
-    pub api_key: String,
-    pub service_name: &'static str,
-    pub environment: String,
-    pub branch: Option<String>,
-}
-
 pub fn collect_logs_to_be_pushed(
     log_config: &LogConfig,
     request_id: &str,
     request_host_name: &str,
-) -> Vec<DatadogLogEntry> {
+) -> (Vec<DatadogLogEntry>, Vec<SentryLogEntry>) {
     #[rustfmt::skip]
     let mut tags = vec![
         ("request_id", request_id),
@@ -140,13 +103,13 @@ pub fn collect_logs_to_be_pushed(
     if let Some(branch) = log_config.branch.as_ref() {
         tags.push(("branch", branch.as_str()));
     }
-    let tag_string = tags
+    let datadog_tag_string = tags
         .iter()
         .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
         .collect::<Vec<_>>()
         .join(",");
 
-    let entries = LOG_ENTRIES.with(|log_entries| {
+    let datadog_entries = LOG_ENTRIES.with(|log_entries| {
         log_entries
             .try_borrow_mut()
             .expect("reentrance is impossible in our single-threaded runtime")
@@ -155,11 +118,28 @@ pub fn collect_logs_to_be_pushed(
             .filter(|(entry_request_id, _, _)| entry_request_id == request_id)
             .map(|(_, severity, message)| DatadogLogEntry {
                 ddsource: "grafbase.api".to_owned(),
-                ddtags: tag_string.clone(),
+                ddtags: datadog_tag_string.clone(),
                 hostname: request_host_name.to_owned(),
                 message: message.clone(),
                 service: log_config.service_name.to_owned(),
                 status: severity.to_string(),
+            })
+            .collect::<Vec<_>>()
+    });
+
+    let sentry_entries = LOG_ENTRIES.with(|log_entries| {
+        log_entries
+            .try_borrow_mut()
+            .expect("reentrance is impossible in our single-threaded runtime")
+            .iter()
+            // FIXME: Replace with `Vec::drain_filter()` when it's stable.
+            .filter(|(entry_request_id, severity, _)| entry_request_id == request_id && severity == &LogSeverity::Error)
+            .map(|(_, _severity, message)| SentryLogEntry {
+                contents: message.clone(),
+                hostname: request_host_name.to_owned(),
+                request_id: request_id.to_owned(),
+                environment: log_config.environment.clone(),
+                branch: log_config.branch.clone(),
             })
             .collect::<Vec<_>>()
     });
@@ -171,29 +151,75 @@ pub fn collect_logs_to_be_pushed(
             .retain(|(entry_request_id, _, _)| entry_request_id != request_id)
     });
 
-    entries
+    (datadog_entries, sentry_entries)
 }
 
-pub async fn push_logs_to_datadog(log_config: LogConfig, entries: &[DatadogLogEntry]) -> Result<(), Error> {
+pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[DatadogLogEntry]) -> Result<(), Error> {
     let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
     if !config.contains(Config::DATADOG) {
         return Ok(());
     }
 
-    const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
+    if let Some(datadog_api_key) = &log_config.datadog_api_key {
+        const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
 
-    let mut res = surf::post(URL)
-        .header("DD-API-KEY", &log_config.api_key)
-        .body_json(&entries)
-        .map_err(Error::DatadogRequest)?
-        .send()
-        .await
-        .map_err(Error::DatadogRequest)?;
+        let mut res = surf::post(URL)
+            .header("DD-API-KEY", datadog_api_key)
+            .body_json(&entries)
+            .map_err(Error::DatadogRequest)?
+            .send()
+            .await
+            .map_err(Error::DatadogRequest)?;
 
-    if res.status().is_success() {
-        Ok(())
+        if res.status().is_success() {
+            Ok(())
+        } else {
+            let response = res.body_string().await.ok();
+            Err(Error::DatadogPushFailed(res.status(), response))
+        }
     } else {
-        let response = res.body_string().await.ok();
-        Err(Error::DatadogPushFailed(res.status(), response))
+        Ok(())
     }
+}
+
+pub fn push_logs_to_sentry(sentry_ingest_url: &str, entries: &[SentryLogEntry]) {
+    let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
+    if !config.contains(Config::SENTRY) || entries.is_empty() {
+        return;
+    }
+
+    entries.iter().for_each(|entry| {
+        let mut envelope = Envelope::new();
+
+        let mut tags = btreemap! {
+            "request_id".to_owned() => entry.request_id.clone(),
+            "hostname".to_owned() => entry.hostname.clone(),
+            "module".to_owned() => MODULE.to_owned(),
+            "environment".to_owned() => entry.environment.clone(),
+        };
+
+        if let Some(branch) = entry.branch.as_ref() {
+            tags.extend([("branch".to_owned(), branch.clone())]);
+        }
+
+        envelope.add_item(Event {
+            message: Some(entry.contents.clone()),
+            level: Level::Error,
+            tags,
+            ..Default::default()
+        });
+
+        let dsn = sentry_ingest_url.to_owned();
+
+        worker::wasm_bindgen_futures::spawn_local(async move {
+            match send_envelope(dsn, envelope).await {
+                Ok(_) => {}
+                Err(error) => match error {
+                    SentryError::InvalidUrl => debug!("{}", "an invalid url was used for the sentry dsn"),
+                    SentryError::Request(_) => debug!("{}", "a request to sentry was unsuccessful"),
+                    SentryError::WriteEnvelope => debug!("{}", "could not write a sentry envelope"),
+                },
+            }
+        });
+    });
 }

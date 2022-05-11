@@ -1,6 +1,7 @@
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use async_graphql::{Name, Positioned};
 use async_graphql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
+use case::CaseExt;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -149,4 +150,8 @@ pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
         BaseType::Named(name) => matches!(name.as_ref(), "ID"),
         _ => false,
     }
+}
+
+pub fn to_lower_camelcase<S: AsRef<str>>(field: S) -> String {
+    field.as_ref().to_snake().to_camel_lowercase()
 }
