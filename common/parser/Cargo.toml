@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql-parser = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "50f5ef1561909f24e02f910a7cbdcfadd640994b", package = "async-graphql-parser" }
-async-graphql-value = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "50f5ef1561909f24e02f910a7cbdcfadd640994b", package = "async-graphql-value" }
-async-graphql = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "50f5ef1561909f24e02f910a7cbdcfadd640994b", features = ["tracing_worker"] }
+async-graphql-parser = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "a3479686811688080db0269d8a96fdb5cadec6a2", package = "async-graphql-parser" }
+async-graphql-value = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "a3479686811688080db0269d8a96fdb5cadec6a2", package = "async-graphql-value" }
+async-graphql = { git = "ssh://git@github.com/grafbase/dynaql.git", rev = "a3479686811688080db0269d8a96fdb5cadec6a2", features = ["tracing_worker"] }
 #async-graphql-parser = { path = "../../../dynaql/parser", package = "async-graphql-parser" }
 #async-graphql-value = { path = "../../../dynaql/value", package = "async-graphql-value" }
 #async-graphql = { path = "../../../dynaql", features = ["tracing_worker"] }
