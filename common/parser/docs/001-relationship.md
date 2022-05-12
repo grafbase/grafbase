@@ -2,6 +2,22 @@
 
 A Relation is a way to link multiple `modelized` entities together.
 
+## Directive
+
+This describe the behavior of the optional `@relation` directive.
+
+```graphql
+directive @relation(
+  """
+  The name of the relation
+  """
+  name: String!
+) on FIELD_DEFINITION
+```
+
+You'll need to use this directive when their are multiple relations to the same
+`Entity` or when you want explicitly relations.
+
 ## What is a relation?
 
 We'll go through every possibility for a relation in Grafbase SDL to see what is
@@ -42,9 +58,6 @@ You defined your schema, and now you want to be able to:
 - Create a new User without any Post attached to it.
 - Create a new User and create a Post attached.
 - Create a new User and link it to a Post already created. (If the Post is already linked to another User, it will fail).
-
-TODO: Error modelization?
-TODO: Check with more complex relations.
 
 ```graphql
 """
