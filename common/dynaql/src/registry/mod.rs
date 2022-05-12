@@ -129,7 +129,7 @@ pub struct MetaInputValue {
 
 impl MetaInputValue {
     /// We should be able to link every variables listed in the registry with the actual request.
-    fn transform_to_variables_resolved<'a>(
+    pub fn transform_to_variables_resolved<'a>(
         &'a self,
         ctx: &'a Context<'a>,
     ) -> ServerResult<(Pos, Value)> {
@@ -296,7 +296,7 @@ impl MetaField {
         match current_resolver_type {
             // When you are resolving a Primitive
             CurrentResolverType::PRIMITIVE => {
-                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
                 let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers
@@ -333,6 +333,31 @@ impl MetaField {
                     .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
             }
             CurrentResolverType::CONTAINER => {
+                // If there is a resolver associated to the container we execute it before
+                // asking to resolve the other fields
+                if let Some(resolvers) = &ctx_obj.resolver_node {
+                    let resolver_ctx = ResolverContext::new(&execution_id);
+                    let value = ResolvedValue::new(serde_json::Value::Null);
+                    let resolved_value = resolvers
+                        .resolve(&ctx, &resolver_ctx, Some(&value))
+                        .await
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
+                    if resolved_value.is_early_returned() {
+                        if self.ty.ends_with('!') {
+                            return Err(ServerError::new(
+                                format!(
+                                    "An error happened while fetching `{}`, a non-nullable value was expected but no value where found.",
+                                    ctx.item.node.name.node
+                                ),
+                                Some(ctx.item.pos),
+                            ));
+                        } else {
+                            return Ok(Value::Null);
+                        }
+                    }
+                }
+
                 let container_type = registry
                     .types
                     .get(&type_to_base_type(&self.ty).ok_or_else(|| {
@@ -364,7 +389,7 @@ impl MetaField {
                         ServerError::new("An internal error happened", Some(ctx.item.pos))
                     })?;
 
-                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
                 let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers

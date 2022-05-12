@@ -11,12 +11,12 @@ use ulid::Ulid;
 
 use super::{
     resolvers::{ResolvedValue, ResolverContext, ResolverTrait},
-    MetaField, MetaType,
+    MetaField, MetaInputValue, MetaType,
 };
 
 /// A path to the current query with resolvers, transformers and associated type.
 /// Reverse linked list used to help us construct the whole resolving flow.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct ResolverChainNode<'a> {
     /// The parent node to this, if there is one.
     pub parent: Option<&'a ResolverChainNode<'a>>,
@@ -43,6 +43,30 @@ pub struct ResolverChainNode<'a> {
 
     /// The current transformers applied to the current resolver, if it exists.
     pub transformers: Option<&'a Vec<Transformer>>,
+
+    /// The current variables on this node
+    pub variables: Option<Vec<(&'a str, &'a MetaInputValue)>>,
+}
+
+impl<'a> ResolverChainNode<'a> {
+    fn get_variable_by_name_internal(&self, name: &str) -> Option<&'a MetaInputValue> {
+        self.variables.as_ref().and_then(|variables| {
+            variables.iter().find_map(|(_, value)| {
+                if name == value.name {
+                    Some(*value)
+                } else {
+                    None
+                }
+            })
+        })
+    }
+
+    /// Get the closest variable with this name
+    pub fn get_variable_by_name(&self, name: &str) -> Option<&'_ MetaInputValue> {
+        std::iter::once(self)
+            .chain(self.parents())
+            .find_map(|x| x.get_variable_by_name_internal(name))
+    }
 }
 
 #[async_trait::async_trait]
@@ -59,6 +83,9 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         // We can create a little quick hack to allow some kind of modelization, we have to check
         // if the execution_id was already requested before.
         let mut final_result = ResolvedValue::new(serde_json::Value::Null);
+
+        #[cfg(feature = "tracing_worker")]
+        logworker::info!("", "{}", &self);
 
         // We must run this if it's not run because some resolvers can have side effect with the
         // actual modelization.

@@ -164,7 +164,11 @@ impl ResolvedPaginationInfo {
 pub struct ResolvedValue {
     /// Data Resolved by the current Resolver
     pub data_resolved: serde_json::Value,
+    /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
+    /// Resolvers can set this value when resolving so the engine will know it's
+    /// not usefull to continue iterating over the ResolverChain.
+    pub early_return_null: bool,
 }
 
 impl ResolvedValue {
@@ -172,12 +176,22 @@ impl ResolvedValue {
         Self {
             data_resolved: value,
             pagination: None,
+            early_return_null: false,
         }
     }
 
     pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
         self.pagination = Some(pagination);
         self
+    }
+
+    pub fn with_early_return(mut self) -> Self {
+        self.early_return_null = true;
+        self
+    }
+
+    pub fn is_early_returned(&self) -> bool {
+        self.early_return_null
     }
 }
 

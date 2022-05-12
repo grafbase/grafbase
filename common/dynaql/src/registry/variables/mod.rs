@@ -5,8 +5,8 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
-use crate::Error;
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
+use crate::{Error, ServerError};
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
 #[non_exhaustive]
@@ -34,29 +34,29 @@ impl VariableResolveDefinition {
         &self,
         ctx: &'a Context<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
-    ) -> Option<Value> {
+    ) -> Result<Option<Value>, ServerError> {
         match self {
-            Self::InputTypeName(name) => {
-                ctx.query_resolvers.iter().rev().find_map(|(_, _, _, x)| {
-                    x.as_ref()
-                        .map(|y| y.iter().find(|(var_name, _)| var_name == name))
-                        .flatten()
-                        .map(|(_, x)| x.clone())
-                })
-            }
+            Self::InputTypeName(name) => Ok(ctx
+                .resolver_node
+                .as_ref()
+                .and_then(|resolver| resolver.get_variable_by_name(name))
+                .map(|x| x.transform_to_variables_resolved(ctx))
+                .transpose()?
+                .map(|(_, x)| x)),
             #[allow(deprecated)]
-            Self::ResolverData(key) => {
-                resolver_data_get_opt_ref::<Value>(&ctx.resolvers_data.read().expect("handle"), key)
-                    .map(std::clone::Clone::clone)
-            }
-            Self::DebugString(inner) => Some(Value::String(inner.clone())),
+            Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
+                &ctx.resolvers_data.read().expect("handle"),
+                key,
+            )
+            .map(std::clone::Clone::clone)),
+            Self::DebugString(inner) => Ok(Some(Value::String(inner.clone()))),
             Self::LocalData(inner) => {
                 let result = last_resolver_value
                     .and_then(|x| x.get(inner))
                     .map(std::borrow::ToOwned::to_owned)
                     .unwrap_or_else(|| serde_json::Value::Null);
 
-                Value::from_json(result).ok()
+                Ok(Value::from_json(result).ok())
             }
         }
     }
@@ -65,10 +65,13 @@ impl VariableResolveDefinition {
         &self,
         ctx: &'a Context<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
-    ) -> Result<String, Error> {
-        match self.param(ctx, last_resolver_value) {
+    ) -> Result<String, ServerError> {
+        match self.param(ctx, last_resolver_value)? {
             Some(Value::String(inner)) => Ok(inner),
-            _ => Err(Error::new("Internal Error: failed to infer key")),
+            _ => {
+                Err(Error::new("Internal Error: failed to infer key")
+                    .into_server_error(ctx.item.pos))
+            }
         }
     }
 
@@ -76,12 +79,15 @@ impl VariableResolveDefinition {
         &self,
         ctx: &'a Context<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
-    ) -> Result<Option<String>, Error> {
-        match self.param(ctx, last_resolver_value) {
+    ) -> Result<Option<String>, ServerError> {
+        match self.param(ctx, last_resolver_value)? {
             Some(Value::String(inner)) => Ok(Some(inner)),
             Some(Value::Null) => Ok(None),
             None => Ok(None),
-            _ => Err(Error::new("Internal Error: failed to infer key")),
+            _ => {
+                Err(Error::new("Internal Error: failed to infer key")
+                    .into_server_error(ctx.item.pos))
+            }
         }
     }
 
@@ -90,8 +96,8 @@ impl VariableResolveDefinition {
         ctx: &'a Context<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
         limit: usize,
-    ) -> Result<Option<usize>, Error> {
-        match self.param(ctx, last_resolver_value) {
+    ) -> Result<Option<usize>, ServerError> {
+        match self.param(ctx, last_resolver_value)? {
             Some(Value::Number(inner)) => {
                 if let Some(val) = inner.as_i64() {
                     if (val as usize) < limit {
@@ -100,15 +106,20 @@ impl VariableResolveDefinition {
                         Err(Error::new(format!(
                             "Limit Error: You must have an integer inferior than {}",
                             limit
-                        )))
+                        ))
+                        .into_server_error(ctx.item.pos))
                     }
                 } else {
-                    Err(Error::new("Internal Error: failed to infer Int"))
+                    Err(Error::new("Internal Error: failed to infer Int")
+                        .into_server_error(ctx.item.pos))
                 }
             }
             Some(Value::Null) => Ok(None),
             None => Ok(None),
-            _ => Err(Error::new("Internal Error: failed to infer key")),
+            _ => {
+                Err(Error::new("Internal Error: failed to infer key")
+                    .into_server_error(ctx.item.pos))
+            }
         }
     }
 }

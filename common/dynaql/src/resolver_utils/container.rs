@@ -334,7 +334,7 @@ impl<'a> Fields<'a> {
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
-                                                resolver_node: ctx_field.resolver_node,
+                                                resolver_node: ctx_field.resolver_node.clone(),
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
@@ -519,7 +519,7 @@ impl<'a> Fields<'a> {
                                         {
                                             let ctx_directive = ContextBase {
                                                 path_node: ctx_field.path_node,
-                                                resolver_node: ctx_field.resolver_node,
+                                                resolver_node: ctx_field.resolver_node.clone(),
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,

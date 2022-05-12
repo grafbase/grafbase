@@ -22,7 +22,7 @@ use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
 use crate::registry::resolver_chain::ResolverChainNode;
-use crate::registry::{get_basic_type, MetaType};
+use crate::registry::{get_basic_type, MetaInputValue, MetaType};
 use crate::registry::{resolvers::Resolver, transformers::Transformer, Registry};
 use crate::schema::SchemaEnv;
 use crate::{
@@ -362,8 +362,10 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> ContextBase<'a, &'a Positioned<Field>> {
         let registry = &self.schema_env.registry;
 
-        let meta = ty
-            .and_then(|x| x.field_by_name(field.node.name.node.as_str()))
+        let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
+
+        let meta = meta_field
+            .clone()
             .map(|x| get_basic_type(x.ty.as_str()))
             .and_then(|x| registry.types.get(x));
 
@@ -376,15 +378,20 @@ impl<'a, T> ContextBase<'a, T> {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
                 ty: meta,
-                field: ty.and_then(|ty| ty.field_by_name(&field.node.name.node)),
-                resolver: ty
-                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
-                    .and_then(|x| x.resolve.as_ref()),
-                transformers: ty
-                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
-                    .and_then(|x| x.transforms.as_ref()),
+                field: meta_field.clone(),
+                resolver: meta_field.clone().and_then(|x| x.resolve.as_ref()),
+                transformers: meta_field.and_then(|x| x.transforms.as_ref()),
                 execution_id: Ulid::new(),
                 selections,
+                variables: {
+                    let a = meta_field.map(|x| {
+                        x.args
+                            .values()
+                            .map(|y| (x.name.as_ref(), y))
+                            .collect::<Vec<(&str, &MetaInputValue)>>()
+                    });
+                    a
+                },
             }),
             item: field,
             schema_env: self.schema_env,
@@ -407,7 +414,7 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: self.path_node,
-            resolver_node: self.resolver_node,
+            resolver_node: self.resolver_node.clone(),
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
@@ -741,6 +748,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 transformers: None,
                 execution_id: Ulid::new(),
                 selections,
+                variables: None,
             }),
             item: self.item,
             schema_env: self.schema_env,
