@@ -248,7 +248,7 @@ pub fn generate(
                                     #do_find
                                 };
                                 let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                                 return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                             }
                         }
@@ -532,7 +532,7 @@ pub fn generate(
                             #resolve_obj
                         };
                         let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                         return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                     }
                 });

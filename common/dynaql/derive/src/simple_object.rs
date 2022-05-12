@@ -235,7 +235,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         self.#ident(ctx).await.map_err(|err| err.into_server_error(ctx.item.pos))
                     };
                     let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
-                    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                    let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                     return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
                 }
             });

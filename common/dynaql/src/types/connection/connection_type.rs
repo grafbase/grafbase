@@ -135,12 +135,12 @@ where
                 start_cursor: self.edges.first().map(|edge| edge.cursor.encode_cursor()),
                 end_cursor: self.edges.last().map(|edge| edge.cursor.encode_cursor()),
             };
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
             return OutputType::resolve(&page_info, &ctx_obj, ctx.item)
                 .await
                 .map(Some);
         } else if ctx.item.node.name.node == "edges" {
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
             return OutputType::resolve(&self.edges, &ctx_obj, ctx.item)
                 .await
                 .map(Some);

@@ -251,8 +251,7 @@ impl<'a> Fields<'a> {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
-                        let ctx_field =
-                            ctx.with_field(field, Some(root), Some(&ctx.item.node), Vec::new());
+                        let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                         let field_name = ctx_field.item.node.response_key().node.clone();
                         let typename = registry.introspection_type_name(root).to_owned();
 
@@ -265,8 +264,7 @@ impl<'a> Fields<'a> {
                     let resolve_fut = Box::pin({
                         let ctx = ctx.clone();
                         async move {
-                            let ctx_field =
-                                ctx.with_field(field, Some(root), Some(&ctx.item.node), Vec::new());
+                            let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
 
@@ -338,7 +336,6 @@ impl<'a> Fields<'a> {
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
-                                                query_resolvers: ctx_field.query_resolvers.clone(),
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                             };
@@ -417,7 +414,7 @@ impl<'a> Fields<'a> {
                         todo!()
                     } else if type_condition.map_or(true, |condition| root.name() == condition) {
                         // The fragment applies to an interface type.
-                        let _ctx = ctx.with_selection_set(selection_set, Vec::new());
+                        let _ctx = ctx.with_selection_set(selection_set);
                         // self.add_set(&ctx, root)?;
                         todo!()
                     }
@@ -439,8 +436,7 @@ impl<'a> Fields<'a> {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
-                        let ctx_field =
-                            ctx.with_field(field, None, Some(&ctx.item.node), Vec::new());
+                        let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
                         let field_name = ctx_field.item.node.response_key().node.clone();
                         let typename = root.introspection_type_name().into_owned();
 
@@ -453,8 +449,7 @@ impl<'a> Fields<'a> {
                     let resolve_fut = Box::pin({
                         let ctx = ctx.clone();
                         async move {
-                            let ctx_field =
-                                ctx.with_field(field, None, Some(&ctx.item.node), Vec::new());
+                            let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
 
@@ -523,7 +518,6 @@ impl<'a> Fields<'a> {
                                                 item: directive,
                                                 schema_env: ctx_field.schema_env,
                                                 query_env: ctx_field.query_env,
-                                                query_resolvers: ctx.query_resolvers.clone(),
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
                                             };
@@ -598,15 +592,12 @@ impl<'a> Fields<'a> {
                     });
                     if applies_concrete_object {
                         root.collect_all_fields_native(
-                            &ctx.with_selection_set(selection_set, Vec::new()),
+                            &ctx.with_selection_set(selection_set),
                             self,
                         )?;
                     } else if type_condition.map_or(true, |condition| T::type_name() == condition) {
                         // The fragment applies to an interface type.
-                        self.add_set_native(
-                            &ctx.with_selection_set(selection_set, Vec::new()),
-                            root,
-                        )?;
+                        self.add_set_native(&ctx.with_selection_set(selection_set), root)?;
                     }
                 }
             }

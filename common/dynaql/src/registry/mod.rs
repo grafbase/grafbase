@@ -274,23 +274,7 @@ impl MetaField {
         let execution_id = Ulid::new();
         let registry = &ctx.schema_env.registry;
 
-        // For every arguments, we should try to have his param value and depending on the native
-        // Scalar, associate him to a primitive.
-        let variables: Option<Vec<(&str, Value)>> = Some(
-            self.args
-                .values()
-                .map(|x| {
-                    x.transform_to_variables_resolved(ctx)
-                        .map(|(_, value)| (x.name.as_ref(), value))
-                })
-                .collect::<Result<Vec<(&str, Value)>, ServerError>>()?,
-        );
-
-        let ctx_obj = ctx.with_selection_set(
-            &ctx.item.node.selection_set,
-            vec![(&execution_id, &self.resolve, &self.transforms, &variables)],
-        );
-
+        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
         let current_resolver_type = CurrentResolverType::new(&self, ctx);
 
         match current_resolver_type {
@@ -691,7 +675,7 @@ impl Registry {
 
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &__Schema::new(&ctx.schema_env.registry, &visible_types),
@@ -702,7 +686,7 @@ impl Registry {
                 .map(Some);
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &ctx.schema_env
