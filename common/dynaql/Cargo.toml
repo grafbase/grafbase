@@ -36,7 +36,7 @@ async-stream = "0.3.0"
 async-trait = "0.1.48"
 derivative = "2.2"
 # dynamodb = { path = "../api/common/dynamodb" }
-dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "158a3d62b3a4fa2be63af5e28ce2e0b86eced00d" }
+dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "ec487f0d5d26ba417559f9ea04a4c40158a0a6ea" }
 dynomite = "0.10"
 fnv = "1.0.7"
 futures-util = { version = "0.3.0", default-features = false, features = ["io", "sink"] }
