@@ -31,8 +31,9 @@ pub use transaction::TxItem;
 pub struct DynamoDBContext {
     // TODO: When going with tracing, remove this trace_id, useless.
     trace_id: String,
-    dynamodb_client: rusoto_dynamodb::DynamoDbClient,
+    pub dynamodb_client: rusoto_dynamodb::DynamoDbClient,
     pub dynamodb_table_name: String,
+    pub closest_region: rusoto_core::Region,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -151,12 +152,13 @@ impl DynamoDBContext {
         );
 
         let http_client = HttpClient::new().expect("failed to create HTTP client");
-        let client = DynamoDbClient::new_with(http_client, provider, closest_region);
+        let client = DynamoDbClient::new_with(http_client, provider, closest_region.clone());
 
         Self {
             trace_id,
             dynamodb_client: client,
             dynamodb_table_name,
+            closest_region,
         }
     }
 
