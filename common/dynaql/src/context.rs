@@ -353,7 +353,6 @@ impl<'a, T> ContextBase<'a, T> {
         let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
 
         let meta = meta_field
-            .clone()
             .map(|x| get_basic_type(x.ty.as_str()))
             .and_then(|x| registry.types.get(x));
 
@@ -366,19 +365,18 @@ impl<'a, T> ContextBase<'a, T> {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
                 ty: meta,
-                field: meta_field.clone(),
-                resolver: meta_field.clone().and_then(|x| x.resolve.as_ref()),
+                field: meta_field,
+                resolver: meta_field.and_then(|x| x.resolve.as_ref()),
                 transformers: meta_field.and_then(|x| x.transforms.as_ref()),
                 execution_id: Ulid::new(),
                 selections,
                 variables: {
-                    let a = meta_field.map(|x| {
+                    meta_field.map(|x| {
                         x.args
                             .values()
                             .map(|y| (x.name.as_ref(), y))
                             .collect::<Vec<(&str, &MetaInputValue)>>()
-                    });
-                    a
+                    })
                 },
             }),
             item: field,

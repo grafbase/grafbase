@@ -347,7 +347,7 @@ impl ResolverTrait for DynamoResolver {
                         .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
                     // If we do not have any value inside our fetch, it's not an
                     // error, it's only we didn't found the value.
-                    if dyna.len() == 0 {
+                    if dyna.is_empty() {
                         return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
                     }
 
