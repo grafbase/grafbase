@@ -331,7 +331,7 @@ impl MetaField {
                         if self.ty.ends_with('!') {
                             return Err(ServerError::new(
                                 format!(
-                                    "An error happened while fetching `{}`, a non-nullable value was expected but no value where found.",
+                                    "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
                                     ctx.item.node.name.node
                                 ),
                                 Some(ctx.item.pos),
