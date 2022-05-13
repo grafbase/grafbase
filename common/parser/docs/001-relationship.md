@@ -33,13 +33,13 @@ type User @model {
   id: ID!
   firstname: String!
   lastname: String!
-  post_published: Post
+  postPublished: Post
 }
 
 type Post @model {
   id: ID!
   content: String!
-  published_by: User
+  publishedBy: User
 }
 ``` 
 
@@ -64,9 +64,9 @@ You defined your schema, and now you want to be able to:
 You can choose between creating a new Post, or linking this user to an existing,
 non-linked post.
 """
-input UserInputPostPublished {
+input UserCreateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 """
@@ -74,42 +74,42 @@ If you choose to create a new Post when you create a new User, as this is an
 `One-to-One` relation, we cannot let you create a User inside the Post for the
 User.
 """
-input UserInputPostPublishedPost {
+input UserCreateInputPostPublished {
   content: String!
 }
 
-input UserInput {
+input UserCreateInput {
   firstname: String!
   lastname: String!
-  post_published: UserInputPostPublished
+  postPublished: UserCreateInputPostPublished
 }
 
-input UsersInput {
-  users: [UsersInput]
+input UserBulkInput {
+  users: [UserBulkInput]
 }
 
-type CreateUserPayload {
+type UserCreatePayload {
   user: User
 }
 
-type CreateUsersPayload {
+type UserBulkCreatePayload {
   users: [User]
 }
 
 type Mutation {
-  createUser(input: UserInput): CreateUserPayload
-  createUsers(input: UsersInput): CreateUsersPayload
+  userCreate(input: UserCreateInput): UserCreatePayload
+  userCreateBulk(input: UserBulkInput): UserBulkCreatePayload
   ...
 }
 ```
 
-#### Connect
+#### Link
 
 ##### Specialized
 
-Imagine you already have an user but you now want to connect it:
+Imagine you already have an user but you now want to link it:
 
-- Connect an existing User to an existing Post.
+- Link an existing User to an existing Post.
 
 If you do not name your relation with `@relation`:
 
@@ -125,12 +125,12 @@ If you add a name to your relation with `@relation`:
 ```graphql
 type User @model {
   ...
-  post_published: Post @relation(name: "publish", connect: "publish")
+  postPublished: Post @relation(name: "publish", link: "publish")
 }
 
 type Post @model {
   ...
-  published_by: User @relation(name: "publish", connect: "publishBy")
+  publishedBy: User @relation(name: "publish", link: "publishBy")
 }
 
 ...
@@ -143,11 +143,11 @@ type Mutation {
 
 ##### Generic
 
-Right now the advantage for the Generic one is it'll allow us to Create & Connect
+Right now the advantage for the Generic one is it'll allow us to Create & Link
 in one query.
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -157,30 +157,30 @@ input UserInputPostPublishedPost {
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: UserUpdateInputPostPublished
+  postPublished: UserUpdateInputPostPublished
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
 
-If you try to connect to an already connected `One-to-One` relation, it'll fail.
+If you try to link to an already linked `One-to-One` relation, it'll fail.
 
-#### Disconnect
+#### Unlink
 
 ##### Specialized
 
-Imagine you already have an user but you now want to disconnect it:
+Imagine you already have an user but you now want to unlink it:
 
-- Disconnect an existing User to an existing Post.
+- Unlink an existing User to an existing Post.
 
 If you do not name your relation with `@relation`:
 
@@ -196,12 +196,12 @@ If you add a name to your relation with `@relation`:
 ```graphql
 type User @model {
   ...
-  post_published: Post @relation(name: "publish", disconnect: "unpublish")
+  postPublished: Post @relation(name: "publish", unlink: "unpublish")
 }
 
 type Post @model {
   ...
-  published_by: User @relation(name: "publish", disconnect: "unpublishBy")
+  publishedBy: User @relation(name: "publish", unlink: "unpublishBy")
 }
 
 ...
@@ -215,7 +215,7 @@ type Mutation {
 ##### Generic
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -225,23 +225,23 @@ input UserInputPostPublishedPost {
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
   """
-  You must specify which Post you want to disconnect from the user.
+  You must specify which Post you want to unlink from the user.
   """
-  disconnect: ID
+  unlink: ID
 }
 
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: UserUpdateInputPostPublished
+  postPublished: UserUpdateInputPostPublished
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
 
-It would be possible to have a disconnect which doesn't need any `ID`.
+It would be possible to have a unlink which doesn't need any `ID`.

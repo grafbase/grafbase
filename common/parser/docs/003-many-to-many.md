@@ -8,17 +8,17 @@ type User @model {
   id: ID!
   firstname: String!
   lastname: String!
-  posts_published: [Post!]
+  postsPublished: [Post!]
 }
 
 type Post @model {
   id: ID!
   content: String!
-  published_by: [User!]!
+  publishedBy: [User!]!
 }
 ``` 
 
-The relation here is represented by the field `pubished_by`. It is what can be
+The relation here is represented by `publishedBy` can be
 called a `Many-to-Many` relationship.
 
 An `User` can only have **MANY** `Post` published, and a `Post` **CAN** be published
@@ -48,7 +48,7 @@ non-linked post.
 """
 input UserInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 input UserInputPostPublishedPost {
@@ -58,36 +58,36 @@ input UserInputPostPublishedPost {
 input UserInput {
   firstname: String!
   lastname: String!
-  post_published: [UserInputPostPublished]
+  postPublished: [UserInputPostPublished]
 }
 
-input UsersInput {
-  users: [UsersInput]
+input UserBulkInput {
+  users: [UserBulkInput]
 }
 
-type CreateUserPayload {
+type UserCreatePayload {
   user: User
 }
 
-type CreateUsersPayload {
+type UserBulkCreatePayload {
   users: [User]
 }
 
 type Mutation {
-  createUser(input: UserInput): CreateUserPayload
-  createUsers(input: UsersInput): CreateUsersPayload
+  userCreate(input: UserInput): UserCreatePayload
+  userCreateBulk(input: UserBulkInput): UserBulkCreatePayload
   ...
 }
 ```
 
-#### Connect
+#### Link
 
 ##### Specialized
 
 ##### Generic
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -98,35 +98,35 @@ input UserInputPostPublishedPost {
 input UserUpdateInput {
   firstname: String!
   lastname: String!
-  post_published: [UserUpdateInputPostPublished]
+  postPublished: [UserUpdateInputPostPublished]
 }
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: [UserUpdateInputPostPublished]
+  postPublished: [UserUpdateInputPostPublished]
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
 
-#### Disconnect
+#### Unlink
 
-When you want to disconnect a `Post` from a `User` it means we will be removing
+When you want to unlink a `Post` from a `User` it means we will be removing
 the link between a `User` to a `Post` but also the link from the `Post` to the
 `User`.
 
 ##### Generic
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -137,25 +137,25 @@ input UserInputPostPublishedPost {
 input UserUpdateInput {
   firstname: String!
   lastname: String!
-  post_published: [UserUpdateInputPostPublished]
+  postPublished: [UserUpdateInputPostPublished]
 }
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
   """
-  You must specify which Post you want to disconnect from the user.
+  You must specify which Post you want to unlink from the user.
   """
-  disconnect: ID
+  unlink: ID
 }
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: [UserUpdateInputPostPublished]
+  postPublished: [UserUpdateInputPostPublished]
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```

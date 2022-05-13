@@ -8,7 +8,7 @@ type User @model {
   id: ID!
   firstname: String!
   lastname: String!
-  posts_published: [Post]
+  postsPublished: [Post]
 }
 
 type Post @model {
@@ -17,7 +17,7 @@ type Post @model {
   """
   Here the user is **MANDATORY**.
   """
-  published_by: User!
+  publishedBy: User!
 }
 ``` 
 
@@ -27,7 +27,7 @@ called a `One-to-Many` relationship.
 An `User` can only have **MANY** `Post` published, and a `Post` **MUST** be published
 by **ONE** `User`.
 
-So what happens when you disconnect an User from the Post?
+So what happens when you unlink an User from the Post?
 
 ## Generated Queries
 
@@ -55,7 +55,7 @@ non-linked post.
 """
 input UserInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 input UserInputPostPublishedPost {
@@ -65,31 +65,31 @@ input UserInputPostPublishedPost {
 input UserInput {
   firstname: String!
   lastname: String!
-  post_published: [UserInputPostPublished]
+  postsPublished: [UserInputPostPublished]
 }
 
-input UsersInput {
-  users: [UsersInput]
+input UserBulkInput {
+  users: [UserInput]
 }
 
-type CreateUserPayload {
+type UserCreatePayload {
   user: User
 }
 
-type CreateUsersPayload {
+type UserBulkCreatePayload {
   users: [User]
 }
 
 type Mutation {
-  createUser(input: UserInput): CreateUserPayload
-  createUsers(input: UsersInput): CreateUsersPayload
+  userCreate(input: UserInput): UserCreatePayload
+  userCreateBulk(input: UserBulkInput): UserBulkCreatePayload
   ...
 }
 ```
 
 #### Post
 
-For the Post, we have the `published_by` which is generated a little different.
+For the Post, we have the `publishedBy` which is generated a little different.
 
 ```graphql
 """
@@ -104,42 +104,42 @@ input PostInputUserPublishedByUser {
 
 input PostInputUserPublishedBy {
   create: PostInputUserPublishedByUser 
-  connect: ID
+  link: ID
 }
 
 input PostInput {
   content: String!
-  published_by: PostInputUserPublishedBy!
+  publishedBy: PostInputUserPublishedBy!
 }
 
-input PostsInput {
+input PostBulkInput {
   users: [PostInput]
 }
 
-type CreatePostPayload {
+type PostCreatePayload {
   post: Post
 }
 
-type CreatePostsPayload {
+type PostBulkCreatePayload {
   posts: [Post]
 }
 
 type Mutation {
-  createPost(input: PostInput): CreatePostPayload
-  createPosts(input: PostsInput): CreatePostsPayload
+  postCreate(input: PostInput): PostCreatePayload
+  postCreateBulk(input: PostBulkInput): PostBulkCreatePayload
   ...
 }
 ```
 
-#### Connect
+#### Link
 
 ##### Specialized
 
-Imagine you already have an user but you now want to connect it, it won't happen
+Imagine you already have an user but you now want to link it, it won't happen
 as this relation is mandatory for `Post`, so a `Post` can't exist without being
-connected.
+linked.
 
-So it means the previous connect specialized queries can't exist as a `Post` just
+So it means the previous link specialized queries can't exist as a `Post` just
 can't exist without being linked.
 
 And it would be the same for any specialized relations ship.
@@ -147,7 +147,7 @@ And it would be the same for any specialized relations ship.
 ##### Generic
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -158,31 +158,31 @@ input UserInputPostPublishedPost {
 input UserUpdateInput {
   firstname: String!
   lastname: String!
-  post_published: [UserUpdateInputPostPublished]
+  postsPublished: [UserUpdateInputPostPublished]
 }
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
 }
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: UserUpdateInputPostPublished
+  postsPublished: UserUpdateInputPostPublished
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
 
-When you connect `User` to `Post` it will fail as a Post is already linked to an
+When you link `User` to `Post` it will fail as a Post is already linked to an
 user and a `Post` can only have one `User`.
 
-#### Disconnect
+#### Unlink
 
-When you want to disconnect a `Post` from a `User` it means we will be removing
+When you want to unlink a `Post` from a `User` it means we will be removing
 the link between a `User` to a `Post` but also the link from the `Post` to the
 `User`.
 
@@ -191,7 +191,7 @@ The data stored would be **NON-COMPLIANT** to the defined schema if we would all
 So when the `User` would be fetched from the `Post` we would bubble up an error.
 
 What we could do instead:
-  - Erroring out when we disconnect without connecting it again to another `User`
+  - Erroring out when we unlink without linking it again to another `User`
   - Removing the `Post` but it would also means we would have side-effect on other
   entities linked to that `Post`.
 
@@ -205,7 +205,7 @@ What we could do instead:
 ##### Generic
 
 ```graphql
-type UpdateUserPayload {
+type UserUpdatePayload {
   user: User
 }
 
@@ -216,26 +216,26 @@ input UserInputPostPublishedPost {
 input UserUpdateInput {
   firstname: String!
   lastname: String!
-  post_published: [UserUpdateInputPostPublished]
+  postsPublished: [UserUpdateInputPostPublished]
 }
 
 input UserUpdateInputPostPublished {
   create: UserInputPostPublishedPost
-  connect: ID
+  link: ID
   """
-  You must specify which Post you want to disconnect from the user.
+  You must specify which Post you want to unlink from the user.
   """
-  disconnect: ID
+  unlink: ID
 }
 
 input UserUpdateInput {
   firstname: String
   lastname: String
-  post_published: UserUpdateInputPostPublished
+  postsPublished: UserUpdateInputPostPublished
 }
 
 type Mutation {
-  updateUser(input: UserUpdateInput): UpdateUserPayload
+  userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
 
