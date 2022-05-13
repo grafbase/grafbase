@@ -7,6 +7,7 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
+use async_graphql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -24,7 +25,7 @@ use crate::{
 };
 pub use cache_control::CacheControl;
 
-use self::resolvers::{Resolver, ResolverContext, ResolverTrait};
+use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
@@ -131,12 +132,14 @@ impl MetaInputValue {
     fn transform_to_variables_resolved<'a>(
         &'a self,
         ctx: &'a Context<'a>,
-    ) -> Option<(&'a str, Value)> {
+    ) -> ServerResult<(Pos, Value)> {
         let variable = match self.ty.as_ref() {
             "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, None),
             "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
             "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
             "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
+            "Int" => ctx.param_value_dynamic::<Option<i64>>(&self.name, None),
+            "Int!" => ctx.param_value_dynamic::<i64>(&self.name, None),
             _ => ctx.param_value_dynamic_unchecked(&self.name, None),
         };
 
@@ -202,9 +205,8 @@ pub struct MetaField {
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
-    /// Define if the current field is an edge of an existing Node, and if it's an edge, got the
-    /// Node name.
-    pub is_edge: Option<String>,
+    /// Define the actual edges of this struct. It'll be used to optimize fetch
+    pub edges: Vec<String>,
     pub resolve: Option<Resolver>,
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
@@ -274,11 +276,14 @@ impl MetaField {
 
         // For every arguments, we should try to have his param value and depending on the native
         // Scalar, associate him to a primitive.
-        let variables = Some(
+        let variables: Option<Vec<(&str, Value)>> = Some(
             self.args
                 .values()
-                .map(|x| x.transform_to_variables_resolved(ctx).expect("We must be able to transform any types into transformed variable, if we aren't some primitives aren't managed"))
-                .collect(),
+                .map(|x| {
+                    x.transform_to_variables_resolved(ctx)
+                        .map(|(_, value)| (x.name.as_ref(), value))
+                })
+                .collect::<Result<Vec<(&str, Value)>, ServerError>>()?,
         );
 
         let ctx_obj = ctx.with_selection_set(
@@ -292,14 +297,17 @@ impl MetaField {
             // When you are resolving a Primitive
             CurrentResolverType::PRIMITIVE => {
                 let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolver_ctx = ResolverContext::new(&execution_id);
+                let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers
-                    .resolve(&ctx, &ResolverContext::new(&execution_id), None)
+                    .resolve(&ctx, &resolver_ctx, Some(&value))
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
                 let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.ends_with('!') && result == serde_json::Value::Null {
+                        if self.ty.ends_with('!') && result.data_resolved == serde_json::Value::Null
+                        {
                             Err(ServerError::new(
                                 format!(
                                     "An error happened while fetching {:?}",
@@ -308,7 +316,7 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ))
                         } else {
-                            Ok(result)
+                            Ok(result.data_resolved)
                         }
                     }
                     Err(err) => {
@@ -319,9 +327,9 @@ impl MetaField {
                             Ok(serde_json::Value::Null)
                         }
                     }
-                };
+                }?;
 
-                Value::from_json(result?)
+                Value::from_json(result)
                     .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
             }
             CurrentResolverType::CONTAINER => {
@@ -357,18 +365,18 @@ impl MetaField {
                     })?;
 
                 let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolver_ctx = ResolverContext::new(&execution_id);
+                let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers
-                    .resolve(&ctx, &ResolverContext::new(&execution_id), None)
+                    .resolve(&ctx, &resolver_ctx, Some(&value))
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
-                let resolved_value = match resolved_value? {
-                    serde_json::Value::Null => Vec::new(),
-                    serde_json::Value::Array(arr) => arr,
+                let len = match resolved_value?.data_resolved {
+                    serde_json::Value::Null => 0,
+                    serde_json::Value::Array(arr) => arr.len(),
                     _ => panic!(),
                 };
-
-                let len = resolved_value.len();
 
                 match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
                     result @ Ok(_) => result,
@@ -407,14 +415,15 @@ impl MetaType {
     /// Get the edges of a current type.
     /// The edges are only for the top level.
     /// If one of the edge is a node with edges, those won't appear here.
-    pub fn edges<'a>(&'a self) -> HashMap<&'a str, Edge<'a>> {
-        let mut result: HashMap<&'a str, Edge<'a>> = HashMap::new();
+    pub fn edges<'a>(&'a self) -> HashMap<&'a str, Vec<Edge<'a>>> {
+        let mut result: HashMap<&'a str, Vec<Edge<'a>>> = HashMap::new();
 
         if let MetaType::Object { fields, .. } = self {
             for (field, ty) in fields {
-                ty.is_edge
-                    .as_ref()
-                    .map(|x| result.insert(field.as_str(), Edge(x.as_str())));
+                if !ty.edges.is_empty() {
+                    let edges: Vec<Edge<'a>> = ty.edges.iter().map(|x| Edge(x.as_str())).collect();
+                    result.insert(field.as_str(), edges);
+                }
             }
         };
 
@@ -911,7 +920,7 @@ impl Registry {
                         requires: None,
                         provides: None,
                         visible: None,
-                        is_edge: None,
+                        edges: Vec::new(),
                         compute_complexity: None,
                         resolve: None,
                         transforms: None,
@@ -943,7 +952,7 @@ impl Registry {
                         cache_control: Default::default(),
                         external: false,
                         requires: None,
-                        is_edge: None,
+                        edges: Vec::new(),
                         provides: None,
                         visible: None,
                         compute_complexity: None,
@@ -979,7 +988,7 @@ impl Registry {
                             provides: None,
                             visible: None,
                             compute_complexity: None,
-                            is_edge: None,
+                            edges: Vec::new(),
                             resolve: None,
                             transforms: None,
                         },

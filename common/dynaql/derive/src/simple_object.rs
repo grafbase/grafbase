@@ -169,7 +169,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: ::std::option::Option::None,
-                    is_edge: None,
+                    edges: Vec::new(),
                     resolve: None,
                     transforms: None,
                 });

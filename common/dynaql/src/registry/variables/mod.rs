@@ -5,6 +5,7 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
+use crate::Error;
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
@@ -57,6 +58,57 @@ impl VariableResolveDefinition {
 
                 Value::from_json(result).ok()
             }
+        }
+    }
+
+    pub fn expect_string<'a>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+    ) -> Result<String, Error> {
+        match self.param(ctx, last_resolver_value) {
+            Some(Value::String(inner)) => Ok(inner),
+            _ => Err(Error::new("Internal Error: failed to infer key")),
+        }
+    }
+
+    pub fn expect_opt_string<'a>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+    ) -> Result<Option<String>, Error> {
+        match self.param(ctx, last_resolver_value) {
+            Some(Value::String(inner)) => Ok(Some(inner)),
+            Some(Value::Null) => Ok(None),
+            None => Ok(None),
+            _ => Err(Error::new("Internal Error: failed to infer key")),
+        }
+    }
+
+    pub fn expect_opt_int<'a>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+        limit: usize,
+    ) -> Result<Option<usize>, Error> {
+        match self.param(ctx, last_resolver_value) {
+            Some(Value::Number(inner)) => {
+                if let Some(val) = inner.as_i64() {
+                    if (val as usize) < limit {
+                        Ok(Some(val as usize))
+                    } else {
+                        Err(Error::new(format!(
+                            "Limit Error: You must have an integer inferior than {}",
+                            limit
+                        )))
+                    }
+                } else {
+                    Err(Error::new("Internal Error: failed to infer Int"))
+                }
+            }
+            Some(Value::Null) => Ok(None),
+            None => Ok(None),
+            _ => Err(Error::new("Internal Error: failed to infer key")),
         }
     }
 }

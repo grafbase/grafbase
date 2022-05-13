@@ -10,12 +10,12 @@
 //! A Resolver always know how to apply the associated transformers.
 
 use self::debug::DebugResolver;
-
 use crate::{Context, Error};
 use async_graphql_parser::types::SelectionSet;
 use context_data::ContextDataResolver;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
+use dynamodb::PaginatedCursor;
 use ulid::Ulid;
 
 use super::{MetaField, MetaType};
@@ -89,14 +89,106 @@ impl<'a> ResolverContext<'a> {
     }
 }
 
+#[derive(Debug)]
+pub enum ResolvedPaginationDirection {
+    Forward,
+    Backward,
+}
+
+impl ResolvedPaginationDirection {
+    pub fn from_paginated_cursor(cursor: &PaginatedCursor) -> Self {
+        match cursor {
+            PaginatedCursor::Forward { .. } => Self::Forward,
+            PaginatedCursor::Backward { .. } => Self::Backward,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ResolvedPaginationInfo {
+    pub direction: ResolvedPaginationDirection,
+    pub end_cursor: Option<String>,
+    pub start_cursor: Option<String>,
+    pub more_data: bool,
+}
+
+impl ResolvedPaginationInfo {
+    pub fn new(direction: ResolvedPaginationDirection) -> Self {
+        Self {
+            direction,
+            end_cursor: None,
+            start_cursor: None,
+            more_data: false,
+        }
+    }
+
+    pub fn with_start(mut self, start_cursor: Option<String>) -> Self {
+        self.start_cursor = start_cursor;
+        self
+    }
+
+    pub fn with_end(mut self, end_cursor: Option<String>) -> Self {
+        self.end_cursor = end_cursor;
+        self
+    }
+
+    pub fn with_more_data(mut self, data: bool) -> Self {
+        self.more_data = data;
+        self
+    }
+
+    pub fn output(&self) -> serde_json::Value {
+        let has_next_page = matches!(
+            (&self.direction, self.more_data),
+            (&ResolvedPaginationDirection::Forward, true)
+        );
+
+        let has_previous_page = matches!(
+            (&self.direction, self.more_data),
+            (&ResolvedPaginationDirection::Backward, true)
+        );
+
+        serde_json::json!({
+            "has_next_page": has_next_page,
+            "has_previous_page": has_previous_page,
+            "start_cursor": self.start_cursor,
+            "end_cursor": self.end_cursor,
+        })
+    }
+}
+
+/// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
+/// but will also contain other informations wich may be use later by custom resolvers, like for
+/// example Pagination Details.
+#[derive(Debug)]
+pub struct ResolvedValue {
+    /// Data Resolved by the current Resolver
+    pub data_resolved: serde_json::Value,
+    pub pagination: Option<ResolvedPaginationInfo>,
+}
+
+impl ResolvedValue {
+    pub fn new(value: serde_json::Value) -> Self {
+        Self {
+            data_resolved: value,
+            pagination: None,
+        }
+    }
+
+    pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
+        self.pagination = Some(pagination);
+        self
+    }
+}
+
 #[async_trait::async_trait]
 pub trait ResolverTrait: Sync {
     async fn resolve(
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error>;
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error>;
 }
 
 #[async_trait::async_trait]
@@ -113,8 +205,8 @@ impl ResolverTrait for Resolver {
         &self,
         ctx: &Context<'_>,
         resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<serde_json::Value, Error> {
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
         match &self.r#type {
             ResolverType::DebugResolver(debug) => {
                 debug.resolve(ctx, resolver_ctx, last_resolver_value).await

@@ -279,7 +279,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 provides: #provides,
                 requires: #requires,
                 visible: #visible,
-                is_edge: None,
+                edges: Vec::new(),
                 compute_complexity: ::std::option::Option::None,
                 resolve: ::std::option::Option::None,
                 transforms: ::std::option::Option::None,
