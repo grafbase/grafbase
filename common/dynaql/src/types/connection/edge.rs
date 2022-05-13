@@ -48,7 +48,7 @@ where
 {
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
         if ctx.item.node.name.node == "node" {
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
             return OutputType::resolve(&self.node, &ctx_obj, ctx.item)
                 .await
                 .map(Some);

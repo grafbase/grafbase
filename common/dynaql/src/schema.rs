@@ -566,7 +566,6 @@ impl Schema {
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
-            query_resolvers: Vec::new(),
             resolvers_cache: Default::default(),
             resolvers_data: Default::default(),
         };

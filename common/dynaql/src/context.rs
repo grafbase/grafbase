@@ -22,8 +22,8 @@ use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
 use crate::registry::resolver_chain::ResolverChainNode;
-use crate::registry::{get_basic_type, MetaType};
-use crate::registry::{resolvers::Resolver, transformers::Transformer, Registry};
+use crate::registry::Registry;
+use crate::registry::{get_basic_type, MetaInputValue, MetaType};
 use crate::schema::SchemaEnv;
 use crate::{
     Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
@@ -248,9 +248,6 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     pub resolvers_cache: ResolverCacheType,
     #[doc(hidden)]
-    /// Ordered list of the resolvers + transformer for a value.
-    pub query_resolvers: ResolverChanges<'a>,
-    #[doc(hidden)]
     /// Every Resolvers are able to store a Value inside this cache
     pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
 }
@@ -302,7 +299,6 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
-            query_resolvers: Vec::new(),
             resolvers_cache: Default::default(),
             resolvers_data: Default::default(),
         }
@@ -344,13 +340,6 @@ impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
     }
 }
 
-type ResolverChanges<'a> = Vec<(
-    &'a Ulid,
-    &'a Option<Resolver>,
-    &'a Option<Vec<Transformer>>,
-    &'a Option<Vec<(&'a str, Value)>>,
-)>;
-
 impl<'a, T> ContextBase<'a, T> {
     /// We add a new field with the Context with the proper execution_id generated.
     pub fn with_field(
@@ -358,12 +347,12 @@ impl<'a, T> ContextBase<'a, T> {
         field: &'a Positioned<Field>,
         ty: Option<&'a MetaType>,
         selections: Option<&'a SelectionSet>,
-        mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<Field>> {
         let registry = &self.schema_env.registry;
 
-        let meta = ty
-            .and_then(|x| x.field_by_name(field.node.name.node.as_str()))
+        let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
+
+        let meta = meta_field
             .map(|x| get_basic_type(x.ty.as_str()))
             .and_then(|x| registry.types.get(x));
 
@@ -376,24 +365,23 @@ impl<'a, T> ContextBase<'a, T> {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
                 ty: meta,
-                field: ty.and_then(|ty| ty.field_by_name(&field.node.name.node)),
-                resolver: ty
-                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
-                    .and_then(|x| x.resolve.as_ref()),
-                transformers: ty
-                    .and_then(|ty| ty.field_by_name(&field.node.name.node))
-                    .and_then(|x| x.transforms.as_ref()),
+                field: meta_field,
+                resolver: meta_field.and_then(|x| x.resolve.as_ref()),
+                transformers: meta_field.and_then(|x| x.transforms.as_ref()),
                 execution_id: Ulid::new(),
                 selections,
+                variables: {
+                    meta_field.map(|x| {
+                        x.args
+                            .values()
+                            .map(|y| (x.name.as_ref(), y))
+                            .collect::<Vec<(&str, &MetaInputValue)>>()
+                    })
+                },
             }),
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            query_resolvers: {
-                let mut q = self.query_resolvers.clone();
-                q.append(&mut resolve);
-                q
-            },
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
         }
@@ -403,37 +391,13 @@ impl<'a, T> ContextBase<'a, T> {
     pub fn with_selection_set(
         &self,
         selection_set: &'a Positioned<SelectionSet>,
-        mut resolve: ResolverChanges<'a>,
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: self.path_node,
-            resolver_node: self.resolver_node,
+            resolver_node: self.resolver_node.clone(),
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            query_resolvers: {
-                let mut q = self.query_resolvers.clone();
-                q.append(&mut resolve);
-                q
-            },
-            resolvers_cache: self.resolvers_cache.clone(),
-            resolvers_data: self.resolvers_data.clone(),
-        }
-    }
-
-    #[doc(hidden)]
-    pub fn add_resolvers(self, mut resolve: ResolverChanges<'a>) -> Self {
-        ContextBase {
-            path_node: self.path_node,
-            resolver_node: self.resolver_node,
-            item: self.item,
-            schema_env: self.schema_env,
-            query_env: self.query_env,
-            query_resolvers: {
-                let mut q = self.query_resolvers.clone();
-                q.append(&mut resolve);
-                q
-            },
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
         }
@@ -741,11 +705,11 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 transformers: None,
                 execution_id: Ulid::new(),
                 selections,
+                variables: None,
             }),
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
-            query_resolvers: self.query_resolvers.clone(),
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
         }

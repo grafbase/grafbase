@@ -26,7 +26,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
 
                 return OutputType::resolve(
@@ -38,7 +38,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 .map(Some);
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &ctx.schema_env
@@ -68,7 +68,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                 .await?;
                 return Ok(Some(Value::List(res)));
             } else if ctx.item.node.name.node == "_service" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 return OutputType::resolve(
                     &Service {
                         sdl: Some(ctx.schema_env.registry.export_sdl(true)),
@@ -82,6 +82,42 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         }
 
         self.inner.resolve_field(ctx).await
+    }
+
+    fn is_empty() -> bool {
+        false
+    }
+
+    fn collect_all_fields_native<'a>(
+        &'a self,
+        ctx: &ContextSelectionSet<'a>,
+        fields: &mut crate::resolver_utils::Fields<'a>,
+    ) -> ServerResult<()>
+    where
+        Self: Send + Sync,
+    {
+        fields.add_set_native(ctx, self)
+    }
+
+    fn collect_all_fields<'a>(
+        &'a self,
+        ctx: &'a ContextSelectionSet<'a>,
+        fields: &mut crate::resolver_utils::Fields<'a>,
+    ) -> ServerResult<()>
+    where
+        Self: Send + Sync,
+    {
+        fields.add_set(
+            ctx,
+            ctx.registry()
+                .types
+                .get(Self::type_name().as_ref())
+                .unwrap(),
+        )
+    }
+
+    async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
+        Ok(None)
     }
 }
 

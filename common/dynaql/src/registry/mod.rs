@@ -129,7 +129,7 @@ pub struct MetaInputValue {
 
 impl MetaInputValue {
     /// We should be able to link every variables listed in the registry with the actual request.
-    fn transform_to_variables_resolved<'a>(
+    pub fn transform_to_variables_resolved<'a>(
         &'a self,
         ctx: &'a Context<'a>,
     ) -> ServerResult<(Pos, Value)> {
@@ -274,29 +274,13 @@ impl MetaField {
         let execution_id = Ulid::new();
         let registry = &ctx.schema_env.registry;
 
-        // For every arguments, we should try to have his param value and depending on the native
-        // Scalar, associate him to a primitive.
-        let variables: Option<Vec<(&str, Value)>> = Some(
-            self.args
-                .values()
-                .map(|x| {
-                    x.transform_to_variables_resolved(ctx)
-                        .map(|(_, value)| (x.name.as_ref(), value))
-                })
-                .collect::<Result<Vec<(&str, Value)>, ServerError>>()?,
-        );
-
-        let ctx_obj = ctx.with_selection_set(
-            &ctx.item.node.selection_set,
-            vec![(&execution_id, &self.resolve, &self.transforms, &variables)],
-        );
-
+        let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
         let current_resolver_type = CurrentResolverType::new(&self, ctx);
 
         match current_resolver_type {
             // When you are resolving a Primitive
             CurrentResolverType::PRIMITIVE => {
-                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
                 let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers
@@ -333,6 +317,31 @@ impl MetaField {
                     .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
             }
             CurrentResolverType::CONTAINER => {
+                // If there is a resolver associated to the container we execute it before
+                // asking to resolve the other fields
+                if let Some(resolvers) = &ctx_obj.resolver_node {
+                    let resolver_ctx = ResolverContext::new(&execution_id);
+                    let value = ResolvedValue::new(serde_json::Value::Null);
+                    let resolved_value = resolvers
+                        .resolve(&ctx, &resolver_ctx, Some(&value))
+                        .await
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
+                    if resolved_value.is_early_returned() {
+                        if self.ty.ends_with('!') {
+                            return Err(ServerError::new(
+                                format!(
+                                    "An error occured while fetching `{}`, a non-nullable value was expected but no value was found.",
+                                    ctx.item.node.name.node
+                                ),
+                                Some(ctx.item.pos),
+                            ));
+                        } else {
+                            return Ok(Value::Null);
+                        }
+                    }
+                }
+
                 let container_type = registry
                     .types
                     .get(&type_to_base_type(&self.ty).ok_or_else(|| {
@@ -364,7 +373,7 @@ impl MetaField {
                         ServerError::new("An internal error happened", Some(ctx.item.pos))
                     })?;
 
-                let resolvers = ctx_obj.resolver_node.expect("shouldn't be null");
+                let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
                 let value = ResolvedValue::new(serde_json::Value::Null);
                 let resolved_value = resolvers
@@ -666,7 +675,7 @@ impl Registry {
 
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &__Schema::new(&ctx.schema_env.registry, &visible_types),
@@ -677,7 +686,7 @@ impl Registry {
                 .map(Some);
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, Vec::new());
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
                 return OutputType::resolve(
                     &ctx.schema_env

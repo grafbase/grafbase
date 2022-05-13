@@ -295,7 +295,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         resolvers.push(quote! {
             if ctx.item.node.name.node == #name {
                 #(#get_params)*
-                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set, vec![]);
+                let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 return #crate_name::OutputType::resolve(&#resolve_obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
             }
         });

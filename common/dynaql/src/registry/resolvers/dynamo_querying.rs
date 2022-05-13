@@ -248,7 +248,7 @@ impl ResolverTrait for DynamoResolver {
             }
             DynamoResolver::ListResultByType { r#type } => {
                 let pk = match r#type
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
                 {
                     Value::String(inner) => inner,
@@ -321,7 +321,7 @@ impl ResolverTrait for DynamoResolver {
             }
             DynamoResolver::QueryPKSK { pk, sk } => {
                 let pk = match pk
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
                 {
                     Value::String(inner) => inner,
@@ -331,7 +331,7 @@ impl ResolverTrait for DynamoResolver {
                 };
 
                 let sk = match sk
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
                 {
                     Value::String(inner) => inner,
@@ -345,6 +345,11 @@ impl ResolverTrait for DynamoResolver {
                         .load_one((pk.clone(), sk))
                         .await?
                         .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
+                    // If we do not have any value inside our fetch, it's not an
+                    // error, it's only we didn't found the value.
+                    if dyna.is_empty() {
+                        return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
+                    }
 
                     let value =
                         serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
@@ -380,6 +385,13 @@ impl ResolverTrait for DynamoResolver {
                     })?;
 
                 let len = query_result.len();
+
+                // If we do not have any value inside our fetch, it's not an
+                // error, it's only we didn't found the value.
+                if len == 0 {
+                    return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
+                }
+
                 let result: Map<String, serde_json::Value> =
                     query_result
                         .into_iter()
