@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 77
+assertion_line: 79
 expression: sdl
 ---
 type Mutation {
@@ -13,6 +13,12 @@ type Mutation {
 	"""
 	productDelete(id: ID!): ProductDeletePayload
 }
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
 type Product {
 	id: ID!
 	name: String!
@@ -20,6 +26,13 @@ type Product {
 	The product's price in $
 	"""
 	price: Int!
+}
+type ProductConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [ProductEdge]
 }
 """
 Input to create a new Product
@@ -37,6 +50,10 @@ type ProductCreatePayload {
 type ProductDeletePayload {
 	deletedId: ID!
 }
+type ProductEdge {
+	node: Product!
+	cursor: String!
+}
 type Query {
 	"""
 	Get a Product by ID
@@ -45,7 +62,7 @@ type Query {
 	"""
 	Unpaginated query to fetch the whole list of `Product`.
 	"""
-	productCollection: [Product]
+	productCollection(after: String, before: String, first: Int, last: Int): ProductConnection
 }
 schema {
 	query: Query

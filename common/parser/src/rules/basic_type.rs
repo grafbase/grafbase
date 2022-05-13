@@ -49,7 +49,7 @@ impl<'a> Visitor<'a> for BasicType {
                                 visible: None,
                                 compute_complexity: None,
                                 resolve: None,
-                                is_edge: None,
+                                edges: Vec::new(),
                                 transforms: Some(vec![Transformer::JSONSelect {
                                     property: name,
                                     functions: Vec::new(),

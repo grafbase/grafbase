@@ -3,9 +3,9 @@ use crate::utils::to_input_type;
 use async_graphql::indexmap::IndexMap;
 use async_graphql::registry::transformers::Transformer;
 use async_graphql::registry::{
-    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
-    resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
-    MetaType,
+    resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
+    resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
+    variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
 use async_graphql_parser::types::{FieldDefinition, ObjectType};
 use case::CaseExt;
@@ -48,6 +48,359 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
     );
 
     input_type
+}
+
+/// Add a query to list a Collection with Relay specification and pagination
+///
+/// ```graphql
+/// type Query {
+///   entityCollection(first: Int, last: Int, after: String, before: String): EntityCollection
+/// }
+/// ```
+pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, connection_edges: Vec<String>) {
+    // Edge
+    let edge = format!("{}Edge", type_name.to_camel());
+    ctx.registry.get_mut().create_type(
+        &mut |_| MetaType::Object {
+            name: edge.clone(),
+            description: None,
+            fields: {
+                let mut fields = IndexMap::new();
+                let name = "node".to_string();
+                let cursor = "cursor".to_string();
+                fields.insert(
+                    name.clone(),
+                    MetaField {
+                        name,
+                        description: None,
+                        args: Default::default(),
+                        ty: format!("{}!", type_name.to_camel()),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: None,
+                        transforms: None,
+                    },
+                );
+                fields.insert(
+                    cursor.clone(),
+                    MetaField {
+                        name: cursor,
+                        description: None,
+                        args: Default::default(),
+                        ty: "String!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                key: type_name.to_string(),
+                            }),
+                        }),
+                        transforms: Some(vec![Transformer::DynamoSelect {
+                            property: "__pk".to_string(),
+                        }]),
+                    },
+                );
+                fields
+            },
+            cache_control: async_graphql::CacheControl {
+                public: true,
+                max_age: 0usize,
+            },
+            extends: false,
+            keys: None,
+            visible: None,
+            is_subscription: false,
+            is_node: false,
+            rust_typename: edge.clone(),
+        },
+        &edge,
+        &edge,
+    );
+
+    // PageInfo
+    let page_info = "PageInfo";
+    ctx.registry.get_mut().create_type(
+        &mut |_| MetaType::Object {
+            name: page_info.to_string(),
+            description: None,
+            fields: {
+                let mut fields = IndexMap::new();
+                let previous_page = "hasPreviousPage".to_string();
+                let next_page = "hasNextPage".to_string();
+                let start_cursor = "startCursor".to_string();
+                let end_cursor = "endCursor".to_string();
+
+                fields.insert(
+                    previous_page.clone(),
+                    MetaField {
+                        name: previous_page,
+                        description: None,
+                        args: Default::default(),
+                        ty: "Boolean!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
+                        }),
+                        transforms: Some(vec![Transformer::JSONSelect {
+                            property: "has_previous_page".to_string(),
+                            functions: vec![],
+                        }]),
+                    },
+                );
+                fields.insert(
+                    next_page.clone(),
+                    MetaField {
+                        name: next_page,
+                        description: None,
+                        args: Default::default(),
+                        ty: "Boolean!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
+                        }),
+                        transforms: Some(vec![Transformer::JSONSelect {
+                            property: "has_next_page".to_string(),
+                            functions: vec![],
+                        }]),
+                    },
+                );
+                fields.insert(
+                    start_cursor.clone(),
+                    MetaField {
+                        name: start_cursor,
+                        description: None,
+                        args: Default::default(),
+                        ty: "String".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
+                        }),
+                        transforms: Some(vec![Transformer::JSONSelect {
+                            property: "start_cursor".to_string(),
+                            functions: vec![],
+                        }]),
+                    },
+                );
+                fields.insert(
+                    end_cursor.clone(),
+                    MetaField {
+                        name: end_cursor,
+                        description: None,
+                        args: Default::default(),
+                        ty: "String".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
+                        }),
+                        transforms: Some(vec![Transformer::JSONSelect {
+                            property: "end_cursor".to_string(),
+                            functions: vec![],
+                        }]),
+                    },
+                );
+                fields
+            },
+            cache_control: async_graphql::CacheControl {
+                public: true,
+                max_age: 0usize,
+            },
+            extends: false,
+            keys: None,
+            visible: None,
+            is_subscription: false,
+            is_node: false,
+            rust_typename: page_info.to_string(),
+        },
+        page_info,
+        page_info,
+    );
+
+    // Connection
+    let connection = format!("{}Connection", type_name.to_camel());
+    ctx.registry.get_mut().create_type(
+        &mut |_| MetaType::Object {
+            name: connection.clone(),
+            description: None,
+            fields: {
+                let mut fields = IndexMap::new();
+                let page_info = "pageInfo".to_string();
+                let edges = "edges".to_string();
+                fields.insert(
+                    page_info.clone(),
+                    MetaField {
+                        name: page_info,
+                        description: Some("Information to aid in pagination".to_string()),
+                        args: Default::default(),
+                        ty: "PageInfo!".to_string(),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: Vec::new(),
+                        resolve: None,
+                        transforms: None,
+                    },
+                );
+                fields.insert(
+                    edges.clone(),
+                    MetaField {
+                        name: edges,
+                        description: None,
+                        args: Default::default(),
+                        ty: format!("[{}]", &edge),
+                        deprecation: Default::default(),
+                        cache_control: Default::default(),
+                        external: false,
+                        requires: None,
+                        provides: None,
+                        visible: None,
+                        compute_complexity: None,
+                        edges: connection_edges.clone(),
+                        resolve: None,
+                        transforms: None,
+                    },
+                );
+                fields
+            },
+            cache_control: async_graphql::CacheControl {
+                public: true,
+                max_age: 0usize,
+            },
+            extends: false,
+            keys: None,
+            visible: None,
+            is_subscription: false,
+            is_node: false,
+            rust_typename: connection.clone(),
+        },
+        &connection,
+        &connection,
+    );
+
+    ctx.queries.push(MetaField {
+        name: format!("{}Collection", type_name.to_lowercase()),
+        description: Some(format!("Unpaginated query to fetch the whole list of `{}`.", type_name)),
+        args: {
+            let mut args = IndexMap::new();
+            args.insert(
+                "after".to_owned(),
+                MetaInputValue {
+                    name: "after".to_owned(),
+                    description: None,
+                    ty: "String".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                },
+            );
+            args.insert(
+                "before".to_owned(),
+                MetaInputValue {
+                    name: "before".to_owned(),
+                    description: None,
+                    ty: "String".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                },
+            );
+            args.insert(
+                "first".to_owned(),
+                MetaInputValue {
+                    name: "first".to_owned(),
+                    description: None,
+                    ty: "Int".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                },
+            );
+            args.insert(
+                "last".to_owned(),
+                MetaInputValue {
+                    name: "last".to_owned(),
+                    description: None,
+                    ty: "Int".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                },
+            );
+            args
+        },
+        ty: connection,
+        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
+        cache_control: async_graphql::CacheControl {
+            public: true,
+            max_age: 0usize,
+        },
+        external: false,
+        provides: None,
+        requires: None,
+        visible: None,
+        compute_complexity: None,
+        edges: Vec::new(),
+        resolve: Some(Resolver {
+            id: Some(format!("{}_resolver", type_name.to_lowercase())),
+            // Multiple entities
+            r#type: ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
+                r#type: VariableResolveDefinition::DebugString(type_name.to_string()),
+                first: VariableResolveDefinition::InputTypeName("first".to_string()),
+                after: VariableResolveDefinition::InputTypeName("after".to_string()),
+                before: VariableResolveDefinition::InputTypeName("before".to_string()),
+                last: VariableResolveDefinition::InputTypeName("last".to_string()),
+            }),
+        }),
+        transforms: None,
+    });
 }
 
 /// Add the create Mutation for a given Object
@@ -118,7 +471,7 @@ pub fn add_create_mutation<'a>(
                         provides: None,
                         visible: None,
                         compute_complexity: None,
-                        is_edge: None,
+                        edges: Vec::new(),
                         resolve: Some(Resolver {
                             id: Some(format!("{}_resolver", type_name.to_lowercase())),
                             // Single entity
@@ -176,7 +529,7 @@ pub fn add_create_mutation<'a>(
         provides: None,
         requires: None,
         visible: None,
-        is_edge: None,
+        edges: Vec::new(),
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
@@ -217,7 +570,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                         provides: None,
                         visible: None,
                         compute_complexity: None,
-                        is_edge: None,
+                        edges: Vec::new(),
                         resolve: None,
                         transforms: Some(vec![Transformer::JSONSelect {
                             property: "id".to_string(),
@@ -271,7 +624,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         provides: None,
         requires: None,
         visible: None,
-        is_edge: None,
+        edges: Vec::new(),
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
