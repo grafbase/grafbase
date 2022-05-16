@@ -8,5 +8,6 @@ license-file = "LICENSE"
 homepage = "https://grafbase.com"
 categories = ["command-line-utilities"]
 keywords = ["grafbase"]
+readme = "README.md"
 
 [dependencies]
