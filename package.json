@@ -1,0 +1,9 @@
+{
+  "name": "grafbase",
+  "version": "0.1.0",
+  "description": "placeholder",
+  "main": "index.js",
+  "author": "grafbase",
+  "license": "Apache-2.0",
+  "homepage": "https://grafbase.com"
+}
