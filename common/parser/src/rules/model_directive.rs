@@ -23,6 +23,7 @@ use crate::registry::add_remove_query;
 use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
+use crate::utils::to_lower_camelcase;
 use async_graphql::indexmap::IndexMap;
 use async_graphql::registry::resolvers::context_data::ContextDataResolver;
 use async_graphql::registry::resolvers::dynamo_querying::DynamoResolver;
@@ -145,7 +146,7 @@ impl<'a> Visitor<'a> for ModelDirective {
 
                 ctx.queries.push(MetaField {
                     // byID query
-                    name: type_name.to_lowercase(),
+                    name: to_lower_camelcase(&type_name),
                     description: Some(format!("Get a {} by ID", type_name)),
                     args: {
                         let mut args = IndexMap::new();

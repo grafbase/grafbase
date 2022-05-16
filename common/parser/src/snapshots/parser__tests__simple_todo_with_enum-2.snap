@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 185
+assertion_line: 209
 expression: sdl
 ---
 type Author {
