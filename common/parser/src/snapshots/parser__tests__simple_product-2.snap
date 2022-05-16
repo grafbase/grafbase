@@ -7,11 +7,11 @@ type Mutation {
 	"""
 	Create a Product
 	"""
-	ProductCreate(input: ProductCreateInput!): ProductCreatePayload
+	productCreate(input: ProductCreateInput!): ProductCreatePayload
 	"""
 	Delete a Product by ID
 	"""
-	ProductDelete(id: ID!): ProductDeletePayload
+	productDelete(id: ID!): ProductDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!
@@ -45,7 +45,7 @@ input ProductCreateInput {
 	price: Int!
 }
 type ProductCreatePayload {
-	Product: Product
+	product: Product
 }
 type ProductDeletePayload {
 	deletedId: ID!
@@ -58,11 +58,11 @@ type Query {
 	"""
 	Get a Product by ID
 	"""
-	Product(id: ID!): Product
+	product(id: ID!): Product
 	"""
 	Unpaginated query to fetch the whole list of `Product`.
 	"""
-	ProductCollection(after: String, before: String, first: Int, last: Int): ProductConnection
+	productCollection(after: String, before: String, first: Int, last: Int): ProductConnection
 }
 schema {
 	query: Query

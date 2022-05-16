@@ -22,11 +22,11 @@ type Mutation {
 	"""
 	Create a Todo
 	"""
-	TodoCreate(input: TodoCreateInput!): TodoCreatePayload
+	todoCreate(input: TodoCreateInput!): TodoCreatePayload
 	"""
 	Delete a Todo by ID
 	"""
-	TodoDelete(id: ID!): TodoDeletePayload
+	todoDelete(id: ID!): TodoDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!
@@ -38,11 +38,11 @@ type Query {
 	"""
 	Get a Todo by ID
 	"""
-	Todo(id: ID!): Todo
+	todo(id: ID!): Todo
 	"""
 	Unpaginated query to fetch the whole list of `Todo`.
 	"""
-	TodoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
+	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }
 type Todo {
 	id: ID!
@@ -64,7 +64,7 @@ input TodoCreateInput {
 	author: AuthorInput
 }
 type TodoCreatePayload {
-	Todo: Todo
+	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!

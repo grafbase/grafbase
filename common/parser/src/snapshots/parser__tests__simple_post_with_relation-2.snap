@@ -25,7 +25,7 @@ input AuthorCreateInput {
 	country: Country!
 }
 type AuthorCreatePayload {
-	Author: Author
+	author: Author
 }
 type AuthorDeletePayload {
 	deletedId: ID!
@@ -54,7 +54,7 @@ input BlogCreateInput {
 	owner: ID!
 }
 type BlogCreatePayload {
-	Blog: Blog
+	blog: Blog
 }
 type BlogDeletePayload {
 	deletedId: ID!
@@ -71,27 +71,27 @@ type Mutation {
 	"""
 	Create a Blog
 	"""
-	BlogCreate(input: BlogCreateInput!): BlogCreatePayload
+	blogCreate(input: BlogCreateInput!): BlogCreatePayload
 	"""
 	Delete a Blog by ID
 	"""
-	BlogDelete(id: ID!): BlogDeletePayload
+	blogDelete(id: ID!): BlogDeletePayload
 	"""
 	Create a Post
 	"""
-	PostCreate(input: PostCreateInput!): PostCreatePayload
+	postCreate(input: PostCreateInput!): PostCreatePayload
 	"""
 	Delete a Post by ID
 	"""
-	PostDelete(id: ID!): PostDeletePayload
+	postDelete(id: ID!): PostDeletePayload
 	"""
 	Create a Author
 	"""
-	AuthorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
 	"""
 	Delete a Author by ID
 	"""
-	AuthorDelete(id: ID!): AuthorDeletePayload
+	authorDelete(id: ID!): AuthorDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!
@@ -119,7 +119,7 @@ input PostCreateInput {
 	authors: [ID]
 }
 type PostCreatePayload {
-	Post: Post
+	post: Post
 }
 type PostDeletePayload {
 	deletedId: ID!
@@ -132,27 +132,27 @@ type Query {
 	"""
 	Get a Blog by ID
 	"""
-	Blog(id: ID!): Blog
+	blog(id: ID!): Blog
 	"""
 	Unpaginated query to fetch the whole list of `Blog`.
 	"""
-	BlogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
+	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
 	Get a Post by ID
 	"""
-	Post(id: ID!): Post
+	post(id: ID!): Post
 	"""
 	Unpaginated query to fetch the whole list of `Post`.
 	"""
-	PostCollection(after: String, before: String, first: Int, last: Int): PostConnection
+	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
 	Get a Author by ID
 	"""
-	Author(id: ID!): Author
+	author(id: ID!): Author
 	"""
 	Unpaginated query to fetch the whole list of `Author`.
 	"""
-	AuthorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
+	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
 }
 schema {
 	query: Query
