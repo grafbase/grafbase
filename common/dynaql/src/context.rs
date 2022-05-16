@@ -366,6 +366,7 @@ impl<'a, T> ContextBase<'a, T> {
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
                 ty: meta,
                 field: meta_field,
+                executable_field: Some(field),
                 resolver: meta_field.and_then(|x| x.resolve.as_ref()),
                 transformers: meta_field.and_then(|x| x.transforms.as_ref()),
                 execution_id: Ulid::new(),
@@ -699,8 +700,9 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             resolver_node: Some(ResolverChainNode {
                 parent: self.resolver_node.as_ref(),
                 segment: QueryPathSegment::Index(idx),
-                field: self.resolver_node.as_ref().map(|x| x.field).flatten(),
-                ty: self.resolver_node.as_ref().map(|x| x.ty).flatten(),
+                field: self.resolver_node.as_ref().and_then(|x| x.field),
+                executable_field: self.resolver_node.as_ref().and_then(|x| x.executable_field),
+                ty: self.resolver_node.as_ref().and_then(|x| x.ty),
                 resolver: None,
                 transformers: None,
                 execution_id: Ulid::new(),
@@ -740,9 +742,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn param_value_dynamic<'b: 'a, T: InputType>(
         &self,
         name: &'b str,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
         default: Option<fn() -> T>,
     ) -> ServerResult<(Pos, Value)> {
-        self.get_param_value(&self.item.node.arguments, name, default)
+        self.get_param_value(arguments, name, default)
             .map(|(pos, x)| (pos, InputType::to_value(&x)))
     }
 
@@ -750,9 +753,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn param_value_dynamic_unchecked<'b: 'a>(
         &self,
         name: &'b str,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
         default: Option<fn() -> Value>,
     ) -> ServerResult<(Pos, Value)> {
-        self.get_param_value_unchecked(&self.item.node.arguments, name, default)
+        self.get_param_value_unchecked(arguments, name, default)
     }
 
     /// Creates a uniform interface to inspect the forthcoming selections.

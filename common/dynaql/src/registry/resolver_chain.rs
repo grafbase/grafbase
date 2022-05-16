@@ -4,7 +4,11 @@ use crate::registry::{
 };
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
-use async_graphql_parser::types::SelectionSet;
+use async_graphql_parser::{
+    types::{Field, SelectionSet},
+    Positioned,
+};
+use async_graphql_value::{Name, Value};
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;
@@ -26,6 +30,9 @@ pub struct ResolverChainNode<'a> {
 
     /// The current field being resolved if we know it.
     pub field: Option<&'a MetaField>,
+
+    /// The current field being resolved if we know it.
+    pub executable_field: Option<&'a Positioned<Field>>,
 
     /// The current Type being resolved if we know it.
     pub ty: Option<&'a MetaType>,
@@ -66,6 +73,31 @@ impl<'a> ResolverChainNode<'a> {
         std::iter::once(self)
             .chain(self.parents())
             .find_map(|x| x.get_variable_by_name_internal(name))
+    }
+
+    fn get_arguments_internal(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
+        match self
+            .executable_field
+            // TODO: Remove cloning when reworking the variable resolution.
+            // Not so trivial as it would mean a lot of changes inside functions.
+            .map(|f| f.node.arguments.clone().into_iter())
+        {
+            Some(x) => Box::new(x),
+            _ => Box::new(std::iter::empty::<(Positioned<Name>, Positioned<Value>)>()),
+        }
+    }
+
+    /// Get all arguments
+    pub fn get_arguments(
+        &'a self,
+    ) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
+        Box::new(
+            std::iter::once(self)
+                .chain(self.parents())
+                .flat_map(ResolverChainNode::get_arguments_internal),
+        )
     }
 }
 

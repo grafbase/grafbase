@@ -133,14 +133,22 @@ impl MetaInputValue {
         &'a self,
         ctx: &'a Context<'a>,
     ) -> ServerResult<(Pos, Value)> {
+        let arguments = ctx
+            .resolver_node
+            .as_ref()
+            .map(|f| f.get_arguments().collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        let arguments = arguments.as_slice();
+
         let variable = match self.ty.as_ref() {
-            "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, None),
-            "ID!" => ctx.param_value_dynamic::<ID>(&self.name, None),
-            "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, None),
-            "String!" => ctx.param_value_dynamic::<String>(&self.name, None),
-            "Int" => ctx.param_value_dynamic::<Option<i64>>(&self.name, None),
-            "Int!" => ctx.param_value_dynamic::<i64>(&self.name, None),
-            _ => ctx.param_value_dynamic_unchecked(&self.name, None),
+            "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, arguments, None),
+            "ID!" => ctx.param_value_dynamic::<ID>(&self.name, arguments, None),
+            "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, &arguments, None),
+            "String!" => ctx.param_value_dynamic::<String>(&self.name, &arguments, None),
+            "Int" => ctx.param_value_dynamic::<Option<i64>>(&self.name, &arguments, None),
+            "Int!" => ctx.param_value_dynamic::<i64>(&self.name, &arguments, None),
+            _ => ctx.param_value_dynamic_unchecked(&self.name, &arguments, None),
         };
 
         variable
