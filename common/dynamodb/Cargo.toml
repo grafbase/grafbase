@@ -14,7 +14,7 @@ futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
-indexmap = "~1.6.2"
+indexmap = "~1.8.1"
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.7" }
 quick-error = "2"
