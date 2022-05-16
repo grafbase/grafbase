@@ -152,13 +152,6 @@ pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
     }
 }
 
-pub fn to_field<S: AsRef<str>>(field: S) -> String {
-    let field = field.as_ref().to_camel();
-    let mut result = String::with_capacity(field.len());
-
-    for (i, c) in field.chars().enumerate() {
-        result.push(if i == 0 { c.to_ascii_lowercase() } else { c });
-    }
-
-    result
+pub fn to_lower_camelcase<S: AsRef<str>>(field: S) -> String {
+    field.as_ref().to_snake().to_camel_lowercase()
 }

@@ -1,5 +1,5 @@
 use crate::rules::visitor::VisitorContext;
-use crate::utils::{to_field, to_input_type};
+use crate::utils::{to_input_type, to_lower_camelcase};
 use async_graphql::indexmap::IndexMap;
 use async_graphql::registry::transformers::Transformer;
 use async_graphql::registry::{
@@ -326,7 +326,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
     );
 
     ctx.queries.push(MetaField {
-        name: format!("{}Collection", to_field(type_name)),
+        name: format!("{}Collection", to_lower_camelcase(type_name)),
         description: Some(format!("Unpaginated query to fetch the whole list of `{}`.", type_name)),
         args: {
             let mut args = IndexMap::new();
@@ -456,7 +456,7 @@ pub fn add_create_mutation<'a>(
             description: None,
             fields: {
                 let mut fields = IndexMap::new();
-                let name = to_field(&type_name);
+                let name = to_lower_camelcase(&type_name);
                 fields.insert(
                     name.clone(),
                     MetaField {
@@ -502,7 +502,7 @@ pub fn add_create_mutation<'a>(
 
     // createQuery
     ctx.mutations.push(MetaField {
-        name: format!("{}Create", to_field(&type_name)),
+        name: format!("{}Create", to_lower_camelcase(&type_name)),
         description: Some(format!("Create a {}", type_name)),
         args: {
             let mut args = IndexMap::new();
@@ -597,7 +597,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
 
     // deleteMutation
     ctx.mutations.push(MetaField {
-        name: format!("{}Delete", to_field(&type_name)),
+        name: format!("{}Delete", to_lower_camelcase(&type_name)),
         description: Some(format!("Delete a {} by ID", type_name)),
         args: {
             let mut args = IndexMap::new();
