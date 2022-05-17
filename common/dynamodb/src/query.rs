@@ -137,6 +137,7 @@ impl Loader<QueryKey> for QueryLoader {
             h.insert(q, r);
         }
 
+        log::info!(self.ctx.trace_id, "Query Dataloader executed {:?}", keys);
         Ok(h)
     }
 }

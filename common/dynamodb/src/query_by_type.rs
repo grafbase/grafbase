@@ -63,7 +63,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     type Error = QueryTypeLoaderError;
 
     async fn load(&self, keys: &[QueryTypeKey]) -> Result<HashMap<QueryTypeKey, Self::Value>, Self::Error> {
-        log::info!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
+        log::info!(self.ctx.trace_id, "Query Type Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {
@@ -111,6 +111,9 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                     .dynamodb_client
                     .clone()
                     .query_pages(input)
+                    .inspect_err(|err| {
+                        log::error!(self.ctx.trace_id, "Query By Type Error {:?}", err);
+                    })
                     .try_fold(
                         (query_key.clone(), HashMap::with_capacity(100)),
                         |(query_key, mut acc), curr| async move {

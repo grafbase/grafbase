@@ -12,9 +12,6 @@ use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 quick_error! {
     #[derive(Debug, Clone)]
     pub enum QueryTypePaginatedLoaderError {
-        UnknowError {
-            display("An internal error happened")
-        }
         QueryError {
             display("An internal error happened while fetching a list of entities")
         }
@@ -138,6 +135,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     .dynamodb_client
                     .clone()
                     .query_node_edges(
+                        &self.ctx.trace_id,
                         query_key.cursor.clone(),
                         query_key.edges.clone(),
                         query_key.r#type.clone(),
