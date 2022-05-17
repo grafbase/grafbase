@@ -116,9 +116,6 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
         // if the execution_id was already requested before.
         let mut final_result = ResolvedValue::new(serde_json::Value::Null);
 
-        #[cfg(feature = "tracing_worker")]
-        logworker::info!("", "{}", &self);
-
         // We must run this if it's not run because some resolvers can have side effect with the
         // actual modelization.
         // It's supposed to be removed in the future. (cf. @miaxos)
