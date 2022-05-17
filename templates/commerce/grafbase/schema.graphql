@@ -15,7 +15,7 @@ type Cart @model {
   id: ID!
   customer: Customer
   order: Order
-  lineItems: [LineItem] @relation
+  lineItems: [LineItem]
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
@@ -29,13 +29,12 @@ type Customer @model {
   email: String!
   phoneNumber: String
   billingAddress: Address
-  shippingAddresses: [Address] @relation
 }
 
 type Order @model {
   id: ID!
   cart: Cart
-  lineItems: [LineItem] @relation
+  lineItems: [LineItem]
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
@@ -56,7 +55,7 @@ type Product @model {
   description: String!
   stock: Int!
   slug: String!
-  variants: [Variant] @relation
+  variants: [Variant]
   brand: String
 }
 
