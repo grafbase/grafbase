@@ -182,11 +182,13 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[DatadogLogE
     }
 }
 
-pub fn push_logs_to_sentry(sentry_ingest_url: &str, entries: &[SentryLogEntry]) {
+pub fn push_logs_to_sentry(sentry_api_key: &str, sentry_url: &str, entries: &[SentryLogEntry]) {
     let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
     if !config.contains(Config::SENTRY) || entries.is_empty() {
         return;
     }
+
+    let sentry_ingest_url = format!("https://{}@{}", sentry_api_key, sentry_url);
 
     entries.iter().for_each(|entry| {
         let mut envelope = Envelope::new();
@@ -209,7 +211,7 @@ pub fn push_logs_to_sentry(sentry_ingest_url: &str, entries: &[SentryLogEntry]) 
             ..Default::default()
         });
 
-        let dsn = sentry_ingest_url.to_owned();
+        let dsn = sentry_ingest_url.clone();
 
         worker::wasm_bindgen_futures::spawn_local(async move {
             match send_envelope(dsn, envelope).await {
