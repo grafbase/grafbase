@@ -47,11 +47,18 @@ async fn transaction_by_pk(
     ctx: &DynamoDBContext,
     tx: Vec<TxItem>,
 ) -> Result<HashMap<TxItem, AttributeValue>, TransactionError> {
+    let mut result_hashmap = HashMap::with_capacity(tx.len());
     let input = TransactWriteItemsInput {
         client_request_token: None, // TODO: Should add one
         return_consumed_capacity: None,
         return_item_collection_metrics: None,
-        transact_items: tx.iter().map(|x| x.transaction.clone()).collect(),
+        transact_items: tx
+            .iter()
+            .map(|x| {
+                result_hashmap.insert(x.clone(), AttributeValue::default());
+                x.transaction.clone()
+            })
+            .collect(),
     };
     debug!(ctx.trace_id, "TransactionWrite {:?}", input);
 
@@ -63,8 +70,6 @@ async fn transaction_by_pk(
         .map_err(|_| TransactionError::UnknowError)?;
 
     debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
-
-    let result_hashmap = HashMap::new();
     Ok(result_hashmap)
 }
 
@@ -86,7 +91,7 @@ pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<Transacti
     DataLoader::with_cache(
         TransactionLoader { ctx },
         wasm_bindgen_futures::spawn_local,
-        LruCache::new(128),
+        LruCache::new(256),
     )
     .max_batch_size(25)
     .delay(Duration::from_millis(2))
