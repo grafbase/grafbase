@@ -10,11 +10,11 @@ quick-error = "2"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 worker = { version = "0.0.9", optional = true }
-sentry-cf-worker = { git = "https://github.com/grafbase/sentry-rust", branch = "stable" }
+sentry-cf-worker = { git = "https://github.com/grafbase/sentry-rust", branch = "stable", optional = true }
 maplit = "1.0.2"
 
 [features]
-with-worker = ["worker"]
+with-worker = ["sentry-cf-worker", "worker"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
