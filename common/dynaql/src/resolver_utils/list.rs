@@ -2,7 +2,7 @@ use crate::extensions::ResolveInfo;
 use crate::parser::types::Field;
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
-use crate::{ContextSelectionSet, OutputType, Positioned, ServerError, ServerResult, Value};
+use crate::{ContextSelectionSet, OutputType, Positioned, ServerResult, Value};
 
 /// Resolve an list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(
@@ -22,28 +22,16 @@ pub async fn resolve_list<'a>(
                     let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
                     let extensions = &ctx.query_env.extensions;
 
+                    let parent_type = format!("[{}]", type_name);
+                    let return_type = format!("{}!", type_name);
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
-                        parent_type: &type_name,
-                        return_type: match ctx_idx
-                            .schema_env
-                            .registry
-                            .types
-                            .get(type_name)
-                            .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
-                            .map(|field| &field.ty)
-                        {
-                            Some(ty) => &ty,
-                            None => {
-                                return Err(ServerError::new(
-                                    r#"An internal error happened"#.to_string(),
-                                    Some(ctx_idx.item.pos),
-                                ));
-                            }
-                        },
+                        parent_type: &parent_type,
+                        return_type: &return_type,
                         name: field.node.name.node.as_str(),
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                     };
+
                     let resolve_fut = async {
                         resolve_container(&ctx_idx, ty)
                             .await
