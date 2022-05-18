@@ -16,7 +16,7 @@ type Post @model {
   content: String!
   publishedBy: [User!]!
 }
-``` 
+```
 
 The relation here is represented by `publishedBy` can be
 called a `Many-to-Many` relationship.

@@ -41,7 +41,7 @@ type Post @model {
   content: String!
   publishedBy: User
 }
-``` 
+```
 
 The relation here is represented by the field `pubished_by`. It is what can be
 called a `One-to-One` relationship.
@@ -160,7 +160,6 @@ input UserUpdateInputPostPublished {
   link: ID
 }
 
-
 input UserUpdateInput {
   firstname: String
   lastname: String
@@ -231,7 +230,6 @@ input UserUpdateInputPostPublished {
   """
   unlink: ID
 }
-
 
 input UserUpdateInput {
   firstname: String

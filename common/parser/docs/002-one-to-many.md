@@ -19,7 +19,7 @@ type Post @model {
   """
   publishedBy: User!
 }
-``` 
+```
 
 The relation here is represented by the field `pubished_by`. It is what can be
 called a `One-to-Many` relationship.
@@ -103,7 +103,7 @@ input PostInputUserPublishedByUser {
 }
 
 input PostInputUserPublishedBy {
-  create: PostInputUserPublishedByUser 
+  create: PostInputUserPublishedByUser
   link: ID
 }
 
@@ -191,16 +191,17 @@ The data stored would be **NON-COMPLIANT** to the defined schema if we would all
 So when the `User` would be fetched from the `Post` we would bubble up an error.
 
 What we could do instead:
-  - Erroring out when we unlink without linking it again to another `User`
-  - Removing the `Post` but it would also means we would have side-effect on other
+
+- Erroring out when we unlink without linking it again to another `User`
+- Removing the `Post` but it would also means we would have side-effect on other
   entities linked to that `Post`.
 
 **We should decide between**:
- - We allow the data-stored to be **NON-COMPLIANT**.
- - We return an error when you try to have **NON-COMPLIANT** data.
-    -> This solution imply that to delete the link between the `User` and the `Post`
-    you should update the Post and not the User.
 
+- We allow the data-stored to be **NON-COMPLIANT**.
+- We return an error when you try to have **NON-COMPLIANT** data.
+  -> This solution imply that to delete the link between the `User` and the `Post`
+  you should update the Post and not the User.
 
 ##### Generic
 
@@ -238,4 +239,3 @@ type Mutation {
   userUpdate(input: UserUpdateInput): UserUpdatePayload
 }
 ```
-
