@@ -341,21 +341,22 @@ impl ResolverTrait for DynamoResolver {
                 };
 
                 if edges_len == 0 {
-                    let dyna = loader_item
-                        .load_one((pk.clone(), sk))
-                        .await?
-                        .ok_or_else(|| Error::new("Internal Error: Failed to fetch the node"))?;
-                    // If we do not have any value inside our fetch, it's not an
-                    // error, it's only we didn't found the value.
-                    if dyna.is_empty() {
-                        return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
+                    match loader_item.load_one((pk.clone(), sk)).await? {
+                        Some(dyna) => {
+                            let value = serde_json::to_value(dyna)
+                                .map_err(|err| Error::new(err.to_string()))?;
+                            return Ok(ResolvedValue::new(serde_json::json!({
+                                current_ty: value,
+                            })));
+                        }
+                        // If we do not have any value inside our fetch, it's not an
+                        // error, it's only we didn't found the value.
+                        None => {
+                            return Ok(
+                                ResolvedValue::new(serde_json::Value::Null).with_early_return()
+                            );
+                        }
                     }
-
-                    let value =
-                        serde_json::to_value(dyna).map_err(|err| Error::new(err.to_string()))?;
-                    return Ok(ResolvedValue::new(serde_json::json!({
-                        current_ty: value,
-                    })));
                 }
 
                 // When we query a Node with the Query Dataloader, we have to indicate
