@@ -45,7 +45,6 @@ pub struct LogConfig {
     pub service_name: &'static str,
     pub environment: String,
     pub branch: Option<String>,
-    pub sentry_ingest_url: Option<String>,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
