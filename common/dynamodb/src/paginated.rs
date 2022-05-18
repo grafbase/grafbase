@@ -2,6 +2,7 @@
 
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
+use futures::TryFutureExt;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use quick_error::quick_error;
@@ -112,6 +113,7 @@ pub trait DynamoDbExtPaginated {
     /// Return values are like
     async fn query_node_edges(
         self,
+        trace_id: &str,
         cursor: PaginatedCursor,
         edges: Vec<String>,
         node: String,
@@ -140,6 +142,7 @@ where
 {
     async fn query_node_edges(
         self,
+        trace_id: &str,
         cursor: PaginatedCursor,
         edges: Vec<String>,
         node: String,
@@ -225,10 +228,14 @@ where
                     break;
                 }
             };
+            log::debug!(trace_id, "QueryPaginated Input {:?}", input);
             let resp = self
                 .query(QueryInput {
                     exclusive_start_key: exclusive_start_key.clone(),
                     ..input.clone()
+                })
+                .inspect_err(|err| {
+                    log::error!(trace_id, "Query Paginated Error {:?}", err);
                 })
                 .await?;
 
