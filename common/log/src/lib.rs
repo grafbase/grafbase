@@ -1,3 +1,4 @@
+#[cfg(feature = "with-worker")]
 #[macro_use]
 extern crate maplit;
 
@@ -5,7 +6,6 @@ mod types;
 
 // FIXME: To keep Clippy happy.
 pub use log_;
-use sentry_cf_worker::{send_envelope, Envelope, Event, Level, SentryError};
 use std::sync::atomic::{AtomicU8, Ordering};
 pub use types::*;
 
@@ -182,7 +182,10 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[DatadogLogE
     }
 }
 
+#[cfg(feature = "with-worker")]
 pub fn push_logs_to_sentry(sentry_api_key: &str, sentry_dsn: &str, entries: &[SentryLogEntry]) {
+    use sentry_cf_worker::{send_envelope, Envelope, Event, Level, SentryError};
+
     let config = Config::from_bits_truncate(LOG_CONFIG.load(Ordering::SeqCst));
     if !config.contains(Config::SENTRY) || entries.is_empty() {
         return;
