@@ -103,10 +103,12 @@ impl Loader<QueryKey> for QueryLoader {
                     .try_fold(
                         (query_key.clone(), HashMap::with_capacity(100)),
                         |(query_key, mut acc), curr| async move {
-                            let partition = curr
-                                .get("__sk")
-                                .and_then(|x| x.s.as_ref())
-                                .and_then(|x| query_key.edges.iter().find(|edge| x.starts_with(edge.as_str())));
+                            let partition = curr.get("__sk").and_then(|x| x.s.as_ref()).and_then(|x| {
+                                query_key
+                                    .edges
+                                    .iter()
+                                    .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
+                            });
                             match partition {
                                 None => {
                                     log::error!(self.ctx.trace_id, "Error while processing: {:?}", query_key);

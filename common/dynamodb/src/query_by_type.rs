@@ -119,10 +119,12 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         |(query_key, mut acc), curr| async move {
                             let pk_partition = curr.get("__pk").and_then(|x| x.s.as_ref());
 
-                            let partition = curr
-                                .get("__sk")
-                                .and_then(|x| x.s.as_ref())
-                                .and_then(|x| query_key.edges.iter().find(|edge| x.starts_with(edge.as_str())));
+                            let partition = curr.get("__sk").and_then(|x| x.s.as_ref()).and_then(|x| {
+                                query_key
+                                    .edges
+                                    .iter()
+                                    .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
+                            });
                             match (pk_partition, partition) {
                                 (Some(pk), Some(partition)) => match acc.entry(pk.clone()) {
                                     Entry::Vacant(vac) => {

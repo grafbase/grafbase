@@ -258,21 +258,24 @@ where
                                 edges: IndexMap::with_capacity(5),
                             };
 
-                            if sk.starts_with(&node) {
+                            if sk.starts_with(format!("{}#", &node).as_str()) {
                                 value.node = Some(x.clone());
-                            } else if let Some(edge) = edges.iter().find(|edge| sk.starts_with(edge.as_str())) {
+                            } else if let Some(edge) =
+                                edges.iter().find(|edge| sk.starts_with(format!("{}#", edge).as_str()))
+                            {
                                 value.edges.insert(edge.clone(), vec![x.clone()]);
                             }
 
                             vac.insert(value);
                         }
                         Entry::Occupied(mut oqp) => {
-                            if sk.starts_with(&node) {
+                            if sk.starts_with(format!("{}#", &node).as_str()) {
                                 oqp.get_mut().node = Some(x);
                                 continue;
                             }
 
-                            if let Some(edge) = edges.iter().find(|edge| sk.starts_with(edge.as_str())) {
+                            if let Some(edge) = edges.iter().find(|edge| sk.starts_with(format!("{}#", edge).as_str()))
+                            {
                                 match oqp.get_mut().edges.entry(edge.clone()) {
                                     Entry::Vacant(vac) => {
                                         vac.insert(vec![x]);
