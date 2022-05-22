@@ -45,33 +45,24 @@ pub trait ContainerType: OutputType {
         fields.add_set_native(ctx, self)
     }
 
-    /// Collect all the fields of the container that are queried in the selection set.
-    ///
-    /// Objects do not have to override this, but interfaces and unions must call it on their
-    /// internal type.
-    fn collect_all_fields<'a>(
-        &'a self,
-        ctx: &'a ContextSelectionSet<'a>,
-        fields: &mut Fields<'a>,
-    ) -> ServerResult<()>
-    where
-        Self: Send + Sync,
-    {
-        fields.add_set(
-            ctx,
-            ctx.registry()
-                .types
-                .get(Self::type_name().as_ref())
-                .unwrap(),
-        )
-    }
-
     /// Find the GraphQL entity with the given name from the parameter.
     ///
     /// Objects should override this in case they are the query root.
     async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
         Ok(None)
     }
+}
+
+/// Collect all the fields of the container that are queried in the selection set.
+///
+/// Objects do not have to override this, but interfaces and unions must call it on their
+/// internal type.
+fn collect_all_fields_meta<'a>(
+    ty: &'a MetaType,
+    ctx: &ContextSelectionSet<'a>,
+    fields: &mut Fields<'a>,
+) -> ServerResult<()> {
+    fields.add_set(ctx, ty)
 }
 
 #[async_trait::async_trait]
@@ -241,7 +232,7 @@ impl<'a> Fields<'a> {
     /// Add another set of fields to this set of fields using the given container.
     pub fn add_set(
         &mut self,
-        ctx: &'a ContextSelectionSet<'a>,
+        ctx: &ContextSelectionSet<'a>,
         root: &'a MetaType,
     ) -> ServerResult<()> {
         let registry = ctx.registry();
@@ -265,6 +256,7 @@ impl<'a> Fields<'a> {
                         let ctx = ctx.clone();
                         async move {
                             let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+                            let registry = ctx_field.registry();
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
 
@@ -409,9 +401,11 @@ impl<'a> Fields<'a> {
                                 .map_or(false, |interfaces| interfaces.contains(condition))
                     });
                     if applies_concrete_object {
-                        // TODO: Solve resolve
-                        // root.collect_all_fields(&ctx.with_selection_set(selection_set), self)?;
-                        todo!()
+                        collect_all_fields_meta(
+                            root,
+                            &ctx.with_selection_set(selection_set),
+                            self,
+                        )?;
                     } else if type_condition.map_or(true, |condition| root.name() == condition) {
                         // The fragment applies to an interface type.
                         let _ctx = ctx.with_selection_set(selection_set);

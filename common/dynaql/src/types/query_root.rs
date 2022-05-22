@@ -99,23 +99,6 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         fields.add_set_native(ctx, self)
     }
 
-    fn collect_all_fields<'a>(
-        &'a self,
-        ctx: &'a ContextSelectionSet<'a>,
-        fields: &mut crate::resolver_utils::Fields<'a>,
-    ) -> ServerResult<()>
-    where
-        Self: Send + Sync,
-    {
-        fields.add_set(
-            ctx,
-            ctx.registry()
-                .types
-                .get(Self::type_name().as_ref())
-                .unwrap(),
-        )
-    }
-
     async fn find_entity(&self, _: &Context<'_>, _params: &Value) -> ServerResult<Option<Value>> {
         Ok(None)
     }
