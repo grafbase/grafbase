@@ -1,4 +1,6 @@
+use async_graphql::indexmap::IndexMap;
 use async_graphql::model::__Schema;
+use async_graphql::registry::relations::MetaRelation;
 use async_graphql::registry::{MetaField, Registry};
 use async_graphql::{Name, OutputType, Pos, Positioned, Schema};
 use async_graphql_parser::types::{
@@ -26,6 +28,8 @@ pub struct VisitorContext<'a> {
     pub(crate) type_stack: TypeStackType<'a>,
     pub(crate) queries: Vec<MetaField>,
     pub(crate) mutations: Vec<MetaField>,
+    /// Relations by name
+    pub(crate) relations: IndexMap<String, MetaRelation>,
     pub registry: RefCell<Registry>,
 }
 
@@ -86,6 +90,7 @@ impl<'a> VisitorContext<'a> {
             registry: RefCell::new(Schema::create_registry()),
             mutations: Default::default(),
             queries: Default::default(),
+            relations: Default::default(),
         }
     }
 
