@@ -1,0 +1,25 @@
+[package]
+name = "grafbase"
+version = "0.1.0"
+edition = "2021"
+description = "The Grafbase command line interface"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+categories = ["command-line-utilities"]
+keywords = ["grafbase"]
+readme = "README.md"
+
+[dependencies]
+clap = { version = "3.1.18", features = ["cargo"] }
+local-gateway = { path = "../local-gateway", version = "0.1.0" }
+common = { path = "../common", version = "0.1.0" }
+log = "0.4"
+pretty_env_logger = "0.4"
+thiserror = "1.0.31"
+exitcode = "1.1.2"
+clap_generate = "3.0.3"
+indoc = "1.0.6"
+colored = "2.0.0"
+
+[[bin]]
+name = "grafbase"

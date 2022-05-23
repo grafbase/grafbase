@@ -1,13 +1,2 @@
-[package]
-name = "grafbase"
-version = "0.1.0"
-edition = "2021"
-description = "placeholder"
-license = "Apache-2.0"
-license-file = "LICENSE"
-homepage = "https://grafbase.com"
-categories = ["command-line-utilities"]
-keywords = ["grafbase"]
-readme = "README.md"
-
-[dependencies]
+[workspace]
+members = ["crates/*"]

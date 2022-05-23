@@ -1,0 +1,17 @@
+[package]
+name = "local-gateway"
+version = "0.1.0"
+edition = "2021"
+description = "the local backend for grafbase developer tools"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+readme = "README.md"
+
+[dependencies]
+dev-server = { path = "../dev-server", version = "0.1.0" }
+common = { path = "../common", version = "0.1.0" }
+exitcode = "1.1.2"
+log = "0.4"
+pretty_env_logger = "0.4"
+thiserror = "1.0.31"

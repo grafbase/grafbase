@@ -1,0 +1,14 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+description = "Common code used in multiple crates in the CLI workspace"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+readme = "README.md"
+
+[dependencies]
+exitcode = "1.1.2"
+once_cell = "1.10.0"
+thiserror = "1.0.31"
