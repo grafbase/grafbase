@@ -37,7 +37,9 @@ pub fn print_with_worker(status: LogSeverity, message: &str) {
 #[macro_export]
 macro_rules! log {
     ($status:expr, $request_id:expr, $($t:tt)*) => { {
-        let message = format_args!($($t)*).to_string();
+        let line = line!(); // must be the first line in the macro to be accurate
+
+        let message = format!("{}:{} {}", file!(), line, format_args!($($t)*));
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
 
         #[cfg(feature = "with-worker")] {
