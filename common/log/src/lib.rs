@@ -181,6 +181,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     }
 }
 
+#[cfg(feature = "sentry-cf-worker")]
 pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
     use sentry_cf_worker::{send_envelope, Envelope, Event, Level, SentryError};
 
