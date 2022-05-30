@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bitflags = "1"
+chrono = { version = "0.4", features = ["serde"] }
 log_ = { package = "log", version = "0.4" }
 maplit = { version = "1.0.2", optional = true }
 quick-error = "2"
