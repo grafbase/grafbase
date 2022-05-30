@@ -2,6 +2,7 @@
 #[macro_use]
 extern crate maplit;
 
+mod constants;
 mod types;
 
 // FIXME: To keep Clippy happy.
@@ -137,8 +138,6 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         None => return Ok(()),
     };
 
-    const URL: &str = "https://http-intake.logs.datadoghq.com/api/v2/logs";
-
     #[rustfmt::skip]
     let mut tags: Vec<(&str, &str)> = vec![
         ("request_id", &log_config.trace_id),
@@ -165,7 +164,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         })
         .collect();
 
-    let mut res = surf::post(URL)
+    let mut res = surf::post(constants::DATADOG_INTAKE_URL)
         .header("DD-API-KEY", datadog_api_key)
         .body_json(&entries)
         .map_err(Error::DatadogRequest)?
@@ -183,7 +182,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
 
 #[cfg(feature = "sentry-cf-worker")]
 pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
-    use sentry_cf_worker::{send_envelope, Envelope, Event, Level, SentryError};
+    use sentry_cf_worker::{send_envelope, Envelope, Event, Level};
 
     let sentry_config = match log_config.sentry_config.as_ref() {
         Some(sentry_config) => sentry_config,
@@ -192,45 +191,39 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -
 
     let sentry_ingest_url = format!("https://{}@{}", sentry_config.api_key, sentry_config.dsn);
 
-    for entry in entries {
-        if entry.severity != LogSeverity::Error {
-            continue;
-        }
-
-        let mut envelope = Envelope::new();
-
-        let mut tags = btreemap! {
-            "request_id".to_owned() => entry.trace_id.clone(),
-            "hostname".to_owned() => log_config.host_name.clone(),
-            "module".to_owned() => MODULE.to_owned(),
-            "environment".to_owned() => log_config.environment.clone(),
-        };
-
-        if let Some(branch) = log_config.branch.as_ref() {
-            tags.extend([("branch".to_owned(), branch.clone())]);
-        }
-
-        let enriched_message = format!("[{}:{}] {}", entry.file_path, entry.line_number, entry.message);
-
-        envelope.add_item(Event {
-            message: Some(enriched_message),
-            level: Level::Error,
-            timestamp: entry.timestamp,
-            tags,
-            ..Default::default()
+    let futures = entries
+        .iter()
+        .filter(|entry| entry.severity == LogSeverity::Error)
+        .map(|entry| {
+            let mut envelope = Envelope::new();
+            let mut tags = btreemap! {
+                "request_id".to_owned() => entry.trace_id.clone(),
+                "hostname".to_owned() => log_config.host_name.clone(),
+                "module".to_owned() => MODULE.to_owned(),
+                "environment".to_owned() => log_config.environment.clone(),
+                "file_path".to_owned() => entry.file_path.clone(),
+                "line_number".to_owned() => entry.line_number.to_string(),
+            };
+            if let Some(branch) = log_config.branch.as_ref() {
+                tags.extend([("branch".to_owned(), branch.clone())]);
+            }
+            let enriched_message = format!("[{}:{}] {}", entry.file_path, entry.line_number, entry.message);
+            envelope.add_item(Event {
+                message: Some(enriched_message),
+                level: Level::Error,
+                timestamp: entry.timestamp,
+                tags,
+                ..Default::default()
+            });
+            envelope
+        })
+        .map(|envelope| async {
+            let dsn = sentry_ingest_url.clone();
+            send_envelope(dsn, envelope).await
         });
 
-        let dsn = sentry_ingest_url.clone();
-
-        match send_envelope(dsn, envelope).await {
-            Ok(_) => {}
-            Err(error) => match error {
-                SentryError::InvalidUrl => debug!("{}", "an invalid url was used for the sentry dsn"),
-                SentryError::Request(_) => debug!("{}", "a request to sentry was unsuccessful"),
-                SentryError::WriteEnvelope => debug!("{}", "could not write a sentry envelope"),
-            },
-        }
-    }
-
-    Ok(())
+    futures_util::future::try_join_all(futures)
+        .await
+        .map(|_| ())
+        .map_err(Error::SentryError)
 }

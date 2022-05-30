@@ -1,15 +1,11 @@
-use quick_error::quick_error;
-
-quick_error! {
-    #[derive(Debug)]
-    pub enum Error {
-        DatadogRequest(err: surf::Error) {
-            display("HTTP: {err}")
-        }
-        DatadogPushFailed(status_code: surf::StatusCode, response: Option<String>) {
-            display("Datadog: [status = {status_code}] {response:?}")
-        }
-    }
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("HTTP: {0}")]
+    DatadogRequest(surf::Error),
+    #[error("Datadog: [status = {0}] {1:?}")]
+    DatadogPushFailed(surf::StatusCode, Option<String>),
+    #[error("Sentry: {0}")]
+    SentryError(sentry_cf_worker::SentryError),
 }
 
 #[derive(Clone, Copy, serde::Serialize, strum::Display, PartialEq, Eq)]
