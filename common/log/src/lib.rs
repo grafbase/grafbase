@@ -150,7 +150,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     if let Some(branch) = log_config.branch.as_deref() {
         tags.push(("branch", branch));
     }
-    let datadog_tag_string = tags
+    let datadog_tag_string_prefix = tags
         .iter()
         .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
         .collect::<Vec<_>>()
@@ -158,13 +158,26 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
 
     let entries: Vec<_> = entries
         .iter()
-        .map(|entry| DatadogLogEntry {
-            ddsource: "grafbase.api".to_owned(),
-            ddtags: datadog_tag_string.clone(),
-            hostname: log_config.host_name.to_owned(),
-            message: entry.message.clone(),
-            service: log_config.service_name.to_owned(),
-            status: entry.severity.to_string(),
+        .map(|entry| {
+            let line_number_string = entry.line_number.to_string();
+            let extra_tags = vec![
+                ("file_path", entry.file_path.as_str()),
+                ("line_number", &line_number_string),
+            ];
+            let datadog_tag_string_rest = extra_tags
+                .iter()
+                .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
+                .collect::<Vec<_>>()
+                .join(",");
+            let datadog_tag_string = datadog_tag_string_prefix.clone() + &datadog_tag_string_rest;
+            DatadogLogEntry {
+                ddsource: "grafbase.api".to_owned(),
+                ddtags: datadog_tag_string,
+                hostname: log_config.host_name.to_owned(),
+                message: entry.message.clone(),
+                service: log_config.service_name.to_owned(),
+                status: entry.severity.to_string(),
+            }
         })
         .collect();
 
@@ -201,19 +214,18 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -
         .map(|entry| {
             let mut envelope = Envelope::new();
             let mut tags = btreemap! {
-                "request_id".to_owned() => entry.trace_id.clone(),
-                "hostname".to_owned() => log_config.host_name.clone(),
-                "module".to_owned() => MODULE.to_owned(),
                 "environment".to_owned() => log_config.environment.clone(),
                 "file_path".to_owned() => entry.file_path.clone(),
+                "hostname".to_owned() => log_config.host_name.clone(),
                 "line_number".to_owned() => entry.line_number.to_string(),
+                "module".to_owned() => MODULE.to_owned(),
+                "request_id".to_owned() => entry.trace_id.clone(),
             };
             if let Some(branch) = log_config.branch.as_ref() {
                 tags.extend([("branch".to_owned(), branch.clone())]);
             }
-            let enriched_message = format!("[{}:{}] {}", entry.file_path, entry.line_number, entry.message);
             envelope.add_item(Event {
-                message: Some(enriched_message),
+                message: Some(entry.message.clone()),
                 level: Level::Error,
                 timestamp: entry.timestamp,
                 tags,
