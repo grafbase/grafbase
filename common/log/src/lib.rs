@@ -5,10 +5,10 @@ extern crate maplit;
 mod types;
 
 // FIXME: To keep Clippy happy.
-pub use chrono;
 pub use log_;
 use std::sync::atomic::{AtomicU8, Ordering};
 pub use types::*;
+pub use wasm_timer;
 
 #[cfg(feature = "with-worker")]
 pub use worker;
@@ -71,7 +71,7 @@ macro_rules! log {
                             line_number,
                             message,
                             severity: $status,
-                            timestamp: std::time::SystemTime::now(),
+                            timestamp: $crate::wasm_timer::SystemTime::now(),
                             trace_id: $request_id.to_string(),
                         })
                 });

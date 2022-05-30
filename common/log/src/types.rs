@@ -1,5 +1,3 @@
-use std::time::SystemTime;
-
 use quick_error::quick_error;
 
 quick_error! {
@@ -27,7 +25,7 @@ pub struct LogEntry {
     pub trace_id: String,
     pub message: String,
     pub severity: LogSeverity,
-    pub timestamp: SystemTime,
+    pub timestamp: wasm_timer::SystemTime,
     pub file_path: String,
     pub line_number: u32,
 }
