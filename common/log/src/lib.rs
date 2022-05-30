@@ -71,7 +71,7 @@ macro_rules! log {
                             line_number,
                             message,
                             severity: $status,
-                            time: $crate::chrono::Utc::now(),
+                            timestamp: std::time::SystemTime::now(),
                             trace_id: $request_id.to_string(),
                         })
                 });
@@ -214,7 +214,7 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -
         envelope.add_item(Event {
             message: Some(enriched_message),
             level: Level::Error,
-            timestamp: entry.time.into(),
+            timestamp: entry.timestamp,
             tags,
             ..Default::default()
         });

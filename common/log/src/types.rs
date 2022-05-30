@@ -1,3 +1,5 @@
+use std::time::SystemTime;
+
 use quick_error::quick_error;
 
 quick_error! {
@@ -25,7 +27,7 @@ pub struct LogEntry {
     pub trace_id: String,
     pub message: String,
     pub severity: LogSeverity,
-    pub time: chrono::DateTime<chrono::Utc>,
+    pub timestamp: SystemTime,
     pub file_path: String,
     pub line_number: u32,
 }
