@@ -25,6 +25,7 @@ pub struct LogEntry {
     pub trace_id: String,
     pub message: String,
     pub severity: LogSeverity,
+    #[serde(skip_serializing)]
     pub timestamp: wasm_timer::SystemTime,
     pub file_path: String,
     pub line_number: u32,
