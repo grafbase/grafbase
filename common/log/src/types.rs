@@ -4,6 +4,7 @@ pub enum Error {
     DatadogRequest(surf::Error),
     #[error("Datadog: [status = {0}] {1:?}")]
     DatadogPushFailed(surf::StatusCode, Option<String>),
+    #[cfg(feature = "sentry-cf-worker")]
     #[error("Sentry: {0}")]
     SentryError(sentry_cf_worker::SentryError),
 }
