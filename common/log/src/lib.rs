@@ -6,13 +6,17 @@ mod constants;
 mod types;
 
 // FIXME: To keep Clippy happy.
+#[cfg(not(feature = "sentry-cf-worker"))]
+use futures_util as _;
 pub use log_;
-use std::sync::atomic::{AtomicU8, Ordering};
+
+// Re-export.
 pub use types::*;
 pub use wasm_timer;
-
 #[cfg(feature = "with-worker")]
 pub use worker;
+
+use std::sync::atomic::{AtomicU8, Ordering};
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
 
