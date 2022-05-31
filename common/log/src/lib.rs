@@ -16,6 +16,7 @@ pub use wasm_timer;
 #[cfg(feature = "with-worker")]
 pub use worker;
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
@@ -144,27 +145,26 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         None => return Ok(()),
     };
 
-    let mut tags: Vec<(&str, Cow<'_, str>)> = vec![
-        ("request_id", Cow::Borrowed(&log_config.trace_id)),
-        ("environment", Cow::Borrowed(&log_config.environment)),
-    ];
+    // We use `Cow` to avoid needless cloning.
+    let mut tags: HashMap<&'static str, Cow<'_, str>> = maplit::hashmap! {
+        "request_id" => (&log_config.trace_id).into(),
+        "environment" => (&log_config.environment).into(),
+    };
     if let Some(branch) = log_config.branch.as_deref() {
-        tags.push(("branch", Cow::Borrowed(branch)));
+        tags.insert("branch", branch.into());
     }
 
     let entries: Vec<_> = entries
         .iter()
         .map(|entry| {
             let datadog_tag_string = {
-                tags.push(("file_path", Cow::Borrowed(&entry.file_path)));
-                tags.push(("line_number", Cow::Owned(entry.line_number.to_string())));
+                tags.insert("file_path", (&entry.file_path).into()); // Borrowed.
+                tags.insert("line_number", entry.line_number.to_string().into()); // Cloned.
                 let string = tags
                     .iter()
                     .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
                     .collect::<Vec<_>>()
                     .join(",");
-                tags.pop();
-                tags.pop();
                 string
             };
 
