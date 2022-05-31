@@ -74,10 +74,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -105,10 +105,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -160,10 +160,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -204,10 +204,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -229,7 +229,7 @@ mod tests {
             type Post @model {
               id: ID!
               content: String!
-              authors: [Author] 
+              authors: [Author] @relation(name: "published")
             }
 
             type Author @model {
@@ -237,15 +237,17 @@ mod tests {
               name: String!
               lastname: String!
               country: Country!
+              posts: [Post] @relation(name: "published")
             }
             "#,
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
+        assert_eq!(false, true);
     }
 }

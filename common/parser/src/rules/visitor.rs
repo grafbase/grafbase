@@ -125,6 +125,7 @@ impl<'a> VisitorContext<'a> {
                                 compute_complexity: None,
                                 resolve: None,
                                 edges: Vec::new(),
+                                relation: None,
                                 transforms: None,
                             },
                         );

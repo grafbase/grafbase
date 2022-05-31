@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 247
+assertion_line: 250
 expression: sdl
 ---
 type Author {
@@ -8,6 +8,7 @@ type Author {
 	name: String!
 	lastname: String!
 	country: Country!
+	posts: [Post]
 }
 type AuthorConnection {
 	"""
@@ -16,16 +17,17 @@ type AuthorConnection {
 	pageInfo: PageInfo!
 	edges: [AuthorEdge]
 }
+type AuthorCreatePayload {
+	author: Author
+}
 """
 Input to create a new Author
 """
-input AuthorCreateInput {
+input AuthorCreationInput {
 	name: String!
 	lastname: String!
 	country: Country!
-}
-type AuthorCreatePayload {
-	author: Author
+	posts: [AuthorPublishedPostCreateInput]
 }
 type AuthorDeletePayload {
 	deletedId: ID!
@@ -34,10 +36,53 @@ type AuthorEdge {
 	node: Author!
 	cursor: String!
 }
+"""
+Input to create a new AuthorPublishedPostCreateInput
+"""
+input AuthorPublishedPostCreateInput {
+	create: AuthorPublishedPostCreationInput
+	link: ID
+}
+"""
+Input to create a new AuthorPublishedPostCreationInput
+"""
+input AuthorPublishedPostCreationInput {
+	content: String!
+}
 type Blog {
 	id: ID!
 	posts: [Post]
 	owner: Author!
+}
+"""
+Input to create a new BlogAuthorRelateBlogAuthorCreateInput
+"""
+input BlogAuthorRelateBlogAuthorCreateInput {
+	create: BlogAuthorRelateBlogAuthorCreationInput
+	link: ID
+}
+"""
+Input to create a new BlogAuthorRelateBlogAuthorCreationInput
+"""
+input BlogAuthorRelateBlogAuthorCreationInput {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts: [AuthorPublishedPostCreationInput]
+}
+"""
+Input to create a new BlogBlogRelatePostPostCreateInput
+"""
+input BlogBlogRelatePostPostCreateInput {
+	create: BlogBlogRelatePostPostCreationInput
+	link: ID
+}
+"""
+Input to create a new BlogBlogRelatePostPostCreationInput
+"""
+input BlogBlogRelatePostPostCreationInput {
+	content: String!
+	authors: [PostPublishedAuthorCreationInput]
 }
 type BlogConnection {
 	"""
@@ -46,15 +91,15 @@ type BlogConnection {
 	pageInfo: PageInfo!
 	edges: [BlogEdge]
 }
+type BlogCreatePayload {
+	blog: Blog
+}
 """
 Input to create a new Blog
 """
-input BlogCreateInput {
-	posts: [ID]
-	owner: ID!
-}
-type BlogCreatePayload {
-	blog: Blog
+input BlogCreationInput {
+	posts: [BlogBlogRelatePostPostCreateInput]
+	owner: BlogAuthorRelateBlogAuthorCreateInput!
 }
 type BlogDeletePayload {
 	deletedId: ID!
@@ -71,7 +116,7 @@ type Mutation {
 	"""
 	Create a Blog
 	"""
-	blogCreate(input: BlogCreateInput!): BlogCreatePayload
+	blogCreate(input: BlogCreationInput!): BlogCreatePayload
 	"""
 	Delete a Blog by ID
 	"""
@@ -79,7 +124,7 @@ type Mutation {
 	"""
 	Create a Post
 	"""
-	postCreate(input: PostCreateInput!): PostCreatePayload
+	postCreate(input: PostCreationInput!): PostCreatePayload
 	"""
 	Delete a Post by ID
 	"""
@@ -87,7 +132,7 @@ type Mutation {
 	"""
 	Create a Author
 	"""
-	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	authorCreate(input: AuthorCreationInput!): AuthorCreatePayload
 	"""
 	Delete a Author by ID
 	"""
@@ -111,15 +156,15 @@ type PostConnection {
 	pageInfo: PageInfo!
 	edges: [PostEdge]
 }
+type PostCreatePayload {
+	post: Post
+}
 """
 Input to create a new Post
 """
-input PostCreateInput {
+input PostCreationInput {
 	content: String!
-	authors: [ID]
-}
-type PostCreatePayload {
-	post: Post
+	authors: [PostPublishedAuthorCreateInput]
 }
 type PostDeletePayload {
 	deletedId: ID!
@@ -127,6 +172,21 @@ type PostDeletePayload {
 type PostEdge {
 	node: Post!
 	cursor: String!
+}
+"""
+Input to create a new PostPublishedAuthorCreateInput
+"""
+input PostPublishedAuthorCreateInput {
+	create: PostPublishedAuthorCreationInput
+	link: ID
+}
+"""
+Input to create a new PostPublishedAuthorCreationInput
+"""
+input PostPublishedAuthorCreationInput {
+	name: String!
+	lastname: String!
+	country: Country!
 }
 type Query {
 	"""

@@ -1,8 +1,10 @@
 use super::visitor::{VisitorCons, VisitorNil};
 
 mod relations_engine;
+pub use relations_engine::generate_metarelation;
 
 pub const fn relations_rules() -> VisitorCons<relations_engine::RelationEngine, VisitorNil> {
+    // TODO: Add Check to ensure the directive is not used outside of Modelized node.
     VisitorNil.with(relations_engine::RelationEngine)
 }
 
@@ -60,7 +62,6 @@ mod tests {
         visit(&mut relations_rules(), &mut ctx, &schema);
 
         assert_debug_snapshot!(ctx.relations);
-        assert!(!ctx.errors.is_empty(), "shouldn't be empty");
-        assert_debug_snapshot!(ctx.errors);
+        assert!(ctx.errors.is_empty(), "should be empty");
     }
 }

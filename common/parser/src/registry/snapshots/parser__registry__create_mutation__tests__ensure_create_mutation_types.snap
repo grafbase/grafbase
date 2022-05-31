@@ -1,0 +1,12 @@
+---
+source: common/parser/src/registry/create_mutation.rs
+assertion_line: 499
+expression: sdl
+---
+type AuthorCreatePayload {
+	author: Author
+}
+schema {
+	query: Query
+}
+

@@ -1,3 +1,7 @@
+//! TODO:
+//!
+//! -> Split each of the creation and add tests with SDL
+//!
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{to_input_type, to_lower_camelcase};
 use async_graphql::indexmap::IndexMap;
@@ -9,6 +13,10 @@ use async_graphql::registry::{
 };
 use async_graphql_parser::types::{FieldDefinition, ObjectType};
 use case::CaseExt;
+
+mod create_mutation;
+mod relations;
+pub use create_mutation::{add_create_mutation, create_input_without_relation};
 
 /// Create an input type for a non_primitive Type.
 pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &ObjectType, type_name: &str) -> String {
@@ -83,6 +91,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: None,
                         transforms: None,
                     },
@@ -102,6 +111,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
@@ -158,6 +168,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -183,6 +194,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -208,6 +220,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -233,6 +246,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: Some(Resolver {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
@@ -285,6 +299,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: None,
                         transforms: None,
                     },
@@ -304,6 +319,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         visible: None,
                         compute_complexity: None,
                         edges: connection_edges.clone(),
+                        relation: None,
                         resolve: None,
                         transforms: None,
                     },
@@ -388,6 +404,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
         visible: None,
         compute_complexity: None,
         edges: Vec::new(),
+        relation: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_resolver", type_name.to_lowercase())),
             // Multiple entities
@@ -397,145 +414,6 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                 after: VariableResolveDefinition::InputTypeName("after".to_string()),
                 before: VariableResolveDefinition::InputTypeName("before".to_string()),
                 last: VariableResolveDefinition::InputTypeName("last".to_string()),
-            }),
-        }),
-        transforms: None,
-    });
-}
-
-/// Add the create Mutation for a given Object
-pub fn add_create_mutation<'a>(
-    ctx: &mut VisitorContext<'a>,
-    object: &ObjectType,
-    id_field: &FieldDefinition,
-    type_name: &str,
-) {
-    let type_name = type_name.to_string();
-    let create_input_name = format!("{}CreateInput", type_name.to_camel());
-    let create_payload_name = format!("{}CreatePayload", type_name.to_camel());
-    // CreateInput
-    ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::InputObject {
-            name: create_input_name.clone(),
-            description: Some(format!("Input to create a new {}", type_name)),
-            oneof: false,
-            input_fields: {
-                let mut input_fields = IndexMap::new();
-                // As we are sure there are primitives types
-                for field in &object.fields {
-                    let name = &field.node.name.node;
-                    // We prevent the id field from appearing inside a create mutation.
-                    // Right now: id must be autogenerated by Grafbase.
-                    if name.ne(&id_field.name.node) {
-                        input_fields.insert(
-                            name.clone().to_string(),
-                            MetaInputValue {
-                                name: name.to_string(),
-                                description: field.node.description.clone().map(|x| x.node),
-                                ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
-                                visible: None,
-                                default_value: None,
-                                is_secret: false,
-                            },
-                        );
-                    }
-                }
-                input_fields
-            },
-            visible: None,
-            rust_typename: type_name.clone(),
-        },
-        &create_input_name,
-        &create_input_name,
-    );
-
-    // CreatePayload
-    ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::Object {
-            name: create_payload_name.clone(),
-            description: None,
-            fields: {
-                let mut fields = IndexMap::new();
-                let name = to_lower_camelcase(&type_name);
-                fields.insert(
-                    name.clone(),
-                    MetaField {
-                        name,
-                        description: None,
-                        args: Default::default(),
-                        ty: type_name.to_camel(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        resolve: Some(Resolver {
-                            id: Some(format!("{}_resolver", type_name.to_lowercase())),
-                            // Single entity
-                            r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                                pk: VariableResolveDefinition::LocalData("id".to_string()),
-                                sk: VariableResolveDefinition::LocalData("id".to_string()),
-                            }),
-                        }),
-                        transforms: None,
-                    },
-                );
-                fields
-            },
-            cache_control: async_graphql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: create_payload_name.clone(),
-        },
-        &create_payload_name,
-        &create_payload_name,
-    );
-
-    // createQuery
-    ctx.mutations.push(MetaField {
-        name: format!("{}Create", to_lower_camelcase(&type_name)),
-        description: Some(format!("Create a {}", type_name)),
-        args: {
-            let mut args = IndexMap::new();
-            args.insert(
-                "input".to_owned(),
-                MetaInputValue {
-                    name: "input".to_owned(),
-                    description: None,
-                    ty: format!("{}!", &create_input_name),
-                    default_value: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            );
-            args
-        },
-        ty: create_payload_name,
-        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-        cache_control: async_graphql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
-        external: false,
-        provides: None,
-        requires: None,
-        visible: None,
-        edges: Vec::new(),
-        compute_complexity: None,
-        resolve: Some(Resolver {
-            id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
-                input: VariableResolveDefinition::InputTypeName("input".to_owned()),
-                ty: type_name,
             }),
         }),
         transforms: None,
@@ -571,6 +449,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                         visible: None,
                         compute_complexity: None,
                         edges: Vec::new(),
+                        relation: None,
                         resolve: None,
                         transforms: Some(vec![Transformer::JSONSelect {
                             property: "id".to_string(),
@@ -625,6 +504,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         requires: None,
         visible: None,
         edges: Vec::new(),
+        relation: None,
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),

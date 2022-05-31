@@ -1,13 +1,13 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 134
+assertion_line: 136
 expression: sdl
 ---
 type Mutation {
 	"""
 	Create a TodoList
 	"""
-	todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
+	todoListCreate(input: TodoListCreationInput!): TodoListCreatePayload
 	"""
 	Delete a TodoList by ID
 	"""
@@ -15,7 +15,7 @@ type Mutation {
 	"""
 	Create a Todo
 	"""
-	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	todoCreate(input: TodoCreationInput!): TodoCreatePayload
 	"""
 	Delete a Todo by ID
 	"""
@@ -57,15 +57,15 @@ type TodoConnection {
 	pageInfo: PageInfo!
 	edges: [TodoEdge]
 }
+type TodoCreatePayload {
+	todo: Todo
+}
 """
 Input to create a new Todo
 """
-input TodoCreateInput {
+input TodoCreationInput {
 	title: String!
 	complete: Boolean
-}
-type TodoCreatePayload {
-	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!
@@ -86,15 +86,15 @@ type TodoListConnection {
 	pageInfo: PageInfo!
 	edges: [TodoListEdge]
 }
+type TodoListCreatePayload {
+	todoList: TodoList
+}
 """
 Input to create a new TodoList
 """
-input TodoListCreateInput {
+input TodoListCreationInput {
 	title: String!
-	todos: [ID]
-}
-type TodoListCreatePayload {
-	todoList: TodoList
+	todos: [TodoListTodoRelateTodoListTodoCreateInput]
 }
 type TodoListDeletePayload {
 	deletedId: ID!
@@ -102,6 +102,20 @@ type TodoListDeletePayload {
 type TodoListEdge {
 	node: TodoList!
 	cursor: String!
+}
+"""
+Input to create a new TodoListTodoRelateTodoListTodoCreateInput
+"""
+input TodoListTodoRelateTodoListTodoCreateInput {
+	create: TodoListTodoRelateTodoListTodoCreationInput
+	link: ID
+}
+"""
+Input to create a new TodoListTodoRelateTodoListTodoCreationInput
+"""
+input TodoListTodoRelateTodoListTodoCreationInput {
+	title: String!
+	complete: Boolean
 }
 schema {
 	query: Query
