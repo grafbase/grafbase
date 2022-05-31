@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{GRAFBASE_FOLDER, GRAFBASE_SCHEMA},
+    consts::{DOT_GRAFBASE_FOLDER, GRAFBASE_FOLDER, GRAFBASE_SCHEMA},
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -17,7 +17,9 @@ use std::{
 pub struct Environment {
     /// the path of `grafbase/schema.graphql` in the nearest ancestor directory
     /// with said folder and file
-    pub grafbase_path: PathBuf,
+    pub project_grafbase_path: PathBuf,
+    /// the path of `$HOME/.grafbase`
+    pub user_grafbase_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -34,10 +36,16 @@ impl Environment {
     ///
     /// returns [CommonError::SetEnvironment] if the static environment instance could not be set
     pub fn try_init() -> Result<(), CommonError> {
-        let grafbase_path = Environment::get_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
-
+        let project_grafbase_path =
+            Environment::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+        let project_dir = project_grafbase_path.parent().unwrap_or(&project_grafbase_path);
+        let home = dirs::home_dir().unwrap_or_else(|| project_dir.to_owned());
+        let user_grafbase_path = home.join(DOT_GRAFBASE_FOLDER);
         ENVIRONMENT
-            .set(Environment { grafbase_path })
+            .set(Environment {
+                project_grafbase_path,
+                user_grafbase_path,
+            })
             .map_err(|_| CommonError::SetEnvironment)?;
 
         Ok(())
@@ -64,8 +72,8 @@ impl Environment {
     /// # Errors
     ///
     /// returns [CommonError::ReadCurrentDirectory] if the current directory path cannot be read
-    fn get_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
-        let grafbase_path = env::current_dir()
+    fn get_project_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
+        let project_grafbase_path = env::current_dir()
             .map_err(|_| CommonError::ReadCurrentDirectory)?
             .ancestors()
             .find_map(|ancestor| {
@@ -91,6 +99,6 @@ impl Environment {
                 }
             });
 
-        Ok(grafbase_path)
+        Ok(project_grafbase_path)
     }
 }

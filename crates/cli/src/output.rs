@@ -2,6 +2,7 @@ pub mod report {
     use crate::errors::CliError;
     use colored::Colorize;
     use common::consts::LOCALHOST;
+    use std::io;
 
     /// reports to stdout that the dev server has started
     pub fn start_server(port: u16, start_port: u16) {
@@ -20,5 +21,10 @@ pub mod report {
     /// reports an error to stderr
     pub fn error(error: &CliError) {
         eprintln!("{}", format!("error: {}", error).bright_red());
+    }
+
+    /// reports an error to stderr
+    pub fn miniflare_error(error: io::Error) {
+        eprintln!("{}", error);
     }
 }

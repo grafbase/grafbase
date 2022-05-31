@@ -24,11 +24,11 @@ pub enum CliError {
 impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            CliError::ParsePort => exitcode::USAGE,
-            CliError::UnsupportedShellForCompletions(_) => exitcode::USAGE,
-            CliError::DevServerPanic(_) => exitcode::SOFTWARE,
-            CliError::LocalGatewayError(inner) => inner.to_exit_code(),
-            CliError::CommonError(inner) => inner.to_exit_code(),
+            Self::ParsePort => exitcode::USAGE,
+            Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
+            Self::DevServerPanic(_) => exitcode::SOFTWARE,
+            Self::LocalGatewayError(inner) => inner.to_exit_code(),
+            Self::CommonError(inner) => inner.to_exit_code(),
         }
     }
 }

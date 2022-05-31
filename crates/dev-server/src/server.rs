@@ -1,48 +1,92 @@
-use actix_web::{middleware::Logger, post, web, App, HttpResponse, HttpServer, Responder};
-use common::consts::LOCALHOST;
-use serde_derive::{Deserialize, Serialize};
-use serde_json::{Map, Value};
-use std::thread;
+use crate::errors::DevServerError;
+use common::environment::Environment;
+use rust_embed::RustEmbed;
+use std::{
+    fs, io,
+    process::{Command, Output, Stdio},
+    thread::{self, JoinHandle},
+};
+use version_compare::Version;
 
-pub fn start(port: u16) -> thread::JoinHandle<()> {
-    trace!("spawining server thread");
-    thread::spawn(move || {
-        trace!("server thread id: {:?}", thread::current().id());
-        HttpResponse::Ok().body("Hello world!");
-        actix_main(port).unwrap();
-    })
-}
+#[derive(RustEmbed)]
+#[folder = "assets/"]
+struct Assets;
 
-#[actix_web::main]
-async fn actix_main(port: u16) -> std::io::Result<()> {
-    trace!("running server on port {}", port);
-    HttpServer::new(|| App::new().wrap(Logger::default()).service(root))
-        .bind((LOCALHOST, port))?
-        .run()
-        .await
-}
+const NPX: &str = "npx";
+const NPX_QUIET_FLAG: &str = "--quiet";
+const MINIFLARE: &str = "miniflare";
+const MINIFLARE_PORT_FLAG: &str = "--port";
+const WORKER_DIR: &str = "worker";
+const WORKER_FOLDER_VERSION_FILE: &str = "version.txt";
 
-#[post("/")]
-async fn root(_request: web::Json<GraphqlRequest>) -> actix_web::Result<impl Responder> {
-    Ok(web::Json(GraphqlResponse {
-        data: serde_json::Value::Object(Map::new()),
-        errors: Value::Array(vec![]),
+/// starts a development server by unpacking any files needed by the gateway worker
+/// and starting the miniflare cli in user_grafbase_path in [Environment]
+pub fn start(port: u16) -> Result<JoinHandle<Result<Output, io::Error>>, DevServerError> {
+    export_embedded_files()?;
+
+    trace!("spawining miniflare");
+
+    let environment = Environment::get();
+
+    Ok(thread::spawn(move || {
+        Command::new(NPX)
+            .arg(NPX_QUIET_FLAG)
+            .arg(MINIFLARE)
+            .arg(MINIFLARE_PORT_FLAG)
+            .arg(port.to_string())
+            .current_dir(&environment.user_grafbase_path)
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .output()
     }))
 }
 
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
-struct GraphqlRequest {
-    query: String,
-    operation_name: String,
-    variables: Value,
-}
+fn export_embedded_files() -> Result<(), DevServerError> {
+    let environment = Environment::get();
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
-struct GraphqlResponse {
-    data: Value,
-    errors: Value,
+    let worker_path = environment.user_grafbase_path.join(WORKER_DIR);
+
+    // CARGO_PKG_VERSION is guaranteed be valid semver
+    let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
+
+    let worker_version_path = worker_path.join(WORKER_FOLDER_VERSION_FILE);
+
+    let export_files = if worker_path.is_dir() {
+        let worker_version = fs::read_to_string(&worker_version_path).map_err(|_| DevServerError::ReadVersion)?;
+
+        // derived from CARGO_PKG_VERSION, guaranteed be valid semver
+        current_version > Version::from(&worker_version).unwrap()
+    } else {
+        true
+    };
+
+    // TODO: add dependency for gateway or add as build dep
+    if export_files {
+        trace!("writing worker files");
+
+        fs::create_dir_all(&worker_path).map_err(|_| DevServerError::CreateDir(worker_path.clone()))?;
+
+        let mut write_results = Assets::iter().map(|path| {
+            let file = Assets::get(path.as_ref());
+
+            let full_path = environment.user_grafbase_path.join(path.as_ref());
+
+            // must be Some(file) since we're iterating over existing paths
+            let write_result = fs::write(&full_path, file.unwrap().data);
+
+            (write_result, full_path)
+        });
+
+        if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
+            let error_path_string = path.to_string_lossy().to_string();
+            return Err(DevServerError::WriteFile(error_path_string));
+        }
+
+        if fs::write(&worker_version_path, current_version.as_str()).is_err() {
+            let worker_version_path_string = worker_version_path.to_string_lossy().to_string();
+            return Err(DevServerError::WriteFile(worker_version_path_string));
+        };
+    }
+
+    Ok(())
 }

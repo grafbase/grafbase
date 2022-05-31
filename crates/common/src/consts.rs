@@ -8,3 +8,5 @@ pub const LOCALHOST: &str = "127.0.0.1";
 pub const GRAFBASE_FOLDER: &str = "grafbase";
 /// a file expected to be in the grafbase folder
 pub const GRAFBASE_SCHEMA: &str = "schema.graphql";
+/// the name for the db / cache directory per project and the global cache directory for the user
+pub const DOT_GRAFBASE_FOLDER: &str = ".grafbase";

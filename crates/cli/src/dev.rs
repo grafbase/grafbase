@@ -21,8 +21,6 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
         Err(error) => return Err(CliError::LocalGatewayError(error)),
     };
 
-    // TODO: see if we want to allow more user input here, otherwise we might be able to remove the thread spawn
-
     server_handle
         .join()
         .map_err(|panic_parameter| match panic_parameter.downcast_ref::<&'static str>() {
@@ -31,6 +29,10 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
                 Some(parameter) => CliError::DevServerPanic(parameter.clone()),
                 None => CliError::DevServerPanic("unknown error".to_owned()),
             },
+        })?
+        .map_err(|error| {
+            report::miniflare_error(error);
+            CliError::DevServerPanic("miniflare error".to_owned())
         })?;
 
     Ok(())
