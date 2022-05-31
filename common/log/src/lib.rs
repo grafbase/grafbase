@@ -123,6 +123,8 @@ pub fn collect_logs_to_be_pushed(log_config: &LogConfig) -> Vec<LogEntry> {
 }
 
 pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
+    use std::borrow::Cow;
+
     #[derive(Debug, serde::Serialize)]
     pub struct DatadogLogEntry {
         pub ddsource: String,
@@ -142,34 +144,26 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         None => return Ok(()),
     };
 
-    #[rustfmt::skip]
-    let mut tags: Vec<(&str, &str)> = vec![
-        ("request_id", &log_config.trace_id),
-        ("environment", &log_config.environment),
+    let mut tags: Vec<(&str, Cow<'_, str>)> = vec![
+        ("request_id", Cow::Borrowed(&log_config.trace_id)),
+        ("environment", Cow::Borrowed(&log_config.environment)),
+        ("file_path", Cow::Borrowed("")),
+        ("line_number", Cow::Borrowed("")),
     ];
     if let Some(branch) = log_config.branch.as_deref() {
-        tags.push(("branch", branch));
+        tags.push(("branch", Cow::Borrowed(branch)));
     }
-    let datadog_tag_string_prefix = tags
-        .iter()
-        .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
-        .collect::<Vec<_>>()
-        .join(",");
 
     let entries: Vec<_> = entries
         .iter()
         .map(|entry| {
-            let line_number_string = entry.line_number.to_string();
-            let extra_tags = vec![
-                ("file_path", entry.file_path.as_str()),
-                ("line_number", &line_number_string),
-            ];
-            let datadog_tag_string_rest = extra_tags
+            tags[2].1 = Cow::Borrowed(&entry.file_path);
+            tags[3].1 = Cow::Owned(entry.line_number.to_string());
+            let datadog_tag_string = tags
                 .iter()
                 .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
                 .collect::<Vec<_>>()
                 .join(",");
-            let datadog_tag_string = datadog_tag_string_prefix.clone() + &datadog_tag_string_rest;
             DatadogLogEntry {
                 ddsource: "grafbase.api".to_owned(),
                 ddtags: datadog_tag_string,
