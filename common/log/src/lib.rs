@@ -147,8 +147,6 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     let mut tags: Vec<(&str, Cow<'_, str>)> = vec![
         ("request_id", Cow::Borrowed(&log_config.trace_id)),
         ("environment", Cow::Borrowed(&log_config.environment)),
-        ("file_path", Cow::Borrowed("")),
-        ("line_number", Cow::Borrowed("")),
     ];
     if let Some(branch) = log_config.branch.as_deref() {
         tags.push(("branch", Cow::Borrowed(branch)));
@@ -157,13 +155,19 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     let entries: Vec<_> = entries
         .iter()
         .map(|entry| {
-            tags[2].1 = Cow::Borrowed(&entry.file_path);
-            tags[3].1 = Cow::Owned(entry.line_number.to_string());
-            let datadog_tag_string = tags
-                .iter()
-                .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
-                .collect::<Vec<_>>()
-                .join(",");
+            let datadog_tag_string = {
+                tags.push(("file_path", Cow::Borrowed(&entry.file_path)));
+                tags.push(("line_number", Cow::Owned(entry.line_number.to_string())));
+                let string = tags
+                    .iter()
+                    .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                tags.pop();
+                tags.pop();
+                string
+            };
+
             DatadogLogEntry {
                 ddsource: "grafbase.api".to_owned(),
                 ddtags: datadog_tag_string,
