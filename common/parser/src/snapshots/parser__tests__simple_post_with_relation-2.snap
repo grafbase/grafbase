@@ -134,7 +134,7 @@ type Query {
 	"""
 	blog(id: ID!): Blog
 	"""
-	Unpaginated query to fetch the whole list of `Blog`.
+	Paginated query to fetch the whole list of `Blog`.
 	"""
 	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
@@ -142,7 +142,7 @@ type Query {
 	"""
 	post(id: ID!): Post
 	"""
-	Unpaginated query to fetch the whole list of `Post`.
+	Paginated query to fetch the whole list of `Post`.
 	"""
 	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
@@ -150,7 +150,7 @@ type Query {
 	"""
 	author(id: ID!): Author
 	"""
-	Unpaginated query to fetch the whole list of `Author`.
+	Paginated query to fetch the whole list of `Author`.
 	"""
 	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
 }

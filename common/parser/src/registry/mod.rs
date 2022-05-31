@@ -327,7 +327,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
 
     ctx.queries.push(MetaField {
         name: format!("{}Collection", to_lower_camelcase(type_name)),
-        description: Some(format!("Unpaginated query to fetch the whole list of `{}`.", type_name)),
+        description: Some(format!("Paginated query to fetch the whole list of `{}`.", type_name)),
         args: {
             let mut args = IndexMap::new();
             args.insert(

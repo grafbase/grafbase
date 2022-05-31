@@ -40,7 +40,7 @@ type Query {
 	"""
 	todo(id: ID!): Todo
 	"""
-	Unpaginated query to fetch the whole list of `Todo`.
+	Paginated query to fetch the whole list of `Todo`.
 	"""
 	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }

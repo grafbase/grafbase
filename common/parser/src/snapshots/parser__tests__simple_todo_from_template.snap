@@ -33,7 +33,7 @@ type Query {
 	"""
 	todoList(id: ID!): TodoList
 	"""
-	Unpaginated query to fetch the whole list of `TodoList`.
+	Paginated query to fetch the whole list of `TodoList`.
 	"""
 	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
 	"""
@@ -41,7 +41,7 @@ type Query {
 	"""
 	todo(id: ID!): Todo
 	"""
-	Unpaginated query to fetch the whole list of `Todo`.
+	Paginated query to fetch the whole list of `Todo`.
 	"""
 	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }

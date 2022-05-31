@@ -60,7 +60,7 @@ type Query {
 	"""
 	product(id: ID!): Product
 	"""
-	Unpaginated query to fetch the whole list of `Product`.
+	Paginated query to fetch the whole list of `Product`.
 	"""
 	productCollection(after: String, before: String, first: Int, last: Int): ProductConnection
 }
