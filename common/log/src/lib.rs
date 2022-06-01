@@ -158,7 +158,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         .iter()
         .map(|entry| {
             let datadog_tag_string = {
-                tags.insert("file_path", (Cow::Borrowed(&entry.file_path)); // Borrowed.
+                tags.insert("file_path", Cow::Borrowed(&entry.file_path)); // Borrowed.
                 tags.insert("line_number", Cow::Owned(entry.line_number.to_string()));
                 let string = tags
                     .iter()
