@@ -151,15 +151,15 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         "environment" => (&log_config.environment).into(),
     };
     if let Some(branch) = log_config.branch.as_deref() {
-        tags.insert("branch", branch.into());
+        tags.insert("branch", Cow::Borrowed(branch));
     }
 
     let entries: Vec<_> = entries
         .iter()
         .map(|entry| {
             let datadog_tag_string = {
-                tags.insert("file_path", (&entry.file_path).into()); // Borrowed.
-                tags.insert("line_number", entry.line_number.to_string().into()); // Cloned.
+                tags.insert("file_path", (Cow::Borrowed(&entry.file_path)); // Borrowed.
+                tags.insert("line_number", Cow::Owned(entry.line_number.to_string()));
                 let string = tags
                     .iter()
                     .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
