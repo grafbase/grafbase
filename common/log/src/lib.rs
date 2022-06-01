@@ -16,6 +16,7 @@ pub use wasm_timer;
 #[cfg(feature = "with-worker")]
 pub use worker;
 
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 pub static LOG_CONFIG: AtomicU8 = AtomicU8::new(Config::STDLOG.bits());
@@ -123,6 +124,8 @@ pub fn collect_logs_to_be_pushed(log_config: &LogConfig) -> Vec<LogEntry> {
 }
 
 pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
+    use std::borrow::Cow;
+
     #[derive(Debug, serde::Serialize)]
     pub struct DatadogLogEntry {
         pub ddsource: String,
@@ -142,34 +145,29 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         None => return Ok(()),
     };
 
-    #[rustfmt::skip]
-    let mut tags: Vec<(&str, &str)> = vec![
-        ("request_id", &log_config.trace_id),
-        ("environment", &log_config.environment),
-    ];
+    // We use `Cow` to avoid needless cloning.
+    let mut tags: HashMap<&'static str, Cow<'_, str>> = maplit::hashmap! {
+        "request_id" => (&log_config.trace_id).into(),
+        "environment" => (&log_config.environment).into(),
+    };
     if let Some(branch) = log_config.branch.as_deref() {
-        tags.push(("branch", branch));
+        tags.insert("branch", Cow::Borrowed(branch));
     }
-    let datadog_tag_string_prefix = tags
-        .iter()
-        .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
-        .collect::<Vec<_>>()
-        .join(",");
 
     let entries: Vec<_> = entries
         .iter()
         .map(|entry| {
-            let line_number_string = entry.line_number.to_string();
-            let extra_tags = vec![
-                ("file_path", entry.file_path.as_str()),
-                ("line_number", &line_number_string),
-            ];
-            let datadog_tag_string_rest = extra_tags
-                .iter()
-                .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
-                .collect::<Vec<_>>()
-                .join(",");
-            let datadog_tag_string = datadog_tag_string_prefix.clone() + &datadog_tag_string_rest;
+            let datadog_tag_string = {
+                tags.insert("file_path", Cow::Borrowed(&entry.file_path)); // Borrowed.
+                tags.insert("line_number", Cow::Owned(entry.line_number.to_string()));
+                let string = tags
+                    .iter()
+                    .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                string
+            };
+
             DatadogLogEntry {
                 ddsource: "grafbase.api".to_owned(),
                 ddtags: datadog_tag_string,

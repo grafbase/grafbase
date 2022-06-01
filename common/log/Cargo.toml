@@ -7,7 +7,7 @@ edition = "2021"
 bitflags = "1"
 futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
 log_ = { package = "log", version = "0.4" }
-maplit = { version = "1.0.2", optional = true }
+maplit = "1"
 sentry-cf-worker = { git = "https://github.com/grafbase/sentry-rust", branch = "stable", optional = true }
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
@@ -16,7 +16,7 @@ wasm-timer = "0.2"
 worker = { version = "0.0.9", optional = true }
 
 [features]
-with-worker = ["maplit", "sentry-cf-worker", "worker"]
+with-worker = ["sentry-cf-worker", "worker"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
