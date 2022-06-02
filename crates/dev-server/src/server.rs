@@ -12,10 +12,6 @@ use version_compare::Version;
 #[folder = "assets/"]
 struct Assets;
 
-const NPX: &str = "npx";
-const NPX_QUIET_FLAG: &str = "--quiet";
-const MINIFLARE: &str = "miniflare";
-const MINIFLARE_PORT_FLAG: &str = "--port";
 const WORKER_DIR: &str = "worker";
 const WORKER_FOLDER_VERSION_FILE: &str = "version.txt";
 
@@ -29,11 +25,13 @@ pub fn start(port: u16) -> Result<JoinHandle<Result<Output, io::Error>>, DevServ
     let environment = Environment::get();
 
     Ok(thread::spawn(move || {
-        Command::new(NPX)
-            .arg(NPX_QUIET_FLAG)
-            .arg(MINIFLARE)
-            .arg(MINIFLARE_PORT_FLAG)
+        Command::new("npx")
+            .arg("--quiet")
+            .arg("miniflare")
+            .arg("--port")
             .arg(port.to_string())
+            .arg("-c")
+            .arg("wrangler.toml")
             .current_dir(&environment.user_grafbase_path)
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())

@@ -9,7 +9,7 @@ pub enum LocalGatewayError {
     #[error("could not find an available port")]
     AvailablePort,
     /// returned if a given port is in use and the search option is not used
-    #[error("port {0} in use")]
+    #[error("port {0} is currently in use")]
     PortInUse(u16),
     /// wraps a dev server error
     #[error(transparent)]

@@ -12,6 +12,9 @@
 - Adds future arguments (commented out)
 - Adds proper errors
 - Allows supplying a specific port
+- `dev` command phase 2
+- Adds `miniflare` spawning
+- Bundles worker files into the executable
 
 ### Tooling
 
@@ -34,8 +37,16 @@
 - Improves `renovate.json`
 - Adds `rust-toolchain.toml`
 - Adds `rustfmt.toml`
+- `.gitignore` cleanup
+- Updates @actions/checkout to v3
+- Adds hints for error messages
+- Uses the worker `wrangler.toml` file for env variables
 
 ### Documentation
 
 - Improves the `README.md`
 - Adds inline documentation
+
+### Dependencies
+
+- Updates `once_cell` to 1.12.0

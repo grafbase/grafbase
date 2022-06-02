@@ -21,6 +21,9 @@ pub mod report {
     /// reports an error to stderr
     pub fn error(error: &CliError) {
         eprintln!("{}", format!("error: {}", error).bright_red());
+        if let Some(hint) = error.to_hint() {
+            eprintln!("{}", format!("hint: {}", hint).bright_blue());
+        }
     }
 
     /// reports an error to stderr

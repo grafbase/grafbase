@@ -7,7 +7,7 @@ pub enum CommonError {
     #[error("could not read the current path")]
     ReadCurrentDirectory,
     /// returned if the grafbase directory cannot be found
-    #[error("could not find the grafbase directory")]
+    #[error("could not find grafbase/schema.graphql in the current or any parent directory")]
     FindGrafbaseDirectory,
     /// returned if the static environment object cannot be set.
     /// likely to be a bug
