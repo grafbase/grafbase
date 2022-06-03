@@ -30,7 +30,7 @@ pub use paginated::PaginatedCursor;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
 pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
-pub use transaction::TxItem;
+pub use transaction::{TransactionError, TxItem};
 
 /// The DynamoDBContext that is needed to query the Database
 #[derive(Clone)]
