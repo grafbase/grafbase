@@ -248,6 +248,5 @@ mod tests {
 
         insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
-        assert_eq!(false, true);
     }
 }

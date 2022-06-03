@@ -146,7 +146,7 @@ pub fn to_defined_input_type(Type { base, nullable }: Type, relation_type: Strin
 
 fn to_defined_input_base_type(base_type: BaseType, relation_type: &str) -> BaseType {
     match base_type {
-        BaseType::Named(name) => BaseType::Named(Name::new(relation_type)),
+        BaseType::Named(_name) => BaseType::Named(Name::new(relation_type)),
         BaseType::List(list) => BaseType::List(Box::new(Type {
             base: to_defined_input_base_type(list.base, relation_type),
             nullable: list.nullable,

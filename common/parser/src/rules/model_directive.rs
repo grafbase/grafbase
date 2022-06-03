@@ -20,7 +20,7 @@ use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
-use crate::registry::{add_create_mutation, create_input_without_relation};
+use crate::registry::{add_create_mutation};
 use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
@@ -72,7 +72,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         for field in &object.fields {
                             let name = field.node.name.node.to_string();
                             let ty = is_modelized_node(&ctx.types, &field.node.ty.node);
-                            let relation = ty.map(|ty| {
+                            let relation = ty.map(|_ty| {
                                 generate_metarelation(&type_definition.node, &field.node)
                             });
                             let is_node = ty.and_then(|x| {
@@ -194,8 +194,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 });
 
 
-                create_input_without_relation(ctx, &type_definition.node, object);
-                add_create_mutation(ctx, object, &id_field.node, &type_name);
+                add_create_mutation(ctx, &type_definition.node, object, &type_name);
 
                 add_list_query_paginated(ctx, &type_name, connection_edges);
                 add_remove_query(ctx, &id_field.node, &type_name)

@@ -129,10 +129,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
-            ctx.relations.iter().next().unwrap().1.birectional,
-            false,
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -158,10 +157,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
             ctx.relations.iter().next().unwrap().1.birectional,
-            true,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -186,10 +184,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
-            ctx.relations.iter().next().unwrap().1.birectional,
-            false,
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -214,10 +211,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
-            ctx.relations.iter().next().unwrap().1.birectional,
-            false,
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -243,10 +239,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
             ctx.relations.iter().next().unwrap().1.birectional,
-            true,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -272,10 +267,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
             ctx.relations.iter().next().unwrap().1.birectional,
-            true,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -301,10 +295,9 @@ mod tests {
         visit(&mut RelationEngine, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
-        assert_eq!(ctx.relations.len(), 1 as usize, "Should have only one relation");
-        assert_eq!(
+        assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
+        assert!(
             ctx.relations.iter().next().unwrap().1.birectional,
-            true,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
