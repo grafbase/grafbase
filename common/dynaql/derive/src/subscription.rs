@@ -307,6 +307,7 @@ pub fn generate(
                     provides: ::std::option::Option::None,
                     visible: #visible,
                     edges: Vec::new(),
+                    relation: None,
                     compute_complexity: #complexity,
                     resolve: ::std::option::Option::None,
                     transforms: ::std::option::Option::None,

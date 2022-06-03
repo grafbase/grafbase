@@ -1,5 +1,6 @@
 mod cache_control;
 mod export_sdl;
+pub mod relations;
 pub mod resolver_chain;
 pub mod resolvers;
 mod stringify_exec_doc;
@@ -25,6 +26,7 @@ use crate::{
 };
 pub use cache_control::CacheControl;
 
+use self::relations::MetaRelation;
 use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
@@ -213,8 +215,16 @@ pub struct MetaField {
     #[serde(skip)]
     #[derivative(Debug = "ignore")]
     pub compute_complexity: Option<ComplexityType>,
-    /// Define the actual edges of this struct. It'll be used to optimize fetch
+    /// Deprecated, to remove
     pub edges: Vec<String>,
+    /// Define the relations of the Entity
+    ///
+    ///
+    /// @todo: rename it to relations (String, String) where
+    /// 0: RelationName,
+    /// 1: Type,
+    /// relation: (String, String)
+    pub relation: Option<MetaRelation>,
     pub resolve: Option<Resolver>,
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
@@ -280,7 +290,7 @@ impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
         let execution_id = Ulid::new();
-        let registry = &ctx.schema_env.registry;
+        let registry = &ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
         let current_resolver_type = CurrentResolverType::new(&self, ctx);
@@ -428,6 +438,12 @@ type MetaVisibleFn = fn(&Context<'_>) -> bool;
 #[derive(Debug)]
 pub struct Edge<'a>(pub &'a str);
 
+impl<'a> ToString for Edge<'a> {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
 impl MetaType {
     /// Get the edges of a current type.
     /// The edges are only for the top level.
@@ -440,6 +456,43 @@ impl MetaType {
                 if !ty.edges.is_empty() {
                     let edges: Vec<Edge<'a>> = ty.edges.iter().map(|x| Edge(x.as_str())).collect();
                     result.insert(field.as_str(), edges);
+                }
+            }
+        };
+
+        result
+    }
+
+    /// Get the relations of a current type, select relations based on the
+    /// selected fields.
+    pub fn relations_by_selection<'a>(
+        &'a self,
+        selected_fields: Vec<&str>,
+    ) -> HashMap<&'a str, &'a MetaRelation> {
+        let mut result: HashMap<&'a str, &'a MetaRelation> = HashMap::new();
+
+        if let MetaType::Object { fields, .. } = self {
+            for (field, ty) in fields
+                .iter()
+                .filter(|f| selected_fields.contains(&f.0.as_str()))
+            {
+                if let Some(relation) = &ty.relation {
+                    result.insert(field.as_str(), relation);
+                }
+            }
+        };
+
+        result
+    }
+
+    /// Get the relations of a current type
+    pub fn relations<'a>(&'a self) -> HashMap<&'a str, &'a MetaRelation> {
+        let mut result: HashMap<&'a str, &'a MetaRelation> = HashMap::new();
+
+        if let MetaType::Object { fields, .. } = self {
+            for (field, ty) in fields {
+                if let Some(relation) = &ty.relation {
+                    result.insert(field.as_str(), relation);
                 }
             }
         };
@@ -673,14 +726,12 @@ impl Registry {
     }
 
     /// Resolve fields based on where you are inside
-    pub async fn resolve_field(
+    // async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>>;
+    pub async fn resolve_field<'a>(
         &self,
-        ctx: &Context<'_>,
-        root: &MetaType,
+        ctx: &'a Context<'a>,
+        root: &'a MetaType,
     ) -> ServerResult<Option<Value>> {
-        // If QueryRoot -> root then
-        let _registry = &ctx.schema_env.registry;
-
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
@@ -938,6 +989,7 @@ impl Registry {
                         provides: None,
                         visible: None,
                         edges: Vec::new(),
+                        relation: None,
                         compute_complexity: None,
                         resolve: None,
                         transforms: None,
@@ -970,6 +1022,7 @@ impl Registry {
                         external: false,
                         requires: None,
                         edges: Vec::new(),
+                        relation: None,
                         provides: None,
                         visible: None,
                         compute_complexity: None,
@@ -1006,6 +1059,7 @@ impl Registry {
                             visible: None,
                             compute_complexity: None,
                             edges: Vec::new(),
+                            relation: None,
                             resolve: None,
                             transforms: None,
                         },
