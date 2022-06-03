@@ -93,6 +93,12 @@ pub enum DynamoMutationResolver {
     ///
     /// And as every edges of a Node are a Node too, they are still reachable.
     ///
+<<<<<<< HEAD
+=======
+    /// TODO: Right now, we delete only the main node and not the vertices.
+    /// TODO: To delete every thing we should: fetch by gsi2pk & pk & delete everything.
+    ///
+>>>>>>> e9b20e4 (wip)
     /// In the future, when we'll have worked on an async process to optimize we'll be able to
     /// optimize the delete operation:
     ///
@@ -417,7 +423,10 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
 /// It should be recursive, but not be runned recursively, we want to have every
 /// fetch and write optimized into the less affordable number of queries.
 ///
+<<<<<<< HEAD
 #[allow(clippy::too_many_arguments)]
+=======
+>>>>>>> e9b20e4 (wip)
 fn relation_create<'a>(
     ctx: &'a Context<'a>,
     parent_ty: &MetaType,

@@ -95,7 +95,7 @@ impl BaseType {
     pub fn to_base_type_str(&self) -> &str {
         match self {
             BaseType::Named(name) => &*name,
-            BaseType::List(ty_list) => ty_list.base.to_base_type_str(),
+            BaseType::List(ty_list) => &ty_list.base.to_base_type_str(),
         }
     }
 }
