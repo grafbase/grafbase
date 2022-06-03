@@ -1,4 +1,3 @@
-#[cfg(feature = "with-worker")]
 #[macro_use]
 extern crate maplit;
 
@@ -32,7 +31,6 @@ thread_local! {
         std::cell::RefCell::new(Vec::new());
 }
 
-#[cfg(feature = "with-worker")]
 pub fn print_with_worker(status: LogSeverity, message: &str) {
     match status {
         LogSeverity::Debug => worker::console_debug!("{}", message),
