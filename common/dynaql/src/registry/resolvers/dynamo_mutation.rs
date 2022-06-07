@@ -743,7 +743,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 let items_to_be_deleted: Vec<TxItem> = futures_util::future::try_join_all(async_fetch_entities)
                     .await?
                     .into_iter()
-                    .filter_map(|x| x)
+                    .flatten()
                     .flat_map(|x| x.into_iter().flat_map(|(_, y)| y.into_iter()))
                     .filter_map(|val| {
                         let pk = match val.get("__pk").and_then(|x| x.s.clone()) {
@@ -785,7 +785,7 @@ impl ResolverTrait for DynamoMutationResolver {
                             })
                     }).collect();
 
-                if items_to_be_deleted.len() == 0 {
+                if items_to_be_deleted.is_empty() {
                     return Err(Error::new(
                         "This item was not found, you can't delete an inexistant item.",
                     ));
