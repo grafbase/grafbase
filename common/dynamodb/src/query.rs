@@ -118,7 +118,7 @@ impl Loader<QueryKey> for QueryLoader {
                                         .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
                                 })
                                 .map(std::clone::Clone::clone)
-                                .unwrap_or("no_partition".to_string());
+                                .unwrap_or_else(|| "no_partition".to_string());
 
                             match acc.entry(partition) {
                                 Entry::Vacant(vac) => {
