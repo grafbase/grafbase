@@ -18,9 +18,9 @@
 
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
+use crate::registry::add_create_mutation;
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
-use crate::registry::{add_create_mutation};
 use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
