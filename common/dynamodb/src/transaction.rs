@@ -55,7 +55,6 @@ async fn transaction_by_pk(
         transact_items: tx
             .into_iter()
             .map(|x| {
-                info!(ctx.trace_id, "gogo {} {}", &x.pk, &x.sk);
                 result_hashmap.insert(x.clone(), AttributeValue::default());
                 x.transaction
             })
