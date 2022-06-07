@@ -2,11 +2,12 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
-use crate::{Context, Error, Value};
+use crate::{Context, Error, ServerError, Value};
 use async_graphql_value::Name;
 use chrono::Utc;
 use dynamodb::{
-    BatchGetItemLoaderError, DynamoDBBatchersData, DynamoDBContext, TransactionError, TxItem,
+    BatchGetItemLoaderError, DynamoDBBatchersData, DynamoDBContext, QueryKey, TransactionError,
+    TxItem,
 };
 use dynomite::dynamodb::{Delete, Put, TransactWriteItem};
 use dynomite::{Attribute, AttributeValue};
@@ -91,9 +92,6 @@ pub enum DynamoMutationResolver {
     /// ```
     ///
     /// And as every edges of a Node are a Node too, they are still reachable.
-    ///
-    /// TODO: Right now, we delete only the main node and not the vertices.
-    /// TODO: To delete every thing we should: fetch by gsi2pk & pk & delete everything.
     ///
     /// In the future, when we'll have worked on an async process to optimize we'll be able to
     /// optimize the delete operation:
@@ -679,7 +677,6 @@ impl ResolverTrait for DynamoMutationResolver {
     ) -> Result<ResolvedValue, Error> {
         let batchers = &ctx.data::<DynamoDBBatchersData>()?;
         let transaction_batcher = &batchers.transaction;
-        let _loader_batcher = &batchers.loader;
         let dynamodb_ctx = ctx.data::<DynamoDBContext>()?;
 
         match self {
@@ -722,6 +719,9 @@ impl ResolverTrait for DynamoMutationResolver {
                 })))
             }
             DynamoMutationResolver::DeleteNode { id } => {
+                let query_loader = &batchers.query;
+                let query_loader_reversed = &batchers.query_reversed;
+
                 let id_to_be_deleted = match id
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
@@ -732,30 +732,66 @@ impl ResolverTrait for DynamoMutationResolver {
                     }
                 };
 
-                let id_to_be_deleted_attr = id_to_be_deleted.clone().into_attr();
-                let mut item = HashMap::new();
+                let items_pk =
+                    query_loader.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
 
-                item.insert("__pk".to_string(), id_to_be_deleted_attr.clone());
-                item.insert("__sk".to_string(), id_to_be_deleted_attr.clone());
+                let items_sk = query_loader_reversed
+                    .load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
 
-                let t = TxItem {
-                    pk: id_to_be_deleted.clone(),
-                    sk: id_to_be_deleted.clone(),
-                    transaction: TransactWriteItem {
-                        delete: Some(Delete {
-                            expression_attribute_names: Some({
-                                HashMap::from([("#pk".to_string(), "__pk".to_string())])
-                            }),
-                            condition_expression: Some("attribute_exists(#pk)".to_string()),
-                            table_name: dynamodb_ctx.dynamodb_table_name.clone(),
-                            key: item,
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    },
-                };
+                let async_fetch_entities = vec![items_pk, items_sk];
 
-                transaction_batcher.load_one(t).await?;
+                let items_to_be_deleted: Vec<TxItem> = futures_util::future::try_join_all(async_fetch_entities)
+                    .await?
+                    .into_iter()
+                    .filter_map(|x| x)
+                    .flat_map(|x| x.into_iter().flat_map(|(_, y)| y.into_iter()))
+                    .filter_map(|val| {
+                        let pk = match val.get("__pk").and_then(|x| x.s.clone()) {
+                            Some(value) => value,
+                            None => {
+                                ctx.add_error(ServerError::new("Internal Error: An issue happened while handeling some database data.", Some(ctx.item.pos)));
+                                #[cfg(feature = "tracing_worker")]
+                                logworker::error!(dynamodb_ctx.trace_id, "An issue happened on the database while removing an item. Table: {}, id: {}", dynamodb_ctx.dynamodb_table_name, id_to_be_deleted);
+                                return None;
+                            }
+                        };
+
+                        let sk = match val.get("__sk").and_then(|x| x.s.clone()) {
+                            Some(value) => value,
+                            None => {
+                                ctx.add_error(ServerError::new("Internal Error: An issue happened while handeling some database data.", Some(ctx.item.pos)));
+                                #[cfg(feature = "tracing_worker")]
+                                logworker::error!(dynamodb_ctx.trace_id, "An issue happened on the database while removing an item. Table: {}, id: {}", dynamodb_ctx.dynamodb_table_name, id_to_be_deleted);
+                                return None;
+                            }
+                        };
+
+                        let new_item = val
+                            .into_iter()
+                            .filter(|(key, _)| key == "__pk" || key == "__sk")
+                            .collect();
+
+                        Some(TxItem {
+                                pk,
+                                sk,
+                                transaction: TransactWriteItem {
+                                    delete: Some(Delete {
+                                        table_name: dynamodb_ctx.dynamodb_table_name.clone(),
+                                        key: new_item,
+                                        ..Default::default()
+                                    }),
+                                    ..Default::default()
+                                },
+                            })
+                    }).collect();
+
+                if items_to_be_deleted.len() == 0 {
+                    return Err(Error::new(
+                        "This item was not found, you can't delete an inexistant item.",
+                    ));
+                }
+
+                transaction_batcher.load_many(items_to_be_deleted).await?;
 
                 Ok(ResolvedValue::new(serde_json::json!({
                     "id": serde_json::Value::String(id_to_be_deleted),
