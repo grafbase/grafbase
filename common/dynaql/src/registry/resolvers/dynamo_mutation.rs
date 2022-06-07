@@ -419,6 +419,7 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
 /// It should be recursive, but not be runned recursively, we want to have every
 /// fetch and write optimized into the less affordable number of queries.
 ///
+#[allow(clippy::too_many_arguments)]
 fn relation_create<'a>(
     ctx: &'a Context<'a>,
     parent_ty: &MetaType,
