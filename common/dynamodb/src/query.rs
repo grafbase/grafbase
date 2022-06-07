@@ -60,6 +60,14 @@ impl Loader<QueryKey> for QueryLoader {
                 ":pk" => query_key.pk.clone(),
             };
             let edges_len = query_key.edges.len();
+
+            let mut exp_attr = HashMap::with_capacity(2);
+            exp_attr.insert("#pk".to_string(), self.index.pk());
+
+            if edges_len > 0 {
+                exp_attr.insert("#type".to_string(), "__type".to_string());
+            }
+
             let sk_string = if edges_len > 0 {
                 Some(
                     query_key
@@ -88,10 +96,7 @@ impl Loader<QueryKey> for QueryLoader {
                 filter_expression: sk_string,
                 index_name: self.index.to_index_name(),
                 expression_attribute_values: Some(exp),
-                expression_attribute_names: Some(HashMap::from([
-                    ("#pk".to_string(), self.index.pk()),
-                    ("#type".to_string(), "__type".to_string()),
-                ])),
+                expression_attribute_names: Some(exp_attr),
 
                 ..Default::default()
             };
@@ -103,24 +108,25 @@ impl Loader<QueryKey> for QueryLoader {
                     .try_fold(
                         (query_key.clone(), HashMap::with_capacity(100)),
                         |(query_key, mut acc), curr| async move {
-                            let partition = curr.get("__sk").and_then(|x| x.s.as_ref()).and_then(|x| {
-                                query_key
-                                    .edges
-                                    .iter()
-                                    .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
-                            });
-                            match partition {
-                                None => {
-                                    log::error!(self.ctx.trace_id, "Error while processing: {:?}", query_key);
+                            let partition = curr
+                                .get("__sk")
+                                .and_then(|x| x.s.as_ref())
+                                .and_then(|x| {
+                                    query_key
+                                        .edges
+                                        .iter()
+                                        .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
+                                })
+                                .map(std::clone::Clone::clone)
+                                .unwrap_or("no_partition".to_string());
+
+                            match acc.entry(partition) {
+                                Entry::Vacant(vac) => {
+                                    vac.insert(vec![curr]);
                                 }
-                                Some(partition) => match acc.entry(partition.clone()) {
-                                    Entry::Vacant(vac) => {
-                                        vac.insert(vec![curr]);
-                                    }
-                                    Entry::Occupied(mut old) => {
-                                        old.get_mut().push(curr);
-                                    }
-                                },
+                                Entry::Occupied(mut old) => {
+                                    old.get_mut().push(curr);
+                                }
                             }
                             Ok((query_key, acc))
                         },
