@@ -77,7 +77,7 @@ mod tests {
         let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_json_snapshot!(reg_string);
+        insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -108,7 +108,7 @@ mod tests {
         let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_json_snapshot!(reg_string);
+        insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -163,7 +163,7 @@ mod tests {
         let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_json_snapshot!(reg_string);
+        insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -207,7 +207,7 @@ mod tests {
         let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_json_snapshot!(reg_string);
+        insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -246,7 +246,7 @@ mod tests {
         let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_json_snapshot!(reg_string);
+        insta::assert_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 }
