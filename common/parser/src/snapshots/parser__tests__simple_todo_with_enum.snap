@@ -3,4 +3,1971 @@ source: common/parser/src/lib.rs
 assertion_line: 210
 expression: reg_string
 ---
-{"types":{"Author":{"Object":{"name":"Author","description":null,"fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"name","functions":[]}}]},"lastname":{"name":"lastname","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"lastname","functions":[]}}]},"pseudo":{"name":"pseudo","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"pseudo","functions":[]}}]},"truc":{"name":"truc","description":null,"args":{},"ty":"Truc!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"truc","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Author"}},"AuthorInput":{"InputObject":{"name":"AuthorInput","description":"Author input type.","input_fields":{"name":{"name":"name","description":null,"ty":"String!","default_value":null,"is_secret":false},"lastname":{"name":"lastname","description":null,"ty":"String!","default_value":null,"is_secret":false},"pseudo":{"name":"pseudo","description":null,"ty":"String","default_value":null,"is_secret":false},"truc":{"name":"truc","description":null,"ty":"TrucInput!","default_value":null,"is_secret":false}},"rust_typename":"Author","oneof":false}},"Boolean":{"Scalar":{"name":"Boolean","description":"The `Boolean` scalar type represents `true` or `false`.","specified_by_url":null}},"Float":{"Scalar":{"name":"Float","description":"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).","specified_by_url":null}},"ID":{"Scalar":{"name":"ID","description":null,"specified_by_url":null}},"Int":{"Scalar":{"name":"Int","description":"The `Int` scalar type represents non-fractional whole numeric values.","specified_by_url":null}},"Mutation":{"Object":{"name":"Mutation","description":null,"fields":{"todoCreate":{"name":"todoCreate","description":"Create a Todo","args":{"input":{"name":"input","description":null,"ty":"TodoCreationInput!","default_value":null,"is_secret":false}},"ty":"TodoCreatePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"todo_create_resolver","type":{"DynamoMutationResolver":{"CreateNode":{"input":{"InputTypeName":"input"},"ty":"Todo"}}}},"transforms":null},"todoDelete":{"name":"todoDelete","description":"Delete a Todo by ID","args":{"id":{"name":"id","description":null,"ty":"ID!","default_value":null,"is_secret":false}},"ty":"TodoDeletePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"todo_delete_resolver","type":{"DynamoMutationResolver":{"DeleteNode":{"id":{"InputTypeName":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Mutation"}},"PageInfo":{"Object":{"name":"PageInfo","description":null,"fields":{"hasPreviousPage":{"name":"hasPreviousPage","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"has_previous_page","functions":[]}}]},"hasNextPage":{"name":"hasNextPage","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"has_next_page","functions":[]}}]},"startCursor":{"name":"startCursor","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"start_cursor","functions":[]}}]},"endCursor":{"name":"endCursor","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"end_cursor","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PageInfo"}},"Query":{"Object":{"name":"Query","description":null,"fields":{"__schema":{"name":"__schema","description":"Access the current type schema of this server.","args":{},"ty":"__Schema!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"todo":{"name":"todo","description":"Get a Todo by ID","args":{"id":{"name":"id","description":"Todo id","ty":"ID!","default_value":null,"is_secret":false}},"ty":"Todo","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"todo_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"InputTypeName":"id"},"sk":{"InputTypeName":"id"}}}}},"transforms":null},"todoCollection":{"name":"todoCollection","description":"Paginated query to fetch the whole list of `Todo`.","args":{"after":{"name":"after","description":null,"ty":"String","default_value":null,"is_secret":false},"before":{"name":"before","description":null,"ty":"String","default_value":null,"is_secret":false},"first":{"name":"first","description":null,"ty":"Int","default_value":null,"is_secret":false},"last":{"name":"last","description":null,"ty":"Int","default_value":null,"is_secret":false}},"ty":"TodoConnection","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"todo_resolver","type":{"DynamoResolver":{"ListResultByTypePaginated":{"type":{"DebugString":"Todo"},"first":{"InputTypeName":"first"},"last":{"InputTypeName":"last"},"after":{"InputTypeName":"after"},"before":{"InputTypeName":"before"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Query"}},"String":{"Scalar":{"name":"String","description":"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.","specified_by_url":null}},"Todo":{"Object":{"name":"Todo","description":null,"fields":{"id":{"name":"id","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Todo"}}}},"transforms":[{"DynamoSelect":{"property":"__sk"}}]},"content":{"name":"content","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Todo"}}}},"transforms":[{"DynamoSelect":{"property":"content"}}]},"authors":{"name":"authors","description":null,"args":{},"ty":"[Author]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Todo"}}}},"transforms":[{"DynamoSelect":{"property":"authors"}}]},"ty":{"name":"ty","description":null,"args":{},"ty":"TodoType!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Todo"}}}},"transforms":[{"DynamoSelect":{"property":"ty"}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":true,"rust_typename":"Todo"}},"TodoConnection":{"Object":{"name":"TodoConnection","description":null,"fields":{"pageInfo":{"name":"pageInfo","description":"Information to aid in pagination","args":{},"ty":"PageInfo!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"edges":{"name":"edges","description":null,"args":{},"ty":"[TodoEdge]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"TodoConnection"}},"TodoCreatePayload":{"Object":{"name":"TodoCreatePayload","description":null,"fields":{"todo":{"name":"todo","description":null,"args":{},"ty":"Todo","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"todo_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"LocalData":"id"},"sk":{"LocalData":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"TodoCreatePayload"}},"TodoCreationInput":{"InputObject":{"name":"TodoCreationInput","description":"Input to create a new Todo","input_fields":{"content":{"name":"content","description":null,"ty":"String!","default_value":null,"is_secret":false},"authors":{"name":"authors","description":null,"ty":"[AuthorInput]","default_value":null,"is_secret":false},"ty":{"name":"ty","description":null,"ty":"TodoType!","default_value":null,"is_secret":false}},"rust_typename":"Todo","oneof":false}},"TodoDeletePayload":{"Object":{"name":"TodoDeletePayload","description":null,"fields":{"deletedId":{"name":"deletedId","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"id","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"TodoDeletePayload"}},"TodoEdge":{"Object":{"name":"TodoEdge","description":null,"fields":{"node":{"name":"node","description":null,"args":{},"ty":"Todo!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"cursor":{"name":"cursor","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Todo"}}}},"transforms":[{"DynamoSelect":{"property":"__pk"}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"TodoEdge"}},"TodoType":{"Enum":{"name":"TodoType","description":"A TodoType","enum_values":{"TODO1":{"name":"TODO1","description":null,"deprecation":"NoDeprecated"},"TODO2":{"name":"TODO2","description":"A Type 2 for TODO","deprecation":"NoDeprecated"}},"rust_typename":"TodoType"}},"Truc":{"Object":{"name":"Truc","description":null,"fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"name","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Truc"}},"TrucInput":{"InputObject":{"name":"TrucInput","description":"Truc input type.","input_fields":{"name":{"name":"name","description":null,"ty":"String!","default_value":null,"is_secret":false}},"rust_typename":"Truc","oneof":false}},"__Directive":{"Object":{"name":"__Directive","description":"A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"locations":{"name":"locations","description":null,"args":{},"ty":"[__DirectiveLocation!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"args":{"name":"args","description":null,"args":{},"ty":"[__InputValue!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isRepeatable":{"name":"isRepeatable","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::directive::__Directive"}},"__DirectiveLocation":{"Enum":{"name":"__DirectiveLocation","description":"A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.","enum_values":{"QUERY":{"name":"QUERY","description":"Location adjacent to a query operation.","deprecation":"NoDeprecated"},"MUTATION":{"name":"MUTATION","description":"Location adjacent to a mutation operation.","deprecation":"NoDeprecated"},"SUBSCRIPTION":{"name":"SUBSCRIPTION","description":"Location adjacent to a subscription operation.","deprecation":"NoDeprecated"},"FIELD":{"name":"FIELD","description":"Location adjacent to a field.","deprecation":"NoDeprecated"},"FRAGMENT_DEFINITION":{"name":"FRAGMENT_DEFINITION","description":"Location adjacent to a fragment definition.","deprecation":"NoDeprecated"},"FRAGMENT_SPREAD":{"name":"FRAGMENT_SPREAD","description":"Location adjacent to a fragment spread.","deprecation":"NoDeprecated"},"INLINE_FRAGMENT":{"name":"INLINE_FRAGMENT","description":"Location adjacent to an inline fragment.","deprecation":"NoDeprecated"},"VARIABLE_DEFINITION":{"name":"VARIABLE_DEFINITION","description":"Location adjacent to a variable definition.","deprecation":"NoDeprecated"},"SCHEMA":{"name":"SCHEMA","description":"Location adjacent to a schema definition.","deprecation":"NoDeprecated"},"SCALAR":{"name":"SCALAR","description":"Location adjacent to a scalar definition.","deprecation":"NoDeprecated"},"OBJECT":{"name":"OBJECT","description":"Location adjacent to an object type definition.","deprecation":"NoDeprecated"},"FIELD_DEFINITION":{"name":"FIELD_DEFINITION","description":"Location adjacent to a field definition.","deprecation":"NoDeprecated"},"ARGUMENT_DEFINITION":{"name":"ARGUMENT_DEFINITION","description":"Location adjacent to an argument definition.","deprecation":"NoDeprecated"},"INTERFACE":{"name":"INTERFACE","description":"Location adjacent to an interface definition.","deprecation":"NoDeprecated"},"UNION":{"name":"UNION","description":"Location adjacent to a union definition.","deprecation":"NoDeprecated"},"ENUM":{"name":"ENUM","description":"Location adjacent to an enum definition.","deprecation":"NoDeprecated"},"ENUM_VALUE":{"name":"ENUM_VALUE","description":"Location adjacent to an enum value definition.","deprecation":"NoDeprecated"},"INPUT_OBJECT":{"name":"INPUT_OBJECT","description":"Location adjacent to an input object type definition.","deprecation":"NoDeprecated"},"INPUT_FIELD_DEFINITION":{"name":"INPUT_FIELD_DEFINITION","description":"Location adjacent to an input object field definition.","deprecation":"NoDeprecated"}},"rust_typename":"async_graphql::model::directive::__DirectiveLocation"}},"__EnumValue":{"Object":{"name":"__EnumValue","description":"One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isDeprecated":{"name":"isDeprecated","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"deprecationReason":{"name":"deprecationReason","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::enum_value::__EnumValue"}},"__Field":{"Object":{"name":"__Field","description":"Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"args":{"name":"args","description":null,"args":{},"ty":"[__InputValue!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"type":{"name":"type","description":null,"args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isDeprecated":{"name":"isDeprecated","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"deprecationReason":{"name":"deprecationReason","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::field::__Field"}},"__InputValue":{"Object":{"name":"__InputValue","description":"Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"type":{"name":"type","description":null,"args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"defaultValue":{"name":"defaultValue","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::input_value::__InputValue"}},"__Schema":{"Object":{"name":"__Schema","description":"A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.","fields":{"types":{"name":"types","description":"A list of all types supported by this server.","args":{},"ty":"[__Type!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"queryType":{"name":"queryType","description":"The type that query operations will be rooted at.","args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"mutationType":{"name":"mutationType","description":"If this server supports mutation, the type that mutation operations will be rooted at.","args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"subscriptionType":{"name":"subscriptionType","description":"If this server support subscription, the type that subscription operations will be rooted at.","args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"directives":{"name":"directives","description":"A list of all directives supported by this server.","args":{},"ty":"[__Directive!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::schema::__Schema"}},"__Type":{"Object":{"name":"__Type","description":"The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.","fields":{"kind":{"name":"kind","description":null,"args":{},"ty":"__TypeKind!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"name":{"name":"name","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"fields":{"name":"fields","description":null,"args":{"includeDeprecated":{"name":"includeDeprecated","description":null,"ty":"Boolean!","default_value":"false","is_secret":false}},"ty":"[__Field!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"interfaces":{"name":"interfaces","description":null,"args":{},"ty":"[__Type!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"possibleTypes":{"name":"possibleTypes","description":null,"args":{},"ty":"[__Type!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"enumValues":{"name":"enumValues","description":null,"args":{"includeDeprecated":{"name":"includeDeprecated","description":null,"ty":"Boolean!","default_value":"false","is_secret":false}},"ty":"[__EnumValue!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"inputFields":{"name":"inputFields","description":null,"args":{},"ty":"[__InputValue!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"ofType":{"name":"ofType","description":null,"args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"specifiedByURL":{"name":"specifiedByURL","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::type::__Type"}},"__TypeKind":{"Enum":{"name":"__TypeKind","description":"An enum describing what kind of type a given `__Type` is.","enum_values":{"SCALAR":{"name":"SCALAR","description":"Indicates this type is a scalar.","deprecation":"NoDeprecated"},"OBJECT":{"name":"OBJECT","description":"Indicates this type is an object. `fields` and `interfaces` are valid fields.","deprecation":"NoDeprecated"},"INTERFACE":{"name":"INTERFACE","description":"Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.","deprecation":"NoDeprecated"},"UNION":{"name":"UNION","description":"Indicates this type is a union. `possibleTypes` is a valid field.","deprecation":"NoDeprecated"},"ENUM":{"name":"ENUM","description":"Indicates this type is an enum. `enumValues` is a valid field.","deprecation":"NoDeprecated"},"INPUT_OBJECT":{"name":"INPUT_OBJECT","description":"Indicates this type is an input object. `inputFields` is a valid field.","deprecation":"NoDeprecated"},"LIST":{"name":"LIST","description":"Indicates this type is a list. `ofType` is a valid field.","deprecation":"NoDeprecated"},"NON_NULL":{"name":"NON_NULL","description":"Indicates this type is a non-null. `ofType` is a valid field.","deprecation":"NoDeprecated"}},"rust_typename":"async_graphql::model::kind::__TypeKind"}}},"directives":{"include":{"name":"include","description":"Directs the executor to include this field or fragment only when the `if` argument is true.","locations":["FIELD","FRAGMENT_SPREAD","INLINE_FRAGMENT"],"args":{"if":{"name":"if","description":"Included when true.","ty":"Boolean!","default_value":null,"is_secret":false}},"is_repeatable":false},"skip":{"name":"skip","description":"Directs the executor to skip this field or fragment when the `if` argument is true.","locations":["FIELD","FRAGMENT_SPREAD","INLINE_FRAGMENT"],"args":{"if":{"name":"if","description":"Skipped when true.","ty":"Boolean!","default_value":null,"is_secret":false}},"is_repeatable":false}},"implements":{},"query_type":"Query","mutation_type":"Mutation","subscription_type":null,"disable_introspection":false,"enable_federation":false,"federation_subscription":false}
+{
+  "directives": {
+    "include": {
+      "args": {
+        "if": {
+          "default_value": null,
+          "description": "Included when true.",
+          "is_secret": false,
+          "name": "if",
+          "ty": "Boolean!"
+        }
+      },
+      "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
+      "is_repeatable": false,
+      "locations": [
+        "FIELD",
+        "FRAGMENT_SPREAD",
+        "INLINE_FRAGMENT"
+      ],
+      "name": "include"
+    },
+    "skip": {
+      "args": {
+        "if": {
+          "default_value": null,
+          "description": "Skipped when true.",
+          "is_secret": false,
+          "name": "if",
+          "ty": "Boolean!"
+        }
+      },
+      "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
+      "is_repeatable": false,
+      "locations": [
+        "FIELD",
+        "FRAGMENT_SPREAD",
+        "INLINE_FRAGMENT"
+      ],
+      "name": "skip"
+    }
+  },
+  "disable_introspection": false,
+  "enable_federation": false,
+  "federation_subscription": false,
+  "implements": {},
+  "mutation_type": "Mutation",
+  "query_type": "Query",
+  "subscription_type": null,
+  "types": {
+    "Author": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "lastname": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "lastname",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "lastname"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "name"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "pseudo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "pseudo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "pseudo"
+                }
+              }
+            ],
+            "ty": "String"
+          },
+          "truc": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "truc",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "truc"
+                }
+              }
+            ],
+            "ty": "Truc!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Author",
+        "rust_typename": "Author"
+      }
+    },
+    "AuthorInput": {
+      "InputObject": {
+        "description": "Author input type.",
+        "input_fields": {
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          },
+          "pseudo": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "pseudo",
+            "ty": "String"
+          },
+          "truc": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "truc",
+            "ty": "TrucInput!"
+          }
+        },
+        "name": "AuthorInput",
+        "oneof": false,
+        "rust_typename": "Author"
+      }
+    },
+    "Boolean": {
+      "Scalar": {
+        "description": "The `Boolean` scalar type represents `true` or `false`.",
+        "name": "Boolean",
+        "specified_by_url": null
+      }
+    },
+    "Float": {
+      "Scalar": {
+        "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
+        "name": "Float",
+        "specified_by_url": null
+      }
+    },
+    "ID": {
+      "Scalar": {
+        "description": null,
+        "name": "ID",
+        "specified_by_url": null
+      }
+    },
+    "Int": {
+      "Scalar": {
+        "description": "The `Int` scalar type represents non-fractional whole numeric values.",
+        "name": "Int",
+        "specified_by_url": null
+      }
+    },
+    "Mutation": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "todoCreate": {
+            "args": {
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "TodoCreationInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Create a Todo",
+            "edges": [],
+            "external": false,
+            "name": "todoCreate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "TodoCreatePayload"
+          },
+          "todoDelete": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Delete a Todo by ID",
+            "edges": [],
+            "external": false,
+            "name": "todoDelete",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "TodoDeletePayload"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Mutation",
+        "rust_typename": "Mutation"
+      }
+    },
+    "PageInfo": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "endCursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "endCursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "end_cursor"
+                }
+              }
+            ],
+            "ty": "String"
+          },
+          "hasNextPage": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "hasNextPage",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "has_next_page"
+                }
+              }
+            ],
+            "ty": "Boolean!"
+          },
+          "hasPreviousPage": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "hasPreviousPage",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "has_previous_page"
+                }
+              }
+            ],
+            "ty": "Boolean!"
+          },
+          "startCursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "startCursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "start_cursor"
+                }
+              }
+            ],
+            "ty": "String"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PageInfo",
+        "rust_typename": "PageInfo"
+      }
+    },
+    "Query": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "__schema": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Access the current type schema of this server.",
+            "edges": [],
+            "external": false,
+            "name": "__schema",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Schema!"
+          },
+          "todo": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": "Todo id",
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Get a Todo by ID",
+            "edges": [],
+            "external": false,
+            "name": "todo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Todo"
+          },
+          "todoCollection": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Paginated query to fetch the whole list of `Todo`.",
+            "edges": [],
+            "external": false,
+            "name": "todoCollection",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "type": {
+                      "DebugString": "Todo"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "TodoConnection"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Query",
+        "rust_typename": "Query"
+      }
+    },
+    "String": {
+      "Scalar": {
+        "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+        "name": "String",
+        "specified_by_url": null
+      }
+    },
+    "Todo": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "authors": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "authors",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "authors"
+                }
+              }
+            ],
+            "ty": "[Author]"
+          },
+          "content": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "content",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "content"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "id": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__sk"
+                }
+              }
+            ],
+            "ty": "ID!"
+          },
+          "ty": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "ty",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "ty"
+                }
+              }
+            ],
+            "ty": "TodoType!"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Todo",
+        "rust_typename": "Todo"
+      }
+    },
+    "TodoConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[TodoEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoConnection",
+        "rust_typename": "TodoConnection"
+      }
+    },
+    "TodoCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "todo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "todo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Todo"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoCreatePayload",
+        "rust_typename": "TodoCreatePayload"
+      }
+    },
+    "TodoCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Todo",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[AuthorInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          },
+          "ty": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "ty",
+            "ty": "TodoType!"
+          }
+        },
+        "name": "TodoCreationInput",
+        "oneof": false,
+        "rust_typename": "Todo"
+      }
+    },
+    "TodoDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "id"
+                }
+              }
+            ],
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoDeletePayload",
+        "rust_typename": "TodoDeletePayload"
+      }
+    },
+    "TodoEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__pk"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Todo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoEdge",
+        "rust_typename": "TodoEdge"
+      }
+    },
+    "TodoType": {
+      "Enum": {
+        "description": "A TodoType",
+        "enum_values": {
+          "TODO1": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "TODO1"
+          },
+          "TODO2": {
+            "deprecation": "NoDeprecated",
+            "description": "A Type 2 for TODO",
+            "name": "TODO2"
+          }
+        },
+        "name": "TodoType",
+        "rust_typename": "TodoType"
+      }
+    },
+    "Truc": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "name"
+                }
+              }
+            ],
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Truc",
+        "rust_typename": "Truc"
+      }
+    },
+    "TrucInput": {
+      "InputObject": {
+        "description": "Truc input type.",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          }
+        },
+        "name": "TrucInput",
+        "oneof": false,
+        "rust_typename": "Truc"
+      }
+    },
+    "__Directive": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "extends": false,
+        "fields": {
+          "args": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "args",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]!"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isRepeatable": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isRepeatable",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "locations": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "locations",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__DirectiveLocation!]!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Directive",
+        "rust_typename": "async_graphql::model::directive::__Directive"
+      }
+    },
+    "__DirectiveLocation": {
+      "Enum": {
+        "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "enum_values": {
+          "ARGUMENT_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an argument definition.",
+            "name": "ARGUMENT_DEFINITION"
+          },
+          "ENUM": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an enum definition.",
+            "name": "ENUM"
+          },
+          "ENUM_VALUE": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an enum value definition.",
+            "name": "ENUM_VALUE"
+          },
+          "FIELD": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a field.",
+            "name": "FIELD"
+          },
+          "FIELD_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a field definition.",
+            "name": "FIELD_DEFINITION"
+          },
+          "FRAGMENT_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a fragment definition.",
+            "name": "FRAGMENT_DEFINITION"
+          },
+          "FRAGMENT_SPREAD": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a fragment spread.",
+            "name": "FRAGMENT_SPREAD"
+          },
+          "INLINE_FRAGMENT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an inline fragment.",
+            "name": "INLINE_FRAGMENT"
+          },
+          "INPUT_FIELD_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an input object field definition.",
+            "name": "INPUT_FIELD_DEFINITION"
+          },
+          "INPUT_OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an input object type definition.",
+            "name": "INPUT_OBJECT"
+          },
+          "INTERFACE": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an interface definition.",
+            "name": "INTERFACE"
+          },
+          "MUTATION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a mutation operation.",
+            "name": "MUTATION"
+          },
+          "OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an object type definition.",
+            "name": "OBJECT"
+          },
+          "QUERY": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a query operation.",
+            "name": "QUERY"
+          },
+          "SCALAR": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a scalar definition.",
+            "name": "SCALAR"
+          },
+          "SCHEMA": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a schema definition.",
+            "name": "SCHEMA"
+          },
+          "SUBSCRIPTION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a subscription operation.",
+            "name": "SUBSCRIPTION"
+          },
+          "UNION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a union definition.",
+            "name": "UNION"
+          },
+          "VARIABLE_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a variable definition.",
+            "name": "VARIABLE_DEFINITION"
+          }
+        },
+        "name": "__DirectiveLocation",
+        "rust_typename": "async_graphql::model::directive::__DirectiveLocation"
+      }
+    },
+    "__EnumValue": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "extends": false,
+        "fields": {
+          "deprecationReason": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deprecationReason",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isDeprecated": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isDeprecated",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__EnumValue",
+        "rust_typename": "async_graphql::model::enum_value::__EnumValue"
+      }
+    },
+    "__Field": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "extends": false,
+        "fields": {
+          "args": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "args",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]!"
+          },
+          "deprecationReason": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deprecationReason",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isDeprecated": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isDeprecated",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          },
+          "type": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "type",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Field",
+        "rust_typename": "async_graphql::model::field::__Field"
+      }
+    },
+    "__InputValue": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "extends": false,
+        "fields": {
+          "defaultValue": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "defaultValue",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          },
+          "type": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "type",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__InputValue",
+        "rust_typename": "async_graphql::model::input_value::__InputValue"
+      }
+    },
+    "__Schema": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "extends": false,
+        "fields": {
+          "directives": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "A list of all directives supported by this server.",
+            "edges": [],
+            "external": false,
+            "name": "directives",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Directive!]!"
+          },
+          "mutationType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "mutationType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "queryType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "The type that query operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "queryType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          },
+          "subscriptionType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "If this server support subscription, the type that subscription operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "subscriptionType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "types": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "A list of all types supported by this server.",
+            "edges": [],
+            "external": false,
+            "name": "types",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Schema",
+        "rust_typename": "async_graphql::model::schema::__Schema"
+      }
+    },
+    "__Type": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "extends": false,
+        "fields": {
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "enumValues": {
+            "args": {
+              "includeDeprecated": {
+                "default_value": "false",
+                "description": null,
+                "is_secret": false,
+                "name": "includeDeprecated",
+                "ty": "Boolean!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "enumValues",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__EnumValue!]"
+          },
+          "fields": {
+            "args": {
+              "includeDeprecated": {
+                "default_value": "false",
+                "description": null,
+                "is_secret": false,
+                "name": "includeDeprecated",
+                "ty": "Boolean!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "fields",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Field!]"
+          },
+          "inputFields": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "inputFields",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]"
+          },
+          "interfaces": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "interfaces",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]"
+          },
+          "kind": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "kind",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__TypeKind!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "ofType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "ofType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "possibleTypes": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "possibleTypes",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]"
+          },
+          "specifiedByURL": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "specifiedByURL",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Type",
+        "rust_typename": "async_graphql::model::type::__Type"
+      }
+    },
+    "__TypeKind": {
+      "Enum": {
+        "description": "An enum describing what kind of type a given `__Type` is.",
+        "enum_values": {
+          "ENUM": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an enum. `enumValues` is a valid field.",
+            "name": "ENUM"
+          },
+          "INPUT_OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an input object. `inputFields` is a valid field.",
+            "name": "INPUT_OBJECT"
+          },
+          "INTERFACE": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
+            "name": "INTERFACE"
+          },
+          "LIST": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a list. `ofType` is a valid field.",
+            "name": "LIST"
+          },
+          "NON_NULL": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a non-null. `ofType` is a valid field.",
+            "name": "NON_NULL"
+          },
+          "OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
+            "name": "OBJECT"
+          },
+          "SCALAR": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a scalar.",
+            "name": "SCALAR"
+          },
+          "UNION": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a union. `possibleTypes` is a valid field.",
+            "name": "UNION"
+          }
+        },
+        "name": "__TypeKind",
+        "rust_typename": "async_graphql::model::kind::__TypeKind"
+      }
+    }
+  }
+}

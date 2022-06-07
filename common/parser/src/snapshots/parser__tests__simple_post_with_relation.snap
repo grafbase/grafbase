@@ -3,4 +3,3104 @@ source: common/parser/src/lib.rs
 assertion_line: 249
 expression: reg_string
 ---
-{"types":{"Author":{"Object":{"name":"Author","description":null,"fields":{"id":{"name":"id","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Author"}}}},"transforms":[{"DynamoSelect":{"property":"__sk"}}]},"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Author"}}}},"transforms":[{"DynamoSelect":{"property":"name"}}]},"lastname":{"name":"lastname","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Author"}}}},"transforms":[{"DynamoSelect":{"property":"lastname"}}]},"country":{"name":"country","description":null,"args":{},"ty":"Country!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Author"}}}},"transforms":[{"DynamoSelect":{"property":"country"}}]},"posts":{"name":"posts","description":null,"args":{},"ty":"[Post]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Post"],"relation":{"name":"published","kind":"OneToMany","relation":["Author","Post"],"birectional":false},"resolve":{"id":"author_edge_resolver","type":{"ContextDataResolver":{"Edge":{"key":"Post","is_node":true}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":true,"rust_typename":"Author"}},"AuthorConnection":{"Object":{"name":"AuthorConnection","description":null,"fields":{"pageInfo":{"name":"pageInfo","description":"Information to aid in pagination","args":{},"ty":"PageInfo!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"edges":{"name":"edges","description":null,"args":{},"ty":"[AuthorEdge]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Post"],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"AuthorConnection"}},"AuthorCreatePayload":{"Object":{"name":"AuthorCreatePayload","description":null,"fields":{"author":{"name":"author","description":null,"args":{},"ty":"Author","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"author_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"LocalData":"id"},"sk":{"LocalData":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"AuthorCreatePayload"}},"AuthorCreationInput":{"InputObject":{"name":"AuthorCreationInput","description":"Input to create a new Author","input_fields":{"name":{"name":"name","description":null,"ty":"String!","default_value":null,"is_secret":false},"lastname":{"name":"lastname","description":null,"ty":"String!","default_value":null,"is_secret":false},"country":{"name":"country","description":null,"ty":"Country!","default_value":null,"is_secret":false},"posts":{"name":"posts","description":null,"ty":"[AuthorPublishedPostCreateInput]","default_value":null,"is_secret":false}},"rust_typename":"Author","oneof":false}},"AuthorDeletePayload":{"Object":{"name":"AuthorDeletePayload","description":null,"fields":{"deletedId":{"name":"deletedId","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"id","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"AuthorDeletePayload"}},"AuthorEdge":{"Object":{"name":"AuthorEdge","description":null,"fields":{"node":{"name":"node","description":null,"args":{},"ty":"Author!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"cursor":{"name":"cursor","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Author"}}}},"transforms":[{"DynamoSelect":{"property":"__pk"}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"AuthorEdge"}},"AuthorPublishedPostCreateInput":{"InputObject":{"name":"AuthorPublishedPostCreateInput","description":"Input to create a new AuthorPublishedPostCreateInput","input_fields":{"create":{"name":"create","description":null,"ty":"AuthorPublishedPostCreationInput","default_value":null,"is_secret":false},"link":{"name":"link","description":null,"ty":"ID","default_value":null,"is_secret":false}},"rust_typename":"AuthorPublishedPostCreateInput","oneof":true}},"AuthorPublishedPostCreationInput":{"InputObject":{"name":"AuthorPublishedPostCreationInput","description":"Input to create a new AuthorPublishedPostCreationInput","input_fields":{"content":{"name":"content","description":null,"ty":"String!","default_value":null,"is_secret":false}},"rust_typename":"AuthorPublishedPostCreationInput","oneof":false}},"Blog":{"Object":{"name":"Blog","description":null,"fields":{"id":{"name":"id","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Blog"}}}},"transforms":[{"DynamoSelect":{"property":"__sk"}}]},"posts":{"name":"posts","description":null,"args":{},"ty":"[Post]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Post"],"relation":{"name":"BlogRelatePost","kind":"OneToMany","relation":["Blog","Post"],"birectional":false},"resolve":{"id":"blog_edge_resolver","type":{"ContextDataResolver":{"Edge":{"key":"Post","is_node":true}}}},"transforms":null},"owner":{"name":"owner","description":null,"args":{},"ty":"Author!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Author"],"relation":{"name":"AuthorRelateBlog","kind":"OneToOne","relation":["Blog","Author"],"birectional":false},"resolve":{"id":"blog_edge_resolver","type":{"ContextDataResolver":{"Edge":{"key":"Author","is_node":true}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":true,"rust_typename":"Blog"}},"BlogAuthorRelateBlogAuthorCreateInput":{"InputObject":{"name":"BlogAuthorRelateBlogAuthorCreateInput","description":"Input to create a new BlogAuthorRelateBlogAuthorCreateInput","input_fields":{"create":{"name":"create","description":null,"ty":"BlogAuthorRelateBlogAuthorCreationInput","default_value":null,"is_secret":false},"link":{"name":"link","description":null,"ty":"ID","default_value":null,"is_secret":false}},"rust_typename":"BlogAuthorRelateBlogAuthorCreateInput","oneof":true}},"BlogAuthorRelateBlogAuthorCreationInput":{"InputObject":{"name":"BlogAuthorRelateBlogAuthorCreationInput","description":"Input to create a new BlogAuthorRelateBlogAuthorCreationInput","input_fields":{"name":{"name":"name","description":null,"ty":"String!","default_value":null,"is_secret":false},"lastname":{"name":"lastname","description":null,"ty":"String!","default_value":null,"is_secret":false},"country":{"name":"country","description":null,"ty":"Country!","default_value":null,"is_secret":false},"posts":{"name":"posts","description":null,"ty":"[AuthorPublishedPostCreationInput]","default_value":null,"is_secret":false}},"rust_typename":"BlogAuthorRelateBlogAuthorCreationInput","oneof":false}},"BlogBlogRelatePostPostCreateInput":{"InputObject":{"name":"BlogBlogRelatePostPostCreateInput","description":"Input to create a new BlogBlogRelatePostPostCreateInput","input_fields":{"create":{"name":"create","description":null,"ty":"BlogBlogRelatePostPostCreationInput","default_value":null,"is_secret":false},"link":{"name":"link","description":null,"ty":"ID","default_value":null,"is_secret":false}},"rust_typename":"BlogBlogRelatePostPostCreateInput","oneof":true}},"BlogBlogRelatePostPostCreationInput":{"InputObject":{"name":"BlogBlogRelatePostPostCreationInput","description":"Input to create a new BlogBlogRelatePostPostCreationInput","input_fields":{"content":{"name":"content","description":null,"ty":"String!","default_value":null,"is_secret":false},"authors":{"name":"authors","description":null,"ty":"[PostPublishedAuthorCreationInput]","default_value":null,"is_secret":false}},"rust_typename":"BlogBlogRelatePostPostCreationInput","oneof":false}},"BlogConnection":{"Object":{"name":"BlogConnection","description":null,"fields":{"pageInfo":{"name":"pageInfo","description":"Information to aid in pagination","args":{},"ty":"PageInfo!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"edges":{"name":"edges","description":null,"args":{},"ty":"[BlogEdge]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Post","Author"],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"BlogConnection"}},"BlogCreatePayload":{"Object":{"name":"BlogCreatePayload","description":null,"fields":{"blog":{"name":"blog","description":null,"args":{},"ty":"Blog","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"blog_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"LocalData":"id"},"sk":{"LocalData":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"BlogCreatePayload"}},"BlogCreationInput":{"InputObject":{"name":"BlogCreationInput","description":"Input to create a new Blog","input_fields":{"posts":{"name":"posts","description":null,"ty":"[BlogBlogRelatePostPostCreateInput]","default_value":null,"is_secret":false},"owner":{"name":"owner","description":null,"ty":"BlogAuthorRelateBlogAuthorCreateInput!","default_value":null,"is_secret":false}},"rust_typename":"Blog","oneof":false}},"BlogDeletePayload":{"Object":{"name":"BlogDeletePayload","description":null,"fields":{"deletedId":{"name":"deletedId","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"id","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"BlogDeletePayload"}},"BlogEdge":{"Object":{"name":"BlogEdge","description":null,"fields":{"node":{"name":"node","description":null,"args":{},"ty":"Blog!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"cursor":{"name":"cursor","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Blog"}}}},"transforms":[{"DynamoSelect":{"property":"__pk"}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"BlogEdge"}},"Boolean":{"Scalar":{"name":"Boolean","description":"The `Boolean` scalar type represents `true` or `false`.","specified_by_url":null}},"Country":{"Enum":{"name":"Country","description":null,"enum_values":{"FRANCE":{"name":"FRANCE","description":null,"deprecation":"NoDeprecated"},"NOT_FRANCE":{"name":"NOT_FRANCE","description":null,"deprecation":"NoDeprecated"}},"rust_typename":"Country"}},"Float":{"Scalar":{"name":"Float","description":"The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).","specified_by_url":null}},"ID":{"Scalar":{"name":"ID","description":null,"specified_by_url":null}},"Int":{"Scalar":{"name":"Int","description":"The `Int` scalar type represents non-fractional whole numeric values.","specified_by_url":null}},"Mutation":{"Object":{"name":"Mutation","description":null,"fields":{"blogCreate":{"name":"blogCreate","description":"Create a Blog","args":{"input":{"name":"input","description":null,"ty":"BlogCreationInput!","default_value":null,"is_secret":false}},"ty":"BlogCreatePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"blog_create_resolver","type":{"DynamoMutationResolver":{"CreateNode":{"input":{"InputTypeName":"input"},"ty":"Blog"}}}},"transforms":null},"blogDelete":{"name":"blogDelete","description":"Delete a Blog by ID","args":{"id":{"name":"id","description":null,"ty":"ID!","default_value":null,"is_secret":false}},"ty":"BlogDeletePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"blog_delete_resolver","type":{"DynamoMutationResolver":{"DeleteNode":{"id":{"InputTypeName":"id"}}}}},"transforms":null},"postCreate":{"name":"postCreate","description":"Create a Post","args":{"input":{"name":"input","description":null,"ty":"PostCreationInput!","default_value":null,"is_secret":false}},"ty":"PostCreatePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"post_create_resolver","type":{"DynamoMutationResolver":{"CreateNode":{"input":{"InputTypeName":"input"},"ty":"Post"}}}},"transforms":null},"postDelete":{"name":"postDelete","description":"Delete a Post by ID","args":{"id":{"name":"id","description":null,"ty":"ID!","default_value":null,"is_secret":false}},"ty":"PostDeletePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"post_delete_resolver","type":{"DynamoMutationResolver":{"DeleteNode":{"id":{"InputTypeName":"id"}}}}},"transforms":null},"authorCreate":{"name":"authorCreate","description":"Create a Author","args":{"input":{"name":"input","description":null,"ty":"AuthorCreationInput!","default_value":null,"is_secret":false}},"ty":"AuthorCreatePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"author_create_resolver","type":{"DynamoMutationResolver":{"CreateNode":{"input":{"InputTypeName":"input"},"ty":"Author"}}}},"transforms":null},"authorDelete":{"name":"authorDelete","description":"Delete a Author by ID","args":{"id":{"name":"id","description":null,"ty":"ID!","default_value":null,"is_secret":false}},"ty":"AuthorDeletePayload","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"author_delete_resolver","type":{"DynamoMutationResolver":{"DeleteNode":{"id":{"InputTypeName":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Mutation"}},"PageInfo":{"Object":{"name":"PageInfo","description":null,"fields":{"hasPreviousPage":{"name":"hasPreviousPage","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"has_previous_page","functions":[]}}]},"hasNextPage":{"name":"hasNextPage","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"has_next_page","functions":[]}}]},"startCursor":{"name":"startCursor","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"start_cursor","functions":[]}}]},"endCursor":{"name":"endCursor","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":"PaginationData"}},"transforms":[{"JSONSelect":{"property":"end_cursor","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PageInfo"}},"Post":{"Object":{"name":"Post","description":null,"fields":{"id":{"name":"id","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Post"}}}},"transforms":[{"DynamoSelect":{"property":"__sk"}}]},"content":{"name":"content","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Post"}}}},"transforms":[{"DynamoSelect":{"property":"content"}}]},"authors":{"name":"authors","description":null,"args":{},"ty":"[Author]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Author"],"relation":{"name":"published","kind":"OneToMany","relation":["Post","Author"],"birectional":false},"resolve":{"id":"post_edge_resolver","type":{"ContextDataResolver":{"Edge":{"key":"Author","is_node":true}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":true,"rust_typename":"Post"}},"PostConnection":{"Object":{"name":"PostConnection","description":null,"fields":{"pageInfo":{"name":"pageInfo","description":"Information to aid in pagination","args":{},"ty":"PageInfo!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"edges":{"name":"edges","description":null,"args":{},"ty":"[PostEdge]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":["Author"],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PostConnection"}},"PostCreatePayload":{"Object":{"name":"PostCreatePayload","description":null,"fields":{"post":{"name":"post","description":null,"args":{},"ty":"Post","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"post_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"LocalData":"id"},"sk":{"LocalData":"id"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PostCreatePayload"}},"PostCreationInput":{"InputObject":{"name":"PostCreationInput","description":"Input to create a new Post","input_fields":{"content":{"name":"content","description":null,"ty":"String!","default_value":null,"is_secret":false},"authors":{"name":"authors","description":null,"ty":"[PostPublishedAuthorCreateInput]","default_value":null,"is_secret":false}},"rust_typename":"Post","oneof":false}},"PostDeletePayload":{"Object":{"name":"PostDeletePayload","description":null,"fields":{"deletedId":{"name":"deletedId","description":null,"args":{},"ty":"ID!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":[{"JSONSelect":{"property":"id","functions":[]}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PostDeletePayload"}},"PostEdge":{"Object":{"name":"PostEdge","description":null,"fields":{"node":{"name":"node","description":null,"args":{},"ty":"Post!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"cursor":{"name":"cursor","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":null,"type":{"ContextDataResolver":{"LocalKey":{"key":"Post"}}}},"transforms":[{"DynamoSelect":{"property":"__pk"}}]}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"PostEdge"}},"PostPublishedAuthorCreateInput":{"InputObject":{"name":"PostPublishedAuthorCreateInput","description":"Input to create a new PostPublishedAuthorCreateInput","input_fields":{"create":{"name":"create","description":null,"ty":"PostPublishedAuthorCreationInput","default_value":null,"is_secret":false},"link":{"name":"link","description":null,"ty":"ID","default_value":null,"is_secret":false}},"rust_typename":"PostPublishedAuthorCreateInput","oneof":true}},"PostPublishedAuthorCreationInput":{"InputObject":{"name":"PostPublishedAuthorCreationInput","description":"Input to create a new PostPublishedAuthorCreationInput","input_fields":{"name":{"name":"name","description":null,"ty":"String!","default_value":null,"is_secret":false},"lastname":{"name":"lastname","description":null,"ty":"String!","default_value":null,"is_secret":false},"country":{"name":"country","description":null,"ty":"Country!","default_value":null,"is_secret":false}},"rust_typename":"PostPublishedAuthorCreationInput","oneof":false}},"Query":{"Object":{"name":"Query","description":null,"fields":{"__schema":{"name":"__schema","description":"Access the current type schema of this server.","args":{},"ty":"__Schema!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"blog":{"name":"blog","description":"Get a Blog by ID","args":{"id":{"name":"id","description":"Blog id","ty":"ID!","default_value":null,"is_secret":false}},"ty":"Blog","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"blog_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"InputTypeName":"id"},"sk":{"InputTypeName":"id"}}}}},"transforms":null},"blogCollection":{"name":"blogCollection","description":"Paginated query to fetch the whole list of `Blog`.","args":{"after":{"name":"after","description":null,"ty":"String","default_value":null,"is_secret":false},"before":{"name":"before","description":null,"ty":"String","default_value":null,"is_secret":false},"first":{"name":"first","description":null,"ty":"Int","default_value":null,"is_secret":false},"last":{"name":"last","description":null,"ty":"Int","default_value":null,"is_secret":false}},"ty":"BlogConnection","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"blog_resolver","type":{"DynamoResolver":{"ListResultByTypePaginated":{"type":{"DebugString":"Blog"},"first":{"InputTypeName":"first"},"last":{"InputTypeName":"last"},"after":{"InputTypeName":"after"},"before":{"InputTypeName":"before"}}}}},"transforms":null},"post":{"name":"post","description":"Get a Post by ID","args":{"id":{"name":"id","description":"Post id","ty":"ID!","default_value":null,"is_secret":false}},"ty":"Post","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"post_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"InputTypeName":"id"},"sk":{"InputTypeName":"id"}}}}},"transforms":null},"postCollection":{"name":"postCollection","description":"Paginated query to fetch the whole list of `Post`.","args":{"after":{"name":"after","description":null,"ty":"String","default_value":null,"is_secret":false},"before":{"name":"before","description":null,"ty":"String","default_value":null,"is_secret":false},"first":{"name":"first","description":null,"ty":"Int","default_value":null,"is_secret":false},"last":{"name":"last","description":null,"ty":"Int","default_value":null,"is_secret":false}},"ty":"PostConnection","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"post_resolver","type":{"DynamoResolver":{"ListResultByTypePaginated":{"type":{"DebugString":"Post"},"first":{"InputTypeName":"first"},"last":{"InputTypeName":"last"},"after":{"InputTypeName":"after"},"before":{"InputTypeName":"before"}}}}},"transforms":null},"author":{"name":"author","description":"Get a Author by ID","args":{"id":{"name":"id","description":"Author id","ty":"ID!","default_value":null,"is_secret":false}},"ty":"Author","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"author_resolver","type":{"DynamoResolver":{"QueryPKSK":{"pk":{"InputTypeName":"id"},"sk":{"InputTypeName":"id"}}}}},"transforms":null},"authorCollection":{"name":"authorCollection","description":"Paginated query to fetch the whole list of `Author`.","args":{"after":{"name":"after","description":null,"ty":"String","default_value":null,"is_secret":false},"before":{"name":"before","description":null,"ty":"String","default_value":null,"is_secret":false},"first":{"name":"first","description":null,"ty":"Int","default_value":null,"is_secret":false},"last":{"name":"last","description":null,"ty":"Int","default_value":null,"is_secret":false}},"ty":"AuthorConnection","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":{"id":"author_resolver","type":{"DynamoResolver":{"ListResultByTypePaginated":{"type":{"DebugString":"Author"},"first":{"InputTypeName":"first"},"last":{"InputTypeName":"last"},"after":{"InputTypeName":"after"},"before":{"InputTypeName":"before"}}}}},"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"Query"}},"String":{"Scalar":{"name":"String","description":"The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.","specified_by_url":null}},"__Directive":{"Object":{"name":"__Directive","description":"A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"locations":{"name":"locations","description":null,"args":{},"ty":"[__DirectiveLocation!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"args":{"name":"args","description":null,"args":{},"ty":"[__InputValue!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isRepeatable":{"name":"isRepeatable","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::directive::__Directive"}},"__DirectiveLocation":{"Enum":{"name":"__DirectiveLocation","description":"A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.","enum_values":{"QUERY":{"name":"QUERY","description":"Location adjacent to a query operation.","deprecation":"NoDeprecated"},"MUTATION":{"name":"MUTATION","description":"Location adjacent to a mutation operation.","deprecation":"NoDeprecated"},"SUBSCRIPTION":{"name":"SUBSCRIPTION","description":"Location adjacent to a subscription operation.","deprecation":"NoDeprecated"},"FIELD":{"name":"FIELD","description":"Location adjacent to a field.","deprecation":"NoDeprecated"},"FRAGMENT_DEFINITION":{"name":"FRAGMENT_DEFINITION","description":"Location adjacent to a fragment definition.","deprecation":"NoDeprecated"},"FRAGMENT_SPREAD":{"name":"FRAGMENT_SPREAD","description":"Location adjacent to a fragment spread.","deprecation":"NoDeprecated"},"INLINE_FRAGMENT":{"name":"INLINE_FRAGMENT","description":"Location adjacent to an inline fragment.","deprecation":"NoDeprecated"},"VARIABLE_DEFINITION":{"name":"VARIABLE_DEFINITION","description":"Location adjacent to a variable definition.","deprecation":"NoDeprecated"},"SCHEMA":{"name":"SCHEMA","description":"Location adjacent to a schema definition.","deprecation":"NoDeprecated"},"SCALAR":{"name":"SCALAR","description":"Location adjacent to a scalar definition.","deprecation":"NoDeprecated"},"OBJECT":{"name":"OBJECT","description":"Location adjacent to an object type definition.","deprecation":"NoDeprecated"},"FIELD_DEFINITION":{"name":"FIELD_DEFINITION","description":"Location adjacent to a field definition.","deprecation":"NoDeprecated"},"ARGUMENT_DEFINITION":{"name":"ARGUMENT_DEFINITION","description":"Location adjacent to an argument definition.","deprecation":"NoDeprecated"},"INTERFACE":{"name":"INTERFACE","description":"Location adjacent to an interface definition.","deprecation":"NoDeprecated"},"UNION":{"name":"UNION","description":"Location adjacent to a union definition.","deprecation":"NoDeprecated"},"ENUM":{"name":"ENUM","description":"Location adjacent to an enum definition.","deprecation":"NoDeprecated"},"ENUM_VALUE":{"name":"ENUM_VALUE","description":"Location adjacent to an enum value definition.","deprecation":"NoDeprecated"},"INPUT_OBJECT":{"name":"INPUT_OBJECT","description":"Location adjacent to an input object type definition.","deprecation":"NoDeprecated"},"INPUT_FIELD_DEFINITION":{"name":"INPUT_FIELD_DEFINITION","description":"Location adjacent to an input object field definition.","deprecation":"NoDeprecated"}},"rust_typename":"async_graphql::model::directive::__DirectiveLocation"}},"__EnumValue":{"Object":{"name":"__EnumValue","description":"One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isDeprecated":{"name":"isDeprecated","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"deprecationReason":{"name":"deprecationReason","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::enum_value::__EnumValue"}},"__Field":{"Object":{"name":"__Field","description":"Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"args":{"name":"args","description":null,"args":{},"ty":"[__InputValue!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"type":{"name":"type","description":null,"args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"isDeprecated":{"name":"isDeprecated","description":null,"args":{},"ty":"Boolean!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"deprecationReason":{"name":"deprecationReason","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::field::__Field"}},"__InputValue":{"Object":{"name":"__InputValue","description":"Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.","fields":{"name":{"name":"name","description":null,"args":{},"ty":"String!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"type":{"name":"type","description":null,"args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"defaultValue":{"name":"defaultValue","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::input_value::__InputValue"}},"__Schema":{"Object":{"name":"__Schema","description":"A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.","fields":{"types":{"name":"types","description":"A list of all types supported by this server.","args":{},"ty":"[__Type!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"queryType":{"name":"queryType","description":"The type that query operations will be rooted at.","args":{},"ty":"__Type!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"mutationType":{"name":"mutationType","description":"If this server supports mutation, the type that mutation operations will be rooted at.","args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"subscriptionType":{"name":"subscriptionType","description":"If this server support subscription, the type that subscription operations will be rooted at.","args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"directives":{"name":"directives","description":"A list of all directives supported by this server.","args":{},"ty":"[__Directive!]!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::schema::__Schema"}},"__Type":{"Object":{"name":"__Type","description":"The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.","fields":{"kind":{"name":"kind","description":null,"args":{},"ty":"__TypeKind!","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"name":{"name":"name","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"description":{"name":"description","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"fields":{"name":"fields","description":null,"args":{"includeDeprecated":{"name":"includeDeprecated","description":null,"ty":"Boolean!","default_value":"false","is_secret":false}},"ty":"[__Field!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"interfaces":{"name":"interfaces","description":null,"args":{},"ty":"[__Type!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"possibleTypes":{"name":"possibleTypes","description":null,"args":{},"ty":"[__Type!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"enumValues":{"name":"enumValues","description":null,"args":{"includeDeprecated":{"name":"includeDeprecated","description":null,"ty":"Boolean!","default_value":"false","is_secret":false}},"ty":"[__EnumValue!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"inputFields":{"name":"inputFields","description":null,"args":{},"ty":"[__InputValue!]","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"ofType":{"name":"ofType","description":null,"args":{},"ty":"__Type","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null},"specifiedByURL":{"name":"specifiedByURL","description":null,"args":{},"ty":"String","deprecation":"NoDeprecated","cache_control":{"public":true,"max_age":0},"external":false,"requires":null,"provides":null,"edges":[],"relation":null,"resolve":null,"transforms":null}},"cache_control":{"public":true,"max_age":0},"extends":false,"keys":null,"is_subscription":false,"is_node":false,"rust_typename":"async_graphql::model::type::__Type"}},"__TypeKind":{"Enum":{"name":"__TypeKind","description":"An enum describing what kind of type a given `__Type` is.","enum_values":{"SCALAR":{"name":"SCALAR","description":"Indicates this type is a scalar.","deprecation":"NoDeprecated"},"OBJECT":{"name":"OBJECT","description":"Indicates this type is an object. `fields` and `interfaces` are valid fields.","deprecation":"NoDeprecated"},"INTERFACE":{"name":"INTERFACE","description":"Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.","deprecation":"NoDeprecated"},"UNION":{"name":"UNION","description":"Indicates this type is a union. `possibleTypes` is a valid field.","deprecation":"NoDeprecated"},"ENUM":{"name":"ENUM","description":"Indicates this type is an enum. `enumValues` is a valid field.","deprecation":"NoDeprecated"},"INPUT_OBJECT":{"name":"INPUT_OBJECT","description":"Indicates this type is an input object. `inputFields` is a valid field.","deprecation":"NoDeprecated"},"LIST":{"name":"LIST","description":"Indicates this type is a list. `ofType` is a valid field.","deprecation":"NoDeprecated"},"NON_NULL":{"name":"NON_NULL","description":"Indicates this type is a non-null. `ofType` is a valid field.","deprecation":"NoDeprecated"}},"rust_typename":"async_graphql::model::kind::__TypeKind"}}},"directives":{"skip":{"name":"skip","description":"Directs the executor to skip this field or fragment when the `if` argument is true.","locations":["FIELD","FRAGMENT_SPREAD","INLINE_FRAGMENT"],"args":{"if":{"name":"if","description":"Skipped when true.","ty":"Boolean!","default_value":null,"is_secret":false}},"is_repeatable":false},"include":{"name":"include","description":"Directs the executor to include this field or fragment only when the `if` argument is true.","locations":["FIELD","FRAGMENT_SPREAD","INLINE_FRAGMENT"],"args":{"if":{"name":"if","description":"Included when true.","ty":"Boolean!","default_value":null,"is_secret":false}},"is_repeatable":false}},"implements":{},"query_type":"Query","mutation_type":"Mutation","subscription_type":null,"disable_introspection":false,"enable_federation":false,"federation_subscription":false}
+{
+  "directives": {
+    "include": {
+      "args": {
+        "if": {
+          "default_value": null,
+          "description": "Included when true.",
+          "is_secret": false,
+          "name": "if",
+          "ty": "Boolean!"
+        }
+      },
+      "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
+      "is_repeatable": false,
+      "locations": [
+        "FIELD",
+        "FRAGMENT_SPREAD",
+        "INLINE_FRAGMENT"
+      ],
+      "name": "include"
+    },
+    "skip": {
+      "args": {
+        "if": {
+          "default_value": null,
+          "description": "Skipped when true.",
+          "is_secret": false,
+          "name": "if",
+          "ty": "Boolean!"
+        }
+      },
+      "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
+      "is_repeatable": false,
+      "locations": [
+        "FIELD",
+        "FRAGMENT_SPREAD",
+        "INLINE_FRAGMENT"
+      ],
+      "name": "skip"
+    }
+  },
+  "disable_introspection": false,
+  "enable_federation": false,
+  "federation_subscription": false,
+  "implements": {},
+  "mutation_type": "Mutation",
+  "query_type": "Query",
+  "subscription_type": null,
+  "types": {
+    "Author": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "country": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "country",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "country"
+                }
+              }
+            ],
+            "ty": "Country!"
+          },
+          "id": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__sk"
+                }
+              }
+            ],
+            "ty": "ID!"
+          },
+          "lastname": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "lastname",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "lastname"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "name"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "posts": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Post"
+            ],
+            "external": false,
+            "name": "posts",
+            "provides": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "published",
+              "relation": [
+                "Author",
+                "Post"
+              ]
+            },
+            "requires": null,
+            "resolve": {
+              "id": "author_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "Edge": {
+                    "is_node": true,
+                    "key": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "[Post]"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Author",
+        "rust_typename": "Author"
+      }
+    },
+    "AuthorConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Post"
+            ],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[AuthorEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "AuthorConnection",
+        "rust_typename": "AuthorConnection"
+      }
+    },
+    "AuthorCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "author": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Author"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "AuthorCreatePayload",
+        "rust_typename": "AuthorCreatePayload"
+      }
+    },
+    "AuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Author",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country!"
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostCreateInput]"
+          }
+        },
+        "name": "AuthorCreationInput",
+        "oneof": false,
+        "rust_typename": "Author"
+      }
+    },
+    "AuthorDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "id"
+                }
+              }
+            ],
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "AuthorDeletePayload",
+        "rust_typename": "AuthorDeletePayload"
+      }
+    },
+    "AuthorEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__pk"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Author!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "AuthorEdge",
+        "rust_typename": "AuthorEdge"
+      }
+    },
+    "AuthorPublishedPostCreateInput": {
+      "InputObject": {
+        "description": "Input to create a new AuthorPublishedPostCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorPublishedPostCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "AuthorPublishedPostCreateInput",
+        "oneof": true,
+        "rust_typename": "AuthorPublishedPostCreateInput"
+      }
+    },
+    "AuthorPublishedPostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new AuthorPublishedPostCreationInput",
+        "input_fields": {
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "AuthorPublishedPostCreationInput",
+        "oneof": false,
+        "rust_typename": "AuthorPublishedPostCreationInput"
+      }
+    },
+    "Blog": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "id": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__sk"
+                }
+              }
+            ],
+            "ty": "ID!"
+          },
+          "owner": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Author"
+            ],
+            "external": false,
+            "name": "owner",
+            "provides": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToOne",
+              "name": "AuthorRelateBlog",
+              "relation": [
+                "Blog",
+                "Author"
+              ]
+            },
+            "requires": null,
+            "resolve": {
+              "id": "blog_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "Edge": {
+                    "is_node": true,
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Author!"
+          },
+          "posts": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Post"
+            ],
+            "external": false,
+            "name": "posts",
+            "provides": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "BlogRelatePost",
+              "relation": [
+                "Blog",
+                "Post"
+              ]
+            },
+            "requires": null,
+            "resolve": {
+              "id": "blog_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "Edge": {
+                    "is_node": true,
+                    "key": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "[Post]"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Blog",
+        "rust_typename": "Blog"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorCreateInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogAuthorRelateBlogAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorCreateInput",
+        "oneof": true,
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreateInput"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorCreationInput",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country!"
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostCreationInput]"
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorCreationInput",
+        "oneof": false,
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreationInput"
+      }
+    },
+    "BlogBlogRelatePostPostCreateInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogBlogRelatePostPostCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogBlogRelatePostPostCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogBlogRelatePostPostCreateInput",
+        "oneof": true,
+        "rust_typename": "BlogBlogRelatePostPostCreateInput"
+      }
+    },
+    "BlogBlogRelatePostPostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogBlogRelatePostPostCreationInput",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreationInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "BlogBlogRelatePostPostCreationInput",
+        "oneof": false,
+        "rust_typename": "BlogBlogRelatePostPostCreationInput"
+      }
+    },
+    "BlogConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Post",
+              "Author"
+            ],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[BlogEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "BlogConnection",
+        "rust_typename": "BlogConnection"
+      }
+    },
+    "BlogCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "blog": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "blog",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Blog"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "BlogCreatePayload",
+        "rust_typename": "BlogCreatePayload"
+      }
+    },
+    "BlogCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Blog",
+        "input_fields": {
+          "owner": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "owner",
+            "ty": "BlogAuthorRelateBlogAuthorCreateInput!"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[BlogBlogRelatePostPostCreateInput]"
+          }
+        },
+        "name": "BlogCreationInput",
+        "oneof": false,
+        "rust_typename": "Blog"
+      }
+    },
+    "BlogDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "id"
+                }
+              }
+            ],
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "BlogDeletePayload",
+        "rust_typename": "BlogDeletePayload"
+      }
+    },
+    "BlogEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__pk"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Blog!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "BlogEdge",
+        "rust_typename": "BlogEdge"
+      }
+    },
+    "Boolean": {
+      "Scalar": {
+        "description": "The `Boolean` scalar type represents `true` or `false`.",
+        "name": "Boolean",
+        "specified_by_url": null
+      }
+    },
+    "Country": {
+      "Enum": {
+        "description": null,
+        "enum_values": {
+          "FRANCE": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "FRANCE"
+          },
+          "NOT_FRANCE": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "NOT_FRANCE"
+          }
+        },
+        "name": "Country",
+        "rust_typename": "Country"
+      }
+    },
+    "Float": {
+      "Scalar": {
+        "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
+        "name": "Float",
+        "specified_by_url": null
+      }
+    },
+    "ID": {
+      "Scalar": {
+        "description": null,
+        "name": "ID",
+        "specified_by_url": null
+      }
+    },
+    "Int": {
+      "Scalar": {
+        "description": "The `Int` scalar type represents non-fractional whole numeric values.",
+        "name": "Int",
+        "specified_by_url": null
+      }
+    },
+    "Mutation": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "authorCreate": {
+            "args": {
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "AuthorCreationInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Create a Author",
+            "edges": [],
+            "external": false,
+            "name": "authorCreate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "AuthorCreatePayload"
+          },
+          "authorDelete": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Delete a Author by ID",
+            "edges": [],
+            "external": false,
+            "name": "authorDelete",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "AuthorDeletePayload"
+          },
+          "blogCreate": {
+            "args": {
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "BlogCreationInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Create a Blog",
+            "edges": [],
+            "external": false,
+            "name": "blogCreate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Blog"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "BlogCreatePayload"
+          },
+          "blogDelete": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Delete a Blog by ID",
+            "edges": [],
+            "external": false,
+            "name": "blogDelete",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "BlogDeletePayload"
+          },
+          "postCreate": {
+            "args": {
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "PostCreationInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Create a Post",
+            "edges": [],
+            "external": false,
+            "name": "postCreate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "PostCreatePayload"
+          },
+          "postDelete": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Delete a Post by ID",
+            "edges": [],
+            "external": false,
+            "name": "postDelete",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "PostDeletePayload"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Mutation",
+        "rust_typename": "Mutation"
+      }
+    },
+    "PageInfo": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "endCursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "endCursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "end_cursor"
+                }
+              }
+            ],
+            "ty": "String"
+          },
+          "hasNextPage": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "hasNextPage",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "has_next_page"
+                }
+              }
+            ],
+            "ty": "Boolean!"
+          },
+          "hasPreviousPage": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "hasPreviousPage",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "has_previous_page"
+                }
+              }
+            ],
+            "ty": "Boolean!"
+          },
+          "startCursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "startCursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "start_cursor"
+                }
+              }
+            ],
+            "ty": "String"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PageInfo",
+        "rust_typename": "PageInfo"
+      }
+    },
+    "Post": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "authors": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Author"
+            ],
+            "external": false,
+            "name": "authors",
+            "provides": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "published",
+              "relation": [
+                "Post",
+                "Author"
+              ]
+            },
+            "requires": null,
+            "resolve": {
+              "id": "post_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "Edge": {
+                    "is_node": true,
+                    "key": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "[Author]"
+          },
+          "content": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "content",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "content"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "id": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__sk"
+                }
+              }
+            ],
+            "ty": "ID!"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Post",
+        "rust_typename": "Post"
+      }
+    },
+    "PostConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Author"
+            ],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[PostEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PostConnection",
+        "rust_typename": "PostConnection"
+      }
+    },
+    "PostCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "post": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "post",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Post"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PostCreatePayload",
+        "rust_typename": "PostCreatePayload"
+      }
+    },
+    "PostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Post",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreateInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "PostCreationInput",
+        "oneof": false,
+        "rust_typename": "Post"
+      }
+    },
+    "PostDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": [
+              {
+                "JSONSelect": {
+                  "functions": [],
+                  "property": "id"
+                }
+              }
+            ],
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PostDeletePayload",
+        "rust_typename": "PostDeletePayload"
+      }
+    },
+    "PostEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__pk"
+                }
+              }
+            ],
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Post!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PostEdge",
+        "rust_typename": "PostEdge"
+      }
+    },
+    "PostPublishedAuthorCreateInput": {
+      "InputObject": {
+        "description": "Input to create a new PostPublishedAuthorCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostPublishedAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "PostPublishedAuthorCreateInput",
+        "oneof": true,
+        "rust_typename": "PostPublishedAuthorCreateInput"
+      }
+    },
+    "PostPublishedAuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new PostPublishedAuthorCreationInput",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country!"
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          }
+        },
+        "name": "PostPublishedAuthorCreationInput",
+        "oneof": false,
+        "rust_typename": "PostPublishedAuthorCreationInput"
+      }
+    },
+    "Query": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "__schema": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Access the current type schema of this server.",
+            "edges": [],
+            "external": false,
+            "name": "__schema",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Schema!"
+          },
+          "author": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": "Author id",
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Get a Author by ID",
+            "edges": [],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Author"
+          },
+          "authorCollection": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Paginated query to fetch the whole list of `Author`.",
+            "edges": [],
+            "external": false,
+            "name": "authorCollection",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "type": {
+                      "DebugString": "Author"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "AuthorConnection"
+          },
+          "blog": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": "Blog id",
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Get a Blog by ID",
+            "edges": [],
+            "external": false,
+            "name": "blog",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Blog"
+          },
+          "blogCollection": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Paginated query to fetch the whole list of `Blog`.",
+            "edges": [],
+            "external": false,
+            "name": "blogCollection",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "type": {
+                      "DebugString": "Blog"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "BlogConnection"
+          },
+          "post": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": "Post id",
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Get a Post by ID",
+            "edges": [],
+            "external": false,
+            "name": "post",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Post"
+          },
+          "postCollection": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Paginated query to fetch the whole list of `Post`.",
+            "edges": [],
+            "external": false,
+            "name": "postCollection",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "type": {
+                      "DebugString": "Post"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "PostConnection"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Query",
+        "rust_typename": "Query"
+      }
+    },
+    "String": {
+      "Scalar": {
+        "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+        "name": "String",
+        "specified_by_url": null
+      }
+    },
+    "__Directive": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "extends": false,
+        "fields": {
+          "args": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "args",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]!"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isRepeatable": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isRepeatable",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "locations": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "locations",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__DirectiveLocation!]!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Directive",
+        "rust_typename": "async_graphql::model::directive::__Directive"
+      }
+    },
+    "__DirectiveLocation": {
+      "Enum": {
+        "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "enum_values": {
+          "ARGUMENT_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an argument definition.",
+            "name": "ARGUMENT_DEFINITION"
+          },
+          "ENUM": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an enum definition.",
+            "name": "ENUM"
+          },
+          "ENUM_VALUE": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an enum value definition.",
+            "name": "ENUM_VALUE"
+          },
+          "FIELD": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a field.",
+            "name": "FIELD"
+          },
+          "FIELD_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a field definition.",
+            "name": "FIELD_DEFINITION"
+          },
+          "FRAGMENT_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a fragment definition.",
+            "name": "FRAGMENT_DEFINITION"
+          },
+          "FRAGMENT_SPREAD": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a fragment spread.",
+            "name": "FRAGMENT_SPREAD"
+          },
+          "INLINE_FRAGMENT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an inline fragment.",
+            "name": "INLINE_FRAGMENT"
+          },
+          "INPUT_FIELD_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an input object field definition.",
+            "name": "INPUT_FIELD_DEFINITION"
+          },
+          "INPUT_OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an input object type definition.",
+            "name": "INPUT_OBJECT"
+          },
+          "INTERFACE": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an interface definition.",
+            "name": "INTERFACE"
+          },
+          "MUTATION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a mutation operation.",
+            "name": "MUTATION"
+          },
+          "OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to an object type definition.",
+            "name": "OBJECT"
+          },
+          "QUERY": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a query operation.",
+            "name": "QUERY"
+          },
+          "SCALAR": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a scalar definition.",
+            "name": "SCALAR"
+          },
+          "SCHEMA": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a schema definition.",
+            "name": "SCHEMA"
+          },
+          "SUBSCRIPTION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a subscription operation.",
+            "name": "SUBSCRIPTION"
+          },
+          "UNION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a union definition.",
+            "name": "UNION"
+          },
+          "VARIABLE_DEFINITION": {
+            "deprecation": "NoDeprecated",
+            "description": "Location adjacent to a variable definition.",
+            "name": "VARIABLE_DEFINITION"
+          }
+        },
+        "name": "__DirectiveLocation",
+        "rust_typename": "async_graphql::model::directive::__DirectiveLocation"
+      }
+    },
+    "__EnumValue": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "extends": false,
+        "fields": {
+          "deprecationReason": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deprecationReason",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isDeprecated": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isDeprecated",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__EnumValue",
+        "rust_typename": "async_graphql::model::enum_value::__EnumValue"
+      }
+    },
+    "__Field": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "extends": false,
+        "fields": {
+          "args": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "args",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]!"
+          },
+          "deprecationReason": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deprecationReason",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "isDeprecated": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isDeprecated",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          },
+          "type": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "type",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Field",
+        "rust_typename": "async_graphql::model::field::__Field"
+      }
+    },
+    "__InputValue": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "extends": false,
+        "fields": {
+          "defaultValue": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "defaultValue",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String!"
+          },
+          "type": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "type",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__InputValue",
+        "rust_typename": "async_graphql::model::input_value::__InputValue"
+      }
+    },
+    "__Schema": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "extends": false,
+        "fields": {
+          "directives": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "A list of all directives supported by this server.",
+            "edges": [],
+            "external": false,
+            "name": "directives",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Directive!]!"
+          },
+          "mutationType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "mutationType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "queryType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "The type that query operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "queryType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type!"
+          },
+          "subscriptionType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "If this server support subscription, the type that subscription operations will be rooted at.",
+            "edges": [],
+            "external": false,
+            "name": "subscriptionType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "types": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "A list of all types supported by this server.",
+            "edges": [],
+            "external": false,
+            "name": "types",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Schema",
+        "rust_typename": "async_graphql::model::schema::__Schema"
+      }
+    },
+    "__Type": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "extends": false,
+        "fields": {
+          "description": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "description",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "enumValues": {
+            "args": {
+              "includeDeprecated": {
+                "default_value": "false",
+                "description": null,
+                "is_secret": false,
+                "name": "includeDeprecated",
+                "ty": "Boolean!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "enumValues",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__EnumValue!]"
+          },
+          "fields": {
+            "args": {
+              "includeDeprecated": {
+                "default_value": "false",
+                "description": null,
+                "is_secret": false,
+                "name": "includeDeprecated",
+                "ty": "Boolean!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "fields",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Field!]"
+          },
+          "inputFields": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "inputFields",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__InputValue!]"
+          },
+          "interfaces": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "interfaces",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]"
+          },
+          "kind": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "kind",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__TypeKind!"
+          },
+          "name": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          },
+          "ofType": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "ofType",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "__Type"
+          },
+          "possibleTypes": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "possibleTypes",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "[__Type!]"
+          },
+          "specifiedByURL": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "specifiedByURL",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "String"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "__Type",
+        "rust_typename": "async_graphql::model::type::__Type"
+      }
+    },
+    "__TypeKind": {
+      "Enum": {
+        "description": "An enum describing what kind of type a given `__Type` is.",
+        "enum_values": {
+          "ENUM": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an enum. `enumValues` is a valid field.",
+            "name": "ENUM"
+          },
+          "INPUT_OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an input object. `inputFields` is a valid field.",
+            "name": "INPUT_OBJECT"
+          },
+          "INTERFACE": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
+            "name": "INTERFACE"
+          },
+          "LIST": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a list. `ofType` is a valid field.",
+            "name": "LIST"
+          },
+          "NON_NULL": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a non-null. `ofType` is a valid field.",
+            "name": "NON_NULL"
+          },
+          "OBJECT": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
+            "name": "OBJECT"
+          },
+          "SCALAR": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a scalar.",
+            "name": "SCALAR"
+          },
+          "UNION": {
+            "deprecation": "NoDeprecated",
+            "description": "Indicates this type is a union. `possibleTypes` is a valid field.",
+            "name": "UNION"
+          }
+        },
+        "name": "__TypeKind",
+        "rust_typename": "async_graphql::model::kind::__TypeKind"
+      }
+    }
+  }
+}
