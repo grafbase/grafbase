@@ -24,8 +24,7 @@ pub enum CliError {
 impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::ParsePort => exitcode::USAGE,
-            Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
+            Self::ParsePort | Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
             Self::DevServerPanic(_) => exitcode::SOFTWARE,
             Self::LocalGatewayError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
@@ -34,17 +33,15 @@ impl ToExitCode for CliError {
 }
 
 impl CliError {
-    pub fn to_hint(&self) -> Option<&'static str> {
+    /// returns the appropriate hint for a [`CliError`]
+    pub const fn to_hint(&self) -> Option<&'static str> {
         match self {
-            Self::LocalGatewayError(error) => match error {
-                LocalGatewayError::AvailablePort => {
-                    Some("try supplying a larger port range to search by supplying a lower --port number")
-                }
-                LocalGatewayError::PortInUse(_) => {
-                    Some("try using a different --port number or supplying the --search flag")
-                }
-                _ => None,
-            },
+            Self::LocalGatewayError(LocalGatewayError::AvailablePort) => {
+                Some("try supplying a larger port range to search by supplying a lower --port number")
+            }
+            Self::LocalGatewayError(LocalGatewayError::PortInUse(_)) => {
+                Some("try using a different --port number or supplying the --search flag")
+            }
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
                 Some("try running the CLI in your Grafbase project or any nested directory")
             }

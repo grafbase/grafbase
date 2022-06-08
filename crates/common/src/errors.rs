@@ -18,8 +18,7 @@ pub enum CommonError {
 impl ToExitCode for CommonError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::ReadCurrentDirectory => exitcode::DATAERR,
-            Self::FindGrafbaseDirectory => exitcode::DATAERR,
+            Self::ReadCurrentDirectory | Self::FindGrafbaseDirectory => exitcode::DATAERR,
             Self::SetEnvironment => exitcode::SOFTWARE,
         }
     }

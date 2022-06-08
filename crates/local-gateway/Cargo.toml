@@ -9,9 +9,9 @@ keywords = ["grafbase"]
 readme = "README.md"
 
 [dependencies]
-dev-server = { path = "../dev-server", version = "0.1.0" }
 common = { path = "../common", version = "0.1.0" }
-exitcode = "1.1.2"
+dev-server = { path = "../dev-server", version = "0.1.0" }
+exitcode = "1.1"
 log = "0.4"
 pretty_env_logger = "0.4"
-thiserror = "1.0.31"
+thiserror = "1.0"

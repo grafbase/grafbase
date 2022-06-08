@@ -4,16 +4,14 @@ mod cli_input;
 mod completions;
 mod dev;
 mod errors;
-mod macros;
 mod output;
 
 #[macro_use]
 extern crate log;
 
-pub use cli_input::build_cli;
+use cli_input::build_cli;
 use colored::control::ShouldColorize;
 use common::{environment::Environment, traits::ToExitCode};
-use completions::generate_completions;
 use dev::dev;
 use errors::CliError;
 use output::report;
@@ -45,14 +43,14 @@ fn try_main() -> Result<(), CliError> {
             let search = matches.is_present("search");
             let port = matches
                 .value_of("port")
-                .map(|port| port.parse::<u16>())
+                .map(str::parse::<u16>)
                 .transpose()
                 .map_err(|_| CliError::ParsePort)?;
             dev(search, port)
         }
         Some(("completions", matches)) => {
             let shell = matches.value_of("shell").unwrap();
-            generate_completions(shell)
+            completions::generate(shell)
         }
         _ => unreachable!(),
     }

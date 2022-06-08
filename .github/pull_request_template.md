@@ -9,6 +9,7 @@ Please also include relevant motivation and context.
 - [ ] 🚀 Feature
 - [ ] 🐛 Fix
 - [ ] 🛠️ Tooling
+- [ ] 🔨 Refactoring
 - [ ] 🧪 Test
 - [ ] 📦 Dependency
 - [ ] 📖 Requires documentation update

@@ -9,7 +9,8 @@ keywords = ["grafbase"]
 readme = "README.md"
 
 [dependencies]
-exitcode = "1.1.2"
-once_cell = "1.12.0"
-thiserror = "1.0.31"
-dirs = "4.0.0"
+dirs = "4.0"
+exitcode = "1.1"
+indoc = "1.0"
+once_cell = "1.12"
+thiserror = "1.0"

@@ -19,8 +19,7 @@ pub enum LocalGatewayError {
 impl ToExitCode for LocalGatewayError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::AvailablePort => exitcode::UNAVAILABLE,
-            Self::PortInUse(_) => exitcode::UNAVAILABLE,
+            Self::AvailablePort | Self::PortInUse(_) => exitcode::UNAVAILABLE,
             Self::DevServerError(inner) => inner.to_exit_code(),
         }
     }

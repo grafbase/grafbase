@@ -2,7 +2,6 @@ pub mod report {
     use crate::errors::CliError;
     use colored::Colorize;
     use common::consts::LOCALHOST;
-    use std::io;
 
     /// reports to stdout that the dev server has started
     pub fn start_server(port: u16, start_port: u16) {
@@ -10,7 +9,7 @@ pub mod report {
             println!(
                 "port {} is unavailable, started on the closest available port",
                 format!("{}", start_port).bright_blue()
-            )
+            );
         }
         println!(
             "started dev server on {}",
@@ -26,8 +25,8 @@ pub mod report {
         }
     }
 
-    /// reports an error to stderr
-    pub fn miniflare_error(error: io::Error) {
+    /// reports a panic from a spawned thread to stderr
+    pub fn spawned_thread_error(error: &str) {
         eprintln!("{}", error);
     }
 }

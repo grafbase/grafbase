@@ -9,11 +9,24 @@ keywords = ["grafbase"]
 readme = "README.md"
 
 [dependencies]
+anyhow = "1.0"
+axum = "0.5"
+chrono = { version = "0.4", features = ["serde"] }
+common = { path = "../common", version = "0.1.0" }
+exitcode = "1.1"
+hyper = "0.14.19"
+indoc = "1.0"
 log = "0.4"
 pretty_env_logger = "0.4"
-actix-web = "4"
-common = { path = "../common", version = "0.1.0" }
-rust-embed = "6.4.0"
-exitcode = "1.1.2"
-thiserror = "1.0.31"
-version-compare = "0.1.0"
+rust-embed = "6.4"
+serde = { version = "1.0", features = ["serde_derive"] }
+serde_json = "1.0"
+sqlx = { version = "0.5", features = [
+    "chrono",
+    "runtime-tokio-rustls",
+    "sqlite",
+    "json",
+] }
+thiserror = "1.0"
+tokio = { version = "1.18", features = ["full"] }
+version-compare = "0.1"

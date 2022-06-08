@@ -30,19 +30,18 @@ impl Environment {
     ///
     /// # Errors
     ///
-    /// returns [CommonError::ReadCurrentDirectory] if the current directory path cannot be read
+    /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
-    /// returns [CommonError::FindGrafbaseDirectory] if the grafbase directory is not found
+    /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
     ///
-    /// returns [CommonError::SetEnvironment] if the static environment instance could not be set
+    /// returns [`CommonError::SetEnvironment`] if the static environment instance could not be set
     pub fn try_init() -> Result<(), CommonError> {
-        let project_grafbase_path =
-            Environment::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+        let project_grafbase_path = Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
         let project_dir = project_grafbase_path.parent().unwrap_or(&project_grafbase_path);
         let home = dirs::home_dir().unwrap_or_else(|| project_dir.to_owned());
         let user_grafbase_path = home.join(DOT_GRAFBASE_FOLDER);
         ENVIRONMENT
-            .set(Environment {
+            .set(Self {
                 project_grafbase_path,
                 user_grafbase_path,
             })
@@ -56,6 +55,7 @@ impl Environment {
     /// # Panics
     ///
     /// panics if the Environment object was not previously initialized using `Environment::try_init()`
+    #[must_use]
     pub fn get() -> &'static Self {
         match ENVIRONMENT.get() {
             Some(environment) => environment,
@@ -71,7 +71,7 @@ impl Environment {
     ///
     /// # Errors
     ///
-    /// returns [CommonError::ReadCurrentDirectory] if the current directory path cannot be read
+    /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     fn get_project_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
         let project_grafbase_path = env::current_dir()
             .map_err(|_| CommonError::ReadCurrentDirectory)?

@@ -15,6 +15,7 @@
 - `dev` command phase 2
 - Adds `miniflare` spawning
 - Bundles worker files into the executable
+- Adds an SQLite bridge server
 
 ### Tooling
 
@@ -41,12 +42,22 @@
 - Updates @actions/checkout to v3
 - Adds hints for error messages
 - Uses the worker `wrangler.toml` file for env variables
+- Turns on pedantic linting
+
+### Refactoring
+
+- Adds Clippy fixes
 
 ### Documentation
 
 - Improves the `README.md`
 - Adds inline documentation
+- Adds crate documentation
 
 ### Dependencies
 
 - Updates `once_cell` to 1.12.0
+
+### Misc.
+
+- Updates PR template

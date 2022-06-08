@@ -1,8 +1,8 @@
 use clap::{arg, command, Arg, Command};
-
-use crate::trimdoc;
+use indoc::indoc;
 
 /// creates the cli interface
+#[must_use]
 pub fn build_cli() -> Command<'static> {
     command!()
         .subcommand_required(true)
@@ -13,11 +13,11 @@ pub fn build_cli() -> Command<'static> {
         ]))
         .subcommand(
             Command::new("completions")
-                .arg(Arg::new("shell").help(trimdoc! {"
+                .arg(Arg::new("shell").help(indoc! {"
                         The shell to generate completions for. 
                         Supported: bash, fish, zsh, elvish, powershell
                     "}))
-                .about(trimdoc! {"
+                .about(indoc! {"
                     Output completions for the chosen shell
                     To use, write the output to the appropriate location for your shell
                 "}),
