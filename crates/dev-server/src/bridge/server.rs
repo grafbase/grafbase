@@ -1,4 +1,4 @@
-use super::consts::{CREATE_TABLE, DB_FILE, DB_URL, LOCALHOST_IP};
+use super::consts::{CREATE_TABLE, DB_FILE, DB_URL};
 use super::types::{Payload, Record};
 use crate::errors::DevServerError;
 use axum::Extension;
@@ -6,7 +6,7 @@ use axum::{http::StatusCode, routing::post, Json, Router};
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use std::fs;
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
 async fn query_endpoint(
@@ -56,7 +56,7 @@ async fn bridge_main(port: u16) -> Result<(), DevServerError> {
         .route("/mutation", post(mutation_endpoint))
         .layer(Extension(pool));
 
-    let socket_address = SocketAddr::from((LOCALHOST_IP, port));
+    let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
     axum::Server::bind(&socket_address)
         .serve(router.into_make_service())
