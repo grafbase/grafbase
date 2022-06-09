@@ -1,0 +1,19 @@
+use std::net::Ipv4Addr;
+
+#[derive(Clone, Copy)]
+pub enum LocalAddressType {
+    /// http://127.0.0.1
+    Localhost,
+    /// http://0.0.0.0
+    Unspecified,
+}
+
+impl LocalAddressType {
+    #[must_use]
+    pub fn to_ip_v4(&self) -> Ipv4Addr {
+        match self {
+            Self::Localhost => Ipv4Addr::LOCALHOST,
+            Self::Unspecified => Ipv4Addr::UNSPECIFIED,
+        }
+    }
+}

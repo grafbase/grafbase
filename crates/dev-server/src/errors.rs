@@ -9,6 +9,7 @@ use sqlx::Error as SqlxError;
 use std::io::Error as IoError;
 use std::path::PathBuf;
 use thiserror::Error;
+use tokio::task::JoinError;
 
 #[derive(Error, Debug)]
 pub enum DevServerError {
@@ -48,21 +49,35 @@ pub enum DevServerError {
     #[error(transparent)]
     MiniflareError(IoError),
 
+    /// returned if the user project location is not valid utf-8
+    #[error("non utf-8 path used for project")]
+    ProjectPath,
+
+    /// returned if the `.grafbase` folder cannot be created
+    #[error("could not create a project cache directory")]
+    CreateCacheDir,
+
     /// returned if an available port cannot be found for the bridge server
     #[error("could not find an available port for the bridge server")]
     AvailablePort,
+
+    /// returned if a spawned task panics
+    #[error("a spawned task panicked: {0}")]
+    SpawnedTaskPanic(JoinError),
 }
 
 impl ToExitCode for DevServerError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::CreateDir(_) | Self::WriteFile(_) | Self::ReadVersion => exitcode::DATAERR,
+            Self::CreateDir(_) | Self::CreateCacheDir | Self::WriteFile(_) | Self::ReadVersion => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
             | Self::ConnectToDatabase(_)
             | Self::UnknownSqliteError(_)
-            | Self::MiniflareError(_) => exitcode::SOFTWARE,
+            | Self::MiniflareError(_)
+            | Self::SpawnedTaskPanic(_) => exitcode::SOFTWARE,
+            Self::ProjectPath => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }
     }
@@ -107,5 +122,11 @@ impl IntoResponse for DevServerError {
         }));
 
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
+    }
+}
+
+impl From<JoinError> for DevServerError {
+    fn from(error: JoinError) -> Self {
+        Self::SpawnedTaskPanic(error)
     }
 }

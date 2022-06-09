@@ -1,23 +1,16 @@
+use crate::consts::{EPHEMERAL_PORT_RANGE, WORKER_DIR, WORKER_FOLDER_VERSION_FILE};
+use crate::types::Assets;
 use crate::{bridge, errors::DevServerError};
 use common::environment::Environment;
+use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
-use rust_embed::RustEmbed;
 use std::{
     fs,
-    ops::Range,
-    process::{Command, Output, Stdio},
+    process::Stdio,
     thread::{self, JoinHandle},
 };
+use tokio::process::Command;
 use version_compare::Version;
-
-#[derive(RustEmbed)]
-#[folder = "assets/"]
-struct Assets;
-
-const WORKER_DIR: &str = "worker";
-const WORKER_FOLDER_VERSION_FILE: &str = "version.txt";
-
-const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
 
 /// starts a development server by unpacking any files needed by the gateway worker
 /// and starting the miniflare cli in `user_grafbase_path` in [`Environment`]
@@ -33,53 +26,56 @@ const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
 /// # Panics
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
-pub fn start(port: u16) -> Result<JoinHandle<Result<Output, DevServerError>>, DevServerError> {
-    export_embedded_files()?;
+#[must_use]
+pub fn start(port: u16) -> JoinHandle<Result<(), DevServerError>> {
+    thread::spawn(move || {
+        export_embedded_files()?;
 
-    // the bridge looks for an available port within the ephemeral port range and supplies it to the worker,
-    // making the port choice and availability transprent to the user
-    let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE).ok_or(DevServerError::AvailablePort)?;
+        // the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
+        // making the port choice and availability transprent to the user
+        let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
+            .ok_or(DevServerError::AvailablePort)?;
 
+        spawn_servers(port, bridge_port)
+    })
+}
+
+#[tokio::main]
+async fn spawn_servers(worker_port: u16, bridge_port: u16) -> Result<(), DevServerError> {
     trace!("spawining miniflare");
 
     let environment = Environment::get();
 
-    let handle = thread::spawn(move || {
-        let bridge_handle = thread::spawn(move || bridge::start(bridge_port));
+    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port).await });
 
-        let miniflare_handle = thread::spawn(move || {
-            Command::new("npx")
-                .arg("--quiet")
-                .arg("miniflare")
-                .arg("--port")
-                .arg(port.to_string())
-                .arg("-c")
-                .arg("wrangler.toml")
-                .current_dir(&environment.user_grafbase_path)
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .output()
-        });
+    // TODO: bundle a specific version of miniflare and extract it
+    Command::new("npx")
+        .args(&[
+            "--quiet",
+            "miniflare",
+            "--port",
+            &worker_port.to_string(),
+            "--wrangler-config",
+            "wrangler.toml",
+        ])
+        .current_dir(&environment.user_dot_grafbase_path)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()
+        .map_err(DevServerError::MiniflareError)?
+        .wait()
+        .await
+        .map_err(DevServerError::MiniflareError)?;
 
-        // unwrapping to propogate any panics
-        bridge_handle.join().unwrap()?;
+    bridge_handle.await??;
 
-        let miniflare_output = miniflare_handle
-            .join()
-            /* unwrapping to propogate any panics */
-            .unwrap()
-            .map_err(DevServerError::MiniflareError)?;
-
-        Ok(miniflare_output)
-    });
-
-    Ok(handle)
+    Ok(())
 }
 
 fn export_embedded_files() -> Result<(), DevServerError> {
     let environment = Environment::get();
 
-    let worker_path = environment.user_grafbase_path.join(WORKER_DIR);
+    let worker_path = environment.user_dot_grafbase_path.join(WORKER_DIR);
 
     // CARGO_PKG_VERSION is guaranteed be valid semver
     let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
@@ -104,7 +100,7 @@ fn export_embedded_files() -> Result<(), DevServerError> {
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
 
-            let full_path = environment.user_grafbase_path.join(path.as_ref());
+            let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
 
             // must be Some(file) since we're iterating over existing paths
             let write_result = fs::write(&full_path, file.unwrap().data);

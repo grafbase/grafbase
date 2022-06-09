@@ -32,7 +32,7 @@ fn main() {
 }
 
 fn try_main() -> Result<(), CliError> {
-    pretty_env_logger::init();
+    tracing_subscriber::fmt::init();
 
     let matches = build_cli().get_matches();
 

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::vec::IntoIter;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Payload {
     pub query: String,
     pub variables: Option<Vec<String>>,
@@ -14,7 +14,7 @@ impl Payload {
     }
 }
 
-#[derive(sqlx::FromRow, Serialize, Deserialize)]
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
     pub id: String,

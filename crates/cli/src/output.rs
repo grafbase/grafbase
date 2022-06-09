@@ -24,9 +24,4 @@ pub mod report {
             eprintln!("{}", format!("hint: {}", hint).bright_blue());
         }
     }
-
-    /// reports a panic from a spawned thread to stderr
-    pub fn spawned_thread_error(error: &str) {
-        eprintln!("{}", error);
-    }
 }

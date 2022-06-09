@@ -30,6 +30,10 @@ coverage
 *.profraw
 .nyc_output
 
+# grafbase folders
+grafbase/
+.grafbase/
+
 #=================================#
 # Rust
 #=================================#

@@ -21,6 +21,7 @@ local-gateway = { path = "../local-gateway", version = "0.1.0" }
 log = "0.4"
 pretty_env_logger = "0.4"
 thiserror = "1.0"
+tracing-subscriber = "0.3.11"
 
 [[bin]]
 name = "grafbase"

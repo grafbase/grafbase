@@ -1,5 +1,5 @@
 use common::{errors::CommonError, traits::ToExitCode};
-use local_gateway::errors::LocalGatewayError;
+use local_gateway::errors::{DevServerError, LocalGatewayError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,6 +13,9 @@ pub enum CliError {
     /// returned if the development server panics
     #[error("the development server panicked: {0}")]
     DevServerPanic(String),
+    /// wraps a dev server error
+    #[error(transparent)]
+    DevServerError(DevServerError),
     /// wraps an error originating in the local-gateway crate
     #[error(transparent)]
     LocalGatewayError(LocalGatewayError),
@@ -25,7 +28,7 @@ impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
             Self::ParsePort | Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
-            Self::DevServerPanic(_) => exitcode::SOFTWARE,
+            Self::DevServerPanic(_) | Self::DevServerError(_) => exitcode::SOFTWARE,
             Self::LocalGatewayError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
         }

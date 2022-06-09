@@ -22,7 +22,9 @@ let dev_server_handle = dev_server::start(PORT).unwrap();
 extern crate log;
 
 mod bridge;
+mod consts;
 pub mod errors;
 mod servers;
+mod types;
 
 pub use servers::start;

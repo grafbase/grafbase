@@ -1,6 +1,7 @@
 use common::traits::ToExitCode;
-use dev_server::errors::DevServerError;
 use thiserror::Error;
+
+pub use dev_server::errors::DevServerError;
 
 #[derive(Error, Debug)]
 pub enum LocalGatewayError {

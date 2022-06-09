@@ -1,8 +1,8 @@
 use crate::errors::LocalGatewayError;
-use common::consts::DEFAULT_PORT;
 use common::utils::find_available_port;
+use common::{consts::DEFAULT_PORT, types::LocalAddressType};
 use dev_server::errors::DevServerError;
-use std::{process::Output, thread};
+use std::thread;
 
 /// starts the dev server if an available port can be found
 ///
@@ -14,13 +14,13 @@ use std::{process::Output, thread};
 pub fn start_dev_server(
     external_port: Option<u16>,
     search: bool,
-) -> Result<(u16, thread::JoinHandle<Result<Output, DevServerError>>), LocalGatewayError> {
+) -> Result<(u16, thread::JoinHandle<Result<(), DevServerError>>), LocalGatewayError> {
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
-    match find_available_port(search, start_port) {
-        Some(port) => match dev_server::start(port) {
-            Ok(handle) => Ok((port, handle)),
-            Err(error) => Err(LocalGatewayError::DevServerError(error)),
-        },
+    match find_available_port(search, start_port, LocalAddressType::Unspecified) {
+        Some(port) => {
+            let handle = dev_server::start(port);
+            Ok((port, handle))
+        }
         None => {
             if search {
                 Err(LocalGatewayError::AvailablePort)

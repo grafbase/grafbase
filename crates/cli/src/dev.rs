@@ -30,10 +30,7 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
                 None => CliError::DevServerPanic("unknown error".to_owned()),
             },
         })?
-        .map_err(|error| {
-            report::spawned_thread_error(&error.to_string());
-            CliError::DevServerPanic("miniflare error".to_owned())
-        })?;
+        .map_err(CliError::DevServerError)?;
 
     Ok(())
 }

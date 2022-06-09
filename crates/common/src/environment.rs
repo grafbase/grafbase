@@ -15,11 +15,20 @@ use std::{
 /// must be initialized before use
 #[derive(Debug)]
 pub struct Environment {
-    /// the path of `grafbase/schema.graphql` in the nearest ancestor directory
-    /// with said folder and file
+    /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
+    /// with a `grafbase/schema.graphql` file
+    pub project_path: PathBuf,
+    /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database folder,
+    /// in the nearest ancestor directory with `grafbase/schema.graphql`
+    pub project_dot_grafbase_path: PathBuf,
+    /// the path of `$PROJECT/grafbase/`, the Grafbase schema folder in the nearest ancestor directory
+    /// with `grafbase/schema.graphql`
     pub project_grafbase_path: PathBuf,
-    /// the path of `$HOME/.grafbase`
-    pub user_grafbase_path: PathBuf,
+    /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
+    /// in the nearest ancestor directory with said folder and file
+    pub project_grafbase_schema_path: PathBuf,
+    /// the path of `$HOME/.grafbase`, the user level local developer tool cache folder
+    pub user_dot_grafbase_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -36,14 +45,28 @@ impl Environment {
     ///
     /// returns [`CommonError::SetEnvironment`] if the static environment instance could not be set
     pub fn try_init() -> Result<(), CommonError> {
-        let project_grafbase_path = Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
-        let project_dir = project_grafbase_path.parent().unwrap_or(&project_grafbase_path);
-        let home = dirs::home_dir().unwrap_or_else(|| project_dir.to_owned());
-        let user_grafbase_path = home.join(DOT_GRAFBASE_FOLDER);
+        let project_grafbase_schema_path =
+            Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+        let project_grafbase_path = project_grafbase_schema_path
+            .parent()
+            .expect("the schema folder must have a parent by definiton")
+            .to_path_buf();
+        let project_path = project_grafbase_path
+            .parent()
+            .expect("the grafbase folder must have a parent folder by definition")
+            .to_path_buf();
+        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_FOLDER);
+        let user_dot_grafbase_path = {
+            let home = dirs::home_dir().unwrap_or_else(|| project_grafbase_path.clone());
+            home.join(DOT_GRAFBASE_FOLDER)
+        };
         ENVIRONMENT
             .set(Self {
+                project_path,
+                project_dot_grafbase_path,
                 project_grafbase_path,
-                user_grafbase_path,
+                project_grafbase_schema_path,
+                user_dot_grafbase_path,
             })
             .map_err(|_| CommonError::SetEnvironment)?;
 
