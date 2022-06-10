@@ -14,7 +14,7 @@ use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 quick_error! {
     #[derive(Debug, Clone)]
     pub enum QueryLoaderError {
-        UnknowError {
+        UnknownError {
             display("An internal error happened")
         }
         QueryError {

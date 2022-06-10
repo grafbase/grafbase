@@ -35,7 +35,7 @@ impl Eq for TxItem {}
 quick_error! {
     #[derive(Debug, Clone)]
     pub enum TransactionError {
-        UnknowError {
+        UnknownError {
             display("An issue happened while applying the transaction.")
         }
     }
@@ -67,7 +67,7 @@ async fn transaction_by_pk(
         .transact_write_items(input)
         .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
         .await
-        .map_err(|_| TransactionError::UnknowError)?;
+        .map_err(|_| TransactionError::UnknownError)?;
 
     info!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
     Ok(result_hashmap)
