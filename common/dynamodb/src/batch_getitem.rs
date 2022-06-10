@@ -12,7 +12,7 @@ use crate::DynamoDBContext;
 quick_error! {
     #[derive(Debug, Clone)]
     pub enum BatchGetItemLoaderError {
-        UnknowError {
+        UnknownError {
             display("An internal error happened")
         }
         DynamoError {
@@ -76,9 +76,9 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .await
             .map_err(|_| BatchGetItemLoaderError::DynamoError)?
             .responses
-            .ok_or(BatchGetItemLoaderError::UnknowError)?
+            .ok_or(BatchGetItemLoaderError::UnknownError)?
             .remove(&self.ctx.dynamodb_table_name)
-            .ok_or(BatchGetItemLoaderError::UnknowError)?
+            .ok_or(BatchGetItemLoaderError::UnknownError)?
             .into_iter()
             .fold(HashMap::new(), |mut acc, cur| {
                 let pk = cur.get("__pk").and_then(|x| x.s.clone()).unwrap();
