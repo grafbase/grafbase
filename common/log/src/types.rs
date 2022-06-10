@@ -1,3 +1,5 @@
+#![allow(clippy::use_self)]
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("HTTP: {0}")]
