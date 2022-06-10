@@ -500,13 +500,13 @@ fn relation_create<'a>(
                             let ty_attr = child_ty.name().to_string().into_attr();
                             let parent_value = parent_value
                                 .await
-                                .map_err(|_| TransactionError::UnknowError)?
+                                .map_err(|_| TransactionError::UnknownError)?
                                 .into_iter()
                                 .next();
                             let selected_type = shared_selection_cloned
                                 .clone()
                                 .await
-                                .map_err(|_| TransactionError::UnknowError)?
+                                .map_err(|_| TransactionError::UnknownError)?
                                 .into_iter()
                                 .next();
 
@@ -596,13 +596,13 @@ fn relation_create<'a>(
                             let ty_attr = child_ty.name().to_string().into_attr();
                             let parent_value = parent_value
                                 .await
-                                .map_err(|_| TransactionError::UnknowError)?
+                                .map_err(|_| TransactionError::UnknownError)?
                                 .into_iter()
                                 .next();
                             let selected_type = shared_selection_cloned
                                 .clone()
                                 .await
-                                .map_err(|_| TransactionError::UnknowError)?
+                                .map_err(|_| TransactionError::UnknownError)?
                                 .into_iter()
                                 .next();
 
