@@ -30,13 +30,13 @@ pub use paginated::PaginatedCursor;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
 pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
-pub use transaction::TxItem;
+pub use transaction::{TransactionError, TxItem};
 
 /// The DynamoDBContext that is needed to query the Database
 #[derive(Clone)]
 pub struct DynamoDBContext {
     // TODO: When going with tracing, remove this trace_id, useless.
-    trace_id: String,
+    pub trace_id: String,
     pub dynamodb_client: rusoto_dynamodb::DynamoDbClient,
     pub dynamodb_table_name: String,
     pub closest_region: rusoto_core::Region,
@@ -190,6 +190,8 @@ pub struct DynamoDBBatchersData {
     pub loader: DataLoader<BatchGetItemLoader, LruCache>,
     /// Used to load items with only PK from table
     pub query: DataLoader<QueryLoader, LruCache>,
+    /// Used to load items for the ReversedIndex with only PK from table
+    pub query_reversed: DataLoader<QueryLoader, LruCache>,
     /// Used to load items with only PK from FatPartition
     pub query_fat: DataLoader<QueryTypeLoader, LruCache>,
     /// Used to laod items with only PK from FatPartition with Pagination
@@ -203,6 +205,7 @@ impl DynamoDBBatchersData {
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
             query: get_loader_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
+            query_reversed: get_loader_query(Arc::clone(ctx), DynamoDBRequestedIndex::ReverseIndex),
             query_fat: get_loader_query_type(Arc::clone(ctx), DynamoDBRequestedIndex::FatPartitionIndex),
             paginated_query_fat: get_loader_paginated_query_type(
                 Arc::clone(ctx),

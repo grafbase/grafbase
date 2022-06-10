@@ -53,10 +53,10 @@ async fn transaction_by_pk(
         return_consumed_capacity: None,
         return_item_collection_metrics: None,
         transact_items: tx
-            .iter()
+            .into_iter()
             .map(|x| {
                 result_hashmap.insert(x.clone(), AttributeValue::default());
-                x.transaction.clone()
+                x.transaction
             })
             .collect(),
     };

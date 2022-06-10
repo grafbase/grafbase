@@ -1,0 +1,18 @@
+---
+source: common/parser/src/registry/create_mutation.rs
+assertion_line: 518
+expression: sdl
+---
+type AuthorCreatePayload {
+	author: Author
+}
+"""
+Input to create a new Author
+"""
+input AuthorCreationInput {
+	Author: Error
+}
+schema {
+	query: Query
+}
+

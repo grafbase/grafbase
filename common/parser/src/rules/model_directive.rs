@@ -16,6 +16,7 @@
 //!
 //! TODO: Should have either: an ID or a PK
 
+use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_create_mutation;
 use crate::registry::add_list_query_paginated;
@@ -71,6 +72,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                         for field in &object.fields {
                             let name = field.node.name.node.to_string();
                             let ty = is_modelized_node(&ctx.types, &field.node.ty.node);
+                            let relation = ty.map(|_ty| {
+                                generate_metarelation(&type_definition.node, &field.node)
+                            });
                             let is_node = ty.and_then(|x| {
                                 match &x.node.kind {
                                     TypeKind::Object(obj) => Some(obj),
@@ -127,6 +131,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 } else {
                                     Vec::new()
                                 },
+                                relation,
                                 transforms,
                             });
                         };
@@ -175,6 +180,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     visible: None,
                     compute_complexity: None,
                     edges: Vec::new(),
+                    relation: None,
                     resolve: Some(Resolver {
                         id: Some(format!("{}_resolver", type_name.to_lowercase())),
                         // TODO: Should be defined as a ResolveNode
@@ -187,8 +193,10 @@ impl<'a> Visitor<'a> for ModelDirective {
                     transforms: None,
                 });
 
+
+                add_create_mutation(ctx, &type_definition.node, object, &type_name);
+
                 add_list_query_paginated(ctx, &type_name, connection_edges);
-                add_create_mutation(ctx, object, &id_field.node, &type_name);
                 add_remove_query(ctx, &id_field.node, &type_name)
             }
         }

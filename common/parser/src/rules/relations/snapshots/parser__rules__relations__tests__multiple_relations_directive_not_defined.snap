@@ -1,0 +1,34 @@
+---
+source: common/parser/src/rules/relations/mod.rs
+assertion_line: 62
+expression: ctx.relations
+---
+{
+    "postsToday": MetaRelation {
+        name: "postsToday",
+        kind: OneToMany,
+        relation: (
+            "Author",
+            "Post",
+        ),
+        birectional: false,
+    },
+    "postsYesterday": MetaRelation {
+        name: "postsYesterday",
+        kind: OneToMany,
+        relation: (
+            "Author",
+            "Post",
+        ),
+        birectional: false,
+    },
+    "published": MetaRelation {
+        name: "published",
+        kind: ManyToMany,
+        relation: (
+            "Author",
+            "Post",
+        ),
+        birectional: true,
+    },
+}

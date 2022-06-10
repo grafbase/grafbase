@@ -7,6 +7,7 @@ use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
+use rules::relations::relations_rules;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 mod registry;
@@ -31,12 +32,13 @@ quick_error! {
 /// Transform the input schema into a Registry
 pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     let mut rules = rules::visitor::VisitorNil
-        .with(ModelDirective)
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckModelizedFieldReserved)
+        .with(CheckTypeValidity)
+        .with(ModelDirective)
         .with(BasicType)
         .with(EnumType)
-        .with(CheckTypeValidity);
+        .with(relations_rules());
 
     let schema = parse_schema(format!("{}\n{}", rules.directives(), input.as_ref()))?;
 
@@ -72,10 +74,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -103,10 +105,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -158,10 +160,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -202,10 +204,10 @@ mod tests {
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 
@@ -227,7 +229,7 @@ mod tests {
             type Post @model {
               id: ID!
               content: String!
-              authors: [Author] 
+              authors: [Author] @relation(name: "published")
             }
 
             type Author @model {
@@ -235,15 +237,16 @@ mod tests {
               name: String!
               lastname: String!
               country: Country!
+              posts: [Post] @relation(name: "published")
             }
             "#,
         )
         .unwrap();
 
-        let reg_string = serde_json::to_value(&result).unwrap().to_string();
+        let reg_string = serde_json::to_value(&result).unwrap();
         let sdl = Schema::new(result).sdl();
 
-        insta::assert_snapshot!(reg_string);
+        insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
     }
 }

@@ -1,0 +1,16 @@
+---
+source: common/parser/src/rules/relations_engine.rs
+assertion_line: 120
+expression: "&ctx.relations"
+---
+{
+    "AuthorRelatePost": MetaRelation {
+        name: "AuthorRelatePost",
+        kind: OneToOne,
+        relation: (
+            "Post",
+            "Author",
+        ),
+        birectional: false,
+    },
+}
