@@ -1,4 +1,5 @@
 use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
+use crate::registry::Edge;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::{
@@ -171,7 +172,7 @@ impl ResolverTrait for DynamoResolver {
                     .iter()
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc.extend(cur.iter().map(std::string::ToString::to_string));
                         acc
                     })
                     .into_iter()
@@ -264,18 +265,17 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let mut edges: Vec<String> = edges
+                let edges: Vec<String> = edges
                     .iter()
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc.extend(cur.iter().map(std::string::ToString::to_string));
                         acc
                     })
                     .into_iter()
+                    .chain(std::iter::once(Edge(&pk).to_string()))
                     .unique()
                     .collect();
-
-                edges.push(pk.clone());
 
                 let query_result: QueryTypeResult = query_loader_fat
                     .load_one(QueryTypeKey::new(pk.clone(), edges))
@@ -366,17 +366,17 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let mut edges: Vec<String> = edges
+                let edges: Vec<String> = edges
                     .iter()
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(|x| x.0.to_string()));
+                        acc.extend(cur.iter().map(std::string::ToString::to_string));
                         acc
                     })
                     .into_iter()
+                    .chain(std::iter::once(Edge(current_ty).to_string()))
                     .unique()
                     .collect();
-                edges.push(current_ty.to_string());
 
                 let query_result: QueryResult = query_loader
                     .load_one(QueryKey::new(pk, edges))

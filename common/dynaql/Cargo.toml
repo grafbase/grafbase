@@ -58,9 +58,9 @@ chrono = { version = "0.4.19", default-features = false, features = ["clock", "s
 
 # API dependencies
 # dynamodb = { path = "../api/common/dynamodb" }
-dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "61c83135e2285649e989e0048cb659405a5e87e6" }
+dynamodb = { git = "ssh://git@github.com/grafbase/api", rev = "bc1aaa144febdb1a0b87d8c37b7749862998310c" }
 # logworker = { path = "../api/common/log", package = "log", optional = true, features = ["with-worker"] }
-logworker = { git = "ssh://git@github.com/grafbase/api", rev = "61c83135e2285649e989e0048cb659405a5e87e6", package = "log", optional = true, features = ["with-worker"] }
+logworker = { git = "ssh://git@github.com/grafbase/api", rev = "bc1aaa144febdb1a0b87d8c37b7749862998310c", package = "log", optional = true, features = ["with-worker"] }
 
 
 # Feature optional dependencies
