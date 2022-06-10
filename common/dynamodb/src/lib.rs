@@ -56,26 +56,26 @@ pub enum DynamoDBRequestedIndex {
 impl DynamoDBRequestedIndex {
     fn to_index_name(&self) -> Option<String> {
         match self {
-            DynamoDBRequestedIndex::None => None,
-            DynamoDBRequestedIndex::ReverseIndex => Some("gsi2".to_string()),
-            DynamoDBRequestedIndex::FatPartitionIndex => Some("gsi1".to_string()),
+            Self::None => None,
+            Self::ReverseIndex => Some("gsi2".to_string()),
+            Self::FatPartitionIndex => Some("gsi1".to_string()),
         }
     }
 
     fn pk(&self) -> String {
         match self {
-            DynamoDBRequestedIndex::None => "__pk".to_string(),
-            DynamoDBRequestedIndex::ReverseIndex => "__gsi2pk".to_string(),
-            DynamoDBRequestedIndex::FatPartitionIndex => "__gsi1pk".to_string(),
+            Self::None => "__pk".to_string(),
+            Self::ReverseIndex => "__gsi2pk".to_string(),
+            Self::FatPartitionIndex => "__gsi1pk".to_string(),
         }
     }
 
     #[allow(dead_code)]
     fn sk(&self) -> String {
         match self {
-            DynamoDBRequestedIndex::None => "__sk".to_string(),
-            DynamoDBRequestedIndex::ReverseIndex => "__gsi2sk".to_string(),
-            DynamoDBRequestedIndex::FatPartitionIndex => "__gsi1sk".to_string(),
+            Self::None => "__sk".to_string(),
+            Self::ReverseIndex => "__gsi2sk".to_string(),
+            Self::FatPartitionIndex => "__gsi1sk".to_string(),
         }
     }
 }

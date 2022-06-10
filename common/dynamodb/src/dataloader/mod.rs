@@ -161,12 +161,18 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
         }
     }
 
+    // FIXME: False positive.
+    // https://github.com/rust-lang/rust-clippy/issues/8874
+    #[allow(clippy::missing_const_for_fn)]
     /// Specify the delay time for loading data, the default is `1ms`.
     #[must_use]
     pub fn delay(self, delay: Duration) -> Self {
         Self { delay, ..self }
     }
 
+    // FIXME: False positive.
+    // https://github.com/rust-lang/rust-clippy/issues/8874
+    #[allow(clippy::missing_const_for_fn)]
     /// pub fn Specify the max batch size for loading data, the default is `1000`.
     ///
     /// If the keys waiting to be loaded reach the threshold, they are loaded immediately.
