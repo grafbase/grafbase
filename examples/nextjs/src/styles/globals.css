@@ -1,3 +1,7 @@
+:root {
+  --grafbase : #4A9C6D
+}
+
 html,
 body {
   padding: 0;
@@ -7,10 +11,15 @@ body {
 }
 
 a {
-  color: inherit;
   text-decoration: none;
 }
 
 * {
   box-sizing: border-box;
+}
+
+.gradient {
+  color: #FFFFFF00;
+  background-clip: text;
+  background-image: linear-gradient(89.97deg, #19A05F 0.02%, #0D7F8C 123.85%);
 }
