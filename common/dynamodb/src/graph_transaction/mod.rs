@@ -1,5 +1,4 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::TxItem;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
@@ -18,9 +17,18 @@ use std::pin::Pin;
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 
-mod dynamodb;
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "local"))] {
+        use crate::TxItem;
 
-type TupplePartitionKeySortingKey = (String, String);
+        mod dynamodb;
+    } else {
+        use crate::local::bridge_api;
+        use crate::LocalContext;
+    }
+}
+
+type TuplePartitionKeySortingKey = (String, String);
 
 #[derive(Derivative, Clone)]
 #[derivative(Debug)]
@@ -498,8 +506,14 @@ impl GetIds for PossibleChanges {
     }
 }
 
-type ToTransactionFuture<'a> =
-    Pin<Box<dyn Future<Output = Result<HashMap<TxItem, AttributeValue>, ToTransactionError>> + Send + 'a>>;
+#[cfg(not(feature = "local"))]
+pub type TransactionOutput = HashMap<TxItem, AttributeValue>;
+
+#[cfg(feature = "local")]
+pub type TransactionOutput = (String, Vec<String>);
+
+pub type ToTransactionFuture<'a> =
+    Pin<Box<dyn Future<Output = Result<TransactionOutput, ToTransactionError>> + Send + 'a>>;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum ToTransactionError {
@@ -511,7 +525,7 @@ pub enum ToTransactionError {
     TransactionError(#[from] TransactionError),
 }
 
-trait ExecuteChangesOnDatabase
+pub trait ExecuteChangesOnDatabase
 where
     Self: Sized,
 {
@@ -532,24 +546,24 @@ where
 
 #[derive(Derivative, PartialEq, Clone)]
 #[derivative(Debug)]
-struct InsertNodeInternalInput {
-    id: String,
-    ty: String,
+pub struct InsertNodeInternalInput {
+    pub id: String,
+    pub ty: String,
     #[derivative(Debug = "ignore")]
-    user_defined_item: HashMap<String, AttributeValue>,
+    pub user_defined_item: HashMap<String, AttributeValue>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
 #[derivative(Debug)]
-struct UpdateNodeInternalInput {
-    id: String,
-    ty: String,
+pub struct UpdateNodeInternalInput {
+    pub id: String,
+    pub ty: String,
     #[derivative(Debug = "ignore")]
-    user_defined_item: HashMap<String, AttributeValue>,
+    pub user_defined_item: HashMap<String, AttributeValue>,
 }
 
 impl UpdateNodeInternalInput {
-    fn to_update_expression(
+    pub fn to_update_expression(
         values: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
@@ -580,32 +594,32 @@ impl UpdateNodeInternalInput {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct DeleteNodeInternalInput {
+pub struct DeleteNodeInternalInput {
     id: String,
     ty: String,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
 #[derivative(Debug)]
-struct InsertRelationInternalInput {
-    from_id: String,
-    from_ty: String,
-    to_id: String,
-    to_ty: String,
-    relation_names: Vec<String>,
+pub struct InsertRelationInternalInput {
+    pub from_id: String,
+    pub from_ty: String,
+    pub to_id: String,
+    pub to_ty: String,
+    pub relation_names: Vec<String>,
     /// Those fields are not user_defined_item, privates are here too.
     #[derivative(Debug = "ignore")]
-    fields: HashMap<String, AttributeValue>,
+    pub fields: HashMap<String, AttributeValue>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-enum DeleteRelationInternalInput {
+pub enum DeleteRelationInternalInput {
     Multiple(DeleteMultipleRelationsInternalInput),
     All(DeleteAllRelationsInternalInput),
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct DeleteAllRelationsInternalInput {
+pub struct DeleteAllRelationsInternalInput {
     from_id: String,
     from_ty: String,
     to_id: String,
@@ -616,34 +630,34 @@ struct DeleteAllRelationsInternalInput {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-struct DeleteMultipleRelationsInternalInput {
-    from_id: String,
-    from_ty: String,
-    to_id: String,
-    to_ty: String,
-    relation_names: Vec<String>,
+pub struct DeleteMultipleRelationsInternalInput {
+    pub from_id: String,
+    pub from_ty: String,
+    pub to_id: String,
+    pub to_ty: String,
+    pub relation_names: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-enum UpdateRelation {
+pub enum UpdateRelation {
     #[allow(unused)]
     Add(String),
     Remove(String),
 }
 #[derive(Derivative, PartialEq, Clone)]
 #[derivative(Debug)]
-struct UpdateRelationInternalInput {
-    from_id: String,
-    from_ty: String,
-    to_id: String,
-    to_ty: String,
-    relation_names: Vec<UpdateRelation>,
+pub struct UpdateRelationInternalInput {
+    pub from_id: String,
+    pub from_ty: String,
+    pub to_id: String,
+    pub to_ty: String,
+    pub relation_names: Vec<UpdateRelation>,
     #[derivative(Debug = "ignore")]
-    user_defined_item: HashMap<String, AttributeValue>,
+    pub user_defined_item: HashMap<String, AttributeValue>,
 }
 
 impl UpdateRelationInternalInput {
-    fn to_update_expression(
+    pub fn to_update_expression(
         values: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
@@ -726,7 +740,7 @@ impl UpdateRelationInternalInput {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum InternalNodeChanges {
+pub enum InternalNodeChanges {
     Insert(InsertNodeInternalInput),
     Update(UpdateNodeInternalInput), // Unknow affected ids
     Delete(DeleteNodeInternalInput), // Unknow affected ids
@@ -734,7 +748,7 @@ enum InternalNodeChanges {
 
 /// Private interface
 #[derive(Debug, PartialEq, Clone)]
-enum InternalChanges {
+pub enum InternalChanges {
     Node(InternalNodeChanges),
     Relation(InternalRelationChanges),
 }
@@ -978,7 +992,7 @@ impl Add<Self> for DeleteRelationInternalInput {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-enum InternalRelationChanges {
+pub enum InternalRelationChanges {
     Insert(InsertRelationInternalInput), // One affected node
     Update(UpdateRelationInternalInput), // Unknown affected ids
     Delete(DeleteRelationInternalInput), // Unknown affected ids
@@ -1015,6 +1029,7 @@ impl InternalChanges {
     }
 }
 
+#[cfg(not(feature = "local"))]
 async fn execute(
     batchers: &'_ DynamoDBBatchersData,
     ctx: &'_ DynamoDBContext,
@@ -1043,7 +1058,7 @@ async fn execute(
     }
 
     // Merge Hashmap together
-    let merged: HashMap<TupplePartitionKeySortingKey, Vec<InternalChanges>> =
+    let merged: HashMap<TuplePartitionKeySortingKey, Vec<InternalChanges>> =
         result
             .into_iter()
             .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
@@ -1079,11 +1094,86 @@ async fn execute(
     Ok(merged)
 }
 
+#[cfg(feature = "local")]
+async fn execute(
+    batchers: &'_ DynamoDBBatchersData,
+    ctx: &'_ DynamoDBContext,
+    changes: Vec<PossibleChanges>,
+) -> Result<(String, Vec<String>), ToTransactionError> {
+    info!(ctx.trace_id, "Public");
+    for r in &changes {
+        info!(ctx.trace_id, "{:?}", r);
+    }
+
+    // First step, we convert public change to our private interface
+    let selections: Vec<_> = changes
+        .into_iter()
+        .map(|change| Box::pin(change.to_changes(batchers, ctx)))
+        .collect();
+
+    let selection_len = selections.len();
+    // First await to select everything that'll change.
+    let result = futures_util::future::try_join_all(selections).await?;
+
+    info!(ctx.trace_id, "Private");
+    for r in &result {
+        for ((pk, sk), val) in r {
+            info!(ctx.trace_id, "{} {} | {:?}", pk, sk, val);
+        }
+    }
+
+    // Merge Hashmap together
+    let merged: HashMap<TuplePartitionKeySortingKey, Vec<InternalChanges>> =
+        result
+            .into_iter()
+            .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
+                cur.into_iter().for_each(|(k, v)| match acc.entry(k) {
+                    Entry::Vacant(vac) => {
+                        vac.insert(vec![v]);
+                    }
+                    Entry::Occupied(mut oqp) => {
+                        oqp.get_mut().push(v);
+                    }
+                });
+                acc
+            });
+
+    // When every PossibleChanges are merged together, we do apply our merge of
+    // possible_changes for each ID to create a TransactWriteItem
+    let transactions = merged
+        .into_iter()
+        .map(|((pk, sk), val)| val.to_transaction(batchers, ctx, pk, sk))
+        .collect::<Vec<ToTransactionFuture<'_>>>();
+
+    let transactions = futures_util::future::try_join_all(transactions).await?;
+
+    let combined_queries = transactions.into_iter().fold((vec![], vec![]), |mut acc, cur| {
+        acc.0.push(cur.0);
+        acc.1.extend(cur.1);
+        acc
+    });
+
+    let merged = (
+        format!(
+            "BEGIN;{}END;",
+            combined_queries
+                .0
+                .iter()
+                .map(|query| format!("{query};"))
+                .collect::<String>()
+        ),
+        combined_queries.1,
+    );
+
+    Ok(merged)
+}
+
 /// The result is not accessible, the Hashmap will be empty
 async fn load_keys(
     batcher: &DynamoDBBatchersData,
     ctx: &DynamoDBContext,
     tx: Vec<PossibleChanges>,
+    #[cfg(feature = "local")] local_ctx: &LocalContext,
 ) -> Result<HashMap<PossibleChanges, AttributeValue>, ToTransactionError> {
     info!(ctx.trace_id, "Execute");
     let mut result = HashMap::with_capacity(tx.len());
@@ -1091,7 +1181,16 @@ async fn load_keys(
         result.insert(x.clone(), AttributeValue { ..Default::default() });
     }
 
-    let _a = execute(batcher, ctx, tx).await?;
+    cfg_if::cfg_if! {
+        if #[cfg(not(feature = "local"))] {
+            let _a = execute(batcher, ctx, tx).await?;
+        } else {
+            let (query, variables) = execute(batcher, ctx, tx).await?;
+            if !variables.is_empty() {
+                bridge_api::mutation(&query, &variables, &local_ctx.bridge_port).await.map_err(|_| ToTransactionError::TransactionError(TransactionError::UnknownError))?;
+            }
+        }
+    }
     info!(ctx.trace_id, "Executed");
     Ok(result)
 }
@@ -1099,6 +1198,8 @@ async fn load_keys(
 pub struct NewTransactionLoader {
     ctx: Arc<DynamoDBContext>,
     parent_ctx: Weak<DynamoDBBatchersData>,
+    #[cfg(feature = "local")]
+    local_ctx: Arc<LocalContext>,
 }
 
 #[async_trait::async_trait]
@@ -1111,6 +1212,8 @@ impl Loader<PossibleChanges> for NewTransactionLoader {
             &self.parent_ctx.upgrade().expect("can't fail"),
             &self.ctx,
             keys.to_vec(),
+            #[cfg(feature = "local")]
+            &self.local_ctx,
         )
         .await
     }
@@ -1119,9 +1222,15 @@ impl Loader<PossibleChanges> for NewTransactionLoader {
 pub fn get_loader_transaction_new(
     ctx: Arc<DynamoDBContext>,
     parent_ctx: Weak<DynamoDBBatchersData>,
+    #[cfg(feature = "local")] local_ctx: Arc<LocalContext>,
 ) -> DataLoader<NewTransactionLoader, LruCache> {
     DataLoader::with_cache(
-        NewTransactionLoader { ctx, parent_ctx },
+        NewTransactionLoader {
+            ctx,
+            parent_ctx,
+            #[cfg(feature = "local")]
+            local_ctx,
+        },
         wasm_bindgen_futures::spawn_local,
         LruCache::new(128),
     )

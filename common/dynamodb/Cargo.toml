@@ -4,17 +4,26 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-again = { git = "https://github.com/Miaxos/again", default-features = false, features = ["wasm-bindgen", "log"] }
+again = { git = "https://github.com/Miaxos/again", default-features = false, features = [
+    "wasm-bindgen",
+    "log",
+] }
 async-trait = "0.1"
 aws-region-nearby = "0.1"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono = { version = "0.4", default-features = false, features = [
+    "clock",
+    "std",
+] }
 derivative = "2.2"
 dynomite = "0.10"
 fnv = "1"
 futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
-futures-util = { version = "0.3", default-features = false, features = ["std", "async-await"] }
+futures-util = { version = "0.3", default-features = false, features = [
+    "std",
+    "async-await",
+] }
 indexmap = "~1.6"
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
@@ -25,5 +34,32 @@ rusoto_dynamodb = "0.48"
 thiserror = "1"
 wasm-bindgen-futures = "0.4"
 
+# feature="local"
+cfg-if = "1"
+indoc = { version = "1", optional = true }
+regex = { version = "1", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+
+
 [dev-dependencies]
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1", features = [
+    "macros",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+surf = { version = "2", default-features = false, optional = true, features = [
+    "wasm-client",
+] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+surf = { version = "2", default-features = false, optional = true, features = [
+    "h1-client-rustls",
+] }
+
+[features]
+default = []
+local = ["indoc", "regex", "serde", "serde_json", "surf"]

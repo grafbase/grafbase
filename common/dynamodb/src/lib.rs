@@ -1,9 +1,38 @@
-use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
+cfg_if::cfg_if! {
+    if #[cfg(not(feature = "local"))] {
+        mod batch_getitem;
+        mod query;
+        mod query_by_type;
+        mod query_by_type_paginated;
+
+        use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
+        use query::get_loader_query;
+        use query_by_type::get_loader_query_type;
+        use query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
+
+        pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
+        pub use query::{QueryKey, QueryLoader, QueryLoaderError};
+        pub use batch_getitem::BatchGetItemLoaderError;
+        pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
+    } else {
+        mod local;
+
+        use local::batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
+        use local::query::get_loader_query;
+        use local::query_by_type::get_loader_query_type;
+        use local::query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
+
+        pub use local::query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
+        pub use local::query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
+        pub use local::query::{QueryKey, QueryLoader, QueryLoaderError};
+        pub use local::local_context::LocalContext;
+        pub use local::batch_getitem::BatchGetItemLoaderError;
+    }
+}
+
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
-use query::get_loader_query;
-use query_by_type::get_loader_query_type;
-use query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
+
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -11,21 +40,17 @@ use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, Tr
 use std::sync::Arc;
 use transaction::{get_loader_transaction, TransactionLoader};
 
-mod batch_getitem;
 pub mod constant;
 pub mod dataloader;
+
 pub mod graph_transaction;
 mod paginated;
-mod query;
-mod query_by_type;
-mod query_by_type_paginated;
+
 mod transaction;
-pub use batch_getitem::BatchGetItemLoaderError;
+
 pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
 pub use paginated::PaginatedCursor;
-pub use query::{QueryKey, QueryLoader, QueryLoaderError};
-pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
-pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
+
 pub use transaction::{TransactionError, TxItem};
 
 /// The DynamoDBContext that is needed to query the Database
@@ -58,20 +83,41 @@ impl DynamoDBRequestedIndex {
         }
     }
 
-    fn pk(&self) -> String {
-        match self {
-            Self::None => "__pk".to_string(),
-            Self::ReverseIndex => "__gsi2pk".to_string(),
-            Self::FatPartitionIndex => "__gsi1pk".to_string(),
-        }
-    }
+    cfg_if::cfg_if! {
+        if #[cfg(not(feature = "local"))] {
+            fn pk(&self) -> String {
+                match self {
+                    Self::None => "__pk".to_string(),
+                    Self::ReverseIndex => "__gsi2pk".to_string(),
+                    Self::FatPartitionIndex => "__gsi1pk".to_string(),
+                }
+            }
 
-    #[allow(dead_code)]
-    fn sk(&self) -> String {
-        match self {
-            Self::None => "__sk".to_string(),
-            Self::ReverseIndex => "__gsi2sk".to_string(),
-            Self::FatPartitionIndex => "__gsi1sk".to_string(),
+            #[allow(dead_code)]
+            fn sk(&self) -> String {
+                match self {
+                    Self::None => "__sk".to_string(),
+                    Self::ReverseIndex => "__gsi2sk".to_string(),
+                    Self::FatPartitionIndex => "__gsi1sk".to_string(),
+                }
+            }
+        } else {
+            fn pk(&self) -> String {
+                match self {
+                    Self::None => "pk".to_string(),
+                    Self::ReverseIndex => "gsi2pk".to_string(),
+                    Self::FatPartitionIndex => "gsi1pk".to_string(),
+                }
+            }
+
+            #[allow(dead_code)]
+            fn sk(&self) -> String {
+                match self {
+                    Self::None => "sk".to_string(),
+                    Self::ReverseIndex => "gsi2sk".to_string(),
+                    Self::FatPartitionIndex => "gsi1sk".to_string(),
+                }
+            }
         }
     }
 }
@@ -128,7 +174,7 @@ impl DynamoDBContext {
     /// * `dynamodb_table_name` - The DynamoDB TableName.
     /// * `latitude` - Request latitude, to locate the closest region
     /// * `longitude` - Request longitude, to locate the closest region
-    ///
+    #[cfg_attr(feature = "local", allow(clippy::too_many_arguments))]
     pub fn new(
         // TODO: This should go away with tracing.
         trace_id: String,
@@ -196,6 +242,7 @@ pub struct DynamoDBBatchersData {
     pub transaction_new: DataLoader<NewTransactionLoader, LruCache>,
 }
 
+#[cfg(not(feature = "local"))]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
@@ -210,6 +257,25 @@ impl DynamoDBBatchersData {
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
+        })
+    }
+}
+
+#[cfg(feature = "local")]
+impl DynamoDBBatchersData {
+    pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: &Arc<LocalContext>) -> Arc<Self> {
+        Arc::new_cyclic(|b| Self {
+            ctx: Arc::clone(ctx),
+            transaction: get_loader_transaction(Arc::clone(ctx)),
+            loader: get_loader_batch_transaction(Arc::clone(local_ctx)),
+            query: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::None),
+            query_reversed: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::ReverseIndex),
+            query_fat: get_loader_query_type(Arc::clone(local_ctx), DynamoDBRequestedIndex::FatPartitionIndex),
+            paginated_query_fat: get_loader_paginated_query_type(
+                Arc::clone(local_ctx),
+                DynamoDBRequestedIndex::FatPartitionIndex,
+            ),
+            transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone(), Arc::clone(local_ctx)),
         })
     }
 }
