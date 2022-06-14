@@ -5,7 +5,6 @@ use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
-use std::fs;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -50,18 +49,12 @@ pub async fn start(port: u16) -> Result<(), DevServerError> {
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
-    let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();
     let db_file = environment.project_dot_grafbase_path.join(DB_FILE);
 
     let db_url = match db_file.to_str() {
         Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),
         None => return Err(DevServerError::ProjectPath),
     };
-
-    if fs::metadata(&project_dot_grafbase_path).is_err() {
-        trace!("creating .grafbase directory");
-        fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| DevServerError::CreateCacheDir)?;
-    }
 
     if !Sqlite::database_exists(&db_url).await? {
         trace!("creating SQLite database");

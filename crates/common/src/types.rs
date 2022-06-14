@@ -2,9 +2,9 @@ use std::net::Ipv4Addr;
 
 #[derive(Clone, Copy)]
 pub enum LocalAddressType {
-    /// http://127.0.0.1
+    /// 127.0.0.1
     Localhost,
-    /// http://0.0.0.0
+    /// 0.0.0.0
     Unspecified,
 }
 

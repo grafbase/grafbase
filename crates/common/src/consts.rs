@@ -10,3 +10,5 @@ pub const GRAFBASE_FOLDER: &str = "grafbase";
 pub const GRAFBASE_SCHEMA: &str = "schema.graphql";
 /// the name for the db / cache directory per project and the global cache directory for the user
 pub const DOT_GRAFBASE_FOLDER: &str = ".grafbase";
+/// the registry.json file generated from schema.graphql
+pub const REGISTRY_FILE: &str = "registry.json";

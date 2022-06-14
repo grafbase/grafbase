@@ -10,7 +10,7 @@ mod output;
 extern crate log;
 
 use cli_input::build_cli;
-use colored::control::ShouldColorize;
+use colorize::ShouldColorize;
 use common::{environment::Environment, traits::ToExitCode};
 use dev::dev;
 use errors::CliError;
@@ -18,6 +18,8 @@ use output::report;
 use std::process;
 
 fn main() {
+    panic_hook::setup!();
+
     ShouldColorize::from_env();
 
     let exit_code = match try_main() {
@@ -35,6 +37,8 @@ fn try_main() -> Result<(), CliError> {
     tracing_subscriber::fmt::init();
 
     let matches = build_cli().get_matches();
+
+    report::cli_header();
 
     Environment::try_init().map_err(CliError::CommonError)?;
 

@@ -1,7 +1,9 @@
 CREATE TABLE IF NOT EXISTS records (
-    id TEXT PRIMARY KEY,
-    type TEXT,
-    document JSON,
-    created_at TEXT,
-    updated_at TEXT
+    "pk" TEXT default NULL,
+    "sk" TEXT default NULL,
+    "type" TEXT not NULL,
+    "document" JSON not NULL,
+    "created_at" TEXT not NULL,
+    "updated_at" TEXT not NULL,
+    PRIMARY KEY("pk","sk")
 );

@@ -45,13 +45,21 @@ pub enum DevServerError {
     #[error("the bridge api encountered an error: {0}")]
     BridgeApi(HyperError),
 
-    /// returned if the miniflare thread returns an error
+    /// returned if the miniflare command returns an error
     #[error(transparent)]
     MiniflareError(IoError),
 
-    /// returned if the user project location is not valid utf-8
+    /// returned if the schema parser command returns an error
+    #[error(transparent)]
+    SchemaParserError(IoError),
+
+    /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
     ProjectPath,
+
+    /// returned if the user cache path is not valid utf-8
+    #[error("$HOME/.grafbase is a non utf8 path")]
+    CachePath,
 
     /// returned if the `.grafbase` folder cannot be created
     #[error("could not create a project cache directory")]
@@ -76,8 +84,9 @@ impl ToExitCode for DevServerError {
             | Self::ConnectToDatabase(_)
             | Self::UnknownSqliteError(_)
             | Self::MiniflareError(_)
-            | Self::SpawnedTaskPanic(_) => exitcode::SOFTWARE,
-            Self::ProjectPath => exitcode::CANTCREAT,
+            | Self::SpawnedTaskPanic(_)
+            | Self::SchemaParserError(_) => exitcode::SOFTWARE,
+            Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }
     }

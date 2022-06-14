@@ -1,0 +1,19 @@
+[package]
+name = "panic-hook"
+version = "0.1.0"
+edition = "2021"
+description = "A nicer panic. Modified version of human_panic"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["panic"]
+readme = "README.md"
+
+[dependencies]
+backtrace = "0.3.65"
+colored = "2.0"
+indoc = "1.0"
+os_type = "2.4.0"
+serde = "1.0.137"
+serde_derive = "1.0.137"
+toml = "0.5.9"
+uuid = { version = "1.1.2", features = ["v4"] }

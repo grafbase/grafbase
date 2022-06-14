@@ -16,6 +16,20 @@
 - Adds `miniflare` spawning
 - Bundles worker files into the executable
 - Adds an SQLite bridge server
+- Stores the DB in the project `.grafbase` folder
+- Allows searching the entire port range for an open port
+- Adds panic hook
+- Supports schema parsing
+- Silences Miniflare output
+- Adds `pk` and `sk` to DB modeling and indexes both
+- Generates `.gitignore` files for cache dirs
+- Prints CLI header
+
+### Fixes
+
+- Checks the correct address for ports (`0.0.0.0` vs `127.0.0.1`)
+- Does not report `miniflare error` automatically when the spawned thread returns an error
+- Handles non utf-8 path errors
 
 ### Tooling
 
@@ -43,10 +57,15 @@
 - Adds hints for error messages
 - Uses the worker `wrangler.toml` file for env variables
 - Turns on pedantic linting
+- Adds additional tracing
 
 ### Refactoring
 
 - Adds Clippy fixes
+- Expands `Environment` with additional fields
+- Lifts `tokio` one level up to simplify task spawning and handling
+- Moves `.grafbase` dir creation to `servers`
+- Adds `colorize!` macro
 
 ### Documentation
 

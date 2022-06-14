@@ -17,7 +17,8 @@ impl Payload {
 #[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
-    pub id: String,
+    pub pk: String,
+    pub sk: String,
     pub r#type: String,
     pub document: Value,
     pub created_at: chrono::DateTime<chrono::Utc>,

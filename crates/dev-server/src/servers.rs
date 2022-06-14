@@ -1,4 +1,7 @@
-use crate::consts::{EPHEMERAL_PORT_RANGE, WORKER_DIR, WORKER_FOLDER_VERSION_FILE};
+use crate::consts::{
+    EPHEMERAL_PORT_RANGE, GIT_IGNORE_FILE, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, WORKER_DIR,
+    WORKER_FOLDER_VERSION_FILE,
+};
 use crate::types::Assets;
 use crate::{bridge, errors::DevServerError};
 use common::environment::Environment;
@@ -31,6 +34,8 @@ pub fn start(port: u16) -> JoinHandle<Result<(), DevServerError>> {
     thread::spawn(move || {
         export_embedded_files()?;
 
+        create_project_dot_grafbase_folder()?;
+
         // the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
         // making the port choice and availability transprent to the user
         let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
@@ -44,12 +49,27 @@ pub fn start(port: u16) -> JoinHandle<Result<(), DevServerError>> {
 async fn spawn_servers(worker_port: u16, bridge_port: u16) -> Result<(), DevServerError> {
     trace!("spawining miniflare");
 
+    run_schema_parser().await?;
+
     let environment = Environment::get();
 
     let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port).await });
 
+    let registry_path = environment
+        .project_grafbase_registry_path
+        .to_str()
+        .ok_or(DevServerError::ProjectPath)?;
+
+    let mut command = Command::new("npx");
+
+    #[cfg(not(debug_assertions))]
+    let command = command.stdout(Stdio::null()).stderr(Stdio::inherit());
+
+    #[cfg(debug_assertions)]
+    let command = command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
     // TODO: bundle a specific version of miniflare and extract it
-    Command::new("npx")
+    command
         .args(&[
             "--quiet",
             "miniflare",
@@ -57,10 +77,10 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16) -> Result<(), DevServ
             &worker_port.to_string(),
             "--wrangler-config",
             "wrangler.toml",
+            "--text-blob",
+            &format!("REGISTRY={}", registry_path),
         ])
         .current_dir(&environment.user_dot_grafbase_path)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DevServerError::MiniflareError)?
         .wait()
@@ -91,11 +111,14 @@ fn export_embedded_files() -> Result<(), DevServerError> {
         true
     };
 
-    // TODO: add dependency for gateway or add as build dep
+    // TODO: add gateway or add as build dep
     if export_files {
         trace!("writing worker files");
 
         fs::create_dir_all(&worker_path).map_err(|_| DevServerError::CreateDir(worker_path.clone()))?;
+
+        fs::write(&environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n")
+            .map_err(|_| DevServerError::CreateCacheDir)?;
 
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
@@ -118,6 +141,52 @@ fn export_embedded_files() -> Result<(), DevServerError> {
             return Err(DevServerError::WriteFile(worker_version_path_string));
         };
     }
+
+    Ok(())
+}
+
+fn create_project_dot_grafbase_folder() -> Result<(), DevServerError> {
+    let environment = Environment::get();
+
+    let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();
+
+    if fs::metadata(&project_dot_grafbase_path).is_err() {
+        trace!("creating .grafbase directory");
+        fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| DevServerError::CreateCacheDir)?;
+        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n")
+            .map_err(|_| DevServerError::CreateCacheDir)?;
+    }
+
+    Ok(())
+}
+
+// schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
+// and due to schema-parser not being open source
+// TODO: add schema parser as build dep
+async fn run_schema_parser() -> Result<(), DevServerError> {
+    trace!("parsing schema");
+
+    let environment = Environment::get();
+
+    let parser_path = environment
+        .user_dot_grafbase_path
+        .join(SCHEMA_PARSER_DIR)
+        .join(SCHEMA_PARSER_INDEX);
+
+    Command::new("node")
+        .args(&[
+            &parser_path.to_str().ok_or(DevServerError::CachePath)?,
+            &environment
+                .project_grafbase_schema_path
+                .to_str()
+                .ok_or(DevServerError::ProjectPath)?,
+        ])
+        .current_dir(&environment.project_dot_grafbase_path)
+        .spawn()
+        .map_err(DevServerError::SchemaParserError)?
+        .wait()
+        .await
+        .map_err(DevServerError::SchemaParserError)?;
 
     Ok(())
 }

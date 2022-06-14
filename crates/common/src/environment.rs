@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{DOT_GRAFBASE_FOLDER, GRAFBASE_FOLDER, GRAFBASE_SCHEMA},
+    consts::{DOT_GRAFBASE_FOLDER, GRAFBASE_FOLDER, GRAFBASE_SCHEMA, REGISTRY_FILE},
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -29,6 +29,9 @@ pub struct Environment {
     pub project_grafbase_schema_path: PathBuf,
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache folder
     pub user_dot_grafbase_path: PathBuf,
+    /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
+    /// in the nearest ancestor directory with a `grabase/schema.graphql` file
+    pub project_grafbase_registry_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -60,6 +63,7 @@ impl Environment {
             let home = dirs::home_dir().unwrap_or_else(|| project_grafbase_path.clone());
             home.join(DOT_GRAFBASE_FOLDER)
         };
+        let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -67,6 +71,7 @@ impl Environment {
                 project_grafbase_path,
                 project_grafbase_schema_path,
                 user_dot_grafbase_path,
+                project_grafbase_registry_path,
             })
             .map_err(|_| CommonError::SetEnvironment)?;
 

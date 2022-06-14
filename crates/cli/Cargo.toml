@@ -13,12 +13,13 @@ readme = "README.md"
 clap = { version = "3.1", features = ["cargo"] }
 clap_complete = "3.1"
 clap_generate = "3.0"
-colored = "2.0"
+colorize = { path = "../colorize", version = "0.1.0" }
 common = { path = "../common", version = "0.1.0" }
 exitcode = "1.1"
 indoc = "1.0"
 local-gateway = { path = "../local-gateway", version = "0.1.0" }
 log = "0.4"
+panic-hook = { path = "../panic_hook" }
 pretty_env_logger = "0.4"
 thiserror = "1.0"
 tracing-subscriber = "0.3.11"
