@@ -1,0 +1,18 @@
+type User @model {
+    id: ID!
+    email : String!
+    username: String!
+    avatarUrl : String
+}
+
+type TodoList @model {
+    id: ID!
+    title: String!
+    todos: [Todo]
+}
+
+type Todo @model {
+    id: ID!
+    title: String!
+    complete: Boolean
+}
