@@ -1,0 +1,55 @@
+---
+source: common/parser/src/registry/update_mutation.rs
+assertion_line: 463
+expression: mutations
+---
+[
+  {
+    "name": "authorUpdate",
+    "description": "Update a Author",
+    "args": {
+      "id": {
+        "name": "id",
+        "description": null,
+        "ty": "ID!",
+        "default_value": null,
+        "is_secret": false
+      },
+      "input": {
+        "name": "input",
+        "description": null,
+        "ty": "AuthorUpdateInput!",
+        "default_value": null,
+        "is_secret": false
+      }
+    },
+    "ty": "AuthorUpdatePayload",
+    "deprecation": "NoDeprecated",
+    "cache_control": {
+      "public": true,
+      "max_age": 0
+    },
+    "external": false,
+    "requires": null,
+    "provides": null,
+    "edges": [],
+    "relation": null,
+    "resolve": {
+      "id": "author_create_resolver",
+      "type": {
+        "DynamoMutationResolver": {
+          "UpdateNode": {
+            "id": {
+              "InputTypeName": "id"
+            },
+            "input": {
+              "InputTypeName": "input"
+            },
+            "ty": "Author"
+          }
+        }
+      }
+    },
+    "transforms": null
+  }
+]

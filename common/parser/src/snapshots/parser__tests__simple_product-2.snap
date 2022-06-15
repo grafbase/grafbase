@@ -9,6 +9,10 @@ type Mutation {
 	"""
 	productCreate(input: ProductCreationInput!): ProductCreatePayload
 	"""
+	Update a Product
+	"""
+	productUpdate(id: ID!, input: ProductUpdateInput!): ProductUpdatePayload
+	"""
 	Delete a Product by ID
 	"""
 	productDelete(id: ID!): ProductDeletePayload
@@ -53,6 +57,19 @@ type ProductDeletePayload {
 type ProductEdge {
 	node: Product!
 	cursor: String!
+}
+"""
+Input to create a new Product
+"""
+input ProductUpdateInput {
+	name: String
+	"""
+	The product's price in $
+	"""
+	price: Int
+}
+type ProductUpdatePayload {
+	product: Product
 }
 type Query {
 	"""

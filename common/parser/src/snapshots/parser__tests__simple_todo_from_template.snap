@@ -9,6 +9,10 @@ type Mutation {
 	"""
 	todoListCreate(input: TodoListCreationInput!): TodoListCreatePayload
 	"""
+	Update a TodoList
+	"""
+	todoListUpdate(id: ID!, input: TodoListUpdateInput!): TodoListUpdatePayload
+	"""
 	Delete a TodoList by ID
 	"""
 	todoListDelete(id: ID!): TodoListDeletePayload
@@ -16,6 +20,10 @@ type Mutation {
 	Create a Todo
 	"""
 	todoCreate(input: TodoCreationInput!): TodoCreatePayload
+	"""
+	Update a Todo
+	"""
+	todoUpdate(id: ID!, input: TodoUpdateInput!): TodoUpdatePayload
 	"""
 	Delete a Todo by ID
 	"""
@@ -116,6 +124,34 @@ Input to create a new TodoListTodoRelateTodoListTodoCreationInput
 input TodoListTodoRelateTodoListTodoCreationInput {
 	title: String!
 	complete: Boolean
+}
+"""
+Input to create a new TodoListTodoRelateTodoListTodoUpdateRelationInput
+"""
+input TodoListTodoRelateTodoListTodoUpdateRelationInput {
+	create: TodoListTodoRelateTodoListTodoCreationInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to create a new TodoList
+"""
+input TodoListUpdateInput {
+	title: String
+	todos: [TodoListTodoRelateTodoListTodoUpdateRelationInput]
+}
+type TodoListUpdatePayload {
+	todoList: TodoList
+}
+"""
+Input to create a new Todo
+"""
+input TodoUpdateInput {
+	title: String
+	complete: Boolean
+}
+type TodoUpdatePayload {
+	todo: Todo
 }
 schema {
 	query: Query

@@ -12,7 +12,7 @@ use async_graphql::Positioned;
 use async_graphql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
 use case::CaseExt;
 
-/// Create an input type for a Node's Relation Create.
+/// Create an input type for a Node's Relation.
 ///
 /// ```graphql
 /// input PostPublishedAuthorCreateInput {
@@ -77,6 +77,7 @@ fn create_input_relation<'a>(
                     continue;
                 }
 
+                // If the field is not the ID
                 // TODO: Abstract this behind an `ID` utility;
                 if name.ne("id") {
                     input_fields.insert(
@@ -117,7 +118,7 @@ fn create_input_relation<'a>(
     }
 
     let input_name_link = format!(
-        "{}{}{}CreateInput",
+        "{}{}{}UpdateRelationInput",
         ty_from_name.to_camel(),
         relation.name.to_camel(),
         ty_to_name.to_camel(),
@@ -147,6 +148,18 @@ fn create_input_relation<'a>(
                     "link".to_string(),
                     MetaInputValue {
                         name: "link".to_string(),
+                        description: None,
+                        ty: "ID".to_string(),
+                        visible: None,
+                        default_value: None,
+                        is_secret: false,
+                    },
+                );
+
+                input_fields.insert(
+                    "unlink".to_string(),
+                    MetaInputValue {
+                        name: "unlink".to_string(),
                         description: None,
                         ty: "ID".to_string(),
                         visible: None,
@@ -189,12 +202,16 @@ fn create_input_relation<'a>(
 /// input PostPublishedAuthorCreateInput {...}
 /// input PostCommentsCommentCreateInput {...}
 /// ```
-pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &TypeDefinition, object: &ObjectType) {
+pub fn create_input_without_relation_for_update<'a>(
+    ctx: &mut VisitorContext<'a>,
+    ty: &TypeDefinition,
+    object: &ObjectType,
+) {
     let type_name = ty.name.node.to_camel();
-    let create_input_name = format!("{}CreationInput", type_name);
+    let update_input_name = format!("{}UpdateInput", type_name);
     let mut input_fields = IndexMap::new();
 
-    if ctx.types.get(&create_input_name).is_some() {
+    if ctx.types.get(&update_input_name).is_some() {
         return;
     }
 
@@ -202,6 +219,9 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
         let name = &field.node.name.node;
         // If it's a modelized node, we want to generate
         let types = ctx.types.clone(); // TODO: We should change a little the way it works, this clone can be avoided, not really expensive but should still be reworked.
+                                       //
+        let mut opt_type = field.node.ty.clone().node;
+        opt_type.nullable = true;
 
         let actual_field_type = is_modelized_node(&types, &field.node.ty.node);
         if let Some(ty_to) = actual_field_type {
@@ -214,7 +234,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                 MetaInputValue {
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
-                    ty: to_defined_input_type(field.node.ty.clone().node, input_name).to_string(),
+                    ty: to_defined_input_type(opt_type, input_name).to_string(),
                     visible: None,
                     default_value: None,
                     is_secret: false,
@@ -230,7 +250,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                 MetaInputValue {
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
-                    ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
+                    ty: to_input_type(&ctx.types, opt_type).to_string(),
                     visible: None,
                     default_value: None,
                     is_secret: false,
@@ -242,105 +262,32 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
 
     ctx.registry.get_mut().create_type(
         &mut |_| MetaType::InputObject {
-            name: create_input_name.clone(),
+            name: update_input_name.clone(),
             description: Some(format!("Input to create a new {}", &type_name)),
             oneof: false,
             input_fields: input_fields.clone(),
             visible: None,
             rust_typename: type_name.clone(),
         },
-        &create_input_name,
-        &create_input_name,
+        &update_input_name,
+        &update_input_name,
     );
 }
 
-/// The idea there is to generate the create mutation of an Entity depending on
+/// The idea there is to generate the update mutation of an Entity depending on
 /// the fields of the Entity. If it's linked to another Node based on a relation
-/// we'll generate an Input based on a `link` or a `create`.
-///
-/// ```graphql
-/// type Post {
-///   id: ID!
-///   content: String
-///   author: Author @relation(name: "published")
-///   comments: [Comment] @relation(name: "comments")
-///   ...
-/// }
-///
-/// type Author {
-///   id: ID!
-///   firstName: String
-///   lastName: String
-///   postPublished: [Post] @relation(name: "published")
-///   comments: [Comment] @relation(name: "commented")
-/// }
-///
-/// type Comment {
-///   id: ID!
-///   content: String
-///   post: Post @relation(name: "published")
-///   author: Author @relation(name: "commented")
-/// }
-/// ```
-///
-/// Would create something like:
-///
-/// ```graphql
-/// input PostPublishedCreateInput {
-///   """
-///   As the relation `published` got an edge from `Author` to `Post`, we do not
-///   need to have this relation available on the creation.
-///   """
-///   create: PostPublishedAuthorCreateInput
-///   link: ID
-/// }
-///
-/// """
-/// This is the Author Input type without the `published` relation for the `Post`
-/// """
-/// type PostPublishedAuthorCreateInput {
-///   firstName: String
-///   lastName: String
-///   comments: [AuthorCommentedCommentCreateInput]
-/// }
-///
-/// """
-/// This is the Comment Input type without the `commented` relation for the `Author`
-/// """
-/// type AuthorCommentedCommentCreateInput {
-///   content: String
-///   post: CommentPublishedPostCreateInput
-/// }
-///
-/// type PostCommentCreateInput {
-/// }
-///
-/// """
-/// Post create Input type
-/// """
-/// input PostCreateInput {
-///   content: String
-///   author: PostPublishedCreateInput
-///   comments: [PostCommentCreateInput]
-/// }
-///
-/// type Mutation {
-///   postCreate(input: PostCreateInput): PostPayload
-/// }
-/// ```
-///
-pub fn add_create_mutation<'a>(
+/// we'll generate an Input based on a `link` or a `create` or a `unlink`.
+pub fn add_update_mutation<'a>(
     ctx: &mut VisitorContext<'a>,
     ty: &TypeDefinition,
     object: &ObjectType,
     type_name: &str,
 ) {
-    create_input_without_relation(ctx, ty, object);
+    create_input_without_relation_for_update(ctx, ty, object);
     let type_name = type_name.to_string();
-    let create_input_name = format!("{}CreationInput", type_name.to_camel());
+    let create_input_name = format!("{}UpdateInput", type_name.to_camel());
 
-    let create_payload_name = format!("{}CreatePayload", type_name.to_camel());
-    // CreatePayload
+    let create_payload_name = format!("{}UpdatePayload", type_name.to_camel());
     ctx.registry.get_mut().create_type(
         &mut |_| MetaType::Object {
             name: create_payload_name.clone(),
@@ -394,10 +341,21 @@ pub fn add_create_mutation<'a>(
 
     // createQuery
     ctx.mutations.push(MetaField {
-        name: format!("{}Create", to_lower_camelcase(&type_name)),
-        description: Some(format!("Create a {}", type_name)),
+        name: format!("{}Update", to_lower_camelcase(&type_name)),
+        description: Some(format!("Update a {}", type_name)),
         args: {
             let mut args = IndexMap::new();
+            args.insert(
+                "id".to_owned(),
+                MetaInputValue {
+                    name: "id".to_owned(),
+                    description: None,
+                    ty: "ID!".to_string(),
+                    default_value: None,
+                    visible: None,
+                    is_secret: false,
+                },
+            );
             args.insert(
                 "input".to_owned(),
                 MetaInputValue {
@@ -426,7 +384,8 @@ pub fn add_create_mutation<'a>(
         compute_complexity: None,
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
+            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
+                id: VariableResolveDefinition::InputTypeName("id".to_owned()),
                 input: VariableResolveDefinition::InputTypeName("input".to_owned()),
                 ty: type_name,
             }),
@@ -435,52 +394,72 @@ pub fn add_create_mutation<'a>(
     });
 }
 
-/*
- * TODO: Fix this
 #[cfg(test)]
 mod tests {
-    use async_graphql::{Name, Pos, Positioned, Schema};
-    use async_graphql_parser::types::{FieldDefinition, ObjectType, ServiceDocument, Type, TypeDefinition};
-    use insta::assert_snapshot;
+    use async_graphql::Schema;
+    use async_graphql_parser::parse_schema;
+    use async_graphql_parser::types::{TypeKind, TypeSystemDefinition};
+    use insta::{assert_json_snapshot, assert_snapshot};
 
     use crate::rules::visitor::VisitorContext;
 
-    use super::add_create_mutation;
+    use super::add_update_mutation;
 
-    #[test(skip)]
-    fn ensure_create_mutation_types() {
-        let doc = ServiceDocument { definitions: vec![] };
+    #[test]
+    fn ensure_update_mutation_types() {
+        let schema = r#"
+            type Author @model {
+              id: ID!
+              lastname: String!
+              published: [Post] @relation(name: "published")
+              commented: [Comment] @relation(name: "commented")
+            }
+
+            type Post @model {
+              id: ID!
+              content: String!
+              author: Author @relation(name: "published")
+              comments: [Comment] @relation(name: "comments")
+            }
+
+            type Comment @model {
+              id: ID!
+              author: Author! @relation(name: "commented")
+              post: Post @relation(name: "comments")
+              comment: String!
+              like: Int!
+            }
+            "#;
+
+        let doc = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&doc);
-        let field_definition = FieldDefinition {
-            ty: Positioned::new(Type::new("Author").unwrap(), Pos::default()),
-            description: None,
-            name: Positioned::new(Name::new("Author"), Pos::default()),
-            arguments: Vec::new(),
-            directives: Vec::new(),
-        };
 
-        let fake_object_ty = ObjectType {
-            fields: vec![Positioned {
-                pos: Pos { line: 3, column: 4 },
-                node: field_definition,
-            }],
-            implements: Vec::new(),
-        };
+        let type_def = doc
+            .definitions
+            .iter()
+            .find_map(|x| match x {
+                TypeSystemDefinition::Type(fake) => {
+                    if fake.node.name.node == "Author" {
+                        Some(fake)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .unwrap();
 
-        let fake_object_type_def = TypeDefinition {
-            kind: async_graphql_parser::types::TypeKind::Object(fake_object_ty.clone()),
-            description: None,
-            name: Positioned {
-                pos: Pos { line: 1, column: 2 },
-                node: Name::new("Author"),
-            },
-            directives: Vec::new(),
-            extend: false,
-        };
+        let object_def = match &type_def.node.kind {
+            TypeKind::Object(obj) => Some(obj),
+            _ => None,
+        }
+        .unwrap();
 
-        add_create_mutation(&mut ctx, &fake_object_type_def, &fake_object_ty, "Author");
+        add_update_mutation(&mut ctx, &type_def.node, object_def, "Author");
+
         let sdl = Schema::new(ctx.registry.take()).sdl();
         assert_snapshot!(sdl);
+        let mutations = ctx.mutations;
+        assert_json_snapshot!(mutations);
     }
 }
-*/

@@ -24,6 +24,10 @@ type Mutation {
 	"""
 	todoCreate(input: TodoCreationInput!): TodoCreatePayload
 	"""
+	Update a Todo
+	"""
+	todoUpdate(id: ID!, input: TodoUpdateInput!): TodoUpdatePayload
+	"""
 	Delete a Todo by ID
 	"""
 	todoDelete(id: ID!): TodoDeletePayload
@@ -72,6 +76,16 @@ type TodoDeletePayload {
 type TodoEdge {
 	node: Todo!
 	cursor: String!
+}
+"""
+Input to create a new Todo
+"""
+input TodoUpdateInput {
+	content: String
+	authors: [AuthorInput]
+}
+type TodoUpdatePayload {
+	todo: Todo
 }
 type Truc {
 	name: String!

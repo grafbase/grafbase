@@ -18,9 +18,9 @@
 
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
-use crate::registry::add_create_mutation;
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
+use crate::registry::{add_create_mutation, add_update_mutation};
 use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
@@ -75,6 +75,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             let relation = ty.map(|_ty| {
                                 generate_metarelation(&type_definition.node, &field.node)
                             });
+
                             let is_node = ty.and_then(|x| {
                                 match &x.node.kind {
                                     TypeKind::Object(obj) => Some(obj),
@@ -83,7 +84,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                             }).and_then(|obj| {
                                 obj.fields.iter().find(|field| is_modelized_node(&ctx.types, &field.node.ty.node).is_some())
                             }).is_some();
-                            let is_edge = ty.is_some();
+
+                            let is_edge = relation.is_some();
+
                             let transforms = if is_edge {
                                 None
                             } else {
@@ -100,7 +103,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 Some(Resolver {
                                     id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
-                                        key: to_base_type_str(&field.node.ty.node.base),
+                                        key: relation.clone().unwrap().name,
                                         is_node,
                                     }),
                                 })
@@ -195,6 +198,7 @@ impl<'a> Visitor<'a> for ModelDirective {
 
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);
+                add_update_mutation(ctx, &type_definition.node, object, &type_name);
 
                 add_list_query_paginated(ctx, &type_name, connection_edges);
                 add_remove_query(ctx, &id_field.node, &type_name)

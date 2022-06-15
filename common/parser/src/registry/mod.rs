@@ -16,7 +16,9 @@ use case::CaseExt;
 
 mod create_mutation;
 mod relations;
-pub use create_mutation::{add_create_mutation, create_input_without_relation};
+mod update_mutation;
+pub use create_mutation::add_create_mutation;
+pub use update_mutation::add_update_mutation;
 
 /// Create an input type for a non_primitive Type.
 pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &ObjectType, type_name: &str) -> String {

@@ -318,6 +318,54 @@ expression: reg_string
             },
             "transforms": null,
             "ty": "TodoDeletePayload"
+          },
+          "todoUpdate": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "TodoUpdateInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a Todo",
+            "edges": [],
+            "external": false,
+            "name": "todoUpdate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Todo"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "TodoUpdatePayload"
           }
         },
         "is_node": false,
@@ -966,6 +1014,79 @@ expression: reg_string
         "keys": null,
         "name": "TodoEdge",
         "rust_typename": "TodoEdge"
+      }
+    },
+    "TodoUpdateInput": {
+      "InputObject": {
+        "description": "Input to create a new Todo",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[AuthorInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String"
+          }
+        },
+        "name": "TodoUpdateInput",
+        "oneof": false,
+        "rust_typename": "Todo"
+      }
+    },
+    "TodoUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "todo": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "todo",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Todo"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoUpdatePayload",
+        "rust_typename": "TodoUpdatePayload"
       }
     },
     "Truc": {

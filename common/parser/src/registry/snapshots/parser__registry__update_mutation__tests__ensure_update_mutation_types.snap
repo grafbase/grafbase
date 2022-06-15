@@ -1,0 +1,51 @@
+---
+source: common/parser/src/registry/update_mutation.rs
+assertion_line: 461
+expression: sdl
+---
+"""
+Input to create a new AuthorCommentedCommentCreationInput
+"""
+input AuthorCommentedCommentCreationInput {
+	post: CommentCommentsPostCreationInput
+	comment: String!
+	like: Int!
+}
+"""
+Input to create a new AuthorCommentedCommentUpdateRelationInput
+"""
+input AuthorCommentedCommentUpdateRelationInput {
+	create: AuthorCommentedCommentCreationInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to create a new AuthorPublishedPostCreationInput
+"""
+input AuthorPublishedPostCreationInput {
+	content: String!
+	comments: [PostCommentsCommentCreationInput]
+}
+"""
+Input to create a new AuthorPublishedPostUpdateRelationInput
+"""
+input AuthorPublishedPostUpdateRelationInput {
+	create: AuthorPublishedPostCreationInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to create a new Author
+"""
+input AuthorUpdateInput {
+	lastname: String
+	published: [AuthorPublishedPostUpdateRelationInput]
+	commented: [AuthorCommentedCommentUpdateRelationInput]
+}
+type AuthorUpdatePayload {
+	author: Author
+}
+schema {
+	query: Query
+}
+

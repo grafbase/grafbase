@@ -24,6 +24,10 @@ type Mutation {
 	"""
 	todoCreate(input: TodoCreationInput!): TodoCreatePayload
 	"""
+	Update a Todo
+	"""
+	todoUpdate(id: ID!, input: TodoUpdateInput!): TodoUpdatePayload
+	"""
 	Delete a Todo by ID
 	"""
 	todoDelete(id: ID!): TodoDeletePayload
@@ -81,6 +85,17 @@ A TodoType
 enum TodoType {
 	TODO1
 	TODO2
+}
+"""
+Input to create a new Todo
+"""
+input TodoUpdateInput {
+	content: String
+	authors: [AuthorInput]
+	ty: TodoType
+}
+type TodoUpdatePayload {
+	todo: Todo
 }
 type Truc {
 	name: String!

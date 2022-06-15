@@ -163,6 +163,54 @@ expression: reg_string
             },
             "transforms": null,
             "ty": "ProductDeletePayload"
+          },
+          "productUpdate": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "ProductUpdateInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a Product",
+            "edges": [],
+            "external": false,
+            "name": "productUpdate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "product_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "ProductUpdatePayload"
           }
         },
         "is_node": false,
@@ -659,6 +707,79 @@ expression: reg_string
         "keys": null,
         "name": "ProductEdge",
         "rust_typename": "ProductEdge"
+      }
+    },
+    "ProductUpdateInput": {
+      "InputObject": {
+        "description": "Input to create a new Product",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String"
+          },
+          "price": {
+            "default_value": null,
+            "description": "The product's price in $",
+            "is_secret": false,
+            "name": "price",
+            "ty": "Int"
+          }
+        },
+        "name": "ProductUpdateInput",
+        "oneof": false,
+        "rust_typename": "Product"
+      }
+    },
+    "ProductUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "product": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "product",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "product_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Product"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "ProductUpdatePayload",
+        "rust_typename": "ProductUpdatePayload"
       }
     },
     "Query": {

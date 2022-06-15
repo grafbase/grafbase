@@ -223,7 +223,7 @@ expression: reg_string
                 "ContextDataResolver": {
                   "Edge": {
                     "is_node": true,
-                    "key": "Post"
+                    "key": "published"
                   }
                 }
               }
@@ -532,6 +532,124 @@ expression: reg_string
         "rust_typename": "AuthorPublishedPostCreationInput"
       }
     },
+    "AuthorPublishedPostUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to create a new AuthorPublishedPostUpdateRelationInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorPublishedPostCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID"
+          }
+        },
+        "name": "AuthorPublishedPostUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "AuthorPublishedPostUpdateRelationInput"
+      }
+    },
+    "AuthorUpdateInput": {
+      "InputObject": {
+        "description": "Input to create a new Author",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country"
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostUpdateRelationInput]"
+          }
+        },
+        "name": "AuthorUpdateInput",
+        "oneof": false,
+        "rust_typename": "Author"
+      }
+    },
+    "AuthorUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "author": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Author"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "AuthorUpdatePayload",
+        "rust_typename": "AuthorUpdatePayload"
+      }
+    },
     "Blog": {
       "Object": {
         "cache_control": {
@@ -604,7 +722,7 @@ expression: reg_string
                 "ContextDataResolver": {
                   "Edge": {
                     "is_node": true,
-                    "key": "Author"
+                    "key": "AuthorRelateBlog"
                   }
                 }
               }
@@ -642,7 +760,7 @@ expression: reg_string
                 "ContextDataResolver": {
                   "Edge": {
                     "is_node": true,
-                    "key": "Post"
+                    "key": "BlogRelatePost"
                   }
                 }
               }
@@ -720,6 +838,37 @@ expression: reg_string
         "rust_typename": "BlogAuthorRelateBlogAuthorCreationInput"
       }
     },
+    "BlogAuthorRelateBlogAuthorUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorUpdateRelationInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogAuthorRelateBlogAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogAuthorRelateBlogAuthorUpdateRelationInput"
+      }
+    },
     "BlogBlogRelatePostPostCreateInput": {
       "InputObject": {
         "description": "Input to create a new BlogBlogRelatePostPostCreateInput",
@@ -766,6 +915,37 @@ expression: reg_string
         "name": "BlogBlogRelatePostPostCreationInput",
         "oneof": false,
         "rust_typename": "BlogBlogRelatePostPostCreationInput"
+      }
+    },
+    "BlogBlogRelatePostPostUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogBlogRelatePostPostUpdateRelationInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogBlogRelatePostPostCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogBlogRelatePostPostUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogBlogRelatePostPostUpdateRelationInput"
       }
     },
     "BlogConnection": {
@@ -1007,6 +1187,79 @@ expression: reg_string
         "rust_typename": "BlogEdge"
       }
     },
+    "BlogUpdateInput": {
+      "InputObject": {
+        "description": "Input to create a new Blog",
+        "input_fields": {
+          "owner": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "owner",
+            "ty": "BlogAuthorRelateBlogAuthorUpdateRelationInput"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[BlogBlogRelatePostPostUpdateRelationInput]"
+          }
+        },
+        "name": "BlogUpdateInput",
+        "oneof": false,
+        "rust_typename": "Blog"
+      }
+    },
+    "BlogUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "blog": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "blog",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Blog"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "BlogUpdatePayload",
+        "rust_typename": "BlogUpdatePayload"
+      }
+    },
     "Boolean": {
       "Scalar": {
         "description": "The `Boolean` scalar type represents `true` or `false`.",
@@ -1138,6 +1391,54 @@ expression: reg_string
             "transforms": null,
             "ty": "AuthorDeletePayload"
           },
+          "authorUpdate": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "AuthorUpdateInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a Author",
+            "edges": [],
+            "external": false,
+            "name": "authorUpdate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Author"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "AuthorUpdatePayload"
+          },
           "blogCreate": {
             "args": {
               "input": {
@@ -1213,6 +1514,54 @@ expression: reg_string
             "transforms": null,
             "ty": "BlogDeletePayload"
           },
+          "blogUpdate": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "BlogUpdateInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a Blog",
+            "edges": [],
+            "external": false,
+            "name": "blogUpdate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Blog"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "BlogUpdatePayload"
+          },
           "postCreate": {
             "args": {
               "input": {
@@ -1287,6 +1636,54 @@ expression: reg_string
             },
             "transforms": null,
             "ty": "PostDeletePayload"
+          },
+          "postUpdate": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!"
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "PostUpdateInput!"
+              }
+            },
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a Post",
+            "edges": [],
+            "external": false,
+            "name": "postUpdate",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "id": {
+                      "InputTypeName": "id"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Post"
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "PostUpdatePayload"
           }
         },
         "is_node": false,
@@ -1472,7 +1869,7 @@ expression: reg_string
                 "ContextDataResolver": {
                   "Edge": {
                     "is_node": true,
-                    "key": "Author"
+                    "key": "published"
                   }
                 }
               }
@@ -1845,6 +2242,110 @@ expression: reg_string
         "name": "PostPublishedAuthorCreationInput",
         "oneof": false,
         "rust_typename": "PostPublishedAuthorCreationInput"
+      }
+    },
+    "PostPublishedAuthorUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to create a new PostPublishedAuthorUpdateRelationInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostPublishedAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID"
+          }
+        },
+        "name": "PostPublishedAuthorUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostPublishedAuthorUpdateRelationInput"
+      }
+    },
+    "PostUpdateInput": {
+      "InputObject": {
+        "description": "Input to create a new Post",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorUpdateRelationInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String"
+          }
+        },
+        "name": "PostUpdateInput",
+        "oneof": false,
+        "rust_typename": "Post"
+      }
+    },
+    "PostUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "description": null,
+        "extends": false,
+        "fields": {
+          "post": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "post",
+            "provides": null,
+            "relation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transforms": null,
+            "ty": "Post"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "PostUpdatePayload",
+        "rust_typename": "PostUpdatePayload"
       }
     },
     "Query": {
