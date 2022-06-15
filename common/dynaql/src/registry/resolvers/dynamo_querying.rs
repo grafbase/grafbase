@@ -144,7 +144,7 @@ impl ResolverTrait for DynamoResolver {
                 let pk = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
-                let ctx_ty = ctx.registry().types.get(&pk).unwrap();
+                let ctx_ty = ctx.registry().types.get(&pk).expect("can't fail");
                 // TODO: put selected relations
                 let relations_selected = ctx_ty.relations();
 
@@ -172,24 +172,11 @@ impl ResolverTrait for DynamoResolver {
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
                         acc.push(cur.name.clone());
-                        // acc.extend(cur.iter().map(std::string::ToString::to_string));
                         acc
                     })
                     .into_iter()
                     .unique()
                     .collect();
-                /*
-                let edges: Vec<String> = edges
-                    .iter()
-                    .map(|(_, x)| x)
-                    .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(std::string::ToString::to_string));
-                        acc
-                    })
-                    .into_iter()
-                    .unique()
-                    .collect();
-                */
                 let len = edges.len();
 
                 let cursor = PaginatedCursor::from_graphql(first, last, after, before)?;
@@ -270,7 +257,7 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
-                let ctx_ty = ctx.registry().types.get(&pk).unwrap();
+                let ctx_ty = ctx.registry().types.get(&pk)..expect("can't fail");
                 // TODO: put selected relations
                 let relations_selected = ctx_ty.relations();
 

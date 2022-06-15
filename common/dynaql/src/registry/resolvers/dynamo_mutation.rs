@@ -1,5 +1,6 @@
 use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
+use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
 use crate::{Context, Error, ServerError, Value};
@@ -1055,6 +1056,9 @@ impl ResolverTrait for DynamoMutationResolver {
 
                 let id =
                     id.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+
+                ObfuscatedID::expect(&id, &ty)
+                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
                 let input =
                     input.expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
