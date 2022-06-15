@@ -9,7 +9,7 @@ use async_graphql_parser::{
     Positioned,
 };
 use async_graphql_value::{Name, Value};
-use dynamodb::DynamoDBContext;
+
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
 use ulid::Ulid;

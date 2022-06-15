@@ -1,15 +1,13 @@
 use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
-use crate::registry::Edge;
+
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QueryTypeKey, QueryTypePaginatedKey,
 };
-use dynomite::AttributeValue;
 use itertools::Itertools;
 use serde_json::Map;
 use std::borrow::Borrow;
-use std::collections::HashMap;
 use std::hash::Hash;
 
 #[non_exhaustive]
@@ -109,8 +107,6 @@ pub enum DynamoResolver {
     },
 }
 
-pub(crate) type QueryResult = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
-
 #[async_trait::async_trait]
 impl ResolverTrait for DynamoResolver {
     async fn resolve(
@@ -133,7 +129,7 @@ impl ResolverTrait for DynamoResolver {
         // TODO: Here we ask from the Type definition the associated edges, but what
         // we should ask is the edges associated FROM the SelectedSet.
         let edges = ctx_ty.edges();
-        let edges_len = edges.len();
+        let _edges_len = edges.len();
 
         match self {
             DynamoResolver::ListResultByTypePaginated {
