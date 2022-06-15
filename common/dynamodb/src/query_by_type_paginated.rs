@@ -97,8 +97,8 @@ pub struct QueryTypePaginatedValue {
     /// {
     ///   "Blog#PK": {
     ///     "Blog": HashMap<String, AttributeValue>,
-    ///     "Author": Vec<HashMap<String, AttributeValue>>,
-    ///     "Edge": Vec<HashMap<String, AttributeValue>>,
+    ///     "published": Vec<HashMap<String, AttributeValue>>,
+    ///     "relation_name": Vec<HashMap<String, AttributeValue>>,
     ///   }
     /// }
     /// ```
@@ -114,8 +114,8 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
     /// {
     ///   "Blog#PK": {
     ///     "Blog": HashMap<String, AttributeValue>,
-    ///     "Author": Vec<HashMap<String, AttributeValue>>,
-    ///     "Edge": Vec<HashMap<String, AttributeValue>>,
+    ///     "published": Vec<HashMap<String, AttributeValue>>,
+    ///     "relation_name": Vec<HashMap<String, AttributeValue>>,
     ///   }
     /// }
     /// ```

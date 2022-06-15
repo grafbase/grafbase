@@ -1,13 +1,14 @@
-use dynomite::{Attribute, AttributeValue, DynamoDbExt};
+use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
+use indexmap::{map::Entry, IndexMap};
 use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::paginated::{QueryResult, QueryValue};
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
 // TODO: Should ensure Rosoto Errors impl clone
@@ -48,7 +49,7 @@ impl QueryKey {
 
 #[async_trait::async_trait]
 impl Loader<QueryKey> for QueryLoader {
-    type Value = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
+    type Value = QueryResult;
     type Error = QueryLoaderError;
 
     async fn load(&self, keys: &[QueryKey]) -> Result<HashMap<QueryKey, Self::Value>, Self::Error> {
@@ -61,31 +62,41 @@ impl Loader<QueryKey> for QueryLoader {
             };
             let edges_len = query_key.edges.len();
 
-            let mut exp_attr = HashMap::with_capacity(2);
+            let mut exp_attr = HashMap::with_capacity(3);
             exp_attr.insert("#pk".to_string(), self.index.pk());
 
             if edges_len > 0 {
+                exp_attr.insert("#relationname".to_string(), "__relation_name".to_string());
                 exp_attr.insert("#type".to_string(), "__type".to_string());
             }
 
             let sk_string = if edges_len > 0 {
-                Some(
-                    query_key
-                        .edges
-                        .iter()
-                        .enumerate()
-                        .map(|(index, q)| {
-                            exp.insert(format!(":type{}", index), q.clone().into_attr());
-                            format!(" begins_with(#type, :type{})", index)
-                        })
-                        .fold(String::new(), |acc, cur| {
-                            if !acc.is_empty() {
-                                format!("{} OR {}", cur, acc)
-                            } else {
-                                cur
-                            }
-                        }),
-                )
+                let edges = query_key
+                    .edges
+                    .iter()
+                    .enumerate()
+                    .map(|(index, q)| {
+                        exp.insert(format!(":relation{}", index), q.clone().into_attr());
+                        format!(" contains(#relationname, :relation{})", index)
+                    })
+                    .fold(String::new(), |acc, cur| {
+                        if !acc.is_empty() {
+                            format!("{} OR {}", cur, acc)
+                        } else {
+                            cur
+                        }
+                    });
+
+                let ty_attr = query_key
+                    .pk
+                    .rsplit_once('#')
+                    .expect("can't fail")
+                    .0
+                    .to_string()
+                    .into_attr();
+
+                exp.insert(":type".to_string(), ty_attr);
+                Some(format!("begins_with(#type, :type) OR {edges}"))
             } else {
                 None
             };
@@ -105,29 +116,60 @@ impl Loader<QueryKey> for QueryLoader {
                     .dynamodb_client
                     .clone()
                     .query_pages(input)
+                    .inspect_err(|err| {
+                        log::error!(self.ctx.trace_id, "QueryError {:?}", err);
+                    })
                     .try_fold(
-                        (query_key.clone(), HashMap::with_capacity(100)),
+                        (
+                            query_key.clone(),
+                            QueryResult {
+                                values: IndexMap::with_capacity(100),
+                                last_evaluated_key: None,
+                            },
+                        ),
                         |(query_key, mut acc), curr| async move {
-                            let partition = curr
-                                .get("__sk")
-                                .and_then(|x| x.s.as_ref())
-                                .and_then(|x| {
-                                    query_key
-                                        .edges
-                                        .iter()
-                                        .find(|edge| x.starts_with(format!("{}#", edge).as_str()))
-                                })
-                                .map(std::clone::Clone::clone)
-                                .unwrap_or_else(|| "no_partition".to_string());
+                            let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
+                            let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
+                            let relation_names = curr.get("__relation_name").and_then(|y| y.ss.clone());
 
-                            match acc.entry(partition) {
+                            match acc.values.entry(pk.clone()) {
                                 Entry::Vacant(vac) => {
-                                    vac.insert(vec![curr]);
+                                    let mut value = QueryValue {
+                                        node: None,
+                                        edges: IndexMap::with_capacity(5),
+                                    };
+
+                                    // If it's the entity
+                                    if sk.eq(pk) {
+                                        value.node = Some(curr.clone());
+                                    // If it's a relation
+                                    } else if let Some(edges) = relation_names {
+                                        for edge in edges {
+                                            value.edges.insert(edge, vec![curr.clone()]);
+                                        }
+                                    }
+
+                                    vac.insert(value);
                                 }
-                                Entry::Occupied(mut old) => {
-                                    old.get_mut().push(curr);
+                                Entry::Occupied(mut oqp) => {
+                                    if sk.eq(pk) {
+                                        oqp.get_mut().node = Some(curr);
+                                    } else {
+                                        if let Some(edges) = relation_names {
+                                            for edge in edges {
+                                                match oqp.get_mut().edges.entry(edge) {
+                                                    Entry::Vacant(vac) => {
+                                                        vac.insert(vec![curr.clone()]);
+                                                    }
+                                                    Entry::Occupied(mut oqp) => {
+                                                        oqp.get_mut().push(curr.clone());
+                                                    }
+                                                };
+                                            }
+                                        }
+                                    }
                                 }
-                            }
+                            };
                             Ok((query_key, acc))
                         },
                     )

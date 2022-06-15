@@ -14,6 +14,7 @@ use std::time::Duration;
 pub struct TxItem {
     pub pk: String,
     pub sk: String,
+    pub relation_name: Option<String>,
     pub transaction: TransactWriteItem,
 }
 
@@ -21,12 +22,13 @@ impl Hash for TxItem {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.pk.hash(state);
         self.sk.hash(state);
+        self.relation_name.hash(state);
     }
 }
 
 impl PartialEq for TxItem {
     fn eq(&self, other: &Self) -> bool {
-        self.pk.eq(&other.pk) && self.sk.eq(&other.sk)
+        self.pk.eq(&other.pk) && self.sk.eq(&other.sk) && self.relation_name.eq(&other.relation_name)
     }
 }
 

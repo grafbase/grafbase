@@ -152,35 +152,38 @@ where
         let mut exp = dynomite::attr_map! {
             ":pk" => node.clone(),
         };
-        let mut edges_and_node = edges.clone();
-        edges_and_node.push(node.clone());
 
-        let edges_len = edges_and_node.len();
-        let sk_string = if edges_len > 0 {
-            Some(
-                edges_and_node
-                    .into_iter()
-                    .enumerate()
-                    .map(|(index, q)| {
-                        exp.insert(format!(":type{}", index), q.into_attr());
-                        format!(" begins_with(#type, :type{})", index)
-                    })
-                    .fold(String::new(), |acc, cur| {
-                        if !acc.is_empty() {
-                            format!("{} OR {}", cur, acc)
-                        } else {
-                            cur
-                        }
-                    }),
-            )
-        } else {
-            None
-        };
+        let edges_len = edges.len();
 
         let mut exp_att_name = HashMap::from([
             ("#pk".to_string(), index.pk()),
             ("#type".to_string(), "__type".to_string()),
         ]);
+
+        let sk_string = if edges_len > 0 {
+            exp_att_name.insert("#relationname".to_string(), "__relation_name".to_string());
+            let edges = edges
+                .clone()
+                .into_iter()
+                .enumerate()
+                .map(|(index, q)| {
+                    exp.insert(format!(":relation{}", index), q.into_attr());
+                    format!(" contains(#relationname, :relation{})", index)
+                })
+                .fold(String::new(), |acc, cur| {
+                    if !acc.is_empty() {
+                        format!("{} OR {}", cur, acc)
+                    } else {
+                        cur
+                    }
+                });
+
+            exp.insert(":type".to_string(), node.clone().into_attr());
+            Some(format!("begins_with(#type, :type) OR {edges}"))
+        } else {
+            None
+        };
+
         let pagination_string = cursor.pagination_string();
         let key_condition_expression = match (&pagination_string, &cursor) {
             (Some(_), PaginatedCursor::Forward { .. }) => Some("#pk = :pk AND #sk < :pkorder".to_string()),
@@ -246,6 +249,7 @@ where
                 if len <= limit {
                     let pk = x.get("__pk").and_then(|y| y.s.clone()).expect("Can't fail");
                     let sk = x.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
+                    let relation_names = x.get("__relation_name").and_then(|y| y.ss.clone());
                     match result.values.entry(pk.clone()) {
                         Entry::Vacant(vac) => {
                             // We do insert the PK just before inserting it the n+1 element.
@@ -258,11 +262,16 @@ where
                                 edges: IndexMap::with_capacity(5),
                             };
 
+                            // If it's the entity
                             if sk.starts_with(format!("{}#", &node).as_str()) {
                                 value.node = Some(x.clone());
-                            } else if let Some(edge) =
-                                edges.iter().find(|edge| sk.starts_with(format!("{}#", edge).as_str()))
-                            {
+                            // If it's a relation
+                            } else if let Some(edge) = edges.iter().find(|edge| {
+                                relation_names
+                                    .as_ref()
+                                    .map(|x| x.contains(edge))
+                                    .unwrap_or_else(|| false)
+                            }) {
                                 value.edges.insert(edge.clone(), vec![x.clone()]);
                             }
 
@@ -274,8 +283,12 @@ where
                                 continue;
                             }
 
-                            if let Some(edge) = edges.iter().find(|edge| sk.starts_with(format!("{}#", edge).as_str()))
-                            {
+                            if let Some(edge) = edges.iter().find(|edge| {
+                                relation_names
+                                    .as_ref()
+                                    .map(|x| x.contains(edge))
+                                    .unwrap_or_else(|| false)
+                            }) {
                                 match oqp.get_mut().edges.entry(edge.clone()) {
                                     Entry::Vacant(vac) => {
                                         vac.insert(vec![x]);
