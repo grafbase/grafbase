@@ -184,11 +184,7 @@ impl ResolverTrait for DynamoResolver {
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
                 );
                 let result = query_loader_fat_paginated
-                    .load_one(QueryTypePaginatedKey {
-                        r#type: pk.clone(),
-                        edges,
-                        cursor,
-                    })
+                    .load_one(QueryTypePaginatedKey::new(pk.clone(), edges, cursor))
                     .await?;
 
                 let result = result.ok_or_else(|| {
