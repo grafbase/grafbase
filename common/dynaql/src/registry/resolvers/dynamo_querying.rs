@@ -257,7 +257,7 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
-                let ctx_ty = ctx.registry().types.get(&pk)..expect("can't fail");
+                let ctx_ty = ctx.registry().types.get(&pk).expect("can't fail");
                 // TODO: put selected relations
                 let relations_selected = ctx_ty.relations();
 

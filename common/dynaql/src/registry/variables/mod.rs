@@ -5,11 +5,12 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
+use crate::{context::resolver_data_get_opt_ref, Context, Value};
+use crate::{Error, ServerError};
 use async_graphql_value::Name;
 use indexmap::IndexMap;
 
-use crate::{context::resolver_data_get_opt_ref, Context, Value};
-use crate::{Error, ServerError};
+pub mod id;
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
 #[non_exhaustive]
