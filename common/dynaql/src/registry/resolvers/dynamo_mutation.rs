@@ -9,12 +9,14 @@ use dynamodb::{
     BatchGetItemLoaderError, DynamoDBBatchersData, DynamoDBContext, QueryKey, TransactionError,
     TxItem,
 };
-use dynomite::dynamodb::{Delete, Put, TransactWriteItem};
+use dynomite::dynamodb::{Delete, Put, TransactWriteItem, Update};
 use dynomite::{Attribute, AttributeValue};
 use futures_util::future::Shared;
 use futures_util::{FutureExt, TryFutureExt};
 use indexmap::IndexMap;
+use itertools::Itertools;
 use std::borrow::Borrow;
+use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::Hash;
@@ -93,12 +95,6 @@ pub enum DynamoMutationResolver {
     ///
     /// And as every edges of a Node are a Node too, they are still reachable.
     ///
-<<<<<<< HEAD
-=======
-    /// TODO: Right now, we delete only the main node and not the vertices.
-    /// TODO: To delete every thing we should: fetch by gsi2pk & pk & delete everything.
-    ///
->>>>>>> e9b20e4 (wip)
     /// In the future, when we'll have worked on an async process to optimize we'll be able to
     /// optimize the delete operation:
     ///
@@ -117,6 +113,25 @@ pub enum DynamoMutationResolver {
     /// }
     /// ```
     DeleteNode { id: VariableResolveDefinition },
+    /// Update a Node and related relations
+    ///
+    /// To update a Node, we need to fetch every duplicate of this node which will
+    /// exists linked to other nodes.
+    ///
+    /// Trigger the update for those basic fields accross every node & duplicate.
+    ///
+    /// ```json
+    /// {
+    ///   "id": "<updated_id>"
+    /// }
+    /// ```
+    UpdateNode {
+        id: VariableResolveDefinition,
+        input: VariableResolveDefinition,
+        /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
+        /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
+        ty: String,
+    },
 }
 
 type SharedSelectionType<'a> = Shared<
@@ -198,18 +213,18 @@ fn node_create<'a>(
     input: IndexMap<Name, Value>,
 ) -> RecursiveCreation<'a> {
     let current_execution_id = {
-        let mut a = Some(execution_id);
+        let mut execution_id = Some(execution_id);
         for _ in 0..increment.load(std::sync::atomic::Ordering::SeqCst) {
-            a = a.as_ref().and_then(ulid::Ulid::increment);
+            execution_id = execution_id.as_ref().and_then(ulid::Ulid::increment);
         }
-        a
+        execution_id
     }
-    .unwrap();
+    .expect("Shouldn't fail");
+
     let id = format!("{}#{}", node_ty.name(), &current_execution_id);
     // First, to create the Node, we'll need to create the associated relations
     // if they need to be created.
     let relations_to_be_created = node_ty.relations();
-    let relations_len = relations_to_be_created.len();
 
     // We do copy every value from the input we do have into the item we'll
     // insert
@@ -262,12 +277,12 @@ fn node_create<'a>(
     // Then we'll run the transaction to create every node & relation, if it fails,
     // we'll at least have a rollback splitted by 25, so, even if it dosn't not fix
     // everything, we'll have a way to fix it in the future.
-    let (selections, mut transactions) = relations_to_be_created
+    let (_, mut transactions) = relations_to_be_created
         .into_iter()
         .map(|(field, relation)| {
             (
                 &relation.name,
-                relation_create(
+                relation_handle(
                     ctx,
                     node_ty,
                     selection_entity.clone(),
@@ -295,7 +310,6 @@ fn node_create<'a>(
     // Once we have the edges, either in the process of being created or created
     // we do have their id, so now, we need to:
     //   - Create the targeted Node
-    //   - Create the associated Entity if needed
     let id_cloned = id.clone();
     let create_future: Pin<
         Box<dyn Future<Output = Result<ResolvedValue, TransactionError>> + Send>,
@@ -303,23 +317,12 @@ fn node_create<'a>(
         let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
         let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
         let transaction_batcher = &batchers.transaction;
-        // We do select every ids we'll need for the relations.
-        let edges = futures_util::future::try_join_all(selections)
-            .await
-            .unwrap() // TODO: Change
-            .into_iter()
-            .fold(
-                Vec::with_capacity(relations_len),
-                |mut acc, (relation_name, value)| {
-                    acc.push((relation_name, value.into_values().collect::<Vec<_>>()));
-                    acc
-                },
-            );
 
         // The node is complete now, we'll pack it into a Transaction
         let node_transaction = TxItem {
             pk: id_cloned.clone(),
             sk: id_cloned.clone(),
+            relation_name: None,
             transaction: TransactWriteItem {
                 put: Some(Put {
                     table_name: dynamodb_ctx.dynamodb_table_name.clone(),
@@ -330,51 +333,7 @@ fn node_create<'a>(
             },
         };
 
-        let mut transactions = Vec::with_capacity(relations_len + 1);
-        transactions.push(node_transaction);
-
-        // For each relation between one edge and the other, we'll create the
-        // one way direction as we are sure it exist.
-        for (relation_name, edge) in edges {
-            let relation_attr = relation_name.into_attr();
-            for mut inner_edge in edge {
-                inner_edge.insert("__gsi1pk".to_string(), ty_attr.clone());
-                // We do store the PK into the GSISK to allow us to group edges based on
-                // their node.
-                // stored.
-                inner_edge.insert("__gsi1sk".to_string(), autogenerated_id_attr.clone());
-
-                // We do replace the PK by the Node's PK.
-                inner_edge.insert("__pk".to_string(), autogenerated_id_attr.clone());
-                // The GSI2 is an inversed index, so we update the SK too.
-                inner_edge.insert("__gsi2sk".to_string(), autogenerated_id_attr.clone());
-
-                inner_edge.insert("__relation_name".to_string(), relation_attr.clone());
-                inner_edge.insert("__gsi3pk".to_string(), relation_attr.clone());
-                inner_edge.insert("__gsi3sk".to_string(), autogenerated_id_attr.clone());
-
-                let sk = inner_edge
-                    .get("__sk")
-                    .expect("Can't fail, it's the sorting key.")
-                    .s
-                    .clone()
-                    .expect("Can't fail, the sorting key is a String.");
-
-                transactions.push(TxItem {
-                    pk: id_cloned.clone(),
-                    sk,
-                    transaction: TransactWriteItem {
-                        put: Some(Put {
-                            table_name: dynamodb_ctx.dynamodb_table_name.clone(),
-                            item: inner_edge,
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    },
-                })
-            }
-        }
-        transaction_batcher.load_many(transactions).await?;
+        transaction_batcher.load_one(node_transaction).await?;
 
         Ok(ResolvedValue::new(serde_json::json!({
             "id": serde_json::Value::String(id),
@@ -385,6 +344,298 @@ fn node_create<'a>(
 
     RecursiveCreation {
         selection: selection_entity,
+        transaction: transactions,
+    }
+}
+
+/// Delete a relation on both side if they exist for a relation name for one entity
+///
+/// The strategy is:
+/// -> We get the ID1, ID2
+/// So we get, the first relation & the second one
+/// Then we remove those
+async fn relation_remove<'a>(
+    ctx: &'a Context<'a>,
+    from: SharedSelectionType<'a>,
+    to: String,
+    relation_name: &'a str,
+) -> Result<ResolvedValue, TransactionError> {
+    let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
+    let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+    let transaction_loader = &batchers.transaction;
+    let values = from.await.map_err(|_| TransactionError::UnknowError)?;
+
+    let mut transactions = Vec::with_capacity(values.len() * 2 + 1);
+
+    for ((pk, sk), _) in values
+        .into_iter()
+        .filter(|((pk, sk), _)| *pk != to || *sk != to)
+    {
+        let from_to_to = TxItem {
+            pk: to.clone(),
+            sk: sk.clone(),
+            relation_name: None,
+            transaction: TransactWriteItem {
+                delete: Some(Delete {
+                    table_name: dynamodb_ctx.dynamodb_table_name.clone(),
+                    key: HashMap::from([
+                        ("__pk".to_string(), to.clone().into_attr()),
+                        ("__sk".to_string(), sk.into_attr()),
+                    ]),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        };
+
+        transactions.push(from_to_to);
+
+        let to_to_from = TxItem {
+            pk: pk.clone(),
+            sk: to.clone(),
+            relation_name: None,
+            transaction: TransactWriteItem {
+                delete: Some(Delete {
+                    table_name: dynamodb_ctx.dynamodb_table_name.clone(),
+                    key: HashMap::from([
+                        ("__pk".to_string(), pk.into_attr()),
+                        ("__sk".to_string(), to.clone().into_attr()),
+                    ]),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            },
+        };
+
+        transactions.push(to_to_from);
+    }
+
+    transaction_loader.load_many(transactions).await?;
+
+    Ok(ResolvedValue::new(serde_json::Value::Null))
+}
+
+/// Update a node
+///
+/// An update means:
+///   - Updating basic fields for the entity and also for every duplicate linked
+///   to this node.
+///   - Create new linked entity if needed
+///   - Remove old entity linked if needed
+fn node_update<'a>(
+    ctx: &'a Context<'a>,
+    node_ty: &'a MetaType,
+    execution_id: Ulid,
+    increment: Arc<AtomicUsize>,
+    input: IndexMap<Name, Value>,
+    id: String,
+) -> RecursiveCreation<'a> {
+    let relations = node_ty.relations();
+
+    let id_cloned = id.clone();
+    let (_, basic): (Vec<(&Name, &Value)>, Vec<(&Name, &Value)>) = input
+        .iter()
+        .partition(|(name, _)| relations.contains_key(name.as_str()));
+    let should_update_updated_at = !basic.is_empty();
+    // We compute the attribute which will be updated.
+    let update_attr: Vec<(Name, Value)> = basic
+        .into_iter()
+        .map(|(name, val)| (name.to_owned(), val.to_owned()))
+        .collect();
+
+    // We create an updated version of the selected entity
+    let selection_updated_future: SelectionType = Box::pin(async move {
+        let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+        let loader = &batchers.loader;
+
+        loader
+            .load_many(vec![(id_cloned.clone(), id_cloned)])
+            .await
+            .map(|selected| {
+                selected
+                    .into_iter()
+                    .map(|(id, mut entity)| {
+                        for (att_name, att_val) in &update_attr {
+                            entity.insert(
+                                att_name.to_string(),
+                                value_to_attribute(
+                                    att_val
+                                        .to_owned()
+                                        .into_json()
+                                        .expect("Shouldn't fail as this is valid json"),
+                                ),
+                            );
+                        }
+                        if should_update_updated_at {
+                            entity.insert(
+                                "updated_at".to_string(),
+                                Utc::now().to_string().into_attr(),
+                            );
+                        }
+                        (id, entity)
+                    })
+                    .collect()
+            })
+    });
+    let selection_entity_updated = selection_updated_future.shared();
+
+    // We manage every relations possible
+    let (_, mut transactions) = relations
+        .clone()
+        .into_iter()
+        .map(|(field, relation)| {
+            (
+                &relation.name,
+                relation_handle(
+                    ctx,
+                    node_ty,
+                    selection_entity_updated.clone(),
+                    field,
+                    &relation.name,
+                    &input,
+                    execution_id,
+                    increment.clone(),
+                ),
+            )
+        })
+        .fold(
+            (Vec::new(), Vec::new()),
+            |(mut selections, mut transactions), (relation_name, list_recur)| {
+                for curr in list_recur {
+                    selections.extend(vec![(
+                        relation_name,
+                        curr.selection.map_ok(|val| (relation_name.to_owned(), val)),
+                    )]);
+                    transactions.extend(curr.transaction.into_iter());
+                }
+                (selections, transactions)
+            },
+        );
+
+    // We split the input between basic attribute and relations because we have
+    // two separate process based on each of them.
+    let (updated_relations, basic): (Vec<(Name, Value)>, Vec<(Name, Value)>) = input
+        .into_iter()
+        .partition(|(name, _)| relations.contains_key(name.as_str()));
+    let updated_relations_len = updated_relations.len();
+
+    // We prepare a selection future which will be ran before any transaction
+    // We'll execute the update even if the relation will be unlink after.
+    // We can optimize this, but it's easier to have the same flow right now.
+    let id_cloned = id.clone();
+    let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+    let query_loader_reversed = &batchers.query_reversed;
+    let select_entities_to_update = query_loader_reversed
+        .load_one(QueryKey::new(id, Vec::new()))
+        .shared();
+    let select_entities_to_update_cloned = select_entities_to_update.clone();
+
+    // We create the update future which will be triggered after every selection future
+    // to update the main node and also the replicate.
+    // This future will also create/delete relation if needed and create node if needed.
+    let update_future: Pin<
+        Box<dyn Future<Output = Result<ResolvedValue, TransactionError>> + Send>,
+    > = Box::pin(async move {
+        let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+        let transaction_batcher = &batchers.transaction;
+        let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
+        let items_pk = select_entities_to_update_cloned
+            .await
+            .map_err(|err| {
+                #[cfg(feature = "tracing_worker")]
+                logworker::error!(
+                    ctx.data_unchecked::<DynamoDBContext>().trace_id,
+                    "An error happened while fetching entities {:?}",
+                    err
+                );
+
+                TransactionError::UnknowError
+            })?
+            .map(|x| x.values)
+            .unwrap_or_else(|| IndexMap::new())
+            .into_iter()
+            .flat_map(|(_, val)| {
+                val.node
+                    .into_iter()
+                    .chain(val.edges.into_iter().flat_map(|(_, x)| x.into_iter()))
+            })
+            .filter_map(|mut attrs| attrs.remove("__pk").and_then(|y| y.s));
+
+        let mut exp_values = HashMap::new();
+
+        let mut transactions = Vec::with_capacity(updated_relations_len + 1);
+
+        // We only update non-relation items if there is a need to update them
+        if basic.len() > 0 {
+            let update_expression = basic
+                .into_iter()
+                .chain(std::iter::once((
+                    Name::new("updated_at"),
+                    Value::String(Utc::now().to_string()),
+                )))
+                .map(|(name, value)| {
+                    let new_val = value_to_attribute(value.into_json().unwrap());
+                    let idx = format!(":{}", name.as_str());
+                    let result = format!("{}={}", name.as_str(), idx);
+                    exp_values.insert(idx, new_val);
+                    result
+                })
+                .join(",");
+
+            // For every duplicate we have on this item, we'll need to update it.
+            for pk in std::iter::once(id_cloned.clone()).chain(items_pk) {
+                let exp = dynomite::attr_map! {
+                    "__pk" => pk.clone(),
+                    "__sk" => id_cloned.clone(),
+                };
+
+                let update_transaction: TransactWriteItem = TransactWriteItem {
+                    update: Some(Update {
+                        table_name: dynamodb_ctx.dynamodb_table_name.clone(),
+                        key: exp,
+                        condition_expression: Some(
+                            "attribute_exists(#pk) AND attribute_exists(#sk)".to_string(),
+                        ),
+                        update_expression: format!("set {update_expression}"),
+                        expression_attribute_values: Some(exp_values.clone()),
+                        expression_attribute_names: Some(HashMap::from([
+                            ("#pk".to_string(), "__pk".to_string()),
+                            ("#sk".to_string(), "__sk".to_string()),
+                        ])),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                };
+
+                let transaction = TxItem {
+                    pk: pk,
+                    sk: id_cloned.clone(),
+                    relation_name: None,
+                    transaction: update_transaction,
+                };
+
+                transactions.push(transaction);
+            }
+        }
+        transaction_batcher.load_many(transactions).await?;
+
+        Ok(ResolvedValue::new(serde_json::Value::Null))
+    });
+
+    transactions.extend(vec![update_future]);
+
+    // We craft a selection future which will run the selection to get entities to
+    // update so when the transaction run we prevent any possible race condition.
+    let selected: SelectionType = Box::pin(async move {
+        let (selection_entity, _) =
+            futures_util::join!(selection_entity_updated, select_entities_to_update);
+
+        selection_entity
+    });
+    let selected_shared = selected.shared();
+
+    RecursiveCreation {
+        selection: selected_shared,
         transaction: transactions,
     }
 }
@@ -401,11 +652,186 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
     }
 }
 
+async fn create_relation_node<'a>(
+    ctx: &'a Context<'a>,
+    to_ty: &MetaType,
+    parent_value: SharedSelectionType<'a>,
+    selected_value: SharedSelectionType<'a>,
+    relation_name: &'a str,
+) -> Result<ResolvedValue, TransactionError> {
+    let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
+    let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+    let transaction_batcher = &batchers.transaction;
+
+    // Reverse Selected -> Parent
+    let relation = to_ty
+        .relations()
+        .into_iter()
+        .find(|(_, relation)| relation.name == relation_name);
+
+    match relation {
+        Some((_, relation)) => {
+            // If we found the relation, it means we'll need a reverse
+            // link.
+            let relation_attr = AttributeValue {
+                ss: Some(vec![relation.name.clone()]),
+                ..Default::default()
+            };
+            let ty_attr = to_ty.name().to_string().into_attr();
+            let parent_value = parent_value
+                .await
+                .map_err(|_| TransactionError::UnknowError)?
+                .into_iter()
+                .next();
+
+            let selected_type = selected_value
+                .clone()
+                .await
+                .map_err(|_| TransactionError::UnknowError)?
+                .into_iter()
+                .next();
+
+            if let (Some(((_pk, sk), mut val)), Some(((selected_id, _), _))) =
+                (parent_value, selected_type)
+            {
+                let node_id = selected_id.clone().into_attr();
+                val.insert("__gsi1pk".to_string(), ty_attr);
+                // We do store the PK into the GSISK to allow us to group edges based on
+                // their node.
+                // stored.
+                val.insert("__gsi1sk".to_string(), node_id.clone());
+
+                // We do replace the PK by the Node's PK.
+                val.insert("__pk".to_string(), node_id.clone());
+                // The GSI2 is an inversed index, so we update the SK too.
+                val.insert("__gsi2sk".to_string(), node_id.clone());
+
+                /*
+                match val.entry("__relation_name".to_string()) {
+                    Entry::Vacant(vac) => {
+                        vac.insert(relation_attr);
+                    }
+                    Entry::Occupied(mut oqp) => {
+                        oqp.get_mut()
+                            .ss
+                            .as_mut()
+                            .map(|x| x.push(relation.name.clone()));
+                    }
+                }
+                */
+
+                /*
+                val.insert("__gsi3pk".to_string(), relation_attr.clone());
+                val.insert("__gsi3sk".to_string(), node_id.clone());
+                */
+
+                /*
+                .chain(std::iter::once((
+                    Name::new("updated_at"),
+                    Value::String(Utc::now().to_string()),
+                )))
+                */
+
+                let mut update_expression = Vec::with_capacity(val.len() + 1);
+
+                /*
+                let update_expression = val
+                    .into_iter()
+                    .map(|(name, value)| {
+                        let new_val = value_to_attribute(value.into_json().unwrap());
+                        let idx = format!(":{}", name.as_str());
+                        let result = format!("{}={}", name.as_str(), idx);
+                        exp_values.insert(idx, new_val);
+                        result
+                    })
+                    .join(",");
+                    */
+
+                let mut expression_attribute_names = HashMap::with_capacity(16);
+                // expression_attribute_names.insert("#pk".to_string(), "__pk".to_string());
+                // expression_attribute_names.insert("#sk".to_string(), "__sk".to_string());
+
+                let relations_expression = {
+                    expression_attribute_names
+                        .insert("#relation_name".to_string(), "__relation_name".to_string());
+                    Some(("#relation_name", relation_attr))
+                };
+
+                let mut exp_values = val
+                    .into_iter()
+                    .filter(|(name, _)| {
+                        name != "__pk" && name != "__sk" && name != "__relation_name"
+                    })
+                    .map(|(name, val)| {
+                        let value_name = format!(":{name}");
+                        if let Some(sanitized_name) = name.strip_prefix("__") {
+                            let sanitized_name = format!("#{sanitized_name}");
+                            update_expression.push(format!("{}={}", &sanitized_name, &value_name));
+                            expression_attribute_names.insert(sanitized_name.clone(), name);
+                            (value_name, val)
+                        } else {
+                            update_expression.push(format!("{}={}", &name, &value_name));
+                            (value_name, val)
+                        }
+                    })
+                    .collect::<HashMap<String, AttributeValue>>();
+
+                let relation_str = relations_expression
+                    .map(|(x, attr)| {
+                        exp_values.insert(":relation_name".to_string(), attr);
+                        format!(" ADD {x} :relation_name ")
+                    })
+                    .unwrap_or_else(|| String::new());
+
+                let exp = dynomite::attr_map! {
+                    "__pk" => selected_id.clone(),
+                    "__sk" => sk.clone(),
+                };
+
+                let update_expression = update_expression.join(",");
+
+                let tx = TxItem {
+                    pk: selected_id.clone(),
+                    sk,
+                    relation_name: Some(relation.name.clone()),
+                    transaction: TransactWriteItem {
+                        update: Some(Update {
+                            table_name: dynamodb_ctx.dynamodb_table_name.clone(),
+                            key: exp,
+                            /*
+                            condition_expression: Some(
+                                "attribute_not_exists(#pk) AND attribute_not_exists(#sk)"
+                                    .to_string(),
+                            ),
+                            */
+                            update_expression: format!("set {update_expression} {relation_str}"),
+                            expression_attribute_values: Some(exp_values),
+                            expression_attribute_names: Some(expression_attribute_names),
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    },
+                };
+
+                transaction_batcher.load_one(tx).await?;
+            };
+            Ok(ResolvedValue::new(serde_json::Value::Null))
+        }
+        _ => Ok(ResolvedValue::new(serde_json::Value::Null)),
+    }
+}
+
+/// This function will be used into creation / udpate of a relation:
+///
 /// When we create a new Node, we'll have relations over this node, those relations,
 /// depending on the input, will need to create:
 ///     - The sub-node if it's a Create
 ///     - The relations between the parent-node and the sub-node
 ///     - The relations between the sub-node and the parent-node
+///
+/// When we update a new Node, for a relation it means it can be:
+///     - Same as in the creation flow
+///     - unlink a Relation which means we'll need to delete the both side of the relation.
 ///
 /// This function will return the Futures which will be used to create those relations
 /// and also the Futures which will be used to have the Projected Data
@@ -423,13 +849,10 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
 /// It should be recursive, but not be runned recursively, we want to have every
 /// fetch and write optimized into the less affordable number of queries.
 ///
-<<<<<<< HEAD
 #[allow(clippy::too_many_arguments)]
-=======
->>>>>>> e9b20e4 (wip)
-fn relation_create<'a>(
+fn relation_handle<'a>(
     ctx: &'a Context<'a>,
-    parent_ty: &MetaType,
+    parent_ty: &'a MetaType,
     parent_value: SharedSelectionType<'a>,
     relation_field: &'a str,
     relation_name: &'a str,
@@ -458,11 +881,11 @@ fn relation_create<'a>(
     for child_input in child_input {
         let create = child_input.get("create");
         let link = child_input.get("link");
+        let unlink = child_input.get("unlink");
         let parent_value = parent_value.clone();
 
-        // It's only create or link
-        let result_local = match (create, link) {
-            (Some(Value::Object(creation_input)), None) => {
+        let result_local = match (create, link, unlink) {
+            (Some(Value::Object(creation_input)), None, None) => {
                 let previous_increment =
                     increment.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
                 let _current_execution_id = {
@@ -492,76 +915,29 @@ fn relation_create<'a>(
                 );
 
                 let shared_selection_cloned = result.selection.clone();
-                let create_reverse_future: TransactionType<'a> = Box::pin(async move {
-                    let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
-                    let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
-                    let transaction_batcher = &batchers.transaction;
-                    let relation = child_ty
-                        .relations()
-                        .into_iter()
-                        .find(|(_, relation)| relation.name == relation_name);
 
-                    match relation {
-                        Some((_, relation)) => {
-                            // If we found the relation, it means we'll need a reverse
-                            // link.
-                            let relation_attr = relation.name.clone().into_attr();
-                            let ty_attr = child_ty.name().to_string().into_attr();
-                            let parent_value = parent_value
-                                .await
-                                .map_err(|_| TransactionError::UnknownError)?
-                                .into_iter()
-                                .next();
-                            let selected_type = shared_selection_cloned
-                                .clone()
-                                .await
-                                .map_err(|_| TransactionError::UnknownError)?
-                                .into_iter()
-                                .next();
+                let create_normal_future: TransactionType<'a> = Box::pin(create_relation_node(
+                    ctx,
+                    parent_ty,
+                    shared_selection_cloned.clone(),
+                    parent_value.clone(),
+                    relation_name,
+                ));
 
-                            if let (Some(((_pk, sk), mut val)), Some(((selected_id, _), _))) =
-                                (parent_value, selected_type)
-                            {
-                                let node_id = selected_id.clone().into_attr();
-                                val.insert("__gsi1pk".to_string(), ty_attr);
-                                // We do store the PK into the GSISK to allow us to group edges based on
-                                // their node.
-                                // stored.
-                                val.insert("__gsi1sk".to_string(), node_id.clone());
+                let create_reverse_future: TransactionType<'a> = Box::pin(create_relation_node(
+                    ctx,
+                    child_ty,
+                    parent_value,
+                    shared_selection_cloned,
+                    relation_name,
+                ));
 
-                                // We do replace the PK by the Node's PK.
-                                val.insert("__pk".to_string(), node_id.clone());
-                                // The GSI2 is an inversed index, so we update the SK too.
-                                val.insert("__gsi2sk".to_string(), node_id.clone());
-
-                                val.insert("__relation_name".to_string(), relation_attr.clone());
-                                val.insert("__gsi3pk".to_string(), relation_attr.clone());
-                                val.insert("__gsi3sk".to_string(), node_id.clone());
-                                let tx = TxItem {
-                                    pk: selected_id.clone(),
-                                    sk,
-                                    transaction: TransactWriteItem {
-                                        put: Some(Put {
-                                            table_name: dynamodb_ctx.dynamodb_table_name.clone(),
-                                            item: val,
-                                            ..Default::default()
-                                        }),
-                                        ..Default::default()
-                                    },
-                                };
-
-                                transaction_batcher.load_one(tx).await?;
-                            };
-                            Ok(ResolvedValue::new(serde_json::Value::Null))
-                        }
-                        _ => Ok(ResolvedValue::new(serde_json::Value::Null)),
-                    }
-                });
-
-                result.transaction.extend(vec![create_reverse_future]);
+                result
+                    .transaction
+                    .extend(vec![create_normal_future, create_reverse_future]);
                 result
             }
-            (None, Some(linking_input)) => {
+            (None, Some(linking_input), None) => {
                 // For linking, it's either, Id, Array of Id, or Null
                 let field_value = match linking_input {
                     Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
@@ -586,79 +962,81 @@ fn relation_create<'a>(
                     None => Box::pin(async move { Ok(HashMap::new()) }),
                 };
                 let shared_selection = selection.shared();
-                let shared_selection_cloned = shared_selection.clone();
 
-                let create_reverse_future: TransactionType<'a> = Box::pin(async move {
-                    let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
-                    let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
-                    let transaction_batcher = &batchers.transaction;
-                    let relation = child_ty
-                        .relations()
-                        .into_iter()
-                        .find(|(_, relation)| relation.name == relation_name);
+                let create_normal_future: TransactionType<'a> = Box::pin(create_relation_node(
+                    ctx,
+                    parent_ty,
+                    shared_selection.clone(),
+                    parent_value.clone(),
+                    relation_name,
+                ));
 
-                    match relation {
-                        Some((_, relation)) => {
-                            // If we found the relation, it means we'll need a reverse
-                            // link.
-                            let relation_attr = relation.name.clone().into_attr();
-                            let ty_attr = child_ty.name().to_string().into_attr();
-                            let parent_value = parent_value
-                                .await
-                                .map_err(|_| TransactionError::UnknownError)?
-                                .into_iter()
-                                .next();
-                            let selected_type = shared_selection_cloned
-                                .clone()
-                                .await
-                                .map_err(|_| TransactionError::UnknownError)?
-                                .into_iter()
-                                .next();
-
-                            if let (
-                                Some(((_pk, _sk), mut val)),
-                                Some(((selected_id, selected_sk), _)),
-                            ) = (parent_value, selected_type)
-                            {
-                                let node_id = selected_id.clone().into_attr();
-                                val.insert("__gsi1pk".to_string(), ty_attr);
-                                // We do store the PK into the GSISK to allow us to group edges based on
-                                // their node.
-                                // stored.
-                                val.insert("__gsi1sk".to_string(), node_id.clone());
-
-                                // We do replace the PK by the Node's PK.
-                                val.insert("__pk".to_string(), node_id.clone());
-                                // The GSI2 is an inversed index, so we update the SK too.
-                                val.insert("__gsi2sk".to_string(), node_id.clone());
-
-                                val.insert("__relation_name".to_string(), relation_attr.clone());
-                                val.insert("__gsi3pk".to_string(), relation_attr.clone());
-                                val.insert("__gsi3sk".to_string(), node_id.clone());
-                                let tx = TxItem {
-                                    pk: selected_id.clone(),
-                                    sk: selected_sk,
-                                    transaction: TransactWriteItem {
-                                        put: Some(Put {
-                                            table_name: dynamodb_ctx.dynamodb_table_name.clone(),
-                                            item: val,
-                                            ..Default::default()
-                                        }),
-                                        ..Default::default()
-                                    },
-                                };
-
-                                transaction_batcher.load_one(tx).await?;
-                            };
-                            Ok(ResolvedValue::new(serde_json::Value::Null))
-                        }
-                        _ => Ok(ResolvedValue::new(serde_json::Value::Null)),
-                    }
-                });
+                let create_reverse_future: TransactionType<'a> = Box::pin(create_relation_node(
+                    ctx,
+                    child_ty,
+                    parent_value,
+                    shared_selection.clone(),
+                    relation_name,
+                ));
 
                 RecursiveCreation {
                     selection: shared_selection,
-                    transaction: vec![create_reverse_future],
+                    transaction: vec![create_normal_future, create_reverse_future],
+                }
+            }
+            (None, None, Some(unlinking_input)) => {
+                // For unlinking, it's either, Id, Array of Id, or Null
+                let field_value = match unlinking_input {
+                    Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+                    Value::List(list) => Some(
+                        list.iter()
+                            .map(|value| match value {
+                                Value::String(inner) => (inner.clone(), inner.clone()),
+                                _ => panic!(),
+                            })
+                            .collect(),
+                    ),
+                    _ => None,
+                };
+
+                if let Some(field_value) = field_value {
+                    let field_value_clone = field_value.clone();
+                    let selection: SelectionType<'a> = Box::pin(async move {
+                        let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
+                        let loader_batcher = &batchers.loader;
+
+                        loader_batcher.load_many(field_value_clone).await
+                    });
+
+                    let shared_selection = selection.shared();
+
+                    let mut transactions = Vec::with_capacity(field_value.len() + 1);
+
+                    for (pk, _) in field_value {
+                        let a: TransactionType<'a> = Box::pin(relation_remove(
+                            ctx,
+                            parent_value.clone(),
+                            pk,
+                            relation_name,
+                        ));
+                        transactions.push(a);
+                    }
+
+                    RecursiveCreation {
+                        selection: shared_selection,
+                        transaction: transactions,
+                    }
+                } else {
+                    ctx.add_error(ServerError::new(
+                        "If you fill an unlink value it shouldn't be null",
+                        Some(ctx.item.pos),
+                    ));
+                    let selection: SelectionType<'a> = Box::pin(async move { Ok(HashMap::new()) });
+
+                    RecursiveCreation {
+                        selection: selection.shared(),
+                        transaction: Vec::new(),
+                    }
                 }
             }
             _ => {
@@ -727,6 +1105,33 @@ impl ResolverTrait for DynamoMutationResolver {
                     "id": serde_json::Value::String(autogenerated_id),
                 })))
             }
+            DynamoMutationResolver::UpdateNode { id, input, ty } => {
+                let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
+                    Error::new("Internal Error: Failed process the associated schema.")
+                })?;
+
+                let id =
+                    id.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+
+                let input =
+                    input.expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+
+                let update = node_update(
+                    ctx,
+                    ctx_ty,
+                    resolver_ctx.execution_id.to_owned(),
+                    Arc::new(AtomicUsize::new(0)),
+                    input,
+                    id.clone(),
+                );
+
+                let _ = update.selection.await?;
+                let _ = futures_util::future::try_join_all(update.transaction).await?;
+
+                Ok(ResolvedValue::new(serde_json::json!({
+                    "id": serde_json::Value::String(id),
+                })))
+            }
             DynamoMutationResolver::DeleteNode { id } => {
                 let query_loader = &batchers.query;
                 let query_loader_reversed = &batchers.query_reversed;
@@ -753,7 +1158,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     .await?
                     .into_iter()
                     .flatten()
-                    .flat_map(|x| x.into_iter().flat_map(|(_, y)| y.into_iter()))
+                    .flat_map(|x| x.values.into_iter().flat_map(|(_, y)| y.node.into_iter().chain(y.edges.into_iter().flat_map(|(_, val)| val.into_iter()))))
                     .filter_map(|val| {
                         let pk = match val.get("__pk").and_then(|x| x.s.clone()) {
                             Some(value) => value,
@@ -783,6 +1188,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         Some(TxItem {
                                 pk,
                                 sk,
+                                relation_name: None,
                                 transaction: TransactWriteItem {
                                     delete: Some(Delete {
                                         table_name: dynamodb_ctx.dynamodb_table_name.clone(),

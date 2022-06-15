@@ -110,8 +110,6 @@ pub enum DynamoResolver {
 }
 
 pub(crate) type QueryResult = HashMap<String, Vec<HashMap<String, AttributeValue>>>;
-pub(crate) type QueryTypeResult =
-    HashMap<String, HashMap<String, Vec<HashMap<String, AttributeValue>>>>;
 
 #[async_trait::async_trait]
 impl ResolverTrait for DynamoResolver {
@@ -149,6 +147,11 @@ impl ResolverTrait for DynamoResolver {
 
                 let pk = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+
+                let ctx_ty = ctx.registry().types.get(&pk).unwrap();
+                // TODO: put selected relations
+                let relations_selected = ctx_ty.relations();
+
                 let first = first.expect_opt_int(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
@@ -168,6 +171,18 @@ impl ResolverTrait for DynamoResolver {
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                     number_limit,
                 )?;
+                let edges: Vec<String> = relations_selected
+                    .iter()
+                    .map(|(_, x)| x)
+                    .fold(Vec::new(), |mut acc, cur| {
+                        acc.push(cur.name.clone());
+                        // acc.extend(cur.iter().map(std::string::ToString::to_string));
+                        acc
+                    })
+                    .into_iter()
+                    .unique()
+                    .collect();
+                /*
                 let edges: Vec<String> = edges
                     .iter()
                     .map(|(_, x)| x)
@@ -178,6 +193,7 @@ impl ResolverTrait for DynamoResolver {
                     .into_iter()
                     .unique()
                     .collect();
+                */
                 let len = edges.len();
 
                 let cursor = PaginatedCursor::from_graphql(first, last, after, before)?;
@@ -258,6 +274,10 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
+                let ctx_ty = ctx.registry().types.get(&pk).unwrap();
+                // TODO: put selected relations
+                let relations_selected = ctx_ty.relations();
+
                 // When we query a Node with the Query Dataloader, we have to indicate
                 // which Edges should be getted with it because we are able to retreive
                 // a Node with his edges in one network request.
@@ -265,19 +285,18 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let edges: Vec<String> = edges
+                let edges: Vec<String> = relations_selected
                     .iter()
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(std::string::ToString::to_string));
+                        acc.push(cur.name.clone());
                         acc
                     })
                     .into_iter()
-                    .chain(std::iter::once(Edge(&pk).to_string()))
                     .unique()
                     .collect();
 
-                let query_result: QueryTypeResult = query_loader_fat
+                let query_result = query_loader_fat
                     .load_one(QueryTypeKey::new(pk.clone(), edges))
                     .await?
                     .ok_or_else(|| {
@@ -285,8 +304,10 @@ impl ResolverTrait for DynamoResolver {
                     })?;
 
                 let result: Vec<serde_json::Value> = query_result
-                    .into_values()
-                    .map(|edges| {
+                    .values
+                    .into_iter()
+                    .map(|(_, query_value)| {
+                        let edges = query_value.edges;
                         let len = edges.len();
                         let value: Map<String, serde_json::Value> = edges.into_iter().fold(
                             Map::with_capacity(len),
@@ -340,7 +361,9 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
-                if edges_len == 0 {
+                let relations_selected = ctx_ty.relations();
+                let relations_len = relations_selected.len();
+                if relations_len == 0 {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(dyna) => {
                             let value = serde_json::to_value(dyna)
@@ -366,21 +389,21 @@ impl ResolverTrait for DynamoResolver {
                 // data.
                 //
                 // We add the Node to the edges to also ask for the Node Data.
-                let edges: Vec<String> = edges
+                let edges: Vec<String> = relations_selected
                     .iter()
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
-                        acc.extend(cur.iter().map(std::string::ToString::to_string));
+                        acc.push(cur.name.clone());
                         acc
                     })
                     .into_iter()
-                    .chain(std::iter::once(Edge(current_ty).to_string()))
                     .unique()
                     .collect();
 
-                let query_result: QueryResult = query_loader
+                let query_result = query_loader
                     .load_one(QueryKey::new(pk, edges))
                     .await?
+                    .map(|x| x.values)
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
@@ -396,24 +419,16 @@ impl ResolverTrait for DynamoResolver {
                 let result: Map<String, serde_json::Value> =
                     query_result
                         .into_iter()
-                        .fold(Map::with_capacity(len), |mut acc, (a, b)| {
-                            let value = if a == current_ty {
-                                serde_json::to_value(b.first())
-                            } else {
-                                serde_json::to_value(b)
-                            };
+                        .fold(Map::with_capacity(len), |mut acc, (_, b)| {
+                            acc.insert(
+                                current_ty.to_string(),
+                                serde_json::to_value(b.node).expect("can't fail"),
+                            );
 
-                            match value {
-                                Ok(value) => {
-                                    acc.insert(a, value);
-                                }
-                                Err(err) => {
-                                    acc.insert(a, serde_json::Value::Null);
-                                    ctx.add_error(
-                                        Error::new_with_source(err).into_server_error(ctx.item.pos),
-                                    );
-                                }
+                            for (edge, val) in b.edges {
+                                acc.insert(edge, serde_json::to_value(val).expect("can't fail"));
                             }
+
                             acc
                         });
 

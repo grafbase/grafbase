@@ -5,6 +5,9 @@
 //! When you need a Variable inside a Resolver, you can use a
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
+use async_graphql_value::Name;
+use indexmap::IndexMap;
+
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError};
 
@@ -68,6 +71,20 @@ impl VariableResolveDefinition {
     ) -> Result<String, ServerError> {
         match self.param(ctx, last_resolver_value)? {
             Some(Value::String(inner)) => Ok(inner),
+            _ => {
+                Err(Error::new("Internal Error: failed to infer key")
+                    .into_server_error(ctx.item.pos))
+            }
+        }
+    }
+
+    pub fn expect_obj<'a>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+    ) -> Result<IndexMap<Name, Value>, ServerError> {
+        match self.param(ctx, last_resolver_value)? {
+            Some(Value::Object(inner)) => Ok(inner),
             _ => {
                 Err(Error::new("Internal Error: failed to infer key")
                     .into_server_error(ctx.item.pos))
