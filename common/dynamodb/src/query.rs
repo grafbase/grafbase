@@ -154,18 +154,16 @@ impl Loader<QueryKey> for QueryLoader {
                                 Entry::Occupied(mut oqp) => {
                                     if sk.eq(pk) {
                                         oqp.get_mut().node = Some(curr);
-                                    } else {
-                                        if let Some(edges) = relation_names {
-                                            for edge in edges {
-                                                match oqp.get_mut().edges.entry(edge) {
-                                                    Entry::Vacant(vac) => {
-                                                        vac.insert(vec![curr.clone()]);
-                                                    }
-                                                    Entry::Occupied(mut oqp) => {
-                                                        oqp.get_mut().push(curr.clone());
-                                                    }
-                                                };
-                                            }
+                                    } else if let Some(edges) = relation_names {
+                                        for edge in edges {
+                                            match oqp.get_mut().edges.entry(edge) {
+                                                Entry::Vacant(vac) => {
+                                                    vac.insert(vec![curr.clone()]);
+                                                }
+                                                Entry::Occupied(mut oqp) => {
+                                                    oqp.get_mut().push(curr.clone());
+                                                }
+                                            };
                                         }
                                     }
                                 }

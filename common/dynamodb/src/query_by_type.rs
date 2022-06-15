@@ -156,22 +156,20 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                 Entry::Occupied(mut oqp) => {
                                     if sk.starts_with(format!("{}#", &query_key.r#type).as_str()) {
                                         oqp.get_mut().node = Some(curr);
-                                    } else {
-                                        if let Some(edge) = query_key.edges.iter().find(|edge| {
-                                            relation_names
-                                                .as_ref()
-                                                .map(|x| x.contains(edge))
-                                                .unwrap_or_else(|| false)
-                                        }) {
-                                            match oqp.get_mut().edges.entry(edge.clone()) {
-                                                Entry::Vacant(vac) => {
-                                                    vac.insert(vec![curr]);
-                                                }
-                                                Entry::Occupied(mut oqp) => {
-                                                    oqp.get_mut().push(curr);
-                                                }
-                                            };
-                                        }
+                                    } else if let Some(edge) = query_key.edges.iter().find(|edge| {
+                                        relation_names
+                                            .as_ref()
+                                            .map(|x| x.contains(edge))
+                                            .unwrap_or_else(|| false)
+                                    }) {
+                                        match oqp.get_mut().edges.entry(edge.clone()) {
+                                            Entry::Vacant(vac) => {
+                                                vac.insert(vec![curr]);
+                                            }
+                                            Entry::Occupied(mut oqp) => {
+                                                oqp.get_mut().push(curr);
+                                            }
+                                        };
                                     }
                                 }
                             };

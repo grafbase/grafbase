@@ -87,7 +87,7 @@ pub struct HashMapCache<S = RandomState> {
 
 impl<S: Send + Sync + BuildHasher + Default + 'static> HashMapCache<S> {
     /// Use specified `S: BuildHasher` to create a `HashMap` cache.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { _mark: PhantomData }
     }
 }
