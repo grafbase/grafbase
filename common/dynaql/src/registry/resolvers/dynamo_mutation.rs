@@ -362,7 +362,7 @@ async fn relation_remove<'a>(
     let dynamodb_ctx = ctx.data_unchecked::<DynamoDBContext>();
     let batchers = ctx.data_unchecked::<DynamoDBBatchersData>();
     let transaction_loader = &batchers.transaction;
-    let values = from.await.map_err(|_| TransactionError::UnknowError)?;
+    let values = from.await.map_err(|_| TransactionError::UnknownError)?;
 
     let mut transactions = Vec::with_capacity(values.len() * 2 + 1);
 
@@ -553,7 +553,7 @@ fn node_update<'a>(
                         err
                     );
 
-                    TransactionError::UnknowError
+                    TransactionError::UnknownError
                 },
             )?
             .map(|x| x.values)
@@ -685,14 +685,14 @@ async fn create_relation_node<'a>(
             let ty_attr = to_ty.name().to_string().into_attr();
             let parent_value = parent_value
                 .await
-                .map_err(|_| TransactionError::UnknowError)?
+                .map_err(|_| TransactionError::UnknownError)?
                 .into_iter()
                 .next();
 
             let selected_type = selected_value
                 .clone()
                 .await
-                .map_err(|_| TransactionError::UnknowError)?
+                .map_err(|_| TransactionError::UnknownError)?
                 .into_iter()
                 .next();
 
