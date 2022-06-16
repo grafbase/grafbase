@@ -1,0 +1,1 @@
+{"query":"{ commentCollection(first: 10) { edges { node { id } } } }"}

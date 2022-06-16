@@ -1,0 +1,1 @@
+{"query": "mutation { userDelete(id: \"USER-ID\") { deletedId }}"}

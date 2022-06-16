@@ -1,0 +1,1 @@
+{"query":"mutation { commentCreate(input: { post: {link: \"POST-ID\"}, content: \"CONTENT\", user: {link: \"USER-ID\"} }) { comment { id } } }"}
