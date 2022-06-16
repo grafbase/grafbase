@@ -36,3 +36,8 @@ yarn-error.log*
 
 # env
 .env
+
+# graphql
+/src/graphql/codegen.yml
+.graphqlconfig
+schema.graphql
