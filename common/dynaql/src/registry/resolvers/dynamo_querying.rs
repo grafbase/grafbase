@@ -126,11 +126,6 @@ impl ResolverTrait for DynamoResolver {
             .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
         let current_ty = ctx_ty.name();
 
-        // TODO: Here we ask from the Type definition the associated edges, but what
-        // we should ask is the edges associated FROM the SelectedSet.
-        let edges = ctx_ty.edges();
-        let _edges_len = edges.len();
-
         match self {
             DynamoResolver::ListResultByTypePaginated {
                 r#type,
