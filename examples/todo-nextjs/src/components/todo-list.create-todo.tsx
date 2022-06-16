@@ -1,4 +1,4 @@
-import { useCreateTodoMutation } from "graphql/schema";
+import { useTodoCreateMutation } from "graphql/schema";
 import { useMemo, useState } from "react";
 
 const TodoListCreateTodo = ({ todoListId }: { todoListId: string }) => {
@@ -6,7 +6,7 @@ const TodoListCreateTodo = ({ todoListId }: { todoListId: string }) => {
 
   const [title, setTitle] = useState<string>("");
 
-  const [{ fetching }, createTodo] = useCreateTodoMutation();
+  const [{ fetching }, createTodo] = useTodoCreateMutation();
 
   return (
     <form

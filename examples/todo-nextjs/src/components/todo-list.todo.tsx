@@ -1,4 +1,4 @@
-import { useDeleteTodoMutation } from "graphql/schema";
+import { useTodoDeleteMutation } from "graphql/schema";
 import { useMemo } from "react";
 
 const TodoListTodo = (props: {
@@ -11,7 +11,7 @@ const TodoListTodo = (props: {
     () => ({ additionalTypenames: ["TodoList"] }),
     []
   );
-  const [{ fetching }, deleteTodo] = useDeleteTodoMutation();
+  const [{ fetching }, todoDelete] = useTodoDeleteMutation();
 
   return (
     <div className=" rounded-lg border border-gray-200 p-4">
@@ -21,7 +21,7 @@ const TodoListTodo = (props: {
           {complete ? "Completed" : "Not Completed"}
         </div>
         <button
-          onClick={() => deleteTodo({ id }, contextDeleteTodoList)}
+          onClick={() => todoDelete({ id }, contextDeleteTodoList)}
           className="text-xs text-gray-400 mt-0.5 hover:text-red-500"
         >
           {fetching ? "Deleting..." : "Delete"}

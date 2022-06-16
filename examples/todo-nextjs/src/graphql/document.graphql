@@ -22,7 +22,7 @@ query Todos {
   }
 }
 
-mutation CreateTodoList($title: String!) {
+mutation TodoListCreate($title: String!) {
   todoListCreate(input: { title: $title }) {
     todoList {
       id
@@ -30,7 +30,7 @@ mutation CreateTodoList($title: String!) {
   }
 }
 
-mutation CreateTodo($title: String!, $todoListId: ID!) {
+mutation TodoCreate($title: String!, $todoListId: ID!) {
   todoCreate(
     input: { title: $title, complete: false, list: { link: $todoListId } }
   ) {
@@ -40,13 +40,13 @@ mutation CreateTodo($title: String!, $todoListId: ID!) {
   }
 }
 
-mutation DeleteTodoList($id: ID!) {
+mutation TodoListDelete($id: ID!) {
   todoListDelete(id: $id) {
     deletedId
   }
 }
 
-mutation DeleteTodo($id: ID!) {
+mutation TodoDelete($id: ID!) {
   todoDelete(id: $id) {
     deletedId
   }
