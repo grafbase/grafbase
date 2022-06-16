@@ -1,4 +1,4 @@
-const serverSideFetch = async (query : string) => await fetch(process.env.GRAFBASE_API_ENDPOINT as string, {
+const serverSideFetch = async (query : string) => await fetch(process.env.GRAFBASE_API_URL as string, {
     method: "POST",
     headers: {
         "Content-Type": "application/json",

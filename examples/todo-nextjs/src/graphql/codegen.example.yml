@@ -1,5 +1,5 @@
 schema:
-  - YOUR-GRAFBASE-GRAPHQL-DOMAIN-HERE/graphql:
+  - YOUR-GRAFBASE-GRAPHQL-URL-HERE/graphql:
       headers:
         Authorization: Bearer YOUR-API-KEY-HERE
 documents: ./src/graphql/document.graphql
