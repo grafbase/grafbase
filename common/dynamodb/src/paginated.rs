@@ -181,7 +181,8 @@ where
             exp.insert(":type".to_string(), node.clone().into_attr());
             Some(format!("begins_with(#type, :type) OR {edges}"))
         } else {
-            None
+            exp.insert(":type".to_string(), node.clone().into_attr());
+            Some("begins_with(#type, :type)".to_string())
         };
 
         let pagination_string = cursor.pagination_string();
