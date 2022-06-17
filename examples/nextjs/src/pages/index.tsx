@@ -3,10 +3,19 @@ import { getSession } from "next-auth/react";
 import { NextPageContext } from "next";
 import { useTodosQuery } from "graphql/schema";
 import TodoList from "components/todo-list";
-import TodoListEmpty from "components/todo-list-empty";
+import TodoListEmpty from "components/new-todo-list";
+import { useMemo } from "react";
 
 const Home: NextPage = () => {
   const [{ data, fetching }] = useTodosQuery();
+
+  const reversed = useMemo(() => {
+    if (!data?.todoListCollection?.edges) {
+      return;
+    }
+
+    return [...data?.todoListCollection?.edges].reverse();
+  }, [data]);
 
   if (fetching) {
     return <div>Loading...</div>;
@@ -14,7 +23,7 @@ const Home: NextPage = () => {
 
   return (
     <div className="grid grid-cols-5 gap-6">
-      {data?.todoListCollection?.edges?.reverse().map((todoList, index) => {
+      {reversed?.map((todoList, index) => {
         if (!todoList?.node) {
           return null;
         }
