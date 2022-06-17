@@ -222,6 +222,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "Edge": {
+                    "expected_ty": "Post",
                     "is_node": true,
                     "key": "published"
                   }
@@ -721,6 +722,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "Edge": {
+                    "expected_ty": "Author",
                     "is_node": true,
                     "key": "AuthorRelateBlog"
                   }
@@ -759,6 +761,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "Edge": {
+                    "expected_ty": "Post",
                     "is_node": true,
                     "key": "BlogRelatePost"
                   }
@@ -1868,6 +1871,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "Edge": {
+                    "expected_ty": "Author",
                     "is_node": true,
                     "key": "published"
                   }
