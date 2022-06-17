@@ -76,6 +76,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 generate_metarelation(&type_definition.node, &field.node)
                             });
 
+                            // Property which correspond to the fact that the expecting node got
+                            // edges
                             let is_node = ty.and_then(|x| {
                                 match &x.node.kind {
                                     TypeKind::Object(obj) => Some(obj),
@@ -105,6 +107,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
                                         key: relation.clone().unwrap().name,
                                         is_node,
+                                        expected_ty: to_base_type_str(&field.node.ty.node.base),
                                     }),
                                 })
                             } else {
