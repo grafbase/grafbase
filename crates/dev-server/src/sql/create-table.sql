@@ -1,6 +1,10 @@
 CREATE TABLE IF NOT EXISTS records (
-    "pk" TEXT default NULL,
-    "sk" TEXT default NULL,
+    "pk" TEXT not NULL,
+    "sk" TEXT not NULL,
+    "gsi1pk" TEXT not NULL,
+    "gsi1sk" TEXT not NULL,
+    "gsi2pk" TEXT not NULL,
+    "gsi2sk" TEXT not NULL,
     "type" TEXT not NULL,
     "document" JSON not NULL,
     "created_at" TEXT not NULL,

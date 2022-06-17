@@ -25,6 +25,6 @@ mod bridge;
 mod consts;
 pub mod errors;
 mod servers;
-mod types;
+pub mod types;
 
 pub use servers::start;

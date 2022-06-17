@@ -1,7 +1,9 @@
 use crate::output::report;
 use crate::CliError;
 use common::consts::DEFAULT_PORT;
+use common::utils::get_thread_panic_message;
 use local_gateway::dev_server_api::start_dev_server;
+use local_gateway::types::ServerMessage;
 
 /// cli wrapper for [`local_gateway::dev_server_api::start_dev_server`]
 ///
@@ -14,8 +16,12 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
     trace!("attempting to start dev server");
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
     let server_handle = match start_dev_server(external_port, search) {
-        Ok((port, handle)) => {
-            report::start_server(port, start_port);
+        Ok((handle, receiver)) => {
+            if let Ok(message) = receiver.recv() {
+                match message {
+                    ServerMessage::Ready(port) => report::start_server(port, start_port),
+                }
+            }
             handle
         }
         Err(error) => return Err(CliError::LocalGatewayError(error)),
@@ -23,12 +29,9 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
 
     server_handle
         .join()
-        .map_err(|panic_parameter| match panic_parameter.downcast_ref::<&'static str>() {
-            Some(&parameter) => CliError::DevServerPanic(parameter.to_string()),
-            None => match panic_parameter.downcast_ref::<String>() {
-                Some(parameter) => CliError::DevServerPanic(parameter.clone()),
-                None => CliError::DevServerPanic("unknown error".to_owned()),
-            },
+        .map_err(|parameter| match get_thread_panic_message(&parameter) {
+            Some(message) => CliError::DevServerPanic(message),
+            None => CliError::DevServerPanic("unknown error".to_owned()),
         })?
         .map_err(CliError::DevServerError)?;
 

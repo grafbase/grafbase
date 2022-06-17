@@ -10,7 +10,7 @@ pub enum LocalAddressType {
 
 impl LocalAddressType {
     #[must_use]
-    pub fn to_ip_v4(&self) -> Ipv4Addr {
+    pub const fn to_ip_v4(&self) -> Ipv4Addr {
         match self {
             Self::Localhost => Ipv4Addr::LOCALHOST,
             Self::Unspecified => Ipv4Addr::UNSPECIFIED,

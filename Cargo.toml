@@ -1,2 +1,7 @@
 [workspace]
 members = ["crates/*"]
+
+[profile.release]
+strip = "symbols"
+lto = true
+codegen-units = 1

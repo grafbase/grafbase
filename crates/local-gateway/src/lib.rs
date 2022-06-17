@@ -22,3 +22,4 @@ let (dev_server_port, dev_server_handle) = start_dev_server(PORT, SEARCH).unwrap
 
 pub mod dev_server_api;
 pub mod errors;
+pub mod types;

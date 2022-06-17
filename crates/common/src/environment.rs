@@ -45,8 +45,6 @@ impl Environment {
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
-    ///
-    /// returns [`CommonError::SetEnvironment`] if the static environment instance could not be set
     pub fn try_init() -> Result<(), CommonError> {
         let project_grafbase_schema_path =
             Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
@@ -73,7 +71,7 @@ impl Environment {
                 user_dot_grafbase_path,
                 project_grafbase_registry_path,
             })
-            .map_err(|_| CommonError::SetEnvironment)?;
+            .expect("cannot set environment twice");
 
         Ok(())
     }

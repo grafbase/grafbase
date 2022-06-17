@@ -1,12 +1,13 @@
 use crate::consts::{
-    EPHEMERAL_PORT_RANGE, GIT_IGNORE_FILE, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, WORKER_DIR,
+    EPHEMERAL_PORT_RANGE, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, WORKER_DIR,
     WORKER_FOLDER_VERSION_FILE,
 };
-use crate::types::Assets;
+use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::DevServerError};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
     fs,
     process::Stdio,
@@ -14,6 +15,7 @@ use std::{
 };
 use tokio::process::Command;
 use version_compare::Version;
+use which::which;
 
 /// starts a development server by unpacking any files needed by the gateway worker
 /// and starting the miniflare cli in `user_grafbase_path` in [`Environment`]
@@ -30,8 +32,10 @@ use version_compare::Version;
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16) -> JoinHandle<Result<(), DevServerError>> {
-    thread::spawn(move || {
+pub fn start(port: u16) -> (JoinHandle<Result<(), DevServerError>>, Receiver<ServerMessage>) {
+    let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
+
+    let handle = thread::spawn(move || {
         export_embedded_files()?;
 
         create_project_dot_grafbase_folder()?;
@@ -41,13 +45,19 @@ pub fn start(port: u16) -> JoinHandle<Result<(), DevServerError>> {
         let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
             .ok_or(DevServerError::AvailablePort)?;
 
-        spawn_servers(port, bridge_port)
-    })
+        spawn_servers(port, bridge_port, sender)
+    });
+    (handle, receiver)
 }
 
 #[tokio::main]
-async fn spawn_servers(worker_port: u16, bridge_port: u16) -> Result<(), DevServerError> {
-    trace!("spawining miniflare");
+#[tracing::instrument(level = "trace")]
+async fn spawn_servers(
+    worker_port: u16,
+    bridge_port: u16,
+    sender: Sender<ServerMessage>,
+) -> Result<(), DevServerError> {
+    validate_dependencies().await?;
 
     run_schema_parser().await?;
 
@@ -60,32 +70,44 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16) -> Result<(), DevServ
         .to_str()
         .ok_or(DevServerError::ProjectPath)?;
 
-    let mut command = Command::new("npx");
-
-    #[cfg(not(debug_assertions))]
-    let command = command.stdout(Stdio::null()).stderr(Stdio::inherit());
-
-    #[cfg(debug_assertions)]
-    let command = command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    trace!("spawining miniflare");
 
     // TODO: bundle a specific version of miniflare and extract it
-    command
+    let spawned = Command::new("npx")
         .args(&[
             "--quiet",
             "miniflare",
             "--port",
             &worker_port.to_string(),
+            "--no-update-check",
+            "--no-cf-fetch",
             "--wrangler-config",
             "wrangler.toml",
+            "--binding",
+            &format!("BRIDGE_PORT={bridge_port}"),
             "--text-blob",
-            &format!("REGISTRY={}", registry_path),
+            &format!("REGISTRY={registry_path}"),
         ])
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
         .current_dir(&environment.user_dot_grafbase_path)
         .spawn()
-        .map_err(DevServerError::MiniflareError)?
-        .wait()
+        .map_err(DevServerError::MiniflareCommandError)?;
+
+    sender
+        .send(ServerMessage::Ready(worker_port))
+        .expect("cannot send message");
+
+    let output = spawned
+        .wait_with_output()
         .await
-        .map_err(DevServerError::MiniflareError)?;
+        .map_err(DevServerError::MiniflareCommandError)?;
+
+    output
+        .status
+        .success()
+        .then(|| {})
+        .ok_or_else(|| DevServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
 
     bridge_handle.await??;
 
@@ -96,6 +118,8 @@ fn export_embedded_files() -> Result<(), DevServerError> {
     let environment = Environment::get();
 
     let worker_path = environment.user_dot_grafbase_path.join(WORKER_DIR);
+
+    let parser_path = environment.user_dot_grafbase_path.join(SCHEMA_PARSER_DIR);
 
     // CARGO_PKG_VERSION is guaranteed be valid semver
     let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
@@ -116,6 +140,7 @@ fn export_embedded_files() -> Result<(), DevServerError> {
         trace!("writing worker files");
 
         fs::create_dir_all(&worker_path).map_err(|_| DevServerError::CreateDir(worker_path.clone()))?;
+        fs::create_dir_all(&parser_path).map_err(|_| DevServerError::CreateDir(parser_path.clone()))?;
 
         fs::write(&environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n")
             .map_err(|_| DevServerError::CreateCacheDir)?;
@@ -132,12 +157,12 @@ fn export_embedded_files() -> Result<(), DevServerError> {
         });
 
         if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
-            let error_path_string = path.to_string_lossy().to_string();
+            let error_path_string = path.to_string_lossy().into_owned();
             return Err(DevServerError::WriteFile(error_path_string));
         }
 
         if fs::write(&worker_version_path, current_version.as_str()).is_err() {
-            let worker_version_path_string = worker_version_path.to_string_lossy().to_string();
+            let worker_version_path_string = worker_version_path.to_string_lossy().into_owned();
             return Err(DevServerError::WriteFile(worker_version_path_string));
         };
     }
@@ -173,7 +198,7 @@ async fn run_schema_parser() -> Result<(), DevServerError> {
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
 
-    Command::new("node")
+    let output = Command::new("node")
         .args(&[
             &parser_path.to_str().ok_or(DevServerError::CachePath)?,
             &environment
@@ -182,11 +207,63 @@ async fn run_schema_parser() -> Result<(), DevServerError> {
                 .ok_or(DevServerError::ProjectPath)?,
         ])
         .current_dir(&environment.project_dot_grafbase_path)
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(DevServerError::SchemaParserError)?
-        .wait()
+        .wait_with_output()
         .await
         .map_err(DevServerError::SchemaParserError)?;
+
+    output
+        .status
+        .success()
+        .then(|| {})
+        .ok_or_else(|| DevServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))?;
+
+    Ok(())
+}
+
+async fn get_node_version_string() -> Result<String, DevServerError> {
+    let output = Command::new("node")
+        .arg("--version")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|_| DevServerError::CheckNodeVersion)?
+        .wait_with_output()
+        .await
+        .map_err(|_| DevServerError::CheckNodeVersion)?;
+
+    let node_version_string = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+
+    Ok(node_version_string)
+}
+
+async fn validate_node_version() -> Result<(), DevServerError> {
+    trace!("validating Node.js version");
+    trace!("minimal supported Node.js version: {}", MIN_NODE_VERSION);
+
+    let node_version_string = get_node_version_string().await?;
+
+    trace!("installed node version: {}", node_version_string);
+
+    let node_version = Version::from(&node_version_string).ok_or(DevServerError::CheckNodeVersion)?;
+    let min_version = Version::from(MIN_NODE_VERSION).expect("must be valid");
+
+    if node_version >= min_version {
+        Ok(())
+    } else {
+        Err(DevServerError::OutdatedNode(node_version_string))
+    }
+}
+
+async fn validate_dependencies() -> Result<(), DevServerError> {
+    trace!("validating dependencies");
+
+    which("node").map_err(|_| DevServerError::NodeInPath)?;
+    which("npx").map_err(|_| DevServerError::NpxInPath)?;
+
+    validate_node_version().await?;
 
     Ok(())
 }

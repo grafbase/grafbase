@@ -10,9 +10,11 @@ This repository is a cargo workspace with several crates relating to the Grafbas
 
 The directories in the `crates` directory in the root of the repo are organized as follows:
 
-| Directory                              | Description                             |
-| -------------------------------------- | --------------------------------------- |
-| [cli](crates/cli/)                     | Command Line Interface                  |
-| [local-gateway](crates/local-gateway/) | Universal backend for Grafbase devtools |
-| [dev-server](crates/dev-server/)       | Wrapper for the API worker              |
-| [common](crates/common/)               | Shared functions and utilities          |
+| Directory                              | Description                               |
+| -------------------------------------- | ----------------------------------------- |
+| [cli](crates/cli/)                     | Command Line Interface                    |
+| [colorize](crates/colorize/)           | Ergonomic colored output for the terminal |
+| [common](crates/common/)               | Shared functions and utilities            |
+| [dev-server](crates/dev-server/)       | Wrapper for the API worker                |
+| [local-gateway](crates/local-gateway/) | Universal backend for Grafbase devtools   |
+| [panic-hook](crates/panic-hook/)       | Nicer panic messages                      |

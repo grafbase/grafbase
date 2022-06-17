@@ -4,14 +4,12 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    /// returned if a user supplied port is cannot be parsed
-    #[error("could not parse the supplied port")]
-    ParsePort,
     /// returned if a the shell passed to completions is unsupported or unrecognized
     #[error("received an unknown or unsupported shell for completion generation: {0}")]
     UnsupportedShellForCompletions(String),
+    // TODO: this might be better as `expect`
     /// returned if the development server panics
-    #[error("the development server panicked: {0}")]
+    #[error("{0}")]
     DevServerPanic(String),
     /// wraps a dev server error
     #[error(transparent)]
@@ -27,7 +25,7 @@ pub enum CliError {
 impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::ParsePort | Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
+            Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
             Self::DevServerPanic(_) | Self::DevServerError(_) => exitcode::SOFTWARE,
             Self::LocalGatewayError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
@@ -47,6 +45,16 @@ impl CliError {
             }
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
                 Some("try running the CLI in your Grafbase project or any nested directory")
+            }
+            Self::DevServerError(DevServerError::NodeInPath) => {
+                Some("we currently require Node.js as a dependency - please install Node.js and make sure it is in your $PATH to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
+            }
+            Self::DevServerError(DevServerError::NpxInPath) => {
+                Some("npx should be made available by your Node.js installation, but it seems to be missing - try reinstalling Node.js to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
+            }
+
+            Self::DevServerError(DevServerError::OutdatedNode(_)) => {
+                Some("please update your Node.js version to the LTS version or higher to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
             }
             _ => None,
         }

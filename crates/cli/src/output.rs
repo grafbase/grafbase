@@ -30,4 +30,8 @@ pub mod report {
             colorize::eprintln!("hint: {}", hint, Color::BrightBlue);
         }
     }
+
+    pub fn goodbye() {
+        colorize::eprintln!("{}", "\n👋 see you next time!", Color::BrightBlue);
+    }
 }

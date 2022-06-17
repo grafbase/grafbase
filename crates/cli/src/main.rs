@@ -11,11 +11,16 @@ extern crate log;
 
 use cli_input::build_cli;
 use colorize::ShouldColorize;
-use common::{environment::Environment, traits::ToExitCode};
+use common::{
+    consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
+    environment::Environment,
+    traits::ToExitCode,
+};
 use dev::dev;
 use errors::CliError;
 use output::report;
 use std::process;
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 fn main() {
     panic_hook::setup!();
@@ -34,9 +39,15 @@ fn main() {
 }
 
 fn try_main() -> Result<(), CliError> {
-    tracing_subscriber::fmt::init();
-
     let matches = build_cli().get_matches();
+
+    let filter = EnvFilter::builder().parse_lossy(if matches.contains_id("trace") {
+        TRACE_LOG_FILTER
+    } else {
+        DEFAULT_LOG_FILTER
+    });
+
+    tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
 
     report::cli_header();
 
@@ -44,16 +55,18 @@ fn try_main() -> Result<(), CliError> {
 
     match matches.subcommand() {
         Some(("dev", matches)) => {
-            let search = matches.is_present("search");
-            let port = matches
-                .value_of("port")
-                .map(str::parse::<u16>)
-                .transpose()
-                .map_err(|_| CliError::ParsePort)?;
+            // ignoring any errors to fall back to the normal handler if there's an issue
+            let _set_handler_result = ctrlc::set_handler(|| {
+                report::goodbye();
+                process::exit(exitcode::OK);
+            });
+
+            let search = matches.contains_id("search");
+            let port = matches.get_one::<u16>("port").copied();
             dev(search, port)
         }
         Some(("completions", matches)) => {
-            let shell = matches.value_of("shell").unwrap();
+            let shell = matches.get_one::<String>("shell").expect("must be present");
             completions::generate(shell)
         }
         _ => unreachable!(),

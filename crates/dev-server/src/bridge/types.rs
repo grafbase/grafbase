@@ -19,6 +19,10 @@ impl Payload {
 pub struct Record {
     pub pk: String,
     pub sk: String,
+    pub gsi1pk: String,
+    pub gsi1sk: String,
+    pub gsi2pk: String,
+    pub gsi2sk: String,
     pub r#type: String,
     pub document: Value,
     pub created_at: chrono::DateTime<chrono::Utc>,

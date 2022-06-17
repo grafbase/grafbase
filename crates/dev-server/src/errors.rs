@@ -46,12 +46,20 @@ pub enum DevServerError {
     BridgeApi(HyperError),
 
     /// returned if the miniflare command returns an error
-    #[error(transparent)]
-    MiniflareError(IoError),
+    #[error("miniflare encountered an error: {0}")]
+    MiniflareCommandError(IoError),
+
+    /// returned if the miniflare command exits unsuccessfully
+    #[error("miniflare encountered an error\ncause:\n{0}")]
+    MiniflareError(String),
 
     /// returned if the schema parser command returns an error
     #[error(transparent)]
     SchemaParserError(IoError),
+
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("could not parse grafbase/schema.graphql\n{0}")]
+    ParseSchema(String),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
@@ -70,22 +78,47 @@ pub enum DevServerError {
     AvailablePort,
 
     /// returned if a spawned task panics
-    #[error("a spawned task panicked: {0}")]
+    #[error(transparent)]
     SpawnedTaskPanic(JoinError),
+
+    /// returned if node is not in the user $PATH
+    #[error("Node.js does not seem to be installed")]
+    NodeInPath,
+
+    /// returned if npx is not in the user $PATH
+    #[error("npx does not seem to be installed")]
+    NpxInPath,
+
+    /// returned if the installed version of node is unsupported
+    #[error("Node.js version {0} is unsupported")]
+    OutdatedNode(String),
+
+    /// returned if the installed version of node could not be retreived
+    #[error("Could not retrive the installed version of Node.js")]
+    CheckNodeVersion,
 }
 
 impl ToExitCode for DevServerError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::CreateDir(_) | Self::CreateCacheDir | Self::WriteFile(_) | Self::ReadVersion => exitcode::DATAERR,
+            Self::CreateDir(_)
+            | Self::CreateCacheDir
+            | Self::WriteFile(_)
+            | Self::ReadVersion
+            | Self::ParseSchema(_)
+            | Self::NodeInPath
+            | Self::NpxInPath
+            | Self::OutdatedNode(_) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
             | Self::ConnectToDatabase(_)
             | Self::UnknownSqliteError(_)
+            | Self::MiniflareCommandError(_)
             | Self::MiniflareError(_)
             | Self::SpawnedTaskPanic(_)
-            | Self::SchemaParserError(_) => exitcode::SOFTWARE,
+            | Self::SchemaParserError(_)
+            | Self::CheckNodeVersion => exitcode::SOFTWARE,
             Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }

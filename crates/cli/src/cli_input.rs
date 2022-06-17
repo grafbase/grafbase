@@ -1,16 +1,22 @@
-use clap::{arg, command, Arg, Command};
+use clap::{arg, command, value_parser, Arg, Command};
 use indoc::indoc;
 
 /// creates the cli interface
 #[must_use]
 pub fn build_cli() -> Command<'static> {
     command!()
+        .arg(arg!(-t --trace "Activate tracing"))
         .subcommand_required(true)
         .arg_required_else_help(true)
-        .subcommand(Command::new("dev").about("Run your grafbase project locally").args(&[
-            arg!(-p --port <port> "Use a specific port").required(false),
-            arg!(-s --search "If a given port is unavailable, search for another"),
-        ]))
+        .subcommand(
+            Command::new("dev").about("Run your grafbase project locally").args(&[
+                arg!(-p --port <port> "Use a specific port")
+                    .takes_value(true)
+                    .value_parser(value_parser!(u16))
+                    .required(false),
+                arg!(-s --search "If a given port is unavailable, search for another"),
+            ]),
+        )
         .subcommand(
             Command::new("completions")
                 .arg(Arg::new("shell").help(indoc! {"
@@ -33,4 +39,5 @@ pub fn build_cli() -> Command<'static> {
     // )
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
+    // // TODO: schema edit / view
 }
