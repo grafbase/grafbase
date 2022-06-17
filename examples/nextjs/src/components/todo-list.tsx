@@ -1,4 +1,4 @@
-import {TodoListFragment, useTodoListDeleteMutation} from "graphql/schema";
+import { TodoListFragment, useTodoListDeleteMutation } from "graphql/schema";
 import { useMemo } from "react";
 import TodoListCreateTodo from "components/todo-list.create-todo";
 import TodoListTodo from "components/todo-list.todo";
@@ -19,7 +19,7 @@ const TodoList = (props: TodoListFragment) => {
           onClick={() => todoListDelete({ id }, contextDeleteTodoList)}
           className="absolute text-gray-400 flex items-center justify-center -right-2 -top-2 rounded-full h-6 w-6 p-2 border border-gray-200 text-sm bg-white hover:bg-red-400 hover:text-white transition"
         >
-            { fetching ? '...' : 'x'}
+          {fetching ? "..." : "x"}
         </button>
       </div>
       <div className="space-y-1  ">

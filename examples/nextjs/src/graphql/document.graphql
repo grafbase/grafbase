@@ -12,7 +12,7 @@ fragment Todo on Todo {
   complete
 }
 
-query Todos {
+query TodoLists {
   todoListCollection(first: 99) {
     edges {
       node {

@@ -1,13 +1,13 @@
 import type { NextPage } from "next";
 import { getSession } from "next-auth/react";
 import { NextPageContext } from "next";
-import { useTodosQuery } from "graphql/schema";
+import { useTodoListsQuery } from "graphql/schema";
 import TodoList from "components/todo-list";
 import TodoListEmpty from "components/new-todo-list";
 import { useMemo } from "react";
 
 const Home: NextPage = () => {
-  const [{ data, fetching }] = useTodosQuery();
+  const [{ data, fetching }] = useTodoListsQuery();
 
   const reversed = useMemo(() => {
     if (!data?.todoListCollection?.edges) {

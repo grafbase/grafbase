@@ -11,7 +11,7 @@ const Home: NextPage = () => {
           className="bg-black text-white rounded-md px-2 py-1 hover:bg-gray-800 transition"
           onClick={() => signIn("github")}
         >
-          Sign In With Github
+          Sign In With GitHub
         </button>
       </div>
     </div>

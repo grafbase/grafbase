@@ -206,8 +206,8 @@ export const TodoListFragmentDoc = gql`
   }
 }
     ${TodoFragmentDoc}`;
-export const TodosDocument = gql`
-    query Todos {
+export const TodoListsDocument = gql`
+    query TodoLists {
   todoListCollection(first: 99) {
     edges {
       node {
@@ -218,8 +218,8 @@ export const TodosDocument = gql`
 }
     ${TodoListFragmentDoc}`;
 
-export function useTodosQuery(options?: Omit<Urql.UseQueryArgs<TodosQueryVariables>, 'query'>) {
-  return Urql.useQuery<TodosQuery>({ query: TodosDocument, ...options });
+export function useTodoListsQuery(options?: Omit<Urql.UseQueryArgs<TodoListsQueryVariables>, 'query'>) {
+  return Urql.useQuery<TodoListsQuery>({ query: TodoListsDocument, ...options });
 };
 export const TodoListCreateDocument = gql`
     mutation TodoListCreate($title: String!) {
@@ -273,10 +273,10 @@ export type TodoListFragment = { __typename?: 'TodoList', id: string, title: str
 
 export type TodoFragment = { __typename?: 'Todo', id: string, title: string, complete?: boolean | null };
 
-export type TodosQueryVariables = Exact<{ [key: string]: never; }>;
+export type TodoListsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type TodosQuery = { __typename?: 'Query', todoListCollection?: { __typename?: 'TodoListConnection', edges?: Array<{ __typename?: 'TodoListEdge', node: { __typename?: 'TodoList', id: string, title: string, todos?: Array<{ __typename?: 'Todo', id: string, title: string, complete?: boolean | null } | null> | null } } | null> | null } | null };
+export type TodoListsQuery = { __typename?: 'Query', todoListCollection?: { __typename?: 'TodoListConnection', edges?: Array<{ __typename?: 'TodoListEdge', node: { __typename?: 'TodoList', id: string, title: string, todos?: Array<{ __typename?: 'Todo', id: string, title: string, complete?: boolean | null } | null> | null } } | null> | null } | null };
 
 export type TodoListCreateMutationVariables = Exact<{
   title: Scalars['String'];

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "graphql": "graphql-codegen --config ./src/graphql/codegen.yml"
+    "graphql": "graphql-codegen --config ./src/graphql/codegen.yml -r dotenv/config"
   },
   "dependencies": {
     "next": "12.1.6",
