@@ -90,8 +90,8 @@ impl Loader<QueryKey> for QueryLoader {
                 let ty_attr = query_key
                     .pk
                     .rsplit_once('#')
-                    .expect("can't fail")
-                    .0
+                    .map(|x| x.0)
+                    .unwrap_or_else(|| "")
                     .to_string()
                     .into_attr();
 
