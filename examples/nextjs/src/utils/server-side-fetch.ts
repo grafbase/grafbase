@@ -6,6 +6,6 @@ const serverSideFetch = async (query: string) =>
       Authorization: `Bearer ${process.env.GRAFBASE_API_KEY}`,
     },
     body: JSON.stringify(query),
-  }).then((data) => data.json());
+  }).then((response) => response.json());
 
 export default serverSideFetch;
