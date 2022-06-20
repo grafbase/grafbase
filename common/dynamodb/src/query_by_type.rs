@@ -2,6 +2,7 @@ use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
@@ -87,13 +88,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         exp.insert(format!(":relation{}", index), q.clone().into_attr());
                         format!(" contains(#relationname, :relation{})", index)
                     })
-                    .fold(String::new(), |acc, cur| {
-                        if !acc.is_empty() {
-                            format!("{} OR {}", cur, acc)
-                        } else {
-                            cur
-                        }
-                    });
+                    .join(" OR ");
                 exp.insert(":type".to_string(), query_key.r#type.clone().into_attr());
                 Some(format!("begins_with(#type, :type) OR {edges}"))
             } else {
@@ -162,14 +157,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                             .map(|x| x.contains(edge))
                                             .unwrap_or_else(|| false)
                                     }) {
-                                        match oqp.get_mut().edges.entry(edge.clone()) {
-                                            Entry::Vacant(vac) => {
-                                                vac.insert(vec![curr]);
-                                            }
-                                            Entry::Occupied(mut oqp) => {
-                                                oqp.get_mut().push(curr);
-                                            }
-                                        };
+                                        oqp.get_mut().edges.entry(edge.clone()).or_default().push(curr);
                                     }
                                 }
                             };

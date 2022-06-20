@@ -170,13 +170,7 @@ where
                     exp.insert(format!(":relation{}", index), q.into_attr());
                     format!(" contains(#relationname, :relation{})", index)
                 })
-                .fold(String::new(), |acc, cur| {
-                    if !acc.is_empty() {
-                        format!("{} OR {}", cur, acc)
-                    } else {
-                        cur
-                    }
-                });
+                .join(" OR ");
 
             exp.insert(":type".to_string(), node.clone().into_attr());
             Some(format!("begins_with(#type, :type) OR {edges}"))
@@ -267,12 +261,10 @@ where
                             if sk.starts_with(format!("{}#", &node).as_str()) {
                                 value.node = Some(x.clone());
                             // If it's a relation
-                            } else if let Some(edge) = edges.iter().find(|edge| {
-                                relation_names
-                                    .as_ref()
-                                    .map(|x| x.contains(edge))
-                                    .unwrap_or_else(|| false)
-                            }) {
+                            } else if let Some(edge) = edges
+                                .iter()
+                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
+                            {
                                 value.edges.insert(edge.clone(), vec![x.clone()]);
                             }
 
@@ -284,12 +276,10 @@ where
                                 continue;
                             }
 
-                            if let Some(edge) = edges.iter().find(|edge| {
-                                relation_names
-                                    .as_ref()
-                                    .map(|x| x.contains(edge))
-                                    .unwrap_or_else(|| false)
-                            }) {
+                            if let Some(edge) = edges
+                                .iter()
+                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
+                            {
                                 match oqp.get_mut().edges.entry(edge.clone()) {
                                     Entry::Vacant(vac) => {
                                         vac.insert(vec![x]);

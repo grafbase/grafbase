@@ -79,13 +79,7 @@ impl Loader<QueryKey> for QueryLoader {
                         exp.insert(format!(":relation{}", index), q.clone().into_attr());
                         format!(" contains(#relationname, :relation{})", index)
                     })
-                    .fold(String::new(), |acc, cur| {
-                        if !acc.is_empty() {
-                            format!("{} OR {}", cur, acc)
-                        } else {
-                            cur
-                        }
-                    });
+                    .join(" OR ");
 
                 let ty_attr = query_key
                     .pk
@@ -156,14 +150,7 @@ impl Loader<QueryKey> for QueryLoader {
                                         oqp.get_mut().node = Some(curr);
                                     } else if let Some(edges) = relation_names {
                                         for edge in edges {
-                                            match oqp.get_mut().edges.entry(edge) {
-                                                Entry::Vacant(vac) => {
-                                                    vac.insert(vec![curr.clone()]);
-                                                }
-                                                Entry::Occupied(mut oqp) => {
-                                                    oqp.get_mut().push(curr.clone());
-                                                }
-                                            };
+                                            oqp.get_mut().edges.entry(edge).or_default().push(curr);
                                         }
                                     }
                                 }
