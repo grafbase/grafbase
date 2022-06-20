@@ -11,7 +11,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   return (
     <div>
       <Head>
-        <title>Nextjs - Grafbase</title>
+        <title>Next.js - Todo Example - Grafbase</title>
         <meta
           name="description"
           content="Todo Example leveraging the Grafbase platform"
