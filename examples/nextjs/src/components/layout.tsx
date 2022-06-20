@@ -14,7 +14,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         <title>Nextjs - Grafbase</title>
         <meta
           name="description"
-          content="Todo Example leveraging on Grafbase platform"
+          content="Todo Example leveraging the Grafbase platform"
         />
         <link rel="icon" href="/favicon.png" />
       </Head>
