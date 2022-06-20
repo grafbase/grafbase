@@ -1,5 +1,7 @@
 import { useTodoDeleteMutation } from "graphql/schema";
 import { useMemo } from "react";
+import { TrashIcon } from "@heroicons/react/outline";
+import Spinner from "components/spinner";
 
 const TodoListTodo = (props: {
   title: string;
@@ -14,18 +16,34 @@ const TodoListTodo = (props: {
   const [{ fetching }, todoDelete] = useTodoDeleteMutation();
 
   return (
-    <div className=" rounded-lg border border-gray-200 p-4">
-      <p className="font-medium text-gray-700">{title}</p>
-      <div className="flex justify-between text-sm mt-2">
-        <div className={`${complete ? "text-green-500" : "text-gray-500"}`}>
-          {complete ? "Completed" : "Not Completed"}
+    <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3 bg-zinc-50 dark:bg-zinc-900">
+      <div className="flex justify-between gap-4">
+        <div className="flex space-x-1.5 items-center truncate" title={title}>
+          <input
+            type="checkbox"
+            className="border-gray-200 dark:border-gray-500 bg-white dark:bg-black rounded"
+          />
+          <p className="font-semibold text-black dark:text-white text-sm truncate">
+            {title}
+          </p>
         </div>
         <button
+          className="text-gray-400 hover:text-red-400 transition"
           onClick={() => todoDelete({ id }, contextDeleteTodoList)}
-          className="text-xs text-gray-400 mt-0.5 hover:text-red-500"
         >
-          {fetching ? "Deleting..." : "Delete"}
+          {fetching ? <Spinner /> : <TrashIcon className="w-4 h-4" />}
         </button>
+      </div>
+      <div className="flex justify-between text-sm mt-2">
+        <div
+          className={`text-xs px-1 py-0.5 rounded ${
+            complete
+              ? "bg-green-800 text-white"
+              : "bg-gray-300 dark:bg-gray-600 text-black dark:text-white"
+          }`}
+        >
+          {complete ? "Completed" : "Not completed"}
+        </div>
       </div>
     </div>
   );

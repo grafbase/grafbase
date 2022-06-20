@@ -7,7 +7,12 @@ import TodoListEmpty from "components/new-todo-list";
 import { useMemo } from "react";
 
 const Home: NextPage = () => {
-  const [{ data, fetching }] = useTodoListsQuery();
+  const context = useMemo(
+    () => ({ additionalTypenames: ["TodoList", "Todo"] }),
+    []
+  );
+
+  const [{ data, fetching }] = useTodoListsQuery({ context });
 
   const reversed = useMemo(() => {
     if (!data?.todoListCollection?.edges) {
@@ -22,7 +27,7 @@ const Home: NextPage = () => {
   }
 
   return (
-    <div className="grid grid-cols-5 gap-6">
+    <div className="flex gap-6">
       {reversed?.map((todoList, index) => {
         if (!todoList?.node) {
           return null;

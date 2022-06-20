@@ -1,12 +1,11 @@
-const serverSideFetch = async (query : string) => await fetch(process.env.GRAFBASE_API_URL as string, {
+const serverSideFetch = async (query: string) =>
+  await fetch(process.env.GRAFBASE_API_URL as string, {
     method: "POST",
     headers: {
-        "Content-Type": "application/json",
-        "Authorization" : `Bearer ${process.env.GRAFBASE_API_KEY}`
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GRAFBASE_API_KEY}`,
     },
-    body: JSON.stringify(
-        query
-    )
-}).then((data) => data.json())
+    body: JSON.stringify(query),
+  }).then((data) => data.json());
 
-export default serverSideFetch
+export default serverSideFetch;

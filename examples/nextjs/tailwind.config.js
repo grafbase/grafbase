@@ -1,11 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ["./src/pages/**/*.{jsx,tsx}", "./src/components/**/*.{jsx,tsx}"],
+  darkMode: "class",
+  content: ["./src/**/*.{jsx,tsx}"],
   theme: {
     extend: {
-      colors: {
-        grafbase: "#4A9C6D",
-      },
       animation: {
         show: "show .25s ease-in",
       },
@@ -17,5 +15,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/forms")],
 };

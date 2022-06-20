@@ -10,7 +10,7 @@ const TodoListCreateTodo = ({ todoListId }: { todoListId: string }) => {
 
   return (
     <form
-      className="h-fit space-y-2 rounded-lg border border-dashed border-gray-200 p-4 hover:text-grafbase"
+      className="flex items-center space-x-2 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         createTodo({ title, todoListId }, context);
@@ -20,15 +20,15 @@ const TodoListCreateTodo = ({ todoListId }: { todoListId: string }) => {
       <input
         required
         value={title}
-        placeholder="Type todo title"
+        placeholder="Todo title"
         onChange={(e) => setTitle(e.target.value)}
-        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        className="w-[177px] bg-gray-50 dark:bg-zinc-800 px-2 py-1 text-sm border border-gray-300 dark:border-gray-800 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
       />
       <button
         disabled={fetching}
-        className="bg-blue-400 rounded-md px-2 py-1 text-white w-full disabled:bg-blue-200"
+        className="bg-blue-800 text-sm rounded-md px-2 py-1 text-white whitespace-nowrap disabled:bg-blue-400"
       >
-        {fetching ? "Adding..." : "Add"}
+        {fetching ? "Adding..." : "Add Todo"}
       </button>
     </form>
   );
