@@ -5,6 +5,7 @@ use dynomite::Attribute;
 use futures::TryFutureExt;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_core::RusotoError;
 use rusoto_dynamodb::{AttributeValue, DynamoDb, QueryError, QueryInput};

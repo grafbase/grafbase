@@ -1,6 +1,7 @@
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::{map::Entry, IndexMap};
+use itertools::Itertools;
 use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
@@ -150,7 +151,7 @@ impl Loader<QueryKey> for QueryLoader {
                                         oqp.get_mut().node = Some(curr);
                                     } else if let Some(edges) = relation_names {
                                         for edge in edges {
-                                            oqp.get_mut().edges.entry(edge).or_default().push(curr);
+                                            oqp.get_mut().edges.entry(edge).or_default().push(curr.clone());
                                         }
                                     }
                                 }
