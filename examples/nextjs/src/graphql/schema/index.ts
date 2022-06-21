@@ -23,6 +23,10 @@ export type Mutation = {
   todoListCreate?: Maybe<TodoListCreatePayload>;
   /** Delete a TodoList by ID */
   todoListDelete?: Maybe<TodoListDeletePayload>;
+  /** Update a TodoList */
+  todoListUpdate?: Maybe<TodoListUpdatePayload>;
+  /** Update a Todo */
+  todoUpdate?: Maybe<TodoUpdatePayload>;
 };
 
 
@@ -43,6 +47,18 @@ export type MutationTodoListCreateArgs = {
 
 export type MutationTodoListDeleteArgs = {
   id: Scalars['ID'];
+};
+
+
+export type MutationTodoListUpdateArgs = {
+  id: Scalars['ID'];
+  input: TodoListUpdateInput;
+};
+
+
+export type MutationTodoUpdateArgs = {
+  id: Scalars['ID'];
+  input: TodoUpdateInput;
 };
 
 export type PageInfo = {
@@ -95,7 +111,7 @@ export type Todo = {
   __typename?: 'Todo';
   complete?: Maybe<Scalars['Boolean']>;
   id: Scalars['ID'];
-  list?: Maybe<TodoList>;
+  list: TodoList;
   title: Scalars['String'];
 };
 
@@ -114,7 +130,7 @@ export type TodoCreatePayload = {
 /** Input to create a new Todo */
 export type TodoCreationInput = {
   complete?: InputMaybe<Scalars['Boolean']>;
-  list?: InputMaybe<TodoTodoRelateTodoListTodoListCreateInput>;
+  list: TodoTodoRelateTodoListTodoListCreateInput;
   title: Scalars['String'];
 };
 
@@ -177,6 +193,24 @@ export type TodoListTodoRelateTodoListTodoCreationInput = {
   title: Scalars['String'];
 };
 
+/** Input to create a new TodoListTodoRelateTodoListTodoUpdateRelationInput */
+export type TodoListTodoRelateTodoListTodoUpdateRelationInput = {
+  create?: InputMaybe<TodoListTodoRelateTodoListTodoCreationInput>;
+  link?: InputMaybe<Scalars['ID']>;
+  unlink?: InputMaybe<Scalars['ID']>;
+};
+
+/** Input to create a new TodoList */
+export type TodoListUpdateInput = {
+  title?: InputMaybe<Scalars['String']>;
+  todos?: InputMaybe<Array<InputMaybe<TodoListTodoRelateTodoListTodoUpdateRelationInput>>>;
+};
+
+export type TodoListUpdatePayload = {
+  __typename?: 'TodoListUpdatePayload';
+  todoList?: Maybe<TodoList>;
+};
+
 /** Input to create a new TodoTodoRelateTodoListTodoListCreateInput */
 export type TodoTodoRelateTodoListTodoListCreateInput = {
   create?: InputMaybe<TodoTodoRelateTodoListTodoListCreationInput>;
@@ -186,6 +220,25 @@ export type TodoTodoRelateTodoListTodoListCreateInput = {
 /** Input to create a new TodoTodoRelateTodoListTodoListCreationInput */
 export type TodoTodoRelateTodoListTodoListCreationInput = {
   title: Scalars['String'];
+};
+
+/** Input to create a new TodoTodoRelateTodoListTodoListUpdateRelationInput */
+export type TodoTodoRelateTodoListTodoListUpdateRelationInput = {
+  create?: InputMaybe<TodoTodoRelateTodoListTodoListCreationInput>;
+  link?: InputMaybe<Scalars['ID']>;
+  unlink?: InputMaybe<Scalars['ID']>;
+};
+
+/** Input to create a new Todo */
+export type TodoUpdateInput = {
+  complete?: InputMaybe<Scalars['Boolean']>;
+  list?: InputMaybe<TodoTodoRelateTodoListTodoListUpdateRelationInput>;
+  title?: InputMaybe<Scalars['String']>;
+};
+
+export type TodoUpdatePayload = {
+  __typename?: 'TodoUpdatePayload';
+  todo?: Maybe<Todo>;
 };
 
 export type TodoListFragment = { __typename?: 'TodoList', id: string, title: string, todos?: Array<{ __typename?: 'Todo', id: string, title: string, complete?: boolean | null } | null> | null };
@@ -219,6 +272,14 @@ export type TodoListDeleteMutationVariables = Exact<{
 
 export type TodoListDeleteMutation = { __typename?: 'Mutation', todoListDelete?: { __typename?: 'TodoListDeletePayload', deletedId: string } | null };
 
+export type TodoListUpdateMutationVariables = Exact<{
+  id: Scalars['ID'];
+  title?: InputMaybe<Scalars['String']>;
+}>;
+
+
+export type TodoListUpdateMutation = { __typename?: 'Mutation', todoListUpdate?: { __typename?: 'TodoListUpdatePayload', todoList?: { __typename?: 'TodoList', id: string } | null } | null };
+
 export type TodoDeleteMutationVariables = Exact<{
   id: Scalars['ID'];
 }>;
@@ -226,10 +287,21 @@ export type TodoDeleteMutationVariables = Exact<{
 
 export type TodoDeleteMutation = { __typename?: 'Mutation', todoDelete?: { __typename?: 'TodoDeletePayload', deletedId: string } | null };
 
+export type TodoUpdateMutationVariables = Exact<{
+  id: Scalars['ID'];
+  title?: InputMaybe<Scalars['String']>;
+  complete?: InputMaybe<Scalars['Boolean']>;
+}>;
+
+
+export type TodoUpdateMutation = { __typename?: 'Mutation', todoUpdate?: { __typename?: 'TodoUpdatePayload', todo?: { __typename?: 'Todo', id: string } | null } | null };
+
 export const TodoFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"Todo"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Todo"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"complete"}}]}}]} as unknown as DocumentNode<TodoFragment, unknown>;
 export const TodoListFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"TodoList"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"TodoList"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"todos"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"Todo"}}]}}]}},...TodoFragmentDoc.definitions]} as unknown as DocumentNode<TodoListFragment, unknown>;
 export const TodoListsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"TodoLists"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoListCollection"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"99"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"TodoList"}}]}}]}}]}}]}},...TodoListFragmentDoc.definitions]} as unknown as DocumentNode<TodoListsQuery, TodoListsQueryVariables>;
 export const TodoListCreateDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoListCreate"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoListCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoList"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<TodoListCreateMutation, TodoListCreateMutationVariables>;
 export const TodoCreateDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoCreate"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"todoListId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"complete"},"value":{"kind":"BooleanValue","value":false}},{"kind":"ObjectField","name":{"kind":"Name","value":"list"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"link"},"value":{"kind":"Variable","name":{"kind":"Name","value":"todoListId"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<TodoCreateMutation, TodoCreateMutationVariables>;
 export const TodoListDeleteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoListDelete"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoListDelete"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deletedId"}}]}}]}}]} as unknown as DocumentNode<TodoListDeleteMutation, TodoListDeleteMutationVariables>;
+export const TodoListUpdateDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoListUpdate"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoListUpdate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoList"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<TodoListUpdateMutation, TodoListUpdateMutationVariables>;
 export const TodoDeleteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoDelete"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoDelete"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deletedId"}}]}}]}}]} as unknown as DocumentNode<TodoDeleteMutation, TodoDeleteMutationVariables>;
+export const TodoUpdateDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"TodoUpdate"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"complete"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"Boolean"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todoUpdate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"complete"},"value":{"kind":"Variable","name":{"kind":"Name","value":"complete"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"todo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<TodoUpdateMutation, TodoUpdateMutationVariables>;

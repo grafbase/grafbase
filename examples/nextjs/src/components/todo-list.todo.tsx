@@ -1,6 +1,6 @@
-import { TodoDeleteDocument } from "graphql/schema";
+import { TodoDeleteDocument, TodoUpdateDocument } from "graphql/schema";
 import { useMutation } from "urql";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { TrashIcon } from "@heroicons/react/outline";
 import Spinner from "components/spinner";
 
@@ -9,6 +9,7 @@ const TodoListTodo = (props: {
   id: string;
   complete?: boolean | null;
 }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
   const { id, title, complete } = props;
   const [completed, setCompleted] = useState(!!complete);
   const contextDeleteTodoList = useMemo(
@@ -16,6 +17,7 @@ const TodoListTodo = (props: {
     []
   );
   const [{ fetching }, todoDelete] = useMutation(TodoDeleteDocument);
+  const [{}, todoUpdate] = useMutation(TodoUpdateDocument);
 
   return (
     <div
@@ -37,11 +39,19 @@ const TodoListTodo = (props: {
               type="checkbox"
               defaultChecked={completed}
               className="border-gray-200 text-green-600 dark:border-gray-500 bg-white dark:bg-black rounded accent-green-600 hover:bg-green-600 focus:ring-0"
-              onClick={() => setCompleted((c) => !c)}
+              onClick={() => {
+                setCompleted((c) => {
+                  todoUpdate({ id, complete: c });
+                  return !c;
+                });
+              }}
             />
-            <p className="font-semibold text-black dark:text-white text-sm truncate">
-              {title}
-            </p>
+            <input
+              ref={inputRef}
+              defaultValue={title}
+              className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
+              onChange={(e) => todoUpdate({ id, title: e.target.value })}
+            />
           </div>
           <button
             className="text-gray-400 hover:text-red-400 transition"

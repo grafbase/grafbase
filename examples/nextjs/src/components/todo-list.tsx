@@ -1,6 +1,10 @@
-import { TodoListFragment, TodoListDeleteDocument } from "graphql/schema";
+import {
+  TodoListFragment,
+  TodoListDeleteDocument,
+  TodoListUpdateDocument,
+} from "graphql/schema";
 import { useMutation } from "urql";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import TodoListCreateTodo from "components/todo-list.create-todo";
 import TodoListTodo from "components/todo-list.todo";
 import {
@@ -13,12 +17,14 @@ import Spinner from "components/spinner";
 import Dropdown from "components/dropdown";
 
 const TodoList = (props: TodoListFragment) => {
+  const inputRef = useRef<HTMLInputElement>(null);
   const { id, title, todos } = props;
   const contextDeleteTodoList = useMemo(
     () => ({ additionalTypenames: ["TodoList", "Todo"] }),
     []
   );
   const [{ fetching }, todoListDelete] = useMutation(TodoListDeleteDocument);
+  const [{}, todoListUpdate] = useMutation(TodoListUpdateDocument);
 
   return (
     <div className="space-y-4 flex-1 min-w-[300px]">
@@ -27,7 +33,14 @@ const TodoList = (props: TodoListFragment) => {
         title={title}
         style={{ borderColor: getColor(id) }}
       >
-        <h2 className="font-bold text-xl truncate">{title}</h2>
+        <h2 className="font-bold text-xl truncate">
+          <input
+            ref={inputRef}
+            defaultValue={title}
+            className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
+            onChange={(e) => todoListUpdate({ id, title: e.target.value })}
+          />
+        </h2>
         <div className="relative z-20">
           {fetching ? (
             <Spinner />
@@ -37,7 +50,8 @@ const TodoList = (props: TodoListFragment) => {
                 {
                   name: "Rename",
                   icon: PencilIcon,
-                  onClick: () => alert("todo"),
+                  onClick: () =>
+                    setTimeout(() => inputRef.current?.focus(), 100),
                 },
                 {
                   name: "Delete",
