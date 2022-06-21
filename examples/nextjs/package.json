@@ -21,9 +21,9 @@
   },
   "devDependencies": {
     "@graphql-codegen/cli": "2.6.2",
+    "@graphql-codegen/typed-document-node": "2.2.13",
     "@graphql-codegen/typescript": "2.4.11",
     "@graphql-codegen/typescript-operations": "2.4.0",
-    "@graphql-codegen/typescript-urql": "3.5.10",
     "@tailwindcss/forms": "^0.5.2",
     "@types/node": "17.0.42",
     "@types/react": "18.0.12",
