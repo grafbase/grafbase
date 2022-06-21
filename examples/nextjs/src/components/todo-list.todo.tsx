@@ -1,4 +1,5 @@
-import { useTodoDeleteMutation } from "graphql/schema";
+import { TodoDeleteDocument } from "graphql/schema";
+import { useMutation } from "urql";
 import { useMemo, useState } from "react";
 import { TrashIcon } from "@heroicons/react/outline";
 import Spinner from "components/spinner";
@@ -14,7 +15,7 @@ const TodoListTodo = (props: {
     () => ({ additionalTypenames: ["TodoList"] }),
     []
   );
-  const [{ fetching }, todoDelete] = useTodoDeleteMutation();
+  const [{ fetching }, todoDelete] = useMutation(TodoDeleteDocument);
 
   return (
     <div
