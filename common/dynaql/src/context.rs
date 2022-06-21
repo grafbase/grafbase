@@ -15,7 +15,6 @@ use http::header::{AsHeaderName, HeaderMap, IntoHeaderName};
 use http::HeaderValue;
 use serde::ser::{SerializeSeq, Serializer};
 use serde::Serialize;
-use ulid::Ulid;
 
 use crate::extensions::Extensions;
 use crate::parser::types::{
@@ -369,7 +368,7 @@ impl<'a, T> ContextBase<'a, T> {
                 executable_field: Some(field),
                 resolver: meta_field.and_then(|x| x.resolve.as_ref()),
                 transformers: meta_field.and_then(|x| x.transforms.as_ref()),
-                execution_id: Ulid::new(),
+                execution_id: ulid_rs::Ulid::new(),
                 selections,
                 variables: {
                     meta_field.map(|x| {
@@ -705,7 +704,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 ty: self.resolver_node.as_ref().and_then(|x| x.ty),
                 resolver: None,
                 transformers: None,
-                execution_id: Ulid::new(),
+                execution_id: ulid_rs::Ulid::new(),
                 selections,
                 variables: None,
             }),

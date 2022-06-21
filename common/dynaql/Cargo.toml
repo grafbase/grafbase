@@ -53,12 +53,12 @@ bytes = { version = "1", features = ["serde"] }
 mime = "0.3"
 num-traits = "0.2"
 fast_chemail = "0.9"
-ulid = "0.5"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
 logworker = { path = "../log", package = "log", optional = true, features = ["with-worker"] }
+ulid-rs = { path = "../ulid-rs" }
 
 # Feature optional dependencies
 bson = { version = "2", optional = true, features = ["chrono-0_4"] }
