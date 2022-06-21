@@ -1,6 +1,6 @@
 use crate::validation::visitor::{VisitMode, Visitor, VisitorContext};
 use crate::Positioned;
-use async_graphql_parser::types::Field;
+use dynaql_parser::types::Field;
 
 pub struct DepthCalculate<'a> {
     max_depth: &'a mut usize,

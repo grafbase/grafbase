@@ -10,7 +10,7 @@ mod executable;
 mod service;
 
 use crate::pos::Positioned;
-use async_graphql_value::{ConstValue, Name, Value};
+use dynaql_value::{ConstValue, Name, Value};
 use std::collections::{hash_map, HashMap};
 use std::fmt::{self, Display, Formatter, Write};
 

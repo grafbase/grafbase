@@ -11,11 +11,11 @@
 
 use self::debug::DebugResolver;
 use crate::{Context, Error};
-use async_graphql_parser::types::SelectionSet;
 use context_data::ContextDataResolver;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
+use dynaql_parser::types::SelectionSet;
 use ulid::Ulid;
 
 use super::{MetaField, MetaType};

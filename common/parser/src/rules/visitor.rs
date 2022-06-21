@@ -1,13 +1,13 @@
-use async_graphql::indexmap::IndexMap;
-use async_graphql::model::__Schema;
-use async_graphql::registry::relations::MetaRelation;
-use async_graphql::registry::{MetaField, Registry};
-use async_graphql::{Name, OutputType, Pos, Positioned, Schema};
-use async_graphql_parser::types::{
+use dynaql::indexmap::IndexMap;
+use dynaql::model::__Schema;
+use dynaql::registry::relations::MetaRelation;
+use dynaql::registry::{MetaField, Registry};
+use dynaql::{Name, OutputType, Pos, Positioned, Schema};
+use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
-use async_graphql_value::ConstValue;
+use dynaql_value::ConstValue;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
@@ -104,11 +104,11 @@ impl<'a> VisitorContext<'a> {
         registry.create_type(
             &mut |registry| {
                 let schema_type = __Schema::create_type_info(registry);
-                async_graphql::registry::MetaType::Object {
+                dynaql::registry::MetaType::Object {
                     name: "Query".to_owned(),
                     description: None,
                     fields: {
-                        let mut fields = async_graphql::indexmap::IndexMap::new();
+                        let mut fields = dynaql::indexmap::IndexMap::new();
                         fields.insert(
                             "__schema".to_string(),
                             MetaField {
@@ -134,7 +134,7 @@ impl<'a> VisitorContext<'a> {
                         }
                         fields
                     },
-                    cache_control: async_graphql::CacheControl {
+                    cache_control: dynaql::CacheControl {
                         public: true,
                         max_age: 0usize,
                     },
@@ -152,17 +152,17 @@ impl<'a> VisitorContext<'a> {
 
         if !self.mutations.is_empty() {
             registry.create_type(
-                &mut |_| async_graphql::registry::MetaType::Object {
+                &mut |_| dynaql::registry::MetaType::Object {
                     name: "Mutation".to_owned(),
                     description: None,
                     fields: {
-                        let mut fields = async_graphql::indexmap::IndexMap::new();
+                        let mut fields = dynaql::indexmap::IndexMap::new();
                         for mutation in &self.mutations {
                             fields.insert(mutation.name.clone(), mutation.clone());
                         }
                         fields
                     },
-                    cache_control: async_graphql::CacheControl {
+                    cache_control: dynaql::CacheControl {
                         public: true,
                         max_age: 0usize,
                     },

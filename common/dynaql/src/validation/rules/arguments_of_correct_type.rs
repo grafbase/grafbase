@@ -1,6 +1,6 @@
 use indexmap::map::IndexMap;
 
-use async_graphql_value::Value;
+use dynaql_value::Value;
 
 use crate::context::QueryPathNode;
 use crate::parser::types::{Directive, Field};

@@ -16,8 +16,8 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        field: &'a async_graphql::Positioned<async_graphql_parser::types::FieldDefinition>,
-        _parent_type: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        field: &'a dynaql::Positioned<dynaql_parser::types::FieldDefinition>,
+        _parent_type: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         let base_type = to_base_type_str(&field.node.ty.node.base);
         if is_type_primitive(&field.node) {
@@ -44,7 +44,7 @@ impl<'a> Visitor<'a> for CheckTypeValidity {
 mod tests {
     use crate::rules::check_type_validity::CheckTypeValidity;
     use crate::rules::visitor::{visit, VisitorContext};
-    use async_graphql_parser::parse_schema;
+    use dynaql_parser::parse_schema;
     use serde_json as _;
 
     #[test]

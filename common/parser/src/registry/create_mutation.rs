@@ -1,16 +1,16 @@
 use crate::rules::relations::generate_metarelation;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{is_modelized_node, to_base_type_str, to_defined_input_type, to_input_type, to_lower_camelcase};
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::relations::MetaRelation;
-use async_graphql::registry::{
+use case::CaseExt;
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::relations::MetaRelation;
+use dynaql::registry::{
     resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
     MetaType,
 };
-use async_graphql::Positioned;
-use async_graphql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
-use case::CaseExt;
+use dynaql::Positioned;
+use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
 
 /// Create an input type for a Node's Relation Create.
 ///
@@ -377,7 +377,7 @@ pub fn add_create_mutation<'a>(
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -412,8 +412,8 @@ pub fn add_create_mutation<'a>(
             args
         },
         ty: create_payload_name,
-        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-        cache_control: async_graphql::CacheControl {
+        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        cache_control: dynaql::CacheControl {
             public: true,
             max_age: 0usize,
         },
@@ -439,8 +439,8 @@ pub fn add_create_mutation<'a>(
  * TODO: Fix this
 #[cfg(test)]
 mod tests {
-    use async_graphql::{Name, Pos, Positioned, Schema};
-    use async_graphql_parser::types::{FieldDefinition, ObjectType, ServiceDocument, Type, TypeDefinition};
+    use dynaql::{Name, Pos, Positioned, Schema};
+    use dynaql_parser::types::{FieldDefinition, ObjectType, ServiceDocument, Type, TypeDefinition};
     use insta::assert_snapshot;
 
     use crate::rules::visitor::VisitorContext;
@@ -468,7 +468,7 @@ mod tests {
         };
 
         let fake_object_type_def = TypeDefinition {
-            kind: async_graphql_parser::types::TypeKind::Object(fake_object_ty.clone()),
+            kind: dynaql_parser::types::TypeKind::Object(fake_object_ty.clone()),
             description: None,
             name: Positioned {
                 pos: Pos { line: 1, column: 2 },

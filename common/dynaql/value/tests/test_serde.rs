@@ -1,6 +1,6 @@
 #![allow(unused_crate_dependencies)]
-use async_graphql_value::*;
 use bytes::Bytes;
+use dynaql_value::*;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;

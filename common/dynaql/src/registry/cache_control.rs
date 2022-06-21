@@ -3,7 +3,7 @@
 /// # Examples
 ///
 /// ```rust, ignore
-/// use async_graphql::*;
+/// use dynaql::*;
 ///
 /// struct Query;
 ///

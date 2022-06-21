@@ -209,16 +209,16 @@ pub use static_assertions;
 #[doc(hidden)]
 pub use subscription::SubscriptionType;
 
-pub use async_graphql_parser as parser;
-pub use async_graphql_value::{
-    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number,
-    SerializerError, Variables,
-};
 pub use base::{
     ComplexObject, Description, InputObjectType, InputType, InterfaceType, ObjectType, OutputType,
     UnionType,
 };
 pub use custom_directive::{CustomDirective, CustomDirectiveFactory};
+pub use dynaql_parser as parser;
+pub use dynaql_value::{
+    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number,
+    SerializerError, Variables,
+};
 pub use error::{
     Error, ErrorExtensionValues, ErrorExtensions, InputValueError, InputValueResult,
     ParseRequestError, PathSegment, Result, ResultExt, ServerError, ServerResult,
@@ -240,43 +240,43 @@ pub use context::*;
 pub use parser::{Pos, Positioned};
 pub use types::*;
 
-/// An alias of [async_graphql::Error](struct.Error.html). Present for backward compatibility
+/// An alias of [dynaql::Error](struct.Error.html). Present for backward compatibility
 /// reasons.
 pub type FieldError = Error;
 
-/// An alias of [async_graphql::Result](type.Result.html). Present for backward compatibility
+/// An alias of [dynaql::Result](type.Result.html). Present for backward compatibility
 /// reasons.
 pub type FieldResult<T> = Result<T>;
 
 #[doc = include_str!("docs/complex_object.md")]
-pub use async_graphql_derive::ComplexObject;
+pub use dynaql_derive::ComplexObject;
 #[doc = include_str!("docs/description.md")]
-pub use async_graphql_derive::Description;
+pub use dynaql_derive::Description;
 #[doc = include_str!("docs/directive.md")]
-pub use async_graphql_derive::Directive;
+pub use dynaql_derive::Directive;
 #[doc = include_str!("docs/enum.md")]
-pub use async_graphql_derive::Enum;
+pub use dynaql_derive::Enum;
 #[doc = include_str!("docs/input_object.md")]
-pub use async_graphql_derive::InputObject;
+pub use dynaql_derive::InputObject;
 #[doc = include_str!("docs/interface.md")]
-pub use async_graphql_derive::Interface;
+pub use dynaql_derive::Interface;
 #[doc = include_str!("docs/merged_object.md")]
-pub use async_graphql_derive::MergedObject;
+pub use dynaql_derive::MergedObject;
 #[doc = include_str!("docs/merged_subscription.md")]
-pub use async_graphql_derive::MergedSubscription;
+pub use dynaql_derive::MergedSubscription;
 #[doc = include_str!("docs/newtype.md")]
-pub use async_graphql_derive::NewType;
+pub use dynaql_derive::NewType;
 #[doc = include_str!("docs/object.md")]
-pub use async_graphql_derive::Object;
+pub use dynaql_derive::Object;
 #[cfg(feature = "unstable_oneof")]
 #[cfg_attr(docsrs, doc(cfg(feature = "unstable_oneof")))]
 #[doc = include_str!("docs/oneof_object.md")]
-pub use async_graphql_derive::OneofObject;
+pub use dynaql_derive::OneofObject;
 #[doc = include_str!("docs/scalar.md")]
-pub use async_graphql_derive::Scalar;
+pub use dynaql_derive::Scalar;
 #[doc = include_str!("docs/simple_object.md")]
-pub use async_graphql_derive::SimpleObject;
+pub use dynaql_derive::SimpleObject;
 #[doc = include_str!("docs/subscription.md")]
-pub use async_graphql_derive::Subscription;
+pub use dynaql_derive::Subscription;
 #[doc = include_str!("docs/union.md")]
-pub use async_graphql_derive::Union;
+pub use dynaql_derive::Union;

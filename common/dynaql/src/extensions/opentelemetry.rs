@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use async_graphql_parser::types::ExecutableDocument;
-use async_graphql_value::Variables;
+use dynaql_parser::types::ExecutableDocument;
+use dynaql_value::Variables;
 use futures_util::stream::BoxStream;
 use futures_util::TryFutureExt;
 use opentelemetry::trace::{FutureExt, SpanKind, TraceContextExt, Tracer};

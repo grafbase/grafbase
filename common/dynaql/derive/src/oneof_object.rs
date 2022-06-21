@@ -148,7 +148,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                 fn parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> {
                     if let ::std::option::Option::Some(#crate_name::Value::Object(mut obj)) = value {
                         #(#parse_item)*
-                        ::std::result::Result::Err(#crate_name::InputValueError::expected_type(async_graphql::Value::Object(obj)))
+                        ::std::result::Result::Err(#crate_name::InputValueError::expected_type(dynaql::Value::Object(obj)))
                     } else {
                         ::std::result::Result::Err(#crate_name::InputValueError::expected_type(value.unwrap_or_default()))
                     }
@@ -195,7 +195,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                 fn __internal_parse(value: ::std::option::Option<#crate_name::Value>) -> #crate_name::InputValueResult<Self> where Self: #crate_name::InputType {
                     if let ::std::option::Option::Some(#crate_name::Value::Object(mut obj)) = value {
                         #(#parse_item)*
-                        ::std::result::Result::Err(#crate_name::InputValueError::expected_type(async_graphql::Value::Object(obj)))
+                        ::std::result::Result::Err(#crate_name::InputValueError::expected_type(dynaql::Value::Object(obj)))
                     } else {
                         ::std::result::Result::Err(#crate_name::InputValueError::expected_type(value.unwrap_or_default()))
                     }

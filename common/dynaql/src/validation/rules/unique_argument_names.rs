@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use async_graphql_value::Value;
+use dynaql_value::Value;
 
 use crate::parser::types::{Directive, Field};
 use crate::validation::visitor::{Visitor, VisitorContext};

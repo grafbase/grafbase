@@ -6,7 +6,7 @@ use crate::parser::types::{
 use crate::validation::utils::{referenced_variables, Scope};
 use crate::validation::visitor::{Visitor, VisitorContext};
 use crate::{Name, Pos, Positioned};
-use async_graphql_value::Value;
+use dynaql_value::Value;
 
 #[derive(Default)]
 pub struct NoUndefinedVariables<'a> {

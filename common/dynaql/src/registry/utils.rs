@@ -1,4 +1,4 @@
-use async_graphql_parser::types::{BaseType, Type};
+use dynaql_parser::types::{BaseType, Type};
 use dynomite::AttributeValue;
 use std::collections::HashMap;
 use std::str::FromStr;

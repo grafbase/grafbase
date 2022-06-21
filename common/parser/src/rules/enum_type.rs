@@ -4,10 +4,10 @@
 //!
 //! TODO: Manage deprecation
 use super::visitor::{Visitor, VisitorContext};
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::MetaEnumValue;
-use async_graphql::registry::MetaType;
-use async_graphql_parser::types::TypeKind;
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::MetaEnumValue;
+use dynaql::registry::MetaType;
+use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
 
 pub struct EnumType;
@@ -16,7 +16,7 @@ impl<'a> Visitor<'a> for EnumType {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         if_chain! {
             if let TypeKind::Enum(enum_ty) = &type_definition.node.kind;
@@ -36,7 +36,7 @@ impl<'a> Visitor<'a> for EnumType {
                                 MetaEnumValue {
                                     name: enum_value.to_string(),
                                     description: v.node.description.clone().map(|x| x.node),
-                                    deprecation: async_graphql::registry::Deprecation::NoDeprecated,
+                                    deprecation: dynaql::registry::Deprecation::NoDeprecated,
                                     visible: None,
                                 }
                                 );

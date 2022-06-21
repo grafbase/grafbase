@@ -1,5 +1,5 @@
 [package]
-name = "async-graphql-derive"
+name = "dynaql-derive"
 version = "3.0.31"
 authors = ["sunli <scott_s829@163.com>", "Koxiaet"]
 edition = "2021"

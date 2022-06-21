@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use async_graphql_value::Value;
+use dynaql_value::Value;
 
 use crate::parser::types::{
     ExecutableDocument, FragmentDefinition, FragmentSpread, OperationDefinition, VariableDefinition,

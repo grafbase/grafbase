@@ -86,7 +86,7 @@ impl ServerError {
     /// # Examples
     ///
     /// ```rust, ignore
-    /// use async_graphql::*;
+    /// use dynaql::*;
     /// use std::io::ErrorKind;
     ///
     /// struct Query;

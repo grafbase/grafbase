@@ -8,7 +8,7 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
-use async_graphql_parser::Pos;
+use dynaql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -969,7 +969,7 @@ impl Registry {
                     description: None,
                     possible_types,
                     visible: None,
-                    rust_typename: "async_graphql::federation::Entity".to_string(),
+                    rust_typename: "dynaql::federation::Entity".to_string(),
                 },
             );
 
@@ -1072,7 +1072,7 @@ impl Registry {
                 visible: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "async_graphql::federation::Service".to_string(),
+                rust_typename: "dynaql::federation::Service".to_string(),
             },
         );
 

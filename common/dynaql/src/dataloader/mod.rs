@@ -3,11 +3,11 @@
 //! # Examples
 //!
 //! ```rust
-//! use async_graphql::*;
-//! use async_graphql::dataloader::*;
+//! use dynaql::*;
+//! use dynaql::dataloader::*;
 //! use std::collections::{HashSet, HashMap};
 //! use std::convert::Infallible;
-//! use async_graphql::dataloader::Loader;
+//! use dynaql::dataloader::Loader;
 //!
 //! /// This loader simply converts the integer key into a string value.
 //! struct MyLoader;

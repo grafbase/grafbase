@@ -1,6 +1,6 @@
 use std::fmt::{Error, Result as FmtResult, Write};
 
-use async_graphql_value::ConstValue;
+use dynaql_value::ConstValue;
 
 use crate::parser::types::{
     ExecutableDocument, FragmentDefinition, OperationType, Selection, SelectionSet,

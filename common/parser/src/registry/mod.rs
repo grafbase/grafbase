@@ -4,15 +4,15 @@
 //!
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{to_input_type, to_lower_camelcase};
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::transformers::Transformer;
-use async_graphql::registry::{
+use case::CaseExt;
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::transformers::Transformer;
+use dynaql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
-use async_graphql_parser::types::{FieldDefinition, ObjectType};
-use case::CaseExt;
+use dynaql_parser::types::{FieldDefinition, ObjectType};
 
 mod create_mutation;
 mod relations;
@@ -127,7 +127,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -261,7 +261,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -328,7 +328,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -395,8 +395,8 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
             args
         },
         ty: connection,
-        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-        cache_control: async_graphql::CacheControl {
+        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        cache_control: dynaql::CacheControl {
             public: true,
             max_age: 0usize,
         },
@@ -461,7 +461,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -496,8 +496,8 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
             args
         },
         ty: delete_payload_name,
-        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-        cache_control: async_graphql::CacheControl {
+        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        cache_control: dynaql::CacheControl {
             public: true,
             max_age: 0usize,
         },

@@ -6,11 +6,11 @@
 use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::transformers::Transformer;
-use async_graphql::registry::MetaField;
-use async_graphql::registry::MetaType;
-use async_graphql_parser::types::TypeKind;
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::transformers::Transformer;
+use dynaql::registry::MetaField;
+use dynaql::registry::MetaType;
+use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
 
 pub struct BasicType;
@@ -19,7 +19,7 @@ impl<'a> Visitor<'a> for BasicType {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -59,7 +59,7 @@ impl<'a> Visitor<'a> for BasicType {
                         };
                         fields
                     },
-                    cache_control: async_graphql::CacheControl {
+                    cache_control: dynaql::CacheControl {
                         public: true,
                         max_age: 0usize,
                     },

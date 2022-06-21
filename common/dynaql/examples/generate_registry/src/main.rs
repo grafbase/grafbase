@@ -1,14 +1,14 @@
-use async_graphql::model::__Schema;
-use async_graphql::registry::DebugResolver;
-use async_graphql::registry::DynamoResolver;
-use async_graphql::registry::MetaField;
-use async_graphql::registry::MetaInputValue;
-use async_graphql::registry::Registry;
-use async_graphql::registry::Resolver;
-use async_graphql::registry::ResolverType;
-use async_graphql::registry::Transformer;
-use async_graphql::OutputType;
-use async_graphql::Schema;
+use dynaql::model::__Schema;
+use dynaql::registry::DebugResolver;
+use dynaql::registry::DynamoResolver;
+use dynaql::registry::MetaField;
+use dynaql::registry::MetaInputValue;
+use dynaql::registry::Registry;
+use dynaql::registry::Resolver;
+use dynaql::registry::ResolverType;
+use dynaql::registry::Transformer;
+use dynaql::OutputType;
+use dynaql::Schema;
 use std::io::Write;
 /*
  *
@@ -29,11 +29,11 @@ pub struct Account {
 async fn main() {
     let mut registry = Schema::create_registry();
     registry.create_type(
-        &mut |_| async_graphql::registry::MetaType::Object {
+        &mut |_| dynaql::registry::MetaType::Object {
             name: "Account".to_owned(),
             description: None,
             fields: {
-                let mut fields = async_graphql::indexmap::IndexMap::new();
+                let mut fields = dynaql::indexmap::IndexMap::new();
                 fields.insert(
                     "id".to_string(),
                     MetaField {
@@ -96,7 +96,7 @@ async fn main() {
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -112,11 +112,11 @@ async fn main() {
 
     // Add User type
     registry.create_type(
-        &mut |_| async_graphql::registry::MetaType::Object {
+        &mut |_| dynaql::registry::MetaType::Object {
             name: "User".to_owned(),
             description: None,
             fields: {
-                let mut fields = async_graphql::indexmap::IndexMap::new();
+                let mut fields = dynaql::indexmap::IndexMap::new();
                 fields.insert(
                     "id".to_string(),
                     MetaField {
@@ -219,7 +219,7 @@ async fn main() {
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -237,11 +237,11 @@ async fn main() {
     registry.create_type(
         &mut |registry| {
             let schema_type = __Schema::create_type_info(registry);
-            async_graphql::registry::MetaType::Object {
+            dynaql::registry::MetaType::Object {
                 name: "Query".to_owned(),
                 description: None,
                 fields: {
-                    let mut fields = async_graphql::indexmap::IndexMap::new();
+                    let mut fields = dynaql::indexmap::IndexMap::new();
                     fields.insert(
                         "__schema".to_string(),
                         MetaField {
@@ -264,11 +264,11 @@ async fn main() {
                     );
                     fields.insert(
                         ::std::borrow::ToOwned::to_owned("userByID"),
-                        async_graphql::registry::MetaField {
+                        dynaql::registry::MetaField {
                             name: ::std::borrow::ToOwned::to_owned("userByID"),
                             description: ::std::option::Option::None,
                             args: {
-                                let mut args = async_graphql::indexmap::IndexMap::new();
+                                let mut args = dynaql::indexmap::IndexMap::new();
                                 args.insert(
                                     "id".to_owned(),
                                     MetaInputValue {
@@ -283,8 +283,8 @@ async fn main() {
                                 args
                             },
                             ty: "User".to_owned(),
-                            deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-                            cache_control: async_graphql::CacheControl {
+                            deprecation: dynaql::registry::Deprecation::NoDeprecated,
+                            cache_control: dynaql::CacheControl {
                                 public: true,
                                 max_age: 0usize,
                             },
@@ -296,8 +296,12 @@ async fn main() {
                             resolve: Some(Resolver {
                                 id: Some("id-user".to_string()),
                                 r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                                    pk: async_graphql::registry::VariableResolveDefinition::InputTypeName("id".to_string()),
-                                    sk: async_graphql::registry::VariableResolveDefinition::InputTypeName("id".to_string())
+                                    pk: dynaql::registry::VariableResolveDefinition::InputTypeName(
+                                        "id".to_string(),
+                                    ),
+                                    sk: dynaql::registry::VariableResolveDefinition::InputTypeName(
+                                        "id".to_string(),
+                                    ),
                                 }),
                             }),
                             transforms: None,
@@ -305,11 +309,11 @@ async fn main() {
                     );
                     fields.insert(
                         ::std::borrow::ToOwned::to_owned("accountByID"),
-                        async_graphql::registry::MetaField {
+                        dynaql::registry::MetaField {
                             name: ::std::borrow::ToOwned::to_owned("accountByID"),
                             description: ::std::option::Option::None,
                             args: {
-                                let mut args = async_graphql::indexmap::IndexMap::new();
+                                let mut args = dynaql::indexmap::IndexMap::new();
                                 args.insert(
                                     "id".to_owned(),
                                     MetaInputValue {
@@ -324,8 +328,8 @@ async fn main() {
                                 args
                             },
                             ty: "Account".to_owned(),
-                            deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-                            cache_control: async_graphql::CacheControl {
+                            deprecation: dynaql::registry::Deprecation::NoDeprecated,
+                            cache_control: dynaql::CacheControl {
                                 public: true,
                                 max_age: 0usize,
                             },
@@ -337,8 +341,12 @@ async fn main() {
                             resolve: Some(Resolver {
                                 id: Some("id-account".to_string()),
                                 r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                                    pk: async_graphql::registry::VariableResolveDefinition::InputTypeName("id".to_string()),
-                                    sk: async_graphql::registry::VariableResolveDefinition::InputTypeName("id".to_string())
+                                    pk: dynaql::registry::VariableResolveDefinition::InputTypeName(
+                                        "id".to_string(),
+                                    ),
+                                    sk: dynaql::registry::VariableResolveDefinition::InputTypeName(
+                                        "id".to_string(),
+                                    ),
                                 }),
                             }),
                             transforms: None,
@@ -346,7 +354,7 @@ async fn main() {
                     );
                     fields
                 },
-                cache_control: async_graphql::CacheControl {
+                cache_control: dynaql::CacheControl {
                     public: true,
                     max_age: 0usize,
                 },

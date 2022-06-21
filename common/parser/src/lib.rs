@@ -1,5 +1,5 @@
-use async_graphql::registry::Registry;
-use async_graphql_parser::{parse_schema, Error as ParserError};
+use dynaql::registry::Registry;
+use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::basic_type::BasicType;
 use rules::check_field_not_reserved::CheckModelizedFieldReserved;
@@ -55,7 +55,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
 
 #[cfg(test)]
 mod tests {
-    use async_graphql::Schema;
+    use dynaql::Schema;
     use serde_json as _;
 
     #[test]

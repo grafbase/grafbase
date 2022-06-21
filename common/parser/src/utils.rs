@@ -1,7 +1,7 @@
 use crate::rules::model_directive::MODEL_DIRECTIVE;
-use async_graphql::{Name, Positioned};
-use async_graphql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
 use case::CaseExt;
+use dynaql::{Name, Positioned};
+use dynaql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
 use std::borrow::Cow;
 use std::collections::HashMap;
 

@@ -1,4 +1,4 @@
-use async_graphql_parser::types::BaseType;
+use dynaql_parser::types::BaseType;
 
 use crate::context::QueryPathNode;
 use crate::parser::types::VariableDefinition;

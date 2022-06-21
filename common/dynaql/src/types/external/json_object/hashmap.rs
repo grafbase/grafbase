@@ -4,9 +4,9 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::str::FromStr;
 
-use async_graphql_parser::types::Field;
-use async_graphql_parser::Positioned;
-use async_graphql_value::{from_value, to_value};
+use dynaql_parser::types::Field;
+use dynaql_parser::Positioned;
+use dynaql_value::{from_value, to_value};
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;

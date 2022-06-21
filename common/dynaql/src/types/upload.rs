@@ -66,7 +66,7 @@ impl UploadValue {
 /// *[Full Example](<https://github.com/async-graphql/examples/blob/master/models/files/src/lib.rs>)*
 ///
 /// ```
-/// use async_graphql::*;
+/// use dynaql::*;
 ///
 /// struct Mutation;
 ///

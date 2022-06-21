@@ -12,7 +12,7 @@ pub const fn relations_rules() -> VisitorCons<relations_engine::RelationEngine, 
 mod tests {
     use super::relations_rules;
     use crate::rules::visitor::{visit, VisitorContext};
-    use async_graphql_parser::parse_schema;
+    use dynaql_parser::parse_schema;
     use insta::assert_debug_snapshot;
     use serde_json as _;
 

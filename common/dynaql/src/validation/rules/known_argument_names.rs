@@ -1,4 +1,4 @@
-use async_graphql_value::Value;
+use dynaql_value::Value;
 use indexmap::map::IndexMap;
 
 use crate::parser::types::{Directive, Field};

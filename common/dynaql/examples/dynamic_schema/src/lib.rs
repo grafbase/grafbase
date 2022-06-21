@@ -1,17 +1,17 @@
 #![allow(clippy::unused_unit)] // for worker::event macro
 #![allow(clippy::future_not_send)] // for main
 
-use async_graphql::model::__Schema;
-use async_graphql::registry::DebugResolver;
-use async_graphql::registry::MetaField;
-use async_graphql::registry::MetaInputValue;
-use async_graphql::registry::Registry;
-use async_graphql::registry::Resolver;
-use async_graphql::registry::ResolverType;
-use async_graphql::OutputType;
-use async_graphql::Schema;
 use dynamodb as _;
 use dynamodb::DynamoDBContext;
+use dynaql::model::__Schema;
+use dynaql::registry::DebugResolver;
+use dynaql::registry::MetaField;
+use dynaql::registry::MetaInputValue;
+use dynaql::registry::Registry;
+use dynaql::registry::Resolver;
+use dynaql::registry::ResolverType;
+use dynaql::OutputType;
+use dynaql::Schema;
 use std::io::Write;
 use worker::*;
 
@@ -100,7 +100,7 @@ pub async fn main(req: Request, env: Env, context: Context) -> Result<Response> 
                 .with_methods([Method::Get, Method::Options, Method::Post])
                 .with_origins(["*"]);
 
-            let gql_req: async_graphql::Request = serde_json::from_str(&req.text().await?)?;
+            let gql_req: dynaql::Request = serde_json::from_str(&req.text().await?)?;
             let gql_res = schema.execute(gql_req).await;
 
             Response::from_json(&gql_res).and_then(|res| res.with_cors(&cors))

@@ -4,11 +4,11 @@ use crate::registry::{
 };
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
-use async_graphql_parser::{
+use dynaql_parser::{
     types::{Field, SelectionSet},
     Positioned,
 };
-use async_graphql_value::{Name, Value};
+use dynaql_value::{Name, Value};
 
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};

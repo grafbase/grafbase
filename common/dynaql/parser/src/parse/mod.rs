@@ -15,7 +15,7 @@ mod executable;
 mod service;
 mod utils;
 
-use async_graphql_value::{ConstValue, Name, Number, Value};
+use dynaql_value::{ConstValue, Name, Number, Value};
 pub use executable::parse_query;
 pub use service::parse_schema;
 

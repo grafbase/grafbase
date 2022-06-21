@@ -13,7 +13,7 @@
 #![forbid(unsafe_code)]
 
 use crate::types::OperationType;
-use async_graphql_value::Name;
+use dynaql_value::Name;
 use pest::error::LineColLocation;
 use pest::RuleType;
 use serde::{Serialize, Serializer};

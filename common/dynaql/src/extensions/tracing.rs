@@ -21,8 +21,8 @@ use crate::{Response, ServerError, ServerResult, ValidationResult, Value, Variab
 /// # Examples
 ///
 /// ```no_run
-/// use async_graphql::*;
-/// use async_graphql::extensions::Tracing;
+/// use dynaql::*;
+/// use dynaql::extensions::Tracing;
 ///
 /// #[derive(SimpleObject)]
 /// struct Query {
@@ -54,7 +54,7 @@ impl Extension for TracingExtension {
     async fn request(&self, ctx: &ExtensionContext<'_>, next: NextRequest<'_>) -> Response {
         next.run(ctx)
             .instrument(span!(
-                target: "async_graphql::graphql",
+                target: "dynaql::graphql",
                 Level::INFO,
                 "request",
             ))
@@ -68,7 +68,7 @@ impl Extension for TracingExtension {
         next: NextSubscribe<'_>,
     ) -> BoxStream<'s, Response> {
         Box::pin(next.run(ctx, stream).instrument(span!(
-            target: "async_graphql::graphql",
+            target: "dynaql::graphql",
             Level::INFO,
             "subscribe",
         )))
@@ -82,7 +82,7 @@ impl Extension for TracingExtension {
         next: NextParseQuery<'_>,
     ) -> ServerResult<ExecutableDocument> {
         let span = span!(
-            target: "async_graphql::graphql",
+            target: "dynaql::graphql",
             Level::INFO,
             "parse",
         );
@@ -106,7 +106,7 @@ impl Extension for TracingExtension {
         next: NextValidation<'_>,
     ) -> Result<ValidationResult, Vec<ServerError>> {
         let span = span!(
-            target: "async_graphql::graphql",
+            target: "dynaql::graphql",
             Level::INFO,
             "validation"
         );
@@ -120,7 +120,7 @@ impl Extension for TracingExtension {
         next: NextExecute<'_>,
     ) -> Response {
         let span = span!(
-            target: "async_graphql::graphql",
+            target: "dynaql::graphql",
             Level::INFO,
             "execute"
         );
@@ -134,7 +134,7 @@ impl Extension for TracingExtension {
         next: NextResolve<'_>,
     ) -> ServerResult<Option<Value>> {
         let span = span!(
-            target: "async_graphql::graphql",
+            target: "dynaql::graphql",
             Level::INFO,
             "field",
             path = %info.path_node,
@@ -143,7 +143,7 @@ impl Extension for TracingExtension {
         );
         next.run(ctx, info)
             .map_err(|err| {
-                tracinglib::info!(target: "async_graphql::graphql",
+                tracinglib::info!(target: "dynaql::graphql",
                                   error = %err.message,
                                   "error");
                 err

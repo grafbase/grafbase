@@ -1,7 +1,7 @@
 //! Service-related GraphQL types.
 
 use super::*;
-use async_graphql_value::Name;
+use dynaql_value::Name;
 
 /// A GraphQL file or request string defining a GraphQL service.
 ///

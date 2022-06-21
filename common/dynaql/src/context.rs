@@ -8,7 +8,7 @@ use std::ops::Deref;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, RwLock};
 
-use async_graphql_value::{Value as InputValue, Variables};
+use dynaql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
 use futures_util::Future;
 use http::header::{AsHeaderName, HeaderMap, IntoHeaderName};
@@ -469,7 +469,7 @@ impl<'a, T> ContextBase<'a, T> {
     /// # Examples
     ///
     /// ```no_run
-    /// use async_graphql::*;
+    /// use dynaql::*;
     /// use ::http::header::ACCESS_CONTROL_ALLOW_ORIGIN;
     ///
     /// struct Query;
@@ -511,7 +511,7 @@ impl<'a, T> ContextBase<'a, T> {
     /// # Examples
     ///
     /// ```no_run
-    /// use async_graphql::*;
+    /// use dynaql::*;
     /// use ::http::header::ACCESS_CONTROL_ALLOW_ORIGIN;
     /// use ::http::HeaderValue;
     ///
@@ -568,7 +568,7 @@ impl<'a, T> ContextBase<'a, T> {
     /// # Examples
     ///
     /// ```no_run
-    /// use async_graphql::*;
+    /// use dynaql::*;
     /// use ::http::header::SET_COOKIE;
     ///
     /// struct Query;
@@ -764,7 +764,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     /// # Examples
     ///
     /// ```no_run
-    /// use async_graphql::*;
+    /// use dynaql::*;
     ///
     /// #[derive(SimpleObject)]
     /// struct Detail {
@@ -804,7 +804,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     /// # Examples
     ///
     /// ```rust, ignore
-    /// use async_graphql::*;
+    /// use dynaql::*;
     ///
     /// #[derive(SimpleObject)]
     /// struct MyObj {

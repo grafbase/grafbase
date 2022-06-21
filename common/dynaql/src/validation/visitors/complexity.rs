@@ -1,5 +1,5 @@
-use async_graphql_parser::types::{ExecutableDocument, OperationDefinition, VariableDefinition};
-use async_graphql_value::Name;
+use dynaql_parser::types::{ExecutableDocument, OperationDefinition, VariableDefinition};
+use dynaql_value::Name;
 
 use crate::parser::types::Field;
 use crate::registry::{ComplexityType, MetaType, MetaTypeName};

@@ -4,12 +4,12 @@ use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
 use crate::{Context, Error, ServerError, Value};
-use async_graphql_value::Name;
 use chrono::Utc;
 use dynamodb::{
     BatchGetItemLoaderError, DynamoDBBatchersData, DynamoDBContext, QueryKey, TransactionError,
     TxItem,
 };
+use dynaql_value::Name;
 use dynomite::dynamodb::{Delete, Put, TransactWriteItem, Update};
 use dynomite::{Attribute, AttributeValue};
 use futures_util::future::Shared;

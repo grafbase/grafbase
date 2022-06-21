@@ -7,7 +7,7 @@
 //! resolve this variable.
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError};
-use async_graphql_value::Name;
+use dynaql_value::Name;
 use indexmap::IndexMap;
 
 pub mod id;

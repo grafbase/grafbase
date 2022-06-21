@@ -2828,7 +2828,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__Directive",
-        "rust_typename": "async_graphql::model::directive::__Directive"
+        "rust_typename": "dynaql::model::directive::__Directive"
       }
     },
     "__DirectiveLocation": {
@@ -2932,7 +2932,7 @@ expression: reg_string
           }
         },
         "name": "__DirectiveLocation",
-        "rust_typename": "async_graphql::model::directive::__DirectiveLocation"
+        "rust_typename": "dynaql::model::directive::__DirectiveLocation"
       }
     },
     "__EnumValue": {
@@ -3021,7 +3021,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__EnumValue",
-        "rust_typename": "async_graphql::model::enum_value::__EnumValue"
+        "rust_typename": "dynaql::model::enum_value::__EnumValue"
       }
     },
     "__Field": {
@@ -3146,7 +3146,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__Field",
-        "rust_typename": "async_graphql::model::field::__Field"
+        "rust_typename": "dynaql::model::field::__Field"
       }
     },
     "__InputValue": {
@@ -3235,7 +3235,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__InputValue",
-        "rust_typename": "async_graphql::model::input_value::__InputValue"
+        "rust_typename": "dynaql::model::input_value::__InputValue"
       }
     },
     "__Schema": {
@@ -3342,7 +3342,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__Schema",
-        "rust_typename": "async_graphql::model::schema::__Schema"
+        "rust_typename": "dynaql::model::schema::__Schema"
       }
     },
     "__Type": {
@@ -3555,7 +3555,7 @@ expression: reg_string
         "is_subscription": false,
         "keys": null,
         "name": "__Type",
-        "rust_typename": "async_graphql::model::type::__Type"
+        "rust_typename": "dynaql::model::type::__Type"
       }
     },
     "__TypeKind": {
@@ -3604,7 +3604,7 @@ expression: reg_string
           }
         },
         "name": "__TypeKind",
-        "rust_typename": "async_graphql::model::kind::__TypeKind"
+        "rust_typename": "dynaql::model::kind::__TypeKind"
       }
     }
   }

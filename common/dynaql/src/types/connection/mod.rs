@@ -25,8 +25,8 @@ pub struct EmptyFields;
 /// # Examples
 ///
 /// ```rust, ignore
-/// use async_graphql::*;
-/// use async_graphql::connection::*;
+/// use dynaql::*;
+/// use dynaql::connection::*;
 ///
 /// struct Query;
 ///
@@ -115,8 +115,8 @@ where
 /// # Examples
 ///
 /// ```rust, ignore
-/// use async_graphql::*;
-/// use async_graphql::connection::*;
+/// use dynaql::*;
+/// use dynaql::connection::*;
 ///
 /// #[derive(SimpleObject)]
 /// struct MyEdge {

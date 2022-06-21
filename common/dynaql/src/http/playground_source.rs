@@ -9,7 +9,7 @@ use crate::Value;
 /// # Example
 ///
 /// ```rust
-/// use async_graphql::http::*;
+/// use dynaql::http::*;
 ///
 /// playground_source(GraphQLPlaygroundConfig::new("http://localhost:8000"));
 /// ```
@@ -603,8 +603,8 @@ impl<'a> GraphQLPlaygroundConfig<'a> {
     /// Set Playground setting for per query.
     ///
     /// ```
-    /// # use async_graphql::Value;
-    /// # use async_graphql::http::GraphQLPlaygroundConfig;
+    /// # use dynaql::Value;
+    /// # use dynaql::http::GraphQLPlaygroundConfig;
     /// GraphQLPlaygroundConfig::new("/api/graphql")
     ///     .with_setting("setting", false)
     ///     .with_setting("other", Value::Null);

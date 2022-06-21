@@ -25,16 +25,16 @@ use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::resolvers::context_data::ContextDataResolver;
-use async_graphql::registry::resolvers::dynamo_querying::DynamoResolver;
-use async_graphql::registry::MetaField;
-use async_graphql::registry::MetaInputValue;
-use async_graphql::registry::MetaType;
-use async_graphql::registry::{
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::resolvers::context_data::ContextDataResolver;
+use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
+use dynaql::registry::MetaField;
+use dynaql::registry::MetaInputValue;
+use dynaql::registry::MetaType;
+use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
-use async_graphql_parser::types::TypeKind;
+use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
 
 pub struct ModelDirective;
@@ -52,7 +52,7 @@ impl<'a> Visitor<'a> for ModelDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -143,7 +143,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         };
                         fields
                     },
-                    cache_control: async_graphql::CacheControl {
+                    cache_control: dynaql::CacheControl {
                         public: true,
                         max_age: 0usize,
                     },
@@ -175,8 +175,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                         args
                     },
                     ty: type_name.clone(),
-                    deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-                    cache_control: async_graphql::CacheControl {
+                    deprecation: dynaql::registry::Deprecation::NoDeprecated,
+                    cache_control: dynaql::CacheControl {
                         public: true,
                         max_age: 0usize,
                     },

@@ -1,5 +1,5 @@
 use crate::ServerError;
-use async_graphql_parser::Pos;
+use dynaql_parser::Pos;
 use std::fmt::{Debug, Display};
 use thiserror::Error;
 

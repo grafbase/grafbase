@@ -25,7 +25,7 @@ pub trait ContainerType: OutputType {
         false
     }
 
-    /// Resolves a field value and outputs it as a json value `async_graphql::Value`.
+    /// Resolves a field value and outputs it as a json value `dynaql::Value`.
     ///
     /// If the field was not found returns None.
     async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>>;

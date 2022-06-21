@@ -1,14 +1,14 @@
 #![allow(clippy::unused_unit)] // for worker::event macro
 #![allow(clippy::future_not_send)] // for main
 
-use async_graphql::EmptyMutation;
-use async_graphql::EmptySubscription;
-use async_graphql::FieldResult;
-use async_graphql::Schema;
-use async_graphql::ID;
+use dynaql::EmptyMutation;
+use dynaql::EmptySubscription;
+use dynaql::FieldResult;
+use dynaql::Schema;
+use dynaql::ID;
 use worker::*;
 
-#[derive(async_graphql::SimpleObject)]
+#[derive(dynaql::SimpleObject)]
 struct Product {
     id: ID,
     price: i32,
@@ -16,7 +16,7 @@ struct Product {
 
 struct Query;
 
-#[async_graphql::Object]
+#[dynaql::Object]
 impl Query {
     async fn product_by_id(&self, id: ID) -> FieldResult<Product> {
         Ok(Product { id, price: 12 })
@@ -64,7 +64,7 @@ pub async fn main(req: Request, env: Env, context: Context) -> Result<Response> 
                 .with_methods([Method::Get, Method::Options, Method::Post])
                 .with_origins(["*"]);
 
-            let gql_req: async_graphql::Request = serde_json::from_str(&req.text().await?)?;
+            let gql_req: dynaql::Request = serde_json::from_str(&req.text().await?)?;
             let gql_res = schema.execute(gql_req).await;
 
             Response::from_json(&gql_res).and_then(|res| res.with_cors(&cors))

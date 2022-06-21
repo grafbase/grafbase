@@ -1,5 +1,5 @@
 [package]
-name = "async-graphql"
+name = "dynaql"
 version = "3.0.31"
 authors = ["sunli <scott_s829@163.com>", "Koxiaet"]
 edition = "2021"
@@ -24,13 +24,13 @@ decimal = ["rust_decimal"]
 cbor = ["serde_cbor"]
 chrono-duration = ["iso8601-duration"]
 password-strength-validator = ["zxcvbn"]
-unstable_oneof = ["async-graphql-derive/unstable_oneof"]
+unstable_oneof = ["dynaql-derive/unstable_oneof"]
 tracing_worker = ["logworker"]
 
 [dependencies]
-async-graphql-derive = { path = "derive", version = "3.0.31" }
-async-graphql-value = { path = "value", version = "3.0.31" }
-async-graphql-parser = { path = "parser", version = "3.0.31" }
+dynaql-derive = { path = "derive", version = "3.0.31" }
+dynaql-value = { path = "value", version = "3.0.31" }
+dynaql-parser = { path = "parser", version = "3.0.31" }
 
 async-stream = "0.3.0"
 async-trait = "0.1.48"

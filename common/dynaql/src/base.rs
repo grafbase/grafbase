@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
-use async_graphql_value::ConstValue;
+use dynaql_value::ConstValue;
 
 use crate::parser::types::Field;
 use crate::registry::{self, Registry};
@@ -75,7 +75,7 @@ pub trait OutputType: Send + Sync {
     /// Create type information in the registry and return qualified typename.
     fn create_type_info(registry: &mut registry::Registry) -> String;
 
-    /// Resolve an output value to `async_graphql::Value`.
+    /// Resolve an output value to `dynaql::Value`.
     async fn resolve(
         &self,
         ctx: &ContextSelectionSet<'_>,

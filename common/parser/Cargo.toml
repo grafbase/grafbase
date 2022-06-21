@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql-parser = { path = "../dynaql/parser", package = "async-graphql-parser" }
-async-graphql-value = { path = "../dynaql/value", package = "async-graphql-value" }
-async-graphql = { path = "../dynaql", features = ["tracing_worker"] }
+dynaql-parser = { path = "../dynaql/parser" }
+dynaql-value = { path = "../dynaql/value" }
+dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 case = "1.0.0"
 if_chain = "1.0.2"
 quick-error = "2"

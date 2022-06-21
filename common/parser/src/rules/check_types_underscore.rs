@@ -21,8 +21,8 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        field: &'a async_graphql::Positioned<async_graphql_parser::types::FieldDefinition>,
-        parent: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        field: &'a dynaql::Positioned<dynaql_parser::types::FieldDefinition>,
+        parent: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         if_chain! {
             let name = &field.node.name.node;
@@ -43,7 +43,7 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
 mod tests {
     use crate::rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
     use crate::rules::visitor::{visit, VisitorContext};
-    use async_graphql_parser::parse_schema;
+    use dynaql_parser::parse_schema;
     use serde_json as _;
 
     #[test]

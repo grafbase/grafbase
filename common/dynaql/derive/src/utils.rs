@@ -41,7 +41,7 @@ pub fn get_crate_name(internal: bool) -> TokenStream {
     } else {
         let name = match crate_name("async-graphql") {
             Ok(FoundCrate::Name(name)) => name,
-            Ok(FoundCrate::Itself) | Err(_) => "async_graphql".to_string(),
+            Ok(FoundCrate::Itself) | Err(_) => "dynaql".to_string(),
         };
         TokenTree::from(Ident::new(&name, Span::call_site())).into()
     }

@@ -1,5 +1,5 @@
 use super::*;
-use async_graphql_value::Name;
+use dynaql_value::Name;
 
 /// Parse a GraphQL query document.
 ///

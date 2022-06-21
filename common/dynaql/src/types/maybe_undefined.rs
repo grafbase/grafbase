@@ -12,7 +12,7 @@ use crate::{registry, InputType, InputValueError, InputValueResult, Value};
 /// # Examples
 ///
 /// ```rust, ignore
-/// use async_graphql::*;
+/// use dynaql::*;
 ///
 /// struct Query;
 ///

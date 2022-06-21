@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
 
-use async_graphql_value::Value;
+use dynaql_value::Value;
 
 use crate::parser::types::{
     Directive, ExecutableDocument, Field, FragmentDefinition, FragmentSpread, InlineFragment,

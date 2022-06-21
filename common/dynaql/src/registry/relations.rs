@@ -1,4 +1,4 @@
-use async_graphql_parser::types::{BaseType, Type};
+use dynaql_parser::types::{BaseType, Type};
 
 #[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize)]
 pub enum MetaRelationKind {

@@ -1,16 +1,16 @@
 use crate::rules::relations::generate_metarelation;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{is_modelized_node, to_base_type_str, to_defined_input_type, to_input_type, to_lower_camelcase};
-use async_graphql::indexmap::IndexMap;
-use async_graphql::registry::relations::MetaRelation;
-use async_graphql::registry::{
+use case::CaseExt;
+use dynaql::indexmap::IndexMap;
+use dynaql::registry::relations::MetaRelation;
+use dynaql::registry::{
     resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
     MetaType,
 };
-use async_graphql::Positioned;
-use async_graphql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
-use case::CaseExt;
+use dynaql::Positioned;
+use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
 
 /// Create an input type for a Node's Relation.
 ///
@@ -324,7 +324,7 @@ pub fn add_update_mutation<'a>(
                 );
                 fields
             },
-            cache_control: async_graphql::CacheControl {
+            cache_control: dynaql::CacheControl {
                 public: true,
                 max_age: 0usize,
             },
@@ -370,8 +370,8 @@ pub fn add_update_mutation<'a>(
             args
         },
         ty: create_payload_name,
-        deprecation: async_graphql::registry::Deprecation::NoDeprecated,
-        cache_control: async_graphql::CacheControl {
+        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        cache_control: dynaql::CacheControl {
             public: true,
             max_age: 0usize,
         },
@@ -396,9 +396,9 @@ pub fn add_update_mutation<'a>(
 
 #[cfg(test)]
 mod tests {
-    use async_graphql::Schema;
-    use async_graphql_parser::parse_schema;
-    use async_graphql_parser::types::{TypeKind, TypeSystemDefinition};
+    use dynaql::Schema;
+    use dynaql_parser::parse_schema;
+    use dynaql_parser::types::{TypeKind, TypeSystemDefinition};
     use insta::{assert_json_snapshot, assert_snapshot};
 
     use crate::rules::visitor::VisitorContext;

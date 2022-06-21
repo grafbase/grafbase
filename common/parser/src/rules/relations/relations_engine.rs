@@ -2,10 +2,10 @@
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use crate::utils::is_modelized_node;
 use crate::{Visitor, VisitorContext};
-use async_graphql::indexmap::map::Entry;
-use async_graphql::registry::relations::MetaRelation;
-use async_graphql::Value;
-use async_graphql_parser::types::{FieldDefinition, Type, TypeDefinition, TypeKind};
+use dynaql::indexmap::map::Entry;
+use dynaql::registry::relations::MetaRelation;
+use dynaql::Value;
+use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition, TypeKind};
 use if_chain::if_chain;
 
 /// Implement the Relation Engine
@@ -64,7 +64,7 @@ impl<'a> Visitor<'a> for RelationEngine {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a async_graphql::Positioned<async_graphql_parser::types::TypeDefinition>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
@@ -106,7 +106,7 @@ impl<'a> Visitor<'a> for RelationEngine {
 mod tests {
     use super::RelationEngine;
     use crate::rules::visitor::{visit, VisitorContext};
-    use async_graphql_parser::parse_schema;
+    use dynaql_parser::parse_schema;
     use insta::assert_debug_snapshot;
     use serde_json as _;
 
