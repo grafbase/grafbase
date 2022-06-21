@@ -19,7 +19,7 @@ type Foo implements Bar & Baz {
   three(argument: InputType, other: String): Int
   four(argument: String = "string"): String
   five(argument: [String] = ["string", "string"]): String
-  six(argument: InputType = {key: "value"}): Type
+  six(argument: InputType = { key: "value" }): Type
   seven(argument: Int = null): Type
 }
 
@@ -56,7 +56,7 @@ union Feed = Story | Article | Advert
 
 union AnnotatedUnion @onUnion = A | B
 
-union AnnotatedUnionTwo @onUnion = | A | B
+union AnnotatedUnionTwo @onUnion = A | B
 
 union UndefinedUnion
 
@@ -107,12 +107,6 @@ extend input InputType @onInputObject
 
 directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 
-directive @include(if: Boolean!)
-  on FIELD
-   | FRAGMENT_SPREAD
-   | INLINE_FRAGMENT
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
 
-directive @include2(if: Boolean!) on
-  | FIELD
-  | FRAGMENT_SPREAD
-  | INLINE_FRAGMENT
+directive @include2(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT

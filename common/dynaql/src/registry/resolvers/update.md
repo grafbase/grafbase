@@ -16,7 +16,6 @@ This GSI3 will allow us to optimize fetch relations in the future.
 
 A new attribute will be necessary inside the relation: `__relation_name`
 
-
 ## Parser
 
 From the Parser side, we'll need to generate the relations based on our relation engine
