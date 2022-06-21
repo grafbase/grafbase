@@ -55,8 +55,13 @@ pub enum ContextDataResolver {
     /// a second query accross our database.
     Edge {
         key: String,
-        /// Is the actual edge also a Node?
+        /// Is the actual edge also a Node
+        /// It means that the edge will also have edges to be fetched.
         is_node: bool,
+        /// Expected type output
+        /// Used when you are fetching an Edge which doesn't require you fetch other
+        /// Nodes
+        expected_ty: String,
     },
     /// This resolver get the PaginationData
     PaginationData,
@@ -96,7 +101,11 @@ impl ResolverTrait for ContextDataResolver {
                     .map(ResolvedPaginationInfo::output);
                 Ok(ResolvedValue::new(serde_json::to_value(pagination)?))
             }
-            ContextDataResolver::Edge { key, is_node } => {
+            ContextDataResolver::Edge {
+                key,
+                is_node,
+                expected_ty,
+            } => {
                 // As we are in an Edge, the result from ancestor should be an array.
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => arr,
@@ -194,7 +203,7 @@ impl ResolverTrait for ContextDataResolver {
                     Ok(ResolvedValue::new(serde_json::Value::Array(
                         array
                             .iter()
-                            .map(|x| serde_json::json!({ key: x }))
+                            .map(|x| serde_json::json!({ expected_ty: x }))
                             .collect(),
                     )))
                 }

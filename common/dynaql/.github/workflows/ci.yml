@@ -11,7 +11,7 @@ permissions:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
-  RUST_VERSION: 1.59
+  RUST_VERSION: 1.61
 
 concurrency:
   group: ${{ github.ref_name }}
