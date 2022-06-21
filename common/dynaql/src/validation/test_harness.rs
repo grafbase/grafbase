@@ -1,4 +1,3 @@
-#![allow(unused_crate_dependencies)]
 #![allow(unused_variables)]
 #![allow(dead_code)]
 #![allow(unreachable_code)]

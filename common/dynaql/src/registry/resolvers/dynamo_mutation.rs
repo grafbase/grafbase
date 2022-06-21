@@ -731,11 +731,10 @@ async fn create_relation_node<'a>(
                             let sanitized_name = format!("#{sanitized_name}");
                             update_expression.push(format!("{}={}", &sanitized_name, &value_name));
                             expression_attribute_names.insert(sanitized_name, name);
-                            (value_name, val)
                         } else {
                             update_expression.push(format!("{}={}", &name, &value_name));
-                            (value_name, val)
                         }
+                        (value_name, val)
                     })
                     .collect::<HashMap<String, AttributeValue>>();
 

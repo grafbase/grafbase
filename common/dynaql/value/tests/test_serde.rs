@@ -13,6 +13,7 @@ fn test_value<T: Serialize + DeserializeOwned + Clone + PartialEq + Debug>(value
     )
 }
 
+#[allow(clippy::use_self)]
 #[test]
 fn test_serde() {
     test_value(true);
