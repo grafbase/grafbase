@@ -2,9 +2,14 @@ import { TodoListFragment, useTodoListDeleteMutation } from "graphql/schema";
 import { useMemo } from "react";
 import TodoListCreateTodo from "components/todo-list.create-todo";
 import TodoListTodo from "components/todo-list.todo";
-import { TrashIcon } from "@heroicons/react/outline";
+import {
+  DotsVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/outline";
 import getColor from "utils/get-color";
 import Spinner from "components/spinner";
+import Dropdown from "components/dropdown";
 
 const TodoList = (props: TodoListFragment) => {
   const { id, title, todos } = props;
@@ -17,17 +22,33 @@ const TodoList = (props: TodoListFragment) => {
   return (
     <div className="space-y-4 flex-1 min-w-[300px]">
       <div
-        className="flex justify-between border-b-2 truncate"
+        className="flex justify-between border-b-2 "
         title={title}
         style={{ borderColor: getColor(id) }}
       >
         <h2 className="font-bold text-xl truncate">{title}</h2>
-        <button
-          className="text-gray-400 hover:text-red-400 transition"
-          onClick={() => todoListDelete({ id }, contextDeleteTodoList)}
-        >
-          {fetching ? <Spinner /> : <TrashIcon className="w-4 h-4" />}
-        </button>
+        <div className="relative z-20">
+          {fetching ? (
+            <Spinner />
+          ) : (
+            <Dropdown
+              options={[
+                {
+                  name: "Rename",
+                  icon: PencilIcon,
+                  onClick: () => alert("todo"),
+                },
+                {
+                  name: "Delete",
+                  icon: TrashIcon,
+                  onClick: () => todoListDelete({ id }, contextDeleteTodoList),
+                },
+              ]}
+            >
+              <DotsVerticalIcon className="w-5 h-5 text-gray-400 hover:text-red-400 transition" />
+            </Dropdown>
+          )}
+        </div>
       </div>
       <div className="space-y-4">
         {todos?.map(
