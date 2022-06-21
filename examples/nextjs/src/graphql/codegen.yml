@@ -7,5 +7,5 @@ generates:
   ./src/graphql/schema/index.ts:
     plugins:
       - typescript
-      - typescript-urql
       - typescript-operations
+      - typed-document-node

@@ -1,11 +1,12 @@
-import { useTodoListCreateMutation } from "graphql/schema";
+import { TodoListCreateDocument } from "graphql/schema";
+import { useMutation } from "urql";
 import { useMemo, useState } from "react";
 
 const NewTodoList = () => {
   const context = useMemo(() => ({ additionalTypenames: ["TodoList"] }), []);
   const [title, setTitle] = useState<string>("");
 
-  const [{ fetching }, createTodoList] = useTodoListCreateMutation();
+  const [{ fetching }, createTodoList] = useMutation(TodoListCreateDocument);
 
   return (
     <form

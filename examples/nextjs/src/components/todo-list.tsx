@@ -1,4 +1,5 @@
-import { TodoListFragment, useTodoListDeleteMutation } from "graphql/schema";
+import { TodoListFragment, TodoListDeleteDocument } from "graphql/schema";
+import { useMutation } from "urql";
 import { useMemo } from "react";
 import TodoListCreateTodo from "components/todo-list.create-todo";
 import TodoListTodo from "components/todo-list.todo";
@@ -12,7 +13,7 @@ const TodoList = (props: TodoListFragment) => {
     () => ({ additionalTypenames: ["TodoList", "Todo"] }),
     []
   );
-  const [{ fetching }, todoListDelete] = useTodoListDeleteMutation();
+  const [{ fetching }, todoListDelete] = useMutation(TodoListDeleteDocument);
 
   return (
     <div className="space-y-4 flex-1 min-w-[300px]">
