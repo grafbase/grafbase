@@ -51,6 +51,14 @@ fn try_main() -> Result<(), CliError> {
 
     report::cli_header();
 
+    // running completions before initializing the environment
+    // to prevent errors outside of a grafbase project
+    if let Some(("completions", matches)) = matches.subcommand() {
+        let shell = matches.get_one::<String>("shell").expect("must be present");
+        completions::generate(shell)?;
+        return Ok(());
+    };
+
     Environment::try_init().map_err(CliError::CommonError)?;
 
     match matches.subcommand() {
@@ -64,10 +72,6 @@ fn try_main() -> Result<(), CliError> {
             let search = matches.contains_id("search");
             let port = matches.get_one::<u16>("port").copied();
             dev(search, port)
-        }
-        Some(("completions", matches)) => {
-            let shell = matches.get_one::<String>("shell").expect("must be present");
-            completions::generate(shell)
         }
         _ => unreachable!(),
     }

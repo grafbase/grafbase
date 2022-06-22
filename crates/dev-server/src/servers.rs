@@ -1,6 +1,6 @@
 use crate::consts::{
-    EPHEMERAL_PORT_RANGE, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, WORKER_DIR,
-    WORKER_FOLDER_VERSION_FILE,
+    EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
+    SCHEMA_PARSER_INDEX, WORKER_DIR, WORKER_FOLDER_VERSION_FILE,
 };
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::DevServerError};
@@ -14,6 +14,7 @@ use std::{
     thread::{self, JoinHandle},
 };
 use tokio::process::Command;
+use tokio::runtime::Builder;
 use version_compare::Version;
 use which::which;
 
@@ -45,12 +46,16 @@ pub fn start(port: u16) -> (JoinHandle<Result<(), DevServerError>>, Receiver<Ser
         let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
             .ok_or(DevServerError::AvailablePort)?;
 
-        spawn_servers(port, bridge_port, sender)
+        // manual implementation of #[tokio::main] due to a rust analyzer issue
+        Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async { spawn_servers(port, bridge_port, sender).await })
     });
     (handle, receiver)
 }
 
-#[tokio::main]
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     worker_port: u16,
@@ -72,11 +77,13 @@ async fn spawn_servers(
 
     trace!("spawining miniflare");
 
-    // TODO: bundle a specific version of miniflare and extract it
-    let spawned = Command::new("npx")
+    let spawned = Command::new("node")
         .args(&[
-            "--quiet",
-            "miniflare",
+            // used by miniflare when running normally as well
+            "--experimental-vm-modules",
+            "./node_modules/miniflare/dist/src/cli.js",
+            "--host",
+            "127.0.0.1",
             "--port",
             &worker_port.to_string(),
             "--no-update-check",
@@ -88,7 +95,7 @@ async fn spawn_servers(
             "--text-blob",
             &format!("REGISTRY={registry_path}"),
         ])
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .current_dir(&environment.user_dot_grafbase_path)
         .spawn()
@@ -119,8 +126,6 @@ fn export_embedded_files() -> Result<(), DevServerError> {
 
     let worker_path = environment.user_dot_grafbase_path.join(WORKER_DIR);
 
-    let parser_path = environment.user_dot_grafbase_path.join(SCHEMA_PARSER_DIR);
-
     // CARGO_PKG_VERSION is guaranteed be valid semver
     let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
 
@@ -135,23 +140,33 @@ fn export_embedded_files() -> Result<(), DevServerError> {
         true
     };
 
-    // TODO: add gateway or add as build dep
     if export_files {
         trace!("writing worker files");
 
-        fs::create_dir_all(&worker_path).map_err(|_| DevServerError::CreateDir(worker_path.clone()))?;
-        fs::create_dir_all(&parser_path).map_err(|_| DevServerError::CreateDir(parser_path.clone()))?;
+        fs::create_dir_all(&environment.user_dot_grafbase_path).map_err(|_| DevServerError::CreateCacheDir)?;
 
-        fs::write(&environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n")
-            .map_err(|_| DevServerError::CreateCacheDir)?;
+        let gitignore_path = &environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE);
+
+        fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
+            .map_err(|_| DevServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
 
             let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
 
+            let parent = full_path.parent().expect("must have a parent");
+
+            let parent_exists = parent.metadata().is_ok();
+
+            let create_dir_result = if parent_exists {
+                Ok(())
+            } else {
+                fs::create_dir_all(&parent)
+            };
+
             // must be Some(file) since we're iterating over existing paths
-            let write_result = fs::write(&full_path, file.unwrap().data);
+            let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));
 
             (write_result, full_path)
         });
@@ -187,7 +202,6 @@ fn create_project_dot_grafbase_folder() -> Result<(), DevServerError> {
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
-// TODO: add schema parser as build dep
 async fn run_schema_parser() -> Result<(), DevServerError> {
     trace!("parsing schema");
 
@@ -253,7 +267,10 @@ async fn validate_node_version() -> Result<(), DevServerError> {
     if node_version >= min_version {
         Ok(())
     } else {
-        Err(DevServerError::OutdatedNode(node_version_string))
+        Err(DevServerError::OutdatedNode(
+            node_version_string,
+            MIN_NODE_VERSION.to_owned(),
+        ))
     }
 }
 
@@ -261,7 +278,6 @@ async fn validate_dependencies() -> Result<(), DevServerError> {
     trace!("validating dependencies");
 
     which("node").map_err(|_| DevServerError::NodeInPath)?;
-    which("npx").map_err(|_| DevServerError::NpxInPath)?;
 
     validate_node_version().await?;
 

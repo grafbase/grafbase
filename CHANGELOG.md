@@ -24,12 +24,25 @@
 - Adds `pk` and `sk` to DB modeling and indexes both
 - Generates `.gitignore` files for cache dirs
 - Prints CLI header
+- Adds `--trace` flag
+- Adds `gsi...` fields to db schema
+- Sets all DB fields as non nullable
+- Detects Node.js installation and version and correctly notifies the user of an issue
+- Runs miniflare offline
+- Passes bridge port to worker
+- Exits on panic with a correct exit code
+- Prevents CTRL+C from being detected as an abnormal shutdown when running the server
+- Adds a goodbye message
+- Reports the minimal supported Node.js version when erroring due to unsupported versions
+- Compresses included assets
+- Aligns the minimal supported Node.js version to the one miniflare uses
 
 ### Fixes
 
 - Checks the correct address for ports (`0.0.0.0` vs `127.0.0.1`)
 - Does not report `miniflare error` automatically when the spawned thread returns an error
 - Handles non utf-8 path errors
+- Allows output of completions even when not in Grafbase project
 
 ### Tooling
 
@@ -58,6 +71,7 @@
 - Uses the worker `wrangler.toml` file for env variables
 - Turns on pedantic linting
 - Adds additional tracing
+- Strips symbols from the release binary and runs some size optimizations
 
 ### Refactoring
 
@@ -66,6 +80,11 @@
 - Lifts `tokio` one level up to simplify task spawning and handling
 - Moves `.grafbase` dir creation to `servers`
 - Adds `colorize!` macro
+- Moves asset folder to root
+- Removes deprecated `clap` APIs
+- Manually instantiates `tokio` runtime due to a Rust Analyzer issue
+- Uses only `node` rather than `npx` as well
+- Automatically creates needed directories when exporting assets
 
 ### Documentation
 
@@ -80,3 +99,4 @@
 ### Misc.
 
 - Updates PR template
+- Updates README.md

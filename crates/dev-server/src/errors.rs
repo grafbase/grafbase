@@ -85,13 +85,9 @@ pub enum DevServerError {
     #[error("Node.js does not seem to be installed")]
     NodeInPath,
 
-    /// returned if npx is not in the user $PATH
-    #[error("npx does not seem to be installed")]
-    NpxInPath,
-
     /// returned if the installed version of node is unsupported
     #[error("Node.js version {0} is unsupported")]
-    OutdatedNode(String),
+    OutdatedNode(String, String),
 
     /// returned if the installed version of node could not be retreived
     #[error("Could not retrive the installed version of Node.js")]
@@ -107,8 +103,7 @@ impl ToExitCode for DevServerError {
             | Self::ReadVersion
             | Self::ParseSchema(_)
             | Self::NodeInPath
-            | Self::NpxInPath
-            | Self::OutdatedNode(_) => exitcode::DATAERR,
+            | Self::OutdatedNode(_, _) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)

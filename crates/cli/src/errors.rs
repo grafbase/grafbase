@@ -35,26 +35,22 @@ impl ToExitCode for CliError {
 
 impl CliError {
     /// returns the appropriate hint for a [`CliError`]
-    pub const fn to_hint(&self) -> Option<&'static str> {
+    pub fn to_hint(&self) -> Option<String> {
         match self {
             Self::LocalGatewayError(LocalGatewayError::AvailablePort) => {
-                Some("try supplying a larger port range to search by supplying a lower --port number")
+                Some("try supplying a larger port range to search by supplying a lower --port number".to_owned())
             }
             Self::LocalGatewayError(LocalGatewayError::PortInUse(_)) => {
-                Some("try using a different --port number or supplying the --search flag")
+                Some("try using a different --port number or supplying the --search flag".to_owned())
             }
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
-                Some("try running the CLI in your Grafbase project or any nested directory")
+                Some("try running the CLI in your Grafbase project or any nested directory".to_owned())
             }
             Self::DevServerError(DevServerError::NodeInPath) => {
-                Some("we currently require Node.js as a dependency - please install Node.js and make sure it is in your $PATH to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
+                Some("we currently require Node.js as a dependency - please install Node.js and make sure it is in your $PATH to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)".to_owned())
             }
-            Self::DevServerError(DevServerError::NpxInPath) => {
-                Some("npx should be made available by your Node.js installation, but it seems to be missing - try reinstalling Node.js to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
-            }
-
-            Self::DevServerError(DevServerError::OutdatedNode(_)) => {
-                Some("please update your Node.js version to the LTS version or higher to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)")
+            Self::DevServerError(DevServerError::OutdatedNode(_, min_version)) => {
+                Some(format!("please update your Node.js version to {min_version} or higher to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)"))
             }
             _ => None,
         }
