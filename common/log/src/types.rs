@@ -1,5 +1,7 @@
 #![allow(clippy::use_self)]
 
+use std::borrow::Cow;
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("HTTP: {0}")]
@@ -51,7 +53,8 @@ pub struct LogConfig {
     pub environment: String,
     pub host_name: String,
     pub sentry_config: Option<SentryConfig>,
-    pub service_name: &'static str,
+    pub service_name: Cow<'static, str>,
+    pub source_type: &'static str,
     pub trace_id: String,
 }
 

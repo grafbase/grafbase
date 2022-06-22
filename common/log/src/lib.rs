@@ -132,7 +132,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
         pub ddtags: String,
         pub hostname: String,
         pub message: String,
-        pub service: String,
+        pub service: Cow<'static, str>,
         pub status: String,
     }
 
@@ -169,11 +169,11 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
             };
 
             DatadogLogEntry {
-                ddsource: "grafbase.api".to_owned(),
+                ddsource: log_config.source_type.to_owned(),
                 ddtags: datadog_tag_string,
                 hostname: log_config.host_name.to_owned(),
                 message: entry.message.clone(),
-                service: log_config.service_name.to_owned(),
+                service: log_config.service_name.clone(),
                 status: entry.severity.to_string(),
             }
         })
