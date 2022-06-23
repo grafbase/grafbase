@@ -12,7 +12,6 @@ use dynaql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use ulid::Ulid;
 
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
@@ -289,7 +288,7 @@ impl CurrentResolverType {
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
-        let execution_id = Ulid::new();
+        let execution_id = ulid_rs::Ulid::new();
         let registry = &ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);

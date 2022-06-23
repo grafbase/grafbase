@@ -23,7 +23,7 @@ use std::hash::Hash;
 use std::pin::Pin;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
-use ulid::Ulid;
+use ulid_rs::Ulid;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
@@ -215,7 +215,7 @@ fn node_create<'a>(
     let current_execution_id = {
         let mut execution_id = Some(execution_id);
         for _ in 0..increment.load(std::sync::atomic::Ordering::SeqCst) {
-            execution_id = execution_id.as_ref().and_then(ulid::Ulid::increment);
+            execution_id = execution_id.as_ref().and_then(ulid_rs::Ulid::increment);
         }
         execution_id
     }

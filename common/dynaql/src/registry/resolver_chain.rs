@@ -12,7 +12,7 @@ use dynaql_value::{Name, Value};
 
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
-use ulid::Ulid;
+use ulid_rs::Ulid;
 
 use super::{
     resolvers::{ResolvedValue, ResolverContext, ResolverTrait},
