@@ -111,7 +111,7 @@ export type Todo = {
   __typename?: 'Todo';
   complete?: Maybe<Scalars['Boolean']>;
   id: Scalars['ID'];
-  list: TodoList;
+  list?: Maybe<TodoList>;
   title: Scalars['String'];
 };
 
@@ -130,7 +130,7 @@ export type TodoCreatePayload = {
 /** Input to create a new Todo */
 export type TodoCreationInput = {
   complete?: InputMaybe<Scalars['Boolean']>;
-  list: TodoTodoRelateTodoListTodoListCreateInput;
+  list?: InputMaybe<TodoTodoRelateTodoListTodoListCreateInput>;
   title: Scalars['String'];
 };
 
