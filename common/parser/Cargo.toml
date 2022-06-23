@@ -7,8 +7,8 @@ edition = "2021"
 dynaql-parser = { path = "../dynaql/parser" }
 dynaql-value = { path = "../dynaql/value" }
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
-case = "1.0.0"
-if_chain = "1.0.2"
+case = "1"
+if_chain = "1"
 quick-error = "2"
 
 [dev-dependencies]
