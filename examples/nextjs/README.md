@@ -1,12 +1,14 @@
 # Grafbase ⨯ Next.js
 
-[Join our Discord](https://discord.com/invite/dYBUPpmV4K)
+[Join our Discord](https://discord.gg/grafbase)
 
+[![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
+</br>
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs) 
 
 ## Mandatory configuration
 
-You must rename your `.env.local.example` to `.env` and fill all of its properties.
+Rename your `.env.local.example` to `.env` and fill all the variables.
 
 ## Getting Started
 
@@ -20,9 +22,9 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `pages/layout.tsx`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/pages/sign-in.tsx`. The page auto-updates as you edit the file.
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/graphql.ts`.
+[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql). This endpoint can be edited in `pages/api/graphql.ts`.
 
 The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
 
