@@ -29,15 +29,12 @@ fn create_input_relation<'a>(
 ) -> String {
     let ty_from_name = ty_from.name.node.to_camel();
     let ty_to_name = ty_to.name.node.to_camel();
-
-    let prefix = format!(
-        "{}{}{}",
+    let input_name = format!(
+        "{}{}{}CreationInput",
         ty_from_name.to_camel(),
         relation.name.to_camel(),
         ty_to_name.to_camel(),
     );
-
-    let input_name = format!("{prefix}CreateInput");
 
     if ctx.types.get(&input_name).is_some() {
         return input_name;
@@ -60,7 +57,7 @@ fn create_input_relation<'a>(
 
                     let field_base_ty = to_base_type_str(&field.node.ty.node.base);
                     let input_name = format!(
-                        "{}{}{}CreateInput",
+                        "{}{}{}CreationInput",
                         &ty_to.name.node.to_camel(),
                         relation_name.clone().to_camel(),
                         field_base_ty.to_camel()
@@ -100,7 +97,7 @@ fn create_input_relation<'a>(
             ctx.registry.get_mut().create_type(
                 &mut |_| MetaType::InputObject {
                     name: input_name.clone(),
-                    description: Some(format!("Input to create a new {prefix}")),
+                    description: Some(format!("Input to create a new {}", &input_name)),
                     oneof: false,
                     input_fields: input_fields.clone(),
                     visible: None,
@@ -119,12 +116,17 @@ fn create_input_relation<'a>(
         ),
     }
 
-    let input_name_link = format!("{prefix}CreateRelationInput");
+    let input_name_link = format!(
+        "{}{}{}CreateInput",
+        ty_from_name.to_camel(),
+        relation.name.to_camel(),
+        ty_to_name.to_camel(),
+    );
 
     ctx.registry.get_mut().create_type(
         &mut |_| MetaType::InputObject {
             name: input_name_link.clone(),
-            description: Some(format!("Input to create a new {prefix} relation")),
+            description: Some(format!("Input to create a new {}", &input_name_link)),
             oneof: true,
             input_fields: {
                 let mut input_fields = IndexMap::new();
@@ -184,12 +186,12 @@ fn create_input_relation<'a>(
 /// Would create
 ///
 /// ```graphql
-/// input PostPublishedAuthorCreateRelationInput {...}
-/// input PostCommentsCommentCreateRelationInput {...}
+/// input PostPublishedAuthorCreateInput {...}
+/// input PostCommentsCommentCreateInput {...}
 /// ```
 pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &TypeDefinition, object: &ObjectType) {
     let type_name = ty.name.node.to_camel();
-    let create_input_name = format!("{}CreateInput", type_name);
+    let create_input_name = format!("{}CreationInput", type_name);
     let mut input_fields = IndexMap::new();
 
     if ctx.types.get(&create_input_name).is_some() {
@@ -284,33 +286,33 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
 /// Would create something like:
 ///
 /// ```graphql
-/// input PostPublishedCreateRelationInput {
+/// input PostPublishedCreateInput {
 ///   """
 ///   As the relation `published` got an edge from `Author` to `Post`, we do not
 ///   need to have this relation available on the creation.
 ///   """
-///   create: PostPublishedAuthorCreateRelationInput
+///   create: PostPublishedAuthorCreateInput
 ///   link: ID
 /// }
 ///
 /// """
 /// This is the Author Input type without the `published` relation for the `Post`
 /// """
-/// type PostPublishedAuthorCreateRelationInput {
+/// type PostPublishedAuthorCreateInput {
 ///   firstName: String
 ///   lastName: String
-///   comments: [AuthorCommentedCommentCreateRelationInput]
+///   comments: [AuthorCommentedCommentCreateInput]
 /// }
 ///
 /// """
 /// This is the Comment Input type without the `commented` relation for the `Author`
 /// """
-/// type AuthorCommentedCommentCreateRelationInput {
+/// type AuthorCommentedCommentCreateInput {
 ///   content: String
-///   post: CommentPublishedPostCreateRelationInput
+///   post: CommentPublishedPostCreateInput
 /// }
 ///
-/// type PostCommentCreateRelationInput {
+/// type PostCommentCreateInput {
 /// }
 ///
 /// """
@@ -318,8 +320,8 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
 /// """
 /// input PostCreateInput {
 ///   content: String
-///   author: PostPublishedCreateRelationInput
-///   comments: [PostCommentCreateRelationInput]
+///   author: PostPublishedCreateInput
+///   comments: [PostCommentCreateInput]
 /// }
 ///
 /// type Mutation {
@@ -335,7 +337,7 @@ pub fn add_create_mutation<'a>(
 ) {
     create_input_without_relation(ctx, ty, object);
     let type_name = type_name.to_string();
-    let create_input_name = format!("{}CreateInput", type_name.to_camel());
+    let create_input_name = format!("{}CreationInput", type_name.to_camel());
 
     let create_payload_name = format!("{}CreatePayload", type_name.to_camel());
     // CreatePayload

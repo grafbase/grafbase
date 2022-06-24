@@ -29,15 +29,12 @@ fn create_input_relation<'a>(
 ) -> String {
     let ty_from_name = ty_from.name.node.to_camel();
     let ty_to_name = ty_to.name.node.to_camel();
-
-    let prefix = format!(
-        "{}{}{}",
+    let input_name = format!(
+        "{}{}{}CreationInput",
         ty_from_name.to_camel(),
         relation.name.to_camel(),
-        ty_to_name.to_camel()
+        ty_to_name.to_camel(),
     );
-
-    let input_name = format!("{prefix}CreateInput");
 
     if ctx.types.get(&input_name).is_some() {
         return input_name;
@@ -60,7 +57,7 @@ fn create_input_relation<'a>(
 
                     let field_base_ty = to_base_type_str(&field.node.ty.node.base);
                     let input_name = format!(
-                        "{}{}{}CreateRelationInput",
+                        "{}{}{}CreationInput",
                         &ty_to.name.node.to_camel(),
                         relation_name.clone().to_camel(),
                         field_base_ty.to_camel()
@@ -101,7 +98,7 @@ fn create_input_relation<'a>(
             ctx.registry.get_mut().create_type(
                 &mut |_| MetaType::InputObject {
                     name: input_name.clone(),
-                    description: Some(format!("Input to create a new {prefix}")),
+                    description: Some(format!("Input to create a new {}", &input_name)),
                     oneof: false,
                     input_fields: input_fields.clone(),
                     visible: None,
@@ -120,12 +117,17 @@ fn create_input_relation<'a>(
         ),
     }
 
-    let input_name_link = format!("{prefix}UpdateRelationInput");
+    let input_name_link = format!(
+        "{}{}{}UpdateRelationInput",
+        ty_from_name.to_camel(),
+        relation.name.to_camel(),
+        ty_to_name.to_camel(),
+    );
 
     ctx.registry.get_mut().create_type(
         &mut |_| MetaType::InputObject {
             name: input_name_link.clone(),
-            description: Some(format!("Input to update a {prefix} relation")),
+            description: Some(format!("Input to create a new {}", &input_name_link)),
             oneof: true,
             input_fields: {
                 let mut input_fields = IndexMap::new();
