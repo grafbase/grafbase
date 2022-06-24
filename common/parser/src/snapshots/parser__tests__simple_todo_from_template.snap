@@ -1,13 +1,12 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 136
 expression: sdl
 ---
 type Mutation {
 	"""
 	Create a TodoList
 	"""
-	todoListCreate(input: TodoListCreationInput!): TodoListCreatePayload
+	todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
 	"""
 	Update a TodoList
 	"""
@@ -19,7 +18,7 @@ type Mutation {
 	"""
 	Create a Todo
 	"""
-	todoCreate(input: TodoCreationInput!): TodoCreatePayload
+	todoCreate(input: TodoCreateInput!): TodoCreatePayload
 	"""
 	Update a Todo
 	"""
@@ -65,15 +64,15 @@ type TodoConnection {
 	pageInfo: PageInfo!
 	edges: [TodoEdge]
 }
-type TodoCreatePayload {
-	todo: Todo
-}
 """
 Input to create a new Todo
 """
-input TodoCreationInput {
+input TodoCreateInput {
 	title: String!
 	complete: Boolean
+}
+type TodoCreatePayload {
+	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!
@@ -94,15 +93,15 @@ type TodoListConnection {
 	pageInfo: PageInfo!
 	edges: [TodoListEdge]
 }
-type TodoListCreatePayload {
-	todoList: TodoList
-}
 """
 Input to create a new TodoList
 """
-input TodoListCreationInput {
+input TodoListCreateInput {
 	title: String!
-	todos: [TodoListTodoRelateTodoListTodoCreateInput]
+	todos: [TodoListTodoRelateTodoListTodoCreateRelationInput]
+}
+type TodoListCreatePayload {
+	todoList: TodoList
 }
 type TodoListDeletePayload {
 	deletedId: ID!
@@ -112,24 +111,24 @@ type TodoListEdge {
 	cursor: String!
 }
 """
-Input to create a new TodoListTodoRelateTodoListTodoCreateInput
+Input to create a new TodoListTodoRelateTodoListTodo
 """
 input TodoListTodoRelateTodoListTodoCreateInput {
-	create: TodoListTodoRelateTodoListTodoCreationInput
-	link: ID
-}
-"""
-Input to create a new TodoListTodoRelateTodoListTodoCreationInput
-"""
-input TodoListTodoRelateTodoListTodoCreationInput {
 	title: String!
 	complete: Boolean
 }
 """
-Input to create a new TodoListTodoRelateTodoListTodoUpdateRelationInput
+Input to create a new TodoListTodoRelateTodoListTodo relation
+"""
+input TodoListTodoRelateTodoListTodoCreateRelationInput {
+	create: TodoListTodoRelateTodoListTodoCreateInput
+	link: ID
+}
+"""
+Input to update a TodoListTodoRelateTodoListTodo relation
 """
 input TodoListTodoRelateTodoListTodoUpdateRelationInput {
-	create: TodoListTodoRelateTodoListTodoCreationInput
+	create: TodoListTodoRelateTodoListTodoCreateInput
 	link: ID
 	unlink: ID
 }

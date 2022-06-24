@@ -1,13 +1,12 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 81
 expression: sdl
 ---
 type Mutation {
 	"""
 	Create a Product
 	"""
-	productCreate(input: ProductCreationInput!): ProductCreatePayload
+	productCreate(input: ProductCreateInput!): ProductCreatePayload
 	"""
 	Update a Product
 	"""
@@ -38,18 +37,18 @@ type ProductConnection {
 	pageInfo: PageInfo!
 	edges: [ProductEdge]
 }
-type ProductCreatePayload {
-	product: Product
-}
 """
 Input to create a new Product
 """
-input ProductCreationInput {
+input ProductCreateInput {
 	name: String!
 	"""
 	The product's price in $
 	"""
 	price: Int!
+}
+type ProductCreatePayload {
+	product: Product
 }
 type ProductDeletePayload {
 	deletedId: ID!
