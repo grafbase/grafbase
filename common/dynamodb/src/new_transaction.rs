@@ -76,16 +76,10 @@ impl Hash for UpdateNodeInput {
     }
 }
 
-#[derive(Debug, Eq, Clone, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub struct DeleteNodeInput {
     id: String,
     ty: String,
-}
-
-impl PartialEq for DeleteNodeInput {
-    fn eq(&self, other: &Self) -> bool {
-        self.id.eq(&other.id) && self.ty.eq(&other.ty)
-    }
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -161,7 +155,7 @@ pub enum PossibleChanges {
 impl Eq for PossibleChanges {}
 
 impl PossibleChanges {
-    pub fn new_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn new_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
         Self::InsertNode(InsertNodeInput {
             id,
             ty,
@@ -169,7 +163,7 @@ impl PossibleChanges {
         })
     }
 
-    pub fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
@@ -177,11 +171,11 @@ impl PossibleChanges {
         })
     }
 
-    pub fn delete_node(ty: String, id: String) -> Self {
+    pub const fn delete_node(ty: String, id: String) -> Self {
         Self::DeleteNode(DeleteNodeInput { ty, id })
     }
 
-    pub fn new_link_cached(
+    pub const fn new_link_cached(
         from_ty: String,
         from_id: String,
         to_ty: String,
@@ -199,7 +193,13 @@ impl PossibleChanges {
         }))
     }
 
-    pub fn unlink_node(from_ty: String, from_id: String, to_ty: String, to_id: String, relation_name: String) -> Self {
+    pub const fn unlink_node(
+        from_ty: String,
+        from_id: String,
+        to_ty: String,
+        to_id: String,
+        relation_name: String,
+    ) -> Self {
         Self::UnlinkRelation(UnlinkNodeInput {
             to_id,
             to_ty,
@@ -228,7 +228,7 @@ impl GetIds for InsertNodeInput {
         Box::pin(async {
             Ok(HashMap::from([(
                 (pk.clone(), pk),
-                InternalChanges::Node(InternalNodeChanges::InsertNode(InsertNodeInternalInput {
+                InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
                     id: self.id,
                     ty: self.ty,
                     user_defined_item: self.user_defined_item,
@@ -277,12 +277,8 @@ impl GetIds for UpdateNodeInput {
 
             for (pk, sk) in ids {
                 info!(ctx.trace_id, "Asking for update of {} {}", &pk, &sk);
-                let (from_ty, from_id) = pk
-                    .rsplit_once('#')
-                    .ok_or_else(|| BatchGetItemLoaderError::UnknownError)?;
-                let (to_ty, to_id) = sk
-                    .rsplit_once('#')
-                    .ok_or_else(|| BatchGetItemLoaderError::UnknownError)?;
+                let (from_ty, from_id) = pk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                let (to_ty, to_id) = sk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
 
                 let from_ty = from_ty.to_owned();
                 let from_id = from_id.to_owned();
@@ -292,7 +288,7 @@ impl GetIds for UpdateNodeInput {
                 if pk == sk {
                     result.insert(
                         (pk, sk),
-                        InternalChanges::Node(InternalNodeChanges::UpdateNode(UpdateNodeInternalInput {
+                        InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
                             id: from_id,
                             ty: from_ty,
                             user_defined_item: self.user_defined_item.clone(),
@@ -301,16 +297,14 @@ impl GetIds for UpdateNodeInput {
                 } else {
                     result.insert(
                         (pk, sk),
-                        InternalChanges::Relation(InternalRelationChanges::UpdateRelation(
-                            UpdateRelationInternalInput {
-                                from_id,
-                                from_ty,
-                                to_ty,
-                                to_id,
-                                user_defined_item: self.user_defined_item.clone(),
-                                relation_names: Vec::new(),
-                            },
-                        )),
+                        InternalChanges::Relation(InternalRelationChanges::Update(UpdateRelationInternalInput {
+                            from_id,
+                            from_ty,
+                            to_ty,
+                            to_id,
+                            user_defined_item: self.user_defined_item.clone(),
+                            relation_names: Vec::new(),
+                        })),
                     );
                 }
             }
@@ -361,7 +355,7 @@ impl GetIds for DeleteNodeInput {
             let mut result = HashMap::with_capacity(id_len);
             result.insert(
                 (id_to_be_deleted.clone(), id_to_be_deleted),
-                InternalChanges::Node(InternalNodeChanges::DeleteNode(DeleteNodeInternalInput {
+                InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
                     id: self.id,
                     ty: self.ty,
                 })),
@@ -369,12 +363,8 @@ impl GetIds for DeleteNodeInput {
 
             for (pk, sk) in ids.into_iter().filter(|(pk, sk)| pk != sk) {
                 info!(ctx.trace_id, "{} {}", &pk, &sk);
-                let (from_ty, from_id) = pk
-                    .rsplit_once('#')
-                    .ok_or_else(|| BatchGetItemLoaderError::UnknownError)?;
-                let (to_ty, to_id) = sk
-                    .rsplit_once('#')
-                    .ok_or_else(|| BatchGetItemLoaderError::UnknownError)?;
+                let (from_ty, from_id) = pk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                let (to_ty, to_id) = sk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
 
                 let from_ty = from_ty.to_owned();
                 let from_id = from_id.to_owned();
@@ -383,14 +373,14 @@ impl GetIds for DeleteNodeInput {
 
                 result.insert(
                     (pk, sk),
-                    InternalChanges::Relation(InternalRelationChanges::DeleteRelation(
-                        DeleteRelationInternalInput::All(DeleteAllRelationsInternalInput {
+                    InternalChanges::Relation(InternalRelationChanges::Delete(DeleteRelationInternalInput::All(
+                        DeleteAllRelationsInternalInput {
                             from_id,
                             from_ty,
                             to_id,
                             to_ty,
-                        }),
-                    )),
+                        },
+                    ))),
                 );
             }
 
@@ -406,7 +396,7 @@ impl GetIds for LinkNodeCachedInput {
         Box::pin(async {
             Ok(HashMap::from([(
                 (pk, sk),
-                InternalChanges::Relation(InternalRelationChanges::InsertRelation(InsertRelationInternalInput {
+                InternalChanges::Relation(InternalRelationChanges::Insert(InsertRelationInternalInput {
                     from_id: self.from_id,
                     from_ty: self.from_ty,
                     to_id: self.to_id,
@@ -429,11 +419,11 @@ impl GetIds for LinkNodeNoCacheInput {
                 .load_one((pk.clone(), sk.clone()))
                 .await
                 .map_err(|_| BatchGetItemLoaderError::UnknownError)?
-                .ok_or_else(|| BatchGetItemLoaderError::UnknownError)?;
+                .ok_or(BatchGetItemLoaderError::UnknownError)?;
 
             Ok(HashMap::from([(
                 (pk, sk),
-                InternalChanges::Relation(InternalRelationChanges::InsertRelation(InsertRelationInternalInput {
+                InternalChanges::Relation(InternalRelationChanges::Insert(InsertRelationInternalInput {
                     from_id: self.from_id,
                     from_ty: self.from_ty,
                     to_id: self.to_id,
@@ -462,15 +452,15 @@ impl GetIds for UnlinkNodeInput {
         Box::pin(async {
             Ok(HashMap::from([(
                 (pk, sk),
-                InternalChanges::Relation(InternalRelationChanges::DeleteRelation(
-                    DeleteRelationInternalInput::Multiple(DeleteMultipleRelationsInternalInput {
+                InternalChanges::Relation(InternalRelationChanges::Delete(DeleteRelationInternalInput::Multiple(
+                    DeleteMultipleRelationsInternalInput {
                         from_id: self.from_id,
                         from_ty: self.from_ty,
                         to_id: self.to_id,
                         to_ty: self.to_ty,
                         relation_names: vec![self.relation_name],
-                    }),
-                )),
+                    },
+                ))),
             )]))
         })
     }
@@ -528,15 +518,12 @@ impl ToTransactWriteItem for Vec<InternalChanges> {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        // We flatten transactions into one
-        info!("", "{pk} {sk} {:?}", &self);
         let mut list = self.into_iter();
         let first = list.next().map(|first| list.try_fold(first, |acc, cur| acc.with(cur)));
 
         let first = match first {
             Some(Ok(first)) => first,
-            a @ _ => {
-                info!("", "shiit {:?}", a);
+            _ => {
                 return Box::pin(async { Err(ToTransactionError::Unknown) });
             }
         };
@@ -688,7 +675,7 @@ impl UpdateRelationInternalInput {
             String::new()
         };
 
-        let update_relation_expressions = if relation_names.len() > 0 {
+        let update_relation_expressions = if !relation_names.is_empty() {
             exp_names.insert("#relation_names".to_string(), "__relation_names".to_string());
             let (removed, added): (Vec<String>, Vec<String>) =
                 relation_names.into_iter().partition_map(|relation| match relation {
@@ -712,7 +699,7 @@ impl UpdateRelationInternalInput {
                 })
                 .join(" ");
 
-            if removed.len() > 0 {
+            if !removed.is_empty() {
                 let idx = ":__relation_names_deleted".to_string();
 
                 exp_values.insert(
@@ -725,7 +712,7 @@ impl UpdateRelationInternalInput {
 
                 format!("{add_expression} DELETE #relation_names :__relation_names_deleted")
             } else {
-                format!("{add_expression}")
+                "{add_expression}".to_string()
             }
         } else {
             String::new()
@@ -737,9 +724,9 @@ impl UpdateRelationInternalInput {
 
 #[derive(Debug, PartialEq, Clone)]
 enum InternalNodeChanges {
-    InsertNode(InsertNodeInternalInput),
-    UpdateNode(UpdateNodeInternalInput), // Unknow affected ids
-    DeleteNode(DeleteNodeInternalInput), // Unknow affected ids
+    Insert(InsertNodeInternalInput),
+    Update(UpdateNodeInternalInput), // Unknow affected ids
+    Delete(DeleteNodeInternalInput), // Unknow affected ids
 }
 
 impl ToTransactWriteItem for InsertNodeInternalInput {
@@ -839,8 +826,7 @@ impl ToTransactWriteItem for UpdateNodeInternalInput {
                 ("#pk".to_string(), "__pk".to_string()),
                 ("#sk".to_string(), "__sk".to_string()),
             ]);
-            let update_expression =
-                UpdateNodeInternalInput::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names);
+            let update_expression = Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names);
             let key = dynomite::attr_map! {
                     "__pk" => pk.clone(),
                     "__sk" => sk.clone(),
@@ -931,9 +917,9 @@ impl ToTransactWriteItem for InternalNodeChanges {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         match self {
-            Self::InsertNode(a) => a.to_transaction(batchers, ctx, pk, sk),
-            Self::DeleteNode(a) => a.to_transaction(batchers, ctx, pk, sk),
-            Self::UpdateNode(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Insert(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Update(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }
@@ -1154,12 +1140,8 @@ impl ToTransactWriteItem for UpdateRelationInternalInput {
                 ("#sk".to_string(), "__sk".to_string()),
                 */
             ]);
-            let update_expression = UpdateRelationInternalInput::to_update_expression(
-                user_defined_item,
-                &mut exp_values,
-                &mut exp_att_names,
-                relation_names,
-            );
+            let update_expression =
+                Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names, relation_names);
 
             let key = dynomite::attr_map! {
                     "__pk" => pk.clone(),
@@ -1204,9 +1186,9 @@ impl ToTransactWriteItem for InternalRelationChanges {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         match self {
-            Self::InsertRelation(a) => a.to_transaction(batchers, ctx, pk, sk),
-            Self::DeleteRelation(a) => a.to_transaction(batchers, ctx, pk, sk),
-            Self::UpdateRelation(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Insert(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Update(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }
@@ -1264,16 +1246,16 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
 }
 
 impl Add<UpdateNodeInternalInput> for InsertNodeInternalInput {
-    type Output = InsertNodeInternalInput;
+    type Output = Self;
     fn add(self, rhs: UpdateNodeInternalInput) -> Self::Output {
         rhs + self
     }
 }
 
-impl Add<UpdateNodeInternalInput> for UpdateNodeInternalInput {
-    type Output = UpdateNodeInternalInput;
+impl Add<Self> for UpdateNodeInternalInput {
+    type Output = Self;
 
-    fn add(self, rhs: UpdateNodeInternalInput) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
             id: self.id,
             ty: self.ty,
@@ -1287,41 +1269,26 @@ impl Add<UpdateNodeInternalInput> for UpdateNodeInternalInput {
 }
 
 impl InternalNodeChanges {
-    pub fn with(self, other: InternalNodeChanges) -> Result<Self, PossibleChangesInternalError> {
+    pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (InternalNodeChanges::InsertNode(_), InternalNodeChanges::InsertNode(_)) => {
-                Err(PossibleChangesInternalError::MultipleInsertWithSameNode)
-            }
-            (InternalNodeChanges::InsertNode(_), InternalNodeChanges::DeleteNode(_))
-            | (InternalNodeChanges::DeleteNode(_), InternalNodeChanges::InsertNode(_)) => {
+            (Self::Insert(_), Self::Insert(_)) => Err(PossibleChangesInternalError::MultipleInsertWithSameNode),
+            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => {
                 Err(PossibleChangesInternalError::InsertAndDelete)
             }
-            (InternalNodeChanges::DeleteNode(_), InternalNodeChanges::DeleteNode(_)) => {
-                Err(PossibleChangesInternalError::MultipleDeleteWithSameNode)
-            }
-            (InternalNodeChanges::InsertNode(a), InternalNodeChanges::UpdateNode(b)) => {
-                Ok(InternalNodeChanges::InsertNode(a + b))
-            }
-            (InternalNodeChanges::UpdateNode(a), InternalNodeChanges::InsertNode(b)) => {
-                Ok(InternalNodeChanges::InsertNode(a + b))
-            }
-            (InternalNodeChanges::UpdateNode(a), InternalNodeChanges::UpdateNode(b)) => {
-                Ok(InternalNodeChanges::UpdateNode(a + b))
-            }
-            (InternalNodeChanges::UpdateNode(_), InternalNodeChanges::DeleteNode(a)) => {
-                Ok(InternalNodeChanges::DeleteNode(a))
-            }
-            (InternalNodeChanges::DeleteNode(a), InternalNodeChanges::UpdateNode(_)) => {
-                Ok(InternalNodeChanges::DeleteNode(a))
-            }
+            (Self::Delete(_), Self::Delete(_)) => Err(PossibleChangesInternalError::MultipleDeleteWithSameNode),
+            (Self::Insert(a), Self::Update(b)) => Ok(Self::Insert(a + b)),
+            (Self::Update(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
+            (Self::Update(a), Self::Update(b)) => Ok(Self::Update(a + b)),
+            (Self::Update(_), Self::Delete(a)) => Ok(Self::Delete(a)),
+            (Self::Delete(a), Self::Update(_)) => Ok(Self::Delete(a)),
         }
     }
 }
 
-impl Add<InsertRelationInternalInput> for InsertRelationInternalInput {
-    type Output = InsertRelationInternalInput;
+impl Add<Self> for InsertRelationInternalInput {
+    type Output = Self;
 
-    fn add(self, rhs: InsertRelationInternalInput) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
             from_id: rhs.from_id,
             from_ty: rhs.from_ty,
@@ -1374,17 +1341,17 @@ impl Add<InsertRelationInternalInput> for UpdateRelationInternalInput {
 }
 
 impl Add<UpdateRelationInternalInput> for InsertRelationInternalInput {
-    type Output = InsertRelationInternalInput;
+    type Output = Self;
 
     fn add(self, rhs: UpdateRelationInternalInput) -> Self::Output {
         rhs + self
     }
 }
 
-impl Add<UpdateRelationInternalInput> for UpdateRelationInternalInput {
-    type Output = UpdateRelationInternalInput;
+impl Add<Self> for UpdateRelationInternalInput {
+    type Output = Self;
 
-    fn add(self, rhs: UpdateRelationInternalInput) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
             from_id: rhs.from_id,
             from_ty: rhs.from_ty,
@@ -1406,7 +1373,7 @@ impl Add<UpdateRelationInternalInput> for UpdateRelationInternalInput {
 }
 
 impl Add<DeleteMultipleRelationsInternalInput> for UpdateRelationInternalInput {
-    type Output = UpdateRelationInternalInput;
+    type Output = Self;
 
     fn add(self, rhs: DeleteMultipleRelationsInternalInput) -> Self::Output {
         Self::Output {
@@ -1433,97 +1400,65 @@ impl Add<UpdateRelationInternalInput> for DeleteMultipleRelationsInternalInput {
     }
 }
 
-impl Add<DeleteRelationInternalInput> for DeleteRelationInternalInput {
-    type Output = DeleteRelationInternalInput;
+impl Add<Self> for DeleteRelationInternalInput {
+    type Output = Self;
 
-    fn add(self, rhs: DeleteRelationInternalInput) -> Self::Output {
+    fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
-            (DeleteRelationInternalInput::Multiple(a), DeleteRelationInternalInput::Multiple(b)) => {
-                DeleteRelationInternalInput::Multiple(DeleteMultipleRelationsInternalInput {
-                    from_ty: a.from_ty,
-                    from_id: a.from_id,
-                    to_ty: a.to_ty,
-                    to_id: a.to_id,
-                    relation_names: {
-                        let mut update_into_insert = a.relation_names;
-                        update_into_insert.extend(b.relation_names);
-                        update_into_insert.into_iter().unique().collect()
-                    },
-                })
-            }
-            (DeleteRelationInternalInput::Multiple(_), DeleteRelationInternalInput::All(a)) => {
-                DeleteRelationInternalInput::All(a)
-            }
-            (DeleteRelationInternalInput::All(a), DeleteRelationInternalInput::Multiple(_)) => {
-                DeleteRelationInternalInput::All(a)
-            }
-            (DeleteRelationInternalInput::All(a), DeleteRelationInternalInput::All(_)) => {
-                DeleteRelationInternalInput::All(a)
-            }
+            (Self::Multiple(a), Self::Multiple(b)) => Self::Multiple(DeleteMultipleRelationsInternalInput {
+                from_ty: a.from_ty,
+                from_id: a.from_id,
+                to_ty: a.to_ty,
+                to_id: a.to_id,
+                relation_names: {
+                    let mut update_into_insert = a.relation_names;
+                    update_into_insert.extend(b.relation_names);
+                    update_into_insert.into_iter().unique().collect()
+                },
+            }),
+            (Self::Multiple(_), Self::All(a)) => Self::All(a),
+            (Self::All(a), Self::Multiple(_)) => Self::All(a),
+            (Self::All(a), Self::All(_)) => Self::All(a),
         }
     }
 }
 
 #[derive(Debug, PartialEq, Clone)]
 enum InternalRelationChanges {
-    InsertRelation(InsertRelationInternalInput), // One affected node
-    UpdateRelation(UpdateRelationInternalInput), // Unknown affected ids
-    DeleteRelation(DeleteRelationInternalInput), // Unknown affected ids
+    Insert(InsertRelationInternalInput), // One affected node
+    Update(UpdateRelationInternalInput), // Unknown affected ids
+    Delete(DeleteRelationInternalInput), // Unknown affected ids
 }
 
 impl InternalRelationChanges {
-    pub fn with(self, other: InternalRelationChanges) -> Result<Self, PossibleChangesInternalError> {
+    pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (InternalRelationChanges::InsertRelation(a), InternalRelationChanges::InsertRelation(b)) => {
-                Ok(InternalRelationChanges::InsertRelation(a + b))
-            }
-            (InternalRelationChanges::InsertRelation(_), InternalRelationChanges::DeleteRelation(_))
-            | (InternalRelationChanges::DeleteRelation(_), InternalRelationChanges::InsertRelation(_)) => {
+            (Self::Insert(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
+            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => {
                 Err(PossibleChangesInternalError::InsertAndDelete)
             }
-            (InternalRelationChanges::DeleteRelation(a), InternalRelationChanges::DeleteRelation(b)) => {
-                Ok(InternalRelationChanges::DeleteRelation(a + b))
+            (Self::Delete(a), Self::Delete(b)) => Ok(Self::Delete(a + b)),
+            (Self::Insert(a), Self::Update(b)) => Ok(Self::Insert(a + b)),
+            (Self::Update(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
+            (Self::Update(a), Self::Update(b)) => Ok(Self::Update(a + b)),
+            (Self::Update(_), Self::Delete(DeleteRelationInternalInput::All(a)))
+            | (Self::Delete(DeleteRelationInternalInput::All(a)), Self::Update(_)) => {
+                Ok(Self::Delete(DeleteRelationInternalInput::All(a)))
             }
-            (InternalRelationChanges::InsertRelation(a), InternalRelationChanges::UpdateRelation(b)) => {
-                Ok(InternalRelationChanges::InsertRelation(a + b))
-            }
-            (InternalRelationChanges::UpdateRelation(a), InternalRelationChanges::InsertRelation(b)) => {
-                Ok(InternalRelationChanges::InsertRelation(a + b))
-            }
-            (InternalRelationChanges::UpdateRelation(a), InternalRelationChanges::UpdateRelation(b)) => {
-                Ok(InternalRelationChanges::UpdateRelation(a + b))
-            }
-            (
-                InternalRelationChanges::UpdateRelation(_),
-                InternalRelationChanges::DeleteRelation(DeleteRelationInternalInput::All(a)),
-            )
-            | (
-                InternalRelationChanges::DeleteRelation(DeleteRelationInternalInput::All(a)),
-                InternalRelationChanges::UpdateRelation(_),
-            ) => Ok(InternalRelationChanges::DeleteRelation(
-                DeleteRelationInternalInput::All(a),
-            )),
-            (
-                InternalRelationChanges::UpdateRelation(b),
-                InternalRelationChanges::DeleteRelation(DeleteRelationInternalInput::Multiple(a)),
-            )
-            | (
-                InternalRelationChanges::DeleteRelation(DeleteRelationInternalInput::Multiple(a)),
-                InternalRelationChanges::UpdateRelation(b),
-            ) => Ok(InternalRelationChanges::UpdateRelation(a + b)),
+            (Self::Update(b), Self::Delete(DeleteRelationInternalInput::Multiple(a)))
+            | (Self::Delete(DeleteRelationInternalInput::Multiple(a)), Self::Update(b)) => Ok(Self::Update(a + b)),
         }
     }
 }
 
 impl InternalChanges {
-    pub fn with(self, other: InternalChanges) -> Result<Self, PossibleChangesInternalError> {
+    pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (InternalChanges::Node(a), InternalChanges::Node(b)) => a.with(b).map(InternalChanges::Node),
-            (InternalChanges::Node(_), InternalChanges::Relation(_))
-            | (InternalChanges::Relation(_), InternalChanges::Node(_)) => {
+            (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
+            (Self::Node(_), Self::Relation(_)) | (Self::Relation(_), Self::Node(_)) => {
                 Err(PossibleChangesInternalError::NodeAndRelationCompare)
             }
-            (InternalChanges::Relation(a), InternalChanges::Relation(b)) => a.with(b).map(InternalChanges::Relation),
+            (Self::Relation(a), Self::Relation(b)) => a.with(b).map(Self::Relation),
         }
     }
 }
