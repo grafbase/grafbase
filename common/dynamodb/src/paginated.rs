@@ -162,7 +162,7 @@ where
         ]);
 
         let sk_string = if edges_len > 0 {
-            exp_att_name.insert("#relationname".to_string(), "__relation_name".to_string());
+            exp_att_name.insert("#relationname".to_string(), "__relation_names".to_string());
             let edges = edges
                 .clone()
                 .into_iter()
@@ -245,7 +245,7 @@ where
                 if len <= limit {
                     let pk = x.get("__pk").and_then(|y| y.s.clone()).expect("Can't fail");
                     let sk = x.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                    let relation_names = x.get("__relation_name").and_then(|y| y.ss.clone());
+                    let relation_names = x.get("__relation_names").and_then(|y| y.ss.clone());
                     match result.values.entry(pk.clone()) {
                         Entry::Vacant(vac) => {
                             // We do insert the PK just before inserting it the n+1 element.

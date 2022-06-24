@@ -7,7 +7,9 @@ edition = "2021"
 async-stream = "0.3"
 async-trait = "0.1"
 aws-region-nearby = "0.1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 composite-id = { path = "../composite-id", features = ["with-dynomite", "with-named-type"] }
+derivative = "2.2"
 dynomite = "0.10"
 fnv = "1"
 futures = "0.3"
@@ -23,6 +25,7 @@ rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
+thiserror = "1"
 wasm-bindgen-futures = "0.4"
 
 [dev-dependencies]

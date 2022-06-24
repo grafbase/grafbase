@@ -79,7 +79,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                 ("#type".to_string(), "__type".to_string()),
             ]);
             let sk_string = if edges_len > 0 {
-                exp_att_name.insert("#relationname".to_string(), "__relation_name".to_string());
+                exp_att_name.insert("#relationname".to_string(), "__relation_names".to_string());
                 let edges = query_key
                     .edges
                     .iter()
@@ -124,7 +124,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         |(query_key, mut acc), curr| async move {
                             let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
                             let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                            let relation_names = curr.get("__relation_name").and_then(|y| y.ss.clone());
+                            let relation_names = curr.get("__relation_names").and_then(|y| y.ss.clone());
 
                             match acc.values.entry(pk.clone()) {
                                 Entry::Vacant(vac) => {

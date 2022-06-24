@@ -18,14 +18,18 @@ use strum as _;
 use surf as _;
 use transaction::{get_loader_transaction, TransactionLoader};
 
+use thiserror as _;
+
 mod batch_getitem;
 pub mod dataloader;
+pub mod new_transaction;
 mod paginated;
 mod query;
 mod query_by_type;
 mod query_by_type_paginated;
 mod transaction;
 pub use batch_getitem::BatchGetItemLoaderError;
+pub use new_transaction::{get_loader_transaction_new, NewTransactionLoader};
 pub use paginated::PaginatedCursor;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
@@ -196,11 +200,13 @@ pub struct DynamoDBBatchersData {
     pub query_fat: DataLoader<QueryTypeLoader, LruCache>,
     /// Used to laod items with only PK from FatPartition with Pagination
     pub paginated_query_fat: DataLoader<QueryTypePaginatedLoader, LruCache>,
+    /// Bl
+    pub transaction_new: DataLoader<NewTransactionLoader, LruCache>,
 }
 
 impl DynamoDBBatchersData {
-    pub fn new(ctx: &Arc<DynamoDBContext>) -> Self {
-        Self {
+    pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
+        Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
@@ -211,6 +217,7 @@ impl DynamoDBBatchersData {
                 Arc::clone(ctx),
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
-        }
+            transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
+        })
     }
 }
