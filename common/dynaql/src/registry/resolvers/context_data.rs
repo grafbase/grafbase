@@ -109,7 +109,7 @@ impl ResolverTrait for ContextDataResolver {
                 // As we are in an Edge, the result from ancestor should be an array.
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => arr,
-                    _ => return Ok(ResolvedValue::new(serde_json::Value::Null)),
+                    _ => return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return()),
                 };
 
                 let is_expecting_array = is_array_basic_type(&resolver_ctx.field.unwrap().ty);
@@ -145,6 +145,18 @@ impl ResolverTrait for ContextDataResolver {
                         let a = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
                             .resolve(ctx, resolver_ctx, last_resolver_value)
                             .await?;
+
+                        #[cfg(feature = "tracing_worker")]
+                        logworker::info!(
+                            ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
+                            "{}",
+                            serde_json::to_string_pretty(&serde_json::json!({
+                                "resolver": "edges_one",
+                                "data": &a.data_resolved,
+                                "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
+                            }))
+                            .unwrap(),
+                        );
 
                         return Ok(a);
                     }
@@ -186,6 +198,18 @@ impl ResolverTrait for ContextDataResolver {
                             array_result.push(result);
                         }
                         let arr = futures_util::future::try_join_all(array_result).await?;
+
+                        #[cfg(feature = "tracing_worker")]
+                        logworker::info!(
+                            ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
+                            "{}",
+                            serde_json::to_string_pretty(&serde_json::json!({
+                                "resolver": "edges_array",
+                                "data": serde_json::Value::Array(arr.clone()),
+                                "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
+                            }))
+                            .unwrap(),
+                        );
 
                         return Ok(ResolvedValue::new(serde_json::Value::Array(arr)));
                     }

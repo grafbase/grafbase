@@ -9,6 +9,7 @@ use itertools::Itertools;
 use serde_json::Map;
 use std::borrow::Borrow;
 use std::hash::Hash;
+use std::sync::Arc;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
@@ -115,7 +116,7 @@ impl ResolverTrait for DynamoResolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        let batchers = &ctx.data::<DynamoDBBatchersData>()?;
+        let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
         let query_loader_fat = &batchers.query_fat;
@@ -394,6 +395,20 @@ impl ResolverTrait for DynamoResolver {
                     query_result
                         .into_iter()
                         .fold(Map::with_capacity(len), |mut acc, (_, b)| {
+                            /*
+                            #[cfg(feature = "tracing_worker")]
+                            logworker::info!(
+                                ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
+                                "{}",
+                                serde_json::to_string_pretty(&serde_json::json!({
+                                    "location": "query pk sk iter",
+                                    "data": serde_json::Value::String(format!("{:?}", b)),
+                                    "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
+                                }))
+                                .unwrap(),
+                                );
+                                */
+
                             acc.insert(
                                 current_ty.to_string(),
                                 serde_json::to_value(b.node).expect("can't fail"),
@@ -405,6 +420,20 @@ impl ResolverTrait for DynamoResolver {
 
                             acc
                         });
+
+                /*
+                #[cfg(feature = "tracing_worker")]
+                logworker::info!(
+                    ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
+                    "{}",
+                    serde_json::to_string_pretty(&serde_json::json!({
+                        "location": "query pk sk check",
+                        "data": serde_json::Value::Object(result.clone()),
+                        "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
+                    }))
+                    .unwrap(),
+                    );
+                    */
 
                 Ok(ResolvedValue::new(serde_json::Value::Object(result)))
             }

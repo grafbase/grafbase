@@ -12,6 +12,7 @@ use dynaql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use ulid_rs::Ulid;
 
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
@@ -288,7 +289,7 @@ impl CurrentResolverType {
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
-        let execution_id = ulid_rs::Ulid::new();
+        let execution_id = Ulid::new();
         let registry = &ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
@@ -309,6 +310,17 @@ impl MetaField {
                     Ok(result) => {
                         if self.ty.ends_with('!') && result.data_resolved == serde_json::Value::Null
                         {
+                            #[cfg(feature = "tracing_worker")]
+                            logworker::error!(
+                                ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
+                                "{}",
+                                serde_json::to_string_pretty(&serde_json::json!({
+                                    "message": "Something went wrong here",
+                                    "expected": serde_json::Value::String(self.ty.clone()),
+                                    "path": serde_json::Value::String(resolvers.clone().to_string()),
+                                }))
+                                .unwrap(),
+                            );
                             Err(ServerError::new(
                                 format!(
                                     "An error happened while fetching {:?}",
@@ -968,7 +980,7 @@ impl Registry {
                     description: None,
                     possible_types,
                     visible: None,
-                    rust_typename: "dynaql::federation::Entity".to_string(),
+                    rust_typename: "async_graphql::federation::Entity".to_string(),
                 },
             );
 
@@ -1071,7 +1083,7 @@ impl Registry {
                 visible: None,
                 is_subscription: false,
                 is_node: false,
-                rust_typename: "dynaql::federation::Service".to_string(),
+                rust_typename: "async_graphql::federation::Service".to_string(),
             },
         );
 
