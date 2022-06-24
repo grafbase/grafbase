@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 211
 expression: sdl
 ---
 type Author {
@@ -21,7 +22,7 @@ type Mutation {
 	"""
 	Create a Todo
 	"""
-	todoCreate(input: TodoCreateInput!): TodoCreatePayload
+	todoCreate(input: TodoCreationInput!): TodoCreatePayload
 	"""
 	Update a Todo
 	"""
@@ -60,16 +61,16 @@ type TodoConnection {
 	pageInfo: PageInfo!
 	edges: [TodoEdge]
 }
+type TodoCreatePayload {
+	todo: Todo
+}
 """
 Input to create a new Todo
 """
-input TodoCreateInput {
+input TodoCreationInput {
 	content: String!
 	authors: [AuthorInput]
 	ty: TodoType!
-}
-type TodoCreatePayload {
-	todo: Todo
 }
 type TodoDeletePayload {
 	deletedId: ID!

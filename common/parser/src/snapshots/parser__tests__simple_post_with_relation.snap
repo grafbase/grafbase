@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 249
 expression: reg_string
 ---
 {
@@ -294,44 +295,6 @@ expression: reg_string
         "rust_typename": "AuthorConnection"
       }
     },
-    "AuthorCreateInput": {
-      "InputObject": {
-        "description": "Input to create a new Author",
-        "input_fields": {
-          "country": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "country",
-            "ty": "Country!"
-          },
-          "lastname": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "lastname",
-            "ty": "String!"
-          },
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!"
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[AuthorPublishedPostCreateRelationInput]"
-          }
-        },
-        "name": "AuthorCreateInput",
-        "oneof": false,
-        "rust_typename": "Author"
-      }
-    },
     "AuthorCreatePayload": {
       "Object": {
         "cache_control": {
@@ -379,6 +342,44 @@ expression: reg_string
         "keys": null,
         "name": "AuthorCreatePayload",
         "rust_typename": "AuthorCreatePayload"
+      }
+    },
+    "AuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Author",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country!"
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!"
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostCreateInput]"
+          }
+        },
+        "name": "AuthorCreationInput",
+        "oneof": false,
+        "rust_typename": "Author"
       }
     },
     "AuthorDeletePayload": {
@@ -493,31 +494,14 @@ expression: reg_string
     },
     "AuthorPublishedPostCreateInput": {
       "InputObject": {
-        "description": "Input to create a new AuthorPublishedPost",
-        "input_fields": {
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!"
-          }
-        },
-        "name": "AuthorPublishedPostCreateInput",
-        "oneof": false,
-        "rust_typename": "AuthorPublishedPostCreateInput"
-      }
-    },
-    "AuthorPublishedPostCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to create a new AuthorPublishedPost relation",
+        "description": "Input to create a new AuthorPublishedPostCreateInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "AuthorPublishedPostCreateInput"
+            "ty": "AuthorPublishedPostCreationInput"
           },
           "link": {
             "default_value": null,
@@ -527,21 +511,38 @@ expression: reg_string
             "ty": "ID"
           }
         },
-        "name": "AuthorPublishedPostCreateRelationInput",
+        "name": "AuthorPublishedPostCreateInput",
         "oneof": true,
-        "rust_typename": "AuthorPublishedPostCreateRelationInput"
+        "rust_typename": "AuthorPublishedPostCreateInput"
+      }
+    },
+    "AuthorPublishedPostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new AuthorPublishedPostCreationInput",
+        "input_fields": {
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "AuthorPublishedPostCreationInput",
+        "oneof": false,
+        "rust_typename": "AuthorPublishedPostCreationInput"
       }
     },
     "AuthorPublishedPostUpdateRelationInput": {
       "InputObject": {
-        "description": "Input to update a AuthorPublishedPost relation",
+        "description": "Input to create a new AuthorPublishedPostUpdateRelationInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "AuthorPublishedPostCreateInput"
+            "ty": "AuthorPublishedPostCreationInput"
           },
           "link": {
             "default_value": null,
@@ -780,7 +781,31 @@ expression: reg_string
     },
     "BlogAuthorRelateBlogAuthorCreateInput": {
       "InputObject": {
-        "description": "Input to create a new BlogAuthorRelateBlogAuthor",
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogAuthorRelateBlogAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorCreateInput",
+        "oneof": true,
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreateInput"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorCreationInput",
         "input_fields": {
           "country": {
             "default_value": null,
@@ -808,48 +833,24 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "posts",
-            "ty": "[AuthorPublishedPostCreateInput]"
+            "ty": "[AuthorPublishedPostCreationInput]"
           }
         },
-        "name": "BlogAuthorRelateBlogAuthorCreateInput",
+        "name": "BlogAuthorRelateBlogAuthorCreationInput",
         "oneof": false,
-        "rust_typename": "BlogAuthorRelateBlogAuthorCreateInput"
-      }
-    },
-    "BlogAuthorRelateBlogAuthorCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to create a new BlogAuthorRelateBlogAuthor relation",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogAuthorRelateBlogAuthorCreateInput"
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID"
-          }
-        },
-        "name": "BlogAuthorRelateBlogAuthorCreateRelationInput",
-        "oneof": true,
-        "rust_typename": "BlogAuthorRelateBlogAuthorCreateRelationInput"
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreationInput"
       }
     },
     "BlogAuthorRelateBlogAuthorUpdateRelationInput": {
       "InputObject": {
-        "description": "Input to update a BlogAuthorRelateBlogAuthor relation",
+        "description": "Input to create a new BlogAuthorRelateBlogAuthorUpdateRelationInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "BlogAuthorRelateBlogAuthorCreateInput"
+            "ty": "BlogAuthorRelateBlogAuthorCreationInput"
           },
           "link": {
             "default_value": null,
@@ -873,38 +874,14 @@ expression: reg_string
     },
     "BlogBlogRelatePostPostCreateInput": {
       "InputObject": {
-        "description": "Input to create a new BlogBlogRelatePostPost",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorCreateInput]"
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!"
-          }
-        },
-        "name": "BlogBlogRelatePostPostCreateInput",
-        "oneof": false,
-        "rust_typename": "BlogBlogRelatePostPostCreateInput"
-      }
-    },
-    "BlogBlogRelatePostPostCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to create a new BlogBlogRelatePostPost relation",
+        "description": "Input to create a new BlogBlogRelatePostPostCreateInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "BlogBlogRelatePostPostCreateInput"
+            "ty": "BlogBlogRelatePostPostCreationInput"
           },
           "link": {
             "default_value": null,
@@ -914,21 +891,45 @@ expression: reg_string
             "ty": "ID"
           }
         },
-        "name": "BlogBlogRelatePostPostCreateRelationInput",
+        "name": "BlogBlogRelatePostPostCreateInput",
         "oneof": true,
-        "rust_typename": "BlogBlogRelatePostPostCreateRelationInput"
+        "rust_typename": "BlogBlogRelatePostPostCreateInput"
+      }
+    },
+    "BlogBlogRelatePostPostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new BlogBlogRelatePostPostCreationInput",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreationInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "BlogBlogRelatePostPostCreationInput",
+        "oneof": false,
+        "rust_typename": "BlogBlogRelatePostPostCreationInput"
       }
     },
     "BlogBlogRelatePostPostUpdateRelationInput": {
       "InputObject": {
-        "description": "Input to update a BlogBlogRelatePostPost relation",
+        "description": "Input to create a new BlogBlogRelatePostPostUpdateRelationInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "BlogBlogRelatePostPostCreateInput"
+            "ty": "BlogBlogRelatePostPostCreationInput"
           },
           "link": {
             "default_value": null,
@@ -1006,30 +1007,6 @@ expression: reg_string
         "rust_typename": "BlogConnection"
       }
     },
-    "BlogCreateInput": {
-      "InputObject": {
-        "description": "Input to create a new Blog",
-        "input_fields": {
-          "owner": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "owner",
-            "ty": "BlogAuthorRelateBlogAuthorCreateRelationInput!"
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[BlogBlogRelatePostPostCreateRelationInput]"
-          }
-        },
-        "name": "BlogCreateInput",
-        "oneof": false,
-        "rust_typename": "Blog"
-      }
-    },
     "BlogCreatePayload": {
       "Object": {
         "cache_control": {
@@ -1077,6 +1054,30 @@ expression: reg_string
         "keys": null,
         "name": "BlogCreatePayload",
         "rust_typename": "BlogCreatePayload"
+      }
+    },
+    "BlogCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Blog",
+        "input_fields": {
+          "owner": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "owner",
+            "ty": "BlogAuthorRelateBlogAuthorCreateInput!"
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[BlogBlogRelatePostPostCreateInput]"
+          }
+        },
+        "name": "BlogCreationInput",
+        "oneof": false,
+        "rust_typename": "Blog"
       }
     },
     "BlogDeletePayload": {
@@ -1325,7 +1326,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "AuthorCreateInput!"
+                "ty": "AuthorCreationInput!"
               }
             },
             "cache_control": {
@@ -1448,7 +1449,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "BlogCreateInput!"
+                "ty": "BlogCreationInput!"
               }
             },
             "cache_control": {
@@ -1571,7 +1572,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "PostCreateInput!"
+                "ty": "PostCreationInput!"
               }
             },
             "cache_control": {
@@ -2009,30 +2010,6 @@ expression: reg_string
         "rust_typename": "PostConnection"
       }
     },
-    "PostCreateInput": {
-      "InputObject": {
-        "description": "Input to create a new Post",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorCreateRelationInput]"
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!"
-          }
-        },
-        "name": "PostCreateInput",
-        "oneof": false,
-        "rust_typename": "Post"
-      }
-    },
     "PostCreatePayload": {
       "Object": {
         "cache_control": {
@@ -2080,6 +2057,30 @@ expression: reg_string
         "keys": null,
         "name": "PostCreatePayload",
         "rust_typename": "PostCreatePayload"
+      }
+    },
+    "PostCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Post",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreateInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          }
+        },
+        "name": "PostCreationInput",
+        "oneof": false,
+        "rust_typename": "Post"
       }
     },
     "PostDeletePayload": {
@@ -2194,7 +2195,31 @@ expression: reg_string
     },
     "PostPublishedAuthorCreateInput": {
       "InputObject": {
-        "description": "Input to create a new PostPublishedAuthor",
+        "description": "Input to create a new PostPublishedAuthorCreateInput",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostPublishedAuthorCreationInput"
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID"
+          }
+        },
+        "name": "PostPublishedAuthorCreateInput",
+        "oneof": true,
+        "rust_typename": "PostPublishedAuthorCreateInput"
+      }
+    },
+    "PostPublishedAuthorCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new PostPublishedAuthorCreationInput",
         "input_fields": {
           "country": {
             "default_value": null,
@@ -2218,45 +2243,21 @@ expression: reg_string
             "ty": "String!"
           }
         },
-        "name": "PostPublishedAuthorCreateInput",
+        "name": "PostPublishedAuthorCreationInput",
         "oneof": false,
-        "rust_typename": "PostPublishedAuthorCreateInput"
-      }
-    },
-    "PostPublishedAuthorCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to create a new PostPublishedAuthor relation",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "PostPublishedAuthorCreateInput"
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID"
-          }
-        },
-        "name": "PostPublishedAuthorCreateRelationInput",
-        "oneof": true,
-        "rust_typename": "PostPublishedAuthorCreateRelationInput"
+        "rust_typename": "PostPublishedAuthorCreationInput"
       }
     },
     "PostPublishedAuthorUpdateRelationInput": {
       "InputObject": {
-        "description": "Input to update a PostPublishedAuthor relation",
+        "description": "Input to create a new PostPublishedAuthorUpdateRelationInput",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "PostPublishedAuthorCreateInput"
+            "ty": "PostPublishedAuthorCreationInput"
           },
           "link": {
             "default_value": null,

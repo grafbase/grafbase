@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 80
 expression: reg_string
 ---
 {
@@ -95,7 +96,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "ProductCreateInput!"
+                "ty": "ProductCreationInput!"
               }
             },
             "cache_control": {
@@ -525,30 +526,6 @@ expression: reg_string
         "rust_typename": "ProductConnection"
       }
     },
-    "ProductCreateInput": {
-      "InputObject": {
-        "description": "Input to create a new Product",
-        "input_fields": {
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!"
-          },
-          "price": {
-            "default_value": null,
-            "description": "The product's price in $",
-            "is_secret": false,
-            "name": "price",
-            "ty": "Int!"
-          }
-        },
-        "name": "ProductCreateInput",
-        "oneof": false,
-        "rust_typename": "Product"
-      }
-    },
     "ProductCreatePayload": {
       "Object": {
         "cache_control": {
@@ -596,6 +573,30 @@ expression: reg_string
         "keys": null,
         "name": "ProductCreatePayload",
         "rust_typename": "ProductCreatePayload"
+      }
+    },
+    "ProductCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Product",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!"
+          },
+          "price": {
+            "default_value": null,
+            "description": "The product's price in $",
+            "is_secret": false,
+            "name": "price",
+            "ty": "Int!"
+          }
+        },
+        "name": "ProductCreationInput",
+        "oneof": false,
+        "rust_typename": "Product"
       }
     },
     "ProductDeletePayload": {

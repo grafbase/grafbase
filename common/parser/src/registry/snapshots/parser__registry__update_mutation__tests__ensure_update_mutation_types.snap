@@ -1,35 +1,36 @@
 ---
 source: common/parser/src/registry/update_mutation.rs
+assertion_line: 461
 expression: sdl
 ---
 """
-Input to create a new AuthorCommentedComment
+Input to create a new AuthorCommentedCommentCreationInput
 """
-input AuthorCommentedCommentCreateInput {
-	post: CommentCommentsPostCreateRelationInput
+input AuthorCommentedCommentCreationInput {
+	post: CommentCommentsPostCreationInput
 	comment: String!
 	like: Int!
 }
 """
-Input to update a AuthorCommentedComment relation
+Input to create a new AuthorCommentedCommentUpdateRelationInput
 """
 input AuthorCommentedCommentUpdateRelationInput {
-	create: AuthorCommentedCommentCreateInput
+	create: AuthorCommentedCommentCreationInput
 	link: ID
 	unlink: ID
 }
 """
-Input to create a new AuthorPublishedPost
+Input to create a new AuthorPublishedPostCreationInput
 """
-input AuthorPublishedPostCreateInput {
+input AuthorPublishedPostCreationInput {
 	content: String!
-	comments: [PostCommentsCommentCreateRelationInput]
+	comments: [PostCommentsCommentCreationInput]
 }
 """
-Input to update a AuthorPublishedPost relation
+Input to create a new AuthorPublishedPostUpdateRelationInput
 """
 input AuthorPublishedPostUpdateRelationInput {
-	create: AuthorPublishedPostCreateInput
+	create: AuthorPublishedPostCreationInput
 	link: ID
 	unlink: ID
 }

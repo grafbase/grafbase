@@ -9,7 +9,7 @@ type AuthorCreatePayload {
 """
 Input to create a new Author
 """
-input AuthorCreateInput {
+input AuthorCreationInput {
 	Author: Error
 }
 schema {

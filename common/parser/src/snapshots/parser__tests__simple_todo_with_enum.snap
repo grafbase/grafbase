@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 210
 expression: reg_string
 ---
 {
@@ -250,7 +251,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "TodoCreateInput!"
+                "ty": "TodoCreationInput!"
               }
             },
             "cache_control": {
@@ -865,37 +866,6 @@ expression: reg_string
         "rust_typename": "TodoConnection"
       }
     },
-    "TodoCreateInput": {
-      "InputObject": {
-        "description": "Input to create a new Todo",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[AuthorInput]"
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!"
-          },
-          "ty": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "ty",
-            "ty": "TodoType!"
-          }
-        },
-        "name": "TodoCreateInput",
-        "oneof": false,
-        "rust_typename": "Todo"
-      }
-    },
     "TodoCreatePayload": {
       "Object": {
         "cache_control": {
@@ -943,6 +913,37 @@ expression: reg_string
         "keys": null,
         "name": "TodoCreatePayload",
         "rust_typename": "TodoCreatePayload"
+      }
+    },
+    "TodoCreationInput": {
+      "InputObject": {
+        "description": "Input to create a new Todo",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[AuthorInput]"
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!"
+          },
+          "ty": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "ty",
+            "ty": "TodoType!"
+          }
+        },
+        "name": "TodoCreationInput",
+        "oneof": false,
+        "rust_typename": "Todo"
       }
     },
     "TodoDeletePayload": {
