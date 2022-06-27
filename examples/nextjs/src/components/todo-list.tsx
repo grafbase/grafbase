@@ -15,6 +15,7 @@ import {
 import getColor from "utils/get-color";
 import Spinner from "components/spinner";
 import Dropdown from "components/dropdown";
+import debounce from "lodash.debounce";
 
 const TodoList = (props: TodoListFragment) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +26,10 @@ const TodoList = (props: TodoListFragment) => {
   );
   const [{ fetching }, todoListDelete] = useMutation(TodoListDeleteDocument);
   const [{}, todoListUpdate] = useMutation(TodoListUpdateDocument);
+
+  const onTitleChange = debounce((title: string) => {
+    todoListUpdate({ id, title });
+  }, 500);
 
   return (
     <div className="space-y-4 flex-1 min-w-[300px]">
@@ -38,7 +43,7 @@ const TodoList = (props: TodoListFragment) => {
             ref={inputRef}
             defaultValue={title}
             className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
-            onChange={(e) => todoListUpdate({ id, title: e.target.value })}
+            onChange={(e) => onTitleChange(e.target.value)}
           />
         </h2>
         <div className="relative z-20">
