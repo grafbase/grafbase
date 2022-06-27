@@ -1,4 +1,4 @@
-name: Lint
+name: CLI / lint
 
 on: [push, workflow_dispatch]
 
@@ -10,12 +10,18 @@ permissions:
 
 jobs:
   lint:
-    name: Lint
     runs-on: ubuntu-latest
 
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+
+      - name: Move CLI to root
+        run: |
+          shopt -s extglob
+          rm -r !("cli")
+          mv cli/* .
+          rm -r cli
 
       # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
       - name: Create `rust-toolchain`

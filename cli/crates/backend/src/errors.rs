@@ -2,7 +2,7 @@ use common::traits::ToExitCode;
 use std::path::PathBuf;
 use thiserror::Error;
 
-pub use dev_server::errors::DevServerError;
+pub use server::errors::ServerError;
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -13,9 +13,9 @@ pub enum BackendError {
     /// returned if a given port is in use and the search option is not used
     #[error("port {0} is currently in use")]
     PortInUse(u16),
-    /// wraps a dev server error
+    /// wraps a server error
     #[error(transparent)]
-    DevServerError(DevServerError),
+    ServerError(ServerError),
     /// returned when trying to initialize a project that conflicts with an existing project
     #[error("{0} already exists")]
     AlreadyAProject(PathBuf),
@@ -39,7 +39,7 @@ impl ToExitCode for BackendError {
             Self::AvailablePort | Self::PortInUse(_) => exitcode::UNAVAILABLE,
             Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) => exitcode::USAGE,
             Self::ReadCurrentDirectory | Self::CreateGrafbaseDirectory | Self::WriteSchema => exitcode::DATAERR,
-            Self::DevServerError(inner) => inner.to_exit_code(),
+            Self::ServerError(inner) => inner.to_exit_code(),
         }
     }
 }

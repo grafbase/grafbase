@@ -1,5 +1,5 @@
 [package]
-name = "grafbase-local-dev-server"
+name = "grafbase-local-server"
 version = "0.1.0-pre.0"
 edition = "2021"
 description = "A wrapper for the grafbase worker"

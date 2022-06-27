@@ -1,5 +1,5 @@
 /*!
-The dev-server crate provides a server with the gateway worker (via miniflare)
+The server crate provides a server with the gateway worker (via miniflare)
 and a bridge server connecting the worker to an sqlite db
 
 # Example
@@ -10,7 +10,7 @@ const PORT: u16 = 4000;
 
 // `common::environment::Environment` must be initialized before this
 
-let dev_server_handle = dev_server::start(PORT).unwrap();
+let server_handle = server::start(PORT).unwrap();
 ```
 */
 

@@ -1,7 +1,7 @@
 {
   "name": "grafbase",
   "version": "0.1.0",
-  "description": "placeholder",
+  "description": "The data platform for developers.",
   "main": "index.js",
   "author": "grafbase",
   "license": "Apache-2.0",

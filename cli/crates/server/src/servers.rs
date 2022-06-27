@@ -3,7 +3,7 @@ use crate::consts::{
     SCHEMA_PARSER_INDEX, WORKER_DIR, WORKER_FOLDER_VERSION_FILE,
 };
 use crate::types::{Assets, ServerMessage};
-use crate::{bridge, errors::DevServerError};
+use crate::{bridge, errors::ServerError};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
@@ -25,17 +25,17 @@ use which::which;
 ///
 /// # Errors
 ///
-/// returns [`DevServerError::ReadVersion`] if the version file for the extracted worker files cannot be read
+/// returns [`ServerError::ReadVersion`] if the version file for the extracted worker files cannot be read
 ///
-/// returns [`DevServerError::CreateDir`] if the `WORKER_DIR` cannot be created
+/// returns [`ServerError::CreateDir`] if the `WORKER_DIR` cannot be created
 ///
-/// returns [`DevServerError::WriteFile`] if a file cannot be written into `WORKER_DIR`
+/// returns [`ServerError::WriteFile`] if a file cannot be written into `WORKER_DIR`
 ///
 /// # Panics
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16) -> (JoinHandle<Result<(), DevServerError>>, Receiver<ServerMessage>) {
+pub fn start(port: u16) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
     let handle = thread::spawn(move || {
@@ -46,7 +46,7 @@ pub fn start(port: u16) -> (JoinHandle<Result<(), DevServerError>>, Receiver<Ser
         // the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
         // making the port choice and availability transprent to the user
         let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
-            .ok_or(DevServerError::AvailablePort)?;
+            .ok_or(ServerError::AvailablePort)?;
 
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
@@ -59,11 +59,7 @@ pub fn start(port: u16) -> (JoinHandle<Result<(), DevServerError>>, Receiver<Ser
 }
 
 #[tracing::instrument(level = "trace")]
-async fn spawn_servers(
-    worker_port: u16,
-    bridge_port: u16,
-    sender: Sender<ServerMessage>,
-) -> Result<(), DevServerError> {
+async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<ServerMessage>) -> Result<(), ServerError> {
     validate_dependencies().await?;
 
     run_schema_parser().await?;
@@ -84,7 +80,7 @@ async fn spawn_servers(
     let registry_path = environment
         .project_grafbase_registry_path
         .to_str()
-        .ok_or(DevServerError::ProjectPath)?;
+        .ok_or(ServerError::ProjectPath)?;
 
     trace!("spawining miniflare");
 
@@ -110,7 +106,7 @@ async fn spawn_servers(
         .stderr(Stdio::piped())
         .current_dir(&environment.user_dot_grafbase_path)
         .spawn()
-        .map_err(DevServerError::MiniflareCommandError)?;
+        .map_err(ServerError::MiniflareCommandError)?;
 
     sender
         .send(ServerMessage::Ready(worker_port))
@@ -119,20 +115,20 @@ async fn spawn_servers(
     let output = spawned
         .wait_with_output()
         .await
-        .map_err(DevServerError::MiniflareCommandError)?;
+        .map_err(ServerError::MiniflareCommandError)?;
 
     output
         .status
         .success()
         .then(|| {})
-        .ok_or_else(|| DevServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
+        .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
 
     bridge_handle.await??;
 
     Ok(())
 }
 
-fn export_embedded_files() -> Result<(), DevServerError> {
+fn export_embedded_files() -> Result<(), ServerError> {
     let environment = Environment::get();
 
     let worker_path = environment.user_dot_grafbase_path.join(WORKER_DIR);
@@ -143,7 +139,7 @@ fn export_embedded_files() -> Result<(), DevServerError> {
     let worker_version_path = worker_path.join(WORKER_FOLDER_VERSION_FILE);
 
     let export_files = if worker_path.is_dir() {
-        let worker_version = fs::read_to_string(&worker_version_path).map_err(|_| DevServerError::ReadVersion)?;
+        let worker_version = fs::read_to_string(&worker_version_path).map_err(|_| ServerError::ReadVersion)?;
 
         // derived from CARGO_PKG_VERSION, guaranteed be valid semver
         current_version > Version::from(&worker_version).unwrap()
@@ -154,12 +150,12 @@ fn export_embedded_files() -> Result<(), DevServerError> {
     if export_files {
         trace!("writing worker files");
 
-        fs::create_dir_all(&environment.user_dot_grafbase_path).map_err(|_| DevServerError::CreateCacheDir)?;
+        fs::create_dir_all(&environment.user_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
 
         let gitignore_path = &environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE);
 
         fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
-            .map_err(|_| DevServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
+            .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
@@ -184,28 +180,27 @@ fn export_embedded_files() -> Result<(), DevServerError> {
 
         if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
             let error_path_string = path.to_string_lossy().into_owned();
-            return Err(DevServerError::WriteFile(error_path_string));
+            return Err(ServerError::WriteFile(error_path_string));
         }
 
         if fs::write(&worker_version_path, current_version.as_str()).is_err() {
             let worker_version_path_string = worker_version_path.to_string_lossy().into_owned();
-            return Err(DevServerError::WriteFile(worker_version_path_string));
+            return Err(ServerError::WriteFile(worker_version_path_string));
         };
     }
 
     Ok(())
 }
 
-fn create_project_dot_grafbase_folder() -> Result<(), DevServerError> {
+fn create_project_dot_grafbase_folder() -> Result<(), ServerError> {
     let environment = Environment::get();
 
     let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();
 
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
-        fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| DevServerError::CreateCacheDir)?;
-        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n")
-            .map_err(|_| DevServerError::CreateCacheDir)?;
+        fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
+        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
     }
 
     Ok(())
@@ -213,7 +208,7 @@ fn create_project_dot_grafbase_folder() -> Result<(), DevServerError> {
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
-async fn run_schema_parser() -> Result<(), DevServerError> {
+async fn run_schema_parser() -> Result<(), ServerError> {
     trace!("parsing schema");
 
     let environment = Environment::get();
@@ -225,46 +220,46 @@ async fn run_schema_parser() -> Result<(), DevServerError> {
 
     let output = Command::new("node")
         .args(&[
-            &parser_path.to_str().ok_or(DevServerError::CachePath)?,
+            &parser_path.to_str().ok_or(ServerError::CachePath)?,
             &environment
                 .project_grafbase_schema_path
                 .to_str()
-                .ok_or(DevServerError::ProjectPath)?,
+                .ok_or(ServerError::ProjectPath)?,
         ])
         .current_dir(&environment.project_dot_grafbase_path)
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(DevServerError::SchemaParserError)?
+        .map_err(ServerError::SchemaParserError)?
         .wait_with_output()
         .await
-        .map_err(DevServerError::SchemaParserError)?;
+        .map_err(ServerError::SchemaParserError)?;
 
     output
         .status
         .success()
         .then(|| {})
-        .ok_or_else(|| DevServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))?;
+        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))?;
 
     Ok(())
 }
 
-async fn get_node_version_string() -> Result<String, DevServerError> {
+async fn get_node_version_string() -> Result<String, ServerError> {
     let output = Command::new("node")
         .arg("--version")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .map_err(|_| DevServerError::CheckNodeVersion)?
+        .map_err(|_| ServerError::CheckNodeVersion)?
         .wait_with_output()
         .await
-        .map_err(|_| DevServerError::CheckNodeVersion)?;
+        .map_err(|_| ServerError::CheckNodeVersion)?;
 
     let node_version_string = String::from_utf8_lossy(&output.stdout).trim().to_owned();
 
     Ok(node_version_string)
 }
 
-async fn validate_node_version() -> Result<(), DevServerError> {
+async fn validate_node_version() -> Result<(), ServerError> {
     trace!("validating Node.js version");
     trace!("minimal supported Node.js version: {}", MIN_NODE_VERSION);
 
@@ -272,23 +267,23 @@ async fn validate_node_version() -> Result<(), DevServerError> {
 
     trace!("installed node version: {}", node_version_string);
 
-    let node_version = Version::from(&node_version_string).ok_or(DevServerError::CheckNodeVersion)?;
+    let node_version = Version::from(&node_version_string).ok_or(ServerError::CheckNodeVersion)?;
     let min_version = Version::from(MIN_NODE_VERSION).expect("must be valid");
 
     if node_version >= min_version {
         Ok(())
     } else {
-        Err(DevServerError::OutdatedNode(
+        Err(ServerError::OutdatedNode(
             node_version_string,
             MIN_NODE_VERSION.to_owned(),
         ))
     }
 }
 
-async fn validate_dependencies() -> Result<(), DevServerError> {
+async fn validate_dependencies() -> Result<(), ServerError> {
     trace!("validating dependencies");
 
-    which("node").map_err(|_| DevServerError::NodeInPath)?;
+    which("node").map_err(|_| ServerError::NodeInPath)?;
 
     validate_node_version().await?;
 

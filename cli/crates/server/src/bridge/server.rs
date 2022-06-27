@@ -1,6 +1,6 @@
 use super::consts::{CREATE_TABLE, DB_FILE, DB_URL_PREFIX};
 use super::types::{Payload, Record};
-use crate::errors::DevServerError;
+use crate::errors::ServerError;
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
@@ -13,7 +13,7 @@ use tower_http::trace::TraceLayer;
 async fn query_endpoint(
     Json(payload): Json<Payload>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<Json<Vec<Record>>, DevServerError> {
+) -> Result<Json<Vec<Record>>, ServerError> {
     trace!("request\n\n{:#?}\n", payload);
 
     let template = query_as::<_, Record>(&payload.query);
@@ -32,7 +32,7 @@ async fn query_endpoint(
 async fn mutation_endpoint(
     Json(payload): Json<Payload>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<StatusCode, DevServerError> {
+) -> Result<StatusCode, ServerError> {
     trace!("request\n\n{:#?}\n", payload);
 
     let template = query(&payload.query);
@@ -46,7 +46,7 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
-pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), DevServerError> {
+pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
@@ -54,7 +54,7 @@ pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), De
 
     let db_url = match db_file.to_str() {
         Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),
-        None => return Err(DevServerError::ProjectPath),
+        None => return Err(ServerError::ProjectPath),
     };
 
     if !Sqlite::database_exists(&db_url).await? {

@@ -6,13 +6,13 @@ pub mod report {
     };
     use common::consts::LOCALHOST;
 
-    /// reports to stdout that the dev server has started
+    /// reports to stdout that the server has started
     pub fn cli_header() {
         let version = env!("CARGO_PKG_VERSION");
         watercolor::output!("Grafbase CLI v{version}", @hex("4A9C6D"), @@BrightBlue);
     }
 
-    /// reports to stdout that the dev server has started
+    /// reports to stdout that the server has started
     pub fn start_server(port: u16, start_port: u16) {
         if port != start_port {
             println!(

@@ -11,7 +11,7 @@ repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
 common = { package = "grafbase-local-common", path = "../common", version = "0.1.0-pre.0" }
-dev-server = { package = "grafbase-local-dev-server", path = "../dev-server", version = "0.1.0-pre.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.1.0-pre.0" }
 exitcode = "1"
 indoc = "1"
 thiserror = "1"

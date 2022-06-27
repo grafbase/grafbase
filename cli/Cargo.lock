@@ -620,7 +620,7 @@ version = "0.1.0-pre.0"
 dependencies = [
  "exitcode",
  "grafbase-local-common",
- "grafbase-local-dev-server",
+ "grafbase-local-server",
  "indoc",
  "thiserror",
 ]
@@ -636,7 +636,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "grafbase-local-dev-server"
+name = "grafbase-local-server"
 version = "0.1.0-pre.0"
 dependencies = [
  "anyhow",

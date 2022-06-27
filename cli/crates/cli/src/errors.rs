@@ -1,4 +1,4 @@
-use backend::errors::{BackendError, DevServerError};
+use backend::errors::{BackendError, ServerError};
 use common::{errors::CommonError, traits::ToExitCode};
 use thiserror::Error;
 
@@ -10,10 +10,10 @@ pub enum CliError {
     // TODO: this might be better as `expect`
     /// returned if the development server panics
     #[error("{0}")]
-    DevServerPanic(String),
-    /// wraps a dev server error
+    ServerPanic(String),
+    /// wraps a server error
     #[error(transparent)]
-    DevServerError(DevServerError),
+    ServerError(ServerError),
     /// wraps an error originating in the local-gateway crate
     #[error(transparent)]
     BackendError(BackendError),
@@ -26,7 +26,7 @@ impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
             Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
-            Self::DevServerPanic(_) | Self::DevServerError(_) => exitcode::SOFTWARE,
+            Self::ServerPanic(_) | Self::ServerError(_) => exitcode::SOFTWARE,
             Self::BackendError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
         }
@@ -49,10 +49,10 @@ impl CliError {
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
                 Some("try running the CLI in your Grafbase project or any nested directory".to_owned())
             }
-            Self::DevServerError(DevServerError::NodeInPath) => {
+            Self::ServerError(ServerError::NodeInPath) => {
                 Some("we currently require Node.js as a dependency - please install Node.js and make sure it is in your $PATH to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)".to_owned())
             }
-            Self::DevServerError(DevServerError::OutdatedNode(_, min_version)) => {
+            Self::ServerError(ServerError::OutdatedNode(_, min_version)) => {
                 Some(format!("please update your Node.js version to {min_version} or higher to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)"))
             }
             _ => None,

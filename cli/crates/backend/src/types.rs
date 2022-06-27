@@ -1,1 +1,1 @@
-pub use dev_server::types::ServerMessage;
+pub use server::types::ServerMessage;

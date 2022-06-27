@@ -12,7 +12,7 @@ use thiserror::Error;
 use tokio::task::JoinError;
 
 #[derive(Error, Debug)]
-pub enum DevServerError {
+pub enum ServerError {
     /// returned if the current directory path cannot be read
     #[error("could not create path '{0}' for the embedded server files")]
     CreateDir(PathBuf),
@@ -94,7 +94,7 @@ pub enum DevServerError {
     CheckNodeVersion,
 }
 
-impl ToExitCode for DevServerError {
+impl ToExitCode for ServerError {
     fn to_exit_code(&self) -> i32 {
         match &self {
             Self::CreateDir(_)
@@ -120,7 +120,7 @@ impl ToExitCode for DevServerError {
     }
 }
 
-impl From<SqlxError> for DevServerError {
+impl From<SqlxError> for ServerError {
     fn from(error: SqlxError) -> Self {
         match error {
             SqlxError::RowNotFound
@@ -146,13 +146,13 @@ impl From<SqlxError> for DevServerError {
     }
 }
 
-impl From<HyperError> for DevServerError {
+impl From<HyperError> for ServerError {
     fn from(error: HyperError) -> Self {
         Self::BridgeApi(error)
     }
 }
 
-impl IntoResponse for DevServerError {
+impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let body = Json(json!({
             "error": self.to_string(),
@@ -162,7 +162,7 @@ impl IntoResponse for DevServerError {
     }
 }
 
-impl From<JoinError> for DevServerError {
+impl From<JoinError> for ServerError {
     fn from(error: JoinError) -> Self {
         Self::SpawnedTaskPanic(error)
     }
