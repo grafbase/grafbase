@@ -25,7 +25,7 @@ query TodoLists {
 mutation TodoListCreate($title: String!) {
   todoListCreate(input: { title: $title }) {
     todoList {
-      id
+      ...TodoList
     }
   }
 }
@@ -35,7 +35,7 @@ mutation TodoCreate($title: String!, $todoListId: ID!) {
     input: { title: $title, complete: false, list: { link: $todoListId } }
   ) {
     todo {
-      id
+      ...Todo
     }
   }
 }
@@ -49,7 +49,7 @@ mutation TodoListDelete($id: ID!) {
 mutation TodoListUpdate($id: ID!, $title : String) {
   todoListUpdate(id : $id, input: {title : $title }) {
     todoList {
-      id
+      ...TodoList
     }
   }
 }
@@ -64,7 +64,7 @@ mutation TodoDelete($id: ID!) {
 mutation TodoUpdate($id: ID!, $title : String, $complete: Boolean) {
   todoUpdate(id : $id, input: {title : $title, complete: $complete }) {
     todo {
-      id
+      ...Todo
     }
   }
 }

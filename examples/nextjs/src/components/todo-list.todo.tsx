@@ -24,7 +24,7 @@ const TodoListTodo = (props: {
       className={`relative rounded-md border p-3 overflow-hidden ${
         completed
           ? "bg-emerald-800 border-emerald-600"
-          : "bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-gray-700"
+          : "bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-transparent"
       }`}
     >
       {completed && (

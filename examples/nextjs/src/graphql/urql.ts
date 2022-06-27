@@ -1,11 +1,7 @@
 import type { ClientOptions } from "@urql/core/dist/types/client";
-import {
-  cacheExchange,
-  createClient,
-  dedupExchange,
-  fetchExchange,
-} from "urql";
+import { createClient, dedupExchange, fetchExchange } from "urql";
 import { errorExchange } from "./uqrl.error";
+import { cacheExchange } from "graphql/urql.exchange";
 
 const urqlClientBaseConfig: ClientOptions = {
   url: "/api/graphql",
@@ -14,5 +10,5 @@ const urqlClientBaseConfig: ClientOptions = {
 
 export const urqlClient = createClient({
   ...urqlClientBaseConfig,
-  exchanges: [dedupExchange, cacheExchange, errorExchange(), fetchExchange],
+  exchanges: [dedupExchange, cacheExchange(), errorExchange(), fetchExchange],
 });
