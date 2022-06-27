@@ -16,7 +16,7 @@ serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1"
 wasm-timer = "0.2"
-worker = { version = "0.0.10", optional = true }
+worker = { version = "0.0.9", optional = true }
 
 [features]
 with-worker = ["sentry-cf-worker", "worker"]
