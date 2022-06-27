@@ -1,0 +1,38 @@
+name: Build
+
+on: [push, workflow_dispatch]
+
+permissions:
+  # Allow checks read
+  checks: write
+  # Allow repo checkout
+  contents: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
+      - name: Create `rust-toolchain`
+        run: |
+          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
+
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
+        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
+        # Once it does, we should be able to remove the `with` block entirely.
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          override: true
+
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
