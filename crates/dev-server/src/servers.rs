@@ -8,6 +8,7 @@ use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::Arc;
 use std::{
     fs,
     process::Stdio,
@@ -15,6 +16,7 @@ use std::{
 };
 use tokio::process::Command;
 use tokio::runtime::Builder;
+use tokio::sync::Notify;
 use version_compare::Version;
 use which::which;
 
@@ -68,7 +70,16 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port).await });
+    let bridge_ready_sender = Arc::new(Notify::new());
+    let bridge_ready_receiver = bridge_ready_sender.clone();
+
+    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, bridge_ready_sender).await });
+
+    trace!("waiting for bridge ready");
+
+    bridge_ready_receiver.notified().await;
+
+    trace!("bridge ready");
 
     let registry_path = environment
         .project_grafbase_registry_path

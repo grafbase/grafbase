@@ -4,7 +4,7 @@ The local-gateway crate provides a local backend for Grafbase developer tools
 # Example
 
 ```ignore
-use local_gateway::dev_server_api::start_dev_server;
+use backend::dev_server_api::start_dev_server;
 # common::environment::Environment::try_init().unwrap();
 
 const PORT: Option<u16> = Some(4000);
@@ -20,6 +20,8 @@ let (dev_server_port, dev_server_handle) = start_dev_server(PORT, SEARCH).unwrap
 
 #![forbid(unsafe_code)]
 
+mod consts;
 pub mod dev_server_api;
 pub mod errors;
+pub mod project;
 pub mod types;

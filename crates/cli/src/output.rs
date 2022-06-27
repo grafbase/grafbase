@@ -1,12 +1,15 @@
 pub mod report {
-    use crate::errors::CliError;
-    use colorize::{colorize, Color};
+
+    use crate::{
+        errors::CliError,
+        watercolor::{self, watercolor},
+    };
     use common::consts::LOCALHOST;
 
     /// reports to stdout that the dev server has started
     pub fn cli_header() {
         let version = env!("CARGO_PKG_VERSION");
-        colorize::println!("Grafbase CLI v{}", version, hex("4A9C6D"), Color::BrightBlue);
+        watercolor::output!("Grafbase CLI v{version}", @hex("4A9C6D"), @@BrightBlue);
     }
 
     /// reports to stdout that the dev server has started
@@ -14,24 +17,47 @@ pub mod report {
         if port != start_port {
             println!(
                 "port {} is unavailable, started on the closest available port",
-                colorize!("{}", start_port, Color::BrightBlue)
+                watercolor!("{start_port}", @BrightBlue)
             );
         }
         println!(
             "📡 started dev server on {}",
-            colorize!("http://{LOCALHOST}:{}", port, Color::BrightBlue)
+            watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
         );
+    }
+
+    pub fn project_created(name: Option<&str>) {
+        let slash = std::path::MAIN_SEPARATOR.to_string();
+        if let Some(name) = name {
+            watercolor::output!(r#"✨ "{name}" was succesfully created!"#, @BrightBlue);
+
+            let schema_path = &[".", name, "grafbase", "schema.graphql"].join(&slash);
+
+            println!(
+                "the schema for your new project can be found at {}",
+                watercolor!("{schema_path}", @BrightBlue)
+            );
+        } else {
+            watercolor::output!(r#"✨ your project was successfully set up for Grafbase!"#, @BrightBlue);
+
+            let schema_path = &[".", "grafbase", "schema.graphql"].join(&slash);
+
+            println!(
+                "your new schema can be found at {}",
+                watercolor!("{schema_path}", @BrightBlue)
+            );
+        }
     }
 
     /// reports an error to stderr
     pub fn error(error: &CliError) {
-        colorize::eprintln!("error: {}", error, Color::BrightRed);
+        watercolor::output_error!("error: {error}", @BrightRed);
         if let Some(hint) = error.to_hint() {
-            colorize::eprintln!("hint: {}", hint, Color::BrightBlue);
+            watercolor::output_error!("hint: {hint}", @BrightBlue);
         }
     }
 
     pub fn goodbye() {
-        colorize::eprintln!("{}", "\n👋 see you next time!", Color::BrightBlue);
+        watercolor::output_error!("\n👋 see you next time!", @BrightBlue);
     }
 }

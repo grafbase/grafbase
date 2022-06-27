@@ -1,6 +1,6 @@
 # Changelog
 
-## [next]
+## [0.1.0-pre.0]
 
 ### Features
 
@@ -36,6 +36,11 @@
 - Reports the minimal supported Node.js version when erroring due to unsupported versions
 - Compresses included assets
 - Aligns the minimal supported Node.js version to the one miniflare uses
+- Uses a specific bundled version of miniflare
+- Compresses assets
+- Sets miniflare to only listen locally
+- Waits for bridge server to be ready before spawning miniflare
+- Adds a basic implementation for `init` (disabled)
 
 ### Fixes
 
@@ -43,6 +48,7 @@
 - Does not report `miniflare error` automatically when the spawned thread returns an error
 - Handles non utf-8 path errors
 - Allows output of completions even when not in Grafbase project
+- Doesn't initialize environment for `init` and `completions`
 
 ### Tooling
 
@@ -85,6 +91,10 @@
 - Manually instantiates `tokio` runtime due to a Rust Analyzer issue
 - Uses only `node` rather than `npx` as well
 - Automatically creates needed directories when exporting assets
+- Prefixes internal crates
+- Folds `colorize` and `panic-hook`
+- Renames `colorize` to `watercolor`
+- Renames `local-gateway` to `backend`
 
 ### Documentation
 

@@ -1,20 +1,19 @@
 [package]
-name = "dev-server"
-version = "0.1.0"
+name = "grafbase-local-dev-server"
+version = "0.1.0-pre.0"
 edition = "2021"
-description = "a wrapper for the grafbase worker"
+description = "A wrapper for the grafbase worker"
 license = "Apache-2.0"
 homepage = "https://grafbase.com"
 keywords = ["grafbase"]
 readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
-# TODO: populate categories
-# categories = []
+exclude = ["!assets/**"]
 
 [dependencies]
 axum = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
-common = { path = "../common", version = "0.1.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.1.0-pre.0" }
 exitcode = "1"
 hyper = "0.14"
 log = "0.4"
@@ -33,3 +32,13 @@ tower-http = { version = "0.3", features = ["trace"] }
 tracing = "0.1"
 version-compare = "0.1"
 which = "4"
+
+[dev-dependencies]
+anyhow = "1.0.58"
+indoc = "1.0.6"
+reqwest = { version = "0.11.11", features = [
+  "tokio-rustls",
+  "serde_json",
+  "json",
+] }
+serde_json = "1"

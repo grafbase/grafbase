@@ -1,4 +1,4 @@
-use crate::errors::LocalGatewayError;
+use crate::errors::BackendError;
 use crate::types::ServerMessage;
 use common::utils::find_available_port;
 use common::{consts::DEFAULT_PORT, types::LocalAddressType};
@@ -12,10 +12,10 @@ type ServerInfo = (thread::JoinHandle<Result<(), DevServerError>>, Receiver<Serv
 ///
 /// # Errors
 ///
-/// returns [`LocalGatewayError::AvailablePort`] if no available port can  be found
+/// returns [`BackendError::AvailablePort`] if no available port can  be found
 ///
-/// returns [`LocalGatewayError::PortInUse`] if search is off and the supplied port is in use
-pub fn start_dev_server(external_port: Option<u16>, search: bool) -> Result<ServerInfo, LocalGatewayError> {
+/// returns [`BackendError::PortInUse`] if search is off and the supplied port is in use
+pub fn start_dev_server(external_port: Option<u16>, search: bool) -> Result<ServerInfo, BackendError> {
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
     match find_available_port(search, start_port, LocalAddressType::Unspecified) {
         Some(port) => {
@@ -24,9 +24,9 @@ pub fn start_dev_server(external_port: Option<u16>, search: bool) -> Result<Serv
         }
         None => {
             if search {
-                Err(LocalGatewayError::AvailablePort)
+                Err(BackendError::AvailablePort)
             } else {
-                Err(LocalGatewayError::PortInUse(start_port))
+                Err(BackendError::PortInUse(start_port))
             }
         }
     }

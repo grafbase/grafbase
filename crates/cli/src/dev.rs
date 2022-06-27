@@ -1,15 +1,15 @@
 use crate::output::report;
 use crate::CliError;
+use backend::dev_server_api::start_dev_server;
+use backend::types::ServerMessage;
 use common::consts::DEFAULT_PORT;
 use common::utils::get_thread_panic_message;
-use local_gateway::dev_server_api::start_dev_server;
-use local_gateway::types::ServerMessage;
 
-/// cli wrapper for [`local_gateway::dev_server_api::start_dev_server`]
+/// cli wrapper for [`backend::dev_server_api::start_dev_server`]
 ///
 /// # Errors
 ///
-/// returns [`CliError::LocalGatewayError`] if the the local gateway returns an error
+/// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::DevServerPanic`] if the development server panics
 pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
@@ -24,7 +24,7 @@ pub fn dev(search: bool, external_port: Option<u16>) -> Result<(), CliError> {
             }
             handle
         }
-        Err(error) => return Err(CliError::LocalGatewayError(error)),
+        Err(error) => return Err(CliError::BackendError(error)),
     };
 
     server_handle

@@ -13,6 +13,6 @@ pub const DOT_GRAFBASE_FOLDER: &str = ".grafbase";
 /// the registry.json file generated from schema.graphql
 pub const REGISTRY_FILE: &str = "registry.json";
 /// the tracing filter to be used when tracing is on
-pub const TRACE_LOG_FILTER: &str = "grafbase=trace,common=trace,dev_server=trace,local_gateway=trace,tower_http=debug";
+pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_dev_server=trace,grafbase_local_backend=trace,tower_http=debug";
 /// the tracing filter to be used when tracing is off
 pub const DEFAULT_LOG_FILTER: &str = "off";

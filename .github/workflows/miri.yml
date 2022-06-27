@@ -5,11 +5,19 @@ jobs:
     name: Miri
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
+      - name: Create `rust-toolchain`
+        run: |
+          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
+
       - name: install miri
         run: |
           rustup toolchain install nightly --component miri
           rustup override set nightly
           cargo miri setup
+
       - name: test with Miri
         run: cargo miri test

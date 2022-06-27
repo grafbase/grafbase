@@ -1,5 +1,5 @@
+use backend::errors::{BackendError, DevServerError};
 use common::{errors::CommonError, traits::ToExitCode};
-use local_gateway::errors::{DevServerError, LocalGatewayError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -16,7 +16,7 @@ pub enum CliError {
     DevServerError(DevServerError),
     /// wraps an error originating in the local-gateway crate
     #[error(transparent)]
-    LocalGatewayError(LocalGatewayError),
+    BackendError(BackendError),
     /// wraps an error originating in the common crate
     #[error(transparent)]
     CommonError(CommonError),
@@ -27,7 +27,7 @@ impl ToExitCode for CliError {
         match &self {
             Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
             Self::DevServerPanic(_) | Self::DevServerError(_) => exitcode::SOFTWARE,
-            Self::LocalGatewayError(inner) => inner.to_exit_code(),
+            Self::BackendError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
         }
     }
@@ -37,11 +37,14 @@ impl CliError {
     /// returns the appropriate hint for a [`CliError`]
     pub fn to_hint(&self) -> Option<String> {
         match self {
-            Self::LocalGatewayError(LocalGatewayError::AvailablePort) => {
+            Self::BackendError(BackendError::AvailablePort) => {
                 Some("try supplying a larger port range to search by supplying a lower --port number".to_owned())
             }
-            Self::LocalGatewayError(LocalGatewayError::PortInUse(_)) => {
+            Self::BackendError(BackendError::PortInUse(_)) => {
                 Some("try using a different --port number or supplying the --search flag".to_owned())
+            }
+            Self::BackendError(BackendError::ProjectDirectoryExists(_)) => {
+                Some("try using a different name for your new project".to_owned())
             }
             Self::CommonError(CommonError::FindGrafbaseDirectory) => {
                 Some("try running the CLI in your Grafbase project or any nested directory".to_owned())

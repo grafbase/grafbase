@@ -4,13 +4,15 @@ mod cli_input;
 mod completions;
 mod dev;
 mod errors;
+mod init;
 mod output;
+mod panic_hook;
+mod watercolor;
 
 #[macro_use]
 extern crate log;
 
 use cli_input::build_cli;
-use colorize::ShouldColorize;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
     environment::Environment,
@@ -18,12 +20,14 @@ use common::{
 };
 use dev::dev;
 use errors::CliError;
+use init::init;
 use output::report;
-use std::process;
+use std::{convert::AsRef, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use watercolor::ShouldColorize;
 
 fn main() {
-    panic_hook::setup!();
+    panic_hook!();
 
     ShouldColorize::from_env();
 
@@ -51,13 +55,19 @@ fn try_main() -> Result<(), CliError> {
 
     report::cli_header();
 
-    // running completions before initializing the environment
-    // to prevent errors outside of a grafbase project
-    if let Some(("completions", matches)) = matches.subcommand() {
-        let shell = matches.get_one::<String>("shell").expect("must be present");
-        completions::generate(shell)?;
-        return Ok(());
-    };
+    // commands that do not need an initialized environment
+    match matches.subcommand() {
+        Some(("completions", matches)) => {
+            let shell = matches.get_one::<String>("shell").expect("must be present");
+            completions::generate(shell)?;
+            return Ok(());
+        }
+        Some(("init", matches)) => {
+            let name = matches.get_one::<String>("name").map(AsRef::as_ref);
+            return init(name);
+        }
+        _ => {}
+    }
 
     Environment::try_init().map_err(CliError::CommonError)?;
 

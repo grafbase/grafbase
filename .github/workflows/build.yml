@@ -8,9 +8,6 @@ permissions:
   # Allow repo checkout
   contents: write
 
-env:
-  RUST_VERSION: '1.60'
-
 jobs:
   build:
     name: Build
@@ -19,6 +16,11 @@ jobs:
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+
+      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
+      - name: Create `rust-toolchain`
+        run: |
+          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1

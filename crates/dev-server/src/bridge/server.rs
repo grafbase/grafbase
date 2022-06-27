@@ -7,6 +7,7 @@ use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use tokio::sync::Notify;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
@@ -45,7 +46,7 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
-pub async fn start(port: u16) -> Result<(), DevServerError> {
+pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), DevServerError> {
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
@@ -75,9 +76,11 @@ pub async fn start(port: u16) -> Result<(), DevServerError> {
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
-    axum::Server::bind(&socket_address)
-        .serve(router.into_make_service())
-        .await?;
+    let server = axum::Server::bind(&socket_address).serve(router.into_make_service());
+
+    bridge_ready_sender.notify_one();
+
+    server.await?;
 
     Ok(())
 }
