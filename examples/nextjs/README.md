@@ -8,7 +8,7 @@
 
 ## Mandatory configuration
 
-Rename your `.env.local.example` to `.env` and fill all the variables.
+Rename your `.env.example` to `.env` and fill all the variables.
 
 ## Getting Started
 
