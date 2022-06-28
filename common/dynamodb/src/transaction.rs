@@ -64,12 +64,20 @@ async fn transaction_by_pk(
     };
     info!(ctx.trace_id, "TransactionWrite {:?}", input);
 
-    let item_collections = ctx
-        .dynamodb_client
-        .transact_write_items(input)
-        .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
-        .await
-        .map_err(|_| TransactionError::UnknownError)?;
+    let again = again::RetryPolicy::default()
+        .with_max_delay(Duration::from_millis(50))
+        .with_max_retries(3)
+        .with_jitter(true);
+
+    let item_collections = again
+        .retry(|| async {
+            ctx.dynamodb_client
+                .transact_write_items(input.clone())
+                .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
+                .await
+                .map_err(|_| TransactionError::UnknownError)
+        })
+        .await?;
 
     info!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
     Ok(result_hashmap)
