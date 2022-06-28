@@ -956,13 +956,9 @@ async fn execute(
     changes: Vec<PossibleChanges>,
 ) -> Result<HashMap<TxItem, AttributeValue>, ToTransactionError> {
     info!(ctx.trace_id, "Public");
-    info!(ctx.trace_id, "");
-    info!(ctx.trace_id, "");
     for r in &changes {
         info!(ctx.trace_id, "{:?}", r);
     }
-    info!(ctx.trace_id, "");
-    info!(ctx.trace_id, "");
 
     // First step, we convert public change to our private interface
     let selections: Vec<_> = changes
@@ -975,16 +971,11 @@ async fn execute(
     let result = futures_util::future::try_join_all(selections).await?;
 
     info!(ctx.trace_id, "Private");
-    info!(ctx.trace_id, "");
-    info!(ctx.trace_id, "");
     for r in &result {
         for ((pk, sk), val) in r {
             info!(ctx.trace_id, "{} {} | {:?}", pk, sk, val);
-            info!(ctx.trace_id, "");
         }
     }
-    info!(ctx.trace_id, "");
-    info!(ctx.trace_id, "");
 
     // Merge Hashmap together
     let merged: HashMap<TupplePartitionKeySortingKey, Vec<InternalChanges>> =
