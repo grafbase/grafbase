@@ -1,5 +1,5 @@
 pub const PK: &str = "__pk";
-pub const SK: &str = "__pk";
+pub const SK: &str = "__sk";
 pub const TYPE: &str = "__type";
 pub const CREATED_AT: &str = "__created_at";
 pub const UPDATED_AT: &str = "__updated_at";
