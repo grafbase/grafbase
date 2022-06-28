@@ -1,4 +1,8 @@
-import { TodoDeleteDocument, TodoUpdateDocument } from "graphql/schema";
+import {
+  TodoDeleteDocument,
+  TodoFragment,
+  TodoUpdateDocument,
+} from "graphql/schema";
 import { useMutation } from "urql";
 import { useMemo, useRef, useState } from "react";
 import { TrashIcon } from "@heroicons/react/outline";
@@ -20,8 +24,11 @@ const TodoListTodo = (props: {
   const [{ fetching }, todoDelete] = useMutation(TodoDeleteDocument);
   const [{}, todoUpdate] = useMutation(TodoUpdateDocument);
 
+  const onTodoUpdate = (todoProps: Partial<TodoFragment>) =>
+    todoUpdate({ ...props, ...todoProps });
+
   const onTitleChange = debounce((title: string) => {
-    todoUpdate({ id, title });
+    onTodoUpdate({ title });
   }, 500);
 
   return (
@@ -46,7 +53,7 @@ const TodoListTodo = (props: {
               className="border-gray-200 text-green-600 dark:border-gray-500 bg-white dark:bg-black rounded accent-green-600 hover:bg-green-600 focus:ring-0"
               onClick={() => {
                 setCompleted((c) => {
-                  todoUpdate({ id, complete: c! });
+                  onTodoUpdate({ complete: !c });
                   return !c;
                 });
               }}
