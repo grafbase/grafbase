@@ -5,7 +5,7 @@ use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
 use crate::{Context, Error, ServerError, Value};
 use chrono::Utc;
-use dynamodb::new_transaction::PossibleChanges;
+use dynamodb::graph_transaction::PossibleChanges;
 use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
 use dynaql_value::Name;
 use dynomite::{Attribute, AttributeValue};
