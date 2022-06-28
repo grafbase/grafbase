@@ -1,0 +1,10 @@
+{
+  "branchPrefix": "renovate-",
+  "extends": ["config:base", ":disableDependencyDashboard", "schedule:weekly"],
+  "packageRules": [
+    {
+      "groupName": "dependencies-non-major",
+      "matchUpdateTypes": ["digest", "minor", "patch", "pin"]
+    }
+  ]
+}
