@@ -46,7 +46,7 @@ const TodoListTodo = (props: {
               className="border-gray-200 text-green-600 dark:border-gray-500 bg-white dark:bg-black rounded accent-green-600 hover:bg-green-600 focus:ring-0"
               onClick={() => {
                 setCompleted((c) => {
-                  todoUpdate({ id, complete: c });
+                  todoUpdate({ id, complete: c! });
                   return !c;
                 });
               }}
