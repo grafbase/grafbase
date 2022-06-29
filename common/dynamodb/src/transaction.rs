@@ -65,21 +65,17 @@ async fn transaction_by_pk(
     info!(ctx.trace_id, "TransactionWrite {:?}", input);
 
     let again = again::RetryPolicy::fixed(Duration::from_millis(10))
-        .with_max_delay(Duration::from_millis(50))
-        .with_max_retries(3);
+        .with_max_delay(Duration::from_millis(100))
+        .with_max_retries(5);
 
     let item_collections = again
         .retry(|| async {
-            info!(ctx.trace_id, "Gogo fetch {}", ctx.trace_id);
-            let result = ctx
-                .dynamodb_client
+            ctx.dynamodb_client
                 .transact_write_items(input.clone())
-                .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
                 .await
-                .map_err(|_| TransactionError::UnknownError);
-            info!(ctx.trace_id, "ended fetch {}", ctx.trace_id);
-            result
+                .map_err(|_| TransactionError::UnknownError)
         })
+        .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
         .await?;
 
     info!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
