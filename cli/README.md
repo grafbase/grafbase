@@ -11,9 +11,9 @@
   </a>
 </p>
 
-Welcome to the Grafbase CLI directory!
+Welcome to the Grafbase CLI!
 
-This directory is a cargo workspace with several crates relating to the Grafbase CLI and developer tooling
+This is a cargo workspace with several crates relating to the Grafbase CLI and developer tooling
 
 The directories in the `crates` directory in the root of the repo are organized as follows:
 
