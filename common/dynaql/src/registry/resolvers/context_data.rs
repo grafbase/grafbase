@@ -142,23 +142,11 @@ impl ResolverTrait for ContextDataResolver {
                         };
                         let sk = VariableResolveDefinition::DebugString(sk);
 
-                        let a = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
+                        let result = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
                             .resolve(ctx, resolver_ctx, last_resolver_value)
                             .await?;
 
-                        #[cfg(feature = "tracing_worker")]
-                        logworker::info!(
-                            ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
-                            "{}",
-                            serde_json::to_string_pretty(&serde_json::json!({
-                                "resolver": "edges_one",
-                                "data": &a.data_resolved,
-                                "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
-                            }))
-                            .unwrap(),
-                        );
-
-                        return Ok(a);
+                        return Ok(result);
                     }
 
                     Ok(ResolvedValue::new(serde_json::json!({ key: result })))
@@ -198,18 +186,6 @@ impl ResolverTrait for ContextDataResolver {
                             array_result.push(result);
                         }
                         let arr = futures_util::future::try_join_all(array_result).await?;
-
-                        #[cfg(feature = "tracing_worker")]
-                        logworker::info!(
-                            ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
-                            "{}",
-                            serde_json::to_string_pretty(&serde_json::json!({
-                                "resolver": "edges_array",
-                                "data": serde_json::Value::Array(arr.clone()),
-                                "path": serde_json::Value::String(ctx.resolver_node.clone().unwrap().to_string()),
-                            }))
-                            .unwrap(),
-                        );
 
                         return Ok(ResolvedValue::new(serde_json::Value::Array(arr)));
                     }

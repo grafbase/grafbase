@@ -156,8 +156,7 @@ type SelectionType<'a> = Pin<
     >,
 >;
 
-type TransactionType<'a> =
-    Pin<Box<dyn Future<Output = Result<ResolvedValue, TransactionError>> + Send + 'a>>;
+type TransactionType<'a> = Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>>;
 
 /// The purpose of this struct is to divide result based on transaction or selection.
 /// And these results will be based on a projection of what would exist if we executed
@@ -225,7 +224,7 @@ fn node_create<'a>(
 
     // We do copy every value from the input we do have into the item we'll
     // insert
-    let mut item = input
+    let item = input
         .clone()
         .into_iter()
         .filter(|(key, _)| !relations_to_be_created.contains_key(key.as_str()))
@@ -237,10 +236,6 @@ fn node_create<'a>(
             );
             acc
         });
-
-    let now_attr = Utc::now().to_string().into_attr();
-    item.insert("created_at".to_string(), now_attr.clone());
-    item.insert("updated_at".to_string(), now_attr);
 
     let cloned_item = item.clone();
     let id_cloned = id.clone();
@@ -293,27 +288,26 @@ fn node_create<'a>(
     // Once we have the edges, either in the process of being created or created
     // we do have their id, so now, we need to:
     //   - Create the targeted Node
-    let create_future: Pin<
-        Box<dyn Future<Output = Result<ResolvedValue, TransactionError>> + Send>,
-    > = Box::pin(async move {
-        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-        let transaction_loader = &batchers.transaction_new;
+    let create_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> =
+        Box::pin(async move {
+            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+            let transaction_loader = &batchers.transaction_new;
 
-        let node = PossibleChanges::new_node(
-            node_ty.name().to_string(),
-            current_execution_id.to_string(),
-            item,
-        );
+            let node = PossibleChanges::new_node(
+                node_ty.name().to_string(),
+                current_execution_id.to_string(),
+                item,
+            );
 
-        transaction_loader
-            .load_many(vec![node])
-            .await
-            .map_err(|_| TransactionError::UnknownError)?;
+            transaction_loader
+                .load_many(vec![node])
+                .await
+                .map_err(Error::new_with_source)?;
 
-        Ok(ResolvedValue::new(serde_json::json!({
-            "id": serde_json::Value::String(id),
-        })))
-    });
+            Ok(ResolvedValue::new(serde_json::json!({
+                "id": serde_json::Value::String(id),
+            })))
+        });
 
     transactions.extend(vec![create_future]);
 
@@ -334,10 +328,10 @@ async fn relation_remove<'a>(
     from: SharedSelectionType<'a>,
     to: String,
     relation_name: &'a str,
-) -> Result<ResolvedValue, TransactionError> {
+) -> Result<ResolvedValue, Error> {
     let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
     let transaction_loader = &batchers.transaction_new;
-    let values = from.await.map_err(|_| TransactionError::UnknownError)?;
+    let values = from.await.map_err(Error::new_with_source)?;
 
     let mut transactions = Vec::with_capacity(values.len() * 2 + 1);
 
@@ -345,8 +339,8 @@ async fn relation_remove<'a>(
         .into_iter()
         .filter(|((pk, sk), _)| *pk != to || *sk != to)
     {
-        let from = ObfuscatedID::new(&pk).unwrap();
-        let to = ObfuscatedID::new(&to).unwrap();
+        let from = ObfuscatedID::new(&pk).map_err(Error::new_with_source)?;
+        let to = ObfuscatedID::new(&to).map_err(Error::new_with_source)?;
 
         let from_to_to = PossibleChanges::unlink_node(
             from.ty().to_string(),
@@ -370,7 +364,7 @@ async fn relation_remove<'a>(
     transaction_loader
         .load_many(transactions)
         .await
-        .map_err(|_| TransactionError::UnknownError)?;
+        .map_err(Error::new_with_source)?;
 
     Ok(ResolvedValue::new(serde_json::Value::Null))
 }
@@ -489,31 +483,34 @@ fn node_update<'a>(
     // We create the update future which will be triggered after every selection future
     // to update the main node and also the replicate.
     // This future will also create/delete relation if needed and create node if needed.
-    let update_future: Pin<
-        Box<dyn Future<Output = Result<ResolvedValue, TransactionError>> + Send>,
-    > = Box::pin(async move {
-        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-        let transaction_batcher = &batchers.transaction_new;
-        let selection = slection_cloned
-            .clone()
-            .await
-            .map_err(|_| TransactionError::UnknownError)?
-            .into_iter()
-            .next()
-            .map(|(_, x)| x)
-            .ok_or(TransactionError::UnknownError)?;
+    let update_future: Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send>> =
+        Box::pin(async move {
+            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+            let transaction_batcher = &batchers.transaction_new;
+            let selection = slection_cloned
+                .clone()
+                .await
+                .map_err(Error::new_with_source)?
+                .into_iter()
+                .next()
+                .map(|(_, x)| x)
+                .ok_or(TransactionError::UnknownError)
+                .map_err(Error::new_with_source)?;
 
-        let from = ObfuscatedID::new(&id_cloned).unwrap();
-        let update =
-            PossibleChanges::update_node(from.ty().to_string(), from.id().to_string(), selection);
+            let from = ObfuscatedID::new(&id_cloned).map_err(Error::new_with_source)?;
+            let update = PossibleChanges::update_node(
+                from.ty().to_string(),
+                from.id().to_string(),
+                selection,
+            );
 
-        transaction_batcher
-            .load_one(update)
-            .await
-            .map_err(|_| TransactionError::UnknownError)?;
+            transaction_batcher
+                .load_one(update)
+                .await
+                .map_err(Error::new_with_source)?;
 
-        Ok(ResolvedValue::new(serde_json::Value::Null))
-    });
+            Ok(ResolvedValue::new(serde_json::Value::Null))
+        });
 
     transactions.extend(vec![update_future]);
 
@@ -551,7 +548,7 @@ async fn create_relation_node<'a>(
     parent_value: SharedSelectionType<'a>,
     selected_value: SharedSelectionType<'a>,
     relation_name: &'a str,
-) -> Result<ResolvedValue, TransactionError> {
+) -> Result<ResolvedValue, Error> {
     let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
     let transaction_batcher = &batchers.transaction_new;
 
@@ -567,19 +564,20 @@ async fn create_relation_node<'a>(
             // link.
             let ((from, _), parent_value) = &parent_value
                 .await
-                .map_err(|_| TransactionError::UnknownError)?
+                .map_err(Error::new_with_source)?
                 .into_iter()
                 .next()
-                .ok_or(TransactionError::UnknownError)?;
+                .ok_or(TransactionError::UnknownError)
+                .map_err(Error::new_with_source)?;
 
-            let from_ty = ObfuscatedID::new(&from).unwrap();
+            let from_ty = ObfuscatedID::new(&from).map_err(Error::new_with_source)?;
 
             let selected_type = selected_value
                 .await
-                .map_err(|_| TransactionError::UnknownError)?
+                .map_err(Error::new_with_source)?
                 .into_iter()
                 .map(|((selected_pk, _), _)| {
-                    let to_ty = ObfuscatedID::new(&selected_pk).unwrap();
+                    let to_ty = ObfuscatedID::new(&selected_pk).map_err(Error::new_with_source)?;
                     let transaction = PossibleChanges::new_link_cached(
                         to_ty.ty().to_string(),
                         to_ty.id().to_string(),
@@ -588,14 +586,14 @@ async fn create_relation_node<'a>(
                         relation.name.clone(),
                         parent_value.clone(),
                     );
-                    transaction
+                    Ok(transaction)
                 })
-                .collect::<Vec<PossibleChanges>>();
+                .collect::<Result<Vec<PossibleChanges>, Error>>()?;
 
             transaction_batcher
                 .load_many(selected_type)
                 .await
-                .map_err(|_| TransactionError::UnknownError)?;
+                .map_err(Error::new_with_source)?;
 
             Ok(ResolvedValue::new(serde_json::Value::Null))
         }
@@ -901,7 +899,10 @@ impl ResolverTrait for DynamoMutationResolver {
                 let id_to_be_deleted =
                     id.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
-                let (ty, id) = id_to_be_deleted.rsplit_once('#').unwrap();
+                let opaque_id = ObfuscatedID::new(&id_to_be_deleted)
+                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                let ty = opaque_id.ty().to_string();
+                let id = opaque_id.ty().to_string();
 
                 new_transaction
                     .load_one(PossibleChanges::delete_node(ty.to_owned(), id.to_owned()))
