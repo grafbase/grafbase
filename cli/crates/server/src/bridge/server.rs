@@ -22,7 +22,11 @@ async fn query_endpoint(
         .iter_variables()
         .fold(template, QueryAs::bind)
         .fetch_all(pool.as_ref())
-        .await?;
+        .await
+        .map_err(|error| {
+            error!("query error: {error}");
+            error
+        })?;
 
     trace!("response\n\n{:#?}\n", result);
 
@@ -41,7 +45,11 @@ async fn mutation_endpoint(
         .iter_variables()
         .fold(template, Query::bind)
         .execute(pool.as_ref())
-        .await?;
+        .await
+        .map_err(|error| {
+            error!("mutation error: {error}");
+            error
+        })?;
 
     Ok(StatusCode::OK)
 }

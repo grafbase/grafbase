@@ -155,7 +155,6 @@ impl From<HyperError> for ServerError {
 
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
-        debug!("sql error: {}", self);
         let body = Json(json!({
             "error": self.to_string(),
         }));
