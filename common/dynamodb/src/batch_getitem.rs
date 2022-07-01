@@ -32,7 +32,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 
     async fn load(&self, keys: &[(String, String)]) -> Result<HashMap<(String, String), Self::Value>, Self::Error> {
         use futures_util::TryFutureExt;
-        log::info!(self.ctx.trace_id, "Loader Dataloader invoked {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Loader Dataloader invoked {:?}", keys);
 
         let mut request_items = HashMap::new();
         let mut keys_to_send = vec![];
@@ -88,7 +88,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
                 acc
             });
 
-        log::info!(self.ctx.trace_id, "Loader Dataloader finished {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Loader Dataloader finished {:?}", keys);
         Ok(get_items)
     }
 }

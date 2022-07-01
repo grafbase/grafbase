@@ -66,7 +66,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     type Error = QueryTypeLoaderError;
 
     async fn load(&self, keys: &[QueryTypeKey]) -> Result<HashMap<QueryTypeKey, Self::Value>, Self::Error> {
-        log::info!(self.ctx.trace_id, "Query Type Dataloader invoked {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Query Type Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {

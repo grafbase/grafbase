@@ -2,7 +2,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::DynamoDBContext;
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
-use log::info;
+use log::debug;
 use quick_error::quick_error;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
 use std::collections::HashMap;
@@ -62,7 +62,7 @@ async fn transaction_by_pk(
             })
             .collect(),
     };
-    info!(ctx.trace_id, "TransactionWrite {:?}", input);
+    debug!(ctx.trace_id, "TransactionWrite {:?}", input);
 
     let again = again::RetryPolicy::fixed(Duration::from_millis(10))
         .with_max_delay(Duration::from_millis(100))
@@ -78,7 +78,7 @@ async fn transaction_by_pk(
         .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
         .await?;
 
-    info!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
+    debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
     Ok(result_hashmap)
 }
 

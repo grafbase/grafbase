@@ -254,7 +254,6 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                             // Already in cache
                             use_cache_values.insert(key.clone(), value.clone());
                         } else {
-                            log::info!("", "One key not in cache");
                             keys_set.insert(key);
                         }
                     }
