@@ -120,7 +120,7 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<Server
     output
         .status
         .success()
-        .then(|| {})
+        .then_some(())
         .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
 
     bridge_handle.await??;
@@ -237,7 +237,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     output
         .status
         .success()
-        .then(|| {})
+        .then_some(())
         .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))?;
 
     Ok(())

@@ -10,7 +10,7 @@ pub fn find_available_port(search: bool, start_port: u16, local_address_type: Lo
         let local_address = local_address_type.to_ip_v4();
         TcpListener::bind((local_address, start_port))
             .is_ok()
-            .then(|| start_port)
+            .then_some(start_port)
     }
 }
 
