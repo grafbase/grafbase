@@ -118,7 +118,7 @@ impl<T> MaybeUndefined<T> {
         match self {
             MaybeUndefined::Undefined => None,
             MaybeUndefined::Null => Some(None),
-            MaybeUndefined::Value(value) => Some(Some(value.deref())),
+            MaybeUndefined::Value(value) => Some(Some(&**value)),
         }
     }
 

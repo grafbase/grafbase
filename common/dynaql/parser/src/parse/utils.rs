@@ -111,7 +111,7 @@ pub(super) fn string_value(s: &str) -> String {
     std::iter::from_fn(|| {
         Some(match chars.next()? {
             '\\' => match chars.next().expect("backslash at end") {
-                c @ '\"' | c @ '\\' | c @ '/' => c,
+                c @ ('\"' | '\\' | '/') => c,
                 'b' => '\x08',
                 'f' => '\x0C',
                 'n' => '\n',

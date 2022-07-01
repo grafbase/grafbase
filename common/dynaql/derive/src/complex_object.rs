@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::quote;
-use std::iter::FromIterator;
+
 use std::str::FromStr;
 use syn::ext::IdentExt;
 use syn::{
@@ -75,24 +75,22 @@ pub fn generate(
                         new_impl.sig.inputs.insert(1, arg_ctx);
                     }
 
-                    let other_atts: Punctuated<Ident, Token![,]> = Punctuated::from_iter(
-                        new_impl
-                            .sig
-                            .inputs
-                            .iter()
-                            .filter_map(|x| match x {
-                                FnArg::Typed(pat) => match &*pat.pat {
-                                    Pat::Ident(ident) => Some(Ok(ident.ident.clone())),
-                                    _ => Some(Err(Error::new_spanned(
-                                        &pat,
-                                        "Must be a simple argument",
-                                    ))),
-                                },
-                                FnArg::Receiver(_) => None,
-                            })
-                            .collect::<Result<Vec<Ident>, Error>>()?
-                            .into_iter(),
-                    );
+                    let other_atts: Punctuated<Ident, Token![,]> = new_impl
+                        .sig
+                        .inputs
+                        .iter()
+                        .filter_map(|x| match x {
+                            FnArg::Typed(pat) => match &*pat.pat {
+                                Pat::Ident(ident) => Some(Ok(ident.ident.clone())),
+                                _ => {
+                                    Some(Err(Error::new_spanned(&pat, "Must be a simple argument")))
+                                }
+                            },
+                            FnArg::Receiver(_) => None,
+                        })
+                        .collect::<Result<Vec<Ident>, Error>>()?
+                        .into_iter()
+                        .collect();
 
                     let new_block = match with {
                         Some(with) => quote!({

@@ -100,7 +100,7 @@ impl<T: Ord> Ord for Positioned<T> {
 }
 impl<T: Hash> Hash for Positioned<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.node.hash(state)
+        self.node.hash(state);
     }
 }
 

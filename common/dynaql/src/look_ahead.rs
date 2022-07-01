@@ -103,6 +103,7 @@ impl<'a> TryFrom<&[SelectionField<'a>]> for Lookahead<'a> {
     }
 }
 
+#[allow(clippy::used_underscore_binding)]
 fn filter<'a>(
     fields: &mut Vec<&'a Field>,
     fragments: &'a HashMap<Name, Positioned<FragmentDefinition>>,

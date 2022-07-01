@@ -89,7 +89,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 processed_fields.push(SimpleObjectFieldGenerator {
                     field,
                     derived: Some(derived),
-                })
+                });
             }
         }
     }
@@ -155,7 +155,16 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
         let visible = visible_fn(&field.visible);
 
-        if !field.flatten {
+        if field.flatten {
+            schema_fields.push(quote! {
+                #crate_name::static_assertions::assert_impl_one!(#ty: #crate_name::ObjectType);
+                #ty::create_type_info(registry);
+                if let #crate_name::registry::MetaType::Object { fields: obj_fields, .. } =
+                    registry.create_fake_output_type::<#ty>() {
+                    fields.extend(obj_fields);
+                }
+            });
+        } else {
             schema_fields.push(quote! {
                 fields.insert(::std::borrow::ToOwned::to_owned(#field_name), #crate_name::registry::MetaField {
                     name: ::std::borrow::ToOwned::to_owned(#field_name),
@@ -175,15 +184,6 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     transforms: None,
                 });
             });
-        } else {
-            schema_fields.push(quote! {
-                #crate_name::static_assertions::assert_impl_one!(#ty: #crate_name::ObjectType);
-                #ty::create_type_info(registry);
-                if let #crate_name::registry::MetaType::Object { fields: obj_fields, .. } =
-                    registry.create_fake_output_type::<#ty>() {
-                    fields.extend(obj_fields);
-                }
-            });
         }
 
         let guard_map_err = quote! {
@@ -196,13 +196,14 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
         let with_function = derived.as_ref().and_then(|x| x.with.as_ref());
 
-        let mut block = match !owned {
-            true => quote! {
-                &self.#base_ident
-            },
-            false => quote! {
+        let mut block = if owned {
+            quote! {
                 ::std::clone::Clone::clone(&self.#base_ident)
-            },
+            }
+        } else {
+            quote! {
+                &self.#base_ident
+            }
         };
 
         block = match (derived, with_function) {
@@ -215,12 +216,19 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
             (_, _) => block,
         };
 
-        let ty = match !owned {
-            true => quote! { &#ty },
-            false => quote! { #ty },
+        let ty = if owned {
+            quote! { #ty }
+        } else {
+            quote! { &#ty }
         };
 
-        if !field.flatten {
+        if field.flatten {
+            resolvers.push(quote! {
+                if let ::std::option::Option::Some(value) = #crate_name::ContainerType::resolve_field(&self.#ident, ctx).await? {
+                    return ::std::result::Result::Ok(std::option::Option::Some(value));
+                }
+            });
+        } else {
             getters.push(quote! {
                  #[inline]
                  #[allow(missing_docs)]
@@ -228,7 +236,6 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                      ::std::result::Result::Ok(#block)
                  }
             });
-
             resolvers.push(quote! {
                 if ctx.item.node.name.node == #field_name {
                     let f = async move {
@@ -238,12 +245,6 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     let obj = f.await.map_err(|err| ctx.set_error_path(err))?;
                     let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                     return #crate_name::OutputType::resolve(&obj, &ctx_obj, ctx.item).await.map(::std::option::Option::Some);
-                }
-            });
-        } else {
-            resolvers.push(quote! {
-                if let ::std::option::Option::Some(value) = #crate_name::ContainerType::resolve_field(&self.#ident, ctx).await? {
-                    return ::std::result::Result::Ok(std::option::Option::Some(value));
                 }
             });
         }
@@ -360,16 +361,16 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
         visitor.visit_generics(&object_args.generics);
         let lifetimes = visitor.lifetimes;
 
-        let def_lifetimes = if !lifetimes.is_empty() {
-            Some(quote!(<#(#lifetimes),*>))
-        } else {
+        let def_lifetimes = if lifetimes.is_empty() {
             None
+        } else {
+            Some(quote!(<#(#lifetimes),*>))
         };
 
-        let type_lifetimes = if !lifetimes.is_empty() {
-            Some(quote!(#(#lifetimes,)*))
-        } else {
+        let type_lifetimes = if lifetimes.is_empty() {
             None
+        } else {
+            Some(quote!(#(#lifetimes,)*))
         };
 
         code.push(quote! {

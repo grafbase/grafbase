@@ -34,11 +34,11 @@ pub struct LogEntry {
 
 bitflags::bitflags! {
     pub struct Config: u8 {
-        const DATADOG = 0b00000001;
+        const DATADOG = 0b0000_0001;
         #[cfg(feature = "with-worker")]
-        const WORKER  = 0b00000010;
-        const STDLOG  = 0b00000100;
-        const SENTRY  = 0b00001000;
+        const WORKER  = 0b0000_0010;
+        const STDLOG  = 0b0000_0100;
+        const SENTRY  = 0b0000_1000;
     }
 }
 

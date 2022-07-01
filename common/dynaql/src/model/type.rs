@@ -149,8 +149,8 @@ impl<'a> __Type<'a> {
     }
 
     async fn possible_types(&self) -> Option<Vec<__Type<'a>>> {
-        if let TypeDetail::Named(registry::MetaType::Interface { possible_types, .. })
-        | TypeDetail::Named(registry::MetaType::Union { possible_types, .. }) = &self.detail
+        if let TypeDetail::Named(registry::MetaType::Interface { possible_types, .. } |
+registry::MetaType::Union { possible_types, .. }) = &self.detail
         {
             Some(
                 possible_types

@@ -1,6 +1,8 @@
 #![allow(clippy::cognitive_complexity)]
-#![allow(clippy::vec_init_then_push)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::trivially_copy_pass_by_ref)]
 #![allow(clippy::use_self)]
+#![allow(clippy::vec_init_then_push)]
 #![forbid(unsafe_code)]
 
 mod args;

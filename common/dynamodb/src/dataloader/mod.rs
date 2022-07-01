@@ -304,9 +304,9 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
                     };
 
                     if !keys.0.is_empty() {
-                        inner.do_load(disable_cache, keys).await
+                        inner.do_load(disable_cache, keys).await;
                     }
-                }))
+                }));
             }
             Action::Delay => {}
         }

@@ -433,8 +433,8 @@ where
 pub fn visit<'a, V: Visitor<'a>>(v: &mut V, ctx: &mut VisitorContext<'a>, doc: &'a ServiceDocument) {
     v.enter_document(ctx, doc);
 
-    for operation in doc.definitions.iter() {
-        visit_type_system_definition(v, ctx, operation)
+    for operation in &doc.definitions {
+        visit_type_system_definition(v, ctx, operation);
     }
 
     v.exit_document(ctx, doc);
@@ -480,7 +480,7 @@ fn visit_field<'a, V: Visitor<'a>>(
     for value in &field.node.arguments {
         v.enter_input_value_definition(ctx, value);
         ctx.with_type(Some(&field.node.ty), |ctx| {
-            visit_directives(v, ctx, &value.node.directives)
+            visit_directives(v, ctx, &value.node.directives);
         });
         v.exit_input_value_definition(ctx, value);
     }

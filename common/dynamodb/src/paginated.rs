@@ -240,7 +240,7 @@ where
 
             // For each items in the result, we'll group them by pk.
             // As soon as we have more than limit items, we return.
-            for x in resp.items.unwrap_or_default().into_iter() {
+            for x in resp.items.unwrap_or_default() {
                 let len = result.values.len();
                 if len <= limit {
                     let pk = x.get("__pk").and_then(|y| y.s.clone()).expect("Can't fail");

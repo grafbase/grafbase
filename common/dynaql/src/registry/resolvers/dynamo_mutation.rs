@@ -300,7 +300,7 @@ fn node_create<'a>(
                 for curr in list_recur {
                     selections.extend(vec![curr
                         .selection
-                        .map_ok(|val| (relation_name.to_owned(), val))]);
+                        .map_ok(|val| (relation_name.clone(), val))]);
                     transactions.extend(curr.transaction.into_iter());
                 }
                 (selections, transactions)
@@ -443,7 +443,7 @@ fn node_update<'a>(
     // We compute the attribute which will be updated.
     let update_attr: InputIter = basic
         .into_iter()
-        .map(|(name, val)| (name.to_owned(), val.to_owned()))
+        .map(|(name, val)| (name.clone(), val.clone()))
         .collect();
 
     // We create an updated version of the selected entity
@@ -463,7 +463,7 @@ fn node_update<'a>(
                                 att_name.to_string(),
                                 value_to_attribute(
                                     att_val
-                                        .to_owned()
+                                        .clone()
                                         .into_json()
                                         .expect("Shouldn't fail as this is valid json"),
                                 ),
@@ -507,7 +507,7 @@ fn node_update<'a>(
                 for curr in list_recur {
                     selections.extend(vec![(
                         relation_name,
-                        curr.selection.map_ok(|val| (relation_name.to_owned(), val)),
+                        curr.selection.map_ok(|val| (relation_name.clone(), val)),
                     )]);
                     transactions.extend(curr.transaction.into_iter());
                 }
@@ -1037,7 +1037,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 let creation = node_create(
                     ctx,
                     ctx_ty,
-                    resolver_ctx.execution_id.to_owned(),
+                    *resolver_ctx.execution_id,
                     Arc::new(AtomicUsize::new(0)),
                     input,
                 );
@@ -1065,7 +1065,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 let update = node_update(
                     ctx,
                     ctx_ty,
-                    resolver_ctx.execution_id.to_owned(),
+                    *resolver_ctx.execution_id,
                     Arc::new(AtomicUsize::new(0)),
                     input,
                     id.clone(),

@@ -10,7 +10,7 @@ fn test_value<T: Serialize + DeserializeOwned + Clone + PartialEq + Debug>(value
     assert_eq!(
         from_value::<T>(to_value(value.clone()).unwrap()).unwrap(),
         value
-    )
+    );
 }
 
 #[allow(clippy::use_self)]

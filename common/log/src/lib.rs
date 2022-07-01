@@ -171,7 +171,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
             DatadogLogEntry {
                 ddsource: log_config.source_type.to_owned(),
                 ddtags: datadog_tag_string,
-                hostname: log_config.host_name.to_owned(),
+                hostname: log_config.host_name.clone(),
                 message: entry.message.clone(),
                 service: log_config.service_name.clone(),
                 status: entry.severity.to_string(),
