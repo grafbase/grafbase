@@ -149,7 +149,9 @@ impl ResolverTrait for ContextDataResolver {
                         return Ok(result);
                     }
 
-                    Ok(ResolvedValue::new(serde_json::json!({ key: result })))
+                    Ok(ResolvedValue::new(serde_json::json!({
+                        expected_ty: result
+                    })))
                 } else {
                     let array = old_val;
 
