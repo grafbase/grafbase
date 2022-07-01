@@ -4,7 +4,6 @@ use axum::response::Response;
 use axum::Json;
 use common::traits::ToExitCode;
 use hyper::Error as HyperError;
-use log::debug;
 use serde_json::json;
 use sqlx::Error as SqlxError;
 use std::io::Error as IoError;
