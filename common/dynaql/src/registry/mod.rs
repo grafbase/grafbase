@@ -91,10 +91,10 @@ impl<'a> MetaTypeName<'a> {
     #[inline]
     pub fn is_subtype(&self, sub: &MetaTypeName<'_>) -> bool {
         match (self, sub) {
-            (MetaTypeName::NonNull(super_type) | MetaTypeName::Named(super_type),
-MetaTypeName::NonNull(sub_type)) => {
-                MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type))
-            }
+            (
+                MetaTypeName::NonNull(super_type) | MetaTypeName::Named(super_type),
+                MetaTypeName::NonNull(sub_type),
+            ) => MetaTypeName::create(super_type).is_subtype(&MetaTypeName::create(sub_type)),
             (MetaTypeName::Named(super_type), MetaTypeName::Named(sub_type)) => {
                 super_type == sub_type
             }
