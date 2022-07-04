@@ -1,0 +1,16 @@
+[package]
+name = "oidc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+jwt-compact = { version = "0.5", default-features = false, features = ["with_rsa"] }
+quick-error = "2"
+serde = { version = "1", features = ["derive"] }
+url = "2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+surf = { version = "2", default-features = false, features = ["wasm-client"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+surf = { version = "2", default-features = false, features = ["h1-client-rustls"] }
