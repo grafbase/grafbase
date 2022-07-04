@@ -6,7 +6,7 @@ use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
     prelude::*,
-    TimeOptions,
+    Empty, TimeOptions,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -30,12 +30,6 @@ struct ExtendedJsonWebKey<'a> {
 #[derive(Serialize, Deserialize, Debug)]
 struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct CustomClaims {
-    #[serde(rename = "iss")]
-    issuer: Url,
 }
 
 pub async fn verify_token<S: AsRef<str> + Send>(
@@ -67,6 +61,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     }
 
     // Get JWKS
+    // TODO: cache JWKS based on kid header
     let jwks: JsonWebKeySet<'_> = http_client
         .get(oidc_config.jwks_uri)
         .recv_json()
@@ -85,7 +80,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
     let rsa = StrongAlg(Rsa::rs256());
     let token = rsa
-        .validate_integrity::<CustomClaims>(&token, &pub_key)
+        .validate_integrity::<Empty>(&token, &pub_key)
         .map_err(VerificationError::Integrity)?;
 
     // Verify claims
@@ -101,10 +96,6 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     claims
         .validate_maturity(time_opts)
         .map_err(VerificationError::Integrity)?;
-
-    // if claims.custom.issuer != issuer {
-    //     return Err(VerificationError::InvalidIssuer);
-    // }
 
     Ok(())
 }
