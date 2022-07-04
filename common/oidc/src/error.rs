@@ -6,6 +6,9 @@ quick_error! {
         HttpRequest(err: surf::Error) {
             display("{}", err)
         }
+        Integrity(err: jwt_compact::ValidationError) {
+            display("{}", err)
+        }
         InvalidIssuer {
             display("issuer URL mismatch")
         }
