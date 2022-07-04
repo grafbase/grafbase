@@ -13,7 +13,7 @@ quick_error! {
             display("issuer URL mismatch")
         }
         UnsupportedAlgorithm {
-            display("only RS256 is supported right now")
+            display("only RS256, RS384, and RS512 are supported")
         }
         InvalidToken {
             display("invalid OIDC token")

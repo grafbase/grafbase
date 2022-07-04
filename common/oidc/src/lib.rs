@@ -40,10 +40,14 @@ pub async fn verify_token<S: AsRef<str> + Send>(
 ) -> Result<(), VerificationError> {
     let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
-    // TODO: AWS AppSync supports RS256, RS384, and RS512 as signing algorithms
-    if token.algorithm() != "RS256" {
-        return Err(VerificationError::UnsupportedAlgorithm);
-    }
+    // We support the same signing algorithms as AppSync
+    // https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html#openid-connect-authorization
+    let rsa = match token.algorithm() {
+        "RS256" => Rsa::rs256(),
+        "RS384" => Rsa::rs384(),
+        "RS512" => Rsa::rs512(),
+        _ => return Err(VerificationError::UnsupportedAlgorithm),
+    };
 
     let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
@@ -78,7 +82,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     // Verify JWT signature
     let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
     let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
-    let rsa = StrongAlg(Rsa::rs256());
+    let rsa = StrongAlg(rsa);
     let token = rsa
         .validate_integrity::<Empty>(&token, &pub_key)
         .map_err(VerificationError::Integrity)?;
