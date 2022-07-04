@@ -61,7 +61,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
         .map_err(VerificationError::HttpRequest)?;
 
     if oidc_config.issuer != issuer {
-        return Err(VerificationError::InvalidIssuer);
+        return Err(VerificationError::InvalidIssuerUrl);
     }
 
     // Get JWKS
@@ -91,15 +91,26 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let claims = token.claims();
     let time_opts = &time_opts.unwrap_or_default();
 
-    // Check exp claim
+    // Check "exp" claim
     claims
         .validate_expiration(time_opts)
         .map_err(VerificationError::Integrity)?;
 
-    // Check nbf claim
+    // Check "nbf" claim
     claims
         .validate_maturity(time_opts)
         .map_err(VerificationError::Integrity)?;
+
+    // Check "iat" claim
+    // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
+    match claims.issued_at {
+        Some(issued_at) => {
+            if issued_at > (time_opts.clock_fn)() + time_opts.leeway {
+                return Err(VerificationError::InvalidIssueTime);
+            }
+        }
+        None => return Err(VerificationError::InvalidIssueTime),
+    };
 
     Ok(())
 }

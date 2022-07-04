@@ -9,8 +9,11 @@ quick_error! {
         Integrity(err: jwt_compact::ValidationError) {
             display("{}", err)
         }
-        InvalidIssuer {
+        InvalidIssuerUrl {
             display("issuer URL mismatch")
+        }
+        InvalidIssueTime {
+            display("invalid issue time")
         }
         UnsupportedAlgorithm {
             display("only RS256, RS384, and RS512 are supported")
