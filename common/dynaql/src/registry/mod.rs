@@ -497,8 +497,8 @@ impl MetaType {
     }
 
     /// Get the relations of a current type
-    pub fn relations<'a>(&'a self) -> HashMap<&'a str, &'a MetaRelation> {
-        let mut result: HashMap<&'a str, &'a MetaRelation> = HashMap::new();
+    pub fn relations<'a>(&'a self) -> IndexMap<&'a str, &'a MetaRelation> {
+        let mut result: IndexMap<&'a str, &'a MetaRelation> = IndexMap::new();
 
         if let MetaType::Object { fields, .. } = self {
             for (field, ty) in fields {
