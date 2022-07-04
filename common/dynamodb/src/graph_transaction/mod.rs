@@ -170,7 +170,14 @@ impl PossibleChanges {
         relation_name: String,
         user_defined_item: HashMap<String, AttributeValue>,
     ) -> Self {
-        Self::LinkRelation(LinkNodeInput::Cache(LinkNodeCachedInput { from_id, from_ty, to_id, to_ty, relation_name, user_defined_item }))
+        Self::LinkRelation(LinkNodeInput::Cache(LinkNodeCachedInput {
+            from_id,
+            from_ty,
+            to_id,
+            to_ty,
+            relation_name,
+            user_defined_item,
+        }))
     }
 
     pub const fn unlink_node(
@@ -180,7 +187,13 @@ impl PossibleChanges {
         to_id: String,
         relation_name: String,
     ) -> Self {
-        Self::UnlinkRelation(UnlinkNodeInput { from_id, from_ty, to_id, to_ty, relation_name })
+        Self::UnlinkRelation(UnlinkNodeInput {
+            from_id,
+            from_ty,
+            to_id,
+            to_ty,
+            relation_name,
+        })
     }
 }
 
