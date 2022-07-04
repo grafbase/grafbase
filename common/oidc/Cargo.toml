@@ -1,6 +1,7 @@
 [package]
 name = "oidc"
 version = "0.1.0"
+description = "Verify identity tokens used as part of the OpenID Connect flow"
 edition = "2021"
 
 [dependencies]
