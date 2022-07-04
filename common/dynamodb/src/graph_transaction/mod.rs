@@ -902,10 +902,7 @@ impl Add<Self> for DeleteRelationInternalInput {
                     update_into_insert.into_iter().unique().collect()
                 },
             }),
-            (Self::Multiple(_), Self::All(a)) |
-(Self::All(a), Self::Multiple(_) | Self::All(_)) => {
-                Self::All(a)
-            }
+            (Self::Multiple(_), Self::All(a)) | (Self::All(a), Self::Multiple(_) | Self::All(_)) => Self::All(a),
         }
     }
 }
