@@ -3,6 +3,7 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 #![allow(clippy::use_self)]
+#![allow(clippy::module_name_repetitions)]
 
 mod deserializer;
 mod macros;
@@ -203,7 +204,7 @@ from_integer!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
 
 impl From<f32> for ConstValue {
     fn from(f: f32) -> Self {
-        From::from(f as f64)
+        From::from(f64::from(f))
     }
 }
 
@@ -483,7 +484,7 @@ fn write_quoted(s: &str, f: &mut Formatter<'_>) -> fmt::Result {
             '\\' => f.write_str("\\\\"),
             c if c.is_control() => write!(f, "\\u{:04}", c as u32),
             c => f.write_char(c),
-        }?
+        }?;
     }
     f.write_char('"')
 }

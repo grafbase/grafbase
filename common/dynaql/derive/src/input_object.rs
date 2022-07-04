@@ -172,7 +172,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 visible: #visible,
                 is_secret: #secret,
             });
-        })
+        });
     }
 
     if get_fields.is_empty() {

@@ -675,15 +675,15 @@ fn visit_input_value<'a, V: Visitor<'a>>(
             if let Some(expected_ty) = expected_ty {
                 let elem_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::List(expected_ty) = elem_ty {
-                    values.iter().for_each(|value| {
+                    for value in values.iter() {
                         visit_input_value(
                             v,
                             ctx,
                             pos,
                             Some(MetaTypeName::create(expected_ty)),
                             value,
-                        )
-                    });
+                        );
+                    }
                 }
             }
         }

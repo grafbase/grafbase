@@ -239,15 +239,14 @@ pub enum ComplexityType {
 impl FromMeta for ComplexityType {
     fn from_value(value: &Lit) -> darling::Result<Self> {
         match value {
-            Lit::Int(n) => {
-                let n = n.base10_parse::<i32>().unwrap();
-                if n < 0 {
-                    return Err(darling::Error::custom(
-                        "The complexity must be greater than or equal to 0.",
-                    ));
-                }
-                Ok(ComplexityType::Const(n as usize))
-            }
+            Lit::Int(n) => n
+                .base10_parse::<i128>()
+                .unwrap()
+                .try_into()
+                .map_err(|_| {
+                    darling::Error::custom("The complexity must be greater than or equal to 0.")
+                })
+                .map(ComplexityType::Const),
             Lit::Str(s) => Ok(ComplexityType::Fn(s.value())),
             _ => Err(darling::Error::unexpected_lit_type(value)),
         }

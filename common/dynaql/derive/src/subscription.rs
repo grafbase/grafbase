@@ -119,9 +119,8 @@ pub fn generate(
                                         "Only types that implement `InputType` can be used as input arguments.",
                                     )
                                     .into());
-                                } else {
-                                    create_ctx = false;
                                 }
+                                create_ctx = false;
                             }
                         }
                         _ => {

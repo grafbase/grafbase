@@ -22,7 +22,7 @@ impl<'a> CycleDetector<'a> {
         self.path_indices.insert(from, path.len());
 
         for (name, pos) in &self.spreads[from] {
-            let index = self.path_indices.get(name).cloned();
+            let index = self.path_indices.get(name).copied();
 
             if let Some(index) = index {
                 let err_pos = if index < path.len() {

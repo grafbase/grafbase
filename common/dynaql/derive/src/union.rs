@@ -73,18 +73,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
             let mut assert_ty = p.clone();
             RemoveLifetime.visit_type_path_mut(&mut assert_ty);
 
-            if !variant.flatten {
-                type_into_impls.push(quote! {
-                    #crate_name::static_assertions::assert_impl_one!(#assert_ty: #crate_name::ObjectType);
-
-                    #[allow(clippy::all, clippy::pedantic)]
-                    impl #impl_generics ::std::convert::From<#p> for #ident #ty_generics #where_clause {
-                        fn from(obj: #p) -> Self {
-                            #ident::#enum_name(obj)
-                        }
-                    }
-                });
-            } else {
+            if variant.flatten {
                 type_into_impls.push(quote! {
                     #crate_name::static_assertions::assert_impl_one!(#assert_ty: #crate_name::UnionType);
 
@@ -95,31 +84,42 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                         }
                     }
                 });
-            }
-
-            if !variant.flatten {
-                registry_types.push(quote! {
-                    <#p as #crate_name::OutputType>::create_type_info(registry);
-                });
-                possible_types.push(quote! {
-                    possible_types.insert(<#p as #crate_name::OutputType>::type_name().into_owned());
-                });
             } else {
+                type_into_impls.push(quote! {
+                    #crate_name::static_assertions::assert_impl_one!(#assert_ty: #crate_name::ObjectType);
+
+                    #[allow(clippy::all, clippy::pedantic)]
+                    impl #impl_generics ::std::convert::From<#p> for #ident #ty_generics #where_clause {
+                        fn from(obj: #p) -> Self {
+                            #ident::#enum_name(obj)
+                        }
+                    }
+                });
+            };
+
+            if variant.flatten {
                 possible_types.push(quote! {
                     if let #crate_name::registry::MetaType::Union { possible_types: possible_types2, .. } =
                         registry.create_fake_output_type::<#p>() {
                         possible_types.extend(possible_types2);
                     }
                 });
+            } else {
+                registry_types.push(quote! {
+                    <#p as #crate_name::OutputType>::create_type_info(registry);
+                });
+                possible_types.push(quote! {
+                    possible_types.insert(<#p as #crate_name::OutputType>::type_name().into_owned());
+                });
             }
 
-            if !variant.flatten {
+            if variant.flatten {
                 get_introspection_typename.push(quote! {
-                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::type_name()
+                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::introspection_type_name(obj)
                 });
             } else {
                 get_introspection_typename.push(quote! {
-                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::introspection_type_name(obj)
+                    #ident::#enum_name(obj) => <#p as #crate_name::OutputType>::type_name()
                 });
             }
 
