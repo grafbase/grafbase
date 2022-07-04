@@ -227,11 +227,11 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             let now_attr = Utc::now().to_string().into_attr();
             let gsi1pk_attr = from_ty.into_attr();
             let ty_attr = to_ty.into_attr();
-            let pk_attr = pk.clone().into_attr();
-            let sk_attr = sk.clone().into_attr();
+            let partition_key_attr = pk.clone().into_attr();
+            let sorting_key_attr = sk.clone().into_attr();
 
-            user_defined_item.insert(constant::PK.to_string(), pk_attr.clone());
-            user_defined_item.insert(constant::SK.to_string(), sk_attr.clone());
+            user_defined_item.insert(constant::PK.to_string(), partition_key_attr.clone());
+            user_defined_item.insert(constant::SK.to_string(), sorting_key_attr.clone());
 
             user_defined_item.insert(constant::TYPE.to_string(), ty_attr.clone());
 
@@ -239,10 +239,10 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
             user_defined_item.insert(constant::TYPE_INDEX_PK.to_string(), gsi1pk_attr);
-            user_defined_item.insert(constant::TYPE_INDEX_SK.to_string(), pk_attr.clone());
+            user_defined_item.insert(constant::TYPE_INDEX_SK.to_string(), partition_key_attr.clone());
 
-            user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), sk_attr);
-            user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), pk_attr);
+            user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), sorting_key_attr);
+            user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), partition_key_attr);
 
             user_defined_item.insert(
                 constant::RELATION_NAMES.to_string(),

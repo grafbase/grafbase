@@ -641,7 +641,9 @@ impl UpdateRelationInternalInput {
             String::new()
         };
 
-        let update_relation_expressions = if !relation_names.is_empty() {
+        let update_relation_expressions = if relation_names.is_empty() {
+            String::new()
+        } else {
             exp_names.insert("#relation_names".to_string(), "__relation_names".to_string());
             let (removed, added): (Vec<String>, Vec<String>) =
                 relation_names.into_iter().partition_map(|relation| match relation {
@@ -665,7 +667,9 @@ impl UpdateRelationInternalInput {
                 })
                 .join(" ");
 
-            if !removed.is_empty() {
+            if removed.is_empty() {
+                "{add_expression}".to_string()
+            } else {
                 let idx = ":__relation_names_deleted".to_string();
 
                 exp_values.insert(
@@ -677,11 +681,7 @@ impl UpdateRelationInternalInput {
                 );
 
                 format!("{add_expression} DELETE #relation_names :__relation_names_deleted")
-            } else {
-                "{add_expression}".to_string()
             }
-        } else {
-            String::new()
         };
 
         format!("{update_expression} {update_relation_expressions}")
@@ -766,8 +766,7 @@ impl InternalNodeChanges {
             (Self::Insert(a), Self::Update(b)) => Ok(Self::Insert(a + b)),
             (Self::Update(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
             (Self::Update(a), Self::Update(b)) => Ok(Self::Update(a + b)),
-            (Self::Update(_), Self::Delete(a)) => Ok(Self::Delete(a)),
-            (Self::Delete(a), Self::Update(_)) => Ok(Self::Delete(a)),
+            (Self::Update(_), Self::Delete(a)) | (Self::Delete(a), Self::Update(_)) => Ok(Self::Delete(a)),
         }
     }
 }
@@ -903,9 +902,10 @@ impl Add<Self> for DeleteRelationInternalInput {
                     update_into_insert.into_iter().unique().collect()
                 },
             }),
-            (Self::Multiple(_), Self::All(a)) => Self::All(a),
-            (Self::All(a), Self::Multiple(_)) => Self::All(a),
-            (Self::All(a), Self::All(_)) => Self::All(a),
+            (Self::Multiple(_), Self::All(a)) |
+(Self::All(a), Self::Multiple(_) | Self::All(_)) => {
+                Self::All(a)
+            }
         }
     }
 }
