@@ -905,7 +905,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 let id = opaque_id.ty().to_string();
 
                 new_transaction
-                    .load_one(PossibleChanges::delete_node(ty.to_owned(), id.to_owned()))
+                    .load_one(PossibleChanges::delete_node(ty.clone(), id.clone()))
                     .await?;
 
                 Ok(ResolvedValue::new(serde_json::json!({

@@ -159,7 +159,7 @@ impl PossibleChanges {
     }
 
     pub const fn delete_node(ty: String, id: String) -> Self {
-        Self::DeleteNode(DeleteNodeInput { ty, id })
+        Self::DeleteNode(DeleteNodeInput { id, ty })
     }
 
     pub const fn new_link_cached(
@@ -170,14 +170,7 @@ impl PossibleChanges {
         relation_name: String,
         user_defined_item: HashMap<String, AttributeValue>,
     ) -> Self {
-        Self::LinkRelation(LinkNodeInput::Cache(LinkNodeCachedInput {
-            to_ty,
-            to_id,
-            from_ty,
-            from_id,
-            relation_name,
-            user_defined_item,
-        }))
+        Self::LinkRelation(LinkNodeInput::Cache(LinkNodeCachedInput { from_id, from_ty, to_id, to_ty, relation_name, user_defined_item }))
     }
 
     pub const fn unlink_node(
@@ -187,13 +180,7 @@ impl PossibleChanges {
         to_id: String,
         relation_name: String,
     ) -> Self {
-        Self::UnlinkRelation(UnlinkNodeInput {
-            to_id,
-            to_ty,
-            from_id,
-            from_ty,
-            relation_name,
-        })
+        Self::UnlinkRelation(UnlinkNodeInput { from_id, from_ty, to_id, to_ty, relation_name })
     }
 }
 
@@ -1022,9 +1009,9 @@ async fn load_keys(
 ) -> Result<HashMap<PossibleChanges, AttributeValue>, ToTransactionError> {
     info!(ctx.trace_id, "Execute");
     let mut result = HashMap::with_capacity(tx.len());
-    tx.iter().for_each(|x| {
+    for x in &tx {
         result.insert(x.clone(), AttributeValue { ..Default::default() });
-    });
+    }
 
     let _a = execute(batcher, ctx, tx).await?;
     info!(ctx.trace_id, "Executed");
