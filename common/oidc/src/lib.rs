@@ -103,13 +103,9 @@ pub async fn verify_token<S: AsRef<str> + Send>(
 
     // Check "iat" claim
     // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
-    match claims.issued_at {
-        Some(issued_at) => {
-            if issued_at > (time_opts.clock_fn)() + time_opts.leeway {
-                return Err(VerificationError::InvalidIssueTime);
-            }
-        }
-        None => return Err(VerificationError::InvalidIssueTime),
+    let _ = match claims.issued_at {
+        Some(issued_at) if issued_at <= (time_opts.clock_fn)() + time_opts.leeway => Ok(()),
+        _ => Err(VerificationError::InvalidIssueTime),
     };
 
     Ok(())
