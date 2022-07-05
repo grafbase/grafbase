@@ -121,7 +121,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     id: None,
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey { key: type_name.to_string() }),
                                 }),
-                                _ => unimplemented!("blbl"),
+                                _ => unreachable!("Can't happen yet"),
                             };
 
                             fields.insert(name.clone(), MetaField {
