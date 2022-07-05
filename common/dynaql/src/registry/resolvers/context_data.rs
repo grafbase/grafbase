@@ -109,7 +109,7 @@ impl ResolverTrait for ContextDataResolver {
                 // As we are in an Edge, the result from ancestor should be an array.
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => arr,
-                    _ => return Ok(ResolvedValue::new(serde_json::Value::Null)),
+                    _ => return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return()),
                 };
 
                 let is_expecting_array = is_array_basic_type(&resolver_ctx.field.unwrap().ty);
@@ -142,14 +142,16 @@ impl ResolverTrait for ContextDataResolver {
                         };
                         let sk = VariableResolveDefinition::DebugString(sk);
 
-                        let a = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
+                        let result = DynamoResolver::QueryPKSK { pk: sk.clone(), sk }
                             .resolve(ctx, resolver_ctx, last_resolver_value)
                             .await?;
 
-                        return Ok(a);
+                        return Ok(result);
                     }
 
-                    Ok(ResolvedValue::new(serde_json::json!({ key: result })))
+                    Ok(ResolvedValue::new(serde_json::json!({
+                        expected_ty: result
+                    })))
                 } else {
                     let array = old_val;
 

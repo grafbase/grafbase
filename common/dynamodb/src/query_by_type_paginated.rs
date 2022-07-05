@@ -126,7 +126,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         &self,
         keys: &[QueryTypePaginatedKey],
     ) -> Result<HashMap<QueryTypePaginatedKey, Self::Value>, Self::Error> {
-        log::info!(self.ctx.trace_id, "Query Paginated Dataloader invoked {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Query Paginated Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {
@@ -157,7 +157,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             h.insert(q, r);
         }
 
-        log::info!(self.ctx.trace_id, "Query Paginated Dataloader executed");
+        log::debug!(self.ctx.trace_id, "Query Paginated Dataloader executed");
         Ok(h)
     }
 }

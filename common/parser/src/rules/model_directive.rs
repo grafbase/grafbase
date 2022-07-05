@@ -34,7 +34,7 @@ use dynaql::registry::MetaType;
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
-use dynaql_parser::types::TypeKind;
+use dynaql_parser::types::{Type, TypeKind};
 use if_chain::if_chain;
 
 pub struct ModelDirective;
@@ -87,7 +87,10 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 obj.fields.iter().find(|field| is_modelized_node(&ctx.types, &field.node.ty.node).is_some())
                             }).is_some();
 
-                            let is_edge = relation.is_some();
+                            let is_edge = relation.as_ref().map(|x| {
+                                let target_ty = Type::new(x.relation.1.as_str()).expect("shouldn't fail");
+                                is_modelized_node(&ctx.types, &target_ty).is_some()
+                            }).unwrap_or_default();
 
                             let transforms = if is_edge {
                                 None
@@ -101,20 +104,24 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 }])
                             };
 
-                            let resolve = if is_edge {
-                                Some(Resolver {
+                            let resolve = match (is_edge, &relation) {
+                                (true, Some(relation)) => Some(Resolver {
                                     id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
-                                        key: relation.clone().unwrap().name,
+                                        key: relation.name.clone(),
                                         is_node,
                                         expected_ty: to_base_type_str(&field.node.ty.node.base),
                                     }),
-                                })
-                            } else {
-                                Some(Resolver {
+                                }),
+                                (false, Some(relation)) => Some(Resolver {
+                                    id: None,
+                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey { key: relation.name.clone() }),
+                                }),
+                                (false, None) => Some(Resolver {
                                     id: None,
                                     r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey { key: type_name.to_string() }),
-                                })
+                                }),
+                                _ => unreachable!("Can't happen yet"),
                             };
 
                             fields.insert(name.clone(), MetaField {

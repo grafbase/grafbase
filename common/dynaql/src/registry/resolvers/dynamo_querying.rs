@@ -9,6 +9,7 @@ use itertools::Itertools;
 use serde_json::Map;
 use std::borrow::Borrow;
 use std::hash::Hash;
+use std::sync::Arc;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
@@ -115,7 +116,7 @@ impl ResolverTrait for DynamoResolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        let batchers = &ctx.data::<DynamoDBBatchersData>()?;
+        let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
         let query_loader_fat = &batchers.query_fat;

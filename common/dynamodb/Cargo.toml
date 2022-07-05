@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-stream = "0.3"
+again = { git = "https://github.com/Miaxos/again", default-features = false, features = ["wasm-bindgen", "log"] }
 async-trait = "0.1"
 aws-region-nearby = "0.1"
-composite-id = { path = "../composite-id", features = ["with-dynomite", "with-named-type"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+derivative = "2.2"
 dynomite = "0.10"
 fnv = "1"
 futures = "0.3"
@@ -21,15 +22,8 @@ lru = { version = "0.7" }
 quick-error = "2"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
-serde = { version = "1", features = ["derive"] }
-strum = { version = "0.24", features = ["derive"] }
+thiserror = "1"
 wasm-bindgen-futures = "0.4"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2", default-features = false, features = ["wasm-client"] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, features = ["h1-client-rustls"] }

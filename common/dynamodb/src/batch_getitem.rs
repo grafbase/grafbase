@@ -32,6 +32,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 
     async fn load(&self, keys: &[(String, String)]) -> Result<HashMap<(String, String), Self::Value>, Self::Error> {
         use futures_util::TryFutureExt;
+        log::debug!(self.ctx.trace_id, "Loader Dataloader invoked {:?}", keys);
 
         let mut request_items = HashMap::new();
         let mut keys_to_send = vec![];
@@ -87,6 +88,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
                 acc
             });
 
+        log::debug!(self.ctx.trace_id, "Loader Dataloader finished {:?}", keys);
         Ok(get_items)
     }
 }
@@ -95,7 +97,7 @@ pub fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<Bat
     DataLoader::with_cache(
         BatchGetItemLoader { ctx },
         wasm_bindgen_futures::spawn_local,
-        LruCache::new(256),
+        LruCache::new(128),
     )
     .max_batch_size(100)
     .delay(Duration::from_millis(2))

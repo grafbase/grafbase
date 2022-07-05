@@ -1,10 +1,6 @@
-use async_stream as _;
 use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
-use composite_id as _;
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
-use futures as _;
-use futures_util as _;
 use query::get_loader_query;
 use query_by_type::get_loader_query_type;
 use query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
@@ -12,20 +8,20 @@ use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
 use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, TransactWriteItemsError};
-use serde as _;
 use std::sync::Arc;
-use strum as _;
-use surf as _;
 use transaction::{get_loader_transaction, TransactionLoader};
 
 mod batch_getitem;
+pub mod constant;
 pub mod dataloader;
+pub mod graph_transaction;
 mod paginated;
 mod query;
 mod query_by_type;
 mod query_by_type_paginated;
 mod transaction;
 pub use batch_getitem::BatchGetItemLoaderError;
+pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
 pub use paginated::PaginatedCursor;
 pub use query::{QueryKey, QueryLoader, QueryLoaderError};
 pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
@@ -196,11 +192,13 @@ pub struct DynamoDBBatchersData {
     pub query_fat: DataLoader<QueryTypeLoader, LruCache>,
     /// Used to laod items with only PK from FatPartition with Pagination
     pub paginated_query_fat: DataLoader<QueryTypePaginatedLoader, LruCache>,
+    /// Bl
+    pub transaction_new: DataLoader<NewTransactionLoader, LruCache>,
 }
 
 impl DynamoDBBatchersData {
-    pub fn new(ctx: &Arc<DynamoDBContext>) -> Self {
-        Self {
+    pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
+        Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(ctx)),
@@ -211,6 +209,7 @@ impl DynamoDBBatchersData {
                 Arc::clone(ctx),
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
-        }
+            transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
+        })
     }
 }

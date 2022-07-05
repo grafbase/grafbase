@@ -2,7 +2,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::DynamoDBContext;
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
-use log::info;
+use log::debug;
 use quick_error::quick_error;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
 use std::collections::HashMap;
@@ -23,6 +23,11 @@ impl Hash for TxItem {
         self.pk.hash(state);
         self.sk.hash(state);
         self.relation_name.hash(state);
+        self.transaction
+            .update
+            .as_ref()
+            .map(|x| &x.update_expression)
+            .hash(state);
     }
 }
 
@@ -62,16 +67,19 @@ async fn transaction_by_pk(
             })
             .collect(),
     };
-    info!(ctx.trace_id, "TransactionWrite {:?}", input);
+    debug!(ctx.trace_id, "TransactionWrite {:?}", input);
 
-    let item_collections = ctx
-        .dynamodb_client
-        .transact_write_items(input)
+    let again = again::RetryPolicy::fixed(Duration::from_millis(10))
+        .with_max_delay(Duration::from_millis(100))
+        .with_max_retries(5);
+
+    let item_collections = again
+        .retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await })
         .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
-        .await
-        .map_err(|_| TransactionError::UnknownError)?;
+        .map_err(|_| TransactionError::UnknownError)
+        .await?;
 
-    info!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
+    debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
     Ok(result_hashmap)
 }
 
@@ -96,5 +104,5 @@ pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<Transacti
         LruCache::new(256),
     )
     .max_batch_size(25)
-    .delay(Duration::from_millis(2))
+    .delay(Duration::from_millis(1))
 }

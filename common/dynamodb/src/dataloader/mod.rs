@@ -234,52 +234,55 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
         let tid = TypeId::of::<K>();
 
         let (action, rx) = {
-            let mut requests = self.inner.requests.lock().unwrap();
-            let typed_requests = requests
-                .entry(tid)
-                .or_insert_with(|| Box::new(Requests::<K, T>::new(&self.cache_factory)))
-                .downcast_mut::<Requests<K, T>>()
-                .unwrap();
-            let prev_count = typed_requests.keys.len();
-            let mut keys_set = HashSet::new();
-            let mut use_cache_values = HashMap::new();
+            let inner = self.inner.clone();
+            {
+                let mut requests = inner.requests.lock().unwrap();
+                let typed_requests = requests
+                    .entry(tid)
+                    .or_insert_with(|| Box::new(Requests::<K, T>::new(&self.cache_factory)))
+                    .downcast_mut::<Requests<K, T>>()
+                    .unwrap();
+                let prev_count = typed_requests.keys.len();
+                let mut keys_set = HashSet::new();
+                let mut use_cache_values = HashMap::new();
 
-            if typed_requests.disable_cache || self.disable_cache.load(Ordering::SeqCst) {
-                keys_set = keys.into_iter().collect();
-            } else {
-                for key in keys {
-                    if let Some(value) = typed_requests.cache_storage.get(&key) {
-                        // Already in cache
-                        use_cache_values.insert(key.clone(), value.clone());
-                    } else {
-                        keys_set.insert(key);
+                if typed_requests.disable_cache || self.disable_cache.load(Ordering::SeqCst) {
+                    keys_set = keys.into_iter().collect();
+                } else {
+                    for key in keys {
+                        if let Some(value) = typed_requests.cache_storage.get(&key) {
+                            // Already in cache
+                            use_cache_values.insert(key.clone(), value.clone());
+                        } else {
+                            keys_set.insert(key);
+                        }
                     }
                 }
-            }
 
-            if !use_cache_values.is_empty() && keys_set.is_empty() {
-                return Ok(use_cache_values);
-            } else if use_cache_values.is_empty() && keys_set.is_empty() {
-                return Ok(Default::default());
-            }
+                if !use_cache_values.is_empty() && keys_set.is_empty() {
+                    return Ok(use_cache_values);
+                } else if use_cache_values.is_empty() && keys_set.is_empty() {
+                    return Ok(Default::default());
+                }
 
-            typed_requests.keys.extend(keys_set.clone());
-            let (tx, rx) = oneshot::channel();
-            typed_requests
-                .pending
-                .push((keys_set, ResSender { use_cache_values, tx }));
+                typed_requests.keys.extend(keys_set.clone());
+                let (tx, rx) = oneshot::channel();
+                typed_requests
+                    .pending
+                    .push((keys_set, ResSender { use_cache_values, tx }));
 
-            if typed_requests.keys.len() >= self.max_batch_size {
-                (Action::ImmediateLoad(typed_requests.take()), rx)
-            } else {
-                (
-                    if !typed_requests.keys.is_empty() && prev_count == 0 {
-                        Action::StartFetch
-                    } else {
-                        Action::Delay
-                    },
-                    rx,
-                )
+                if typed_requests.keys.len() >= self.max_batch_size {
+                    (Action::ImmediateLoad(typed_requests.take()), rx)
+                } else {
+                    (
+                        if !typed_requests.keys.is_empty() && prev_count == 0 {
+                            Action::StartFetch
+                        } else {
+                            Action::Delay
+                        },
+                        rx,
+                    )
+                }
             }
         };
 

@@ -43,6 +43,14 @@ impl<'a> ObfuscatedID<'a> {
             })
         }
     }
+
+    pub fn ty(&'a self) -> &'a str {
+        self.ty
+    }
+
+    pub fn id(&'a self) -> &'a str {
+        self.id
+    }
 }
 
 impl<'a> Display for ObfuscatedID<'a> {

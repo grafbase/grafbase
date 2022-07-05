@@ -54,7 +54,7 @@ impl Loader<QueryKey> for QueryLoader {
     type Error = QueryLoaderError;
 
     async fn load(&self, keys: &[QueryKey]) -> Result<HashMap<QueryKey, Self::Value>, Self::Error> {
-        log::info!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {
@@ -67,7 +67,7 @@ impl Loader<QueryKey> for QueryLoader {
             exp_attr.insert("#pk".to_string(), self.index.pk());
 
             if edges_len > 0 {
-                exp_attr.insert("#relationname".to_string(), "__relation_name".to_string());
+                exp_attr.insert("#relationname".to_string(), "__relation_names".to_string());
                 exp_attr.insert("#type".to_string(), "__type".to_string());
             }
 
@@ -125,7 +125,7 @@ impl Loader<QueryKey> for QueryLoader {
                         |(query_key, mut acc), curr| async move {
                             let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
                             let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                            let relation_names = curr.get("__relation_name").and_then(|y| y.ss.clone());
+                            let relation_names = curr.get("__relation_names").and_then(|y| y.ss.clone());
 
                             match acc.values.entry(pk.clone()) {
                                 Entry::Vacant(vac) => {
@@ -173,7 +173,7 @@ impl Loader<QueryKey> for QueryLoader {
             h.insert(q, r);
         }
 
-        log::info!(self.ctx.trace_id, "Query Dataloader executed {:?}", keys);
+        log::debug!(self.ctx.trace_id, "Query Dataloader executed {:?}", keys);
         Ok(h)
     }
 }
