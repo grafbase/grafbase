@@ -41,6 +41,8 @@
 - Sets miniflare to only listen locally
 - Waits for bridge server to be ready before spawning miniflare
 - Adds a basic implementation for `init` (disabled)
+- Uncomments `init` command
+- Reports API errors
 
 ### Fixes
 
@@ -49,6 +51,7 @@
 - Handles non utf-8 path errors
 - Allows output of completions even when not in Grafbase project
 - Doesn't initialize environment for `init` and `completions`
+- Fixes an issue with the detection of unavailable ports
 
 ### Tooling
 
@@ -78,6 +81,7 @@
 - Turns on pedantic linting
 - Adds additional tracing
 - Strips symbols from the release binary and runs some size optimizations
+- Updates Rust version to `1.62`
 
 ### Refactoring
 
@@ -95,6 +99,12 @@
 - Folds `colorize` and `panic-hook`
 - Renames `colorize` to `watercolor`
 - Renames `local-gateway` to `backend`
+- Clippy fixes
+- Preparation for new transactions
+  - SQLite schema
+    - Changes `type` to `entity_type`
+    - Adds `relation_names`
+    - Unquotes columns
 
 ### Documentation
 
