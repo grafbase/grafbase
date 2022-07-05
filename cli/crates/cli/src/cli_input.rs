@@ -29,16 +29,16 @@ pub fn build_cli() -> Command<'static> {
                     To use, write the output to the appropriate location for your shell
                 "}),
         )
-    // .subcommand(
-    //     Command::new("init")
-    //         .args(&[
-    //             arg!([name] "the name of the project to create"),
-    //             arg!(-t --template "the name of the template to use for the new project"),
-    //         ])
-    //         .about(indoc! {"
-    //             Creates a grafbase/schema.graphql file and folder in the current directory
-    //         "}),
-    // )
+        .subcommand(
+            Command::new("init")
+                .args(&[
+                    arg!([name] "the name of the project to create"),
+                    arg!(-t --template "the name of the template to use for the new project"),
+                ])
+                .about(indoc! {"
+                Creates a grafbase/schema.graphql file and folder in the current directory
+            "}),
+        )
     // .subcommand(Command::new("login").about("TBD"))
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
