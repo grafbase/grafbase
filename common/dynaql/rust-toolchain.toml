@@ -1,5 +1,5 @@
 [toolchain]
-channel = "1.61"
+channel = "1.62"
 targets = [
     "wasm32-unknown-unknown",     # Cloudflare Workers
 ]
