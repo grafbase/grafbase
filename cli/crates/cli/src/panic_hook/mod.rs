@@ -1,12 +1,12 @@
 pub mod report;
 
+use crate::watercolor;
 use report::{Method, Report};
 use std::borrow::Cow;
+use std::fmt::Write;
 use std::panic::PanicInfo;
 use std::path::{Path, PathBuf};
 use watercolor::watercolor;
-
-use crate::watercolor;
 
 /// A convenient metadata struct that describes a crate
 pub struct Metadata {
@@ -116,11 +116,14 @@ pub fn handle_dump(meta: &Metadata, panic_info: &PanicInfo<'_>) -> Option<PathBu
     };
 
     match panic_info.location() {
-        Some(location) => explanation.push_str(&format!(
-            "Panic occurred in file '{}' at line {}\n",
-            location.file(),
-            location.line()
-        )),
+        Some(location) => {
+            let _ = writeln!(
+                explanation,
+                "Panic occurred in file '{}' at line {}",
+                location.file(),
+                location.line()
+            );
+        }
         None => explanation.push_str("Panic location unknown.\n"),
     }
 
