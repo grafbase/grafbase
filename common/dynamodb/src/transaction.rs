@@ -23,6 +23,11 @@ impl Hash for TxItem {
         self.pk.hash(state);
         self.sk.hash(state);
         self.relation_name.hash(state);
+        self.transaction
+            .update
+            .as_ref()
+            .map(|x| &x.update_expression)
+            .hash(state);
     }
 }
 
@@ -69,13 +74,9 @@ async fn transaction_by_pk(
         .with_max_retries(5);
 
     let item_collections = again
-        .retry(|| async {
-            ctx.dynamodb_client
-                .transact_write_items(input.clone())
-                .await
-                .map_err(|_| TransactionError::UnknownError)
-        })
+        .retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await })
         .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
+        .map_err(|_| TransactionError::UnknownError)
         .await?;
 
     debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
@@ -103,5 +104,5 @@ pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<Transacti
         LruCache::new(256),
     )
     .max_batch_size(25)
-    .delay(Duration::from_millis(2))
+    .delay(Duration::from_millis(1))
 }

@@ -1,6 +1,6 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::QueryKey;
 use crate::TxItem;
+use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::Utc;
@@ -368,6 +368,7 @@ impl GetIds for DeleteNodeInput {
                             from_ty,
                             to_id,
                             to_ty,
+                            relation_names: None,
                         },
                     ))),
                 );
@@ -391,7 +392,7 @@ impl GetIds for LinkNodeCachedInput {
                     to_id: self.to_id,
                     to_ty: self.to_ty,
                     relation_names: vec![self.relation_name],
-                    user_defined_item: self.user_defined_item,
+                    fields: self.user_defined_item,
                 })),
             )]))
         })
@@ -418,7 +419,7 @@ impl GetIds for LinkNodeNoCacheInput {
                     to_id: self.to_id,
                     to_ty: self.to_ty,
                     relation_names: vec![self.relation_name],
-                    user_defined_item: node,
+                    fields: node,
                 })),
             )]))
         })
@@ -435,22 +436,53 @@ impl GetIds for LinkNodeInput {
 }
 
 impl GetIds for UnlinkNodeInput {
-    fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = format!("{}#{}", &self.from_ty, &self.from_id);
         let sk = format!("{}#{}", &self.to_ty, &self.to_id);
         Box::pin(async {
-            Ok(HashMap::from([(
-                (pk, sk),
-                InternalChanges::Relation(InternalRelationChanges::Delete(DeleteRelationInternalInput::Multiple(
-                    DeleteMultipleRelationsInternalInput {
-                        from_id: self.from_id,
-                        from_ty: self.from_ty,
-                        to_id: self.to_id,
-                        to_ty: self.to_ty,
-                        relation_names: vec![self.relation_name],
-                    },
-                ))),
-            )]))
+            let loader = &batchers.loader;
+            let node = loader
+                .load_one((pk.clone(), sk.clone()))
+                .await?
+                .and_then(|mut r| r.remove(constant::RELATION_NAMES))
+                .and_then(|relations| relations.ss);
+
+            match node {
+                Some(relations) => {
+                    // If it's the only relation remaining, we ask to delete everything
+                    if relations.contains(&self.relation_name) && relations.len() == 1 {
+                        Ok(HashMap::from([(
+                            (pk, sk),
+                            InternalChanges::Relation(InternalRelationChanges::Delete(
+                                DeleteRelationInternalInput::All(DeleteAllRelationsInternalInput {
+                                    from_id: self.from_id,
+                                    from_ty: self.from_ty,
+                                    to_id: self.to_id,
+                                    to_ty: self.to_ty,
+                                    relation_names: Some(relations),
+                                }),
+                            )),
+                        )]))
+                        // If it's not the only relation remaining, we ask to keep some
+                    } else if relations.contains(&self.relation_name) {
+                        Ok(HashMap::from([(
+                            (pk, sk),
+                            InternalChanges::Relation(InternalRelationChanges::Delete(
+                                DeleteRelationInternalInput::Multiple(DeleteMultipleRelationsInternalInput {
+                                    from_id: self.from_id,
+                                    from_ty: self.from_ty,
+                                    to_id: self.to_id,
+                                    to_ty: self.to_ty,
+                                    relation_names: vec![self.relation_name],
+                                }),
+                            )),
+                        )]))
+                    } else {
+                        Ok(HashMap::new())
+                    }
+                }
+                None => Ok(HashMap::new()),
+            }
         })
     }
 }
@@ -524,14 +556,14 @@ impl UpdateNodeInternalInput {
     ) -> String {
         let update_expression = values
             .into_iter()
+            .filter(|(name, _)| !name.starts_with("__"))
             .chain(std::iter::once((
-                "updated_at".to_string(),
+                constant::UPDATED_AT.to_string(),
                 AttributeValue {
                     s: Some(Utc::now().to_string()),
                     ..Default::default()
                 },
             )))
-            .filter(|(name, _)| !name.starts_with("__"))
             .unique_by(|(name, _)| name.to_string())
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
@@ -561,8 +593,9 @@ struct InsertRelationInternalInput {
     to_id: String,
     to_ty: String,
     relation_names: Vec<String>,
+    /// Those fields are not user_defined_item, privates are here too.
     #[derivative(Debug = "ignore")]
-    user_defined_item: HashMap<String, AttributeValue>,
+    fields: HashMap<String, AttributeValue>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -577,6 +610,9 @@ struct DeleteAllRelationsInternalInput {
     from_ty: String,
     to_id: String,
     to_ty: String,
+    /// Used to specify which relation_names are deleted, used for Update addition
+    /// If not there, the delete will still happen
+    relation_names: Option<Vec<String>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -612,19 +648,20 @@ impl UpdateRelationInternalInput {
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
         relation_names: Vec<UpdateRelation>,
+        should_insert_private_fields: bool,
     ) -> String {
         let values_len = values.len();
         let update_expression = if values_len > 0 {
             let exp = values
                 .into_iter()
+                .filter(|(name, _)| should_insert_private_fields || !name.starts_with("__"))
                 .chain(std::iter::once((
-                    "updated_at".to_string(),
+                    constant::UPDATED_AT.to_string(),
                     AttributeValue {
                         s: Some(Utc::now().to_string()),
                         ..Default::default()
                     },
                 )))
-                .filter(|(name, _)| !name.starts_with("__"))
                 .unique_by(|(name, _)| name.to_string())
                 .map(|(name, value)| {
                     let idx = format!(":{}", name.as_str());
@@ -668,7 +705,7 @@ impl UpdateRelationInternalInput {
                 .join(" ");
 
             if removed.is_empty() {
-                "{add_expression}".to_string()
+                add_expression
             } else {
                 let idx = ":__relation_names_deleted".to_string();
 
@@ -786,9 +823,9 @@ impl Add<Self> for InsertRelationInternalInput {
                 update_into_insert.extend(self.relation_names);
                 update_into_insert
             },
-            user_defined_item: {
-                let mut update_into_insert = rhs.user_defined_item;
-                update_into_insert.extend(self.user_defined_item);
+            fields: {
+                let mut update_into_insert = rhs.fields;
+                update_into_insert.extend(self.fields);
                 update_into_insert
             },
         }
@@ -817,8 +854,8 @@ impl Add<InsertRelationInternalInput> for UpdateRelationInternalInput {
                 update_into_insert.extend(b);
                 update_into_insert.into_iter().filter(|x| a.contains(x)).collect()
             },
-            user_defined_item: {
-                let mut update_into_insert = rhs.user_defined_item;
+            fields: {
+                let mut update_into_insert = rhs.fields;
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
@@ -886,6 +923,39 @@ impl Add<UpdateRelationInternalInput> for DeleteMultipleRelationsInternalInput {
     }
 }
 
+impl Add<DeleteAllRelationsInternalInput> for UpdateRelationInternalInput {
+    type Output = Self;
+
+    fn add(self, rhs: DeleteAllRelationsInternalInput) -> Self::Output {
+        Self::Output {
+            from_id: self.from_id,
+            from_ty: self.from_ty,
+            to_id: self.to_id,
+            to_ty: self.to_ty,
+            relation_names: {
+                // TODO: shouldn't be empty
+                let mut update_into_insert = self.relation_names;
+                update_into_insert.extend(
+                    rhs.relation_names
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(UpdateRelation::Remove),
+                );
+                update_into_insert.into_iter().unique().collect()
+            },
+            user_defined_item: self.user_defined_item,
+        }
+    }
+}
+
+impl Add<UpdateRelationInternalInput> for DeleteAllRelationsInternalInput {
+    type Output = UpdateRelationInternalInput;
+
+    fn add(self, rhs: UpdateRelationInternalInput) -> Self::Output {
+        rhs + self
+    }
+}
+
 impl Add<Self> for DeleteRelationInternalInput {
     type Output = Self;
 
@@ -925,10 +995,8 @@ impl InternalRelationChanges {
             (Self::Insert(a), Self::Update(b)) => Ok(Self::Insert(a + b)),
             (Self::Update(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
             (Self::Update(a), Self::Update(b)) => Ok(Self::Update(a + b)),
-            (Self::Update(_), Self::Delete(DeleteRelationInternalInput::All(a)))
-            | (Self::Delete(DeleteRelationInternalInput::All(a)), Self::Update(_)) => {
-                Ok(Self::Delete(DeleteRelationInternalInput::All(a)))
-            }
+            (Self::Update(b), Self::Delete(DeleteRelationInternalInput::All(a)))
+            | (Self::Delete(DeleteRelationInternalInput::All(a)), Self::Update(b)) => Ok(Self::Update(a + b)),
             (Self::Update(b), Self::Delete(DeleteRelationInternalInput::Multiple(a)))
             | (Self::Delete(DeleteRelationInternalInput::Multiple(a)), Self::Update(b)) => Ok(Self::Update(a + b)),
         }
@@ -1058,5 +1126,5 @@ pub fn get_loader_transaction_new(
         LruCache::new(128),
     )
     .max_batch_size(1024)
-    .delay(Duration::from_millis(2))
+    .delay(Duration::from_millis(5))
 }

@@ -76,12 +76,12 @@ url = { version = "2", optional = true }
 smol_str = { version = "0.1", optional = true }
 time = { version = "0.3", optional = true, features = ["parsing", "formatting", "macros"] }
 futures-timer = { version = "3", optional = true }
+futures-channel = { version = "0.3", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
 lru = { version = "0.7", optional = true }
 sha2 = { version = "0.10", optional = true }
-futures-channel = { version = "0.3", optional = true }
 serde_cbor = { version = "0.11", optional = true }
 zxcvbn = { version = "2", optional = true }
 

@@ -10,12 +10,13 @@ use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, Transact
 use dynaql_value::Name;
 use dynomite::{Attribute, AttributeValue};
 use futures_util::future::Shared;
-use futures_util::{FutureExt, TryFutureExt};
+use futures_util::{FutureExt, StreamExt, TryFutureExt};
 use indexmap::IndexMap;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::future::Future;
 use std::hash::Hash;
+use std::ops::Add;
 use std::pin::Pin;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
@@ -181,6 +182,34 @@ struct RecursiveCreation<'a> {
     /// the `transaction`
     pub selection: SharedSelectionType<'a>,
     pub transaction: Vec<TransactionType<'a>>,
+}
+
+impl<'a> Add<RecursiveCreation<'a>> for RecursiveCreation<'a> {
+    type Output = RecursiveCreation<'a>;
+    fn add(self, rhs: RecursiveCreation<'a>) -> Self::Output {
+        let selection_future: SelectionType = Box::pin(async move {
+            let select = futures_util::future::try_join_all(vec![rhs.selection, self.selection])
+                .map_ok(|r| {
+                    r.into_iter().reduce(|mut acc, curr| {
+                        acc.extend(curr);
+                        acc
+                    })
+                })
+                .await?
+                .unwrap_or_default();
+
+            Ok(select)
+        });
+
+        let selection_entity = selection_future.shared();
+        let mut transactions = self.transaction;
+        transactions.extend(rhs.transaction);
+
+        Self {
+            selection: selection_entity,
+            transaction: transactions,
+        }
+    }
 }
 
 /// Create an Node and the relation associated to this Node if the Node is
@@ -542,6 +571,7 @@ fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
     }
 }
 
+/// Create a relation node only if needed
 async fn create_relation_node<'a>(
     ctx: &'a Context<'a>,
     to_ty: &MetaType,
@@ -598,6 +628,122 @@ async fn create_relation_node<'a>(
             Ok(ResolvedValue::new(serde_json::Value::Null))
         }
         _ => Ok(ResolvedValue::new(serde_json::Value::Null)),
+    }
+}
+
+fn internal_node_linking<'a>(
+    ctx: &'a Context<'a>,
+    parent_ty: &'a MetaType,
+    child_ty: &'a MetaType,
+    parent_value: SharedSelectionType<'a>,
+    relation_name: &'a str,
+    linking_input: &Value,
+) -> RecursiveCreation<'a> {
+    // For linking, it's either, Id, Array of Id, or Null
+    let field_value = match linking_input {
+        Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+        Value::List(list) => Some(
+            list.iter()
+                .map(|value| match value {
+                    Value::String(inner) => (inner.clone(), inner.clone()),
+                    _ => panic!(),
+                })
+                .collect(),
+        ),
+        _ => None,
+    };
+
+    let selection: SelectionType<'a> = match field_value {
+        Some(field_value) => Box::pin(async move {
+            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+            let loader_batcher = &batchers.loader;
+
+            loader_batcher.load_many(field_value).await
+        }),
+        None => Box::pin(async move { Ok(HashMap::new()) }),
+    };
+    let shared_selection = selection.shared();
+
+    let create_normal_future: TransactionType<'a> = Box::pin(create_relation_node(
+        ctx,
+        parent_ty,
+        shared_selection.clone(),
+        parent_value.clone(),
+        relation_name,
+    ));
+
+    let create_reverse_future: TransactionType<'a> = Box::pin(create_relation_node(
+        ctx,
+        child_ty,
+        parent_value,
+        shared_selection.clone(),
+        relation_name,
+    ));
+
+    RecursiveCreation {
+        selection: shared_selection,
+        transaction: vec![create_normal_future, create_reverse_future],
+    }
+}
+
+fn internal_node_unlinking<'a>(
+    ctx: &'a Context<'a>,
+    parent_value: SharedSelectionType<'a>,
+    relation_name: &'a str,
+    unlinking_input: &Value,
+) -> RecursiveCreation<'a> {
+    // For unlinking, it's either, Id, Array of Id, or Null
+    let field_value = match unlinking_input {
+        Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+        Value::List(list) => Some(
+            list.iter()
+                .map(|value| match value {
+                    Value::String(inner) => (inner.clone(), inner.clone()),
+                    _ => panic!(),
+                })
+                .collect(),
+        ),
+        _ => None,
+    };
+
+    if let Some(field_value) = field_value {
+        let field_value_clone = field_value.clone();
+        let selection: SelectionType<'a> = Box::pin(async move {
+            let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
+            let loader_batcher = &batchers.loader;
+
+            loader_batcher.load_many(field_value_clone).await
+        });
+
+        let shared_selection = selection.shared();
+
+        let mut transactions = Vec::with_capacity(field_value.len() + 1);
+
+        for (pk, _) in field_value {
+            let a: TransactionType<'a> = Box::pin(relation_remove(
+                ctx,
+                parent_value.clone(),
+                pk,
+                relation_name,
+            ));
+            transactions.push(a);
+        }
+
+        RecursiveCreation {
+            selection: shared_selection,
+            transaction: transactions,
+        }
+    } else {
+        ctx.add_error(ServerError::new(
+            "If you fill an unlink value it shouldn't be null",
+            Some(ctx.item.pos),
+        ));
+        let selection: SelectionType<'a> = Box::pin(async move { Ok(HashMap::new()) });
+
+        RecursiveCreation {
+            selection: selection.shared(),
+            transaction: Vec::new(),
+        }
     }
 }
 
@@ -698,107 +844,27 @@ fn relation_handle<'a>(
 
                 result
             }
-            (None, Some(linking_input), None) => {
-                // For linking, it's either, Id, Array of Id, or Null
-                let field_value = match linking_input {
-                    Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
-                    Value::List(list) => Some(
-                        list.iter()
-                            .map(|value| match value {
-                                Value::String(inner) => (inner.clone(), inner.clone()),
-                                _ => panic!(),
-                            })
-                            .collect(),
-                    ),
-                    _ => None,
-                };
-
-                let selection: SelectionType<'a> = match field_value {
-                    Some(field_value) => Box::pin(async move {
-                        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-                        let loader_batcher = &batchers.loader;
-
-                        loader_batcher.load_many(field_value).await
-                    }),
-                    None => Box::pin(async move { Ok(HashMap::new()) }),
-                };
-                let shared_selection = selection.shared();
-
-                let create_normal_future: TransactionType<'a> = Box::pin(create_relation_node(
-                    ctx,
-                    parent_ty,
-                    shared_selection.clone(),
-                    parent_value.clone(),
-                    relation_name,
-                ));
-
-                let create_reverse_future: TransactionType<'a> = Box::pin(create_relation_node(
-                    ctx,
-                    child_ty,
-                    parent_value,
-                    shared_selection.clone(),
-                    relation_name,
-                ));
-
-                RecursiveCreation {
-                    selection: shared_selection,
-                    transaction: vec![create_normal_future, create_reverse_future],
-                }
-            }
+            (None, Some(linking_input), None) => internal_node_linking(
+                ctx,
+                parent_ty,
+                child_ty,
+                parent_value.clone(),
+                relation_name,
+                linking_input,
+            ),
             (None, None, Some(unlinking_input)) => {
-                // For unlinking, it's either, Id, Array of Id, or Null
-                let field_value = match unlinking_input {
-                    Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
-                    Value::List(list) => Some(
-                        list.iter()
-                            .map(|value| match value {
-                                Value::String(inner) => (inner.clone(), inner.clone()),
-                                _ => panic!(),
-                            })
-                            .collect(),
-                    ),
-                    _ => None,
-                };
-
-                if let Some(field_value) = field_value {
-                    let field_value_clone = field_value.clone();
-                    let selection: SelectionType<'a> = Box::pin(async move {
-                        let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
-                        let loader_batcher = &batchers.loader;
-
-                        loader_batcher.load_many(field_value_clone).await
-                    });
-
-                    let shared_selection = selection.shared();
-
-                    let mut transactions = Vec::with_capacity(field_value.len() + 1);
-
-                    for (pk, _) in field_value {
-                        let a: TransactionType<'a> = Box::pin(relation_remove(
-                            ctx,
-                            parent_value.clone(),
-                            pk,
-                            relation_name,
-                        ));
-                        transactions.push(a);
-                    }
-
-                    RecursiveCreation {
-                        selection: shared_selection,
-                        transaction: transactions,
-                    }
-                } else {
-                    ctx.add_error(ServerError::new(
-                        "If you fill an unlink value it shouldn't be null",
-                        Some(ctx.item.pos),
-                    ));
-                    let selection: SelectionType<'a> = Box::pin(async move { Ok(HashMap::new()) });
-
-                    RecursiveCreation {
-                        selection: selection.shared(),
-                        transaction: Vec::new(),
-                    }
-                }
+                internal_node_unlinking(ctx, parent_value.clone(), relation_name, unlinking_input)
+            }
+            (None, Some(linking_input), Some(unlinking_input)) => {
+                internal_node_unlinking(ctx, parent_value.clone(), relation_name, unlinking_input)
+                    + internal_node_linking(
+                        ctx,
+                        parent_ty,
+                        child_ty,
+                        parent_value.clone(),
+                        relation_name,
+                        linking_input,
+                    )
             }
             _ => {
                 let selection: SelectionType<'a> = Box::pin(async move { Ok(HashMap::new()) });
@@ -888,7 +954,13 @@ impl ResolverTrait for DynamoMutationResolver {
                 );
 
                 let _ = update.selection.await?;
-                let _ = futures_util::future::try_join_all(update.transaction).await?;
+
+                let mut stream = futures_util::stream::iter(update.transaction.into_iter())
+                    .buffer_unordered(100);
+
+                while let Some(result) = stream.next().await {
+                    result?;
+                }
 
                 Ok(ResolvedValue::new(serde_json::json!({
                     "id": serde_json::Value::String(id),

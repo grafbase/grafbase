@@ -8,7 +8,7 @@ use crate::constant;
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::Utc;
-use dynomite::{Attribute, AttributeValue};
+use dynomite::Attribute;
 use rusoto_dynamodb::{Delete, Put, TransactWriteItem, Update};
 use std::collections::HashMap;
 
@@ -217,7 +217,7 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
             let InsertRelationInternalInput {
-                mut user_defined_item,
+                mut fields,
                 relation_names,
                 from_ty,
                 to_ty,
@@ -230,40 +230,51 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             let partition_key_attr = pk.clone().into_attr();
             let sorting_key_attr = sk.clone().into_attr();
 
-            user_defined_item.insert(constant::PK.to_string(), partition_key_attr.clone());
-            user_defined_item.insert(constant::SK.to_string(), sorting_key_attr.clone());
+            fields.remove(constant::PK);
+            fields.remove(constant::SK);
 
-            user_defined_item.insert(constant::TYPE.to_string(), ty_attr.clone());
+            fields.insert(constant::TYPE.to_string(), ty_attr.clone());
 
-            user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
-            user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
+            fields.insert(constant::UPDATED_AT.to_string(), now_attr);
 
-            user_defined_item.insert(constant::TYPE_INDEX_PK.to_string(), gsi1pk_attr);
-            user_defined_item.insert(constant::TYPE_INDEX_SK.to_string(), partition_key_attr.clone());
+            fields.insert(constant::TYPE_INDEX_PK.to_string(), gsi1pk_attr);
+            fields.insert(constant::TYPE_INDEX_SK.to_string(), partition_key_attr.clone());
 
-            user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), sorting_key_attr);
-            user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), partition_key_attr);
+            fields.insert(constant::INVERTED_INDEX_PK.to_string(), sorting_key_attr);
+            fields.insert(constant::INVERTED_INDEX_SK.to_string(), partition_key_attr);
 
-            user_defined_item.insert(
-                constant::RELATION_NAMES.to_string(),
-                AttributeValue {
-                    ss: Some(relation_names),
-                    ..Default::default()
-                },
+            let mut exp_values = HashMap::with_capacity(fields.len() + 1);
+            let mut exp_att_names = HashMap::with_capacity(fields.len() + 1);
+            let update_expression = UpdateRelationInternalInput::to_update_expression(
+                fields,
+                &mut exp_values,
+                &mut exp_att_names,
+                relation_names.into_iter().map(UpdateRelation::Add).collect(),
+                true,
             );
+
+            let key = dynomite::attr_map! {
+                    constant::PK => pk.clone(),
+                    constant::SK => sk.clone(),
+            };
+
+            let update_transaction: TransactWriteItem = TransactWriteItem {
+                update: Some(Update {
+                    table_name: ctx.dynamodb_table_name.clone(),
+                    key,
+                    update_expression,
+                    expression_attribute_values: Some(exp_values),
+                    expression_attribute_names: Some(exp_att_names),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            };
 
             let node_transaction = TxItem {
                 pk,
                 sk,
                 relation_name: None,
-                transaction: TransactWriteItem {
-                    put: Some(Put {
-                        table_name: ctx.dynamodb_table_name.clone(),
-                        item: user_defined_item,
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
+                transaction: update_transaction,
             };
 
             batchers
@@ -345,6 +356,7 @@ impl ExecuteChangesOnDatabase for DeleteMultipleRelationsInternalInput {
                 &mut exp_values,
                 &mut exp_att_names,
                 relation_names.into_iter().map(UpdateRelation::Remove).collect(),
+                false,
             );
             let key = dynomite::attr_map! {
                     constant::PK => pk.clone(),
@@ -414,8 +426,13 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
 
             let mut exp_values = HashMap::with_capacity(user_defined_item.len() + 1);
             let mut exp_att_names = HashMap::with_capacity(user_defined_item.len() + 1);
-            let update_expression =
-                Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names, relation_names);
+            let update_expression = Self::to_update_expression(
+                user_defined_item,
+                &mut exp_values,
+                &mut exp_att_names,
+                relation_names,
+                false,
+            );
 
             let key = dynomite::attr_map! {
                     constant::PK => pk.clone(),
