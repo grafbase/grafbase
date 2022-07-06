@@ -118,7 +118,7 @@ impl VariableResolveDefinition {
         let result = match self.param(ctx, last_resolver_value)? {
             Some(Value::Number(inner)) => inner
                 .as_u64()
-                .ok_or(Error::new("Internal Error: failed to infer Int"))
+                .ok_or_else(|| Error::new("Internal Error: failed to infer Int"))
                 .map(|value| value as usize)
                 .and_then(|value| match limit {
                     Some(limit) if value > limit => Err(Error::new(format!(
