@@ -1,6 +1,7 @@
 use dynaql::registry::Registry;
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
+use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
 use rules::check_field_not_reserved::CheckModelizedFieldReserved;
 use rules::check_type_validity::CheckTypeValidity;
@@ -36,6 +37,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(CheckModelizedFieldReserved)
         .with(CheckTypeValidity)
         .with(ModelDirective)
+        .with(AuthDirective)
         .with(BasicType)
         .with(EnumType)
         .with(relations_rules());

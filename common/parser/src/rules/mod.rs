@@ -1,3 +1,4 @@
+pub mod auth_directive;
 pub mod basic_type;
 pub mod check_field_not_reserved;
 pub mod check_type_validity;
