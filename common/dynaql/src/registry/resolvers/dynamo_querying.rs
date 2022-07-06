@@ -135,8 +135,6 @@ impl ResolverTrait for DynamoResolver {
                 last,
                 first,
             } => {
-                let number_limit: usize = 100;
-
                 let pk = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
@@ -147,7 +145,7 @@ impl ResolverTrait for DynamoResolver {
                 let first = first.expect_opt_int(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    number_limit,
+                    None,
                 )?;
                 let after = after.expect_opt_string(
                     ctx,
@@ -161,7 +159,7 @@ impl ResolverTrait for DynamoResolver {
                 let last = last.expect_opt_int(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    number_limit,
+                    None,
                 )?;
                 let edges: Vec<String> = relations_selected
                     .iter()
