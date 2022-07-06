@@ -37,10 +37,10 @@ wasm-bindgen-futures = "0.4"
 # feature="local"
 cfg-if = "1"
 indoc = { version = "1", optional = true }
+once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
-
 
 [dev-dependencies]
 tokio = { version = "1", features = [
@@ -62,4 +62,4 @@ surf = { version = "2", default-features = false, optional = true, features = [
 
 [features]
 default = []
-local = ["indoc", "regex", "serde", "serde_json", "surf"]
+local = ["indoc", "once_cell", "regex", "serde", "serde_json", "surf"]

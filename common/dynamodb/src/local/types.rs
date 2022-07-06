@@ -1,6 +1,7 @@
 use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::AttributeValue;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use rusoto_dynamodb::Put;
 use serde::{Deserialize, Serialize};
@@ -487,13 +488,12 @@ impl<'a> ToString for Sql<'a> {
     }
 }
 
+static NEWLINES_AND_TABS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\n|\t)+").expect("must parse"));
+static SPACES: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s+").expect("must parse"));
+
 fn minify(sql_string: String) -> String {
-    let newlines_and_tabs = Regex::new(r"(\n|\t)+").expect("must parse");
-    let spaces = Regex::new(r"\s+").expect("must parse");
-
-    let temp = newlines_and_tabs.replace_all(&sql_string, " ").clone();
-
-    let minified = spaces.replace_all(&temp, " ");
+    let temp = NEWLINES_AND_TABS.replace_all(&sql_string, " ").clone();
+    let minified = SPACES.replace_all(&temp, " ");
 
     minified.trim().to_owned()
 }
