@@ -58,7 +58,7 @@ pub fn get_loader_batch_transaction(local_ctx: Arc<LocalContext>) -> DataLoader<
     DataLoader::with_cache(
         BatchGetItemLoader { local_ctx },
         wasm_bindgen_futures::spawn_local,
-        LruCache::new(256),
+        LruCache::new(128),
     )
     .max_batch_size(100)
     .delay(Duration::from_millis(2))
