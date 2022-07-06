@@ -43,6 +43,7 @@
 - Adds a basic implementation for `init` (disabled)
 - Uncomments `init` command
 - Reports API errors
+- Updates `init` command description
 
 ### Fixes
 
@@ -105,6 +106,7 @@
     - Changes `type` to `entity_type`
     - Adds `relation_names`
     - Unquotes columns
+- Removes the `init` `--template` flag as it's not implemented yet
 
 ### Documentation
 
