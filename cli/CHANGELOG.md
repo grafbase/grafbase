@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.0-pre.2]
+
+### Fixes
+
+- Fixes the `completions` shell argument not being required
+
+## [0.1.0-pre.2]
+
+### Fixes
+
+- Includes the assets when publishing to crates.io
+
 ## [0.1.0-pre.0]
 
 ### Features

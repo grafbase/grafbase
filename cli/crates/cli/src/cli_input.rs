@@ -24,6 +24,7 @@ pub fn build_cli() -> Command<'static> {
                         The shell to generate completions for. 
                         Supported: bash, fish, zsh, elvish, powershell
                     "}))
+                .arg_required_else_help(true)
                 .about(indoc! {"
                     Output completions for the chosen shell
                     To use, write the output to the appropriate location for your shell
