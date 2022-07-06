@@ -144,6 +144,7 @@ impl Loader<QueryKey> for QueryLoader {
             .await
             .map_err(|_| QueryLoaderError::QueryError)?;
 
+        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
         for (query_key, result) in joined_futures {
             query_result.insert(query_key, result);
         }

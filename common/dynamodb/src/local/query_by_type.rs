@@ -83,6 +83,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
             let has_edges = !query_key.edges.is_empty();
             let number_of_edges = query_key.edges.len();
 
+            // TODO: unify SelectType and SelectTypeWithEdges (suggested by @jakubadamw)
             let query = if has_edges {
                 Sql::SelectTypeWithEdges(number_of_edges).to_string()
             } else {
@@ -91,6 +92,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
 
             let entity_type = query_key.r#type.clone();
 
+            // TODO: use .extend() rather than if (suggested by @jakubadamw)
             let values = if has_edges {
                 vec![vec![entity_type], query_key.edges.clone()].concat()
             } else {
@@ -160,6 +162,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
             .await
             .map_err(|_| QueryTypeLoaderError::QueryError)?;
 
+        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
         for (query_key, result) in joined_futures {
             query_result.insert(query_key, result);
         }

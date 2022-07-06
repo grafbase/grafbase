@@ -73,6 +73,7 @@ pub enum QueryTypePaginatedInfo {
     },
 }
 
+// TODO: remove or change this documentation to fit sqlite (suggested by @Miaxos)
 /// The Result of the Paginated query.
 ///
 /// # Modelization
@@ -148,6 +149,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let entity_type = query_key.r#type.clone();
+            // TODO: consider matching over entire query key (suggested by @jakubadamw)
             let (query, values) = match query_key.cursor.clone() {
                 PaginatedCursor::Forward {
                     exclusive_last_key,
@@ -251,6 +253,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             .await
             .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
+        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
         for (query_key, result) in joined_futures {
             query_result.insert(query_key, result);
         }
