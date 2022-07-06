@@ -33,10 +33,10 @@ pub fn build_cli() -> Command<'static> {
             Command::new("init")
                 .args(&[
                     arg!([name] "the name of the project to create"),
-                    arg!(-t --template "the name of the template to use for the new project"),
+                    // arg!(-t --template "the name of the template to use for the new project"),
                 ])
                 .about(indoc! {"
-                Creates a grafbase/schema.graphql file and folder in the current directory
+                Sets up the current or a new project for Grafbase
             "}),
         )
     // .subcommand(Command::new("login").about("TBD"))
