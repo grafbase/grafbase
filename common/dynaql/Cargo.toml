@@ -37,7 +37,10 @@ async-trait = "0.1"
 derivative = "2"
 dynomite = "0.10"
 fnv = "1"
-futures-util = { version = "0.3", default-features = false, features = ["io", "sink"] }
+futures-util = { version = "0.3", default-features = false, features = [
+    "io",
+    "sink",
+] }
 indexmap = "~1.6"
 itertools = "0.10.3"
 pin-project-lite = "0.2"
@@ -53,11 +56,16 @@ bytes = { version = "1", features = ["serde"] }
 mime = "0.3"
 num-traits = "0.2"
 fast_chemail = "0.9"
-chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+chrono = { version = "0.4", default-features = false, features = [
+    "clock",
+    "std",
+] }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
-logworker = { path = "../log", package = "log", optional = true, features = ["with-worker"] }
+logworker = { path = "../log", package = "log", optional = true, features = [
+    "with-worker",
+] }
 ulid-rs = { path = "../ulid-rs" }
 
 # Feature optional dependencies
@@ -68,13 +76,22 @@ iso8601-duration = { version = "0.1", optional = true }
 log = { version = "0.4", optional = true }
 secrecy = { version = "0.8", optional = true }
 tracinglib = { version = "0.1", optional = true, package = "tracing" }
-tracing-futures = { version = "0.2", optional = true, features = ["std-future", "futures-03"] }
-opentelemetry = { version = "0.17", optional = true, default-features = false, features = ["trace"] }
-uuid = { version = "1", optional = true, features = ["v4", "serde"] }
+tracing-futures = { version = "0.2", optional = true, features = [
+    "std-future",
+    "futures-03",
+] }
+opentelemetry = { version = "0.17", optional = true, default-features = false, features = [
+    "trace",
+] }
+uuid = { version = "0.8", optional = true, features = ["v4", "serde"] }
 rust_decimal = { version = "1", optional = true }
 url = { version = "2", optional = true }
 smol_str = { version = "0.1", optional = true }
-time = { version = "0.3", optional = true, features = ["parsing", "formatting", "macros"] }
+time = { version = "0.3", optional = true, features = [
+    "parsing",
+    "formatting",
+    "macros",
+] }
 futures-timer = { version = "3", optional = true }
 futures-channel = { version = "0.3", optional = true }
 
