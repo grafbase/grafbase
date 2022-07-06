@@ -1,12 +1,17 @@
 # Changelog
 
+## [0.1.0-pre.3]
+
+- Removes the `v` from version output
+- Shortens Node.js error hints
+
 ## [0.1.0-pre.2]
 
 ### Fixes
 
 - Fixes the `completions` shell argument not being required
 
-## [0.1.0-pre.2]
+## [0.1.0-pre.1]
 
 ### Fixes
 

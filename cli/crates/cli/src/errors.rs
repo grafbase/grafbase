@@ -50,10 +50,10 @@ impl CliError {
                 Some("try running the CLI in your Grafbase project or any nested directory".to_owned())
             }
             Self::ServerError(ServerError::NodeInPath) => {
-                Some("we currently require Node.js as a dependency - please install Node.js and make sure it is in your $PATH to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)".to_owned())
+                Some("please install Node.js and make sure it is in your $PATH to continue (https://nodejs.org/en/download/)".to_owned())
             }
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => {
-                Some(format!("please update your Node.js version to {min_version} or higher to continue (via installer: https://nodejs.org/en/download/, via package manager: https://nodejs.org/en/download/package-manager/)"))
+                Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)"))
             }
             _ => None,
         }
