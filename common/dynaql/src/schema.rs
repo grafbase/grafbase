@@ -281,6 +281,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
+            auth: Default::default(),
         };
 
         registry.add_directive(MetaDirective {
@@ -361,6 +362,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
+            auth: Default::default(),
         };
 
         registry.add_directive(MetaDirective {

@@ -17,7 +17,7 @@ use ulid_rs::Ulid;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
-    BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
+    BaseType as ParsedBaseType, ConstDirective, Field, Type as ParsedType, VariableDefinition,
 };
 use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::{
@@ -722,6 +722,24 @@ pub struct Registry {
     pub disable_introspection: bool,
     pub enable_federation: bool,
     pub federation_subscription: bool,
+    pub auth: Option<AuthDirective>,
+}
+
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+pub struct AuthDirective {
+    pub providers: Vec<AuthProvider>,
+}
+
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+pub struct AuthProvider {
+    pub issuer: String,
+}
+
+impl From<ConstDirective> for AuthDirective {
+    fn from(_directive: ConstDirective) -> Self {
+        // TODO: actually convert types
+        AuthDirective::default()
+    }
 }
 
 impl Registry {
