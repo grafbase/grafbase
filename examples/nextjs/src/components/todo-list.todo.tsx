@@ -4,7 +4,7 @@ import {
   TodoUpdateDocument,
 } from "graphql/schema";
 import { useMutation } from "urql";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { TrashIcon } from "@heroicons/react/outline";
 import Spinner from "components/spinner";
 import debounce from "lodash.debounce";
@@ -14,7 +14,6 @@ const TodoListTodo = (props: {
   id: string;
   complete?: boolean | null;
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
   const { id, title, complete } = props;
   const [completed, setCompleted] = useState(!!complete);
   const contextDeleteTodoList = useMemo(
@@ -59,7 +58,6 @@ const TodoListTodo = (props: {
               }}
             />
             <input
-              ref={inputRef}
               defaultValue={title}
               className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
               onChange={(e) => onTitleChange(e?.target?.value)}
