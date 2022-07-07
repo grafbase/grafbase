@@ -766,9 +766,12 @@ impl TryFrom<ConstValue> for AuthProvider {
             _ => return Err(ServerError::new("auth provider must be an object", None)),
         };
 
-        Ok(AuthProvider {
-            issuer: value.get("issuer").unwrap().to_string().parse().unwrap(),
-        })
+        let issuer = match value.get("issuer") {
+            Some(Value::String(value)) => value.parse().unwrap(),
+            _ => return Err(ServerError::new("issuer must be a valid URL", None)),
+        };
+
+        Ok(AuthProvider { issuer })
     }
 }
 
