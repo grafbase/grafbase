@@ -26,8 +26,10 @@ impl<'a> Visitor<'a> for AuthDirective {
             .iter()
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
-            // TODO: use ctx.report_error
-            ctx.registry.get_mut().auth = Some(directive.node.clone().try_into().unwrap());
+            match directive.node.clone().try_into() {
+                Ok(auth) => ctx.registry.get_mut().auth = Some(auth),
+                Err(err) => ctx.report_error(vec![directive.pos], err.message),
+            }
         }
     }
 }
