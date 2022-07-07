@@ -9,6 +9,7 @@ pub mod utils;
 pub mod variables;
 
 use dynaql_parser::Pos;
+use dynaql_value::ConstValue;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -722,23 +723,52 @@ pub struct Registry {
     pub disable_introspection: bool,
     pub enable_federation: bool,
     pub federation_subscription: bool,
-    pub auth: Option<AuthDirective>,
+    pub auth: Option<Auth>,
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
-pub struct AuthDirective {
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Auth {
     pub providers: Vec<AuthProvider>,
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AuthProvider {
-    pub issuer: String,
+    // TODO: add type
+    pub issuer: url::Url,
 }
 
-impl From<ConstDirective> for AuthDirective {
-    fn from(_directive: ConstDirective) -> Self {
-        // TODO: actually convert types
-        AuthDirective::default()
+impl TryFrom<ConstDirective> for Auth {
+    type Error = ServerError; // TODO: use custom error
+
+    fn try_from(value: ConstDirective) -> Result<Self, Self::Error> {
+        let arg = value.get_argument("providers").unwrap();
+
+        let arg = match arg.node.clone() {
+            ConstValue::List(value) => value,
+            _ => return Err(ServerError::new("providers must be a list", None)),
+        };
+
+        let providers = arg
+            .iter()
+            .map(|arg| AuthProvider::try_from(arg.clone()).unwrap())
+            .collect::<Vec<AuthProvider>>();
+
+        Ok(Auth { providers })
+    }
+}
+
+impl TryFrom<ConstValue> for AuthProvider {
+    type Error = ServerError; // TODO: use custom error
+
+    fn try_from(value: ConstValue) -> Result<Self, Self::Error> {
+        let value = match value {
+            ConstValue::Object(value) => value,
+            _ => return Err(ServerError::new("auth provider must be an object", None)),
+        };
+
+        Ok(AuthProvider {
+            issuer: value.get("issuer").unwrap().to_string().parse().unwrap(),
+        })
     }
 }
 

@@ -60,6 +60,7 @@ chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "std",
 ] }
+url = { version = "2" }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
@@ -85,7 +86,6 @@ opentelemetry = { version = "0.17", optional = true, default-features = false, f
 ] }
 uuid = { version = "0.8", optional = true, features = ["v4", "serde"] }
 rust_decimal = { version = "1", optional = true }
-url = { version = "2", optional = true }
 smol_str = { version = "0.1", optional = true }
 time = { version = "0.3", optional = true, features = [
     "parsing",
