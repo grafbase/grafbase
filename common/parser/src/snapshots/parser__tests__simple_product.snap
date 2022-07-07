@@ -3,6 +3,7 @@ source: common/parser/src/lib.rs
 expression: reg_string
 ---
 {
+  "auth": null,
   "directives": {
     "include": {
       "args": {
