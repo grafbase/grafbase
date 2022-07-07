@@ -338,6 +338,16 @@ where
         format!("{}\n{}", self.0.directives(), self.1.directives())
     }
 
+    fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
+        self.0.enter_schema(ctx, doc);
+        self.1.enter_schema(ctx, doc);
+    }
+
+    fn exit_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
+        self.0.exit_schema(ctx, doc);
+        self.1.exit_schema(ctx, doc);
+    }
+
     fn enter_document(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a ServiceDocument) {
         self.0.enter_document(ctx, doc);
         self.1.enter_document(ctx, doc);
