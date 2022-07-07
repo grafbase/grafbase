@@ -217,6 +217,9 @@ pub trait Visitor<'a> {
     fn enter_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}
     fn exit_document(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a ServiceDocument) {}
 
+    fn enter_schema(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a Positioned<SchemaDefinition>) {}
+    fn exit_schema(&mut self, _ctx: &mut VisitorContext<'a>, _doc: &'a Positioned<SchemaDefinition>) {}
+
     fn enter_type_definition(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
@@ -464,6 +467,11 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
                 _ => {}
             };
             v.exit_type_definition(ctx, ty);
+        }
+        TypeSystemDefinition::Schema(schema) => {
+            v.enter_schema(ctx, schema);
+            visit_directives(v, ctx, &schema.node.directives);
+            v.exit_schema(ctx, schema);
         }
         _ => {}
     };
