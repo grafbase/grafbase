@@ -116,6 +116,8 @@ impl ResolverTrait for DynamoResolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
+        const PAGINATION_LIMIT: usize = 100;
+
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
@@ -135,8 +137,6 @@ impl ResolverTrait for DynamoResolver {
                 last,
                 first,
             } => {
-                let number_limit: usize = 100;
-
                 let pk = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
@@ -147,7 +147,7 @@ impl ResolverTrait for DynamoResolver {
                 let first = first.expect_opt_int(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    number_limit,
+                    Some(PAGINATION_LIMIT),
                 )?;
                 let after = after.expect_opt_string(
                     ctx,
@@ -157,11 +157,10 @@ impl ResolverTrait for DynamoResolver {
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                 )?;
-
                 let last = last.expect_opt_int(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    number_limit,
+                    Some(PAGINATION_LIMIT),
                 )?;
                 let edges: Vec<String> = relations_selected
                     .iter()

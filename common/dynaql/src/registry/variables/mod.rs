@@ -113,31 +113,23 @@ impl VariableResolveDefinition {
         &self,
         ctx: &'a Context<'a>,
         last_resolver_value: Option<&'a serde_json::Value>,
-        limit: usize,
+        limit: Option<usize>,
     ) -> Result<Option<usize>, ServerError> {
-        match self.param(ctx, last_resolver_value)? {
-            Some(Value::Number(inner)) => {
-                if let Some(val) = inner.as_i64() {
-                    if (val as usize) < limit {
-                        Ok(Some(val as usize))
-                    } else {
-                        Err(Error::new(format!(
-                            "Limit Error: You must have an integer inferior than {}",
-                            limit
-                        ))
-                        .into_server_error(ctx.item.pos))
-                    }
-                } else {
-                    Err(Error::new("Internal Error: failed to infer Int")
-                        .into_server_error(ctx.item.pos))
-                }
-            }
-            Some(Value::Null) => Ok(None),
-            None => Ok(None),
-            _ => {
-                Err(Error::new("Internal Error: failed to infer key")
-                    .into_server_error(ctx.item.pos))
-            }
-        }
+        let result = match self.param(ctx, last_resolver_value)? {
+            Some(Value::Number(inner)) => inner
+                .as_u64()
+                .ok_or_else(|| Error::new("Internal Error: failed to infer Int"))
+                .map(|value| value as usize)
+                .and_then(|value| match limit {
+                    Some(limit) if value > limit => Err(Error::new(format!(
+                        "Limit Error: the integer must be smaller than {}",
+                        limit
+                    ))),
+                    _ => Ok(Some(value as usize)),
+                }),
+            Some(Value::Null) | None => Ok(None),
+            _ => Err(Error::new("Internal Error: failed to infer key")),
+        };
+        result.map_err(|err| err.into_server_error(ctx.item.pos))
     }
 }
