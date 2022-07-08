@@ -1,6 +1,4 @@
 import type { NextPage } from "next";
-import { getSession } from "next-auth/react";
-import { NextPageContext } from "next";
 import { useQuery } from "urql";
 import { TodoListsDocument } from "graphql/schema";
 import TodoList from "components/todo-list";
@@ -40,24 +38,5 @@ const Home: NextPage = () => {
     </div>
   );
 };
-
-export async function getServerSideProps(context: NextPageContext) {
-  const session = await getSession(context);
-
-  if (!session) {
-    return {
-      redirect: {
-        destination: "/sign-in",
-        permanent: false,
-      },
-    };
-  }
-
-  return {
-    props: {
-      session,
-    },
-  };
-}
 
 export default Home;

@@ -1,13 +1,9 @@
 import { ReactNode } from "react";
 import Head from "next/head";
-import { signOut, useSession } from "next-auth/react";
 import Logo from "components/logo";
 import ThemeSwitch from "components/theme-switch";
 
 const Layout = ({ children }: { children: ReactNode }) => {
-  const { data, status } = useSession();
-  const loading = status === "loading";
-
   return (
     <div>
       <Head>
@@ -24,14 +20,6 @@ const Layout = ({ children }: { children: ReactNode }) => {
             <Logo className="text-black dark:text-white" />
           </div>
           <div className="flex items-center space-x-4">
-            {!loading && !!data && (
-              <button
-                className="border border-gray-400 dark:border-gray-600 text-sm rounded-lg px-2 py-1"
-                onClick={() => signOut()}
-              >
-                Sign Out
-              </button>
-            )}
             <ThemeSwitch />
           </div>
         </nav>

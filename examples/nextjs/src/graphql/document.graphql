@@ -13,7 +13,7 @@ fragment Todo on Todo {
 }
 
 query TodoLists {
-  todoListCollection(first: 99) {
+  todoListCollection {
     edges {
       node {
         ...TodoList
