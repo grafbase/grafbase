@@ -15,7 +15,6 @@ extern crate log;
 use cli_input::build_cli;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
-    environment::Environment,
     traits::ToExitCode,
 };
 use dev::dev;
@@ -53,26 +52,13 @@ fn try_main() -> Result<(), CliError> {
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
 
-    if let Some(("completions", matches)) = matches.subcommand() {
-        let shell = matches.get_one::<String>("shell").expect("must be present");
-        completions::generate(shell)?;
-        return Ok(());
+    let subcommand = matches.subcommand();
+
+    if let Some(("dev" | "init", ..)) = subcommand {
+        report::cli_header();
     }
 
-    report::cli_header();
-
-    // commands that do not need an initialized environment
-    match matches.subcommand() {
-        Some(("init", matches)) => {
-            let name = matches.get_one::<String>("name").map(AsRef::as_ref);
-            return init(name);
-        }
-        _ => {}
-    }
-
-    Environment::try_init().map_err(CliError::CommonError)?;
-
-    match matches.subcommand() {
+    match subcommand {
         Some(("dev", matches)) => {
             // ignoring any errors to fall back to the normal handler if there's an issue
             let _set_handler_result = ctrlc::set_handler(|| {
@@ -83,6 +69,15 @@ fn try_main() -> Result<(), CliError> {
             let search = matches.contains_id("search");
             let port = matches.get_one::<u16>("port").copied();
             dev(search, port)
+        }
+        Some(("completions", matches)) => {
+            let shell = matches.get_one::<String>("shell").expect("must be present");
+            completions::generate(shell)?;
+            return Ok(());
+        }
+        Some(("init", matches)) => {
+            let name = matches.get_one::<String>("name").map(AsRef::as_ref);
+            return init(name);
         }
         _ => unreachable!(),
     }

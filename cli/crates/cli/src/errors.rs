@@ -55,6 +55,9 @@ impl CliError {
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => {
                 Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)"))
             }
+            Self::BackendError(BackendError::AlreadyAProject(_)) => {
+                Some("try running 'grafbase dev'".to_owned())
+            }
             _ => None,
         }
     }
