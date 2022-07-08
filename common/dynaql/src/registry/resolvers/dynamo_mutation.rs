@@ -974,7 +974,7 @@ impl ResolverTrait for DynamoMutationResolver {
                 let opaque_id = ObfuscatedID::new(&id_to_be_deleted)
                     .map_err(|err| err.into_server_error(ctx.item.pos))?;
                 let ty = opaque_id.ty().to_string();
-                let id = opaque_id.ty().to_string();
+                let id = opaque_id.id().to_string();
 
                 new_transaction
                     .load_one(PossibleChanges::delete_node(ty.clone(), id.clone()))
