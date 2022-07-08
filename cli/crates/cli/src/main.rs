@@ -73,11 +73,11 @@ fn try_main() -> Result<(), CliError> {
         Some(("completions", matches)) => {
             let shell = matches.get_one::<String>("shell").expect("must be present");
             completions::generate(shell)?;
-            return Ok(());
+            Ok(())
         }
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);
-            return init(name);
+            init(name)
         }
         _ => unreachable!(),
     }
