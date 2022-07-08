@@ -53,15 +53,16 @@ fn try_main() -> Result<(), CliError> {
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
 
+    if let Some(("completions", matches)) = matches.subcommand() {
+        let shell = matches.get_one::<String>("shell").expect("must be present");
+        completions::generate(shell)?;
+        return Ok(());
+    }
+
     report::cli_header();
 
     // commands that do not need an initialized environment
     match matches.subcommand() {
-        Some(("completions", matches)) => {
-            let shell = matches.get_one::<String>("shell").expect("must be present");
-            completions::generate(shell)?;
-            return Ok(());
-        }
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);
             return init(name);

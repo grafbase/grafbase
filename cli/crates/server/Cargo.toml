@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-server"
-version = "0.1.0-pre.3"
+version = "0.1.0-pre.4"
 edition = "2021"
 description = "A wrapper for the grafbase worker"
 license = "Apache-2.0"
@@ -13,7 +13,7 @@ include = ["/src", "/assets"]
 [dependencies]
 axum = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
-common = { package = "grafbase-local-common", path = "../common", version = "0.1.0-pre.3" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.1.0-pre.4" }
 exitcode = "1"
 hyper = "0.14"
 log = "0.4"

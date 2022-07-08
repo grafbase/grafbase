@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.0-pre.4]
+
+- Updates the worker, fixing an issue with deletion
+
 ## [0.1.0-pre.3]
 
 - Removes the `v` from version output
