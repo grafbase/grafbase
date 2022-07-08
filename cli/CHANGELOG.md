@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.0-pre.5]
+
+### Features
+
+- Adds a hint when `init` is run in an initialized project
+
+### Fixes
+
+- Fixes the CLI header being printed when printing completions
+
+### Refactoring
+
+- Cleans up the CLI `main.rs` file
+
 ## [0.1.0-pre.4]
 
 - Updates the worker, fixing an issue with deletion
