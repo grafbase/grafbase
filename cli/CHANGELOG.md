@@ -13,6 +13,7 @@
 ### Refactoring
 
 - Cleans up the CLI `main.rs` file
+- Moves the default GraphQL schema to a file
 
 ## [0.1.0-pre.4]
 
