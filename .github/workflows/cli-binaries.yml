@@ -129,7 +129,7 @@ jobs:
       # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
       - name: Create `rust-toolchain`
         run: |
-          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
+          ggrep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
