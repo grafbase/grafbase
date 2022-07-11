@@ -200,7 +200,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: grafbase-x86_64-apple-darwin
-          path: target/grafbase-x86_64-apple-darwin/release/grafbase
+          path: target/release/grafbase
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
