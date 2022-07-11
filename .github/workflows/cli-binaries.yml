@@ -122,6 +122,10 @@ jobs:
           mv cli/* .
           rm -r cli
 
+      - name: Install grep
+        run: |
+          brew install grep
+
       # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
       - name: Create `rust-toolchain`
         run: |
