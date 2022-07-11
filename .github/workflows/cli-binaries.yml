@@ -18,7 +18,6 @@ jobs:
 
       - name: Move CLI to root
         run: |
-          Remove-Item -recurse * -exclude ./cli
           Get-ChildItem -Path ./cli -Recurse -File | Move-Item -Destination .
           Remove-Item -Recurse -Force ./cli
 
