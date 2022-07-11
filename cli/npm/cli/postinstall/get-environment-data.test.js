@@ -20,7 +20,7 @@ test('aarch64-apple-darwin', () => {
     value: 'arm64',
   });
 
-  let environmentData = getEnvironmentData('grafbase');
+  const environmentData = getEnvironmentData('grafbase');
 
   expect(environmentData.targetTriple).toBe('aarch64-apple-darwin');
   expect(environmentData.binary).toBe('grafbase');
@@ -34,7 +34,7 @@ test('x86_64-apple-darwin', () => {
     value: 'x64',
   });
 
-  let environmentData = getEnvironmentData('grafbase');
+  const environmentData = getEnvironmentData('grafbase');
 
   expect(environmentData.targetTriple).toBe('x86_64-apple-darwin');
   expect(environmentData.binary).toBe('grafbase');
@@ -48,7 +48,7 @@ test('x86_64-unknown-linux-musl', () => {
     value: 'x64',
   });
 
-  let environmentData = getEnvironmentData('grafbase');
+  const environmentData = getEnvironmentData('grafbase');
 
   expect(environmentData.targetTriple).toBe('x86_64-unknown-linux-musl');
   expect(environmentData.binary).toBe('grafbase');
@@ -62,7 +62,7 @@ test('x86_64-pc-windows-msvc', () => {
     value: 'x64',
   });
 
-  let environmentData = getEnvironmentData('grafbase');
+  const environmentData = getEnvironmentData('grafbase');
 
   expect(environmentData.targetTriple).toBe('x86_64-pc-windows-msvc');
   expect(environmentData.binary).toBe('grafbase.exe');
