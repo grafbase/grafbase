@@ -18,8 +18,14 @@ jobs:
 
       - name: Move CLI to root
         run: |
-          Get-ChildItem -Path ./cli -Recurse -File | Move-Item -Destination .
-          Remove-Item -Recurse -Force ./cli
+          shopt -s extglob
+          rm -r !("cli")
+          mv cli/* .
+          rm -r cli
+        shell: bash
+
+      - run: echo "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin" >> $GITHUB_PATH
+        shell: bash
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
