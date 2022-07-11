@@ -1,5 +1,1 @@
-pub const DEFAULT_SCHEMA: &str = indoc::indoc! {"
-    type Placeholder @model {
-        id: ID!
-    }
-"};
+pub const DEFAULT_SCHEMA: &str = include_str!("../assets/default-schema.graphql");
