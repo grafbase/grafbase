@@ -56,13 +56,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: "--target x86_64-pc-windows-msvc"
+          args: "--release --target x86_64-pc-windows-msvc"
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
         with:
           name: grafbase-x86_64-pc-windows-msvc.exe
-          path: ${{ github.workspace }}/target/release/grafbase
+          path: target/release/grafbase
 
   linux:
     runs-on: ubuntu-latest
@@ -114,13 +114,13 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: "--target x86_64-unknown-linux-musl"
+          args: "--release --target x86_64-unknown-linux-musl"
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
         with:
           name: grafbase-x86_64-unknown-linux-musl
-          path: ${{ github.workspace }}/target/x86_64-unknown-linux-musl/release/grafbase
+          path: target/x86_64-unknown-linux-musl/release/grafbase
 
   darwin:
     runs-on: macos-latest
@@ -187,21 +187,20 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: "--target aarch64-apple-darwin"
+          args: "--release --target aarch64-apple-darwin"
 
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           use-cross: true
           command: build
-          args: "--target x86_64-apple-darwin"
+          args: "--release --target x86_64-apple-darwin"
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
         with:
           name: grafbase-x86_64-apple-darwin
-          path: |
-            target/x86_64-apple-darwin/release/grafbase
+          path: target/grafbase-x86_64-apple-darwin/release/grafbase
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
