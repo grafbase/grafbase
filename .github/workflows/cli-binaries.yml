@@ -40,7 +40,7 @@ jobs:
           override: true
 
       - name: Fetch assets
-      - run: |
+        run: |
           Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
           Remove-Item -Recurse -Force crates/server/assets
           Expand-Archive assets.zip -DestinationPath crates/server/assets
@@ -82,7 +82,7 @@ jobs:
           override: true
 
       - name: Fetch assets
-      - run: |
+        run: |
           curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
           unzip assets.zip
           rm crates/server/assets
@@ -136,7 +136,7 @@ jobs:
           override: false
 
       - name: Fetch assets
-      - run: |
+        run: |
           curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
           unzip assets.zip
           rm crates/server/assets
