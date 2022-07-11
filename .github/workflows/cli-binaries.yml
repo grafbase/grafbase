@@ -63,7 +63,7 @@ jobs:
         with:
           name: grafbase-x86_64-pc-windows-msvc.exe
           path: |
-            target/x86_64-pc-windows-msvc/release/grafbase
+            target/release/grafbase
 
   linux:
     runs-on: ubuntu-latest
