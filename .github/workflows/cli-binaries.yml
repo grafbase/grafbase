@@ -54,11 +54,6 @@ jobs:
           mv assets crates/server/assets
         shell: bash
 
-      - name: Verify that assets have downloaded
-        run: |
-          cat ./crates/server/assets/package.json
-        shell: bash
-
       - name: Build
         uses: actions-rs/cargo@v1
         with:
