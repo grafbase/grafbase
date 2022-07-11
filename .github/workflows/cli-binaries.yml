@@ -18,15 +18,9 @@ jobs:
 
       - name: Move CLI to root
         run: |
-          shopt -s extglob
-          rm -r !("cli")
-          mv cli/* .
-          rm -r cli
-
-      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
-      - name: Create `rust-toolchain`
-        run: |
-          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
+          Remove-Item -recurse * -exclude cli
+          Get-ChildItem -Path cli -Recurse -File | Move-Item -Destination .
+          Remove-Item -Recurse -Force cli
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
@@ -35,7 +29,7 @@ jobs:
         # Once it does, we should be able to remove the `with` block entirely.
         with:
           profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
+          toolchain: "1.62"
           target: x86_64-pc-windows-msvc
           override: true
 
@@ -85,7 +79,7 @@ jobs:
         run: |
           curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
           unzip assets.zip
-          rm crates/server/assets
+          rm -r crates/server/assets
           mv assets crates/server/assets
 
       - name: Build
@@ -139,7 +133,7 @@ jobs:
         run: |
           curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
           unzip assets.zip
-          rm crates/server/assets
+          rm -r crates/server/assets
           mv assets crates/server/assets
 
       - name: Build
