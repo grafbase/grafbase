@@ -1,4 +1,4 @@
-name: CLI / build
+name: CLI / binaries
 
 on: [push, workflow_dispatch]
 
