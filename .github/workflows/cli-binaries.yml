@@ -48,9 +48,11 @@ jobs:
 
       - name: Fetch assets
         run: |
-          Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
-          Remove-Item -Recurse -Force ./crates/server/assets
-          Expand-Archive assets.zip -DestinationPath ./crates/server/assets
+          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
+          unzip assets.zip
+          rm -r crates/server/assets
+          mv assets crates/server/assets
+        shell: bash
 
       - name: Verify that assets have downloaded
         run: |
