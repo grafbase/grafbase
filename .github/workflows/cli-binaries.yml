@@ -36,7 +36,6 @@ jobs:
       - name: Fetch assets
         run: |
           Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
-          Remove-Item -Recurse -Force crates/server/assets
           Expand-Archive assets.zip -DestinationPath crates/server/assets
 
       - name: Build
@@ -85,6 +84,7 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         with:
+          use-cross: true
           command: build
           args: "--target x86_64-unknown-linux-musl"
 
@@ -139,11 +139,13 @@ jobs:
       - name: Build
         uses: actions-rs/cargo@v1
         with:
+          use-cross: true
           command: build
           args: "--target aarch64-apple-darwin"
 
       - name: Build
         uses: actions-rs/cargo@v1
         with:
+          use-cross: true
           command: build
           args: "--target x86_64-apple-darwin"
