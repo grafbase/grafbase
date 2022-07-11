@@ -50,6 +50,13 @@ jobs:
           command: build
           args: "--target x86_64-pc-windows-msvc"
 
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: grafbase-x86_64-pc-windows-msvc.exe
+          path: |
+            target/x86_64-pc-windows-msvc/release/grafbase
+
   linux:
     runs-on: ubuntu-latest
 
@@ -94,8 +101,15 @@ jobs:
           command: build
           args: "--target x86_64-unknown-linux-musl"
 
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: grafbase-x86_64-unknown-linux-musl
+          path: |
+            target/x86_64-unknown-linux-musl/release/grafbase
+
   darwin:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - name: Get sources
@@ -122,18 +136,18 @@ jobs:
           profile: minimal
           toolchain: ${{ env.RUST_VERSION }}
           target: x86_64-apple-darwin
-          override: true
+          override: false
 
-      # - name: Install Rust stable
-      #   uses: actions-rs/toolchain@v1
-      #   # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-      #   # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-      #   # Once it does, we should be able to remove the `with` block entirely.
-      #   with:
-      #     profile: minimal
-      #     toolchain: ${{ env.RUST_VERSION }}
-      #     target: aarch64-apple-darwin
-      #     override: false
+      - name: Install Rust stable
+        uses: actions-rs/toolchain@v1
+        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
+        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
+        # Once it does, we should be able to remove the `with` block entirely.
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          target: aarch64-apple-darwin
+          override: false
 
       - name: Fetch assets
         run: |
@@ -142,12 +156,12 @@ jobs:
           rm -r crates/server/assets
           mv assets crates/server/assets
 
-      # - name: Build
-      #   uses: actions-rs/cargo@v1
-      #   with:
-      #     use-cross: true
-      #     command: build
-      #     args: "--target aarch64-apple-darwin"
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: "--target aarch64-apple-darwin"
 
       - name: Build
         uses: actions-rs/cargo@v1
@@ -155,3 +169,17 @@ jobs:
           use-cross: true
           command: build
           args: "--target x86_64-apple-darwin"
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: grafbase-x86_64-apple-darwin
+          path: |
+            target/x86_64-apple-darwin/release/grafbase
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: grafbase-aarch64-apple-darwin
+          path: |
+            target/aarch64-apple-darwin/release/grafbase
