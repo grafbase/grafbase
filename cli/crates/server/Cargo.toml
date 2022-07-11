@@ -34,9 +34,9 @@ version-compare = "0.1"
 which = "4"
 
 [dev-dependencies]
-anyhow = "1.0.58"
-indoc = "1.0.6"
-reqwest = { version = "0.11.11", features = [
+anyhow = "1"
+indoc = "1"
+reqwest = { version = "0.11", features = [
   "tokio-rustls",
   "serde_json",
   "json",
