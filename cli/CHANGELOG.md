@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.0-pre.6]
+
+### Tooling
+
+- Adds NPM distrbution mechanism
+
+### Dependinces
+
+- Normalizes `backtrace` version
+
 ## [0.1.0-pre.5]
 
 ### Features
