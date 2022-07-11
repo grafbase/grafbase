@@ -120,7 +120,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: grafbase-x86_64-unknown-linux-musl
-          path: ${{ github.workspace }}/target/release/grafbase
+          path: ${{ github.workspace }}/target/x86_64-unknown-linux-musl/release/grafbase
 
   darwin:
     runs-on: macos-latest
