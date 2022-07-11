@@ -1,0 +1,39 @@
+{
+  "name": "grafbase",
+  "version": "0.1.2-pre.1",
+  "description": "The Grafbase command line interface",
+  "keywords": [
+    "grafbase"
+  ],
+  "homepage": "https://grafbase.com",
+  "bugs": {
+    "url": "https://github.com/grafbase/grafbase/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grafbase/grafbase",
+    "directory": "cli"
+  },
+  "license": "Apache-2.0",
+  "bin": {
+    "grafbase": "grafbase"
+  },
+  "scripts": {
+    "postinstall": "node ./postinstall/postinstall.js"
+  },
+  "dependencies": {
+    "detect-libc": "^2.0.1"
+  },
+  "devDependencies": {
+    "jest": "^28.1.2"
+  },
+  "optionalDependencies": {
+    "@grafbase/cli-aarch64-apple-darwin": "^0.1.2-pre.1",
+    "@grafbase/cli-x86_64-apple-darwin": "^0.1.2-pre.1",
+    "@grafbase/cli-x86_64-pc-windows-msvc": "^0.1.2-pre.1",
+    "@grafbase/cli-x86_64-unknown-linux-musl": "^0.1.2-pre.1"
+  },
+  "engines": {
+    "node": ">=16.7.0"
+  }
+}
