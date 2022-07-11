@@ -18,9 +18,9 @@ jobs:
 
       - name: Move CLI to root
         run: |
-          Remove-Item -recurse * -exclude cli
-          Get-ChildItem -Path cli -Recurse -File | Move-Item -Destination .
-          Remove-Item -Recurse -Force cli
+          Remove-Item -recurse * -exclude ./cli
+          Get-ChildItem -Path ./cli -Recurse -File | Move-Item -Destination .
+          Remove-Item -Recurse -Force ./cli
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
@@ -36,7 +36,8 @@ jobs:
       - name: Fetch assets
         run: |
           Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
-          Expand-Archive assets.zip -DestinationPath crates/server/assets
+          Remove-Item -Recurse -Force ./crates/server/assets
+          Expand-Archive assets.zip -DestinationPath ./crates/server/assets
 
       - name: Build
         uses: actions-rs/cargo@v1
