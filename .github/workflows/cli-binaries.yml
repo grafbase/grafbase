@@ -41,16 +41,15 @@ jobs:
 
       - name: Fetch assets
       - run: |
-        Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
-        Remove-Item -Recurse -Force crates/server/assets
-        Expand-Archive assets.zip -DestinationPath crates/server/assets
-      
+          Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
+          Remove-Item -Recurse -Force crates/server/assets
+          Expand-Archive assets.zip -DestinationPath crates/server/assets
+
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: ["--target", "x86_64-pc-windows-msvc"]
-
 
   linux:
     runs-on: ubuntu-latest
@@ -84,17 +83,16 @@ jobs:
 
       - name: Fetch assets
       - run: |
-        curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
-        unzip assets.zip
-        rm crates/server/assets
-        mv assets crates/server/assets
+          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
+          unzip assets.zip
+          rm crates/server/assets
+          mv assets crates/server/assets
 
       - name: Build
         uses: actions-rs/cargo@v1
         with:
           command: build
           args: ["--target", "x86_64-unknown-linux-musl"]
-
 
   darwin:
     runs-on: ubuntu-latest
@@ -125,7 +123,7 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           target: x86_64-apple-darwin
           override: false
-      
+
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
         # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
@@ -139,10 +137,10 @@ jobs:
 
       - name: Fetch assets
       - run: |
-        curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
-        unzip assets.zip
-        rm crates/server/assets
-        mv assets crates/server/assets
+          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
+          unzip assets.zip
+          rm crates/server/assets
+          mv assets crates/server/assets
 
       - name: Build
         uses: actions-rs/cargo@v1
