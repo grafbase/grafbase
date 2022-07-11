@@ -38,6 +38,14 @@ jobs:
           target: x86_64-pc-windows-msvc
           override: true
 
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+
       - name: Fetch assets
         run: |
           Invoke-WebRequest -Uri "https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip" -OutFile assets.zip
@@ -86,6 +94,14 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           target: x86_64-unknown-linux-musl
           override: true
+
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
 
       - name: Fetch assets
         run: |
@@ -152,6 +168,14 @@ jobs:
           toolchain: ${{ env.RUST_VERSION }}
           target: aarch64-apple-darwin
           override: false
+
+      - name: Set up a Rust-specific cache
+        uses: actions/cache@v3
+        timeout-minutes: 5
+        continue-on-error: true
+        with:
+          path: ~/.cargo
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
 
       - name: Fetch assets
         run: |
