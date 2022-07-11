@@ -1,6 +1,6 @@
 {
   "name": "grafbase",
-  "version": "0.1.2-pre.2",
+  "version": "0.1.2-pre.3",
   "description": "The Grafbase command line interface",
   "keywords": [
     "grafbase"
@@ -28,10 +28,10 @@
     "jest": "^28.1.2"
   },
   "optionalDependencies": {
-    "@grafbase/cli-aarch64-apple-darwin": "^0.1.2-pre.2",
-    "@grafbase/cli-x86_64-apple-darwin": "^0.1.2-pre.2",
-    "@grafbase/cli-x86_64-pc-windows-msvc": "^0.1.2-pre.2",
-    "@grafbase/cli-x86_64-unknown-linux-musl": "^0.1.2-pre.2"
+    "@grafbase/cli-aarch64-apple-darwin": "^0.1.2-pre.3",
+    "@grafbase/cli-x86_64-apple-darwin": "^0.1.2-pre.3",
+    "@grafbase/cli-x86_64-pc-windows-msvc": "^0.1.2-pre.3",
+    "@grafbase/cli-x86_64-unknown-linux-musl": "^0.1.2-pre.3"
   },
   "engines": {
     "node": ">=16.7.0"
