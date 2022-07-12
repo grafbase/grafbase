@@ -25,13 +25,13 @@ jobs:
 
       - run: START "" /B npx grafbase@beta dev
 
+      - run: |
+          sleep 7
+        shell: bash
+
       - run: type ~/.grafbase/package.json
 
       - run: |
-          sleep 7
-        shell: bash
-
-      - run: |
           curl --request POST \
           --url http://localhost:4000/graphql \
           --header 'Content-Type: application/json' \
@@ -41,34 +41,34 @@ jobs:
       - run: kill $(jobs -p)
         shell: bash
 
-  linux:
-    runs-on: ubuntu-latest
+  # linux:
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - run: |
-          mkdir grafbase
-          cat <<EOF > grafbase/schema.graphql
-          type Todo @model {
-            id: ID!
-            name: String!
-          }
-          EOF
-        shell: bash
+  #   steps:
+  #     - run: |
+  #         mkdir grafbase
+  #         cat <<EOF > grafbase/schema.graphql
+  #         type Todo @model {
+  #           id: ID!
+  #           name: String!
+  #         }
+  #         EOF
+  #       shell: bash
 
-      - run: |
-          npx grafbase@beta dev &
-        shell: bash
+  #     - run: |
+  #         npx grafbase@beta dev &
+  #       shell: bash
 
-      - run: |
-          sleep 7
-        shell: bash
+  #     - run: |
+  #         sleep 7
+  #       shell: bash
 
-      - run: |
-          curl --request POST \
-          --url http://localhost:4000/graphql \
-          --header 'Content-Type: application/json' \
-          --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
-        shell: bash
+  #     - run: |
+  #         curl --request POST \
+  #         --url http://localhost:4000/graphql \
+  #         --header 'Content-Type: application/json' \
+  #         --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
+  #       shell: bash
 
-      - run: kill $(jobs -p)
-        shell: bash
+  #     - run: kill $(jobs -p)
+  #       shell: bash
