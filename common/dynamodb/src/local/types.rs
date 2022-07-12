@@ -221,10 +221,19 @@ impl<'a> ToString for Sql<'a> {
                 },
                 to_add_count,
             ) => {
+                let to_add = if *to_add_count > 0 {
+                    format!(
+                        "(SELECT * FROM original UNION VALUES {to_add_placeholders})",
+                        to_add_placeholders = joined_repeating("(?)", *to_add_count, ",")
+                    )
+                } else {
+                    String::new()
+                };
+
                 format!("
                     WITH
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
-                        updated AS (SELECT DISTINCT * FROM (SELECT * FROM original UNION VALUES {to_add}))
+                        updated AS (SELECT DISTINCT * FROM {to_add})
 
                     INSERT INTO 
                         {table} ({columns}) 
@@ -234,9 +243,9 @@ impl<'a> ToString for Sql<'a> {
                     UPDATE
                     SET
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
-                        document=json_insert(document, '$.__relation_names.SS[#]', (SELECT json_group_array(updated.value) FROM updated))",
+                        document=json_insert(document, '$.__relation_names.SS[#]', (SELECT updated.value FROM updated))",
                     table = Self::TABLE,
-                    to_add = joined_repeating("(?)", *to_add_count, ",")
+                    to_add = to_add
                 )
             }
 
@@ -250,12 +259,31 @@ impl<'a> ToString for Sql<'a> {
                 "},
                 table = Self::TABLE
             ),
-            Self::UpdateWithRelations(to_remove_count, to_add_count) => format!(
-                indoc::indoc! {"
+            Self::UpdateWithRelations(to_remove_count, to_add_count) => {
+                let to_remove = if *to_remove_count > 0 {
+                    format!(
+                        "WHERE value NOT IN ({to_remove_placeholders})",
+                        to_remove_placeholders = joined_repeating("?", *to_remove_count, ",")
+                    )
+                } else {
+                    String::new()
+                };
+
+                let to_add = if *to_add_count > 0 {
+                    format!(
+                        "(SELECT * FROM removed UNION VALUES {to_add_placeholders})",
+                        to_add_placeholders = joined_repeating("(?)", *to_add_count, ",")
+                    )
+                } else {
+                    "removed".to_owned()
+                };
+
+                format!(
+                    indoc::indoc! {"
                     WITH
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
-                        removed AS (SELECT value FROM original WHERE value NOT IN ({to_remove})),
-                        updated AS (SELECT DISTINCT * FROM (SELECT * FROM removed UNION VALUES {to_add}))
+                        removed AS (SELECT value FROM original {to_remove}),
+                        updated AS (SELECT DISTINCT * FROM {to_add})
                 
                     UPDATE {table} SET 
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
@@ -263,15 +291,26 @@ impl<'a> ToString for Sql<'a> {
                         updated_at=?
                     WHERE pk=? AND sk=?
                 "},
-                table = Self::TABLE,
-                to_remove = joined_repeating("?", *to_remove_count, ","),
-                to_add = joined_repeating("(?)", *to_add_count, ",")
-            ),
-            Self::DeleteRelations(to_remove_count) => format!(
-                indoc::indoc! {"
+                    table = Self::TABLE,
+                    to_remove = to_remove,
+                    to_add = to_add
+                )
+            }
+            Self::DeleteRelations(to_remove_count) => {
+                let to_remove = if *to_remove_count > 0 {
+                    format!(
+                        "WHERE value NOT IN ({to_remove_placeholders})",
+                        to_remove_placeholders = joined_repeating("?", *to_remove_count, ",")
+                    )
+                } else {
+                    String::new()
+                };
+
+                format!(
+                    indoc::indoc! {"
                     WITH
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
-                        removed AS (SELECT value FROM original WHERE value NOT IN ({to_remove})),
+                        removed AS (SELECT value FROM original {to_remove})
                 
                     UPDATE {table} SET 
                         relation_names=(SELECT json_group_array(removed.value) FROM removed),
@@ -279,9 +318,10 @@ impl<'a> ToString for Sql<'a> {
                         updated_at=?
                     WHERE pk=? AND sk=?
                 "},
-                table = Self::TABLE,
-                to_remove = joined_repeating("?", *to_remove_count, ","),
-            ),
+                    table = Self::TABLE,
+                    to_remove = to_remove,
+                )
+            }
             Self::DeleteByIds => format!("DELETE FROM {table} WHERE pk=? AND sk=?", table = Self::TABLE),
             Self::SelectIdPairs(pair_count) => format!(
                 "SELECT * FROM {table} WHERE {id_pairs}",
