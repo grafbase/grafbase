@@ -56,7 +56,10 @@ jobs:
         shell: bash
 
       - run: |
-          sudo npx grafbase@beta dev
+          npm config set user 0
+          npm config set unsafe-perm true
+      - run: |
+          npx grafbase@beta dev
         shell: bash
 
       # - run: |
