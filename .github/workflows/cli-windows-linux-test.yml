@@ -23,7 +23,9 @@ jobs:
           EOF
         shell: bash
 
-      - run: sudo npx grafbase@beta dev &
+      - run: |
+          npx grafbase@beta dev &
+          sleep 500
         shell: bash
 
       - run: |
@@ -50,7 +52,9 @@ jobs:
           EOF
         shell: bash
 
-      - run: npx grafbase@beta dev &
+      - run: |
+          npx grafbase@beta dev &
+          sleep 500
         shell: bash
 
       - run: |
