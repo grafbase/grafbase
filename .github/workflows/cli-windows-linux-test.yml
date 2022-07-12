@@ -56,7 +56,7 @@ jobs:
         shell: bash
 
       - run: |
-          npx grafbase@beta dev
+          sudo npx grafbase@beta dev
         shell: bash
 
       # - run: |
