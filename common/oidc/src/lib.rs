@@ -103,28 +103,43 @@ pub async fn verify_token<S: AsRef<str> + Send>(
 
     // Check "iat" claim
     // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
-    let _ = match claims.issued_at {
+    match claims.issued_at {
         Some(issued_at) if issued_at <= (time_opts.clock_fn)() + time_opts.leeway => Ok(()),
         _ => Err(VerificationError::InvalidIssueTime),
-    };
-
-    Ok(())
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
     use chrono::{DateTime, Duration, NaiveDateTime, Utc};
     use serde_json::json;
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    #[tokio::test]
-    async fn test_verify_token() {
-        const JWKS_PATH: &str = "/.well-known/jwks.json";
+    /* TOKEN decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "azp": "https://grafbase.dev",
+        "exp": 1656946485,
+        "iat": 1656946425,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "nbf": 1656946415,
+        "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+    */
+    static TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
 
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
+    async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
+        const JWKS_PATH: &str = "/.well-known/jwks.json";
         let jwks_uri = issuer.join(JWKS_PATH).unwrap();
 
         Mock::given(method("GET"))
@@ -133,7 +148,7 @@ mod tests {
                 { "issuer": issuer, "jwks_uri": jwks_uri }
             )))
             .expect(1)
-            .mount(&server)
+            .mount(server)
             .await;
 
         Mock::given(method("GET"))
@@ -153,32 +168,33 @@ mod tests {
                 }
             )))
             .expect(1)
-            .mount(&server)
+            .mount(server)
             .await;
+    }
 
-        // {
-        //   "header": {
-        //     "typ": "JWT",
-        //     "alg": "RS256",
-        //     "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
-        //   },
-        //   "payload": {
-        //     "azp": "https://grafbase.dev",
-        //     "exp": 1656946485,
-        //     "iat": 1656946425,
-        //     "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
-        //     "nbf": 1656946415,
-        //     "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
-        //     "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
-        //   }
-        // }
-        let token = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
-
+    #[tokio::test]
+    async fn test_verify_token() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+        set_up_mock_server(&issuer, &server).await;
         let leeway = Duration::seconds(5);
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_425, 0), Utc);
 
-        verify_token(token, issuer, Some(TimeOptions::new(leeway, clock_fn)), None)
+        verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None)
             .await
             .unwrap();
+    }
+
+    #[tokio::test]
+    async fn should_fail_if_jwt_is_from_the_future() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+        set_up_mock_server(&issuer, &server).await;
+        let leeway = Duration::seconds(5);
+        // now == nbf which is 10s before the issue date.
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_415, 0), Utc);
+
+        let result = verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None).await;
+        assert_matches!(result, Err(VerificationError::InvalidIssueTime));
     }
 }
