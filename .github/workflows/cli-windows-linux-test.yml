@@ -11,6 +11,7 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+
     steps:
       - run: |
           mkdir grafbase
@@ -22,10 +23,12 @@ jobs:
           EOF
         shell: bash
 
-      - run: npx grafbase@beta dev &
+      - run: |
+          npx grafbase@beta dev &
         shell: bash
 
-      - run: sleep 3
+      - run: |
+          sleep 3
         shell: bash
 
       - run: |
@@ -40,6 +43,7 @@ jobs:
 
   linux:
     runs-on: ubuntu-latest
+
     steps:
       - run: |
           mkdir grafbase
@@ -51,10 +55,12 @@ jobs:
           EOF
         shell: bash
 
-      - run: npx grafbase@beta dev &
+      - run: |
+          npx grafbase@beta dev &
         shell: bash
 
-      - run: sleep 3
+      - run: |
+          sleep 3
         shell: bash
 
       - run: |
@@ -65,4 +71,4 @@ jobs:
         shell: bash
 
       - run: kill $(jobs -p)
-      shell: bash
+        shell: bash
