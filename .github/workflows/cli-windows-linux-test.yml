@@ -23,7 +23,7 @@ jobs:
           EOF
         shell: bash
 
-      - run: START "" /B npx grafbase@beta dev
+      - run: Start-Job -ScriptBlock { npx grafbase@beta dev }
 
       - run: |
           sleep 7
