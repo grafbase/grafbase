@@ -1,4 +1,4 @@
-name: CLI / binaries
+name: CLI / windows-linux-sanity
 
 on: [push, workflow_dispatch]
 
