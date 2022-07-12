@@ -5,11 +5,12 @@ pub struct AuthDirective;
 pub const AUTH_DIRECTIVE: &str = "auth";
 
 impl<'a> Visitor<'a> for AuthDirective {
-    // FIXME: this snippet is not enforced by the server
+    // FIXME: this snippet is parsed, but not enforced by the server
     fn directives(&self) -> String {
         r#"
         directive @auth(providers: [AuthProviderDefinition!]!) on SCHEMA
         input AuthProviderDefinition {
+          type: String!
           issuer: String!
         }
         "#

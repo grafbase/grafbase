@@ -10,7 +10,7 @@ pub struct Auth {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct AuthProvider {
-    // TODO: add type
+    pub r#type: String, // TODO: turn this into an enum once we support more providers
     pub issuer: url::Url,
 }
 
@@ -42,12 +42,20 @@ impl TryFrom<&ConstValue> for AuthProvider {
     type Error = ServerError;
 
     fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
-        let value = match value {
+        let provider = match value {
             ConstValue::Object(value) => value,
             _ => return Err(ServerError::new("auth provider must be an object", None)),
         };
 
-        let issuer = match value.get("issuer") {
+        let typ = match provider.get("type") {
+            Some(Value::String(value)) => value.to_string(),
+            _ => return Err(ServerError::new("auth provider: type missing", None)),
+        };
+        if typ != "oidc" {
+            return Err(ServerError::new("auth provider: type must be `oidc`", None));
+        }
+
+        let issuer = match provider.get("issuer") {
             Some(Value::String(value)) => match value.parse() {
                 Ok(url) => url,
                 Err(_) => return Err(ServerError::new("auth provider: invalid issuer URL", None)),
@@ -55,6 +63,9 @@ impl TryFrom<&ConstValue> for AuthProvider {
             _ => return Err(ServerError::new("auth provider: issuer missing", None)),
         };
 
-        Ok(AuthProvider { issuer })
+        Ok(AuthProvider {
+            r#type: typ,
+            issuer,
+        })
     }
 }
