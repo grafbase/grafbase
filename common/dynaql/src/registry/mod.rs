@@ -9,16 +9,16 @@ pub mod utils;
 pub mod variables;
 
 use dynaql_parser::Pos;
-use dynaql_value::ConstValue;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use ulid_rs::Ulid;
 
+pub use crate::auth::Auth;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
-    BaseType as ParsedBaseType, ConstDirective, Field, Type as ParsedType, VariableDefinition,
+    BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
 };
 use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::{
@@ -724,55 +724,6 @@ pub struct Registry {
     pub enable_federation: bool,
     pub federation_subscription: bool,
     pub auth: Option<Auth>,
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Auth {
-    pub providers: Vec<AuthProvider>,
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct AuthProvider {
-    // TODO: add type
-    pub issuer: url::Url,
-}
-
-impl TryFrom<ConstDirective> for Auth {
-    type Error = ServerError; // TODO: use custom error
-
-    fn try_from(value: ConstDirective) -> Result<Self, Self::Error> {
-        let arg = value.get_argument("providers").unwrap();
-
-        let arg = match arg.node.clone() {
-            ConstValue::List(value) => value,
-            _ => return Err(ServerError::new("providers must be a list", None)),
-        };
-
-        let providers = arg
-            .iter()
-            .map(|arg| AuthProvider::try_from(arg.clone()).unwrap())
-            .collect::<Vec<AuthProvider>>();
-
-        Ok(Auth { providers })
-    }
-}
-
-impl TryFrom<ConstValue> for AuthProvider {
-    type Error = ServerError; // TODO: use custom error
-
-    fn try_from(value: ConstValue) -> Result<Self, Self::Error> {
-        let value = match value {
-            ConstValue::Object(value) => value,
-            _ => return Err(ServerError::new("auth provider must be an object", None)),
-        };
-
-        let issuer = match value.get("issuer") {
-            Some(Value::String(value)) => value.parse().unwrap(),
-            _ => return Err(ServerError::new("issuer must be a valid URL", None)),
-        };
-
-        Ok(AuthProvider { issuer })
-    }
 }
 
 impl Registry {

@@ -5,6 +5,7 @@ pub struct AuthDirective;
 pub const AUTH_DIRECTIVE: &str = "auth";
 
 impl<'a> Visitor<'a> for AuthDirective {
+    // FIXME: this snippet is not enforced by the server
     fn directives(&self) -> String {
         r#"
         directive @auth(providers: [AuthProviderDefinition!]!) on SCHEMA
@@ -26,7 +27,7 @@ impl<'a> Visitor<'a> for AuthDirective {
             .iter()
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
-            match directive.node.clone().try_into() {
+            match (&directive.node).try_into() {
                 Ok(auth) => ctx.registry.get_mut().auth = Some(auth),
                 Err(err) => ctx.report_error(vec![directive.pos], err.message),
             }
