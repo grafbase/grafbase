@@ -25,7 +25,7 @@ jobs:
 
       - run: |
           npx grafbase@beta dev &
-          sleep 500
+          sleep 1
         shell: bash
 
       - run: |
@@ -54,7 +54,7 @@ jobs:
 
       - run: |
           npx grafbase@beta dev &
-          sleep 500
+          sleep 1
         shell: bash
 
       - run: |
