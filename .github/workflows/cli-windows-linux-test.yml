@@ -23,7 +23,7 @@ jobs:
           EOF
         shell: bash
 
-      - run: npx grafbase@beta dev &
+      - run: sudo npx grafbase@beta dev &
         shell: bash
 
       - run: |
