@@ -28,7 +28,7 @@ jobs:
       - run: type ~/.grafbase/package.json
 
       - run: |
-          sleep 3
+          sleep 7
         shell: bash
 
       - run: |
@@ -60,7 +60,7 @@ jobs:
         shell: bash
 
       - run: |
-          sleep 3
+          sleep 7
         shell: bash
 
       - run: |
