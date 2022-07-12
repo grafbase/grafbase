@@ -24,22 +24,22 @@ jobs:
         shell: bash
 
       - run: |
-          npx grafbase@beta dev
+          npx grafbase@beta dev &
         shell: bash
 
-      # - run: |
-      #     sleep 3
-      #   shell: bash
+      - run: |
+          sleep 3
+        shell: bash
 
-      # - run: |
-      #     curl --request POST \
-      #     --url http://localhost:4000/graphql \
-      #     --header 'Content-Type: application/json' \
-      #     --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
-      #   shell: bash
+      - run: |
+          curl --request POST \
+          --url http://localhost:4000/graphql \
+          --header 'Content-Type: application/json' \
+          --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
+        shell: bash
 
-      # - run: kill $(jobs -p)
-      #   shell: bash
+      - run: kill $(jobs -p)
+        shell: bash
 
   linux:
     runs-on: ubuntu-latest
@@ -56,19 +56,19 @@ jobs:
         shell: bash
 
       - run: |
-          npx grafbase@beta dev
+          npx grafbase@beta dev &
         shell: bash
 
-      # - run: |
-      #     sleep 3
-      #   shell: bash
+      - run: |
+          sleep 3
+        shell: bash
 
-      # - run: |
-      #     curl --request POST \
-      #     --url http://localhost:4000/graphql \
-      #     --header 'Content-Type: application/json' \
-      #     --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
-      #   shell: bash
+      - run: |
+          curl --request POST \
+          --url http://localhost:4000/graphql \
+          --header 'Content-Type: application/json' \
+          --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
+        shell: bash
 
-      # - run: kill $(jobs -p)
-      # shell: bash
+      - run: kill $(jobs -p)
+      shell: bash
