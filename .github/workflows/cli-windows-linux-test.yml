@@ -23,9 +23,9 @@ jobs:
           EOF
         shell: bash
 
-      - run: START /B npx grafbase@beta dev &
+      - run: START /B npx grafbase@beta dev
 
-      - run: type %userprofile%/.grafbase/package.json
+      - run: type ~/.grafbase/package.json
 
       - run: |
           sleep 3
