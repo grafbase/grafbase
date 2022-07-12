@@ -14,7 +14,7 @@ use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use ulid_rs::Ulid;
 
-pub use crate::auth::Auth;
+use crate::auth::Auth;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
