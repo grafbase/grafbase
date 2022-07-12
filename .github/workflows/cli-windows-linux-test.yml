@@ -24,7 +24,7 @@ jobs:
         shell: bash
 
       - run: |
-          sudo npm install -g grafbase
+          npm install -g grafbase
           grafbase dev
         shell: bash
 
@@ -57,7 +57,7 @@ jobs:
         shell: bash
 
       - run: |
-          sudo npm install -g grafbase
+          npm install -g grafbase
           grafbase dev
         shell: bash
 
