@@ -23,7 +23,7 @@ jobs:
           EOF
         shell: bash
 
-      - run: START /B npx grafbase@beta dev
+      - run: START "" /B npx grafbase@beta dev
 
       - run: type ~/.grafbase/package.json
 
