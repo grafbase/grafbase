@@ -1,0 +1,64 @@
+name: CLI / binaries
+
+on: [push, workflow_dispatch]
+
+permissions:
+  # Allow checks read
+  checks: write
+  # Allow repo checkout
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - run: |
+          mkdir grafbase
+          cat <<EOF > grafbase/schema.graphql
+          type Todo @model {
+            id: ID!
+            name: String!
+          }
+          EOF
+        shell: bash
+
+      - run: npx grafbase@beta dev &
+        shell: bash
+
+      - run: |
+          curl --request POST \
+          --url http://localhost:4000/graphql \
+          --header 'Content-Type: application/json' \
+          --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
+        shell: bash
+
+      - run: kill $(jobs -p)
+        shell: bash
+
+  linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          mkdir grafbase
+          cat <<EOF > grafbase/schema.graphql
+          type Todo @model {
+            id: ID!
+            name: String!
+          }
+          EOF
+        shell: bash
+
+      - run: npx grafbase@beta dev &
+        shell: bash
+
+      - run: |
+          curl --request POST \
+          --url http://localhost:4000/graphql \
+          --header 'Content-Type: application/json' \
+          --data '{"query": "mutation { todoCreate(input: { name: \"my todo\" }) { todo { id name } } }"}'
+        shell: bash
+
+      - run: kill $(jobs -p)
+        shell: bash
