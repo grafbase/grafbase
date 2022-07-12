@@ -60,6 +60,10 @@ jobs:
         shell: bash
 
       - run: |
+          cat ~/.grafbase/package.json
+        shell: bash
+
+      - run: |
           sleep 3
         shell: bash
 
