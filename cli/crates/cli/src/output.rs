@@ -11,7 +11,7 @@ pub mod report {
     pub fn cli_header() {
         let version = env!("CARGO_PKG_VERSION");
         // TODO: integrate this with watercolor
-        println!("{}", format!("Grafbase CLI {version}\n").dimmed())
+        println!("{}", format!("Grafbase CLI {version}\n").dimmed());
     }
 
     /// reports to stdout that the server has started
