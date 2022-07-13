@@ -8,7 +8,7 @@ pub fn build_cli() -> Command<'static> {
     let mut command_builder = command!();
 
     cfg_if! {
-        if #[cfg(debug_assertions)]{
+        if #[cfg(debug_assertions)] {
             command_builder = command_builder.arg(arg!(-t --trace "Activate tracing"))
         }
     }
