@@ -7,9 +7,9 @@ use indoc::indoc;
 pub fn build_cli() -> Command<'static> {
     cfg_if! {
         if #[cfg(debug_assertions)] {
-            let  command_builder = command!().arg(arg!(-t --trace "Activate tracing"));
+            let command_builder = command!().arg(arg!(-t --trace "Activate tracing"));
         } else {
-            let  command_builder = command!();
+            let command_builder = command!();
         }
     }
 
