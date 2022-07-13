@@ -44,8 +44,12 @@ impl<'a> Visitor<'a> for AuthDirective {
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
             match (&directive.node).try_into() as Result<Auth, ServerError> {
-                Ok(auth) => ctx.registry.get_mut().auth = Some(auth.into()),
-                Err(err) => ctx.report_error(vec![directive.pos], err.message),
+                Ok(auth) => {
+                    ctx.registry.get_mut().auth = Some(auth.into());
+                }
+                Err(err) => {
+                    ctx.report_error(vec![directive.pos], err.message);
+                }
             }
         }
     }
