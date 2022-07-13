@@ -3,6 +3,7 @@ pub use colored::control::ShouldColorize;
 pub use hex_literal;
 use once_cell::sync::Lazy;
 
+#[allow(dead_code)]
 pub static TRUECOLOR_SUPPORTED: Lazy<bool> = Lazy::new(|| {
     let colorterm = std::env::var("COLORTERM").ok();
     colorterm.as_deref() == Some("truecolor") || colorterm.as_deref() == Some("24bit")
