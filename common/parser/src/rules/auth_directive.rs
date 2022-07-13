@@ -1,11 +1,26 @@
 use super::visitor::{Visitor, VisitorContext};
 
+use dynaql::{Auth as DAuth, AuthProvider as DAuthProvider, ServerError, Value, OIDC_PROVIDER};
+use dynaql_parser::types::ConstDirective;
+use dynaql_value::ConstValue;
+
+const AUTH_DIRECTIVE: &str = "auth";
+
 pub struct AuthDirective;
 
-pub const AUTH_DIRECTIVE: &str = "auth";
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Auth {
+    pub providers: Vec<AuthProvider>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct AuthProvider {
+    pub r#type: String, // TODO: turn this into an enum once we support more providers
+    pub issuer: url::Url,
+}
 
 impl<'a> Visitor<'a> for AuthDirective {
-    // FIXME: this snippet is parsed, but not enforced by the server
+    // FIXME: this snippet is parsed, but not enforced by the server, why?
     fn directives(&self) -> String {
         r#"
         directive @auth(providers: [AuthProviderDefinition!]!) on SCHEMA
@@ -28,10 +43,81 @@ impl<'a> Visitor<'a> for AuthDirective {
             .iter()
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
-            match (&directive.node).try_into() {
-                Ok(auth) => ctx.registry.get_mut().auth = Some(auth),
+            match (&directive.node).try_into() as Result<Auth, ServerError> {
+                Ok(auth) => ctx.registry.get_mut().auth = Some(auth.into()),
                 Err(err) => ctx.report_error(vec![directive.pos], err.message),
             }
+        }
+    }
+}
+
+impl TryFrom<&ConstDirective> for Auth {
+    type Error = ServerError;
+
+    fn try_from(value: &ConstDirective) -> Result<Self, Self::Error> {
+        let pos = Some(value.name.pos);
+
+        let arg = match value.get_argument("providers") {
+            Some(arg) => match &arg.node {
+                ConstValue::List(value) => value,
+                _ => return Err(ServerError::new("auth providers must be a list", pos)),
+            },
+            None => return Err(ServerError::new("auth providers missing", pos)),
+        };
+
+        let providers = arg
+            .iter()
+            .map(AuthProvider::try_from)
+            .collect::<Result<_, _>>()
+            .map_err(|err| ServerError::new(err.message, pos))?;
+
+        Ok(Auth { providers })
+    }
+}
+
+impl TryFrom<&ConstValue> for AuthProvider {
+    type Error = ServerError;
+
+    fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
+        let provider = match value {
+            ConstValue::Object(value) => value,
+            _ => return Err(ServerError::new("auth provider must be an object", None)),
+        };
+
+        let typ = match provider.get("type") {
+            Some(Value::String(value)) => value.to_string(),
+            _ => return Err(ServerError::new("auth provider: type missing", None)),
+        };
+        if typ != OIDC_PROVIDER {
+            return Err(ServerError::new(
+                format!("auth provider: type must be `{OIDC_PROVIDER}`"),
+                None,
+            ));
+        }
+
+        let issuer = match provider.get("issuer") {
+            Some(Value::String(value)) => match value.parse() {
+                Ok(url) => url,
+                Err(_) => return Err(ServerError::new("auth provider: invalid issuer URL", None)),
+            },
+            _ => return Err(ServerError::new("auth provider: issuer missing", None)),
+        };
+
+        Ok(AuthProvider { r#type: typ, issuer })
+    }
+}
+
+impl From<Auth> for DAuth {
+    fn from(auth: Auth) -> Self {
+        DAuth {
+            providers: auth
+                .providers
+                .iter()
+                .map(|p| DAuthProvider {
+                    r#type: p.r#type.clone(),
+                    issuer: p.issuer.clone(),
+                })
+                .collect(),
         }
     }
 }

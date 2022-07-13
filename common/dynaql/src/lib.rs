@@ -182,6 +182,7 @@ mod schema;
 mod subscription;
 mod validation;
 
+pub mod auth;
 pub mod context;
 #[cfg(feature = "dataloader")]
 #[cfg_attr(docsrs, doc(cfg(feature = "dataloader")))]
@@ -195,9 +196,6 @@ pub mod validators;
 
 #[doc(hidden)]
 pub mod registry;
-
-#[doc(hidden)]
-pub mod auth;
 
 #[doc(hidden)]
 pub use async_stream;
@@ -214,6 +212,7 @@ pub use static_assertions;
 #[doc(hidden)]
 pub use subscription::SubscriptionType;
 
+pub use auth::*;
 pub use base::{
     ComplexObject, Description, InputObjectType, InputType, InterfaceType, ObjectType, OutputType,
     UnionType,

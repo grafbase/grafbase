@@ -10,6 +10,8 @@ dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 case = "1"
 if_chain = "1"
 quick-error = "2"
+serde = { version = "1", features = ["derive"] }
+url = { version = "2" }
 
 [dev-dependencies]
 insta = "1"
