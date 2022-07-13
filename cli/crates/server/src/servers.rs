@@ -138,7 +138,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
     let export_files = if environment.user_dot_grafbase_path.is_dir() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
-        current_version != &asset_version
+        current_version != asset_version
     } else {
         true
     };
