@@ -2,7 +2,10 @@
 
 ## [0.1.0-pre.7]
 
+## Fixes
+
 - Exports embedded files when downgrading a version as well as upgrading
+- Updates the default schema to add a field other than id
 
 ## [0.1.0-pre.6]
 
