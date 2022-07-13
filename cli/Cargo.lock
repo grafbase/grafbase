@@ -593,6 +593,7 @@ name = "grafbase"
 version = "0.1.0-pre.7"
 dependencies = [
  "backtrace",
+ "cfg-if",
  "clap",
  "clap_complete",
  "clap_generate",

@@ -1,11 +1,19 @@
+use cfg_if::cfg_if;
 use clap::{arg, command, value_parser, Arg, Command};
 use indoc::indoc;
 
 /// creates the cli interface
 #[must_use]
 pub fn build_cli() -> Command<'static> {
-    command!()
-        .arg(arg!(-t --trace "Activate tracing"))
+    let mut command_builder = command!();
+
+    cfg_if! {
+        if #[cfg(debug_assertions)]{
+            command_builder = command_builder.arg(arg!(-t --trace "Activate tracing"))
+        }
+    }
+
+    command_builder
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(
