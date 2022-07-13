@@ -1,3 +1,4 @@
 type Placeholder @model {
   id: ID!
+  name: String!
 }

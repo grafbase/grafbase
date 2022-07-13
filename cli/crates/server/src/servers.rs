@@ -1,6 +1,6 @@
 use crate::consts::{
-    EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
-    SCHEMA_PARSER_INDEX, WORKER_DIR, WORKER_FOLDER_VERSION_FILE,
+    ASSET_VERSION_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
+    SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
@@ -131,18 +131,14 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<Server
 fn export_embedded_files() -> Result<(), ServerError> {
     let environment = Environment::get();
 
-    let worker_path = environment.user_dot_grafbase_path.join(WORKER_DIR);
+    let current_version = env!("CARGO_PKG_VERSION");
 
-    // CARGO_PKG_VERSION is guaranteed be valid semver
-    let current_version = Version::from(env!("CARGO_PKG_VERSION")).unwrap();
+    let version_path = environment.user_dot_grafbase_path.join(ASSET_VERSION_FILE);
 
-    let worker_version_path = worker_path.join(WORKER_FOLDER_VERSION_FILE);
+    let export_files = if environment.user_dot_grafbase_path.is_dir() {
+        let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
-    let export_files = if worker_path.is_dir() {
-        let worker_version = fs::read_to_string(&worker_version_path).map_err(|_| ServerError::ReadVersion)?;
-
-        // derived from CARGO_PKG_VERSION, guaranteed be valid semver
-        current_version > Version::from(&worker_version).unwrap()
+        current_version != asset_version
     } else {
         true
     };
@@ -183,9 +179,9 @@ fn export_embedded_files() -> Result<(), ServerError> {
             return Err(ServerError::WriteFile(error_path_string));
         }
 
-        if fs::write(&worker_version_path, current_version.as_str()).is_err() {
-            let worker_version_path_string = worker_version_path.to_string_lossy().into_owned();
-            return Err(ServerError::WriteFile(worker_version_path_string));
+        if fs::write(&version_path, current_version).is_err() {
+            let version_path_string = version_path.to_string_lossy().into_owned();
+            return Err(ServerError::WriteFile(version_path_string));
         };
     }
 

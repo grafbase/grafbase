@@ -4,12 +4,14 @@ pub mod report {
         errors::CliError,
         watercolor::{self, watercolor},
     };
+    use colored::Colorize;
     use common::consts::LOCALHOST;
 
     /// reports to stdout that the server has started
     pub fn cli_header() {
         let version = env!("CARGO_PKG_VERSION");
-        watercolor::output!("Grafbase CLI {version}", @hex("4A9C6D"), @@BrightBlue);
+        // TODO: integrate this with watercolor
+        println!("{}", format!("Grafbase CLI {version}\n").dimmed())
     }
 
     /// reports to stdout that the server has started
@@ -20,9 +22,14 @@ pub mod report {
                 watercolor!("{start_port}", @BrightBlue)
             );
         }
+        println!("📡 listening on port {}\n", watercolor!("{port}", @BrightBlue));
         println!(
-            "📡 started dev server on {}",
+            "- playground: {}",
             watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
+        );
+        println!(
+            "- endpoint: {}\n",
+            watercolor!("http://{LOCALHOST}:{port}/graphql", @BrightBlue)
         );
     }
 
