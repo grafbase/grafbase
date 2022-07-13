@@ -5,11 +5,11 @@ use indoc::indoc;
 /// creates the cli interface
 #[must_use]
 pub fn build_cli() -> Command<'static> {
-    let mut command_builder = command!();
-
     cfg_if! {
         if #[cfg(debug_assertions)] {
-            command_builder = command_builder.arg(arg!(-t --trace "Activate tracing"))
+            let  command_builder = command!().arg(arg!(-t --trace "Activate tracing"));
+        } else {
+            let  command_builder = command!();
         }
     }
 
