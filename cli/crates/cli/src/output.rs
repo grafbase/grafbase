@@ -27,8 +27,9 @@ pub mod report {
             "- playground: {}",
             watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
         );
+        // TODO: use proper formatting here
         println!(
-            "- endpoint: {}\n",
+            "- endpoint:   {}\n",
             watercolor!("http://{LOCALHOST}:{port}/graphql", @BrightBlue)
         );
     }
