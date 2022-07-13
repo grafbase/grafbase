@@ -2,6 +2,10 @@
 
 ## [0.1.0-pre.7]
 
+## Features
+
+- Outputs playground and endpoint links on `dev`
+
 ## Fixes
 
 - Exports embedded files when downgrading a version as well as upgrading
