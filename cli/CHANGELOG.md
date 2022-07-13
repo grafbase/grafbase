@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.0]
+
+- Public beta! 🎉
+
 ## [0.1.0-pre.7]
 
 ## Features
