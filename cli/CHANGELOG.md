@@ -2,7 +2,7 @@
 
 ## [0.2.0]
 
-- Public beta! 🎉
+- Beta release! 🎉
 
 ## [0.1.0-pre.7]
 
