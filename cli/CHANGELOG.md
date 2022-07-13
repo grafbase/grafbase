@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.1.0-pre.7]
+
+- Exports embedded files when downgrading a version as well as upgrading
+
 ## [0.1.0-pre.6]
 
 ### Tooling
