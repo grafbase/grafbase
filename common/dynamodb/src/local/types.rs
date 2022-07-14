@@ -243,7 +243,7 @@ impl<'a> ToString for Sql<'a> {
                     UPDATE
                     SET
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
-                        document=json_insert(document, '$.__relation_names.SS[#]', (SELECT updated.value FROM updated))",
+                        document=json_set(document, '$.__relation_names.SS', (SELECT json_group_array(updated.value) FROM updated))",
                     table = Self::TABLE,
                     to_add = to_add
                 )
