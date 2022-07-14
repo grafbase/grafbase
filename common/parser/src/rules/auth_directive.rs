@@ -1,6 +1,6 @@
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::{Auth as DAuth, AuthProvider as DAuthProvider, ServerError, Value, OIDC_PROVIDER};
+use dynaql::{Auth as DAuth, AuthProvider as DAuthProvider, ServerError, OIDC_PROVIDER};
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
@@ -14,6 +14,8 @@ pub struct Auth {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
 pub struct AuthProvider {
     pub r#type: String, // TODO: turn this into an enum once we support more providers
     pub issuer: url::Url,
@@ -83,31 +85,25 @@ impl TryFrom<&ConstValue> for AuthProvider {
     type Error = ServerError;
 
     fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
-        let provider = match value {
-            ConstValue::Object(value) => value,
+        let value = match value {
+            ConstValue::Object(_) => value
+                .clone()
+                .into_json()
+                .map_err(|err| ServerError::new(err.to_string(), None))?,
             _ => return Err(ServerError::new("auth provider must be an object", None)),
         };
 
-        let r#type = match provider.get("type") {
-            Some(Value::String(value)) => value.to_string(),
-            _ => return Err(ServerError::new("auth provider: type missing", None)),
-        };
-        if r#type != OIDC_PROVIDER {
+        let provider: AuthProvider =
+            serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
+
+        if provider.r#type != OIDC_PROVIDER {
             return Err(ServerError::new(
                 format!("auth provider: type must be `{OIDC_PROVIDER}`"),
                 None,
             ));
         }
 
-        let issuer = match provider.get("issuer") {
-            Some(Value::String(value)) => match value.parse() {
-                Ok(url) => url,
-                Err(_) => return Err(ServerError::new("auth provider: invalid issuer URL", None)),
-            },
-            _ => return Err(ServerError::new("auth provider: issuer missing", None)),
-        };
-
-        Ok(AuthProvider { r#type, issuer })
+        Ok(provider)
     }
 }
 
@@ -165,6 +161,9 @@ mod tests {
         visit(&mut super::AuthDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(ctx.errors.get(0).unwrap().message, "auth provider: issuer missing",);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth provider: missing field `issuer`",
+        );
     }
 }
