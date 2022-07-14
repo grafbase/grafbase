@@ -12,7 +12,6 @@ USAGE:
 
 OPTIONS:
     -h, --help       Print help information
-    -t, --trace      Activate tracing
     -V, --version    Print version information
 
 SUBCOMMANDS:
