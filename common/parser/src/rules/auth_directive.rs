@@ -88,11 +88,11 @@ impl TryFrom<&ConstValue> for AuthProvider {
             _ => return Err(ServerError::new("auth provider must be an object", None)),
         };
 
-        let typ = match provider.get("type") {
+        let r#type = match provider.get("type") {
             Some(Value::String(value)) => value.to_string(),
             _ => return Err(ServerError::new("auth provider: type missing", None)),
         };
-        if typ != OIDC_PROVIDER {
+        if r#type != OIDC_PROVIDER {
             return Err(ServerError::new(
                 format!("auth provider: type must be `{OIDC_PROVIDER}`"),
                 None,
@@ -107,7 +107,7 @@ impl TryFrom<&ConstValue> for AuthProvider {
             _ => return Err(ServerError::new("auth provider: issuer missing", None)),
         };
 
-        Ok(AuthProvider { r#type: typ, issuer })
+        Ok(AuthProvider { r#type, issuer })
     }
 }
 
@@ -117,9 +117,9 @@ impl From<Auth> for DAuth {
             providers: auth
                 .providers
                 .iter()
-                .map(|p| DAuthProvider {
-                    r#type: p.r#type.clone(),
-                    issuer: p.issuer.clone(),
+                .map(|provider| DAuthProvider {
+                    r#type: provider.r#type.clone(),
+                    issuer: provider.issuer.clone(),
                 })
                 .collect(),
         }
