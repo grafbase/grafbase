@@ -464,7 +464,6 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
             v.enter_type_definition(ctx, ty);
 
             ctx.with_definition_type(Some(ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
-            visit_directives(v, ctx, &ty.node.directives);
             // Inside Type Definition we should visit_field
             match &ty.node.kind {
                 TypeKind::Object(object) => {

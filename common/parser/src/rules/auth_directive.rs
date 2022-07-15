@@ -4,7 +4,7 @@ use dynaql::ServerError;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
-const AUTH_DIRECTIVE: &str = "auth";
+pub const AUTH_DIRECTIVE: &str = "auth";
 
 pub struct AuthDirective;
 
