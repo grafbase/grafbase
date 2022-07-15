@@ -6,4 +6,6 @@ pub struct Auth {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+    pub groups: Option<Vec<String>>,
+    pub groups_claim: String,
 }

@@ -6,6 +6,10 @@ use dynaql_value::ConstValue;
 
 pub const AUTH_DIRECTIVE: &str = "auth";
 
+fn default_groups_claim() -> String {
+    "groups".to_string()
+}
+
 pub struct AuthDirective;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -14,11 +18,17 @@ pub struct Auth {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
 pub enum AuthProvider {
-    Oidc { issuer: url::Url },
+    #[serde(rename_all = "camelCase")]
+    Oidc {
+        issuer: url::Url,
+        groups: Option<Vec<String>>,
+        #[serde(default = "default_groups_claim")]
+        groups_claim: String,
+    },
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -108,7 +118,15 @@ impl From<Auth> for dynaql::Auth {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider { issuer: issuer.clone() },
+                    AuthProvider::Oidc {
+                        issuer,
+                        groups,
+                        groups_claim,
+                    } => dynaql::OidcProvider {
+                        issuer: issuer.clone(),
+                        groups: groups.clone(),
+                        groups_claim: groups_claim.clone(),
+                    },
                 })
                 .collect(),
         }
