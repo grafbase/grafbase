@@ -6,9 +6,15 @@
 </br>
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs) 
 
-## Mandatory configuration
+## How to use
 
-Rename your `.env.example` to `.env` and fill all the variables.
+You'll need to create a [New Project](https://grafbase.com/new) using your cloned repository
+based on this example.
+
+Then grab the production API Key and the Endpoint,
+rename your `.env.example` to `.env` and fill both properties. 
+
+<sub>* You must wait for the first deployment to be completed and successful</sub>
 
 ## Getting Started
 
@@ -38,8 +44,6 @@ To learn more about Next.js, take a look at the following resources:
 
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
 
 ### Run on Codesandbox
 

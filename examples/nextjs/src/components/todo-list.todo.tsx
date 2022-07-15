@@ -59,7 +59,9 @@ const TodoListTodo = (props: {
             />
             <input
               defaultValue={title}
-              className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
+              className={`bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400 ${
+                completed ? "text-white" : "text-black dark:text-white"
+              }`}
               onChange={(e) => onTitleChange(e?.target?.value)}
             />
           </div>
