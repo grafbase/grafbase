@@ -108,7 +108,7 @@ impl From<Auth> for dynaql::Auth {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer } => dynaql::OidcAuthProvider { issuer: issuer.clone() },
+                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider { issuer: issuer.clone() },
                 })
                 .collect(),
         }
