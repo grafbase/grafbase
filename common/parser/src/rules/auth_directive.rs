@@ -1,6 +1,6 @@
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::{Auth as DAuth, AuthProvider as DAuthProvider, ServerError, OIDC_PROVIDER};
+use dynaql::ServerError;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
@@ -15,10 +15,10 @@ pub struct Auth {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
-pub struct AuthProvider {
-    pub r#type: String, // TODO: turn this into an enum once we support more providers
-    pub issuer: url::Url,
+pub enum AuthProvider {
+    Oidc { issuer: url::Url },
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -85,6 +85,7 @@ impl TryFrom<&ConstValue> for AuthProvider {
     type Error = ServerError;
 
     fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
+        // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
                 .clone()
@@ -96,26 +97,18 @@ impl TryFrom<&ConstValue> for AuthProvider {
         let provider: AuthProvider =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
 
-        if provider.r#type != OIDC_PROVIDER {
-            return Err(ServerError::new(
-                format!("auth provider: type must be `{OIDC_PROVIDER}`"),
-                None,
-            ));
-        }
-
         Ok(provider)
     }
 }
 
-impl From<Auth> for DAuth {
+impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
-        DAuth {
-            providers: auth
+        Self {
+            oidc_providers: auth
                 .providers
                 .iter()
-                .map(|provider| DAuthProvider {
-                    r#type: provider.r#type.clone(),
-                    issuer: provider.issuer.clone(),
+                .map(|provider| match provider {
+                    AuthProvider::Oidc { issuer } => dynaql::OidcAuthProvider { issuer: issuer.clone() },
                 })
                 .collect(),
         }
