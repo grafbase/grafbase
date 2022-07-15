@@ -6,7 +6,7 @@ use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
     prelude::*,
-    Empty, TimeOptions,
+    TimeOptions,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -32,9 +32,17 @@ struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct CustomClaims {
+    #[serde(rename = "iss")]
+    issuer: Url,
+    groups: Option<Vec<String>>, // TODO: use configured claim name
+}
+
 pub async fn verify_token<S: AsRef<str> + Send>(
     token: S,
     issuer: Url,
+    groups: Option<Vec<String>>,
     time_opts: Option<TimeOptions>,
     http_client: Option<surf::Client>,
 ) -> Result<(), VerificationError> {
@@ -84,7 +92,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
     let rsa = StrongAlg(rsa);
     let token = rsa
-        .validate_integrity::<Empty>(&token, &pub_key)
+        .validate_integrity::<CustomClaims>(&token, &pub_key)
         .map_err(VerificationError::Integrity)?;
 
     // Verify claims
@@ -106,7 +114,22 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     match claims.issued_at {
         Some(issued_at) if issued_at <= (time_opts.clock_fn)() + time_opts.leeway => Ok(()),
         _ => Err(VerificationError::InvalidIssueTime),
-    }
+    }?;
+
+    // Check "groups" claim
+    if let Some(require_groups) = groups {
+        if !claims
+            .custom
+            .groups
+            .iter()
+            .flatten()
+            .any(|group| require_groups.contains(group))
+        {
+            return Err(VerificationError::InvalidGroups);
+        }
+    };
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -180,7 +203,7 @@ mod tests {
         let leeway = Duration::seconds(5);
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_425, 0), Utc);
 
-        verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None)
+        verify_token(TOKEN, issuer, None, Some(TimeOptions::new(leeway, clock_fn)), None)
             .await
             .unwrap();
     }
@@ -194,7 +217,7 @@ mod tests {
         // now == nbf which is 10s before the issue date.
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_415, 0), Utc);
 
-        let result = verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None).await;
+        let result = verify_token(TOKEN, issuer, None, Some(TimeOptions::new(leeway, clock_fn)), None).await;
         assert_matches!(result, Err(VerificationError::InvalidIssueTime));
     }
 }
