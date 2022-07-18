@@ -21,9 +21,7 @@
   "scripts": {
     "postinstall": "node ./postinstall.js"
   },
-  "dependencies": {
-    "detect-libc": "^2.0.1"
-  },
+  "dependencies": {},
   "devDependencies": {
     "jest": "^28.1.2"
   },
