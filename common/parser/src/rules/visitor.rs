@@ -335,7 +335,13 @@ where
     B: Visitor<'a> + 'a,
 {
     fn directives(&self) -> String {
-        format!("{}\n{}", self.0.directives(), self.1.directives())
+        let directives_0 = self.0.directives();
+        let directives_1 = self.1.directives();
+        match (directives_0.as_str(), directives_1.as_str()) {
+            (_, "") => directives_0,
+            ("", _) => directives_1,
+            (directives_0, directives_1) => format!("{directives_0}\n{directives_1}"),
+        }
     }
 
     fn enter_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
@@ -464,7 +470,6 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
             v.enter_type_definition(ctx, ty);
 
             ctx.with_definition_type(Some(ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
-            visit_directives(v, ctx, &ty.node.directives);
             // Inside Type Definition we should visit_field
             match &ty.node.kind {
                 TypeKind::Object(object) => {

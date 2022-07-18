@@ -4,6 +4,7 @@ use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
 use rules::check_field_not_reserved::CheckModelizedFieldReserved;
+use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::enum_type::EnumType;
@@ -40,9 +41,11 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(AuthDirective)
         .with(BasicType)
         .with(EnumType)
-        .with(relations_rules());
+        .with(relations_rules())
+        .with(CheckAllDirectivesAreKnown::default());
 
-    let schema = parse_schema(format!("{}\n{}", rules.directives(), input.as_ref()))?;
+    let schema = format!("{}\n{}", rules.directives(), input.as_ref());
+    let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new(&schema);
     visit(&mut rules, &mut ctx, &schema);
