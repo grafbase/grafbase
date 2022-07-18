@@ -6,7 +6,7 @@ use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
     prelude::*,
-    Empty, TimeOptions,
+    TimeOptions,
 };
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -32,12 +32,22 @@ struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
 }
 
-pub async fn verify_token<S: AsRef<str> + Send>(
-    token: S,
+#[derive(Serialize, Deserialize, Debug)]
+struct CustomClaims {
+    #[serde(rename = "iss")]
     issuer: Url,
-    time_opts: Option<TimeOptions>,
-    http_client: Option<surf::Client>,
-) -> Result<(), VerificationError> {
+    groups: Option<Vec<String>>, // TODO: use configured claim name
+}
+
+#[derive(Debug)]
+pub struct VerificationOptions {
+    pub issuer: Url,
+    pub groups: Option<Vec<String>>,
+    pub time: Option<TimeOptions>,
+    pub http_client: Option<surf::Client>,
+}
+
+pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOptions) -> Result<(), VerificationError> {
     let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
     // We support the same signing algorithms as AppSync
@@ -52,15 +62,15 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
     // Get JWKS endpoint from OIDC config
-    let http_client = http_client.unwrap_or_default();
-    let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+    let http_client = opts.http_client.unwrap_or_default();
+    let discovery_url = opts.issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
     let oidc_config: OidcConfig = http_client
         .get(discovery_url)
         .recv_json()
         .await
         .map_err(VerificationError::HttpRequest)?;
 
-    if oidc_config.issuer != issuer {
+    if oidc_config.issuer != opts.issuer {
         return Err(VerificationError::InvalidIssuerUrl);
     }
 
@@ -84,12 +94,12 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
     let rsa = StrongAlg(rsa);
     let token = rsa
-        .validate_integrity::<Empty>(&token, &pub_key)
+        .validate_integrity::<CustomClaims>(&token, &pub_key)
         .map_err(VerificationError::Integrity)?;
 
     // Verify claims
     let claims = token.claims();
-    let time_opts = &time_opts.unwrap_or_default();
+    let time_opts = &opts.time.unwrap_or_default();
 
     // Check "exp" claim
     claims
@@ -106,7 +116,22 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     match claims.issued_at {
         Some(issued_at) if issued_at <= (time_opts.clock_fn)() + time_opts.leeway => Ok(()),
         _ => Err(VerificationError::InvalidIssueTime),
-    }
+    }?;
+
+    // Check "groups" claim
+    if let Some(require_groups) = opts.groups {
+        if !claims
+            .custom
+            .groups
+            .iter()
+            .flatten()
+            .any(|group| require_groups.contains(group))
+        {
+            return Err(VerificationError::InvalidGroups);
+        }
+    };
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -136,7 +161,32 @@ mod tests {
       }
     }
     */
-    static TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
+    const TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
+    const TOKEN_IAT: i64 = 1_656_946_425;
+
+    /* TOKEN_WITH_GROUPS decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "exp": 1658142514,
+        "groups": [
+          "admin",
+          "moderator"
+        ],
+        "iat": 1658141914,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "jti": "ec0ffff724347261740b",
+        "nbf": 1658141909,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+        */
+    const TOKEN_WITH_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA";
+    const TOKEN_WITH_GROUPS_IAT: i64 = 1_658_141_914;
 
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
@@ -177,12 +227,18 @@ mod tests {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
         set_up_mock_server(&issuer, &server).await;
-        let leeway = Duration::seconds(5);
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_425, 0), Utc);
 
-        verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None)
-            .await
-            .unwrap();
+        let leeway = Duration::seconds(5);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
+
+        let opts = VerificationOptions {
+            issuer,
+            groups: None,
+            time: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+
+        verify_token(TOKEN, opts).await.unwrap();
     }
 
     #[tokio::test]
@@ -190,11 +246,101 @@ mod tests {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
         set_up_mock_server(&issuer, &server).await;
+
         let leeway = Duration::seconds(5);
         // now == nbf which is 10s before the issue date.
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_415, 0), Utc);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
 
-        let result = verify_token(TOKEN, issuer, Some(TimeOptions::new(leeway, clock_fn)), None).await;
+        let opts = VerificationOptions {
+            issuer,
+            groups: None,
+            time: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+
+        let result = verify_token(TOKEN, opts).await;
         assert_matches!(result, Err(VerificationError::InvalidIssueTime));
+    }
+
+    #[tokio::test]
+    async fn should_fail_if_jwt_lacks_groups() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+        set_up_mock_server(&issuer, &server).await;
+
+        let leeway = Duration::seconds(5);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
+        let opts = VerificationOptions {
+            issuer: issuer.clone(),
+            groups: Some(vec!["any".to_string()]),
+            time: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+
+        let result = verify_token(TOKEN, opts).await;
+        assert_matches!(result, Err(VerificationError::InvalidGroups));
+    }
+
+    #[tokio::test]
+    async fn test_verify_token_with_groups_succeeds() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+
+        let valid_groups = vec![
+            None,
+            Some(vec!["admin".to_string()]),
+            Some(vec!["moderator".to_string()]),
+            Some(vec!["admin".to_string(), "moderator".to_string()]),
+            Some(vec![
+                "Admin".to_string(),
+                "moderator".to_string(),
+                "ignored".to_string(),
+            ]),
+        ];
+
+        for groups in valid_groups {
+            set_up_mock_server(&issuer, &server).await;
+
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            let opts = VerificationOptions {
+                issuer: issuer.clone(),
+                groups,
+                time: Some(TimeOptions::new(leeway, clock_fn)),
+                http_client: None,
+            };
+            verify_token(TOKEN_WITH_GROUPS, opts).await.unwrap();
+
+            server.reset().await;
+        }
+    }
+
+    #[tokio::test]
+    async fn test_verify_token_with_groups_fails() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+
+        let invalid_groups = vec![
+            Some(vec![]),
+            Some(vec!["".to_string()]),
+            Some(vec!["Admin".to_string()]),
+        ];
+
+        for groups in invalid_groups {
+            set_up_mock_server(&issuer, &server).await;
+
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            let opts = VerificationOptions {
+                issuer: issuer.clone(),
+                groups,
+                time: Some(TimeOptions::new(leeway, clock_fn)),
+                http_client: None,
+            };
+            let result = verify_token(TOKEN_WITH_GROUPS, opts).await;
+            assert_matches!(result, Err(VerificationError::InvalidGroups));
+
+            server.reset().await;
+        }
     }
 }
