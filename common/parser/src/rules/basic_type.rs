@@ -8,8 +8,7 @@ use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::transformers::Transformer;
-use dynaql::registry::MetaField;
-use dynaql::registry::MetaType;
+use dynaql::registry::{MetaField, MetaType};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
 
@@ -69,6 +68,7 @@ impl<'a> Visitor<'a> for BasicType {
                     is_node: false,
                     is_subscription: false,
                     rust_typename: type_name.clone(),
+                    constraints: vec![],
                 }, &type_name, &type_name);
 
                 // If the type is a non primitive and also not modelized, it means we need to

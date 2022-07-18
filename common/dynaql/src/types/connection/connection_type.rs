@@ -194,7 +194,7 @@ where
                             visible: None,
                             compute_complexity: None,
                             edges: Vec::new(),
-                        relation: None,
+                            relation: None,
                             resolve: None,
                             transforms: None,
                         },
@@ -217,7 +217,7 @@ where
                             visible: None,
                             compute_complexity: None,
                             edges: Vec::new(),
-                        relation: None,
+                            relation: None,
                             resolve: None,
                             transforms: None,
                         },
@@ -233,6 +233,7 @@ where
                 is_subscription: false,
                 is_node: false,
                 rust_typename: std::any::type_name::<Self>().to_owned(),
+                constraints: vec![],
             }
         })
     }

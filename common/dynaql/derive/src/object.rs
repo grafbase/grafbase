@@ -623,6 +623,7 @@ pub fn generate(
                         visible: #visible,
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        constraints: vec![],
                     });
                     #(#create_entity_types)*
                     #(#add_keys)*
@@ -663,6 +664,7 @@ pub fn generate(
                         is_node: false,
                         is_subscription: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        constraints: vec![],
                     });
                     #(#create_entity_types)*
                     #(#add_keys)*

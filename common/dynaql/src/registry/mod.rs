@@ -198,6 +198,17 @@ impl Deprecation {
     }
 }
 
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+pub enum ConstraintType {
+    Unique,
+}
+
+#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+pub struct Constraint {
+    pub field: String,
+    pub r#type: ConstraintType,
+}
+
 #[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -541,6 +552,7 @@ pub enum MetaType {
         /// Define if the current Object if a Node
         is_node: bool,
         rust_typename: String,
+        constraints: Vec<Constraint>,
     },
     Interface {
         name: String,
@@ -864,6 +876,7 @@ impl Registry {
                         is_subscription: false,
                         is_node: false,
                         rust_typename: "__fake_type__".to_string(),
+                        constraints: vec![],
                     },
                 );
                 let ty = f(self);
@@ -1086,6 +1099,7 @@ impl Registry {
                 is_subscription: false,
                 is_node: false,
                 rust_typename: "dynaql::federation::Service".to_string(),
+                constraints: vec![],
             },
         );
 

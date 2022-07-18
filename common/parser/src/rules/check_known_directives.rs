@@ -230,7 +230,7 @@ mod tests {
     #[test]
     fn should_error_on_known_directive_not_allowed_in_schema_position() {
         let schema = r#"
-            schema @model {
+            schema @unique {
                 query: Boolean
             }
             "#;
@@ -248,7 +248,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Directive `model` may not be used in schema context",
+            "Directive `unique` may not be used in schema context",
             "should match"
         );
     }

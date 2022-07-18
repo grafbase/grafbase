@@ -144,6 +144,7 @@ impl<'a> VisitorContext<'a> {
                     is_subscription: false,
                     is_node: false,
                     rust_typename: "Query".to_owned(),
+                    constraints: vec![],
                 }
             },
             "Query",
@@ -172,6 +173,7 @@ impl<'a> VisitorContext<'a> {
                     is_subscription: false,
                     is_node: false,
                     rust_typename: "Mutation".to_owned(),
+                    constraints: vec![],
                 },
                 "Mutation",
                 "Mutation",

@@ -28,18 +28,19 @@ use crate::utils::to_lower_camelcase;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::MetaField;
-use dynaql::registry::MetaInputValue;
 use dynaql::registry::MetaType;
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
+use dynaql::registry::{Constraint, MetaField};
+use dynaql::registry::{ConstraintType, MetaInputValue};
 use dynaql_parser::types::{Type, TypeKind};
 use if_chain::if_chain;
 
 pub struct ModelDirective;
 
 pub const MODEL_DIRECTIVE: &str = "model";
+pub const UNIQUE_DIRECTIVE: &str = "unique";
 
 impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {
@@ -160,6 +161,18 @@ impl<'a> Visitor<'a> for ModelDirective {
                     is_subscription: false,
                     is_node: true,
                     rust_typename: type_name.clone(),
+                    constraints: object.fields
+                        .iter()
+                        .filter_map(|field| field
+                            .node
+                            .directives
+                            .iter()
+                            .find(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)
+                            .map(|_| Constraint {
+                                field: field.node.name.to_string(),
+                                r#type: ConstraintType::Unique,
+                            }))
+                        .collect()
                 }, &type_name, &type_name);
 
                 ctx.queries.push(MetaField {
@@ -205,7 +218,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transforms: None,
                 });
-
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);
                 add_update_mutation(ctx, &type_definition.node, object, &type_name);
