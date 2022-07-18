@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.2]
+
+### Dependencies
+
+- Remove `detect-libc` from the NPM package as it's not currently in use
+
+## [0.2.1]
+
+### Fixes
+
+- Fixes binary permissions (NPM only)
+
 ## [0.2.0]
 
 - Beta release! 🎉
