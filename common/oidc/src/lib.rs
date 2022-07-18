@@ -43,8 +43,7 @@ struct CustomClaims {
 pub struct VerificationOptions {
     pub issuer: Url,
     pub groups: Option<Vec<String>>,
-    pub groups_claim: String,
-    pub time_opts: Option<TimeOptions>,
+    pub time: Option<TimeOptions>,
     pub http_client: Option<surf::Client>,
 }
 
@@ -100,7 +99,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOpti
 
     // Verify claims
     let claims = token.claims();
-    let time_opts = &opts.time_opts.unwrap_or_default();
+    let time_opts = &opts.time.unwrap_or_default();
 
     // Check "exp" claim
     claims
@@ -209,8 +208,7 @@ mod tests {
         let opts = VerificationOptions {
             issuer,
             groups: None,
-            groups_claim: "groups".to_string(),
-            time_opts: Some(TimeOptions::new(leeway, clock_fn)),
+            time: Some(TimeOptions::new(leeway, clock_fn)),
             http_client: None,
         };
 
@@ -229,8 +227,7 @@ mod tests {
         let opts = VerificationOptions {
             issuer,
             groups: None,
-            groups_claim: "groups".to_string(),
-            time_opts: Some(TimeOptions::new(leeway, clock_fn)),
+            time: Some(TimeOptions::new(leeway, clock_fn)),
             http_client: None,
         };
 
