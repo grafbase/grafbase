@@ -2,13 +2,14 @@ use crate::consts::{
     ASSET_VERSION_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
     SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
+use crate::event::{wait_for_event, Event};
+use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::sync::Arc;
 use std::{
     fs,
     process::Stdio,
@@ -16,9 +17,11 @@ use std::{
 };
 use tokio::process::Command;
 use tokio::runtime::Builder;
-use tokio::sync::Notify;
+use tokio::sync::broadcast::{self, channel};
 use version_compare::Version;
 use which::which;
+
+const EVENT_BUS_BOUND: usize = 5;
 
 /// starts a development server by unpacking any files needed by the gateway worker
 /// and starting the miniflare cli in `user_grafbase_path` in [`Environment`]
@@ -35,8 +38,10 @@ use which::which;
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
+pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
+
+    let environemnt = Environment::get();
 
     let handle = thread::spawn(move || {
         export_embedded_files()?;
@@ -53,27 +58,69 @@ pub fn start(port: u16) -> (JoinHandle<Result<(), ServerError>>, Receiver<Server
             .enable_all()
             .build()
             .unwrap()
-            .block_on(async { spawn_servers(port, bridge_port, sender).await })
+            .block_on(async {
+                let (event_bus, _receiver) = channel::<Event>(EVENT_BUS_BOUND);
+
+                if watch {
+                    let watch_event_bus = event_bus.clone();
+
+                     tokio::select! {
+                        result = start_watcher(environemnt.project_grafbase_schema_path.clone(),  move || { watch_event_bus.send(Event::Reload).expect("cannot fail"); }) => { result }
+                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone()) => { result }
+                    }
+                } else {
+                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus).await?)
+                }
+            })
     });
+
     (handle, receiver)
 }
 
+async fn server_loop(
+    worker_port: u16,
+    bridge_port: u16,
+    watch: bool,
+    sender: Sender<ServerMessage>,
+    event_bus: broadcast::Sender<Event>,
+) -> Result<(), ServerError> {
+    loop {
+        let receiver = event_bus.subscribe();
+        tokio::select! {
+            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone()) => {
+                result?;
+            }
+            _ = wait_for_event(receiver, Event::Reload) => {
+                trace!("reload");
+                let _ = sender.send(ServerMessage::Reload);
+            }
+        }
+    }
+}
+
 #[tracing::instrument(level = "trace")]
-async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<ServerMessage>) -> Result<(), ServerError> {
+async fn spawn_servers(
+    worker_port: u16,
+    bridge_port: u16,
+    watch: bool,
+    sender: Sender<ServerMessage>,
+    event_bus: broadcast::Sender<Event>,
+) -> Result<(), ServerError> {
+    let bridge_sender = event_bus.clone();
+
+    let receiver = event_bus.subscribe();
+
     validate_dependencies().await?;
 
     run_schema_parser().await?;
 
     let environment = Environment::get();
 
-    let bridge_ready_sender = Arc::new(Notify::new());
-    let bridge_ready_receiver = bridge_ready_sender.clone();
-
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, bridge_ready_sender).await });
+    let bridge_future = tokio::spawn(async move { bridge::start(bridge_port, bridge_sender).await });
 
     trace!("waiting for bridge ready");
 
-    bridge_ready_receiver.notified().await;
+    wait_for_event(receiver, Event::BridgeReady).await;
 
     trace!("bridge ready");
 
@@ -84,8 +131,8 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<Server
 
     trace!("spawining miniflare");
 
-    let spawned = Command::new("node")
-        .args(&[
+    let miniflare = Command::new("node")
+        .args([
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
             "./node_modules/miniflare/dist/src/cli.js",
@@ -105,25 +152,25 @@ async fn spawn_servers(worker_port: u16, bridge_port: u16, sender: Sender<Server
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .current_dir(&environment.user_dot_grafbase_path)
+        .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;
 
-    sender
-        .send(ServerMessage::Ready(worker_port))
-        .expect("cannot send message");
+    let _ = sender.send(ServerMessage::Ready(worker_port));
 
-    let output = spawned
-        .wait_with_output()
-        .await
-        .map_err(ServerError::MiniflareCommandError)?;
+    let miniflare_future = miniflare.wait_with_output();
+    tokio::select! {
+        _ = bridge_future => {}
+        result = miniflare_future => {
+            let output = result.map_err(ServerError::MiniflareCommandError)?;
 
-    output
-        .status
-        .success()
-        .then_some(())
-        .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
-
-    bridge_handle.await??;
+            output
+                .status
+                .success()
+                .then_some(())
+                .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
+        }
+    }
 
     Ok(())
 }

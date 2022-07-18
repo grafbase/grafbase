@@ -68,4 +68,8 @@ pub mod report {
     pub fn goodbye() {
         watercolor::output_error!("\n👋 see you next time!", @BrightBlue);
     }
+
+    pub fn reload() {
+        println!("🔄 detected a schema change, reloading");
+    }
 }

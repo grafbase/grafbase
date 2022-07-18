@@ -4,6 +4,7 @@ use axum::response::Response;
 use axum::Json;
 use common::traits::ToExitCode;
 use hyper::Error as HyperError;
+use notify::Error as NotifyError;
 use serde_json::json;
 use sqlx::Error as SqlxError;
 use std::io::Error as IoError;
@@ -92,6 +93,10 @@ pub enum ServerError {
     /// returned if the installed version of node could not be retreived
     #[error("Could not retrive the installed version of Node.js")]
     CheckNodeVersion,
+
+    /// returned if a file watcher could not be initialized
+    #[error("Could not initialize a file watcher: {0}")]
+    FileWatcherInit(NotifyError),
 }
 
 impl ToExitCode for ServerError {
@@ -103,7 +108,8 @@ impl ToExitCode for ServerError {
             | Self::ReadVersion
             | Self::ParseSchema(_)
             | Self::NodeInPath
-            | Self::OutdatedNode(_, _) => exitcode::DATAERR,
+            | Self::OutdatedNode(_, _)
+            | Self::FileWatcherInit(_) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
@@ -165,5 +171,11 @@ impl IntoResponse for ServerError {
 impl From<JoinError> for ServerError {
     fn from(error: JoinError) -> Self {
         Self::SpawnedTaskPanic(error)
+    }
+}
+
+impl From<NotifyError> for ServerError {
+    fn from(notify_error: NotifyError) -> Self {
+        Self::FileWatcherInit(notify_error)
     }
 }

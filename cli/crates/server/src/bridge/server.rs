@@ -1,13 +1,14 @@
 use super::consts::{CREATE_TABLE, DB_FILE, DB_URL_PREFIX};
 use super::types::{Payload, Record};
 use crate::errors::ServerError;
+use crate::event::{wait_for_event, Event};
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
-use tokio::sync::Notify;
+use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
@@ -54,7 +55,7 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
-pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), ServerError> {
+pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
@@ -84,9 +85,11 @@ pub async fn start(port: u16, bridge_ready_sender: Arc<Notify>) -> Result<(), Se
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
-    let server = axum::Server::bind(&socket_address).serve(router.into_make_service());
+    let server = axum::Server::bind(&socket_address)
+        .serve(router.into_make_service())
+        .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), Event::Reload));
 
-    bridge_ready_sender.notify_one();
+    event_bus.send(Event::BridgeReady).expect("cannot fail");
 
     server.await?;
 

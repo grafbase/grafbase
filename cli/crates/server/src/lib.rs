@@ -23,8 +23,11 @@ extern crate log;
 
 mod bridge;
 mod consts;
-pub mod errors;
+mod event;
+mod file_watcher;
 mod servers;
+
+pub mod errors;
 pub mod types;
 
 pub use servers::start;
