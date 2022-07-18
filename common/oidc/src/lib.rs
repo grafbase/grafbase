@@ -39,13 +39,16 @@ struct CustomClaims {
     groups: Option<Vec<String>>, // TODO: use configured claim name
 }
 
-pub async fn verify_token<S: AsRef<str> + Send>(
-    token: S,
-    issuer: Url,
-    groups: Option<Vec<String>>,
-    time_opts: Option<TimeOptions>,
-    http_client: Option<surf::Client>,
-) -> Result<(), VerificationError> {
+#[derive(Debug)]
+pub struct VerificationOptions {
+    pub issuer: Url,
+    pub groups: Option<Vec<String>>,
+    pub groups_claim: String,
+    pub time_opts: Option<TimeOptions>,
+    pub http_client: Option<surf::Client>,
+}
+
+pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOptions) -> Result<(), VerificationError> {
     let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
     // We support the same signing algorithms as AppSync
@@ -60,15 +63,15 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
     // Get JWKS endpoint from OIDC config
-    let http_client = http_client.unwrap_or_default();
-    let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+    let http_client = opts.http_client.unwrap_or_default();
+    let discovery_url = opts.issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
     let oidc_config: OidcConfig = http_client
         .get(discovery_url)
         .recv_json()
         .await
         .map_err(VerificationError::HttpRequest)?;
 
-    if oidc_config.issuer != issuer {
+    if oidc_config.issuer != opts.issuer {
         return Err(VerificationError::InvalidIssuerUrl);
     }
 
@@ -97,7 +100,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
 
     // Verify claims
     let claims = token.claims();
-    let time_opts = &time_opts.unwrap_or_default();
+    let time_opts = &opts.time_opts.unwrap_or_default();
 
     // Check "exp" claim
     claims
@@ -117,7 +120,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(
     }?;
 
     // Check "groups" claim
-    if let Some(require_groups) = groups {
+    if let Some(require_groups) = opts.groups {
         if !claims
             .custom
             .groups
@@ -203,9 +206,15 @@ mod tests {
         let leeway = Duration::seconds(5);
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_425, 0), Utc);
 
-        verify_token(TOKEN, issuer, None, Some(TimeOptions::new(leeway, clock_fn)), None)
-            .await
-            .unwrap();
+        let opts = VerificationOptions {
+            issuer,
+            groups: None,
+            groups_claim: "groups".to_string(),
+            time_opts: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+
+        verify_token(TOKEN, opts).await.unwrap();
     }
 
     #[tokio::test]
@@ -217,7 +226,15 @@ mod tests {
         // now == nbf which is 10s before the issue date.
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(1_656_946_415, 0), Utc);
 
-        let result = verify_token(TOKEN, issuer, None, Some(TimeOptions::new(leeway, clock_fn)), None).await;
+        let opts = VerificationOptions {
+            issuer,
+            groups: None,
+            groups_claim: "groups".to_string(),
+            time_opts: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+
+        let result = verify_token(TOKEN, opts).await;
         assert_matches!(result, Err(VerificationError::InvalidIssueTime));
     }
 }
