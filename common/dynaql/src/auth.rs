@@ -1,9 +1,10 @@
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Auth {
     pub oidc_providers: Vec<OidcProvider>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+    pub groups: Option<Vec<String>>,
 }
