@@ -78,30 +78,27 @@ impl TryFrom<&ConstDirective> for Auth {
 
         let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
-                ConstValue::List(value) => value,
+                ConstValue::List(value) => value
+                    .iter()
+                    .map(AuthProvider::try_from)
+                    .collect::<Result<_, _>>()
+                    .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth providers must be a list", pos)),
             },
-            None => return Err(ServerError::new("auth providers missing", pos)),
+            None => vec![],
         };
-        let providers = providers
-            .iter()
-            .map(AuthProvider::try_from)
-            .collect::<Result<_, _>>()
-            .map_err(|err| ServerError::new(err.message, pos))?;
 
-        // FIXME: rules are optional
         let rules = match value.get_argument("rules") {
             Some(arg) => match &arg.node {
-                ConstValue::List(value) => value,
+                ConstValue::List(value) => value
+                    .iter()
+                    .map(AuthRule::try_from)
+                    .collect::<Result<_, _>>()
+                    .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth rules must be a list", pos)),
             },
-            None => return Err(ServerError::new("auth rules missing", pos)),
+            None => vec![],
         };
-        let rules = rules
-            .iter()
-            .map(AuthRule::try_from)
-            .collect::<Result<_, _>>()
-            .map_err(|err| ServerError::new(err.message, pos))?;
 
         Ok(Auth { providers, rules })
     }
@@ -182,8 +179,7 @@ mod tests {
     fn test_oidc_basic() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
-              rules: [ { allow: groups, groups: [] } ], # FIXME
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
             ){
               query: Boolean
             }
@@ -236,8 +232,7 @@ mod tests {
     fn test_oidc_missing_field() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc } ],
-              rules: [ { allow: groups, groups: [] } ], # FIXME
+              providers: [ { type: oidc } ]
             ){
               query: Boolean
             }
