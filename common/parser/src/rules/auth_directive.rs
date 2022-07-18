@@ -22,13 +22,7 @@ enum AuthProvider {
     Oidc {
         issuer: url::Url,
         groups: Option<Vec<String>>,
-        #[serde(default = "default_groups_claim")]
-        groups_claim: String,
     },
-}
-
-fn default_groups_claim() -> String {
-    "groups".to_string()
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -118,14 +112,9 @@ impl From<Auth> for dynaql::Auth {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc {
-                        issuer,
-                        groups,
-                        groups_claim,
-                    } => dynaql::OidcProvider {
+                    AuthProvider::Oidc { issuer, groups } => dynaql::OidcProvider {
                         issuer: issuer.clone(),
                         groups: groups.clone(),
-                        groups_claim: groups_claim.clone(),
                     },
                 })
                 .collect(),
@@ -160,7 +149,6 @@ mod tests {
             vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups: None,
-                groups_claim: "groups".to_string(),
             }]
         );
     }
@@ -185,32 +173,6 @@ mod tests {
             vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups: Some(vec!["admin".to_string()]),
-                groups_claim: "groups".to_string(),
-            }]
-        );
-    }
-
-    #[test]
-    fn test_oidc_groups_claim() {
-        let schema = r#"
-            schema @auth(providers: [
-              { type: "oidc", issuer: "https://my.idp.com", groups: ["admin"], groupsClaim: "roles" }
-            ]) {
-              query: Boolean
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
-            vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups: Some(vec!["admin".to_string()]),
-                groups_claim: "roles".to_string(),
             }]
         );
     }

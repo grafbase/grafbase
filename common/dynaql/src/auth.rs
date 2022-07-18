@@ -7,5 +7,4 @@ pub struct Auth {
 pub struct OidcProvider {
     pub issuer: url::Url,
     pub groups: Option<Vec<String>>,
-    pub groups_claim: String,
 }
