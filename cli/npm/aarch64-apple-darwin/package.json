@@ -1,0 +1,32 @@
+{
+  "name": "@grafbase/cli-aarch64-apple-darwin",
+  "version": "0.2.0",
+  "description": "aarch64-apple-darwin binary for Grafbase CLI",
+  "keywords": [
+    "grafbase",
+    "macos",
+    "darwin",
+    "arm64"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grafbase/grafbase",
+    "directory": "cli"
+  },
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.7.0"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "executableFiles": [
+      "grafbase"
+    ]
+  }
+}
