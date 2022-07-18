@@ -6,22 +6,18 @@ use dynaql_value::ConstValue;
 
 pub const AUTH_DIRECTIVE: &str = "auth";
 
-fn default_groups_claim() -> String {
-    "groups".to_string()
-}
-
 pub struct AuthDirective;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct Auth {
-    pub providers: Vec<AuthProvider>,
+struct Auth {
+    providers: Vec<AuthProvider>,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
-pub enum AuthProvider {
+enum AuthProvider {
     #[serde(rename_all = "camelCase")]
     Oidc {
         issuer: url::Url,
@@ -29,6 +25,10 @@ pub enum AuthProvider {
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
     },
+}
+
+fn default_groups_claim() -> String {
+    "groups".to_string()
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -135,29 +135,88 @@ impl From<Auth> for dynaql::Auth {
 
 #[cfg(test)]
 mod tests {
+    use super::AuthDirective;
     use crate::rules::visitor::{visit, VisitorContext};
     use dynaql_parser::parse_schema;
+    use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_oidc_ok() {
+    fn test_oidc_basic() {
         let schema = r#"
             schema @auth(providers: [
-              { type: "oidc", issuer: "https://clerk.b74v0.5y6hj.lcl.dev" }
+              { type: "oidc", issuer: "https://my.idp.com" }
             ]) {
               query: Boolean # HACK: make top-level auth directive work
             }
             "#;
 
-        let schema = parse_schema(schema).expect("");
-
+        let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
-        visit(&mut super::AuthDirective, &mut ctx, &schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
+            vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups: None,
+                groups_claim: "groups".to_string(),
+            }]
+        );
     }
 
     #[test]
-    fn test_oidc_missing_issuer() {
+    fn test_oidc_groups() {
+        let schema = r#"
+            schema @auth(providers: [
+              { type: "oidc", issuer: "https://my.idp.com", groups: ["admin"] }
+            ]) {
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
+            vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups: Some(vec!["admin".to_string()]),
+                groups_claim: "groups".to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn test_oidc_groups_claim() {
+        let schema = r#"
+            schema @auth(providers: [
+              { type: "oidc", issuer: "https://my.idp.com", groups: ["admin"], groupsClaim: "roles" }
+            ]) {
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
+            vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups: Some(vec!["admin".to_string()]),
+                groups_claim: "roles".to_string(),
+            }]
+        );
+    }
+
+    #[test]
+    fn test_oidc_missing_field() {
         let schema = r#"
             schema @auth(providers: [
               { type: "oidc" }
@@ -166,10 +225,9 @@ mod tests {
             }
             "#;
 
-        let schema = parse_schema(schema).expect("");
-
+        let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
-        visit(&mut super::AuthDirective, &mut ctx, &schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1);
         assert_eq!(

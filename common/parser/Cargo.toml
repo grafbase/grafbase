@@ -16,4 +16,5 @@ url = { version = "2" }
 
 [dev-dependencies]
 insta = "1"
+pretty_assertions = "1"
 serde_json = "1"
