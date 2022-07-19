@@ -9,6 +9,7 @@ use jwt_compact::{
     TimeOptions,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use url::Url;
 
 const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
@@ -36,13 +37,14 @@ struct JsonWebKeySet<'a> {
 struct CustomClaims {
     #[serde(rename = "iss")]
     issuer: Url,
-    groups: Option<Vec<String>>, // TODO: use configured claim name
+    #[serde(default)]
+    groups: HashSet<String>, // TODO: use configured claim name
 }
 
 #[derive(Debug)]
 pub struct VerificationOptions {
     pub issuer: Url,
-    pub groups: Option<Vec<String>>,
+    pub allowed_groups: Option<HashSet<String>>,
     pub time: Option<TimeOptions>,
     pub http_client: Option<surf::Client>,
 }
@@ -119,14 +121,8 @@ pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOpti
     }?;
 
     // Check "groups" claim
-    if let Some(require_groups) = opts.groups {
-        if !claims
-            .custom
-            .groups
-            .iter()
-            .flatten()
-            .any(|group| require_groups.contains(group))
-        {
+    if let Some(allowed_groups) = opts.allowed_groups {
+        if allowed_groups.is_disjoint(&claims.custom.groups) {
             return Err(VerificationError::InvalidGroups);
         }
     };
@@ -233,7 +229,7 @@ mod tests {
 
         let opts = VerificationOptions {
             issuer,
-            groups: None,
+            allowed_groups: None,
             time: Some(TimeOptions::new(leeway, clock_fn)),
             http_client: None,
         };
@@ -253,7 +249,7 @@ mod tests {
 
         let opts = VerificationOptions {
             issuer,
-            groups: None,
+            allowed_groups: None,
             time: Some(TimeOptions::new(leeway, clock_fn)),
             http_client: None,
         };
@@ -272,7 +268,7 @@ mod tests {
         let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
         let opts = VerificationOptions {
             issuer: issuer.clone(),
-            groups: Some(vec!["any".to_string()]),
+            allowed_groups: Some(vec!["any".to_string()].into_iter().collect()),
             time: Some(TimeOptions::new(leeway, clock_fn)),
             http_client: None,
         };
@@ -287,15 +283,10 @@ mod tests {
         let issuer: Url = server.uri().parse().unwrap();
 
         let valid_groups = vec![
-            None,
-            Some(vec!["admin".to_string()]),
-            Some(vec!["moderator".to_string()]),
-            Some(vec!["admin".to_string(), "moderator".to_string()]),
-            Some(vec![
-                "Admin".to_string(),
-                "moderator".to_string(),
-                "ignored".to_string(),
-            ]),
+            vec!["admin"],
+            vec!["moderator"],
+            vec!["admin", "moderator"],
+            vec!["Admin", "moderator", "ignored"],
         ];
 
         for groups in valid_groups {
@@ -305,7 +296,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
             let opts = VerificationOptions {
                 issuer: issuer.clone(),
-                groups,
+                allowed_groups: Some(groups.into_iter().map(String::from).collect()),
                 time: Some(TimeOptions::new(leeway, clock_fn)),
                 http_client: None,
             };
@@ -320,11 +311,7 @@ mod tests {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
 
-        let invalid_groups = vec![
-            Some(vec![]),
-            Some(vec!["".to_string()]),
-            Some(vec!["Admin".to_string()]),
-        ];
+        let invalid_groups = vec![vec![], vec![""], vec!["Admin"]];
 
         for groups in invalid_groups {
             set_up_mock_server(&issuer, &server).await;
@@ -333,7 +320,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
             let opts = VerificationOptions {
                 issuer: issuer.clone(),
-                groups,
+                allowed_groups: Some(groups.into_iter().map(String::from).collect()),
                 time: Some(TimeOptions::new(leeway, clock_fn)),
                 http_client: None,
             };
