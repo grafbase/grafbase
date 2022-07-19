@@ -1,5 +1,3 @@
-use std::thread::spawn;
-
 use crate::output::report;
 use crate::CliError;
 use backend::server_api::start_server;
@@ -8,6 +6,7 @@ use common::consts::DEFAULT_PORT;
 use common::environment::Environment;
 use common::utils::get_thread_panic_message;
 use std::sync::Once;
+use std::thread::spawn;
 
 static READY: Once = Once::new();
 
