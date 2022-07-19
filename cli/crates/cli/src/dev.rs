@@ -23,9 +23,9 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>) -> Result<(), 
     Environment::try_init().map_err(CliError::CommonError)?;
 
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
-    let server_handle = match start_server(external_port, search, watch) {
-        Ok((handle, receiver)) => {
-            spawn(move || loop {
+    let (server_handle, reporter_handle) = match start_server(external_port, search, watch) {
+        Ok((server_handle, receiver)) => {
+            let reporter_handle = spawn(move || loop {
                 match receiver.recv() {
                     Ok(ServerMessage::Ready(port)) => READY.call_once(|| report::start_server(port, start_port)),
                     Ok(ServerMessage::Reload) => report::reload(),
@@ -33,7 +33,7 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>) -> Result<(), 
                 }
             });
 
-            handle
+            (server_handle, reporter_handle)
         }
         Err(error) => return Err(CliError::BackendError(error)),
     };
@@ -45,6 +45,8 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>) -> Result<(), 
             None => CliError::ServerPanic("unknown error".to_owned()),
         })?
         .map_err(CliError::ServerError)?;
+
+    reporter_handle.join().expect("cannot panic");
 
     Ok(())
 }
