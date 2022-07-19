@@ -46,6 +46,7 @@ impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {
         r#"
         directive @model on OBJECT
+        directive @unique on FIELD_DEFINITION
         "#
         .to_string()
     }

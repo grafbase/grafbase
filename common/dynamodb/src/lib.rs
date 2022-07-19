@@ -48,7 +48,9 @@ mod paginated;
 
 mod transaction;
 
-pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
+pub use graph_transaction::{
+    get_loader_transaction_new, Constraint, ConstraintType, NewTransactionLoader, PossibleChanges,
+};
 pub use paginated::PaginatedCursor;
 
 pub use transaction::{TransactionError, TxItem};

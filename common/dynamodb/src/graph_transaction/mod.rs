@@ -37,6 +37,8 @@ pub struct InsertNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    constraints: Vec<Constraint>,
 }
 
 impl PartialEq for InsertNodeInput {
@@ -60,6 +62,8 @@ pub struct UpdateNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    constraints: Vec<Constraint>,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -150,19 +154,31 @@ pub enum PossibleChanges {
 impl Eq for PossibleChanges {}
 
 impl PossibleChanges {
-    pub const fn new_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn new_node(
+        ty: String,
+        id: String,
+        user_defined_item: HashMap<String, AttributeValue>,
+        constraints: Vec<Constraint>,
+    ) -> Self {
         Self::InsertNode(InsertNodeInput {
             id,
             ty,
             user_defined_item,
+            constraints,
         })
     }
 
-    pub const fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn update_node(
+        ty: String,
+        id: String,
+        user_defined_item: HashMap<String, AttributeValue>,
+        constraints: Vec<Constraint>,
+    ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
             user_defined_item,
+            constraints,
         })
     }
 
@@ -228,6 +244,7 @@ impl GetIds for InsertNodeInput {
                     id: self.id,
                     ty: self.ty,
                     user_defined_item: self.user_defined_item,
+                    constraints: self.constraints,
                 })),
             )]))
         })
@@ -289,6 +306,7 @@ impl GetIds for UpdateNodeInput {
                             id: from_id,
                             ty: from_ty,
                             user_defined_item: self.user_defined_item.clone(),
+                            constraints: self.constraints.clone(),
                         })),
                     );
                 } else {
@@ -544,13 +562,26 @@ where
     ) -> ToTransactionFuture<'a>;
 }
 
-#[derive(Derivative, PartialEq, Clone)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ConstraintType {
+    Unique,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Constraint {
+    pub field: String,
+    pub r#type: ConstraintType,
+}
+
+#[derive(Clone, Derivative, PartialEq)]
 #[derivative(Debug)]
 pub struct InsertNodeInternalInput {
     pub id: String,
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    pub constraints: Vec<Constraint>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -560,6 +591,8 @@ pub struct UpdateNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    pub constraints: Vec<Constraint>,
 }
 
 impl UpdateNodeInternalInput {
@@ -771,6 +804,7 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
     type Output = InsertNodeInternalInput;
 
     fn add(self, rhs: InsertNodeInternalInput) -> Self::Output {
+        assert_eq!(self.constraints, rhs.constraints);
         Self::Output {
             id: self.id,
             ty: self.ty,
@@ -779,6 +813,7 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
+            constraints: self.constraints,
         }
     }
 }
@@ -794,6 +829,8 @@ impl Add<Self> for UpdateNodeInternalInput {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
+        assert_eq!(self.constraints, rhs.constraints);
+
         Self::Output {
             id: self.id,
             ty: self.ty,
@@ -802,6 +839,7 @@ impl Add<Self> for UpdateNodeInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
+            constraints: self.constraints,
         }
     }
 }

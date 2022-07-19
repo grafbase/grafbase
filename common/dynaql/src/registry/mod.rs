@@ -209,6 +209,17 @@ pub struct Constraint {
     pub r#type: ConstraintType,
 }
 
+impl From<Constraint> for dynamodb::Constraint {
+    fn from(Constraint { field, r#type }: Constraint) -> Self {
+        Self {
+            field,
+            r#type: match r#type {
+                ConstraintType::Unique => dynamodb::ConstraintType::Unique,
+            },
+        }
+    }
+}
+
 #[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -608,6 +619,13 @@ impl MetaType {
             MetaType::Object { fields, .. } => Some(&fields),
             MetaType::Interface { fields, .. } => Some(&fields),
             _ => None,
+        }
+    }
+
+    pub fn constraints(&self) -> &[Constraint] {
+        match self {
+            MetaType::Object { constraints, .. } => &constraints,
+            _ => &[],
         }
     }
 

@@ -8,3 +8,5 @@ pub const TYPE_INDEX_PK: &str = "__gsi1pk";
 pub const TYPE_INDEX_SK: &str = "__gsi1sk";
 pub const INVERTED_INDEX_PK: &str = "__gsi2pk";
 pub const INVERTED_INDEX_SK: &str = "__gsi2sk";
+// Used in rows created to enforce uniqueness. Refers to the `pk` holding that particular unique value.
+pub const ITEM_PK: &str = "__item_pk";

@@ -279,4 +279,26 @@ mod tests {
             "should match"
         );
     }
+
+    #[test]
+    fn should_not_error_on_known_directive_allowed_in_positions() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique
+            }
+            "#;
+
+        let mut rules = rules::visitor::VisitorNil
+            .with(rules::model_directive::ModelDirective)
+            .with(rules::auth_directive::AuthDirective)
+            .with(rules::relations::relations_rules())
+            .with(CheckAllDirectivesAreKnown::default());
+        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = parse_schema(schema).expect("");
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut rules, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "should have no errors: {:?}", ctx.errors);
+    }
 }

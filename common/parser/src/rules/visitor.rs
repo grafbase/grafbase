@@ -324,11 +324,7 @@ impl<A, B> VisitorCons<A, B> {
     }
 }
 
-impl<'a> Visitor<'a> for VisitorNil {
-    fn directives(&self) -> String {
-        "".to_owned()
-    }
-}
+impl<'a> Visitor<'a> for VisitorNil {}
 
 /// The monoid implementation for Visitor
 impl<'a, A, B> Visitor<'a> for VisitorCons<A, B>
