@@ -80,24 +80,24 @@ impl TryFrom<&ConstDirective> for Auth {
 
         let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
-                ConstValue::List(value) => value
+                ConstValue::List(value) if !value.is_empty() => value
                     .iter()
                     .map(AuthProvider::try_from)
                     .collect::<Result<_, _>>()
                     .map_err(|err| ServerError::new(err.message, pos))?,
-                _ => return Err(ServerError::new("auth providers must be a list", pos)),
+                _ => return Err(ServerError::new("auth providers must be a non-empty list", pos)),
             },
             None => Vec::new(),
         };
 
         let rules = match value.get_argument("rules") {
             Some(arg) => match &arg.node {
-                ConstValue::List(value) => value
+                ConstValue::List(value) if !value.is_empty() => value
                     .iter()
                     .map(AuthRule::try_from)
                     .collect::<Result<_, _>>()
                     .map_err(|err| ServerError::new(err.message, pos))?,
-                _ => return Err(ServerError::new("auth rules must be a list", pos)),
+                _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
             },
             None => Vec::new(),
         };
