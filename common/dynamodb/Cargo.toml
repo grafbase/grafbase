@@ -32,6 +32,7 @@ quick-error = "2"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
 thiserror = "1"
+tracing = "0.1"
 wasm-bindgen-futures = "0.4"
 
 # feature="local"

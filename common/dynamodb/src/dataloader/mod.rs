@@ -219,6 +219,7 @@ impl<T, C: CacheFactory> DataLoader<T, C> {
     }
 
     /// Use this `DataLoader` to load some data.
+    #[tracing::instrument(skip(self, keys))]
     pub async fn load_many<K, I>(&self, keys: I) -> Result<HashMap<K, T::Value>, T::Error>
     where
         K: Send + Sync + Hash + Eq + Clone + 'static,

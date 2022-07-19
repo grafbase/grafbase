@@ -122,7 +122,8 @@ impl Extension for TracingExtension {
         let span = span!(
             target: "dynaql::graphql",
             Level::INFO,
-            "execute"
+            "execute",
+            operation_name = operation_name,
         );
         next.run(ctx, operation_name).instrument(span).await
     }
@@ -133,6 +134,7 @@ impl Extension for TracingExtension {
         info: ResolveInfo<'_>,
         next: NextResolve<'_>,
     ) -> ServerResult<Option<Value>> {
+        let path_node = info.path_node.to_string();
         let span = span!(
             target: "dynaql::graphql",
             Level::INFO,
