@@ -229,7 +229,6 @@ mod tests {
     fn test_groups_rule() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
               rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
             ){
               query: Boolean
@@ -244,9 +243,7 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth.as_ref().unwrap(),
             &dynaql::Auth {
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
+                oidc_providers: vec![],
                 allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
             }
         );
@@ -256,7 +253,6 @@ mod tests {
     fn test_groups_rule_duplicate_group() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
               rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
             ){
               query: Boolean
