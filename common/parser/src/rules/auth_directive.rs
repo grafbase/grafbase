@@ -8,7 +8,7 @@ use dynaql_value::ConstValue;
 
 use serde::{Deserialize, Serialize};
 
-pub const AUTH_DIRECTIVE: &str = "auth";
+const AUTH_DIRECTIVE: &str = "auth";
 
 pub struct AuthDirective;
 
@@ -33,7 +33,10 @@ enum AuthProvider {
 #[serde(deny_unknown_fields)]
 enum AuthRule {
     #[serde(rename_all = "camelCase")]
-    Groups { groups: HashSet<String> },
+    Groups {
+        #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
+        groups: HashSet<String>,
+    },
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -160,10 +163,8 @@ impl From<Auth> for dynaql::Auth {
             allowed_groups: auth
                 .rules
                 .iter()
-                .flat_map(|rule| -> HashSet<String> {
-                    match rule {
-                        AuthRule::Groups { groups } => groups.clone(),
-                    }
+                .flat_map(|rule| match rule {
+                    AuthRule::Groups { groups } => groups.clone(),
                 })
                 .collect(),
         }
@@ -204,33 +205,6 @@ mod tests {
     }
 
     #[test]
-    fn test_oidc_groups() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
-              rules: [ { allow: groups, groups: ["admin", "user", "admin"] } ],
-            ){
-              query: Boolean
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap(),
-            &dynaql::Auth {
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                allowed_groups: vec!["admin", "user"].into_iter().map(String::from).collect(),
-            }
-        );
-    }
-
-    #[test]
     fn test_oidc_missing_field() {
         let schema = r#"
             schema @auth(
@@ -248,6 +222,55 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "auth provider: missing field `issuer`",
+        );
+    }
+
+    #[test]
+    fn test_groups_rule() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
+              rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap(),
+            &dynaql::Auth {
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
+                allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_groups_rule_duplicate_group() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
+              rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rule: invalid entry: found duplicate value",
         );
     }
 }
