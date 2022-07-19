@@ -42,6 +42,7 @@ bitflags::bitflags! {
     }
 }
 
+#[derive(Debug)]
 pub struct SentryConfig {
     pub api_key: String,
     pub dsn: String,
