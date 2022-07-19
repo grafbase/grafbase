@@ -37,7 +37,9 @@ struct JsonWebKeySet<'a> {
 struct CustomClaims {
     #[serde(rename = "iss")]
     issuer: Url,
+
     #[serde(default)]
+    #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
     groups: HashSet<String>, // TODO: use configured claim name
 }
 
