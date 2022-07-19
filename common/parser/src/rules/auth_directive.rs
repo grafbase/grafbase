@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::visitor::{Visitor, VisitorContext};
 
 use dynaql::ServerError;
@@ -31,7 +33,7 @@ enum AuthProvider {
 #[serde(deny_unknown_fields)]
 enum AuthRule {
     #[serde(rename_all = "camelCase")]
-    Groups { groups: Vec<String> },
+    Groups { groups: HashSet<String> },
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -85,7 +87,7 @@ impl TryFrom<&ConstDirective> for Auth {
                     .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth providers must be a list", pos)),
             },
-            None => vec![],
+            None => Vec::new(),
         };
 
         let rules = match value.get_argument("rules") {
@@ -97,7 +99,7 @@ impl TryFrom<&ConstDirective> for Auth {
                     .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth rules must be a list", pos)),
             },
-            None => vec![],
+            None => Vec::new(),
         };
 
         Ok(Auth { providers, rules })
@@ -158,7 +160,7 @@ impl From<Auth> for dynaql::Auth {
             allowed_groups: auth
                 .rules
                 .iter()
-                .flat_map(|rule| -> Vec<String> {
+                .flat_map(|rule| -> HashSet<String> {
                     match rule {
                         AuthRule::Groups { groups } => groups.clone(),
                     }
@@ -170,8 +172,8 @@ impl From<Auth> for dynaql::Auth {
 
 #[cfg(test)]
 mod tests {
-    use super::AuthDirective;
-    use crate::rules::visitor::{visit, VisitorContext};
+    use super::*;
+    use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
@@ -196,7 +198,7 @@ mod tests {
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 }],
-                allowed_groups: vec![],
+                allowed_groups: HashSet::new(),
             }
         );
     }
@@ -206,7 +208,7 @@ mod tests {
         let schema = r#"
             schema @auth(
               providers: [ { type: oidc, issuer: "https://my.idp.com" } ],
-              rules: [ { allow: groups, groups: ["admin", "user"] } ],
+              rules: [ { allow: groups, groups: ["admin", "user", "admin"] } ],
             ){
               query: Boolean
             }
@@ -223,7 +225,7 @@ mod tests {
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 }],
-                allowed_groups: vec!["admin".to_string(), "user".to_string()],
+                allowed_groups: vec!["admin", "user"].into_iter().map(String::from).collect(),
             }
         );
     }
