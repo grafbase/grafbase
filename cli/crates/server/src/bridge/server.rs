@@ -93,7 +93,7 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
 
     server.await?;
 
-    Arc::clone(&pool).close().await;
+    pool.close().await;
 
     Ok(())
 }
