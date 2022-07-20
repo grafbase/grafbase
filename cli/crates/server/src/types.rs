@@ -7,4 +7,5 @@ pub struct Assets;
 #[derive(Clone, Copy)]
 pub enum ServerMessage {
     Ready(u16),
+    Reload,
 }

@@ -61,8 +61,8 @@ fn try_main() -> Result<(), CliError> {
     match subcommand {
         Some(("completions", matches)) => {
             let shell = matches.get_one::<String>("shell").expect("must be present");
-            completions::generate(shell)?;
-            Ok(())
+
+            completions::generate(shell)
         }
         Some(("dev", matches)) => {
             // ignoring any errors to fall back to the normal handler if there's an issue
@@ -72,11 +72,14 @@ fn try_main() -> Result<(), CliError> {
             });
 
             let search = matches.contains_id("search");
+            let watch = matches.contains_id("watch");
             let port = matches.get_one::<u16>("port").copied();
-            dev(search, port)
+
+            dev(search, watch, port)
         }
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);
+
             init(name)
         }
         _ => unreachable!(),
