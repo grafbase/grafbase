@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 254
 expression: reg_string
 ---
 {
@@ -1386,7 +1387,8 @@ expression: reg_string
                   "DeleteNode": {
                     "id": {
                       "InputTypeName": "id"
-                    }
+                    },
+                    "ty": "Author"
                   }
                 }
               }
@@ -1509,7 +1511,8 @@ expression: reg_string
                   "DeleteNode": {
                     "id": {
                       "InputTypeName": "id"
-                    }
+                    },
+                    "ty": "Blog"
                   }
                 }
               }
@@ -1632,7 +1635,8 @@ expression: reg_string
                   "DeleteNode": {
                     "id": {
                       "InputTypeName": "id"
-                    }
+                    },
+                    "ty": "Post"
                   }
                 }
               }

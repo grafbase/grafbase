@@ -31,6 +31,7 @@ impl<'a> ObfuscatedID<'a> {
         }
     }
 
+    /// The given ID should be of the expected type.
     pub fn expect(id: &'a str, ty: &'a str) -> Result<Self, ObfuscatedIDError> {
         let id = Self::new(id)?;
 
