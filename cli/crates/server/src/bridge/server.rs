@@ -80,7 +80,7 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
-        .layer(Extension(pool))
+        .layer(Extension(Arc::clone(&pool)))
         .layer(TraceLayer::new_for_http());
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
@@ -92,6 +92,8 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
     event_bus.send(Event::BridgeReady).expect("cannot fail");
 
     server.await?;
+
+    Arc::clone(&pool).close().await;
 
     Ok(())
 }
