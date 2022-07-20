@@ -14,9 +14,13 @@ include = ["/src", "/assets"]
 axum = "0.5"
 chrono = { version = "0.4", features = ["serde"] }
 common = { package = "grafbase-local-common", path = "../common", version = "0.2.0" }
+crossbeam = "0.8.1"
 exitcode = "1"
+futures = "0.3.21"
 hyper = "0.14"
 log = "0.4"
+notify = "4.0.17"
+once_cell = "1.13.0"
 rust-embed = { version = "6", features = ["compression"] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
