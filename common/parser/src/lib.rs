@@ -1,4 +1,3 @@
-use dynaql::registry::Registry;
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
@@ -11,6 +10,8 @@ use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
+
+pub use dynaql::registry::Registry;
 
 mod registry;
 mod rules;
