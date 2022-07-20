@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.0]
+
+### Features
+
+- Adds live reloading (`dev -w --watch`), reloads the development server when schema changes are detected
+
+### Tooling
+
+- Updates Rust to `1.62.1`
+
 ## [0.2.2]
 
 ### Dependencies
