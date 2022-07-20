@@ -1,27 +1,41 @@
+use std::collections::HashSet;
+
 use super::visitor::{Visitor, VisitorContext};
 
 use dynaql::ServerError;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
-pub const AUTH_DIRECTIVE: &str = "auth";
+use serde::{Deserialize, Serialize};
+
+const AUTH_DIRECTIVE: &str = "auth";
 
 pub struct AuthDirective;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Auth {
     providers: Vec<AuthProvider>,
+    rules: Vec<AuthRule>,
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
-    Oidc {
-        issuer: url::Url,
-        groups: Option<Vec<String>>,
+    Oidc { issuer: url::Url },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "allow")]
+#[serde(deny_unknown_fields)]
+enum AuthRule {
+    #[serde(rename_all = "camelCase")]
+    Groups {
+        #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
+        groups: HashSet<String>,
     },
 }
 
@@ -67,21 +81,31 @@ impl TryFrom<&ConstDirective> for Auth {
     fn try_from(value: &ConstDirective) -> Result<Self, Self::Error> {
         let pos = Some(value.name.pos);
 
-        let arg = match value.get_argument("providers") {
+        let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
-                ConstValue::List(value) => value,
-                _ => return Err(ServerError::new("auth providers must be a list", pos)),
+                ConstValue::List(value) if !value.is_empty() => value
+                    .iter()
+                    .map(AuthProvider::try_from)
+                    .collect::<Result<_, _>>()
+                    .map_err(|err| ServerError::new(err.message, pos))?,
+                _ => return Err(ServerError::new("auth providers must be a non-empty list", pos)),
             },
-            None => return Err(ServerError::new("auth providers missing", pos)),
+            None => Vec::new(),
         };
 
-        let providers = arg
-            .iter()
-            .map(AuthProvider::try_from)
-            .collect::<Result<_, _>>()
-            .map_err(|err| ServerError::new(err.message, pos))?;
+        let rules = match value.get_argument("rules") {
+            Some(arg) => match &arg.node {
+                ConstValue::List(value) if !value.is_empty() => value
+                    .iter()
+                    .map(AuthRule::try_from)
+                    .collect::<Result<_, _>>()
+                    .map_err(|err| ServerError::new(err.message, pos))?,
+                _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
+            },
+            None => Vec::new(),
+        };
 
-        Ok(Auth { providers })
+        Ok(Auth { providers, rules })
     }
 }
 
@@ -105,6 +129,26 @@ impl TryFrom<&ConstValue> for AuthProvider {
     }
 }
 
+impl TryFrom<&ConstValue> for AuthRule {
+    type Error = ServerError;
+
+    fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
+        // We convert the value to JSON to leverage serde for deserialization
+        let value = match value {
+            ConstValue::Object(_) => value
+                .clone()
+                .into_json()
+                .map_err(|err| ServerError::new(err.to_string(), None))?,
+            _ => return Err(ServerError::new("auth rule must be an object", None)),
+        };
+
+        let rule: AuthRule =
+            serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth rule: {err}"), None))?;
+
+        Ok(rule)
+    }
+}
+
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
@@ -112,10 +156,15 @@ impl From<Auth> for dynaql::Auth {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer, groups } => dynaql::OidcProvider {
-                        issuer: issuer.clone(),
-                        groups: groups.clone(),
-                    },
+                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider { issuer: issuer.clone() },
+                })
+                .collect(),
+
+            allowed_groups: auth
+                .rules
+                .iter()
+                .flat_map(|rule| match rule {
+                    AuthRule::Groups { groups } => groups.clone(),
                 })
                 .collect(),
         }
@@ -124,41 +173,17 @@ impl From<Auth> for dynaql::Auth {
 
 #[cfg(test)]
 mod tests {
-    use super::AuthDirective;
-    use crate::rules::visitor::{visit, VisitorContext};
+    use super::*;
+    use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_oidc_basic() {
         let schema = r#"
-            schema @auth(providers: [
-              { type: "oidc", issuer: "https://my.idp.com" }
-            ]) {
-              query: Boolean # HACK: make top-level auth directive work
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
-            vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups: None,
-            }]
-        );
-    }
-
-    #[test]
-    fn test_oidc_groups() {
-        let schema = r#"
-            schema @auth(providers: [
-              { type: "oidc", issuer: "https://my.idp.com", groups: ["admin"] }
-            ]) {
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+            ){
               query: Boolean
             }
             "#;
@@ -169,20 +194,22 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap().oidc_providers,
-            vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups: Some(vec!["admin".to_string()]),
-            }]
+            ctx.registry.borrow().auth.as_ref().unwrap(),
+            &dynaql::Auth {
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
+                allowed_groups: HashSet::new(),
+            }
         );
     }
 
     #[test]
     fn test_oidc_missing_field() {
         let schema = r#"
-            schema @auth(providers: [
-              { type: "oidc" }
-            ]) {
+            schema @auth(
+              providers: [ { type: oidc } ]
+            ){
               query: Boolean
             }
             "#;
@@ -195,6 +222,51 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "auth provider: missing field `issuer`",
+        );
+    }
+
+    #[test]
+    fn test_groups_rule() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap(),
+            &dynaql::Auth {
+                oidc_providers: vec![],
+                allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            }
+        );
+    }
+
+    #[test]
+    fn test_groups_rule_duplicate_group() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rule: invalid entry: found duplicate value",
         );
     }
 }
