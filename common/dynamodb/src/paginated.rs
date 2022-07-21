@@ -10,6 +10,7 @@ use quick_error::quick_error;
 use rusoto_core::RusotoError;
 use rusoto_dynamodb::{AttributeValue, DynamoDb, QueryError, QueryInput};
 use std::collections::HashMap;
+use tracing::{info_span, Instrument};
 
 /// A Cursor.
 /// The first elements are the most recents ones.
@@ -236,6 +237,7 @@ where
                 .inspect_err(|err| {
                     log::error!(trace_id, "Query Paginated Error {:?}", err);
                 })
+                .instrument(info_span!("fetch paginated"))
                 .await?;
 
             // For each items in the result, we'll group them by pk.

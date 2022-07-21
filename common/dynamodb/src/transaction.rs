@@ -9,6 +9,7 @@ use std::collections::HashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::{info_span, Instrument};
 
 #[derive(Clone, Debug)]
 pub struct TxItem {
@@ -75,6 +76,7 @@ async fn transaction_by_pk(
 
     let item_collections = again
         .retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await })
+        .instrument(info_span!("fetch transaction"))
         .inspect_err(|err| log::error!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
         .map_err(|_| TransactionError::UnknownError)
         .await?;

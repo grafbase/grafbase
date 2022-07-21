@@ -13,30 +13,6 @@ use crate::parser::types::ExecutableDocument;
 use crate::{Response, ServerError, ServerResult, ValidationResult, Value, Variables};
 
 /// Tracing extension
-///
-/// # References
-///
-/// <https://crates.io/crates/tracing>
-///
-/// # Examples
-///
-/// ```no_run
-/// use dynaql::*;
-/// use dynaql::extensions::Tracing;
-///
-/// #[derive(SimpleObject)]
-/// struct Query {
-///     value: i32,
-/// }
-///
-/// let schema = Schema::build(Query { value: 100 }, EmptyMutation, EmptySubscription)
-///     .extension(Tracing)
-///     .finish();
-///
-/// # tokio::runtime::Runtime::new().unwrap().block_on(async {
-/// schema.execute(Request::new("{ value }")).await;
-/// # });
-/// ```
 #[cfg_attr(docsrs, doc(cfg(feature = "tracing")))]
 pub struct Tracing;
 
@@ -122,7 +98,8 @@ impl Extension for TracingExtension {
         let span = span!(
             target: "dynaql::graphql",
             Level::INFO,
-            "execute"
+            "execute",
+            operation_name = operation_name,
         );
         next.run(ctx, operation_name).instrument(span).await
     }

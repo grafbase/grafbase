@@ -3,6 +3,7 @@ use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::{info_span, Instrument};
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, QueryResult};
@@ -142,16 +143,20 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                         self.ctx.dynamodb_table_name.clone(),
                         self.index.clone(),
                     )
+                    .instrument(info_span!("fetch query by type paginated"))
                     .await
                     .map(|r| (query_key.clone(), r))
             };
             concurrent_f.push(future_get());
         }
 
-        let b = futures_util::future::try_join_all(concurrent_f).await.map_err(|err| {
-            log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
-            QueryTypePaginatedLoaderError::QueryError
-        })?;
+        let b = futures_util::future::try_join_all(concurrent_f)
+            .instrument(info_span!("fetch query by type paginated concurrent"))
+            .await
+            .map_err(|err| {
+                log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
+                QueryTypePaginatedLoaderError::QueryError
+            })?;
 
         for (q, r) in b {
             h.insert(q, r);

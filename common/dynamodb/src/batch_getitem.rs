@@ -4,6 +4,7 @@ use rusoto_dynamodb::{BatchGetItemInput, DynamoDb, KeysAndAttributes};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::{info_span, Instrument};
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::DynamoDBContext;
@@ -73,6 +74,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
                 request_items,
                 return_consumed_capacity: None,
             })
+            .instrument(info_span!("fetch batch_get_item"))
             .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
             .await
             .map_err(|_| BatchGetItemLoaderError::DynamoError)?
