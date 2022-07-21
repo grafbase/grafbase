@@ -1,32 +1,43 @@
 <script setup lang="ts">
-import { TodoListFragment, useTodoListDeleteMutation, useTodoListUpdateMutation } from '@/graphql/schema'
+import { useMutation } from "@urql/vue";
+import {
+  TodoListFragment,
+  TodoListDeleteDocument,
+  TodoListUpdateDocument,
+} from "@/graphql/schema";
 
 interface Props {
-  id: TodoListFragment['id']
-  title: TodoListFragment['title']
-  todos?: TodoListFragment['todos']
+  id: TodoListFragment["id"];
+  title: TodoListFragment["title"];
+  todos?: TodoListFragment["todos"];
 }
 
-const { id, title, todos } = defineProps<Props>()
-const titleRef = ref(title)
-const inputRef = ref<HTMLElement>()
+const { id, title, todos } = defineProps<Props>();
+const titleRef = ref(title);
+const inputRef = ref<HTMLElement>();
 
-const todoListUpdate = useTodoListUpdateMutation()
-const { executeMutation: todoListDelete, fetching: isDeleting } = useTodoListDeleteMutation()
+const todoListUpdate = useMutation(TodoListUpdateDocument);
+const { executeMutation: todoListDelete, fetching: isDeleting } = useMutation(
+  TodoListDeleteDocument
+);
 
 const handleTodoListDelete = () => {
-  todoListDelete({ id }, { additionalTypenames: ['TodoList'] })
-}
+  todoListDelete({ id }, { additionalTypenames: ["TodoList"] });
+};
 
 watch(titleRef, (newValue) => {
-  if (!newValue || newValue === title) return
-  todoListUpdate.executeMutation({ id, title: newValue })
-})
+  if (!newValue || newValue === title) return;
+  todoListUpdate.executeMutation({ id, title: newValue });
+});
 </script>
 
 <template>
   <div class="space-y-4 flex-1 min-w-[300px]">
-    <div :title="titleRef" :style="{ borderColor: getColor(id) }" class="flex justify-between border-b-2">
+    <div
+      :title="titleRef"
+      :style="{ borderColor: getColor(id) }"
+      class="flex justify-between border-b-2"
+    >
       <h2 class="text-xl font-bold truncate">
         <input
           ref="inputRef"
@@ -38,14 +49,22 @@ watch(titleRef, (newValue) => {
         <Spinner v-if="isDeleting" />
         <Dropdown v-else>
           <template #trigger>
-            <IconHeroiconsOutlineDotsVertical class="w-5 h-5 text-gray-400 transition hover:text-red-400" />
+            <IconHeroiconsOutlineDotsVertical
+              class="w-5 h-5 text-gray-400 transition hover:text-red-400"
+            />
           </template>
           <DropdownItem @click="() => nextTick(() => inputRef?.focus())">
-            <IconHeroiconsOutlinePencil class="w-5 h-5 mr-3" aria-hidden="true" />
+            <IconHeroiconsOutlinePencil
+              class="w-5 h-5 mr-3"
+              aria-hidden="true"
+            />
             Rename
           </DropdownItem>
           <DropdownItem @click="handleTodoListDelete">
-            <IconHeroiconsOutlineTrash class="w-5 h-5 mr-3" aria-hidden="true" />
+            <IconHeroiconsOutlineTrash
+              class="w-5 h-5 mr-3"
+              aria-hidden="true"
+            />
             Delete
           </DropdownItem>
         </Dropdown>

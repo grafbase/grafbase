@@ -6,18 +6,14 @@
 </br>
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs)
 
-## Mandatory configuration
+## How to use
 
-Rename your `.env.example` to `.env` and fill all the variables.
+You'll need to create a [New Project](https://grafbase.com/new) using your cloned repository based on this example.
 
-### GitHub
+Then grab the production API Key and the Endpoint,
+rename your `.env.example` to `.env` and fill both properties.
 
-Create a GitHub OAuth application and make sure to set:
-
-- Homepage URL: http://localhost:3000
-- Authorization callback URL: http://localhost:3000/api/github/callback
-
-Fill your `.env` with `GITHUB_CLIENT_ID` and` GITHUB_CLIENT_SECRET` variables.
+<sub>\* You must wait for the first deployment to be completed and successful</sub>
 
 ## Getting Started
 
@@ -31,7 +27,9 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `src/pages/sign-in.vue`. The page auto-updates as you edit the file.
+You can start editing the page by modifying `src/pages/index.vue`. The page auto-updates as you edit the file.
+
+[Server Routes](https://v3.nuxtjs.org/guide/features/server-routes) can be accessed on http://localhost:3000/api/graphql. This endpoint can be edited in `src/server/api/graphql.post.ts`.
 
 ## Learn More About Grafbase
 
@@ -43,6 +41,6 @@ To learn more about Nuxt 3, take a look at the following resources:
 
 - [Nuxt 3 Documentation](https://v3.nuxtjs.org/guide/concepts/introduction) - learn about Nuxt 3 features and API.
 
-### Run on Codesandbox
+### Run on CodeSandbox
 
 [![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/nuxtjs)

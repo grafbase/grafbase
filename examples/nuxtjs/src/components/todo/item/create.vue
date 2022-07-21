@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { useTodoCreateMutation } from '@/graphql/schema'
+import { useMutation } from "@urql/vue";
+import { TodoCreateDocument } from "@/graphql/schema";
 
-const { todoListId } = defineProps<{ todoListId: string }>()
-const title = ref('')
+const { todoListId } = defineProps<{ todoListId: string }>();
+const title = ref("");
 
-const { executeMutation, fetching } = useTodoCreateMutation()
+const { executeMutation, fetching } = useMutation(TodoCreateDocument);
 
 const handleTodoCreate = () => {
-  executeMutation({ todoListId, title: title.value }, { additionalTypenames: ['Todo'] }).then(() => {
-    title.value = ''
-  })
-}
+  executeMutation(
+    { todoListId, title: title.value },
+    { additionalTypenames: ["Todo"] }
+  ).then(() => {
+    title.value = "";
+  });
+};
 </script>
 
 <template>
@@ -28,7 +32,7 @@ const handleTodoCreate = () => {
       :disabled="fetching"
       class="px-2 py-1 text-sm text-white bg-blue-800 rounded-md whitespace-nowrap disabled:bg-blue-400 min-w-[80px]"
     >
-      {{ fetching ? 'Adding...' : 'Add Todo' }}
+      {{ fetching ? "Adding..." : "Add Todo" }}
     </button>
   </form>
 </template>

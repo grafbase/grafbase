@@ -11,7 +11,6 @@ declare module '@vue/runtime-core' {
     IconHeroiconsOutlineDotsVertical: typeof import('~icons/heroicons-outline/dots-vertical')['default']
     IconHeroiconsOutlinePencil: typeof import('~icons/heroicons-outline/pencil')['default']
     IconHeroiconsOutlineTrash: typeof import('~icons/heroicons-outline/trash')['default']
-    IconRadixIconsGithubLogo: typeof import('~icons/radix-icons/github-logo')['default']
     IconRadixIconsMoon: typeof import('~icons/radix-icons/moon')['default']
     IconRadixIconsSun: typeof import('~icons/radix-icons/sun')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

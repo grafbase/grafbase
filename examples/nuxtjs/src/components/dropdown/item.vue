@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MenuItem } from '@headlessui/vue'
+import { MenuItem } from "@headlessui/vue";
 </script>
 
 <template>

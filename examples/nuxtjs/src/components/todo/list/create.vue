@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { useTodoListCreateMutation } from '@/graphql/schema'
+import { useMutation } from "@urql/vue";
+import { TodoListCreateDocument } from "@/graphql/schema";
 
-const title = ref('')
-const { fetching, executeMutation } = useTodoListCreateMutation()
+const title = ref("");
+const { fetching, executeMutation } = useMutation(TodoListCreateDocument);
 
 const handleTodoListCreate = () => {
-  executeMutation({ title: title.value }, { additionalTypenames: ['TodoList'] }).then(() => {
-    title.value = ''
-  })
-}
+  executeMutation(
+    { title: title.value },
+    { additionalTypenames: ["TodoList"] }
+  ).then(() => {
+    title.value = "";
+  });
+};
 </script>
 
 <template>
@@ -28,7 +32,7 @@ const handleTodoListCreate = () => {
         :disabled="fetching"
         class="px-5 py-1 text-sm text-white bg-purple-600 rounded-md disabled:bg-purple-500 min-w-[110px]"
       >
-        {{ fetching ? 'Creating...' : 'Create' }}
+        {{ fetching ? "Creating..." : "Create" }}
       </button>
     </div>
   </form>

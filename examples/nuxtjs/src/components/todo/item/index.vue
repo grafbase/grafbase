@@ -1,33 +1,40 @@
 <script setup lang="ts">
-import { TodoFragment, useTodoDeleteMutation, useTodoUpdateMutation } from '@/graphql/schema'
+import { useMutation } from "@urql/vue";
+import {
+  TodoFragment,
+  TodoDeleteDocument,
+  TodoUpdateDocument,
+} from "@/graphql/schema";
 
 interface Props {
-  id: TodoFragment['id']
-  title: TodoFragment['title']
-  complete?: TodoFragment['complete']
+  id: TodoFragment["id"];
+  title: TodoFragment["title"];
+  complete?: TodoFragment["complete"];
 }
 
-const todo = defineProps<Props>()
-const titleRef = ref(todo.title)
-const completed = ref(!!todo.complete)
+const todo = defineProps<Props>();
+const titleRef = ref(todo.title);
+const completed = ref(!!todo.complete);
 
-const { executeMutation: todoDelete, fetching } = useTodoDeleteMutation()
-const { executeMutation: todoUpdate } = useTodoUpdateMutation()
+const { executeMutation: todoDelete, fetching } =
+  useMutation(TodoDeleteDocument);
+const { executeMutation: todoUpdate } = useMutation(TodoUpdateDocument);
 
-const onTodoUpdate = (newTodo: Partial<TodoFragment>) => todoUpdate({ ...todo, ...newTodo })
+const onTodoUpdate = (newTodo: Partial<TodoFragment>) =>
+  todoUpdate({ ...todo, ...newTodo });
 
 const handleTodoDelete = () => {
-  todoDelete({ id: todo.id }, { additionalTypenames: ['Todo'] })
-}
+  todoDelete({ id: todo.id }, { additionalTypenames: ["Todo"] });
+};
 
 watch(titleRef, (newValue) => {
-  if (!newValue || newValue === todo.title) return
-  onTodoUpdate({ title: newValue })
-})
+  if (!newValue || newValue === todo.title) return;
+  onTodoUpdate({ title: newValue });
+});
 watch(completed, (newValue) => {
-  if (newValue === todo.complete) return
-  onTodoUpdate({ complete: newValue })
-})
+  if (newValue === todo.complete) return;
+  onTodoUpdate({ complete: newValue });
+});
 </script>
 
 <template>
@@ -58,7 +65,10 @@ watch(completed, (newValue) => {
             class="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
           />
         </div>
-        <button @click="handleTodoDelete" class="text-gray-400 transition hover:text-red-400">
+        <button
+          @click="handleTodoDelete"
+          class="text-gray-400 transition hover:text-red-400"
+        >
           <Spinner v-if="fetching" />
           <IconHeroiconsOutlineTrash v-else class="w-4 h-4" />
         </button>
@@ -66,9 +76,13 @@ watch(completed, (newValue) => {
       <div class="flex justify-between mt-2 text-sm">
         <div
           class="text-xs px-1 py-0.5 rounded"
-          :class="completed ? 'bg-green-600 text-white' : 'bg-gray-300 dark:bg-gray-600'"
+          :class="
+            completed
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-300 dark:bg-gray-600'
+          "
         >
-          {{ completed ? 'Completed' : 'Not completed' }}
+          {{ completed ? "Completed" : "Not completed" }}
         </div>
       </div>
     </div>

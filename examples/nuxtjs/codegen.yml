@@ -2,12 +2,10 @@ schema:
   - ${GRAFBASE_API_URL}:
       headers:
         Authorization: Bearer ${GRAFBASE_API_KEY}
-documents: './src/graphql/documents.graphql'
+documents: ./src/graphql/documents.graphql
 generates:
   ./src/graphql/schema.ts:
     plugins:
-      - 'typescript'
-      - 'typescript-operations'
-      - 'typescript-vue-urql'
-    config:
-      declarationKind: 'interface'
+      - typescript
+      - typescript-operations
+      - typed-document-node
