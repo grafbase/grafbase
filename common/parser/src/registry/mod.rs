@@ -511,6 +511,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         resolve: Some(Resolver {
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
+                ty: type_name,
                 id: VariableResolveDefinition::InputTypeName("id".to_owned()),
             }),
         }),

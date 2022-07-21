@@ -109,7 +109,12 @@ pub enum DynamoMutationResolver {
     ///   "id": "<deleted_id>"
     /// }
     /// ```
-    DeleteNode { id: VariableResolveDefinition },
+    DeleteNode {
+        id: VariableResolveDefinition,
+        /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
+        /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
+        ty: String,
+    },
     /// Update a Node and related relations
     ///
     /// To update a Node, we need to fetch every duplicate of this node which will
@@ -966,13 +971,14 @@ impl ResolverTrait for DynamoMutationResolver {
                     "id": serde_json::Value::String(id),
                 })))
             }
-            DynamoMutationResolver::DeleteNode { id } => {
+            DynamoMutationResolver::DeleteNode { id, ty } => {
                 let new_transaction = &batchers.transaction_new;
                 let id_to_be_deleted =
                     id.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
-                let opaque_id = ObfuscatedID::new(&id_to_be_deleted)
+                let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, &ty)
                     .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
                 let ty = opaque_id.ty().to_string();
                 let id = opaque_id.id().to_string();
 

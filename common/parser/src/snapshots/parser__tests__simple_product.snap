@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 85
 expression: reg_string
 ---
 {
@@ -156,7 +157,8 @@ expression: reg_string
                   "DeleteNode": {
                     "id": {
                       "InputTypeName": "id"
-                    }
+                    },
+                    "ty": "Product"
                   }
                 }
               }
