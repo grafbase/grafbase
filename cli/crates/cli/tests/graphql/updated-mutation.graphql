@@ -1,0 +1,8 @@
+mutation {
+  authorCreate(input: { name: "New Author" }) {
+    author {
+      id
+      name
+    }
+  }
+}

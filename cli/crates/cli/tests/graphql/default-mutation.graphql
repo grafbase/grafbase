@@ -1,0 +1,18 @@
+mutation {
+  todoListCreate(
+    input: {
+      title: "My todo list"
+      todos: [
+        { create: { title: "My first todo!", complete: true } }
+        { create: { title: "My second todo!", complete: false } }
+      ]
+    }
+  ) {
+    todoList {
+      title
+      todos {
+        title
+      }
+    }
+  }
+}
