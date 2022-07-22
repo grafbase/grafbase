@@ -1,5 +1,4 @@
 import urql, {
-  cacheExchange,
   createClient,
   dedupExchange,
   fetchExchange,
@@ -7,6 +6,7 @@ import urql, {
 } from "@urql/vue";
 import { devtoolsExchange } from "@urql/devtools";
 import { defineNuxtPlugin, useRuntimeConfig } from "#app";
+import { cacheExchange } from "@/graphql/urql.exchange";
 
 export default defineNuxtPlugin((nuxtApp) => {
   const { baseURL } = useRuntimeConfig();
