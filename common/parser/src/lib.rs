@@ -9,6 +9,7 @@ use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
+use rules::unique_directive::UniqueDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 pub use dynaql::registry::Registry;
@@ -38,6 +39,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckModelizedFieldReserved)
         .with(CheckTypeValidity)
+        .with(UniqueDirective)
         .with(ModelDirective)
         .with(AuthDirective)
         .with(BasicType)
