@@ -149,6 +149,10 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 r#type: ConstraintType::Unique,
             } in &constraints
             {
+                if !user_defined_item.contains_key(field) {
+                    continue;
+                }
+
                 let value = serde_json::to_string(&user_defined_item[field]).expect("must be a valid JSON");
                 let unique_column_pk_sk = format!("{ty}#{field}#{value}"); // FIXME: Obviously stupid, just a test.
 
