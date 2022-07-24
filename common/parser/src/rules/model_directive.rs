@@ -46,7 +46,6 @@ impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {
         r#"
         directive @model on OBJECT
-        directive @unique on FIELD_DEFINITION
         "#
         .to_string()
     }
@@ -173,7 +172,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 field: field.node.name.to_string(),
                                 r#type: ConstraintType::Unique,
                             }))
-                        .collect()
+                        .collect(),
                 }, &type_name, &type_name);
 
                 ctx.queries.push(MetaField {

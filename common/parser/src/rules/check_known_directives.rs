@@ -130,6 +130,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -156,6 +157,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -183,6 +185,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -210,6 +213,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -236,6 +240,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -263,6 +268,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -290,6 +296,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
