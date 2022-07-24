@@ -61,7 +61,7 @@ impl<'a> Visitor<'a> for UniqueDirective {
             if field.node.ty.node.nullable {
                 ctx.report_error(
                     vec![directive.pos],
-                    format!("The @unique directive cannot be used on nullable fields"),
+                    "The @unique directive cannot be used on nullable fields".to_string(),
                 );
             }
         }
