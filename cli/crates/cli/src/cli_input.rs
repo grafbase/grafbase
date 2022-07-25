@@ -24,7 +24,9 @@ pub fn build_cli() -> Command<'static> {
                     .value_parser(value_parser!(u16))
                     .required(false),
                 arg!(-s --search "If a given port is unavailable, search for another"),
-                arg!(-w --watch "Watch the project schema for changes and reload the development server accordingly"),
+                Arg::new("disable-watch")
+                    .long("--disable-watch")
+                    .help("Do not listen for schema changes and reload"),
             ]),
         )
         .subcommand(

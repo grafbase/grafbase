@@ -26,6 +26,6 @@ pub struct Record {
     pub entity_type: String,
     pub relation_names: Value,
     pub document: Value,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
+    pub created_at: String,
+    pub updated_at: String,
 }

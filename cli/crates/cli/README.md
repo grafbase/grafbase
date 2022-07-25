@@ -36,6 +36,7 @@ Run your grafbase project locally
 
 - `-p, --port <port>` - Use a specific port
 - `-s, --search` - If a given port is unavailable, search for another
+- `--disable-watch` - Do not listen for schema changes and reload
 
 ### `init`
 
