@@ -55,6 +55,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                 r#type: ConstraintType::Unique,
             } in &constraints
             {
+                // FIXME: unique_value_serialised()
                 let value = serde_json::to_string(&user_defined_item[field]).expect("must be a valid JSON");
                 let unique_column_pk_sk = format!("{ty}#{field}#{value}"); // FIXME: Obviously stupid, just a test.
 
@@ -67,8 +68,10 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                             table_name: ctx.dynamodb_table_name.clone(),
                             item: dynomite::attr_map! {
                                 constant::PK => unique_column_pk_sk.clone(),
-                                constant::SK => unique_column_pk_sk,
+                                constant::SK => unique_column_pk_sk.clone(),
                                 constant::ITEM_PK => pk.clone(),
+                                constant::INVERTED_INDEX_PK => pk.clone(),
+                                constant::INVERTED_INDEX_SK => unique_column_pk_sk,
                             },
                             condition_expression: Some("attribute_not_exists(#pk)".to_string()),
                             expression_attribute_names: Some(HashMap::from([(
