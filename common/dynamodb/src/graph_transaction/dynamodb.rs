@@ -57,7 +57,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
             {
                 // FIXME: unique_value_serialised()
                 let value = serde_json::to_string(&user_defined_item[field]).expect("must be a valid JSON");
-                let unique_column_pk_sk = format!("{ty}#{field}#{value}"); // FIXME: Obviously stupid, just a test.
+                let unique_column_pk_sk = format!("__C#{ty}#{field}#{value}");
 
                 node_transaction.push(TxItem {
                     pk: unique_column_pk_sk.clone(),
@@ -157,7 +157,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 }
 
                 let value = serde_json::to_string(&user_defined_item[field]).expect("must be a valid JSON");
-                let unique_column_pk_sk = format!("{ty}#{field}#{value}"); // FIXME: Obviously stupid, just a test.
+                let unique_column_pk_sk = format!("__C#{ty}#{field}#{value}");
 
                 node_transaction.push(TxItem {
                     pk: unique_column_pk_sk.clone(),
