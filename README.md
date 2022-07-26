@@ -18,3 +18,4 @@ Deploy globally fast GraphQL APIs with a top-notch developer experience.
 - <a href="https://grafbase.com/docs"><strong>Documentation</strong></a>
 - <strong>[Templates](templates)</strong>
 - <strong>[CLI](cli)</strong>
+- <strong>[Examples](examples)</strong>
