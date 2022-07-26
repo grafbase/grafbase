@@ -2,7 +2,7 @@
 
 [Join our Discord](https://discord.gg/grafbase)
 
-[![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
+[![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/template?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 </br>
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs) 
 
