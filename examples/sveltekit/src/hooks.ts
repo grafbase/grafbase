@@ -6,7 +6,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.userid = cookies['userid'] || crypto.randomUUID();
 
 	const response = await resolve(event);
-
 	if (!cookies['userid']) {
 		// if this is the first time the user has visited this app,
 		// set a cookie so that we recognise them when they return
