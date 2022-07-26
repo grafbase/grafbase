@@ -6,33 +6,12 @@
 </br>
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs) 
 
-## How to use
-
-You'll need to create a [New Project](https://grafbase.com/new) using your cloned repository
-based on this example.
-
-Then grab the production API Key and the Endpoint,
-rename your `.env.example` to `.env` and fill both properties. 
-
-<sub>* You must wait for the first deployment to be completed and successful</sub>
-
 ## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `src/pages/index.tsx`. The page auto-updates as you edit the file.
-
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/graphql](http://localhost:3000/api/graphql). This endpoint can be edited in `pages/api/graphql.ts`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+1. Run `npx degit grafbase/grafbase/examples/nextjs grafbase-with-nextjs` to clone this example
+2. [Deploy schema to Grafbase](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
+3. cp `.env.example .env` and provide your Grafbase API endpoint & API key
+4. Run `npm run dev` to install dependencies
+5. Run `npm run dev` and visit [`http://localhost:3000`](http://localhost:3000)
 
 ## Learn More About Grafbase
 
