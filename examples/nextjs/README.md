@@ -9,7 +9,7 @@
 ## Getting Started
 1. Run `npx degit grafbase/grafbase/examples/nextjs grafbase-with-nextjs` to clone this example
 2. [Deploy schema to Grafbase](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
-3. cp `.env.example .env` and provide your Grafbase API endpoint & API key
+3. `cp .env.example .env` and provide your Grafbase API endpoint & API key
 4. Run `npm run dev` to install dependencies
 5. Run `npm run dev` and visit [`http://localhost:3000`](http://localhost:3000)
 
