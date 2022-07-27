@@ -32,6 +32,17 @@ enum AuthProvider {
 #[serde(tag = "allow")]
 #[serde(deny_unknown_fields)]
 enum AuthRule {
+    /// Public data access
+    // Ex: { allow: anonymous }
+    #[serde(alias = "public")]
+    Anonymous,
+
+    // Signed-in user data access
+    // Ex: { allow: private }
+    Private,
+
+    /// User group-based data access
+    // Ex: { allow: groups, groups: ["admin"] }
     #[serde(rename_all = "camelCase")]
     Groups {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
@@ -152,19 +163,31 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
+            allow_anonymous_access: auth.rules.iter().any(|rule| match rule {
+                AuthRule::Anonymous => true,
+                _ => false,
+            }),
+
+            allow_private_access: auth.rules.iter().any(|rule| match rule {
+                AuthRule::Private => true,
+                _ => false,
+            }),
+
+            allowed_groups: auth
+                .rules
+                .iter()
+                .filter_map(|rule| match rule {
+                    AuthRule::Groups { groups } => Some(groups.clone()),
+                    _ => None,
+                })
+                .flatten()
+                .collect(),
+
             oidc_providers: auth
                 .providers
                 .iter()
                 .map(|provider| match provider {
                     AuthProvider::Oidc { issuer } => dynaql::OidcProvider { issuer: issuer.clone() },
-                })
-                .collect(),
-
-            allowed_groups: auth
-                .rules
-                .iter()
-                .flat_map(|rule| match rule {
-                    AuthRule::Groups { groups } => groups.clone(),
                 })
                 .collect(),
         }
@@ -179,10 +202,10 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_oidc_basic() {
+    fn test_anonymous_rule() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+              rules: [ { allow: anonymous } ]
             ){
               query: Boolean
             }
@@ -196,19 +219,19 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth.as_ref().unwrap(),
             &dynaql::Auth {
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
+                allow_anonymous_access: true,
+                allow_private_access: false,
                 allowed_groups: HashSet::new(),
+                oidc_providers: vec![],
             }
         );
     }
 
     #[test]
-    fn test_oidc_missing_field() {
+    fn test_private_rule() {
         let schema = r#"
             schema @auth(
-              providers: [ { type: oidc } ]
+              rules: [ { allow: private } ]
             ){
               query: Boolean
             }
@@ -218,10 +241,15 @@ mod tests {
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut AuthDirective, &mut ctx, &schema);
 
-        assert_eq!(ctx.errors.len(), 1);
+        assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth provider: missing field `issuer`",
+            ctx.registry.borrow().auth.as_ref().unwrap(),
+            &dynaql::Auth {
+                allow_anonymous_access: false,
+                allow_private_access: true,
+                allowed_groups: HashSet::new(),
+                oidc_providers: vec![],
+            }
         );
     }
 
@@ -244,6 +272,8 @@ mod tests {
             ctx.registry.borrow().auth.as_ref().unwrap(),
             &dynaql::Auth {
                 oidc_providers: vec![],
+                allow_anonymous_access: false,
+                allow_private_access: false,
                 allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
             }
         );
@@ -267,6 +297,55 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "auth rule: invalid entry: found duplicate value",
+        );
+    }
+
+    #[test]
+    fn test_oidc_basic() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth.as_ref().unwrap(),
+            &dynaql::Auth {
+                allow_anonymous_access: false,
+                allow_private_access: false,
+                allowed_groups: HashSet::new(),
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
+            }
+        );
+    }
+
+    #[test]
+    fn test_oidc_missing_field() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc } ]
+            ){
+              query: Boolean
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth provider: missing field `issuer`",
         );
     }
 }
