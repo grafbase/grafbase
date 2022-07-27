@@ -9,8 +9,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
 
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
+use crate::model::id::ID;
 use crate::paginated::{QueryResult, QueryValue};
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
@@ -69,8 +71,8 @@ impl Loader<QueryKey> for QueryLoader {
             exp_attr.insert("#pk".to_string(), self.index.pk());
 
             if edges_len > 0 {
-                exp_attr.insert("#relationname".to_string(), "__relation_names".to_string());
-                exp_attr.insert("#type".to_string(), "__type".to_string());
+                exp_attr.insert("#relationname".to_string(), RELATION_NAMES.to_string());
+                exp_attr.insert("#type".to_string(), TYPE.to_string());
             }
 
             let sk_string = if edges_len > 0 {
@@ -84,12 +86,9 @@ impl Loader<QueryKey> for QueryLoader {
                     })
                     .join(" OR ");
 
-                let ty_attr = query_key
-                    .pk
-                    .rsplit_once('#')
-                    .map(|x| x.0)
-                    .unwrap_or_else(|| "")
-                    .to_string()
+                let ty_attr = ID::from_borrowed(&query_key.pk)
+                    .map_err(|_| QueryLoaderError::UnknownError)?
+                    .ty()
                     .into_attr();
 
                 exp.insert(":type".to_string(), ty_attr);
@@ -125,11 +124,13 @@ impl Loader<QueryKey> for QueryLoader {
                             },
                         ),
                         |(query_key, mut acc), curr| async move {
-                            let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
-                            let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                            let relation_names = curr.get("__relation_names").and_then(|y| y.ss.clone());
+                            let pk = ID::from_borrowed(curr.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                                .expect("Can't fail");
+                            let sk = ID::from_borrowed(curr.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                                .expect("Can't fail");
+                            let relation_names = curr.get(RELATION_NAMES).and_then(|y| y.ss.clone());
 
-                            match acc.values.entry(pk.clone()) {
+                            match acc.values.entry(pk.to_string()) {
                                 Entry::Vacant(vac) => {
                                     let mut value = QueryValue {
                                         node: None,
@@ -138,7 +139,7 @@ impl Loader<QueryKey> for QueryLoader {
                                     };
 
                                     // If it's the entity
-                                    if sk.eq(pk) {
+                                    if sk.eq(&pk) {
                                         value.node = Some(curr.clone());
                                     } else if ConstraintID::try_from(sk).is_ok() {
                                         value.constraints.push(curr);
@@ -152,7 +153,7 @@ impl Loader<QueryKey> for QueryLoader {
                                     vac.insert(value);
                                 }
                                 Entry::Occupied(mut oqp) => {
-                                    if sk.eq(pk) {
+                                    if sk.eq(&pk) {
                                         oqp.get_mut().node = Some(curr);
                                     } else if ConstraintID::try_from(sk).is_ok() {
                                         oqp.get_mut().constraints.push(curr);

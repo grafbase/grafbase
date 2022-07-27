@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
 
+use crate::constant::{PK, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::DynamoDBContext;
 
@@ -40,14 +41,14 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         for (pk, sk) in keys {
             let mut h = HashMap::new();
             h.insert(
-                "__pk".to_string(),
+                PK.to_string(),
                 AttributeValue {
                     s: Some(pk.to_string()),
                     ..Default::default()
                 },
             );
             h.insert(
-                "__sk".to_string(),
+                SK.to_string(),
                 AttributeValue {
                     s: Some(sk.to_string()),
                     ..Default::default()
@@ -84,8 +85,8 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .ok_or(BatchGetItemLoaderError::UnknownError)?
             .into_iter()
             .fold(HashMap::new(), |mut acc, cur| {
-                let pk = cur.get("__pk").and_then(|x| x.s.clone()).unwrap();
-                let sk = cur.get("__sk").and_then(|x| x.s.clone()).unwrap();
+                let pk = cur.get(PK).and_then(|x| x.s.clone()).unwrap();
+                let sk = cur.get(SK).and_then(|x| x.s.clone()).unwrap();
                 acc.insert((pk, sk), cur);
                 acc
             });

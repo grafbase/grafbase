@@ -10,8 +10,10 @@ use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
 
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
+use crate::model::id::ID;
 use crate::paginated::{QueryResult, QueryValue};
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
@@ -42,12 +44,16 @@ pub struct QueryTypeKey {
 impl QueryTypeKey {
     pub fn new(r#type: String, mut edges: Vec<String>) -> Self {
         Self {
-            r#type,
+            r#type: r#type.to_lowercase(),
             edges: {
                 edges.sort();
                 edges
             },
         }
+    }
+
+    fn ty(&self) -> &String {
+        &self.r#type
     }
 }
 
@@ -73,15 +79,15 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
         let mut concurrent_f = vec![];
         for query_key in keys {
             let mut exp = dynomite::attr_map! {
-                ":pk" => query_key.r#type.clone(),
+                ":pk" => query_key.ty().clone(),
             };
             let edges_len = query_key.edges.len();
             let mut exp_att_name = HashMap::from([
                 ("#pk".to_string(), self.index.pk()),
-                ("#type".to_string(), "__type".to_string()),
+                ("#type".to_string(), TYPE.to_string()),
             ]);
             let sk_string = if edges_len > 0 {
-                exp_att_name.insert("#relationname".to_string(), "__relation_names".to_string());
+                exp_att_name.insert("#relationname".to_string(), RELATION_NAMES.to_string());
                 let edges = query_key
                     .edges
                     .iter()
@@ -91,7 +97,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         format!(" contains(#relationname, :relation{})", index)
                     })
                     .join(" OR ");
-                exp.insert(":type".to_string(), query_key.r#type.clone().into_attr());
+                exp.insert(":type".to_string(), query_key.ty().clone().into_attr());
                 Some(format!("begins_with(#type, :type) OR {edges}"))
             } else {
                 None
@@ -124,11 +130,13 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                             },
                         ),
                         |(query_key, mut acc), curr| async move {
-                            let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
-                            let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                            let relation_names = curr.get("__relation_names").and_then(|y| y.ss.clone());
+                            let pk = ID::from_borrowed(curr.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                                .expect("Can't fail");
+                            let sk = ID::from_borrowed(curr.get(SK).and_then(|y| y.s.as_ref()).expect("Can't fail"))
+                                .expect("Can't fail");
+                            let relation_names = curr.get(RELATION_NAMES).and_then(|y| y.ss.clone());
 
-                            match acc.values.entry(pk.clone()) {
+                            match acc.values.entry(pk.to_string()) {
                                 Entry::Vacant(vac) => {
                                     let mut value = QueryValue {
                                         node: None,
@@ -137,7 +145,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                     };
 
                                     // If it's the entity
-                                    if sk.starts_with(format!("{}#", &query_key.r#type).as_str()) {
+                                    if sk.ty() == *query_key.ty() {
                                         value.node = Some(curr.clone());
                                     } else if ConstraintID::try_from(sk).is_ok() {
                                         value.constraints.push(curr);
@@ -154,7 +162,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                     vac.insert(value);
                                 }
                                 Entry::Occupied(mut oqp) => {
-                                    if sk.starts_with(format!("{}#", &query_key.r#type).as_str()) {
+                                    if sk.ty() == *query_key.ty() {
                                         oqp.get_mut().node = Some(curr);
                                     } else if ConstraintID::try_from(sk).is_ok() {
                                         oqp.get_mut().constraints.push(curr);

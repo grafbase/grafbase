@@ -1,6 +1,8 @@
+use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
+use crate::model::id::ID;
 use crate::paginated::QueryValue;
 use crate::utils::ConvertExtension;
 use crate::{constant, QueryKey};
@@ -235,7 +237,7 @@ impl GetIds for InsertNodeInput {
     ///   - Insert the node
     ///   - Insert the constraints
     fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = format!("{}#{}", &self.ty, &self.id);
+        let pk = ID::new(&self.ty, &self.id).to_string();
 
         let mut result = HashMap::with_capacity(1 + self.constraints.len());
 
@@ -269,8 +271,8 @@ impl GetIds for InsertNodeInput {
 }
 
 impl GetIds for UpdateNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = format!("{}#{}", &self.ty, &self.id);
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+        let pk = ID::new(&self.ty, &self.id).to_string();
 
         let query_loader_reversed = &batchers.query_reversed;
 
@@ -294,7 +296,6 @@ impl GetIds for UpdateNodeInput {
                 if let Some((pk, sk, mut node)) = val.node.and_then(|mut node| {
                     let pk = node.remove("__pk").and_then(|x| x.s);
                     let sk = node.remove("__sk").and_then(|x| x.s);
-
                     match (pk, sk, node) {
                         (Some(pk), Some(sk), node) => Some((pk, sk, node)),
                         _ => None,
@@ -354,10 +355,10 @@ impl GetIds for UpdateNodeInput {
                             _ => None,
                         }
                     } {
-                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                        let from = ID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
-                        let from_ty = from_ty.to_owned();
-                        let from_id = from_id.to_owned();
+                        let from_ty = from.ty().to_string();
+                        let from_id = from.ulid().to_string();
 
                         result.insert(
                             (pk, sk),
@@ -377,13 +378,13 @@ impl GetIds for UpdateNodeInput {
 }
 
 impl GetIds for DeleteNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let id_to_be_deleted = format!("{}#{}", &self.ty, &self.id);
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+        let id_to_be_deleted = ID::new(&self.ty, &self.id);
         let query_loader = &batchers.query;
         let query_loader_reversed = &batchers.query_reversed;
 
-        let items_pk = query_loader.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
-        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted, Vec::new()));
+        let items_pk = query_loader.load_one(QueryKey::new(id_to_be_deleted.to_string(), Vec::new()));
+        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted.to_string(), Vec::new()));
 
         let items_to_be_deleted = futures_util::future::try_join_all(vec![items_pk, items_sk]).map_ok(|x| {
             x.into_iter()
@@ -392,6 +393,7 @@ impl GetIds for DeleteNodeInput {
                 .collect::<Vec<QueryValue>>()
         });
 
+        let id_to_be_deleted_string = id_to_be_deleted.to_string();
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
         Box::pin(async {
             let ids = items_to_be_deleted
@@ -411,7 +413,10 @@ impl GetIds for DeleteNodeInput {
                         _ => None,
                     }
                 }) {
-                    let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                    let from = ID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
+
+                    let from_ty = from.ty().to_string();
+                    let from_id = from.ulid().to_string();
 
                     result.insert(
                         (pk.clone(), sk),
@@ -432,13 +437,13 @@ impl GetIds for DeleteNodeInput {
                             _ => None,
                         }
                     } {
-                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
-                        let (to_ty, to_id) = sk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                        let from = ID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
+                        let to = ID::from_owned(sk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
-                        let from_ty = from_ty.to_owned();
-                        let from_id = from_id.to_owned();
-                        let to_ty = to_ty.to_owned();
-                        let to_id = to_id.to_owned();
+                        let from_ty = from.ty().to_string();
+                        let from_id = from.ulid().to_string();
+                        let to_ty = to.ty().to_string();
+                        let to_id = to.ulid().to_string();
 
                         result.insert(
                             (pk, sk),
@@ -477,8 +482,9 @@ impl GetIds for DeleteNodeInput {
 
 impl GetIds for LinkNodeCachedInput {
     fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = format!("{}#{}", &self.from_ty, &self.from_id);
-        let sk = format!("{}#{}", &self.to_ty, &self.to_id);
+        let pk = ID::new(&self.from_ty, &self.from_id).to_string();
+        let sk = ID::new(&self.to_ty, &self.to_id).to_string();
+
         Box::pin(async {
             Ok(HashMap::from([(
                 (pk, sk),
@@ -497,8 +503,9 @@ impl GetIds for LinkNodeCachedInput {
 
 impl GetIds for LinkNodeNoCacheInput {
     fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = format!("{}#{}", &self.from_ty, &self.from_id);
-        let sk = format!("{}#{}", &self.to_ty, &self.to_id);
+        let pk = ID::new(&self.from_ty, &self.from_id).to_string();
+        let sk = ID::new(&self.to_ty, &self.to_id).to_string();
+
         Box::pin(async {
             let query_loader = &batchers.loader;
             let node = query_loader
@@ -533,8 +540,9 @@ impl GetIds for LinkNodeInput {
 
 impl GetIds for UnlinkNodeInput {
     fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = format!("{}#{}", &self.from_ty, &self.from_id);
-        let sk = format!("{}#{}", &self.to_ty, &self.to_id);
+        let pk = ID::new(&self.from_ty, &self.from_id).to_string();
+        let sk = ID::new(&self.to_ty, &self.to_id).to_string();
+
         Box::pin(async {
             let loader = &batchers.loader;
             let node = loader
@@ -789,7 +797,7 @@ impl UpdateRelationInternalInput {
         let update_relation_expressions = if relation_names.is_empty() {
             String::new()
         } else {
-            exp_names.insert("#relation_names".to_string(), "__relation_names".to_string());
+            exp_names.insert("#relation_names".to_string(), RELATION_NAMES.to_string());
             let (removed, added): (Vec<String>, Vec<String>) =
                 relation_names.into_iter().partition_map(|relation| match relation {
                     UpdateRelation::Add(a) => itertools::Either::Right(a),
