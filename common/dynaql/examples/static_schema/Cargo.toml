@@ -10,5 +10,5 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 async-graphql = { version = "3" }
-worker = "0.0.9"
+worker = "0.0.10"
 serde_json = "1"

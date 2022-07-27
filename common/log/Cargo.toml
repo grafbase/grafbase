@@ -11,12 +11,12 @@ futures-util = { version = "0.3", default-features = false, features = [
 ] }
 log_ = { package = "log", version = "0.4" }
 maplit = "1"
-sentry-cf-worker = { git = "https://github.com/grafbase/sentry-rust", branch = "stable", optional = true }
+sentry-cf-worker = { git = "https://github.com/grafbase/sentry-rust", branch = "worker-0-10", optional = true }
 serde = { version = "1", features = ["derive"] }
 strum = { version = "0.24", features = ["derive"] }
 thiserror = "1"
 wasm-timer = "0.2"
-worker = { version = "0.0.9", optional = true }
+worker = { version = "0.0.10", optional = true }
 
 [features]
 with-worker = ["sentry-cf-worker", "worker"]
