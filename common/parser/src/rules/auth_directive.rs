@@ -76,7 +76,7 @@ impl<'a> Visitor<'a> for AuthDirective {
         {
             match (&directive.node).try_into() as Result<Auth, ServerError> {
                 Ok(auth) => {
-                    ctx.registry.get_mut().auth = Some(auth.into());
+                    ctx.registry.get_mut().auth = auth.into();
                 }
                 Err(err) => {
                     ctx.report_error(vec![directive.pos], err.message);
@@ -163,15 +163,9 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
-            allow_anonymous_access: auth.rules.iter().any(|rule| match rule {
-                AuthRule::Anonymous => true,
-                _ => false,
-            }),
+            allow_anonymous_access: auth.rules.iter().any(|rule| matches!(rule, AuthRule::Anonymous)),
 
-            allow_private_access: auth.rules.iter().any(|rule| match rule {
-                AuthRule::Private => true,
-                _ => false,
-            }),
+            allow_private_access: auth.rules.iter().any(|rule| matches!(rule, AuthRule::Private)),
 
             allowed_groups: auth
                 .rules
@@ -217,8 +211,8 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap(),
-            &dynaql::Auth {
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
                 allow_anonymous_access: true,
                 allow_private_access: false,
                 allowed_groups: HashSet::new(),
@@ -243,8 +237,8 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap(),
-            &dynaql::Auth {
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
                 allow_anonymous_access: false,
                 allow_private_access: true,
                 allowed_groups: HashSet::new(),
@@ -269,8 +263,8 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap(),
-            &dynaql::Auth {
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
                 oidc_providers: vec![],
                 allow_anonymous_access: false,
                 allow_private_access: false,
@@ -316,8 +310,8 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(
-            ctx.registry.borrow().auth.as_ref().unwrap(),
-            &dynaql::Auth {
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
                 allow_anonymous_access: false,
                 allow_private_access: false,
                 allowed_groups: HashSet::new(),

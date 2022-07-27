@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct Auth {
     pub allow_anonymous_access: bool,
 
@@ -12,7 +12,19 @@ pub struct Auth {
     pub oidc_providers: Vec<OidcProvider>,
 }
 
-#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+}
+
+#[allow(clippy::derivable_impls)]
+impl Default for Auth {
+    fn default() -> Self {
+        Auth {
+            allow_anonymous_access: false,
+            allow_private_access: false,
+            allowed_groups: HashSet::new(),
+            oidc_providers: vec![],
+        }
+    }
 }

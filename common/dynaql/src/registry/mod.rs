@@ -723,7 +723,7 @@ pub struct Registry {
     pub disable_introspection: bool,
     pub enable_federation: bool,
     pub federation_subscription: bool,
-    pub auth: Option<Auth>,
+    pub auth: Auth,
 }
 
 impl Registry {
