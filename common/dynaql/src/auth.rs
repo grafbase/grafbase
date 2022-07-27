@@ -17,11 +17,10 @@ pub struct OidcProvider {
     pub issuer: url::Url,
 }
 
-#[allow(clippy::derivable_impls)]
 impl Default for Auth {
     fn default() -> Self {
         Auth {
-            allow_anonymous_access: false,
+            allow_anonymous_access: true,
             allow_private_access: false,
             allowed_groups: HashSet::new(),
             oidc_providers: vec![],

@@ -163,7 +163,7 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
-            allow_anonymous_access: auth.rules.iter().any(|rule| matches!(rule, AuthRule::Anonymous)),
+            allow_anonymous_access: true,
 
             allow_private_access: auth.rules.iter().any(|rule| matches!(rule, AuthRule::Private)),
 
@@ -194,6 +194,30 @@ mod tests {
     use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_no_directive() {
+        let schema = r#"
+            schema {
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
+                allow_anonymous_access: true,
+                allow_private_access: false,
+                allowed_groups: HashSet::new(),
+                oidc_providers: vec![],
+            }
+        );
+    }
 
     #[test]
     fn test_anonymous_rule() {
@@ -239,7 +263,7 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                allow_anonymous_access: false,
+                allow_anonymous_access: true,
                 allow_private_access: true,
                 allowed_groups: HashSet::new(),
                 oidc_providers: vec![],
@@ -265,10 +289,10 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                oidc_providers: vec![],
-                allow_anonymous_access: false,
+                allow_anonymous_access: true,
                 allow_private_access: false,
                 allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+                oidc_providers: vec![],
             }
         );
     }
@@ -312,7 +336,7 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                allow_anonymous_access: false,
+                allow_anonymous_access: true,
                 allow_private_access: false,
                 allowed_groups: HashSet::new(),
                 oidc_providers: vec![dynaql::OidcProvider {

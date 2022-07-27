@@ -1,10 +1,15 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 116
+assertion_line: 117
 expression: reg_string
 ---
 {
-  "auth": null,
+  "auth": {
+    "allow_anonymous_access": true,
+    "allow_private_access": false,
+    "allowed_groups": [],
+    "oidc_providers": []
+  },
   "directives": {
     "include": {
       "args": {
