@@ -207,7 +207,7 @@ mod tests {
             schema @auth(
               rules: [ { allow: anonymous } ]
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
@@ -233,7 +233,7 @@ mod tests {
             schema @auth(
               rules: [ { allow: private } ]
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
@@ -259,7 +259,7 @@ mod tests {
             schema @auth(
               rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
@@ -285,7 +285,7 @@ mod tests {
             schema @auth(
               rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
@@ -306,7 +306,7 @@ mod tests {
             schema @auth(
               providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
@@ -334,7 +334,7 @@ mod tests {
             schema @auth(
               providers: [ { type: oidc } ]
             ){
-              query: Boolean
+              query: Query
             }
             "#;
 
