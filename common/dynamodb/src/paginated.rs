@@ -1,5 +1,6 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
+use crate::model::constraint::db::ConstraintID;
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
 use futures::TryFutureExt;
@@ -128,6 +129,8 @@ pub trait DynamoDbExtPaginated {
 pub struct QueryValue {
     pub node: Option<HashMap<String, AttributeValue>>,
     pub edges: IndexMap<String, Vec<HashMap<String, AttributeValue>>>,
+    /// Constraints are other kind of row we can store, it'll add data over a node
+    pub constraints: Vec<HashMap<String, AttributeValue>>,
 }
 
 #[derive(Debug, Clone)]
@@ -257,12 +260,15 @@ where
 
                             let mut value = QueryValue {
                                 node: None,
+                                constraints: Vec::new(),
                                 edges: IndexMap::with_capacity(5),
                             };
 
                             // If it's the entity
                             if sk.starts_with(format!("{}#", &node).as_str()) {
-                                value.node = Some(x.clone());
+                                value.node = Some(x);
+                            } else if ConstraintID::try_from(sk).is_ok() {
+                                value.constraints.push(x);
                             // If it's a relation
                             } else if let Some(edge) = edges
                                 .iter()
@@ -274,8 +280,12 @@ where
                             vac.insert(value);
                         }
                         Entry::Occupied(mut oqp) => {
+                            // If it's a relation
                             if sk.starts_with(format!("{}#", &node).as_str()) {
                                 oqp.get_mut().node = Some(x);
+                                continue;
+                            } else if ConstraintID::try_from(sk).is_ok() {
+                                oqp.get_mut().constraints.push(x);
                                 continue;
                             }
 

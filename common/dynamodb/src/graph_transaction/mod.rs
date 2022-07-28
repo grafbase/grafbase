@@ -1,4 +1,7 @@
+use crate::constant::PK;
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::constraint::ConstraintDefinition;
+use crate::paginated::QueryValue;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
@@ -38,7 +41,7 @@ pub struct InsertNodeInput {
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
-    constraints: Vec<Constraint>,
+    constraints: Vec<ConstraintDefinition>,
 }
 
 impl PartialEq for InsertNodeInput {
@@ -63,7 +66,7 @@ pub struct UpdateNodeInput {
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
-    constraints: Vec<Constraint>,
+    constraints: Vec<ConstraintDefinition>,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -158,7 +161,7 @@ impl PossibleChanges {
         ty: String,
         id: String,
         user_defined_item: HashMap<String, AttributeValue>,
-        constraints: Vec<Constraint>,
+        constraints: Vec<ConstraintDefinition>,
     ) -> Self {
         Self::InsertNode(InsertNodeInput {
             id,
@@ -172,7 +175,7 @@ impl PossibleChanges {
         ty: String,
         id: String,
         user_defined_item: HashMap<String, AttributeValue>,
-        constraints: Vec<Constraint>,
+        constraints: Vec<ConstraintDefinition>,
     ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
@@ -341,23 +344,8 @@ impl GetIds for DeleteNodeInput {
         let items_to_be_deleted = futures_util::future::try_join_all(vec![items_pk, items_sk]).map_ok(|x| {
             x.into_iter()
                 .flatten()
-                .flat_map(|x| {
-                    x.values.into_iter().flat_map(|(_, y)| {
-                        y.node
-                            .into_iter()
-                            .chain(y.edges.into_iter().flat_map(|(_, val)| val.into_iter()))
-                    })
-                })
-                .filter_map(|mut x| {
-                    let pk = x.remove("__pk").and_then(|x| x.s);
-                    let sk = x.remove("__sk").and_then(|x| x.s);
-
-                    match (pk, sk) {
-                        (Some(pk), Some(sk)) => Some((pk, sk)),
-                        _ => None,
-                    }
-                })
-                .collect::<Vec<(String, String)>>()
+                .flat_map(|x| x.values.into_iter().map(|(_, val)| val))
+                .collect::<Vec<QueryValue>>()
         });
 
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
@@ -368,36 +356,77 @@ impl GetIds for DeleteNodeInput {
 
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
-            result.insert(
-                (id_to_be_deleted.clone(), id_to_be_deleted),
-                InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
-                    id: self.id,
-                    ty: self.ty,
-                })),
-            );
 
-            for (pk, sk) in ids.into_iter().filter(|(pk, sk)| pk != sk) {
-                info!(ctx.trace_id, "{} {}", &pk, &sk);
-                let (from_ty, from_id) = pk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
-                let (to_ty, to_id) = sk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+            for val in ids.into_iter() {
+                if let Some((pk, sk)) = val.node.and_then(|mut node| {
+                    let pk = node.remove("__pk").and_then(|x| x.s);
+                    let sk = node.remove("__sk").and_then(|x| x.s);
 
-                let from_ty = from_ty.to_owned();
-                let from_id = from_id.to_owned();
-                let to_ty = to_ty.to_owned();
-                let to_id = to_id.to_owned();
+                    match (pk, sk) {
+                        (Some(pk), Some(sk)) => Some((pk, sk)),
+                        _ => None,
+                    }
+                }) {
+                    let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
 
-                result.insert(
-                    (pk, sk),
-                    InternalChanges::Relation(InternalRelationChanges::Delete(DeleteRelationInternalInput::All(
-                        DeleteAllRelationsInternalInput {
-                            from_id,
-                            from_ty,
-                            to_id,
-                            to_ty,
-                            relation_names: None,
-                        },
-                    ))),
-                );
+                    result.insert(
+                        (pk.clone(), sk),
+                        InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
+                            id: from_id.to_string(),
+                            ty: from_ty.to_string(),
+                        })),
+                    );
+                }
+
+                for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
+                    if let Some((pk, sk)) = {
+                        let pk = relation.remove("__pk").and_then(|x| x.s);
+                        let sk = relation.remove("__sk").and_then(|x| x.s);
+
+                        match (pk, sk) {
+                            (Some(pk), Some(sk)) => Some((pk, sk)),
+                            _ => None,
+                        }
+                    } {
+                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                        let (to_ty, to_id) = sk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+
+                        let from_ty = from_ty.to_owned();
+                        let from_id = from_id.to_owned();
+                        let to_ty = to_ty.to_owned();
+                        let to_id = to_id.to_owned();
+
+                        result.insert(
+                            (pk, sk),
+                            InternalChanges::Relation(InternalRelationChanges::Delete(
+                                DeleteRelationInternalInput::All(DeleteAllRelationsInternalInput {
+                                    from_id,
+                                    from_ty,
+                                    to_id,
+                                    to_ty,
+                                    relation_names: None,
+                                }),
+                            )),
+                        );
+                    }
+                }
+
+                for mut constraint in val.constraints.into_iter() {
+                    let pk = constraint.remove("__pk").and_then(|x| x.s);
+                    let sk = constraint.remove("__sk").and_then(|x| x.s);
+
+                    match (pk, sk) {
+                        (Some(pk), Some(sk)) => {
+                            result.insert(
+                                (pk, sk),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                    DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                                )),
+                            );
+                        }
+                        _ => (),
+                    };
+                }
             }
 
             Ok(result)
@@ -562,17 +591,6 @@ where
     ) -> ToTransactionFuture<'a>;
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ConstraintType {
-    Unique,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Constraint {
-    pub field: String,
-    pub r#type: ConstraintType,
-}
-
 #[derive(Clone, Derivative, PartialEq)]
 #[derivative(Debug)]
 pub struct InsertNodeInternalInput {
@@ -580,8 +598,7 @@ pub struct InsertNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
-    #[derivative(Debug = "ignore")]
-    pub constraints: Vec<Constraint>,
+    pub constraints: Vec<ConstraintDefinition>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -592,7 +609,7 @@ pub struct UpdateNodeInternalInput {
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
-    pub constraints: Vec<Constraint>,
+    pub constraints: Vec<ConstraintDefinition>,
 }
 
 impl UpdateNodeInternalInput {
@@ -779,11 +796,26 @@ pub enum InternalNodeChanges {
     Delete(DeleteNodeInternalInput), // Unknow affected ids
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+/// Delete every constraint of a Node
+pub struct DeleteUnitNodeConstraintInput {}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum DeleteNodeConstraintInternalInput {
+    Unit(DeleteUnitNodeConstraintInput),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InternalNodeConstraintChanges {
+    Delete(DeleteNodeConstraintInternalInput), // Unknow affected ids
+}
+
 /// Private interface
 #[derive(Debug, PartialEq, Clone)]
 pub enum InternalChanges {
     Node(InternalNodeChanges),
     Relation(InternalRelationChanges),
+    NodeConstraints(InternalNodeConstraintChanges),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1058,11 +1090,23 @@ impl InternalRelationChanges {
 impl InternalChanges {
     pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
-            (Self::Node(_), Self::Relation(_)) | (Self::Relation(_), Self::Node(_)) => {
-                Err(PossibleChangesInternalError::NodeAndRelationCompare)
-            }
+            (Self::Node(_), Self::Relation(_))
+            | (Self::Node(_), Self::NodeConstraints(_))
+            | (Self::NodeConstraints(_), Self::Node(_))
+            | (Self::NodeConstraints(_), Self::Relation(_))
+            | (Self::Relation(_), Self::NodeConstraints(_))
+            | (Self::Relation(_), Self::Node(_)) => Err(PossibleChangesInternalError::NodeAndRelationCompare),
             (Self::Relation(a), Self::Relation(b)) => a.with(b).map(Self::Relation),
+            (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
+            (Self::NodeConstraints(a), Self::NodeConstraints(b)) => a.with(b).map(Self::NodeConstraints),
+        }
+    }
+}
+
+impl InternalNodeConstraintChanges {
+    pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
+        match (self, other) {
+            (Self::Delete(a), Self::Delete(_)) => Ok(Self::Delete(a)),
         }
     }
 }

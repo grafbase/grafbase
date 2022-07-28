@@ -103,6 +103,7 @@ impl Loader<QueryKey> for QueryLoader {
                             Entry::Vacant(vacant) => {
                                 let mut value = QueryValue {
                                     node: None,
+                                    constraints: Vec::new(),
                                     edges: IndexMap::with_capacity(5),
                                 };
 

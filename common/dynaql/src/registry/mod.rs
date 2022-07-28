@@ -209,7 +209,7 @@ pub struct Constraint {
     pub r#type: ConstraintType,
 }
 
-impl From<Constraint> for dynamodb::Constraint {
+impl From<Constraint> for dynamodb::ConstraintDefinition {
     fn from(Constraint { field, r#type }: Constraint) -> Self {
         Self {
             field,

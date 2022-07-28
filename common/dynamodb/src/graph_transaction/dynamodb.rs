@@ -1,11 +1,12 @@
-use super::{Constraint, ConstraintType};
 use super::{
-    DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeInternalInput,
-    DeleteRelationInternalInput, ExecuteChangesOnDatabase, InsertNodeInternalInput, InsertRelationInternalInput,
-    InternalChanges, InternalNodeChanges, InternalRelationChanges, ToTransactionError, ToTransactionFuture,
+    DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeConstraintInternalInput,
+    DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
+    InsertNodeInternalInput, InsertRelationInternalInput, InternalChanges, InternalNodeChanges,
+    InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError, ToTransactionFuture,
     UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
 };
 use crate::constant;
+use crate::model::constraint::{ConstraintDefinition, ConstraintType};
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::Utc;
@@ -50,7 +51,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
 
             let mut node_transaction = vec![];
 
-            for Constraint {
+            for ConstraintDefinition {
                 field,
                 r#type: ConstraintType::Unique,
             } in &constraints
@@ -58,7 +59,6 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                 // FIXME: unique_value_serialised()
                 let value = serde_json::to_string(&user_defined_item[field]).expect("must be a valid JSON");
                 let unique_column_pk_sk = format!("__C#{ty}#{field}#{value}");
-
                 node_transaction.push(TxItem {
                     pk: unique_column_pk_sk.clone(),
                     sk: unique_column_pk_sk.clone(),
@@ -147,7 +147,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let mut node_transaction = vec![];
 
             // FIXME: Generalise once we have more kinds of constraints.
-            for Constraint {
+            for ConstraintDefinition {
                 field,
                 r#type: ConstraintType::Unique,
             } in &constraints
@@ -549,6 +549,80 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
     }
 }
 
+impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        Box::pin(async {
+            let key = dynomite::attr_map! {
+                    constant::PK => pk.clone(),
+                    constant::SK => sk.clone(),
+            };
+
+            let exp_att_names = HashMap::from([
+                ("#pk".to_string(), constant::PK.to_string()),
+                ("#sk".to_string(), constant::SK.to_string()),
+            ]);
+
+            let delete_transaction = Delete {
+                table_name: ctx.dynamodb_table_name.clone(),
+                condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                key,
+                expression_attribute_names: Some(exp_att_names),
+                ..Default::default()
+            };
+
+            let node_transaction = TxItem {
+                pk,
+                sk,
+                relation_name: None,
+                transaction: TransactWriteItem {
+                    delete: Some(delete_transaction),
+                    ..Default::default()
+                },
+            };
+
+            batchers
+                .transaction
+                .load_many(vec![node_transaction])
+                .await
+                .map_err(ToTransactionError::TransactionError)
+        })
+    }
+}
+
+impl ExecuteChangesOnDatabase for DeleteNodeConstraintInternalInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Unit(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
+impl ExecuteChangesOnDatabase for InternalNodeConstraintChanges {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
 impl ExecuteChangesOnDatabase for InternalRelationChanges {
     fn to_transaction<'a>(
         self,
@@ -598,6 +672,7 @@ impl ExecuteChangesOnDatabase for InternalChanges {
         match self {
             Self::Node(a) => a.to_transaction(batchers, ctx, pk, sk),
             Self::Relation(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::NodeConstraints(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }
