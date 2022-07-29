@@ -12,10 +12,15 @@ const AUTH_DIRECTIVE: &str = "auth";
 
 pub struct AuthDirective;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 struct Auth {
+    allow_anonymous_access: bool,
+
+    allow_private_access: bool,
+
+    allowed_groups: HashSet<String>,
+
     providers: Vec<AuthProvider>,
-    rules: Vec<AuthRule>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,7 +121,45 @@ impl TryFrom<&ConstDirective> for Auth {
             None => Vec::new(),
         };
 
-        Ok(Auth { providers, rules })
+        let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private));
+
+        let allowed_groups: HashSet<_> = rules
+            .iter()
+            .filter_map(|rule| match rule {
+                AuthRule::Groups { groups } => Some(groups.clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+
+        if allow_private_access && !allowed_groups.is_empty() {
+            return Err(ServerError::new(
+                "auth rules `private` and `groups` cannot be used together",
+                pos,
+            ));
+        }
+
+        if providers.is_empty() {
+            if allow_private_access {
+                return Err(ServerError::new(
+                    "auth rule `private` requires provider of type `oidc` to be configured",
+                    pos,
+                ));
+            }
+            if !allowed_groups.is_empty() {
+                return Err(ServerError::new(
+                    "auth rule `groups` requires provider of type `oidc` to be configured",
+                    pos,
+                ));
+            }
+        }
+
+        Ok(Auth {
+            allow_anonymous_access: true,
+            allow_private_access,
+            allowed_groups,
+            providers,
+        })
     }
 }
 
@@ -163,20 +206,9 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
-            allow_anonymous_access: true,
-
-            allow_private_access: auth.rules.iter().any(|rule| matches!(rule, AuthRule::Private)),
-
-            allowed_groups: auth
-                .rules
-                .iter()
-                .filter_map(|rule| match rule {
-                    AuthRule::Groups { groups } => Some(groups.clone()),
-                    _ => None,
-                })
-                .flatten()
-                .collect(),
-
+            allow_anonymous_access: auth.allow_anonymous_access,
+            allow_private_access: auth.allow_private_access,
+            allowed_groups: auth.allowed_groups,
             oidc_providers: auth
                 .providers
                 .iter()
@@ -233,6 +265,7 @@ mod tests {
     fn test_private_rule() {
         let schema = r#"
             schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
               rules: [ { allow: private } ]
             ){
               query: Query
@@ -248,6 +281,9 @@ mod tests {
             ctx.registry.borrow().auth,
             dynaql::Auth {
                 allow_private_access: true,
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
                 ..Default::default()
             }
         );
@@ -257,6 +293,7 @@ mod tests {
     fn test_groups_rule() {
         let schema = r#"
             schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
               rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
             ){
               query: Query
@@ -272,13 +309,16 @@ mod tests {
             ctx.registry.borrow().auth,
             dynaql::Auth {
                 allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
                 ..Default::default()
             }
         );
     }
 
     #[test]
-    fn test_groups_rule_duplicate_group() {
+    fn test_groups_rule_with_duplicate_group() {
         let schema = r#"
             schema @auth(
               rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
@@ -299,7 +339,31 @@ mod tests {
     }
 
     #[test]
-    fn test_oidc_basic() {
+    fn test_incompatible_rules() {
+        let schema = r#"
+            schema @auth(
+              rules: [
+                { allow: groups, groups: ["admin"] },
+                { allow: private }
+              ]
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rules `private` and `groups` cannot be used together",
+        );
+    }
+
+    #[test]
+    fn test_oidc_without_rule() {
         let schema = r#"
             schema @auth(
               providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
@@ -325,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn test_oidc_missing_field() {
+    fn test_oidc_with_missing_field() {
         let schema = r#"
             schema @auth(
               providers: [ { type: oidc } ]
