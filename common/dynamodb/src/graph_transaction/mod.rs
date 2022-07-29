@@ -1,7 +1,9 @@
 use crate::constant::PK;
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::constraint::ConstraintDefinition;
+use crate::model::constraint::db::ConstraintID;
+use crate::model::constraint::{ConstraintDefinition, ConstraintType};
 use crate::paginated::QueryValue;
+use crate::utils::ConvertExtension;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
@@ -12,6 +14,7 @@ use futures::Future;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
 use log::info;
+use serde_json::Value;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -237,20 +240,40 @@ where
 }
 
 impl GetIds for InsertNodeInput {
+    /// For a InsertNode we'll need to:
+    ///   - Insert the node
+    ///   - Insert the constraints
     fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = format!("{}#{}", &self.ty, &self.id);
 
-        Box::pin(async {
-            Ok(HashMap::from([(
-                (pk.clone(), pk),
-                InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
-                    id: self.id,
-                    ty: self.ty,
-                    user_defined_item: self.user_defined_item,
-                    constraints: self.constraints,
-                })),
-            )]))
-        })
+        let mut result = HashMap::with_capacity(1 + self.constraints.len());
+
+        for ConstraintDefinition {
+            field,
+            r#type: ConstraintType::Unique,
+        } in self.constraints
+        {
+            if let Some(value) = self.user_defined_item.get(&field) {
+                let contraint_id = ConstraintID::from_owned(self.ty.clone(), field, value.clone().into_json());
+                result.insert(
+                    (contraint_id.to_string(), contraint_id.to_string()),
+                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint { target: pk.clone() }),
+                    )),
+                );
+            }
+        }
+
+        result.insert(
+            (pk.clone(), pk),
+            InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
+                id: self.id,
+                ty: self.ty,
+                user_defined_item: self.user_defined_item,
+            })),
+        );
+
+        Box::pin(async { Ok(result) })
     }
 }
 
@@ -570,6 +593,12 @@ pub enum ToTransactionError {
     GetItemError(#[from] BatchGetItemLoaderError),
     #[error("{0}")]
     TransactionError(#[from] TransactionError),
+    #[error("Unique value {value} on field {field} already exist, you can't use it.")]
+    UniqueCondition {
+        source: TransactionError,
+        value: String,
+        field: String,
+    },
 }
 
 pub trait ExecuteChangesOnDatabase
@@ -598,7 +627,6 @@ pub struct InsertNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
-    pub constraints: Vec<ConstraintDefinition>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -805,8 +833,21 @@ pub enum DeleteNodeConstraintInternalInput {
     Unit(DeleteUnitNodeConstraintInput),
 }
 
+#[derive(Clone, Derivative, PartialEq, Eq)]
+#[derivative(Debug)]
+pub struct InsertUniqueConstraint {
+    /// The unique constraint target one Entity
+    target: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InsertNodeConstraintInternalInput {
+    Unique(InsertUniqueConstraint),
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum InternalNodeConstraintChanges {
+    Insert(InsertNodeConstraintInternalInput),
     Delete(DeleteNodeConstraintInternalInput), // Unknow affected ids
 }
 
@@ -836,7 +877,6 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
     type Output = InsertNodeInternalInput;
 
     fn add(self, rhs: InsertNodeInternalInput) -> Self::Output {
-        assert_eq!(self.constraints, rhs.constraints);
         Self::Output {
             id: self.id,
             ty: self.ty,
@@ -845,7 +885,6 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
-            constraints: self.constraints,
         }
     }
 }
@@ -1106,6 +1145,15 @@ impl InternalChanges {
 impl InternalNodeConstraintChanges {
     pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
+            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => {
+                todo!("Should be an update it's the same kind and addition or deletion if different")
+            }
+            // You can only have one unicity constraint value per node? NOwhat about array?
+            (
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(a)),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(b)),
+            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(a))),
+            // TODO: Need to add addition
             (Self::Delete(a), Self::Delete(_)) => Ok(Self::Delete(a)),
         }
     }
