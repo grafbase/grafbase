@@ -51,16 +51,10 @@ enum AuthRule {
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
-    // FIXME: this snippet is parsed, but not enforced by the server, why?
+    // This snippet is parsed, but not enforced by the server, which is why we
+    // don't bother adding detailed types here.
     fn directives(&self) -> String {
-        r#"
-        directive @auth(providers: [AuthProviderDefinition!]!) on SCHEMA
-        input AuthProviderDefinition {
-          type: String!
-          issuer: String!
-        }
-        "#
-        .to_string()
+        "directive @auth on SCHEMA".to_string()
     }
 
     fn enter_schema(
