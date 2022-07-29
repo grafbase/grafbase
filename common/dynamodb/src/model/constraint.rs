@@ -37,6 +37,10 @@ pub mod db {
         pub fn field(&self) -> &str {
             self.field.borrow()
         }
+
+        pub fn ty(&self) -> &str {
+            self.ty.borrow()
+        }
     }
 
     #[derive(thiserror::Error, Debug)]
