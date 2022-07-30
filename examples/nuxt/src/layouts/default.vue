@@ -1,7 +1,7 @@
 <template>
   <div>
     <Head>
-      <Title>Nuxt.js - Todo Example - Grafbase</Title>
+      <Title>Nuxt - Todo Example - Grafbase</Title>
       <Meta
         name="description"
         content="Todo Example leveraging the Grafbase platform"
