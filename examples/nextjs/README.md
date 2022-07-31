@@ -28,4 +28,4 @@ To learn more about Next.js, take a look at the following resources:
 
 ### Run on Codesandbox
 
-[![Develop with Codesandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://github.com/grafbase/grafbase/tree/main/examples/nextjs)
+[![Develop with Codesandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/grafbase/grafbase/tree/main/examples/nextjs)
