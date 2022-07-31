@@ -4,7 +4,7 @@
 
 [![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 </br>
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nextjs)
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/nuxt)
 
 ## Getting Started
 
@@ -28,4 +28,4 @@ To learn more about Nuxt 3, take a look at the following resources:
 
 ### Run on CodeSandbox
 
-[![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/nuxtjs)
+[![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/nuxt)
