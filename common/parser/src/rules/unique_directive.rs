@@ -91,4 +91,24 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
     }
+
+    #[test]
+    fn test_not_usable_on_collection() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                name: [String]! @unique
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut UniqueDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "The @unique directive cannot be used on collections",
+        );
+    }
 }
