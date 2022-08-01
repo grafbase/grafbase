@@ -1,9 +1,9 @@
 use super::visitor::{Visitor, VisitorContext};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use if_chain::if_chain;
+
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+
 
 const UNIQUE_DIRECTIVE: &str = "unique";
 

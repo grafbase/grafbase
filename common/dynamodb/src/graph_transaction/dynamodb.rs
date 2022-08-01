@@ -7,7 +7,7 @@ use super::{
 };
 use crate::constant;
 use crate::model::constraint::db::ConstraintID;
-use crate::model::constraint::{ConstraintDefinition, ConstraintType};
+
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::Utc;
@@ -526,7 +526,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
         batchers: &'a DynamoDBBatchersData,
         ctx: &'a DynamoDBContext,
         pk: String,
-        sk: String,
+        _sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
             /// A Unique directive is a Constraint on a specific field

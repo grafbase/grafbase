@@ -1,4 +1,3 @@
-use crate::constant::PK;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
@@ -14,7 +13,7 @@ use futures::Future;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
 use log::info;
-use serde_json::Value;
+
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -278,7 +277,7 @@ impl GetIds for InsertNodeInput {
 }
 
 impl GetIds for UpdateNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = format!("{}#{}", &self.ty, &self.id);
 
         let query_loader_reversed = &batchers.query_reversed;
@@ -364,12 +363,9 @@ impl GetIds for UpdateNodeInput {
                         }
                     } {
                         let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
-                        let (to_ty, to_id) = sk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
 
                         let from_ty = from_ty.to_owned();
                         let from_id = from_id.to_owned();
-                        let to_ty = to_ty.to_owned();
-                        let to_id = to_id.to_owned();
 
                         result.insert(
                             (pk, sk),
@@ -389,13 +385,13 @@ impl GetIds for UpdateNodeInput {
 }
 
 impl GetIds for DeleteNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let id_to_be_deleted = format!("{}#{}", &self.ty, &self.id);
         let query_loader = &batchers.query;
         let query_loader_reversed = &batchers.query_reversed;
 
         let items_pk = query_loader.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
-        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
+        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted, Vec::new()));
 
         let items_to_be_deleted = futures_util::future::try_join_all(vec![items_pk, items_sk]).map_ok(|x| {
             x.into_iter()
@@ -413,7 +409,7 @@ impl GetIds for DeleteNodeInput {
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
 
-            for val in ids.into_iter() {
+            for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
                     let pk = node.remove("__pk").and_then(|x| x.s);
                     let sk = node.remove("__sk").and_then(|x| x.s);
@@ -467,21 +463,18 @@ impl GetIds for DeleteNodeInput {
                     }
                 }
 
-                for mut constraint in val.constraints.into_iter() {
+                for mut constraint in val.constraints {
                     let pk = constraint.remove("__pk").and_then(|x| x.s);
                     let sk = constraint.remove("__sk").and_then(|x| x.s);
 
-                    match (pk, sk) {
-                        (Some(pk), Some(sk)) => {
-                            result.insert(
-                                (pk, sk),
-                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
-                                    DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
-                                )),
-                            );
-                        }
-                        _ => (),
-                    };
+                    if let (Some(pk), Some(sk)) = (pk, sk) {
+                        result.insert(
+                            (pk, sk),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                            )),
+                        );
+                    }
                 }
             }
 
@@ -1156,12 +1149,11 @@ impl InternalRelationChanges {
 impl InternalChanges {
     pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (Self::Node(_), Self::Relation(_))
-            | (Self::Node(_), Self::NodeConstraints(_))
-            | (Self::NodeConstraints(_), Self::Node(_))
-            | (Self::NodeConstraints(_), Self::Relation(_))
-            | (Self::Relation(_), Self::NodeConstraints(_))
-            | (Self::Relation(_), Self::Node(_)) => Err(PossibleChangesInternalError::NodeAndRelationCompare),
+            (Self::Node(_) | Self::NodeConstraints(_), Self::Relation(_))
+            | (Self::Node(_) | Self::Relation(_), Self::NodeConstraints(_))
+            | (Self::NodeConstraints(_) | Self::Relation(_), Self::Node(_)) => {
+                Err(PossibleChangesInternalError::NodeAndRelationCompare)
+            }
             (Self::Relation(a), Self::Relation(b)) => a.with(b).map(Self::Relation),
             (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
             (Self::NodeConstraints(a), Self::NodeConstraints(b)) => a.with(b).map(Self::NodeConstraints),
@@ -1178,7 +1170,7 @@ impl InternalNodeConstraintChanges {
             // You can only have one unicity constraint value per node? NOwhat about array?
             (
                 Self::Insert(InsertNodeConstraintInternalInput::Unique(a)),
-                Self::Insert(InsertNodeConstraintInternalInput::Unique(b)),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(_b)),
             ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(a))),
             // TODO: Need to add addition
             (Self::Delete(a), Self::Delete(_)) => Ok(Self::Delete(a)),
