@@ -67,8 +67,6 @@ pub struct UpdateNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
-    #[derivative(Debug = "ignore")]
-    constraints: Vec<ConstraintDefinition>,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -173,17 +171,11 @@ impl PossibleChanges {
         })
     }
 
-    pub const fn update_node(
-        ty: String,
-        id: String,
-        user_defined_item: HashMap<String, AttributeValue>,
-        constraints: Vec<ConstraintDefinition>,
-    ) -> Self {
+    pub const fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
             user_defined_item,
-            constraints,
         })
     }
 

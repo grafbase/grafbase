@@ -529,7 +529,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
         _sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            /// A Unique directive is a Constraint on a specific field
+            // A Unique directive is a Constraint on a specific field
             let InsertUniqueConstraint { target } = self;
 
             let id = ConstraintID::try_from(pk).expect("Wrong Constraint ID");

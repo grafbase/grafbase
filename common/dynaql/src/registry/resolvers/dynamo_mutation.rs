@@ -542,12 +542,6 @@ fn node_update<'a>(
                 from.ty().to_string(),
                 from.id().to_string(),
                 selection,
-                node_ty
-                    .constraints()
-                    .iter()
-                    .cloned()
-                    .map(From::from)
-                    .collect(),
             );
 
             transaction_batcher
