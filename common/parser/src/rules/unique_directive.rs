@@ -1,42 +1,16 @@
-use std::collections::HashSet;
-
 use super::visitor::{Visitor, VisitorContext};
-
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-
+use if_chain::if_chain;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 const UNIQUE_DIRECTIVE: &str = "unique";
 
 pub struct UniqueDirective;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Unique {
-    providers: Vec<UniqueProvider>,
-    rules: Vec<UniqueRule>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-#[serde(deny_unknown_fields)]
-enum UniqueProvider {
-    #[serde(rename_all = "camelCase")]
-    Oidc { issuer: url::Url },
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "allow")]
-#[serde(deny_unknown_fields)]
-enum UniqueRule {
-    #[serde(rename_all = "camelCase")]
-    Groups {
-        #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
-        groups: HashSet<String>,
-    },
-}
+struct Unique {}
 
 impl<'a> Visitor<'a> for UniqueDirective {
     fn directives(&self) -> String {
@@ -62,6 +36,13 @@ impl<'a> Visitor<'a> for UniqueDirective {
                 ctx.report_error(
                     vec![directive.pos],
                     "The @unique directive cannot be used on nullable fields".to_string(),
+                );
+            }
+
+            if let dynaql_parser::types::BaseType::List(_) = field.node.ty.node.base {
+                ctx.report_error(
+                    vec![directive.pos],
+                    "The @unique directive cannot be used on collections".to_string(),
                 );
             }
         }
