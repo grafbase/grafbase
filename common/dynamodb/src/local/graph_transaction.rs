@@ -25,7 +25,6 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                 id,
                 user_defined_item,
                 ty,
-                constraints: _constraints, // TODO: Implement.
             } = self;
 
             let id = format!("{}#{}", ty, id);
@@ -77,11 +76,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let UpdateNodeInternalInput {
-                user_defined_item,
-                constraints: _constraints, // TODO: Implement.
-                ..
-            } = self;
+            let UpdateNodeInternalInput { user_defined_item, .. } = self;
 
             let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
             let now_attr = now.clone().into_attr();
@@ -344,6 +339,7 @@ impl ExecuteChangesOnDatabase for InternalChanges {
         match self {
             Self::Node(input) => input.to_transaction(batchers, ctx, pk, sk),
             Self::Relation(input) => input.to_transaction(batchers, ctx, pk, sk),
+            Self::NodeConstraints(_) => todo!(),
         }
     }
 }
