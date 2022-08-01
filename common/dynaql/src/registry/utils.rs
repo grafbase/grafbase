@@ -1,9 +1,6 @@
 pub use dynamodb::{attribute_to_value, value_to_attribute};
 use dynaql_parser::types::{BaseType, Type};
 
-
-
-
 fn to_base_type_str(ty: &BaseType) -> String {
     match ty {
         BaseType::Named(name) => name.to_string(),
