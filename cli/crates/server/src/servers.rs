@@ -9,6 +9,7 @@ use crate::{bridge, errors::ServerError};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
+use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
     fs,
@@ -65,7 +66,7 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
                     let watch_event_bus = event_bus.clone();
 
                      tokio::select! {
-                        result = start_watcher(environemnt.project_grafbase_schema_path.clone(),  move || { watch_event_bus.send(Event::Reload).expect("cannot fail"); }) => { result }
+                        result = start_watcher(environemnt.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone()) => { result }
                     }
                 } else {
@@ -183,7 +184,9 @@ fn export_embedded_files() -> Result<(), ServerError> {
 
     let version_path = environment.user_dot_grafbase_path.join(ASSET_VERSION_FILE);
 
-    let export_files = if environment.user_dot_grafbase_path.is_dir() {
+    let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {
+        false
+    } else if environment.user_dot_grafbase_path.is_dir() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
         current_version != asset_version

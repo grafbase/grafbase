@@ -5,9 +5,31 @@
 ### Features
 
 - Adds live reloading (`dev -w --watch`), reloads the development server when schema changes are detected
+- Updates the default schema
+- Adds polling support for the playground
+- Adds `gb` as an alias for `grafbase`
+
+### Fixes
+
+- Detects creation events when watching the schema
+- Opts out of watching rather than opt in
+
+### Refactoring
+
+- Allows passing a function returning any type to the file watcher
+- Allows to skip file extraction in CI
+- Removes `chrono` temporarily as it is optional
+
+### Testing
+
+- Adds cross platform integration tests
 
 ### Tooling
 
+- Consolidates the CLI CI
+- Allows skipping asset export using an env variable (for CI)
+- Improves caching
+- Exports assets to home folder in CI to reduce wait time
 - Updates Rust to `1.62.1`
 
 ## [0.2.2]

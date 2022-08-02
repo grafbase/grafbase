@@ -72,7 +72,7 @@ fn try_main() -> Result<(), CliError> {
             });
 
             let search = matches.contains_id("search");
-            let watch = matches.contains_id("watch");
+            let watch = !matches.contains_id("disable-watch");
             let port = matches.get_one::<u16>("port").copied();
 
             dev(search, watch, port)

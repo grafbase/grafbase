@@ -222,20 +222,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "chrono"
-version = "0.4.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "670ad68c9088c2a963aaa298cb369688cf3f9465ce5e2d4ca10e6e0098a1ce73"
-dependencies = [
- "libc",
- "num-integer",
- "num-traits",
- "serde",
- "time",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "clap"
 version = "3.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -340,6 +326,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "crossbeam-channel"
+version = "0.5.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2dd04ddaf88237dc3b8d8f9a3c1004b506b54b3313403944054d23c0870c521"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "715e8152b692bba2d374b53d4875445368fdf21a94751410af607a5ac677d1fc"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-epoch",
+ "crossbeam-utils",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "045ebe27666471bb549370b4b0b3e51b07f56325befa4284db65fc89c02511b1"
+dependencies = [
+ "autocfg",
+ "cfg-if 1.0.0",
+ "crossbeam-utils",
+ "memoffset",
+ "once_cell",
+ "scopeguard",
+]
+
+[[package]]
 name = "crossbeam-queue"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -423,6 +444,18 @@ name = "dotenv"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+
+[[package]]
+name = "duct"
+version = "0.13.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fc6a0a59ed0888e0041cf708e66357b7ae1a82f1c67247e1f93b5e0818f7d8d"
+dependencies = [
+ "libc",
+ "once_cell",
+ "os_pipe",
+ "shared_child",
+]
 
 [[package]]
 name = "either"
@@ -668,7 +701,7 @@ checksum = "4eb1a864a501629691edf6c15a593b7a51eebaa1e8468e9ddc623de7c9b58ec6"
 dependencies = [
  "cfg-if 1.0.0",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -688,6 +721,7 @@ dependencies = [
  "clap_generate",
  "colored",
  "ctrlc",
+ "duct",
  "exitcode",
  "grafbase-local-backend",
  "grafbase-local-common",
@@ -696,8 +730,12 @@ dependencies = [
  "log",
  "once_cell",
  "os_type",
+ "reqwest",
  "serde",
  "serde_derive",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
  "thiserror",
  "toml",
  "tracing-subscriber",
@@ -731,7 +769,6 @@ version = "0.3.0"
 dependencies = [
  "anyhow",
  "axum",
- "chrono",
  "exitcode",
  "futures",
  "grafbase-local-common",
@@ -1132,6 +1169,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
+name = "memoffset"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1179,7 +1225,7 @@ checksum = "57ee1c23c7c63b0c9250c339ffdc69255f110b298b901b9f6c82547b7b87caaf"
 dependencies = [
  "libc",
  "log",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
  "windows-sys",
 ]
 
@@ -1238,9 +1284,9 @@ dependencies = [
 
 [[package]]
 name = "nix"
-version = "0.24.1"
+version = "0.24.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f17df307904acd05aa8e32e97bb20f2a0df1728bbc2d771ae8f9a90463441e9"
+checksum = "195cdbc1741b8134346d515b3a56a1c94b0912758009cfd53f99ea0f57b065fc"
 dependencies = [
  "bitflags",
  "cfg-if 1.0.0",
@@ -1276,13 +1322,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "num-integer"
-version = "0.1.45"
+name = "ntapi"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
+checksum = "c28774a7fd2fbb4f0babd8237ce554b73af68021b5f695a3cebd6c59bac0980f"
 dependencies = [
- "autocfg",
- "num-traits",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1368,6 +1413,16 @@ dependencies = [
  "libc",
  "pkg-config",
  "vcpkg",
+]
+
+[[package]]
+name = "os_pipe"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb233f06c2307e1f5ce2ecad9f8121cffbbee2c95428f44ea85222e460d0d213"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
 ]
 
 [[package]]
@@ -1505,6 +1560,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3bcdf212e9776fbcb2d23ab029360416bb1706b1aea2d1a5ba002727cbcab804"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "rayon"
+version = "1.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd99e5772ead8baa5215278c9b15bf92087709e9c1b2d1f97cdb5a183c933a7d"
+dependencies = [
+ "autocfg",
+ "crossbeam-deque",
+ "either",
+ "rayon-core",
+]
+
+[[package]]
+name = "rayon-core"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "258bcdb5ac6dad48491bb2992db6b7cf74878b0384908af124823d118c99683f"
+dependencies = [
+ "crossbeam-channel",
+ "crossbeam-deque",
+ "crossbeam-utils",
+ "num_cpus",
 ]
 
 [[package]]
@@ -1824,6 +1903,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "shared_child"
+version = "0.3.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6be9f7d5565b1483af3e72975e2dee33879b3b86bd48c0929fccf6585d79e65a"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "signal-hook-registry"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1901,7 +1990,6 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
- "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -2003,6 +2091,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20518fe4a4c9acf048008599e464deb21beeae3d3578418951a189c235a7a9a8"
 
 [[package]]
+name = "sysinfo"
+version = "0.24.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "54cb4ebf3d49308b99e6e9dc95e989e2fdbdc210e4f67c39db0bb89ba927001c"
+dependencies = [
+ "cfg-if 1.0.0",
+ "core-foundation-sys",
+ "libc",
+ "ntapi",
+ "once_cell",
+ "rayon",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2061,17 +2164,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.1.44"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
-dependencies = [
- "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
- "winapi 0.3.9",
-]
-
-[[package]]
 name = "tinyvec"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2088,10 +2180,11 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.19.2"
+version = "1.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c51a52ed6686dd62c320f9b89299e9dfb46f730c7a48e635c19f21d116cb1439"
+checksum = "57aec3cfa4c296db7255446efb4928a6be304b431a806216105542a67b6ca82e"
 dependencies = [
+ "autocfg",
  "bytes",
  "libc",
  "memchr",
@@ -2399,12 +2492,6 @@ dependencies = [
  "log",
  "try-lock",
 ]
-
-[[package]]
-name = "wasi"
-version = "0.10.0+wasi-snapshot-preview1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
