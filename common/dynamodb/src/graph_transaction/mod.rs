@@ -852,7 +852,7 @@ pub enum DeleteNodeConstraintInternalInput {
 #[derive(Debug, Clone, Derivative, PartialEq, Eq)]
 pub struct InsertUniqueConstraint {
     /// The unique constraint target one Entity
-    target: String,
+    pub(crate) target: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

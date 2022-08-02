@@ -13,11 +13,11 @@ use std::{collections::HashMap, iter, net::Ipv4Addr};
 pub struct Record {
     pub pk: String,
     pub sk: String,
-    pub gsi1sk: String,
-    pub gsi1pk: String,
-    pub gsi2pk: String,
-    pub gsi2sk: String,
-    pub entity_type: String,
+    pub gsi1sk: Option<String>,
+    pub gsi1pk: Option<String>,
+    pub gsi2pk: Option<String>,
+    pub gsi2sk: Option<String>,
+    pub entity_type: Option<String>,
     pub relation_names: Vec<String>,
     pub document: HashMap<String, AttributeValue>,
     pub created_at: DateTime<Utc>,
@@ -110,8 +110,11 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn from(array: &[(Column, String)]) -> Self {
-        let (keys, values): (Vec<Column>, Vec<String>) = array.iter().cloned().unzip();
+    pub fn from(array: &[(Column, Option<String>)]) -> Self {
+        let (keys, values): (Vec<Column>, Vec<String>) = array
+            .iter()
+            .filter_map(|(c, val)| val.as_ref().map(|val| (c, val.clone())))
+            .unzip();
 
         let columns = keys.iter().map(Column::as_str).collect::<Vec<_>>().join(",");
         let placeholders = iter::repeat("?").take(keys.len()).collect::<Vec<_>>().join(",");
@@ -130,17 +133,17 @@ impl Row {
         let updated_at = record.updated_at.to_rfc3339_opts(SecondsFormat::Millis, true);
 
         Self::from(&[
-            (Column::Pk, record.pk),
-            (Column::Sk, record.sk),
+            (Column::Pk, Some(record.pk)),
+            (Column::Sk, Some(record.sk)),
             (Column::Gsi1Pk, record.gsi1pk),
             (Column::Gsi1Sk, record.gsi1sk),
             (Column::Gsi2Pk, record.gsi2pk),
             (Column::Gsi2Sk, record.gsi2sk),
             (Column::EntityType, record.entity_type),
-            (Column::CreatedAt, created_at),
-            (Column::UpdatedAt, updated_at),
-            (Column::RelationNames, relation_names),
-            (Column::Document, document),
+            (Column::CreatedAt, Some(created_at)),
+            (Column::UpdatedAt, Some(updated_at)),
+            (Column::RelationNames, Some(relation_names)),
+            (Column::Document, Some(document)),
         ])
     }
 }
