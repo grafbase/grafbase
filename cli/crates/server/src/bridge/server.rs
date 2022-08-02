@@ -44,17 +44,17 @@ async fn mutation_endpoint(
 
     let query = payload.iter_variables().fold(template, Query::bind);
 
-    let mut tx = pool.begin().await.map_err(|error| {
+    let mut transaction = pool.begin().await.map_err(|error| {
         error!("can't start transaction: {error}");
         error
     })?;
 
-    query.execute(&mut tx).await.map_err(|error| {
+    query.execute(&mut transaction).await.map_err(|error| {
         error!("mutation error: {error}");
         error
     })?;
 
-    tx.commit().await.map_err(|error| {
+    transaction.commit().await.map_err(|error| {
         error!("can't commit transaction: {error}");
         error
     })?;
