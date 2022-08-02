@@ -1,38 +1,30 @@
-# create-svelte
+# Grafbase ⨯ SvelteKit
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+[Join our Discord](https://discord.gg/grafbase)
 
-## Creating a project
+[![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/template?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
+</br>
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/sveltekit) 
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Getting Started
+1. Run `npx degit grafbase/grafbase/examples/sveltekit grafbase-with-sveltekit` to clone this example
+2. [Deploy schema to Grafbase](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
+3. Change directory into the new folder `cd grafbase-with-sveltekit`
+4. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
+5. Open `.env` in your code editor, and provide your Grafbase API endpoint and API key
+6. Run `npm install`, or `yarn install` to install dependencies
+7. Run `npm run dev`, or `yarn dev` and visit [`http://localhost:5173`](http://localhost:5173)
 
-```bash
-# create a new project in the current directory
-npm init svelte
+## Learn More About Grafbase
 
-# create a new project in my-app
-npm init svelte my-app
-```
+To learn more about Grafbase, take a look at the following resources:
 
-## Developing
+- [Grafbase](https://grafbase.com/) - learn about Grafbase features and API.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+To learn more about SvelteKit, take a look at the following resources:
 
-```bash
-npm run dev
+- [SvelteKit Documentation](https://kit.svelte.dev/docs/introduction) - learn about SvelteKit features and API.
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
+### Run on Codesandbox
 
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+[![Develop with Codesandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/sveltekit)
