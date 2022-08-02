@@ -3,7 +3,7 @@
 	import {urqlClient} from "$graphql/urql";
 	import {TodoListsDocument} from "$graphql/schema";
 	import TodoList from "$lib/TodoList.svelte";
-	import TodoListNew from "$lib/TodoList.new.svelte";
+	import TodoListNew from "$lib/TodoList.New.svelte";
 
 
 	setContextClient(urqlClient);
@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Next.js - Todo Example - Grafbase</title>
+	<title>SvelteKit - Todo Example - Grafbase</title>
 	<meta
 			name="description"
 			content="Todo Example leveraging the Grafbase platform"
@@ -32,7 +32,7 @@
 				{#each $todoLists.data.todoListCollection.edges as todoList}
 					<TodoList todoList={todoList?.node} />
 				{/each}
+				<TodoListNew />
 			{/if}
-			<TodoListNew />
 </div>
 

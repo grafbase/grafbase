@@ -4,16 +4,15 @@
 
 	let title = ''
 	let client = getContextClient()
-
-	 async function submit(){
-		mutationStore({
-				client,
-				query: TodoListCreateDocument,
-				variables : { title }
+ async function submit(){
+	const result = await mutationStore({
+			client,
+			query: TodoListCreateDocument,
+			variables : { title }
 		})
-
-		title = ''
-	}
+	console.log(result)
+	title = ''
+}
 </script>
 
 <form  on:submit|preventDefault={submit}

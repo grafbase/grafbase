@@ -9,7 +9,7 @@ import type {
 
 const TodoCollectionList = gql`
 	{
-		todoListCollection(first: 99) {
+		todoListCollection(first: 100) {
 			edges {
 				node {
 					id
@@ -41,7 +41,6 @@ export const cacheExchange = () =>
 							data?.todoListCollection?.edges
 								?.find((edge) => edge?.node?.id === _args?.input?.list?.link)
 								?.node?.todos?.push(result?.todoCreate?.todo as Todo);
-
 							return data;
 						}
 					);
@@ -69,6 +68,7 @@ export const cacheExchange = () =>
 									query: TodoCollectionList
 								},
 								(data: { todoListCollection: TodoListConnection } | null) => {
+									// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 									// @ts-ignore
 									data.todoListCollection.edges = data?.todoListCollection.edges?.filter(
 										(edge) => edge?.node?.id !== _args.id
@@ -88,8 +88,10 @@ export const cacheExchange = () =>
 									query: TodoCollectionList
 								},
 								(data: { todoListCollection: TodoListConnection } | null) => {
+									// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 									// @ts-ignore
 									data.todoListCollection.edges = data?.todoListCollection.edges?.map((edge) => {
+										// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 										// @ts-ignore
 										edge.node.todos = edge?.node?.todos.filter((todo) => todo?.id !== _args.id);
 

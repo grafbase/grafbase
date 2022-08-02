@@ -47,7 +47,7 @@ mutation TodoListDelete($id: ID!) {
 }
 
 mutation TodoListUpdate($id: ID!, $title : String) {
-    todoListUpdate(id : $id, input: {title : $title }) {
+    todoListUpdate(id : $id, input: { title : $title }) {
         todoList {
             ...TodoList
         }
@@ -62,7 +62,7 @@ mutation TodoDelete($id: ID!) {
 }
 
 mutation TodoUpdate($id: ID!, $title : String, $complete: Boolean) {
-    todoUpdate(id : $id, input: {title : $title, complete: $complete }) {
+    todoUpdate(id : $id, input: { title : $title, complete: $complete }) {
         todo {
             ...Todo
         }

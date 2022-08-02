@@ -12,7 +12,7 @@ export const POST: RequestHandler = async ({ request }) => {
 		},
 		body: JSON.stringify(await request.json())
 	}).then((response) => response.json());
-	console.log(response);
+
 	return {
 		body: response
 	};
