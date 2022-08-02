@@ -1295,14 +1295,11 @@ async fn execute(
     });
 
     let merged = (
-        format!(
-            "BEGIN;{}END;",
-            combined_queries
-                .0
-                .iter()
-                .map(|query| format!("{query};"))
-                .collect::<String>()
-        ),
+        combined_queries
+            .0
+            .iter()
+            .map(|query| format!("{query};"))
+            .collect::<String>(),
         combined_queries.1,
     );
 
