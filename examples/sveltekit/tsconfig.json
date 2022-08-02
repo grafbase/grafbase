@@ -11,18 +11,10 @@
 		"sourceMap": true,
 		"strict": true,
 		"paths": {
-			"$lib": [
-				"src/lib"
-			],
-			"$lib/*": [
-				"src/lib/*"
-			],
-			"$graphql": [
-				"src/graphql"
-			],
-			"$graphql/*": [
-				"src/graphql/*"
-			]
+			"$lib": ["src/lib"],
+			"$lib/*": ["src/lib/*"],
+			"$graphql": ["src/graphql"],
+			"$graphql/*": ["src/graphql/*"]
 		}
 	}
 }
