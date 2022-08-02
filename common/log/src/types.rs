@@ -57,6 +57,7 @@ pub struct LogConfig {
     pub service_name: Cow<'static, str>,
     pub source_type: &'static str,
     pub trace_id: String,
+    pub extra_tags: Vec<(&'static str, String)>,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]

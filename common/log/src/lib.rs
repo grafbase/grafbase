@@ -153,6 +153,13 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     if let Some(branch) = log_config.branch.as_deref() {
         tags.insert("branch", Cow::Borrowed(branch));
     }
+    tags.extend(
+        log_config
+            .extra_tags
+            .iter()
+            .cloned()
+            .map(|(key, value)| (key, value.into())),
+    );
 
     let entries: Vec<_> = entries
         .iter()
