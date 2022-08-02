@@ -4,9 +4,10 @@
 
 [![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/template?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 </br>
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/sveltekit) 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/grafbase/grafbase/tree/main/examples/sveltekit)
 
 ## Getting Started
+
 1. Run `npx degit grafbase/grafbase/examples/sveltekit grafbase-with-sveltekit` to clone this example
 2. [Deploy schema to Grafbase](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 3. Change directory into the new folder `cd grafbase-with-sveltekit`
