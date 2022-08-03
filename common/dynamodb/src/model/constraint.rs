@@ -132,7 +132,9 @@ pub mod db {
             write!(
                 f,
                 "{CONSTRAINT_PREFIX}{ID_SEPARATOR}{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}",
-                self.ty, self.field, self.value
+                self.ty.to_lowercase(),
+                self.field,
+                self.value
             )
         }
     }
@@ -144,7 +146,7 @@ mod tests {
 
     #[test]
     fn ensure_constraint_new() {
-        const TEST_TY: &str = "__C_Author_name_\"Val\"";
+        const TEST_TY: &str = "__C_author_name_\"Val\"";
 
         let id = ConstraintID::from_owned("Author".into(), "name".into(), serde_json::Value::String("Val".into()));
 
@@ -153,7 +155,7 @@ mod tests {
 
     #[test]
     fn ensure_constraint_from_string() {
-        const TEST_TY: &str = "__C_Author_name_\"Val\"";
+        const TEST_TY: &str = "__C_author_name_\"Val\"";
 
         let id = ConstraintID::try_from(TEST_TY.to_string());
 

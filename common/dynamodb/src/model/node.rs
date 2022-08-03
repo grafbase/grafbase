@@ -65,7 +65,7 @@ impl<'a> NodeID<'a> {
 
 impl<'a> Display for NodeID<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{ID_SEPARATOR}{}", self.ty, self.ulid)
+        write!(f, "{}{ID_SEPARATOR}{}", self.ty.to_lowercase(), self.ulid)
     }
 }
 
