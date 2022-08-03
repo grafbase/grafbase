@@ -1,4 +1,8 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::constraint::db::ConstraintID;
+use crate::model::constraint::{ConstraintDefinition, ConstraintType};
+use crate::paginated::QueryValue;
+use crate::utils::ConvertExtension;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
@@ -9,6 +13,7 @@ use futures::Future;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
 use log::info;
+
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -37,6 +42,8 @@ pub struct InsertNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    constraints: Vec<ConstraintDefinition>,
 }
 
 impl PartialEq for InsertNodeInput {
@@ -150,11 +157,17 @@ pub enum PossibleChanges {
 impl Eq for PossibleChanges {}
 
 impl PossibleChanges {
-    pub const fn new_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn new_node(
+        ty: String,
+        id: String,
+        user_defined_item: HashMap<String, AttributeValue>,
+        constraints: Vec<ConstraintDefinition>,
+    ) -> Self {
         Self::InsertNode(InsertNodeInput {
             id,
             ty,
             user_defined_item,
+            constraints,
         })
     }
 
@@ -218,50 +231,55 @@ where
 }
 
 impl GetIds for InsertNodeInput {
+    /// For a InsertNode we'll need to:
+    ///   - Insert the node
+    ///   - Insert the constraints
     fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = format!("{}#{}", &self.ty, &self.id);
 
-        Box::pin(async {
-            Ok(HashMap::from([(
-                (pk.clone(), pk),
-                InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
-                    id: self.id,
-                    ty: self.ty,
-                    user_defined_item: self.user_defined_item,
-                })),
-            )]))
-        })
+        let mut result = HashMap::with_capacity(1 + self.constraints.len());
+
+        for ConstraintDefinition {
+            field,
+            r#type: ConstraintType::Unique,
+        } in self.constraints
+        {
+            if let Some(value) = self.user_defined_item.get(&field) {
+                let contraint_id = ConstraintID::from_owned(self.ty.clone(), field, value.clone().into_json());
+                result.insert(
+                    (contraint_id.to_string(), contraint_id.to_string()),
+                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint { target: pk.clone() }),
+                    )),
+                );
+            }
+        }
+
+        result.insert(
+            (pk.clone(), pk),
+            InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
+                id: self.id,
+                ty: self.ty,
+                user_defined_item: self.user_defined_item,
+            })),
+        );
+
+        Box::pin(async { Ok(result) })
     }
 }
 
 impl GetIds for UpdateNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = format!("{}#{}", &self.ty, &self.id);
 
         let query_loader_reversed = &batchers.query_reversed;
+
         let select_entities_to_update = query_loader_reversed
             .load_one(QueryKey::new(pk, Vec::new()))
             .map_ok(|x| {
-                std::iter::once(x)
-                    .into_iter()
-                    .flatten()
-                    .flat_map(|x| {
-                        x.values.into_iter().flat_map(|(_, y)| {
-                            y.node
-                                .into_iter()
-                                .chain(y.edges.into_iter().flat_map(|(_, val)| val.into_iter()))
-                        })
-                    })
-                    .filter_map(|mut x| {
-                        let pk = x.remove("__pk").and_then(|x| x.s);
-                        let sk = x.remove("__sk").and_then(|x| x.s);
-
-                        match (pk, sk) {
-                            (Some(pk), Some(sk)) => Some((pk, sk)),
-                            _ => None,
-                        }
-                    })
-                    .collect::<Vec<(String, String)>>()
+                x.into_iter()
+                    .flat_map(|x| x.values.into_iter().map(|(_, val)| val))
+                    .collect::<Vec<QueryValue>>()
             });
 
         Box::pin(async move {
@@ -272,37 +290,84 @@ impl GetIds for UpdateNodeInput {
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
 
-            for (pk, sk) in ids {
-                info!(ctx.trace_id, "Asking for update of {} {}", &pk, &sk);
-                let (from_ty, from_id) = pk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
-                let (to_ty, to_id) = sk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+            for val in ids {
+                if let Some((pk, sk, mut node)) = val.node.and_then(|mut node| {
+                    let pk = node.remove("__pk").and_then(|x| x.s);
+                    let sk = node.remove("__sk").and_then(|x| x.s);
 
-                let from_ty = from_ty.to_owned();
-                let from_id = from_id.to_owned();
-                let to_ty = to_ty.to_owned();
-                let to_id = to_id.to_owned();
+                    match (pk, sk, node) {
+                        (Some(pk), Some(sk), node) => Some((pk, sk, node)),
+                        _ => None,
+                    }
+                }) {
+                    if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
+                        let origin = constraint_id.value().clone().into_attribute();
+                        let updated = self
+                            .user_defined_item
+                            .get(constraint_id.field())
+                            .map(std::clone::Clone::clone)
+                            .unwrap_or_default();
 
-                if pk == sk {
-                    result.insert(
-                        (pk, sk),
-                        InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
-                            id: from_id,
-                            ty: from_ty,
-                            user_defined_item: self.user_defined_item.clone(),
-                        })),
-                    );
-                } else {
-                    result.insert(
-                        (pk, sk),
-                        InternalChanges::Relation(InternalRelationChanges::Update(UpdateRelationInternalInput {
-                            from_id,
-                            from_ty,
-                            to_ty,
-                            to_id,
-                            user_defined_item: self.user_defined_item.clone(),
-                            relation_names: Vec::new(),
-                        })),
-                    );
+                        if updated != origin {
+                            result.insert(
+                                (pk, sk),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                    DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                                )),
+                            );
+
+                            let new_id = ConstraintID::from_owned(
+                                constraint_id.ty().to_string(),
+                                constraint_id.field().to_string(),
+                                updated.into_json(),
+                            );
+                            result.insert(
+                                (new_id.to_string(), new_id.to_string()),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                                    InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                        target: node.remove(constant::INVERTED_INDEX_PK).and_then(|x| x.s).unwrap(),
+                                    }),
+                                )),
+                            );
+                        }
+                    } else {
+                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+
+                        result.insert(
+                            (pk.clone(), sk),
+                            InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                                id: from_id.to_string(),
+                                ty: from_ty.to_string(),
+                                user_defined_item: self.user_defined_item.clone(),
+                            })),
+                        );
+                    }
+                }
+
+                for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
+                    if let Some((pk, sk)) = {
+                        let pk = relation.remove("__pk").and_then(|x| x.s);
+                        let sk = relation.remove("__sk").and_then(|x| x.s);
+
+                        match (pk, sk) {
+                            (Some(pk), Some(sk)) => Some((pk, sk)),
+                            _ => None,
+                        }
+                    } {
+                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+
+                        let from_ty = from_ty.to_owned();
+                        let from_id = from_id.to_owned();
+
+                        result.insert(
+                            (pk, sk),
+                            InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                                id: from_id,
+                                ty: from_ty,
+                                user_defined_item: self.user_defined_item.clone(),
+                            })),
+                        );
+                    }
                 }
             }
 
@@ -312,34 +377,19 @@ impl GetIds for UpdateNodeInput {
 }
 
 impl GetIds for DeleteNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let id_to_be_deleted = format!("{}#{}", &self.ty, &self.id);
         let query_loader = &batchers.query;
         let query_loader_reversed = &batchers.query_reversed;
 
         let items_pk = query_loader.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
-        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted.clone(), Vec::new()));
+        let items_sk = query_loader_reversed.load_one(QueryKey::new(id_to_be_deleted, Vec::new()));
 
         let items_to_be_deleted = futures_util::future::try_join_all(vec![items_pk, items_sk]).map_ok(|x| {
             x.into_iter()
                 .flatten()
-                .flat_map(|x| {
-                    x.values.into_iter().flat_map(|(_, y)| {
-                        y.node
-                            .into_iter()
-                            .chain(y.edges.into_iter().flat_map(|(_, val)| val.into_iter()))
-                    })
-                })
-                .filter_map(|mut x| {
-                    let pk = x.remove("__pk").and_then(|x| x.s);
-                    let sk = x.remove("__sk").and_then(|x| x.s);
-
-                    match (pk, sk) {
-                        (Some(pk), Some(sk)) => Some((pk, sk)),
-                        _ => None,
-                    }
-                })
-                .collect::<Vec<(String, String)>>()
+                .flat_map(|x| x.values.into_iter().map(|(_, val)| val))
+                .collect::<Vec<QueryValue>>()
         });
 
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
@@ -350,36 +400,74 @@ impl GetIds for DeleteNodeInput {
 
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
-            result.insert(
-                (id_to_be_deleted.clone(), id_to_be_deleted),
-                InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
-                    id: self.id,
-                    ty: self.ty,
-                })),
-            );
 
-            for (pk, sk) in ids.into_iter().filter(|(pk, sk)| pk != sk) {
-                info!(ctx.trace_id, "{} {}", &pk, &sk);
-                let (from_ty, from_id) = pk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
-                let (to_ty, to_id) = sk.rsplit_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+            for val in ids {
+                if let Some((pk, sk)) = val.node.and_then(|mut node| {
+                    let pk = node.remove("__pk").and_then(|x| x.s);
+                    let sk = node.remove("__sk").and_then(|x| x.s);
 
-                let from_ty = from_ty.to_owned();
-                let from_id = from_id.to_owned();
-                let to_ty = to_ty.to_owned();
-                let to_id = to_id.to_owned();
+                    match (pk, sk) {
+                        (Some(pk), Some(sk)) => Some((pk, sk)),
+                        _ => None,
+                    }
+                }) {
+                    let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
 
-                result.insert(
-                    (pk, sk),
-                    InternalChanges::Relation(InternalRelationChanges::Delete(DeleteRelationInternalInput::All(
-                        DeleteAllRelationsInternalInput {
-                            from_id,
-                            from_ty,
-                            to_id,
-                            to_ty,
-                            relation_names: None,
-                        },
-                    ))),
-                );
+                    result.insert(
+                        (pk.clone(), sk),
+                        InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
+                            id: from_id.to_string(),
+                            ty: from_ty.to_string(),
+                        })),
+                    );
+                }
+
+                for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
+                    if let Some((pk, sk)) = {
+                        let pk = relation.remove("__pk").and_then(|x| x.s);
+                        let sk = relation.remove("__sk").and_then(|x| x.s);
+
+                        match (pk, sk) {
+                            (Some(pk), Some(sk)) => Some((pk, sk)),
+                            _ => None,
+                        }
+                    } {
+                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                        let (to_ty, to_id) = sk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+
+                        let from_ty = from_ty.to_owned();
+                        let from_id = from_id.to_owned();
+                        let to_ty = to_ty.to_owned();
+                        let to_id = to_id.to_owned();
+
+                        result.insert(
+                            (pk, sk),
+                            InternalChanges::Relation(InternalRelationChanges::Delete(
+                                DeleteRelationInternalInput::All(DeleteAllRelationsInternalInput {
+                                    from_id,
+                                    from_ty,
+                                    to_id,
+                                    to_ty,
+                                    relation_names: None,
+                                }),
+                            )),
+                        );
+                    }
+                }
+
+                for mut constraint in val.constraints {
+                    let pk = constraint.remove("__pk").and_then(|x| x.s);
+                    let sk = constraint.remove("__sk").and_then(|x| x.s);
+
+                    if let (Some(pk), Some(sk)) = (pk, sk) {
+                        result.insert(
+                            (pk, sk),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                            )),
+                        );
+                    }
+                }
             }
 
             Ok(result)
@@ -523,6 +611,12 @@ pub enum ToTransactionError {
     GetItemError(#[from] BatchGetItemLoaderError),
     #[error("{0}")]
     TransactionError(#[from] TransactionError),
+    #[error("Unique value {value} on field {field} already exist, you can't use it.")]
+    UniqueCondition {
+        source: TransactionError,
+        value: String,
+        field: String,
+    },
 }
 
 pub trait ExecuteChangesOnDatabase
@@ -544,7 +638,7 @@ where
     ) -> ToTransactionFuture<'a>;
 }
 
-#[derive(Derivative, PartialEq, Clone)]
+#[derive(Clone, Derivative, PartialEq)]
 #[derivative(Debug)]
 pub struct InsertNodeInternalInput {
     pub id: String,
@@ -746,11 +840,38 @@ pub enum InternalNodeChanges {
     Delete(DeleteNodeInternalInput), // Unknow affected ids
 }
 
+#[derive(Debug, PartialEq, Eq, Clone)]
+/// Delete every constraint of a Node
+pub struct DeleteUnitNodeConstraintInput {}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum DeleteNodeConstraintInternalInput {
+    Unit(DeleteUnitNodeConstraintInput),
+}
+
+#[derive(Debug, Clone, Derivative, PartialEq, Eq)]
+pub struct InsertUniqueConstraint {
+    /// The unique constraint target one Entity
+    pub(crate) target: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InsertNodeConstraintInternalInput {
+    Unique(InsertUniqueConstraint),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum InternalNodeConstraintChanges {
+    Insert(InsertNodeConstraintInternalInput),
+    Delete(DeleteNodeConstraintInternalInput), // Unknow affected ids
+}
+
 /// Private interface
 #[derive(Debug, PartialEq, Clone)]
 pub enum InternalChanges {
     Node(InternalNodeChanges),
     Relation(InternalRelationChanges),
+    NodeConstraints(InternalNodeConstraintChanges),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -1020,11 +1141,31 @@ impl InternalRelationChanges {
 impl InternalChanges {
     pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
-            (Self::Node(_), Self::Relation(_)) | (Self::Relation(_), Self::Node(_)) => {
+            (Self::Node(_) | Self::NodeConstraints(_), Self::Relation(_))
+            | (Self::Node(_) | Self::Relation(_), Self::NodeConstraints(_))
+            | (Self::NodeConstraints(_) | Self::Relation(_), Self::Node(_)) => {
                 Err(PossibleChangesInternalError::NodeAndRelationCompare)
             }
             (Self::Relation(a), Self::Relation(b)) => a.with(b).map(Self::Relation),
+            (Self::Node(a), Self::Node(b)) => a.with(b).map(Self::Node),
+            (Self::NodeConstraints(a), Self::NodeConstraints(b)) => a.with(b).map(Self::NodeConstraints),
+        }
+    }
+}
+
+impl InternalNodeConstraintChanges {
+    pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
+        match (self, other) {
+            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => {
+                todo!("Should be an update it's the same kind and addition or deletion if different")
+            }
+            // You can only have one unicity constraint value per node? NOwhat about array?
+            (
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(a)),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(_b)),
+            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(a))),
+            // TODO: Need to add addition
+            (Self::Delete(a), Self::Delete(_)) => Ok(Self::Delete(a)),
         }
     }
 }
@@ -1154,14 +1295,11 @@ async fn execute(
     });
 
     let merged = (
-        format!(
-            "BEGIN;{}END;",
-            combined_queries
-                .0
-                .iter()
-                .map(|query| format!("{query};"))
-                .collect::<String>()
-        ),
+        combined_queries
+            .0
+            .iter()
+            .map(|query| format!("{query};"))
+            .collect::<String>(),
         combined_queries.1,
     );
 

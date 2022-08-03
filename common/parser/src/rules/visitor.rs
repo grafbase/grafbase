@@ -144,6 +144,7 @@ impl<'a> VisitorContext<'a> {
                     is_subscription: false,
                     is_node: false,
                     rust_typename: "Query".to_owned(),
+                    constraints: vec![],
                 }
             },
             "Query",
@@ -172,6 +173,7 @@ impl<'a> VisitorContext<'a> {
                     is_subscription: false,
                     is_node: false,
                     rust_typename: "Mutation".to_owned(),
+                    constraints: vec![],
                 },
                 "Mutation",
                 "Mutation",
@@ -322,11 +324,7 @@ impl<A, B> VisitorCons<A, B> {
     }
 }
 
-impl<'a> Visitor<'a> for VisitorNil {
-    fn directives(&self) -> String {
-        "".to_owned()
-    }
-}
+impl<'a> Visitor<'a> for VisitorNil {}
 
 /// The monoid implementation for Visitor
 impl<'a, A, B> Visitor<'a> for VisitorCons<A, B>

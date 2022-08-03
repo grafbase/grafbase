@@ -333,6 +333,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         is_subscription: false,
                         is_node: false,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        constraints: vec![],
                     })
                 }
 
@@ -400,6 +401,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         resolve: None,
                         transforms: None,
+                        constraints: vec![],
                     })
                 }
 

@@ -42,6 +42,11 @@ use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
 pub mod dataloader;
+mod model;
+pub use model::constraint::{ConstraintDefinition, ConstraintType};
+
+mod utils;
+pub use utils::{attribute_to_value, value_to_attribute};
 
 pub mod graph_transaction;
 mod paginated;

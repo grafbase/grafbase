@@ -453,6 +453,7 @@ pub fn generate(
                     is_subscription: true,
                     is_node: false,
                     rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                    constraints: vec![],
                 })
             }
 

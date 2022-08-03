@@ -74,6 +74,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
                         visible: #visible,
                         is_subscription: true,
                         rust_typename: ::std::any::type_name::<Self>(),
+                        constraints: vec![],
                     }
                 })
             }

@@ -1,11 +1,13 @@
 use super::types::{Record, Row, Sql};
 use crate::constant::*;
 use crate::graph_transaction::{
-    DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeInternalInput,
-    DeleteRelationInternalInput, ExecuteChangesOnDatabase, InsertNodeInternalInput, InsertRelationInternalInput,
-    InternalChanges, InternalNodeChanges, InternalRelationChanges, ToTransactionError, ToTransactionFuture,
-    UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
+    DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeConstraintInternalInput,
+    DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
+    InsertNodeConstraintInternalInput, InsertNodeInternalInput, InsertRelationInternalInput, InsertUniqueConstraint,
+    InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError,
+    ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
 };
+use crate::model::constraint::db::ConstraintID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
 use dynomite::{Attribute, AttributeValue};
@@ -49,14 +51,14 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
             let record = Record {
                 pk,
                 sk,
-                entity_type: ty.clone(),
+                entity_type: Some(ty.clone()),
                 created_at: utc_now,
                 updated_at: utc_now,
                 relation_names: Default::default(),
-                gsi1pk: ty,
-                gsi1sk: id.clone(),
-                gsi2pk: id.clone(),
-                gsi2sk: id,
+                gsi1pk: Some(ty),
+                gsi1sk: Some(id.clone()),
+                gsi2pk: Some(id.clone()),
+                gsi2sk: Some(id),
                 document,
             };
 
@@ -165,13 +167,13 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             let record = Record {
                 pk: pk.clone(),
                 sk: sk.clone(),
-                entity_type: to_ty,
+                entity_type: Some(to_ty),
                 created_at: utc_now,
                 updated_at: utc_now,
-                gsi1pk: from_ty,
-                gsi1sk: pk.clone(),
-                gsi2pk: sk.clone(),
-                gsi2sk: pk.clone(),
+                gsi1pk: Some(from_ty),
+                gsi1sk: Some(pk.clone()),
+                gsi2pk: Some(sk.clone()),
+                gsi2sk: Some(pk.clone()),
                 relation_names: relation_names.clone(),
                 document,
             };
@@ -339,6 +341,108 @@ impl ExecuteChangesOnDatabase for InternalChanges {
         match self {
             Self::Node(input) => input.to_transaction(batchers, ctx, pk, sk),
             Self::Relation(input) => input.to_transaction(batchers, ctx, pk, sk),
+            Self::NodeConstraints(input) => input.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
+impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
+    fn to_transaction<'a>(
+        self,
+        _batchers: &'a DynamoDBBatchersData,
+        _ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk])) })
+    }
+}
+
+impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
+    fn to_transaction<'a>(
+        self,
+        _batchers: &'a DynamoDBBatchersData,
+        _ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        Box::pin(async {
+            let InsertUniqueConstraint { target } = self;
+
+            let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
+            let utc_now = Utc::now();
+            let now_attr = utc_now.to_string().into_attr();
+            let id_attr = id.to_string().into_attr();
+
+            let mut document: HashMap<String, AttributeValue> = HashMap::new();
+
+            document.insert(PK.to_string(), id_attr.clone());
+            document.insert(SK.to_string(), id_attr.clone());
+            document.insert(CREATED_AT.to_string(), now_attr.clone());
+            document.insert(UPDATED_AT.to_string(), now_attr);
+            document.insert(INVERTED_INDEX_PK.to_string(), target.clone().into_attr());
+            document.insert(INVERTED_INDEX_SK.to_string(), id_attr);
+
+            let record = Record {
+                pk,
+                sk,
+                entity_type: None,
+                created_at: utc_now,
+                updated_at: utc_now,
+                relation_names: Default::default(),
+                gsi1pk: None,
+                gsi1sk: None,
+                gsi2pk: Some(target),
+                gsi2sk: Some(id.to_string()),
+                document,
+            };
+
+            let row = Row::from_record(record);
+
+            Ok((Sql::Insert(&row).into(), row.values))
+        })
+    }
+}
+
+impl ExecuteChangesOnDatabase for DeleteNodeConstraintInternalInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Unit(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
+impl ExecuteChangesOnDatabase for InsertNodeConstraintInternalInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Unique(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
+impl ExecuteChangesOnDatabase for InternalNodeConstraintChanges {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Insert(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }

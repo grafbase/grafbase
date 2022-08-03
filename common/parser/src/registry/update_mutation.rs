@@ -332,6 +332,7 @@ pub fn add_update_mutation<'a>(
             is_subscription: false,
             is_node: false,
             rust_typename: create_payload_name.clone(),
+            constraints: vec![],
         },
         &create_payload_name,
         &create_payload_name,

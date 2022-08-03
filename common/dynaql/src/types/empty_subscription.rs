@@ -28,6 +28,7 @@ impl SubscriptionType for EmptySubscription {
             is_subscription: true,
             is_node: false,
             rust_typename: std::any::type_name::<Self>().to_owned(),
+            constraints: vec![],
         })
     }
 

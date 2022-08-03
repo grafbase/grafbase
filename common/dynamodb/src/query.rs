@@ -10,6 +10,7 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::constraint::db::ConstraintID;
 use crate::paginated::{QueryResult, QueryValue};
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
@@ -132,12 +133,15 @@ impl Loader<QueryKey> for QueryLoader {
                                 Entry::Vacant(vac) => {
                                     let mut value = QueryValue {
                                         node: None,
+                                        constraints: Vec::new(),
                                         edges: IndexMap::with_capacity(5),
                                     };
 
                                     // If it's the entity
                                     if sk.eq(pk) {
                                         value.node = Some(curr.clone());
+                                    } else if ConstraintID::try_from(sk).is_ok() {
+                                        value.constraints.push(curr);
                                     // If it's a relation
                                     } else if let Some(edges) = relation_names {
                                         for edge in edges {
@@ -150,6 +154,8 @@ impl Loader<QueryKey> for QueryLoader {
                                 Entry::Occupied(mut oqp) => {
                                     if sk.eq(pk) {
                                         oqp.get_mut().node = Some(curr);
+                                    } else if ConstraintID::try_from(sk).is_ok() {
+                                        oqp.get_mut().constraints.push(curr);
                                     } else if let Some(edges) = relation_names {
                                         for edge in edges {
                                             oqp.get_mut().edges.entry(edge).or_default().push(curr.clone());

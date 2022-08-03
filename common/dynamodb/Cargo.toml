@@ -31,6 +31,7 @@ lru = { version = "0.7" }
 quick-error = "2"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
+serde_json = "1"
 thiserror = "1"
 tracing = "0.1"
 wasm-bindgen-futures = "0.4"
@@ -41,7 +42,6 @@ indoc = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
-serde_json = { version = "1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = [
@@ -63,4 +63,4 @@ surf = { version = "2", default-features = false, optional = true, features = [
 
 [features]
 default = []
-local = ["indoc", "once_cell", "regex", "serde", "serde_json", "surf"]
+local = ["indoc", "once_cell", "regex", "serde", "surf"]

@@ -84,6 +84,7 @@ where
                 is_subscription: false,
                 is_node: false,
                 rust_typename: std::any::type_name::<Self>().to_owned(),
+                constraints: vec![],
             }
         })
     }
@@ -143,6 +144,7 @@ where
                 is_subscription: false,
                 is_node: false,
                 rust_typename: std::any::type_name::<Self>().to_owned(),
+                constraints: vec![],
             }
         })
     }
@@ -177,6 +179,7 @@ impl SubscriptionType for MergedObjectTail {
             is_subscription: false,
             is_node: false,
             rust_typename: std::any::type_name::<Self>().to_owned(),
+            constraints: vec![],
         })
     }
 

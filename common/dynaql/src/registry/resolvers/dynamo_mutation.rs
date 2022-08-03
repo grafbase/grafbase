@@ -331,6 +331,12 @@ fn node_create<'a>(
                 node_ty.name().to_string(),
                 current_execution_id.to_string(),
                 item,
+                node_ty
+                    .constraints()
+                    .iter()
+                    .cloned()
+                    .map(From::from)
+                    .collect(),
             );
 
             transaction_loader

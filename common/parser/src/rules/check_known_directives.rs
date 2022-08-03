@@ -130,6 +130,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -156,6 +157,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -183,6 +185,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -210,6 +213,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -230,12 +234,13 @@ mod tests {
     #[test]
     fn should_error_on_known_directive_not_allowed_in_schema_position() {
         let schema = r#"
-            schema @model {
+            schema @unique {
                 query: Boolean
             }
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -248,7 +253,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error: {:?}", ctx.errors);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Directive `model` may not be used in schema context",
+            "Directive `unique` may not be used in schema context",
             "should match"
         );
     }
@@ -263,6 +268,7 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -278,5 +284,28 @@ mod tests {
             "Directive `relation` may not be used in type context",
             "should match"
         );
+    }
+
+    #[test]
+    fn should_not_error_on_known_directive_allowed_in_positions() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique
+            }
+            "#;
+
+        let mut rules = rules::visitor::VisitorNil
+            .with(rules::unique_directive::UniqueDirective)
+            .with(rules::model_directive::ModelDirective)
+            .with(rules::auth_directive::AuthDirective)
+            .with(rules::relations::relations_rules())
+            .with(CheckAllDirectivesAreKnown::default());
+        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = parse_schema(schema).expect("");
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut rules, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "should have no errors: {:?}", ctx.errors);
     }
 }
