@@ -1,0 +1,11 @@
+schema:
+  - ${GRAFBASE_API_URL}:
+      headers:
+        Authorization: Bearer ${GRAFBASE_API_KEY}
+documents: ./src/graphql/document.graphql
+generates:
+  ./src/graphql/schema/index.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typed-document-node

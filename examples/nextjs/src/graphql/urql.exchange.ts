@@ -9,7 +9,7 @@ import {
 
 const TodoCollectionList = gql`
   {
-    todoListCollection(first: 99) {
+    todoListCollection(first: 100) {
       edges {
         node {
           id
