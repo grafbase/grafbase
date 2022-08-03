@@ -16,7 +16,7 @@
 	let title;
 	let timer;
 
-	export const debounce = (v) => {
+	const debounce = (v) => {
 		clearTimeout(timer);
 		timer = setTimeout(() => {
 			title = v;

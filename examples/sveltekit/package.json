@@ -1,5 +1,5 @@
 {
-  "name": "sveltekit",
+  "name": "grafbase-with-sveltekit",
   "version": "0.0.1",
   "scripts": {
     "dev": "vite dev",
