@@ -332,10 +332,13 @@ impl GetIds for UpdateNodeInput {
                             );
                         }
                     } else {
-                        let (from_ty, from_id) = pk.split_once('#').ok_or(BatchGetItemLoaderError::UnknownError)?;
+                        let from = NodeID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
+
+                        let from_ty = from.ty().to_string();
+                        let from_id = from.ulid().to_string();
 
                         result.insert(
-                            (pk.clone(), sk),
+                            (from.to_string(), sk),
                             InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
                                 id: from_id.to_string(),
                                 ty: from_ty.to_string(),
