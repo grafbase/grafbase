@@ -18,6 +18,7 @@ pub enum Error {
 pub enum LogSeverity {
     Debug,
     Info,
+    Warn,
     Error,
 }
 

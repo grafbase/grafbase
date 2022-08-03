@@ -37,6 +37,7 @@ pub fn print_with_worker(status: LogSeverity, message: &str) {
     match status {
         LogSeverity::Debug => worker::console_debug!("{}", message),
         LogSeverity::Info => worker::console_log!("{}", message),
+        LogSeverity::Warn => worker::console_warn!("{}", message),
         LogSeverity::Error => worker::console_error!("{}", message),
     }
 }
@@ -62,6 +63,7 @@ macro_rules! log {
             match $status {
                 $crate::LogSeverity::Debug => $crate::log_::debug!("{}", message),
                 $crate::LogSeverity::Info => $crate::log_::info!("{}", message),
+                $crate::LogSeverity::Warn => $crate::log_::warn!("{}", message),
                 $crate::LogSeverity::Error => $crate::log_::error!("{}", message),
             }
         }
@@ -97,6 +99,13 @@ macro_rules! debug {
 macro_rules! info {
     ($request_id:expr, $($t:tt)*) => {
         $crate::log!($crate::LogSeverity::Info, $request_id, $($t)*)
+    }
+}
+
+#[macro_export]
+macro_rules! warn {
+    ($request_id:expr, $($t:tt)*) => {
+        $crate::log!($crate::LogSeverity::Warn, $request_id, $($t)*)
     }
 }
 
