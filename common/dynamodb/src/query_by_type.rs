@@ -1,3 +1,8 @@
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::id::ID;
+use crate::paginated::{QueryResult, QueryValue};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::map::Entry;
@@ -9,13 +14,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
-
-use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::constraint::db::ConstraintID;
-use crate::model::id::ID;
-use crate::paginated::{QueryResult, QueryValue};
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -145,7 +143,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                     };
 
                                     match (pk, sk) {
-                                        (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                        (ID::NodeID(_), ID::NodeID(sk)) => {
                                             if sk.ty() == *query_key.ty() {
                                                 value.node = Some(curr.clone());
                                             } else if let Some(edge) = query_key.edges.iter().find(|edge| {
@@ -157,7 +155,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                                 value.edges.insert(edge.clone(), vec![curr.clone()]);
                                             }
                                         }
-                                        (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                             value.constraints.push(curr);
                                         }
                                         _ => {}
@@ -166,7 +164,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                     vac.insert(value);
                                 }
                                 Entry::Occupied(mut oqp) => match (pk, sk) {
-                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                    (ID::NodeID(_), ID::NodeID(sk)) => {
                                         if sk.ty() == *query_key.ty() {
                                             oqp.get_mut().node = Some(curr);
                                         } else if let Some(edge) = query_key.edges.iter().find(|edge| {
@@ -178,7 +176,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                             oqp.get_mut().edges.entry(edge.clone()).or_default().push(curr);
                                         }
                                     }
-                                    (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                         oqp.get_mut().constraints.push(curr);
                                     }
                                     _ => {}

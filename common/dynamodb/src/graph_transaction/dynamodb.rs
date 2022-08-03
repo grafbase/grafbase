@@ -7,7 +7,6 @@ use super::{
 };
 use crate::constant::{self, PK, SK};
 use crate::model::constraint::db::ConstraintID;
-use crate::model::id::ID;
 use crate::model::node::NodeID;
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};

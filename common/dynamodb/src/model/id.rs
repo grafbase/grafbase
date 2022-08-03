@@ -1,4 +1,5 @@
 use dynomite::{Attribute, AttributeError};
+use std::borrow::Cow;
 use std::fmt::Display;
 
 use super::constraint::db::ConstraintID;
@@ -38,6 +39,29 @@ impl<'a> TryFrom<String> for ID<'a> {
         }
 
         Err(IDError::InvalidID)
+    }
+}
+
+impl<'a> TryFrom<&'a str> for ID<'a> {
+    type Error = IDError;
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        if let Ok(constraint) = ConstraintID::try_from(value) {
+            return Ok(Self::ConstraintID(constraint));
+        }
+        if let Ok(node) = NodeID::from_borrowed(value) {
+            return Ok(Self::NodeID(node));
+        }
+
+        Err(IDError::InvalidID)
+    }
+}
+
+impl<'a> ID<'a> {
+    pub fn ty(&self) -> Cow<'a, str> {
+        match self {
+            Self::NodeID(a) => a.ty(),
+            Self::ConstraintID(a) => a.ty(),
+        }
     }
 }
 

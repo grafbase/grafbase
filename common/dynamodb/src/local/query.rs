@@ -65,7 +65,7 @@ impl Loader<QueryKey> for QueryLoader {
                 Sql::SelectId(query_pk).to_string()
             };
 
-            let entity_type = ID::from_borrowed(&query_key.pk)
+            let entity_type = ID::try_from(query_key.pk.as_ref())
                 .map_err(|_| QueryLoaderError::UnknownError)?
                 .ty()
                 .to_string();

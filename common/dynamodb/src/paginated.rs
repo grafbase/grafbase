@@ -1,9 +1,7 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::model::constraint::db::ConstraintID;
 use crate::model::id::ID;
-use crate::model::node::NodeID;
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
 use futures::TryFutureExt;
@@ -269,7 +267,7 @@ where
                             };
 
                             match (pk, sk) {
-                                (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                (ID::NodeID(_), ID::NodeID(sk)) => {
                                     if sk.ty() == node_type {
                                         value.node = Some(x.clone());
                                     } else if let Some(edge) = edges.iter().find(|edge| {
@@ -278,7 +276,7 @@ where
                                         value.edges.insert(edge.clone(), vec![x.clone()]);
                                     }
                                 }
-                                (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                     value.constraints.push(x);
                                 }
                                 _ => {}
@@ -287,7 +285,7 @@ where
                             vac.insert(value);
                         }
                         Entry::Occupied(mut oqp) => match (pk, sk) {
-                            (ID::NodeID(pk), ID::NodeID(sk)) => {
+                            (ID::NodeID(_), ID::NodeID(sk)) => {
                                 if sk.ty() == node_type {
                                     oqp.get_mut().node = Some(x);
                                     continue;
@@ -308,7 +306,7 @@ where
                                     continue;
                                 }
                             }
-                            (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                            (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                 oqp.get_mut().constraints.push(x);
                                 continue;
                             }

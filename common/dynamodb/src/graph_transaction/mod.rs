@@ -2,7 +2,6 @@ use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
-use crate::model::id::ID;
 use crate::model::node::NodeID;
 use crate::paginated::QueryValue;
 use crate::utils::ConvertExtension;
@@ -272,7 +271,7 @@ impl GetIds for InsertNodeInput {
 }
 
 impl GetIds for UpdateNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = NodeID::new(&self.ty, &self.id).to_string();
 
         let query_loader_reversed = &batchers.query_reversed;
@@ -295,8 +294,8 @@ impl GetIds for UpdateNodeInput {
 
             for val in ids {
                 if let Some((pk, sk, mut node)) = val.node.and_then(|mut node| {
-                    let pk = node.remove("__pk").and_then(|x| x.s);
-                    let sk = node.remove("__sk").and_then(|x| x.s);
+                    let pk = node.remove(PK).and_then(|x| x.s);
+                    let sk = node.remove(SK).and_then(|x| x.s);
                     match (pk, sk, node) {
                         (Some(pk), Some(sk), node) => Some((pk, sk, node)),
                         _ => None,
@@ -348,8 +347,8 @@ impl GetIds for UpdateNodeInput {
 
                 for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
                     if let Some((pk, sk)) = {
-                        let pk = relation.remove("__pk").and_then(|x| x.s);
-                        let sk = relation.remove("__sk").and_then(|x| x.s);
+                        let pk = relation.remove(PK).and_then(|x| x.s);
+                        let sk = relation.remove(SK).and_then(|x| x.s);
 
                         match (pk, sk) {
                             (Some(pk), Some(sk)) => Some((pk, sk)),
@@ -379,7 +378,7 @@ impl GetIds for UpdateNodeInput {
 }
 
 impl GetIds for DeleteNodeInput {
-    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, ctx: &'a DynamoDBContext) -> SelectionType<'a> {
+    fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let id_to_be_deleted = NodeID::new(&self.ty, &self.id);
         let query_loader = &batchers.query;
         let query_loader_reversed = &batchers.query_reversed;
@@ -394,7 +393,6 @@ impl GetIds for DeleteNodeInput {
                 .collect::<Vec<QueryValue>>()
         });
 
-        let id_to_be_deleted_string = id_to_be_deleted.to_string();
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
         Box::pin(async {
             let ids = items_to_be_deleted
@@ -406,8 +404,8 @@ impl GetIds for DeleteNodeInput {
 
             for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
-                    let pk = node.remove("__pk").and_then(|x| x.s);
-                    let sk = node.remove("__sk").and_then(|x| x.s);
+                    let pk = node.remove(PK).and_then(|x| x.s);
+                    let sk = node.remove(SK).and_then(|x| x.s);
 
                     match (pk, sk) {
                         (Some(pk), Some(sk)) => Some((pk, sk)),
@@ -430,8 +428,8 @@ impl GetIds for DeleteNodeInput {
 
                 for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
                     if let Some((pk, sk)) = {
-                        let pk = relation.remove("__pk").and_then(|x| x.s);
-                        let sk = relation.remove("__sk").and_then(|x| x.s);
+                        let pk = relation.remove(PK).and_then(|x| x.s);
+                        let sk = relation.remove(SK).and_then(|x| x.s);
 
                         match (pk, sk) {
                             (Some(pk), Some(sk)) => Some((pk, sk)),
@@ -462,8 +460,8 @@ impl GetIds for DeleteNodeInput {
                 }
 
                 for mut constraint in val.constraints {
-                    let pk = constraint.remove("__pk").and_then(|x| x.s);
-                    let sk = constraint.remove("__sk").and_then(|x| x.s);
+                    let pk = constraint.remove(PK).and_then(|x| x.s);
+                    let sk = constraint.remove(SK).and_then(|x| x.s);
 
                     if let (Some(pk), Some(sk)) = (pk, sk) {
                         result.insert(

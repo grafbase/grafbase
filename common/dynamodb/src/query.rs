@@ -1,3 +1,9 @@
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::id::ID;
+use crate::model::node::NodeID;
+use crate::paginated::{QueryResult, QueryValue};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::{map::Entry, IndexMap};
@@ -8,14 +14,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
-
-use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::constraint::db::ConstraintID;
-use crate::model::id::ID;
-use crate::model::node::NodeID;
-use crate::paginated::{QueryResult, QueryValue};
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -149,7 +147,7 @@ impl Loader<QueryKey> for QueryLoader {
                                                 }
                                             }
                                         }
-                                        (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                             value.constraints.push(curr);
                                         }
                                         _ => {}
@@ -167,7 +165,7 @@ impl Loader<QueryKey> for QueryLoader {
                                             }
                                         }
                                     }
-                                    (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                         oqp.get_mut().constraints.push(curr);
                                     }
                                     _ => {}

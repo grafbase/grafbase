@@ -40,8 +40,8 @@ pub mod db {
             self.field.borrow()
         }
 
-        pub fn ty(&self) -> &str {
-            self.ty.borrow()
+        pub fn ty(&self) -> Cow<'a, str> {
+            self.ty.clone()
         }
     }
 
@@ -73,6 +73,50 @@ pub mod db {
             let (field, value) = match rest.split_once(ID_SEPARATOR) {
                 Some((ty, value)) => (ty, value),
                 None => return Err(ConstraintIDError::NotAConstraint { origin }),
+            };
+
+            Ok(Self {
+                ty: Cow::Owned(ty.to_string()),
+                field: Cow::Owned(field.to_string()),
+                value: Cow::Owned(serde_json::from_str(value)?),
+            })
+        }
+    }
+
+    impl<'a> TryFrom<&'a str> for ConstraintID<'a> {
+        type Error = ConstraintIDError;
+        fn try_from(origin: &'a str) -> Result<Self, Self::Error> {
+            let (prefix, rest) = match origin.split_once(&format!("{CONSTRAINT_PREFIX}{ID_SEPARATOR}")) {
+                Some((prefix, rest)) => (prefix, rest),
+                None => {
+                    return Err(ConstraintIDError::NotAConstraint {
+                        origin: origin.to_string(),
+                    })
+                }
+            };
+
+            if !prefix.is_empty() {
+                return Err(ConstraintIDError::NotAConstraint {
+                    origin: origin.to_string(),
+                });
+            }
+
+            let (ty, rest) = match rest.split_once(ID_SEPARATOR) {
+                Some((field, rest)) => (field, rest),
+                None => {
+                    return Err(ConstraintIDError::NotAConstraint {
+                        origin: origin.to_string(),
+                    })
+                }
+            };
+
+            let (field, value) = match rest.split_once(ID_SEPARATOR) {
+                Some((ty, value)) => (ty, value),
+                None => {
+                    return Err(ConstraintIDError::NotAConstraint {
+                        origin: origin.to_string(),
+                    })
+                }
             };
 
             Ok(Self {
