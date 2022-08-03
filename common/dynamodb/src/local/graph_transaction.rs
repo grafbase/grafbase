@@ -8,7 +8,6 @@ use crate::graph_transaction::{
     ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
 };
 use crate::model::constraint::db::ConstraintID;
-use crate::model::id::ID;
 use crate::model::node::NodeID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
