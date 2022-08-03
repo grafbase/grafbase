@@ -618,7 +618,7 @@ pub enum ToTransactionError {
     GetItemError(#[from] BatchGetItemLoaderError),
     #[error("{0}")]
     TransactionError(#[from] TransactionError),
-    #[error("Unique value {value} on field {field} already exist, you can't use it.")]
+    #[error("The value \"{value}\" is already taken on field \"{field}\"")]
     UniqueCondition {
         source: TransactionError,
         value: String,
