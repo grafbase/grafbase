@@ -1,72 +1,43 @@
 use dynomite::{Attribute, AttributeError};
-use std::borrow::Cow;
 use std::fmt::Display;
+
+use super::constraint::db::ConstraintID;
+use super::node::NodeID;
 
 pub const ID_SEPARATOR: char = '_';
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct ID<'a> {
-    ty: Cow<'a, str>,
-    ulid: Cow<'a, str>,
+pub enum ID<'a> {
+    NodeID(NodeID<'a>),
+    ConstraintID(ConstraintID<'a>),
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum IDError {
-    #[error("Invalid ID Provided: {0}")]
-    InvalidID(String),
-}
-
-impl<'a> ID<'a> {
-    pub fn from_owned(value: String) -> Result<Self, IDError> {
-        if let Some((ty, ulid)) = value.split_once(ID_SEPARATOR) {
-            Ok(Self {
-                ty: Cow::Owned(ty.to_lowercase()),
-                ulid: Cow::Owned(ulid.to_string()),
-            })
-        } else {
-            Err(IDError::InvalidID(value))
-        }
-    }
-
-    pub fn from_borrowed(value: &'a str) -> Result<Self, IDError> {
-        if let Some((ty, ulid)) = value.split_once(ID_SEPARATOR) {
-            Ok(Self {
-                ty: Cow::Owned(ty.to_lowercase()),
-                ulid: Cow::Borrowed(ulid),
-            })
-        } else {
-            Err(IDError::InvalidID(value.to_string()))
-        }
-    }
-
-    pub fn new(ty: &'a str, ulid: &'a str) -> Self {
-        Self {
-            ty: Cow::Owned(ty.to_lowercase()),
-            ulid: Cow::Borrowed(ulid),
-        }
-    }
-
-    pub fn new_owned(ty: String, ulid: String) -> Self {
-        Self {
-            ty: Cow::Owned(ty.to_lowercase()),
-            ulid: Cow::Owned(ulid),
-        }
-    }
-}
-
-impl<'a> ID<'a> {
-    pub fn ty(&self) -> Cow<'a, str> {
-        self.ty.clone()
-    }
-
-    pub fn ulid(&self) -> Cow<'a, str> {
-        self.ulid.clone()
-    }
+    #[error("Invalid ID Provided")]
+    InvalidID,
 }
 
 impl<'a> Display for ID<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{ID_SEPARATOR}{}", self.ty, self.ulid)
+        match self {
+            Self::NodeID(a) => a.fmt(f),
+            Self::ConstraintID(a) => a.fmt(f),
+        }
+    }
+}
+
+impl<'a> TryFrom<String> for ID<'a> {
+    type Error = IDError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if let Ok(constraint) = ConstraintID::try_from(value.clone()) {
+            return Ok(Self::ConstraintID(constraint));
+        }
+        if let Ok(node) = NodeID::from_owned(value) {
+            return Ok(Self::NodeID(node));
+        }
+
+        Err(IDError::InvalidID)
     }
 }
 
@@ -76,6 +47,6 @@ impl<'a> Attribute for ID<'a> {
     }
 
     fn from_attr(value: dynomite::AttributeValue) -> Result<Self, dynomite::AttributeError> {
-        Self::from_owned(value.s.ok_or(AttributeError::InvalidType)?).map_err(|_| AttributeError::InvalidFormat)
+        Self::try_from(value.s.ok_or(AttributeError::InvalidType)?).map_err(|_| AttributeError::InvalidFormat)
     }
 }

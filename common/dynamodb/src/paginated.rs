@@ -3,6 +3,7 @@
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::id::ID;
+use crate::model::node::NodeID;
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
 use futures::TryFutureExt;
@@ -249,9 +250,9 @@ where
             for x in resp.items.unwrap_or_default() {
                 let len = result.values.len();
                 if len <= limit {
-                    let pk = ID::from_borrowed(x.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                    let pk = ID::try_from(x.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                         .expect("Can't fail");
-                    let sk = ID::from_borrowed(x.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                    let sk = ID::try_from(x.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                         .expect("Can't fail");
                     let relation_names = x.get(RELATION_NAMES).and_then(|y| y.ss.clone());
                     match result.values.entry(pk.to_string()) {
@@ -267,45 +268,52 @@ where
                                 edges: IndexMap::with_capacity(5),
                             };
 
-                            // If it's the entity
-                            if sk.ty() == node_type {
-                                value.node = Some(x.clone());
-                            } else if ConstraintID::try_from(sk).is_ok() {
-                                value.constraints.push(x);
-                            // If it's a relation
-                            } else if let Some(edge) = edges
-                                .iter()
-                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
-                            {
-                                value.edges.insert(edge.clone(), vec![x.clone()]);
+                            match (pk, sk) {
+                                (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                    if sk.ty() == node_type {
+                                        value.node = Some(x.clone());
+                                    } else if let Some(edge) = edges.iter().find(|edge| {
+                                        relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default()
+                                    }) {
+                                        value.edges.insert(edge.clone(), vec![x.clone()]);
+                                    }
+                                }
+                                (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                    value.constraints.push(x);
+                                }
+                                _ => {}
                             }
 
                             vac.insert(value);
                         }
-                        Entry::Occupied(mut oqp) => {
-                            if sk.ty() == node_type {
-                                oqp.get_mut().node = Some(x);
-                                continue;
-                            } else if ConstraintID::try_from(sk).is_ok() {
+                        Entry::Occupied(mut oqp) => match (pk, sk) {
+                            (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                if sk.ty() == node_type {
+                                    oqp.get_mut().node = Some(x);
+                                    continue;
+                                }
+
+                                if let Some(edge) = edges
+                                    .iter()
+                                    .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
+                                {
+                                    match oqp.get_mut().edges.entry(edge.clone()) {
+                                        Entry::Vacant(vac) => {
+                                            vac.insert(vec![x]);
+                                        }
+                                        Entry::Occupied(mut oqp) => {
+                                            oqp.get_mut().push(x);
+                                        }
+                                    };
+                                    continue;
+                                }
+                            }
+                            (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
                                 oqp.get_mut().constraints.push(x);
                                 continue;
                             }
-
-                            if let Some(edge) = edges
-                                .iter()
-                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
-                            {
-                                match oqp.get_mut().edges.entry(edge.clone()) {
-                                    Entry::Vacant(vac) => {
-                                        vac.insert(vec![x]);
-                                    }
-                                    Entry::Occupied(mut oqp) => {
-                                        oqp.get_mut().push(x);
-                                    }
-                                };
-                                continue;
-                            }
-                        }
+                            _ => {}
+                        },
                     };
                 }
             }

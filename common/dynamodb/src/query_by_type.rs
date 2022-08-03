@@ -130,9 +130,9 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                             },
                         ),
                         |(query_key, mut acc), curr| async move {
-                            let pk = ID::from_borrowed(curr.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail"))
+                            let pk = ID::try_from(curr.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                                 .expect("Can't fail");
-                            let sk = ID::from_borrowed(curr.get(SK).and_then(|y| y.s.as_ref()).expect("Can't fail"))
+                            let sk = ID::try_from(curr.get(SK).and_then(|y| y.s.as_ref()).expect("Can't fail").clone())
                                 .expect("Can't fail");
                             let relation_names = curr.get(RELATION_NAMES).and_then(|y| y.ss.clone());
 
@@ -144,37 +144,45 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                                         edges: IndexMap::with_capacity(5),
                                     };
 
-                                    // If it's the entity
-                                    if sk.ty() == *query_key.ty() {
-                                        value.node = Some(curr.clone());
-                                    } else if ConstraintID::try_from(sk).is_ok() {
-                                        value.constraints.push(curr);
-                                    // If it's a relation
-                                    } else if let Some(edge) = query_key.edges.iter().find(|edge| {
-                                        relation_names
-                                            .as_ref()
-                                            .map(|x| x.contains(edge))
-                                            .unwrap_or_else(|| false)
-                                    }) {
-                                        value.edges.insert(edge.clone(), vec![curr.clone()]);
+                                    match (pk, sk) {
+                                        (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                            if sk.ty() == *query_key.ty() {
+                                                value.node = Some(curr.clone());
+                                            } else if let Some(edge) = query_key.edges.iter().find(|edge| {
+                                                relation_names
+                                                    .as_ref()
+                                                    .map(|x| x.contains(edge))
+                                                    .unwrap_or_else(|| false)
+                                            }) {
+                                                value.edges.insert(edge.clone(), vec![curr.clone()]);
+                                            }
+                                        }
+                                        (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                            value.constraints.push(curr);
+                                        }
+                                        _ => {}
                                     }
 
                                     vac.insert(value);
                                 }
-                                Entry::Occupied(mut oqp) => {
-                                    if sk.ty() == *query_key.ty() {
-                                        oqp.get_mut().node = Some(curr);
-                                    } else if ConstraintID::try_from(sk).is_ok() {
-                                        oqp.get_mut().constraints.push(curr);
-                                    } else if let Some(edge) = query_key.edges.iter().find(|edge| {
-                                        relation_names
-                                            .as_ref()
-                                            .map(|x| x.contains(edge))
-                                            .unwrap_or_else(|| false)
-                                    }) {
-                                        oqp.get_mut().edges.entry(edge.clone()).or_default().push(curr);
+                                Entry::Occupied(mut oqp) => match (pk, sk) {
+                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                        if sk.ty() == *query_key.ty() {
+                                            oqp.get_mut().node = Some(curr);
+                                        } else if let Some(edge) = query_key.edges.iter().find(|edge| {
+                                            relation_names
+                                                .as_ref()
+                                                .map(|x| x.contains(edge))
+                                                .unwrap_or_else(|| false)
+                                        }) {
+                                            oqp.get_mut().edges.entry(edge.clone()).or_default().push(curr);
+                                        }
                                     }
-                                }
+                                    (ID::ConstraintID(pk), ID::ConstraintID(sk)) => {
+                                        oqp.get_mut().constraints.push(curr);
+                                    }
+                                    _ => {}
+                                },
                             };
                             Ok((query_key, acc))
                         },

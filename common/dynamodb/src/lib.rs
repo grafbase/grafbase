@@ -42,7 +42,7 @@ use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
 pub mod dataloader;
-mod model;
+pub mod model;
 pub use model::constraint::{ConstraintDefinition, ConstraintType};
 
 mod utils;
