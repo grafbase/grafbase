@@ -1,7 +1,7 @@
 schema:
   - ${GRAFBASE_API_URL}:
       headers:
-        Authorization: Bearer ${GRAFBASE_API_KEY}
+        x-api-key: ${GRAFBASE_API_KEY}
 documents: ./src/graphql/document.graphql
 generates:
   ./src/graphql/schema/index.ts:

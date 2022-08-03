@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GRAFBASE_API_KEY}`,
+      "x-api-key": GRAFBASE_API_KEY,
     },
     body,
   });
