@@ -26,7 +26,7 @@ type Customer @model {
   id: ID!
   firstName: String!
   lastName: String!
-  email: String!
+  email: String! @unique
   phoneNumber: String
   billingAddress: Address
 }
@@ -54,7 +54,7 @@ type Product @model {
   imageUrl: String!
   description: String!
   stock: Int!
-  slug: String!
+  slug: String! @unique
   variants: [Variant]
   brand: String
 }

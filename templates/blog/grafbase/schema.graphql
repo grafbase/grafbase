@@ -1,12 +1,13 @@
 type User @model {
   id: ID!
-  email: String!
+  email: String! @unique
   name: String!
   posts: [Post]
 }
 
 type Post @model {
   id: ID!
+  slug: String! @unique
   title: String!
   content: String!
   user: User!
