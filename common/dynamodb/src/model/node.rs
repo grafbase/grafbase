@@ -10,31 +10,31 @@ pub struct NodeID<'a> {
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
-pub enum IDError {
+pub enum NodeIDError {
     #[error("Invalid ID Provided: {0}")]
     InvalidID(String),
 }
 
 impl<'a> NodeID<'a> {
-    pub fn from_owned(value: String) -> Result<Self, IDError> {
+    pub fn from_owned(value: String) -> Result<Self, NodeIDError> {
         if let Some((ty, ulid)) = value.split_once(ID_SEPARATOR) {
             Ok(Self {
                 ty: Cow::Owned(ty.to_lowercase()),
                 ulid: Cow::Owned(ulid.to_string()),
             })
         } else {
-            Err(IDError::InvalidID(value))
+            Err(NodeIDError::InvalidID(value))
         }
     }
 
-    pub fn from_borrowed(value: &'a str) -> Result<Self, IDError> {
+    pub fn from_borrowed(value: &'a str) -> Result<Self, NodeIDError> {
         if let Some((ty, ulid)) = value.split_once(ID_SEPARATOR) {
             Ok(Self {
                 ty: Cow::Owned(ty.to_lowercase()),
                 ulid: Cow::Borrowed(ulid),
             })
         } else {
-            Err(IDError::InvalidID(value.to_string()))
+            Err(NodeIDError::InvalidID(value.to_string()))
         }
     }
 

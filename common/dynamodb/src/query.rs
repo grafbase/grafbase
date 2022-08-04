@@ -8,24 +8,18 @@ use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::{map::Entry, IndexMap};
 use itertools::Itertools;
-use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
 
-// TODO: Should ensure Rosoto Errors impl clone
-quick_error! {
-    #[derive(Debug, Clone)]
-    pub enum QueryLoaderError {
-        UnknownError {
-            display("An internal error happened")
-        }
-        QueryError {
-            display("An internal error happened while fetching a list of entities")
-        }
-    }
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum QueryLoaderError {
+    #[error("An internal error happened")]
+    UnknownError,
+    #[error("An internal error happened while fetching a list of entities")]
+    QueryError,
 }
 
 pub struct QueryLoader {
@@ -61,8 +55,16 @@ impl Loader<QueryKey> for QueryLoader {
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {
+            // TODO: Handle this when dealing with Custom ID
+            let pk = match NodeID::from_borrowed(&query_key.pk) {
+                Ok(id) => id,
+                Err(_) => {
+                    h.insert(query_key.clone(), QueryResult::default());
+                    continue;
+                }
+            };
             let mut exp = dynomite::attr_map! {
-                ":pk" => query_key.pk.clone(),
+                ":pk" => pk.to_string(),
             };
             let edges_len = query_key.edges.len();
 
@@ -85,10 +87,7 @@ impl Loader<QueryKey> for QueryLoader {
                     })
                     .join(" OR ");
 
-                let ty_attr = NodeID::from_borrowed(&query_key.pk)
-                    .map_err(|_| QueryLoaderError::UnknownError)?
-                    .ty()
-                    .into_attr();
+                let ty_attr = pk.ty().into_attr();
 
                 exp.insert(":type".to_string(), ty_attr);
                 Some(format!("begins_with(#type, :type) OR {edges}"))

@@ -134,7 +134,7 @@ pub struct QueryValue {
     pub constraints: Vec<HashMap<String, AttributeValue>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct QueryResult {
     /// Returned values by PK
     pub values: IndexMap<String, QueryValue>,
