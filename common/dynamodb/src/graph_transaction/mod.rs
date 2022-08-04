@@ -293,58 +293,67 @@ impl GetIds for UpdateNodeInput {
             let mut result = HashMap::with_capacity(id_len);
 
             for val in ids {
-                if let Some((pk, sk, mut node)) = val.node.and_then(|mut node| {
+                if let Some((pk, sk)) = val.node.and_then(|mut node| {
                     let pk = node.remove(PK).and_then(|x| x.s);
                     let sk = node.remove(SK).and_then(|x| x.s);
-                    match (pk, sk, node) {
-                        (Some(pk), Some(sk), node) => Some((pk, sk, node)),
+                    match (pk, sk) {
+                        (Some(pk), Some(sk)) => Some((pk, sk)),
                         _ => None,
                     }
                 }) {
-                    if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
-                        let origin = constraint_id.value().clone().into_attribute();
-                        let updated = self
-                            .user_defined_item
-                            .get(constraint_id.field())
-                            .map(std::clone::Clone::clone)
-                            .unwrap_or_default();
+                    let from = NodeID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
-                        if updated != origin {
-                            result.insert(
-                                (pk, sk),
-                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
-                                    DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
-                                )),
-                            );
+                    let from_ty = from.ty().to_string();
+                    let from_id = from.ulid().to_string();
 
-                            let new_id = ConstraintID::from_owned(
-                                constraint_id.ty().to_string(),
-                                constraint_id.field().to_string(),
-                                updated.into_json(),
-                            );
-                            result.insert(
-                                (new_id.to_string(), new_id.to_string()),
-                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
-                                    InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
-                                        target: node.remove(constant::INVERTED_INDEX_PK).and_then(|x| x.s).unwrap(),
-                                    }),
-                                )),
-                            );
+                    result.insert(
+                        (from.to_string(), sk),
+                        InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                            id: from_id.to_string(),
+                            ty: from_ty.to_string(),
+                            user_defined_item: self.user_defined_item.clone(),
+                        })),
+                    );
+                }
+
+                for mut constraint in val.constraints {
+                    let pk = constraint.remove(PK).and_then(|x| x.s);
+                    let sk = constraint.remove(SK).and_then(|x| x.s);
+                    if let (Some(pk), Some(sk)) = (pk, sk) {
+                        if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
+                            let origin = constraint_id.value().clone().into_attribute();
+                            let updated = self
+                                .user_defined_item
+                                .get(constraint_id.field())
+                                .map(std::clone::Clone::clone)
+                                .unwrap_or_default();
+
+                            if updated != origin {
+                                result.insert(
+                                    (pk, sk),
+                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                        DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                                    )),
+                                );
+
+                                let new_id = ConstraintID::from_owned(
+                                    constraint_id.ty().to_string(),
+                                    constraint_id.field().to_string(),
+                                    updated.into_json(),
+                                );
+                                result.insert(
+                                    (new_id.to_string(), new_id.to_string()),
+                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                            target: constraint
+                                                .remove(constant::INVERTED_INDEX_PK)
+                                                .and_then(|x| x.s)
+                                                .unwrap(),
+                                        }),
+                                    )),
+                                );
+                            }
                         }
-                    } else {
-                        let from = NodeID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
-
-                        let from_ty = from.ty().to_string();
-                        let from_id = from.ulid().to_string();
-
-                        result.insert(
-                            (from.to_string(), sk),
-                            InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
-                                id: from_id.to_string(),
-                                ty: from_ty.to_string(),
-                                user_defined_item: self.user_defined_item.clone(),
-                            })),
-                        );
                     }
                 }
 
