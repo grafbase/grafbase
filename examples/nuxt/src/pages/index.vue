@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useQuery } from "@urql/vue";
-import { TodoListsDocument } from "@/graphql/schema";
+import { useQuery } from '@urql/vue'
+import { TodoListsDocument } from '@/graphql/schema'
 
-const { data, fetching, error } = useQuery({ query: TodoListsDocument });
+const { data, fetching, error } = useQuery({ query: TodoListsDocument })
 </script>
 
 <template>
