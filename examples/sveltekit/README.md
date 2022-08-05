@@ -14,7 +14,8 @@
 4. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
 5. Open `.env` in your code editor, and provide your Grafbase API endpoint and API key
 6. Run `npm install`, or `yarn install` to install dependencies
-7. Run `npm run dev`, or `yarn dev` and visit [`http://localhost:5173`](http://localhost:5173)
+7. Run `npm run graphql`, or `yarn graphql` to generate types from Schema
+8. Run `npm run dev`, or `yarn dev` and visit [`http://localhost:5173`](http://localhost:5173)
 
 ## Learn More About Grafbase
 
