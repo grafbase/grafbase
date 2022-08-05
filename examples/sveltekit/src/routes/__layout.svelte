@@ -1,6 +1,11 @@
 <script lang="ts">
 	import Header from '$lib/Header.svelte';
+	import SvelteTheme from 'svelte-themes/SvelteTheme.svelte';
+	import { SvelteToast } from '@zerodevx/svelte-toast'
+
 	import '../app.css';
+
+
 </script>
 
 <Header />
@@ -12,5 +17,7 @@
 	<div
 		class="fixed right-0 w-12 h-full bg-gradient-to-r from-transparent to-white dark:to-zinc-900"
 	/>
+	<SvelteTheme attribute='class' />
+	<SvelteToast />
 	<slot />
 </main>

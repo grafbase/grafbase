@@ -1291,6 +1291,11 @@
     undici "5.5.1"
     web-streams-polyfill "^3.2.0"
 
+"@zerodevx/svelte-toast@^0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@zerodevx/svelte-toast/-/svelte-toast-0.7.2.tgz#904610b7d99d099bcdb83a005ee32e0b3351c909"
+  integrity sha512-vWiY6IqsstcOoQ8PFBuFuxgPkj1JFAGhUF9gC7wLx7c5A9SSfdtxWs/39ekGSIeyJK0yqWhTcmzGrCEWSELzDw==
+
 abbrev@1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/abbrev/-/abbrev-1.1.1.tgz#f8f2c887ad10bf67f634f005b6987fed3179aac8"
@@ -4450,6 +4455,11 @@ svelte-preprocess@^4.0.0, svelte-preprocess@^4.10.7:
     magic-string "^0.25.7"
     sorcery "^0.10.0"
     strip-indent "^3.0.0"
+
+svelte-themes@^0.0.98:
+  version "0.0.98"
+  resolved "https://registry.yarnpkg.com/svelte-themes/-/svelte-themes-0.0.98.tgz#1d9ae0baec2b59107e702ea11b61f5e87cecef7d"
+  integrity sha512-nW0H0frcFKbtchGHNqchTleRW/zzEjgBgQRR3IRzayMuQsQC93KzW7ZHrR6zbQGnQh9SFg0H6hsJQPnGkf2ieQ==
 
 svelte@^3.46.0:
   version "3.49.0"

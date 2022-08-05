@@ -46,7 +46,9 @@
     "@rgossiaux/svelte-headlessui": "^1.0.2",
     "@urql/exchange-graphcache": "^4.4.3",
     "@urql/svelte": "^2.0.2",
+    "@zerodevx/svelte-toast": "^0.7.2",
     "cookie": "^0.4.1",
-    "graphql": "^16.5.0"
+    "graphql": "^16.5.0",
+    "svelte-themes": "^0.0.98"
   }
 }

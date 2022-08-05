@@ -1,14 +1,13 @@
 <script lang="ts">
+	import themeStore, { setTheme } from 'svelte-themes';
+
 	function switchTheme() {
-		const html = document.getElementsByTagName('html').item(0);
-		const isLightTheme = html.getAttribute('class') !== 'dark';
-		html.setAttribute('class', isLightTheme ? 'dark' : 'light');
-		html.setAttribute('style', `color-scheme: ${isLightTheme ? 'dark' : 'light'}`);
+		setTheme($themeStore?.theme === 'dark' ? 'light' : 'dark')
 	}
 </script>
 
 <label for="theme-switcher" class="inline-flex relative items-center cursor-pointer">
-	<input type="checkbox" id="theme-switcher" class="sr-only peer" on:click={switchTheme} />
+	<input type="checkbox" id="theme-switcher" class="sr-only peer" value={$themeStore.theme === 'dark' ? '' : 'checked'} on:click={switchTheme} />
 
 	<svg
 		width="16"

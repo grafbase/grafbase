@@ -1,6 +1,6 @@
 # Grafbase ⨯ SvelteKit
 
-[Join our Discord](https://discord.gg/grafbase)
+[Join our Community](https://grafbase.com/community)
 
 [![Deploy to Grafbase](https://grafbase.com/button)](https://grafbase.com/new/template?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 </br>

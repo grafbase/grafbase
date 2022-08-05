@@ -54,7 +54,6 @@ mutation TodoListUpdate($id: ID!, $title : String) {
   }
 }
 
-
 mutation TodoDelete($id: ID!) {
   todoDelete(id: $id) {
     deletedId
