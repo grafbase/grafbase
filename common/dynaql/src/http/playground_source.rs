@@ -20,16 +20,168 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
 <html>
 
 <head>
-  <meta charset=utf-8 />
-  <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
-  <title>GraphQL Playground</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui" />
+  <title>GraphQL Playground - Grafbase</title>
   <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/css/index.css" />
-  <link rel="shortcut icon" href="//cdn.jsdelivr.net/npm/graphql-playground-react/build/favicon.png" />
+  <link rel="shortcut icon" href="https://grafbase.com/images/other/grafbase-logo-circle.png" />
   <script src="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/js/middleware.js"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Source+Code+Pro:400,700" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" />
 </head>
 
 <body>
+  <style type="text/css">
+    /* Grafbase Theme */
+    :root {
+      --mono: Consolas, Inconsolata, 'Droid Sans Mono', Monaco, monospace;
+      --sm: 0.875rem;
+      /* Colors */
+      --base: #dedede;
+      --blue: #7fa2c0;
+      --blue-light: #599dd9;
+      --green: #54b484;
+      --purple: #b783ba;
+      --yellow: #c59f67;
+      --red: #d47575;
+      --grey: #878787;
+      --positive: #125634;
+      --text-positive: #b0e5cb;
+      --negative: #732f2f;
+      --text-negative: #fbb6b6;
+      --bg: #000000;
+      --bg-border: #ffffff16;
+      --transparent: #ffffff00;
+      --text1: #ffffff;
+      --accent: #4a9c6d;
+      --accentHover: #41895f;
+      --bg1: #16171b;
+      --bg2: #222226;
+      --bg3: #363739;
+    }
+
+    .cEPVvT .CodeMirror {
+      font-family: var(--mono);
+      font-size: var(--sm);
+    }
+    .cEPVvT .CodeMirror div.CodeMirror-cursor {
+      border-left: 1px solid var(--text1);
+    }
+    .jqqEqQ .CodeMirror {
+      background-color: var(--bg2);
+    }
+    .kOflzg {
+      background-color: var(--bg2);
+    }
+    .dUUizb {
+      border-color: var(--bg2);
+    }
+    .bfVYLy {
+      background-color: var(--bg2);
+    }
+    .bfVYLy:hover {
+      background-color: var(--bg2);
+      opacity: 0.9;
+    }
+    .hnqzUG {
+      background-color: var(--bg1);
+    }
+    .hnqzUG:hover {
+      background-color: var(--bg1);
+      opacity: 0.9;
+    }
+    .hrrKPQ {
+      background-color: var(--transparent);
+      cursor: pointer;
+    }
+    .hrrKPQ:hover {
+      background-color: var(--transparent);
+      opacity: 0.9;
+    }
+    .dvmgwq {
+      background-color: var(--bg1);
+      text-transform: unset;
+    }
+    .dvmgwq:hover {
+      background-color: var(--bg1);
+      opacity: 0.9;
+    }
+    .cljqcK {
+      background-color: var(--bg1);
+    }
+    .CodeMirror .cm-s-graphiql,
+    .imcoIY .CodeMirror,
+    .cEPVvT .CodeMirror-linenumbers {
+      background-color: var(--bg1);
+    }
+    .cATAit {
+      background-color: var(--bg1);
+      border-top: 1px solid var(--bg3);
+    }
+    .hQHJtw {
+      background-color: var(--bg1);
+      border-top: 1px solid var(--bg3);
+    }
+    .kJytub {
+      background-color: var(--accent);
+      border: none;
+    }
+    .kJytub:hover {
+      background-color: var(--accentHover);
+    }
+    .cIypmL {
+      fill: var(--text1);
+    }
+    .jmsfqV {
+      text-transform: none;
+    }
+
+    .cEPVvT .cm-keyword {
+      color: var(--blue);
+    }
+    .cEPVvT .cm-def {
+      color: var(--blue);
+    }
+    .cEPVvT .cm-ws {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-comment {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-punctuation {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-property {
+      color: var(--green);
+    }
+    .cEPVvT .cm-attribute {
+      color: var(--yellow);
+    }
+    .cEPVvT .cm-variable {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-number {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-string {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-string2 {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-builtin {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-meta {
+      color: var(--blue-light);
+      font-weight: 'bold';
+    }
+    .cEPVvT .cm-qualifier {
+      color: '#1c92a9';
+    }
+    .cEPVvT .cm-atom {
+      color: '#ca9800';
+    }
+  </style>
   <style type="text/css">
     html {
       font-family: "Open Sans", sans-serif;
