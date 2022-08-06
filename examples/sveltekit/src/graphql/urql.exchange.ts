@@ -1,11 +1,11 @@
-import { gql } from "urql";
-import { cacheExchange as graphCache } from "@urql/exchange-graphcache";
-import {
+import { gql } from '@urql/svelte'
+import { cacheExchange as graphCache } from '@urql/exchange-graphcache'
+import type {
   Todo,
   TodoCreateMutation,
   TodoListConnection,
-  TodoListCreateMutation,
-} from "graphql/schema";
+  TodoListCreateMutation
+} from '$graphql/schema'
 
 const TodoCollectionList = gql`
   {
@@ -23,7 +23,7 @@ const TodoCollectionList = gql`
       }
     }
   }
-`;
+`
 
 export const cacheExchange = () =>
   graphCache({
@@ -40,70 +40,72 @@ export const cacheExchange = () =>
             (data: { todoListCollection: TodoListConnection } | null) => {
               data?.todoListCollection?.edges
                 ?.find((edge) => edge?.node?.id === _args?.input?.list?.link)
-                ?.node?.todos?.push(result?.todoCreate?.todo as Todo);
-
-              return data;
+                ?.node?.todos?.push(result?.todoCreate?.todo as Todo)
+              return data
             }
-          );
+          )
         },
         todoListCreate(result: TodoListCreateMutation, _args, cache, _info) {
           cache.updateQuery({ query: TodoCollectionList }, (data) => {
             data.todoListCollection.edges = [
               {
                 node: result.todoListCreate?.todoList,
-                __typename: "TodoListEdge",
+                __typename: 'TodoListEdge'
               },
-              ...data.todoListCollection.edges,
-            ];
+              ...data.todoListCollection.edges
+            ]
 
-            return data;
-          });
+            return data
+          })
         },
         todoListDelete(result, _args, cache, _info) {
           cache
-            .inspectFields("Query")
-            .filter((field) => field.fieldName === "todoListCollection")
+            .inspectFields('Query')
+            .filter((field) => field.fieldName === 'todoListCollection')
             .forEach(() => {
               cache.updateQuery(
                 {
-                  query: TodoCollectionList,
+                  query: TodoCollectionList
                 },
                 (data: { todoListCollection: TodoListConnection } | null) => {
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                   // @ts-ignore
                   data.todoListCollection.edges =
                     data?.todoListCollection.edges?.filter(
                       (edge) => edge?.node?.id !== _args.id
-                    );
-                  return data;
+                    )
+                  return data
                 }
-              );
-            });
+              )
+            })
         },
         todoDelete(result, _args, cache, _info) {
           cache
-            .inspectFields("Query")
-            .filter((field) => field.fieldName === "todoListCollection")
+            .inspectFields('Query')
+            .filter((field) => field.fieldName === 'todoListCollection')
             .forEach(() => {
               cache.updateQuery(
                 {
-                  query: TodoCollectionList,
+                  query: TodoCollectionList
                 },
                 (data: { todoListCollection: TodoListConnection } | null) => {
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                   // @ts-ignore
                   data.todoListCollection.edges =
                     data?.todoListCollection.edges?.map((edge) => {
+                      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                       // @ts-ignore
                       edge.node.todos = edge?.node?.todos.filter(
                         (todo) => todo?.id !== _args.id
-                      );
+                      )
 
-                      return edge;
-                    });
-                  return data;
+                      return edge
+                    })
+                  return data
                 }
-              );
-            });
-        },
-      },
-    },
-  });
+              )
+            })
+        }
+      }
+    }
+  })
