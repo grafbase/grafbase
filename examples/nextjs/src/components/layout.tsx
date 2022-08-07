@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
-import Head from "next/head";
-import Logo from "components/logo";
-import ThemeSwitch from "components/theme-switch";
+import { ReactNode } from 'react'
+import Head from 'next/head'
+import Logo from 'components/logo'
+import ThemeSwitch from 'components/theme-switch'
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -30,7 +30,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         {children}
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default Layout;
+export default Layout
