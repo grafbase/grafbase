@@ -1,8 +1,9 @@
-import { useTheme } from "next-themes";
+import { useTheme } from 'next-themes'
 
 const ThemeSwitch = () => {
-  const { resolvedTheme, setTheme } = useTheme();
-  const isDark = resolvedTheme === "dark";
+  const { resolvedTheme, setTheme } = useTheme()
+  const isDark = resolvedTheme === 'dark'
+  const onClick = () => setTheme(isDark ? 'light' : 'dark')
 
   return (
     <label
@@ -13,7 +14,7 @@ const ThemeSwitch = () => {
         type="checkbox"
         id="theme-switcher"
         defaultChecked={isDark}
-        onClick={() => setTheme(isDark ? "light" : "dark")}
+        onClick={onClick}
         className="sr-only peer"
       />
 
@@ -49,7 +50,7 @@ const ThemeSwitch = () => {
       </svg>
       <div className="w-14 h-8 bg-[#38361F] peer-focus:outline-none peer-focus:ring-0 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-yellow-400 after:dark:bg-blue-500 after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-[#303853] peer-checked:dark:bg-blue-200" />
     </label>
-  );
-};
+  )
+}
 
-export default ThemeSwitch;
+export default ThemeSwitch

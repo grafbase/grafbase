@@ -1,21 +1,23 @@
-import { TodoListCreateDocument } from "graphql/schema";
-import { useMutation } from "urql";
-import { useMemo, useState } from "react";
+import { TodoListCreateDocument } from 'graphql/schema'
+import { useMutation } from 'urql'
+import { FormEvent, useMemo, useState } from 'react'
 
 const NewTodoList = () => {
-  const context = useMemo(() => ({ additionalTypenames: ["TodoList"] }), []);
-  const [title, setTitle] = useState<string>("");
+  const context = useMemo(() => ({ additionalTypenames: ['TodoList'] }), [])
+  const [title, setTitle] = useState<string>('')
 
-  const [{ fetching }, createTodoList] = useMutation(TodoListCreateDocument);
+  const [{ fetching }, createTodoList] = useMutation(TodoListCreateDocument)
+
+  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    createTodoList({ title }, context)
+    setTitle('')
+  }
 
   return (
     <form
       className="h-fit rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 p-3 space-y-3 min-w-[300px]"
-      onSubmit={(e) => {
-        e.preventDefault();
-        createTodoList({ title }, context);
-        setTitle("");
-      }}
+      onSubmit={onSubmit}
     >
       <h2 className="text-gray-900 dark:text-gray-300 text-xl font-bold">
         New List
@@ -32,11 +34,11 @@ const NewTodoList = () => {
           disabled={fetching}
           className="bg-purple-600 text-sm rounded-md px-2 py-1 text-white disabled:bg-purple-500"
         >
-          {fetching ? "Creating..." : "Create"}
+          {fetching ? 'Creating...' : 'Create'}
         </button>
       </div>
     </form>
-  );
-};
+  )
+}
 
-export default NewTodoList;
+export default NewTodoList

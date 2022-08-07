@@ -1,41 +1,48 @@
 import {
   TodoDeleteDocument,
   TodoFragment,
-  TodoUpdateDocument,
-} from "graphql/schema";
-import { useMutation } from "urql";
-import { useMemo, useState } from "react";
-import { TrashIcon } from "@heroicons/react/outline";
-import Spinner from "components/spinner";
-import debounce from "lodash.debounce";
+  TodoUpdateDocument
+} from 'graphql/schema'
+import { useMutation } from 'urql'
+import { useMemo, useState } from 'react'
+import { TrashIcon } from '@heroicons/react/outline'
+import Spinner from 'components/spinner'
+import debounce from 'lodash.debounce'
 
 const TodoListTodo = (props: {
-  title: string;
-  id: string;
-  complete?: boolean | null;
+  title: string
+  id: string
+  complete?: boolean | null
 }) => {
-  const { id, title, complete } = props;
-  const [completed, setCompleted] = useState(!!complete);
+  const { id, title, complete } = props
   const contextDeleteTodoList = useMemo(
-    () => ({ additionalTypenames: ["TodoList"] }),
+    () => ({ additionalTypenames: ['TodoList'] }),
     []
-  );
-  const [{ fetching }, todoDelete] = useMutation(TodoDeleteDocument);
-  const [{}, todoUpdate] = useMutation(TodoUpdateDocument);
+  )
+  const [{ fetching }, todoDelete] = useMutation(TodoDeleteDocument)
+  const [{}, todoUpdate] = useMutation(TodoUpdateDocument)
+
+  const [completed, setCompleted] = useState(!!complete)
 
   const onTodoUpdate = (todoProps: Partial<TodoFragment>) =>
-    todoUpdate({ ...props, ...todoProps });
+    todoUpdate({ ...props, ...todoProps })
 
   const onTitleChange = debounce((title: string) => {
-    onTodoUpdate({ title });
-  }, 500);
+    onTodoUpdate({ title })
+  }, 500)
+
+  const onCheckboxClick = () =>
+    setCompleted((c) => {
+      onTodoUpdate({ complete: !c })
+      return !c
+    })
 
   return (
     <div
       className={`relative rounded-md border p-3 overflow-hidden ${
         completed
-          ? "bg-emerald-800 border-emerald-600"
-          : "bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-transparent"
+          ? 'bg-emerald-800 border-emerald-600'
+          : 'bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-transparent'
       }`}
     >
       {completed && (
@@ -50,17 +57,12 @@ const TodoListTodo = (props: {
               type="checkbox"
               defaultChecked={completed}
               className="border-gray-200 text-green-600 dark:border-gray-500 bg-white dark:bg-black rounded accent-green-600 hover:bg-green-600 focus:ring-0"
-              onClick={() => {
-                setCompleted((c) => {
-                  onTodoUpdate({ complete: !c });
-                  return !c;
-                });
-              }}
+              onClick={onCheckboxClick}
             />
             <input
               defaultValue={title}
               className={`bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400 ${
-                completed ? "text-white" : "text-black dark:text-white"
+                completed ? 'text-white' : 'text-black dark:text-white'
               }`}
               onChange={(e) => onTitleChange(e?.target?.value)}
             />
@@ -76,16 +78,16 @@ const TodoListTodo = (props: {
           <div
             className={`text-xs px-1 py-0.5 rounded ${
               completed
-                ? "bg-green-600 text-white"
-                : "bg-gray-300 dark:bg-gray-600 text-black dark:text-white"
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-300 dark:bg-gray-600 text-black dark:text-white'
             }`}
           >
-            {completed ? "Completed" : "Not completed"}
+            {completed ? 'Completed' : 'Not completed'}
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default TodoListTodo;
+export default TodoListTodo
