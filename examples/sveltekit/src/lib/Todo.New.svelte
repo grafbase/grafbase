@@ -26,7 +26,7 @@
     bind:value={title}
     required
     placeholder="Todo title"
-    class="w-[177px] bg-gray-50 dark:bg-zinc-800 px-2 py-1 text-sm border border-gray-300 dark:border-gray-800 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+    class="w-[177px] bg-gray-50 dark:bg-gray-700 px-2 py-1 text-sm border border-gray-300 dark:border-gray-800 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
   />
   <button
     class="bg-blue-800 text-sm rounded-md px-2 py-1 text-white whitespace-nowrap disabled:bg-blue-400"

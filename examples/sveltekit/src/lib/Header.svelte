@@ -4,7 +4,7 @@
 
 <header>
   <nav
-    class="flex items-center justify-between flex-wrap p-4 bg-zinc-100 dark:bg-zinc-800"
+    class="flex items-center justify-between flex-wrap p-4 bg-zinc-100 dark:bg-gray-700"
   >
     <div class="flex items-center space-x-6">
       <svg
