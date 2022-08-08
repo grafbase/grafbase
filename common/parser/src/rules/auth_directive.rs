@@ -333,6 +333,45 @@ mod tests {
     }
 
     #[test]
+    fn test_groups_rule_with_null_groups() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: groups, groups: null } ],
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rule: invalid type: null, expected a sequence",
+        );
+    }
+
+    #[test]
+    fn test_groups_rule_with_empty_groups() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: groups, groups: [] } ],
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(ctx.registry.borrow().auth, Default::default());
+    }
+
+    #[test]
     fn test_incompatible_rules() {
         let schema = r#"
             schema @auth(
