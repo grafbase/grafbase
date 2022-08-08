@@ -15,9 +15,7 @@ pub enum ApiError {
     /// returned to the worker when user input is invalid
     #[error("user error")]
     User(UserError),
-    /// used for bugs / logic errors,
-    /// the bridge server will panic when this is encountered
-    /// and generate a report
+    /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
     LogicError(SqlxError),
 }
