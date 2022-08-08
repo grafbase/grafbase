@@ -1,9 +1,16 @@
 use super::consts::{CREATE_TABLE, DB_FILE, DB_URL_PREFIX};
-use super::types::{Payload, Record};
+use super::types::{Mutation, Operation, Record};
+use crate::bridge::errors::ApiError;
+use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::body::Bytes;
+use axum::middleware::{self, Next};
+use axum::response::{IntoResponse, Response};
+use axum::{http::StatusCode, routing::post, Router};
+use axum::{Extension, Json};
 use common::environment::Environment;
+use hyper::{Body, Request};
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use std::net::{Ipv4Addr, SocketAddr};
@@ -12,12 +19,12 @@ use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
-    Json(payload): Json<Payload>,
+    Json(payload): Json<Operation>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<Json<Vec<Record>>, ServerError> {
+) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
-    let template = query_as::<_, Record>(&payload.query);
+    let template = query_as::<_, Record>(&payload.sql);
 
     let result = payload
         .iter_variables()
@@ -35,31 +42,82 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
-    Json(payload): Json<Payload>,
+    Json(payload): Json<Mutation>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<StatusCode, ServerError> {
+) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
-    let template = query(&payload.query);
-
-    let query = payload.iter_variables().fold(template, Query::bind);
+    if payload.mutations.is_empty() {
+        return Ok(StatusCode::OK);
+    };
 
     let mut transaction = pool.begin().await.map_err(|error| {
-        error!("can't start transaction: {error}");
+        error!("transaction start error: {error}");
         error
     })?;
 
-    query.execute(&mut transaction).await.map_err(|error| {
-        error!("mutation error: {error}");
-        error
-    })?;
+    for operation in payload.mutations {
+        let template = query(&operation.sql);
+
+        let query = operation.iter_variables().fold(template, Query::bind);
+
+        query.execute(&mut transaction).await.map_err(|error| {
+            error!("mutation error: {error}");
+            match operation.kind {
+                Some(OperationKind::Constraint(Constraint {
+                    kind: ConstraintKind::Unique,
+                    ..
+                })) => ApiError::from_error_and_operation(error, operation),
+                None => error.into(),
+            }
+        })?;
+    }
 
     transaction.commit().await.map_err(|error| {
-        error!("can't commit transaction: {error}");
+        error!("transaction commit error: {error}");
         error
     })?;
 
     Ok(StatusCode::OK)
+}
+
+async fn print_request_response(
+    req: Request<Body>,
+    next: Next<Body>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+    let (parts, body) = req.into_parts();
+    let bytes = buffer_and_print("request", body).await?;
+    let req = Request::from_parts(parts, Body::from(bytes));
+
+    let res = next.run(req).await;
+
+    let (parts, body) = res.into_parts();
+    let bytes = buffer_and_print("response", body).await?;
+    let res = Response::from_parts(parts, Body::from(bytes));
+
+    Ok(res)
+}
+
+async fn buffer_and_print<B>(direction: &str, body: B) -> Result<Bytes, (StatusCode, String)>
+where
+    B: axum::body::HttpBody<Data = Bytes>,
+    B::Error: std::fmt::Display,
+{
+    let bytes = match hyper::body::to_bytes(body).await {
+        Ok(bytes) => bytes,
+        Err(err) => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                format!("failed to read {} body: {}", direction, err),
+            ));
+        }
+    };
+
+    if let Ok(body) = std::str::from_utf8(&bytes) {
+        tracing::debug!("{} body = {:?}", direction, body);
+    }
+
+    Ok(bytes)
 }
 
 pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
@@ -88,7 +146,8 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
         .layer(Extension(Arc::clone(&pool)))
-        .layer(TraceLayer::new_for_http());
+        .layer(TraceLayer::new_for_http())
+        .layer(middleware::from_fn(print_request_response));
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
