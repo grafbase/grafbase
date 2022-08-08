@@ -59,6 +59,7 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       --bg3: #363739;
     }
 
+    
     .cEPVvT .CodeMirror {
       font-family: var(--mono);
       font-size: var(--sm);
@@ -119,6 +120,15 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     }
     .hQHJtw {
       background-color: var(--bg1);
+    }
+    .ikhImY .CodeMirror,
+    .hrcFBJ,
+    .izRzzn,
+    .ibqBBB {
+      background-color: var(--bg1);
+    }
+    .ikhImY,
+    .hQHJtw {
       border-top: 1px solid var(--bg3);
     }
     .kJytub {
@@ -133,6 +143,9 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     }
     .jmsfqV {
       text-transform: none;
+    }
+    .emFIyf {
+      display: none;
     }
 
     .cEPVvT .cm-keyword {
