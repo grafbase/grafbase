@@ -14,9 +14,6 @@ quick_error! {
         UnknownError {
             display("An internal error happened")
         }
-        NetworkError {
-            display("Encountered a network error while sending a request to the bridge server")
-        }
     }
 }
 
@@ -43,10 +40,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             &self.local_ctx.bridge_port,
         )
         .await
-        .map_err(|error| match error {
-            bridge_api::QueryError::Surf(_) => Self::Error::NetworkError,
-            bridge_api::QueryError::InternalServerError => Self::Error::UnknownError,
-        })?;
+        .map_err(|_| Self::Error::UnknownError)?;
 
         let response = results
             .iter()
