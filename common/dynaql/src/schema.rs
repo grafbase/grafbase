@@ -431,7 +431,7 @@ impl Schema {
 
     #[inline]
     #[allow(unused)]
-    pub(crate) fn registry(&self) -> &Registry {
+    pub fn registry(&self) -> &Registry {
         &self.env.registry
     }
 
