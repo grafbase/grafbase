@@ -1,17 +1,17 @@
-import { Menu, Transition } from "@headlessui/react";
-import { Fragment, ReactNode } from "react";
-import * as React from "react";
+import { Menu, Transition } from '@headlessui/react'
+import { Fragment, ReactNode } from 'react'
+import * as React from 'react'
 
 type Option = {
-  name: string;
-  icon: (props: React.ComponentProps<"svg">) => JSX.Element;
-  onClick: () => void;
-};
+  name: string
+  icon: (props: React.ComponentProps<'svg'>) => JSX.Element
+  onClick: () => void
+}
 
 type Props = {
-  children: ReactNode;
-  options: Option[];
-};
+  children: ReactNode
+  options: Option[]
+}
 
 const Dropdown = ({ children, options }: Props) => {
   return (
@@ -45,7 +45,7 @@ const Dropdown = ({ children, options }: Props) => {
         </Menu.Items>
       </Transition>
     </Menu>
-  );
-};
+  )
+}
 
-export default Dropdown;
+export default Dropdown
