@@ -41,7 +41,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "io",
     "sink",
 ] }
-indexmap = "~1.9"
+indexmap = "~1.6.2"
 itertools = "0.10.3"
 pin-project-lite = "0.2"
 regex = "1"

@@ -24,7 +24,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "std",
     "async-await",
 ] }
-indexmap = "~1.9"
+indexmap = "~1.6.2"
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.7" }
