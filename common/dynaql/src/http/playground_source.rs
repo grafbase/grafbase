@@ -54,6 +54,8 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       --text1: #ffffff;
       --accent: #4a9c6d;
       --accentHover: #41895f;
+      --error: #be4444;
+      --errorHover: #a83a3a;
       --bg1: #16171b;
       --bg2: #222226;
       --bg3: #363739;
@@ -137,6 +139,14 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     }
     .kJytub:hover {
       background-color: var(--accentHover);
+    }
+    .iRpNsC {
+      background-color: var(--error);
+      border: none;
+    }
+    .iRpNsC:hover {
+      background-color: var(--errorHover);
+      border: none;
     }
     .cIypmL {
       fill: var(--text1);
