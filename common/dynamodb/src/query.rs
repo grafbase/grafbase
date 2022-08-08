@@ -1,30 +1,25 @@
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::id::ID;
+use crate::model::node::NodeID;
+use crate::paginated::{QueryResult, QueryValue};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use indexmap::{map::Entry, IndexMap};
 use itertools::Itertools;
-use quick_error::quick_error;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
 
-use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::constraint::db::ConstraintID;
-use crate::paginated::{QueryResult, QueryValue};
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
-
-// TODO: Should ensure Rosoto Errors impl clone
-quick_error! {
-    #[derive(Debug, Clone)]
-    pub enum QueryLoaderError {
-        UnknownError {
-            display("An internal error happened")
-        }
-        QueryError {
-            display("An internal error happened while fetching a list of entities")
-        }
-    }
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum QueryLoaderError {
+    #[error("An internal error happened")]
+    UnknownError,
+    #[error("An internal error happened while fetching a list of entities")]
+    QueryError,
 }
 
 pub struct QueryLoader {
@@ -60,8 +55,16 @@ impl Loader<QueryKey> for QueryLoader {
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
         for query_key in keys {
+            // TODO: Handle this when dealing with Custom ID
+            let pk = match NodeID::from_borrowed(&query_key.pk) {
+                Ok(id) => id,
+                Err(_) => {
+                    h.insert(query_key.clone(), QueryResult::default());
+                    continue;
+                }
+            };
             let mut exp = dynomite::attr_map! {
-                ":pk" => query_key.pk.clone(),
+                ":pk" => pk.to_string(),
             };
             let edges_len = query_key.edges.len();
 
@@ -69,8 +72,8 @@ impl Loader<QueryKey> for QueryLoader {
             exp_attr.insert("#pk".to_string(), self.index.pk());
 
             if edges_len > 0 {
-                exp_attr.insert("#relationname".to_string(), "__relation_names".to_string());
-                exp_attr.insert("#type".to_string(), "__type".to_string());
+                exp_attr.insert("#relationname".to_string(), RELATION_NAMES.to_string());
+                exp_attr.insert("#type".to_string(), TYPE.to_string());
             }
 
             let sk_string = if edges_len > 0 {
@@ -84,13 +87,7 @@ impl Loader<QueryKey> for QueryLoader {
                     })
                     .join(" OR ");
 
-                let ty_attr = query_key
-                    .pk
-                    .rsplit_once('#')
-                    .map(|x| x.0)
-                    .unwrap_or_else(|| "")
-                    .to_string()
-                    .into_attr();
+                let ty_attr = pk.ty().into_attr();
 
                 exp.insert(":type".to_string(), ty_attr);
                 Some(format!("begins_with(#type, :type) OR {edges}"))
@@ -125,11 +122,13 @@ impl Loader<QueryKey> for QueryLoader {
                             },
                         ),
                         |(query_key, mut acc), curr| async move {
-                            let pk = curr.get("__pk").and_then(|x| x.s.as_ref()).expect("can't fail");
-                            let sk = curr.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                            let relation_names = curr.get("__relation_names").and_then(|y| y.ss.clone());
+                            let pk = ID::try_from(curr.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
+                                .expect("Can't fail");
+                            let sk = ID::try_from(curr.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
+                                .expect("Can't fail");
+                            let relation_names = curr.get(RELATION_NAMES).and_then(|y| y.ss.clone());
 
-                            match acc.values.entry(pk.clone()) {
+                            match acc.values.entry(pk.to_string()) {
                                 Entry::Vacant(vac) => {
                                     let mut value = QueryValue {
                                         node: None,
@@ -137,31 +136,39 @@ impl Loader<QueryKey> for QueryLoader {
                                         edges: IndexMap::with_capacity(5),
                                     };
 
-                                    // If it's the entity
-                                    if sk.eq(pk) {
-                                        value.node = Some(curr.clone());
-                                    } else if ConstraintID::try_from(sk).is_ok() {
-                                        value.constraints.push(curr);
-                                    // If it's a relation
-                                    } else if let Some(edges) = relation_names {
-                                        for edge in edges {
-                                            value.edges.insert(edge, vec![curr.clone()]);
+                                    match (pk, sk) {
+                                        (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                            if sk.eq(&pk) {
+                                                value.node = Some(curr.clone());
+                                            } else if let Some(edges) = relation_names {
+                                                for edge in edges {
+                                                    value.edges.insert(edge, vec![curr.clone()]);
+                                                }
+                                            }
                                         }
+                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                            value.constraints.push(curr);
+                                        }
+                                        _ => {}
                                     }
 
                                     vac.insert(value);
                                 }
-                                Entry::Occupied(mut oqp) => {
-                                    if sk.eq(pk) {
-                                        oqp.get_mut().node = Some(curr);
-                                    } else if ConstraintID::try_from(sk).is_ok() {
-                                        oqp.get_mut().constraints.push(curr);
-                                    } else if let Some(edges) = relation_names {
-                                        for edge in edges {
-                                            oqp.get_mut().edges.entry(edge).or_default().push(curr.clone());
+                                Entry::Occupied(mut oqp) => match (pk, sk) {
+                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                        if sk.eq(&pk) {
+                                            oqp.get_mut().node = Some(curr);
+                                        } else if let Some(edges) = relation_names {
+                                            for edge in edges {
+                                                oqp.get_mut().edges.entry(edge).or_default().push(curr.clone());
+                                            }
                                         }
                                     }
-                                }
+                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                        oqp.get_mut().constraints.push(curr);
+                                    }
+                                    _ => {}
+                                },
                             };
                             Ok((query_key, acc))
                         },

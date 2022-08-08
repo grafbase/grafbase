@@ -1,6 +1,7 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
-use crate::model::constraint::db::ConstraintID;
+use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::model::id::ID;
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
 use futures::TryFutureExt;
@@ -119,7 +120,7 @@ pub trait DynamoDbExtPaginated {
         trace_id: &str,
         cursor: PaginatedCursor,
         edges: Vec<String>,
-        node: String,
+        node_type: String,
         table: String,
         index: DynamoDBRequestedIndex,
     ) -> Result<QueryResult, RusotoError<QueryError>>;
@@ -133,7 +134,7 @@ pub struct QueryValue {
     pub constraints: Vec<HashMap<String, AttributeValue>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct QueryResult {
     /// Returned values by PK
     pub values: IndexMap<String, QueryValue>,
@@ -150,23 +151,22 @@ where
         trace_id: &str,
         cursor: PaginatedCursor,
         edges: Vec<String>,
-        node: String,
+        node_type: String,
         table: String,
         index: DynamoDBRequestedIndex,
     ) -> Result<QueryResult, RusotoError<QueryError>> {
+        let node_type = node_type.to_lowercase();
         let mut exp = dynomite::attr_map! {
-            ":pk" => node.clone(),
+            ":pk" => node_type.clone(),
         };
 
         let edges_len = edges.len();
 
-        let mut exp_att_name = HashMap::from([
-            ("#pk".to_string(), index.pk()),
-            ("#type".to_string(), "__type".to_string()),
-        ]);
+        let mut exp_att_name =
+            HashMap::from([("#pk".to_string(), index.pk()), ("#type".to_string(), TYPE.to_string())]);
 
         let sk_string = if edges_len > 0 {
-            exp_att_name.insert("#relationname".to_string(), "__relation_names".to_string());
+            exp_att_name.insert("#relationname".to_string(), RELATION_NAMES.to_string());
             let edges = edges
                 .clone()
                 .into_iter()
@@ -177,10 +177,10 @@ where
                 })
                 .join(" OR ");
 
-            exp.insert(":type".to_string(), node.clone().into_attr());
+            exp.insert(":type".to_string(), node_type.clone().into_attr());
             Some(format!("begins_with(#type, :type) OR {edges}"))
         } else {
-            exp.insert(":type".to_string(), node.clone().into_attr());
+            exp.insert(":type".to_string(), node_type.clone().into_attr());
             Some("begins_with(#type, :type)".to_string())
         };
 
@@ -248,14 +248,16 @@ where
             for x in resp.items.unwrap_or_default() {
                 let len = result.values.len();
                 if len <= limit {
-                    let pk = x.get("__pk").and_then(|y| y.s.clone()).expect("Can't fail");
-                    let sk = x.get("__sk").and_then(|y| y.s.clone()).expect("Can't fail");
-                    let relation_names = x.get("__relation_names").and_then(|y| y.ss.clone());
-                    match result.values.entry(pk.clone()) {
+                    let pk = ID::try_from(x.get(PK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
+                        .expect("Can't fail");
+                    let sk = ID::try_from(x.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
+                        .expect("Can't fail");
+                    let relation_names = x.get(RELATION_NAMES).and_then(|y| y.ss.clone());
+                    match result.values.entry(pk.to_string()) {
                         Entry::Vacant(vac) => {
                             // We do insert the PK just before inserting it the n+1 element.
                             if len == limit {
-                                result.last_evaluated_key = Some(pk.clone());
+                                result.last_evaluated_key = Some(pk.to_string());
                             }
 
                             let mut value = QueryValue {
@@ -264,46 +266,52 @@ where
                                 edges: IndexMap::with_capacity(5),
                             };
 
-                            // If it's the entity
-                            if sk.starts_with(format!("{}#", &node).as_str()) {
-                                value.node = Some(x);
-                            } else if ConstraintID::try_from(sk).is_ok() {
-                                value.constraints.push(x);
-                            // If it's a relation
-                            } else if let Some(edge) = edges
-                                .iter()
-                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
-                            {
-                                value.edges.insert(edge.clone(), vec![x.clone()]);
+                            match (pk, sk) {
+                                (ID::NodeID(_), ID::NodeID(sk)) => {
+                                    if sk.ty() == node_type {
+                                        value.node = Some(x.clone());
+                                    } else if let Some(edge) = edges.iter().find(|edge| {
+                                        relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default()
+                                    }) {
+                                        value.edges.insert(edge.clone(), vec![x.clone()]);
+                                    }
+                                }
+                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                    value.constraints.push(x);
+                                }
+                                _ => {}
                             }
 
                             vac.insert(value);
                         }
-                        Entry::Occupied(mut oqp) => {
-                            // If it's a relation
-                            if sk.starts_with(format!("{}#", &node).as_str()) {
-                                oqp.get_mut().node = Some(x);
-                                continue;
-                            } else if ConstraintID::try_from(sk).is_ok() {
+                        Entry::Occupied(mut oqp) => match (pk, sk) {
+                            (ID::NodeID(_), ID::NodeID(sk)) => {
+                                if sk.ty() == node_type {
+                                    oqp.get_mut().node = Some(x);
+                                    continue;
+                                }
+
+                                if let Some(edge) = edges
+                                    .iter()
+                                    .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
+                                {
+                                    match oqp.get_mut().edges.entry(edge.clone()) {
+                                        Entry::Vacant(vac) => {
+                                            vac.insert(vec![x]);
+                                        }
+                                        Entry::Occupied(mut oqp) => {
+                                            oqp.get_mut().push(x);
+                                        }
+                                    };
+                                    continue;
+                                }
+                            }
+                            (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                 oqp.get_mut().constraints.push(x);
                                 continue;
                             }
-
-                            if let Some(edge) = edges
-                                .iter()
-                                .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
-                            {
-                                match oqp.get_mut().edges.entry(edge.clone()) {
-                                    Entry::Vacant(vac) => {
-                                        vac.insert(vec![x]);
-                                    }
-                                    Entry::Occupied(mut oqp) => {
-                                        oqp.get_mut().push(x);
-                                    }
-                                };
-                                continue;
-                            }
-                        }
+                            _ => {}
+                        },
                     };
                 }
             }
@@ -333,7 +341,7 @@ where
                 Some(elm) => PageState::Next(Some(elm), input),
                 None => PageState::End(
                     resp.last_evaluated_key
-                        .and_then(|x| x.get("__pk").and_then(|s| s.s.clone())),
+                        .and_then(|x| x.get(PK).and_then(|s| s.s.clone())),
                 ),
             };
         }

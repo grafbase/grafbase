@@ -9,12 +9,14 @@ pub struct ObfuscatedID<'a> {
     id: &'a str,
 }
 
+const SEPARATOR: char = '_';
+
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum ObfuscatedIDError {
     #[error("You are trying to manipulate an entity with the wrong query.")]
     InvalidType { expected: String, current: String },
-    #[error("Batch requests are not supported")]
+    #[error("Something went wrong.")]
     InvalidID,
 }
 impl ObfuscatedIDError {
@@ -25,7 +27,7 @@ impl ObfuscatedIDError {
 
 impl<'a> ObfuscatedID<'a> {
     pub fn new(id: &'a str) -> Result<Self, ObfuscatedIDError> {
-        match id.rsplit_once('#') {
+        match id.rsplit_once(SEPARATOR) {
             Some((ty, id)) => Ok(Self { ty, id }),
             _ => Err(ObfuscatedIDError::InvalidID),
         }
@@ -35,7 +37,7 @@ impl<'a> ObfuscatedID<'a> {
     pub fn expect(id: &'a str, ty: &'a str) -> Result<Self, ObfuscatedIDError> {
         let id = Self::new(id)?;
 
-        if id.ty == ty {
+        if id.ty.to_lowercase() == ty.to_lowercase() {
             Ok(id)
         } else {
             Err(ObfuscatedIDError::InvalidType {
@@ -56,6 +58,6 @@ impl<'a> ObfuscatedID<'a> {
 
 impl<'a> Display for ObfuscatedID<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}#{}", self.ty, self.id)
+        write!(f, "{}{SEPARATOR}{}", self.ty, self.id)
     }
 }

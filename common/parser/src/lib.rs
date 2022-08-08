@@ -2,6 +2,7 @@ use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
+use rules::check_field_lowercase::CheckFieldCamelCase;
 use rules::check_field_not_reserved::CheckModelizedFieldReserved;
 use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_validity::CheckTypeValidity;
@@ -38,6 +39,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckModelizedFieldReserved)
+        .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
         .with(UniqueDirective)
         .with(ModelDirective)
@@ -256,5 +258,19 @@ mod tests {
 
         insta::assert_json_snapshot!(reg_string);
         insta::assert_snapshot!(sdl);
+    }
+
+    #[test]
+    fn should_ensure_lowercase() {
+        let result = super::to_registry(
+            r#"
+            type Blog @model {
+              id: ID!
+              truc_break: String! @unique
+            }
+            "#,
+        );
+
+        assert!(result.is_err(), "Should error here");
     }
 }

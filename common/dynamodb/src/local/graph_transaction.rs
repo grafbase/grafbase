@@ -8,6 +8,7 @@ use crate::graph_transaction::{
     ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
 };
 use crate::model::constraint::db::ConstraintID;
+use crate::model::node::NodeID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
 use dynomite::{Attribute, AttributeValue};
@@ -29,7 +30,8 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                 ty,
             } = self;
 
-            let id = format!("{}#{}", ty, id);
+            let id = NodeID::new(&ty, &id).to_string();
+
             let utc_now = Utc::now();
 
             let now_attr = utc_now.to_string().into_attr();

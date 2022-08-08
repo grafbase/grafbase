@@ -47,7 +47,7 @@ pub enum QueryTypePaginatedInfo {
 impl QueryTypePaginatedKey {
     pub fn new(r#type: String, mut edges: Vec<String>, cursor: PaginatedCursor) -> Self {
         Self {
-            r#type,
+            r#type: r#type.to_lowercase(),
             edges: {
                 edges.sort();
                 edges

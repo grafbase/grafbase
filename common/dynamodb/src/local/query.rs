@@ -1,6 +1,7 @@
 use super::bridge_api;
 use super::types::Sql;
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::id::ID;
 use crate::paginated::QueryResult;
 use crate::paginated::QueryValue;
 use crate::{DynamoDBRequestedIndex, LocalContext};
@@ -64,11 +65,9 @@ impl Loader<QueryKey> for QueryLoader {
                 Sql::SelectId(query_pk).to_string()
             };
 
-            let entity_type = query_key
-                .pk
-                .rsplit_once('#')
-                .map(|x| x.0)
-                .unwrap_or_else(|| "")
+            let entity_type = ID::try_from(query_key.pk.as_ref())
+                .map_err(|_| QueryLoaderError::UnknownError)?
+                .ty()
                 .to_string();
 
             let values = if has_edges {
