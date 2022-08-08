@@ -24,7 +24,7 @@ pub enum ConstraintKind {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub struct Constraint {
     pub kind: ConstraintKind,
     // intentionally left opaque, the worker populates this for error
