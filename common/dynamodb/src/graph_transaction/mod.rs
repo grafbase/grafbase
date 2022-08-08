@@ -1,6 +1,5 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::local::types::{Constraint, OperationKind};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
 use crate::model::node::NodeID;
@@ -1336,6 +1335,7 @@ async fn load_keys(
 
     #[cfg(feature = "local")]
     {
+        use crate::local::types::{Constraint, OperationKind};
         use bridge_api::{mutation, ApiErrorKind, MutationError};
 
         let operations = execute(batcher, ctx, tx).await?;

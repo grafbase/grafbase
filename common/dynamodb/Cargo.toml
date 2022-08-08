@@ -62,5 +62,5 @@ surf = { version = "2", default-features = false, optional = true, features = [
 ] }
 
 [features]
-default = ["local"]
+default = []
 local = ["indoc", "once_cell", "regex", "serde", "surf"]
