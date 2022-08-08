@@ -1,4 +1,4 @@
-use super::types::{Record, Row, Sql};
+use super::types::{Constraint, OperationKind, Record, Row, Sql};
 use crate::constant::*;
 use crate::graph_transaction::{
     DeleteAllRelationsInternalInput, DeleteMultipleRelationsInternalInput, DeleteNodeConstraintInternalInput,
@@ -66,7 +66,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
 
             let row = Row::from_record(record);
 
-            Ok((Sql::Insert(&row).into(), row.values))
+            Ok((Sql::Insert(&row).into(), row.values, None))
         })
     }
 }
@@ -92,7 +92,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            Ok((Sql::Update.into(), vec![document, updated_at, pk, sk]))
+            Ok((Sql::Update.into(), vec![document, updated_at, pk, sk], None))
         })
     }
 }
@@ -104,7 +104,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk])) })
+        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
     }
 }
 
@@ -185,6 +185,7 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             Ok((
                 Sql::InsertRelation(&row, relation_names.len()).into(),
                 vec![vec![pk, sk], relation_names, row.values].concat(),
+                None,
             ))
         })
     }
@@ -198,7 +199,7 @@ impl ExecuteChangesOnDatabase for DeleteAllRelationsInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk])) })
+        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
     }
 }
 
@@ -231,6 +232,7 @@ impl ExecuteChangesOnDatabase for DeleteMultipleRelationsInternalInput {
                     vec![document, updated_at, pk, sk],
                 ]
                 .concat(),
+                None,
             ))
         })
     }
@@ -291,6 +293,7 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
                     vec![document, updated_at, pk, sk],
                 ]
                 .concat(),
+                None,
             ))
         })
     }
@@ -356,7 +359,7 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk])) })
+        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
     }
 }
 
@@ -401,7 +404,14 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
 
             let row = Row::from_record(record);
 
-            Ok((Sql::Insert(&row).into(), row.values))
+            Ok((
+                Sql::Insert(&row).into(),
+                row.values,
+                Some(OperationKind::Constraint(Constraint::Unique {
+                    value: id.value().to_string(),
+                    field: id.field().to_string(),
+                })),
+            ))
         })
     }
 }

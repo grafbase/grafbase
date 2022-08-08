@@ -164,10 +164,30 @@ impl<'a> ToString for BridgeUrl<'a> {
     }
 }
 
-#[derive(Serialize)]
-pub struct BridgePayload<'a> {
-    pub query: &'a str,
-    pub variables: &'a Vec<String>,
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum OperationKind {
+    Constraint(Constraint),
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "kind", content = "reportingData")]
+pub enum Constraint {
+    Unique { value: String, field: String },
+}
+
+#[derive(Serialize, Debug)]
+pub struct Mutation {
+    pub mutations: Vec<Operation>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Operation {
+    pub sql: String,
+    pub values: Vec<String>,
+    #[serde(flatten)]
+    pub kind: Option<OperationKind>,
 }
 
 pub enum Sql<'a> {

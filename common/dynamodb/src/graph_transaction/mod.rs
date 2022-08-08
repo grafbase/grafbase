@@ -1,5 +1,6 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::local::types::{Constraint, OperationKind};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
 use crate::model::node::NodeID;
@@ -617,7 +618,7 @@ impl GetIds for PossibleChanges {
 pub type TransactionOutput = HashMap<TxItem, AttributeValue>;
 
 #[cfg(feature = "local")]
-pub type TransactionOutput = (String, Vec<String>);
+pub type TransactionOutput = (String, Vec<String>, Option<OperationKind>);
 
 pub type ToTransactionFuture<'a> =
     Pin<Box<dyn Future<Output = Result<TransactionOutput, ToTransactionError>> + Send + 'a>>;
@@ -630,7 +631,7 @@ pub enum ToTransactionError {
     GetItemError(#[from] BatchGetItemLoaderError),
     #[error("{0}")]
     TransactionError(#[from] TransactionError),
-    #[error("The value \"{value}\" is already taken on field \"{field}\"")]
+    #[error(r#"The value {value} is already taken on field "{field}""#)]
     UniqueCondition {
         source: TransactionError,
         value: String,
@@ -1259,7 +1260,9 @@ async fn execute(
     batchers: &'_ DynamoDBBatchersData,
     ctx: &'_ DynamoDBContext,
     changes: Vec<PossibleChanges>,
-) -> Result<(String, Vec<String>), ToTransactionError> {
+) -> Result<Vec<crate::local::types::Operation>, ToTransactionError> {
+    use crate::local::types::Operation;
+
     info!(ctx.trace_id, "Public");
     for r in &changes {
         info!(ctx.trace_id, "{:?}", r);
@@ -1307,20 +1310,10 @@ async fn execute(
 
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let combined_queries = transactions.into_iter().fold((vec![], vec![]), |mut acc, cur| {
-        acc.0.push(cur.0);
-        acc.1.extend(cur.1);
-        acc
-    });
-
-    let merged = (
-        combined_queries
-            .0
-            .iter()
-            .map(|query| format!("{query};"))
-            .collect::<String>(),
-        combined_queries.1,
-    );
+    let merged = transactions
+        .into_iter()
+        .map(|(sql, values, kind)| Operation { sql, values, kind })
+        .collect();
 
     Ok(merged)
 }
@@ -1338,16 +1331,33 @@ async fn load_keys(
         result.insert(x.clone(), AttributeValue { ..Default::default() });
     }
 
-    cfg_if::cfg_if! {
-        if #[cfg(not(feature = "local"))] {
-            let _a = execute(batcher, ctx, tx).await?;
-        } else {
-            let (query, variables) = execute(batcher, ctx, tx).await?;
-            if !variables.is_empty() {
-                bridge_api::mutation(&query, &variables, &local_ctx.bridge_port).await.map_err(|_| ToTransactionError::TransactionError(TransactionError::UnknownError))?;
-            }
+    #[cfg(not(feature = "local"))]
+    let _a = execute(batcher, ctx, tx).await?;
+
+    #[cfg(feature = "local")]
+    {
+        use bridge_api::{mutation, ApiErrorKind, MutationError};
+
+        let operations = execute(batcher, ctx, tx).await?;
+
+        if !operations.is_empty() {
+            mutation(operations, &local_ctx.bridge_port)
+                .await
+                .map_err(|error| match error {
+                    MutationError::Surf(_) | MutationError::InternalServerError => ToTransactionError::Unknown,
+                    MutationError::Api(api_error) => match api_error.error_kind {
+                        ApiErrorKind::ConstraintViolation(Constraint::Unique { value, field }) => {
+                            ToTransactionError::UniqueCondition {
+                                value,
+                                field,
+                                source: TransactionError::UnknownError,
+                            }
+                        }
+                    },
+                })?;
         }
     }
+
     info!(ctx.trace_id, "Executed");
     Ok(result)
 }

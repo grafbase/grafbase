@@ -1,5 +1,5 @@
 use super::bridge_api;
-use super::types::Sql;
+use super::types::{Operation, Sql};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::model::node::NodeID;
@@ -85,9 +85,16 @@ impl Loader<QueryKey> for QueryLoader {
             };
 
             let future = || async move {
-                let query_results = bridge_api::query(&query, &values, &self.local_context.bridge_port)
-                    .await
-                    .map_err(|_| QueryLoaderError::QueryError)?;
+                let query_results = bridge_api::query(
+                    Operation {
+                        sql: query,
+                        values,
+                        kind: None,
+                    },
+                    &self.local_context.bridge_port,
+                )
+                .await
+                .map_err(|_| QueryLoaderError::QueryError)?;
 
                 query_results.iter().try_fold(
                     (

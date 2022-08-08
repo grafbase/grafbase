@@ -11,7 +11,7 @@ use crate::model::id::ID;
 use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
 
 use super::bridge_api;
-use super::types::Sql;
+use super::types::{Operation, Sql};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -196,9 +196,16 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             };
 
             let future_get = || async move {
-                let query_results = bridge_api::query(&query.to_string(), &values, &self.local_context.bridge_port)
-                    .await
-                    .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
+                let query_results = bridge_api::query(
+                    Operation {
+                        sql: query.to_string(),
+                        values,
+                        kind: None,
+                    },
+                    &self.local_context.bridge_port,
+                )
+                .await
+                .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
                 query_results.iter().try_fold(
                     (

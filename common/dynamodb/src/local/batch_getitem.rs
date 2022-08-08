@@ -1,5 +1,5 @@
 use super::bridge_api;
-use super::types::{Record, Sql};
+use super::types::{Operation, Record, Sql};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::LocalContext;
 use dynomite::AttributeValue;
@@ -34,9 +34,16 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 
         let query = Sql::SelectIdPairs(serial_keys.len() / 2);
 
-        let results = bridge_api::query(&query.to_string(), &serial_keys, &self.local_ctx.bridge_port)
-            .await
-            .map_err(|_| Self::Error::NetworkError)?;
+        let results = bridge_api::query(
+            Operation {
+                sql: query.to_string(),
+                values: serial_keys,
+                kind: None,
+            },
+            &self.local_ctx.bridge_port,
+        )
+        .await
+        .map_err(|_| Self::Error::NetworkError)?;
 
         let response = results
             .iter()
