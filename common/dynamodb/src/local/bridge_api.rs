@@ -4,20 +4,34 @@ use surf::StatusCode;
 use super::types::Record;
 use super::types::{BridgeUrl, Constraint, Mutation, Operation};
 
-pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, surf::Error> {
-    let response = surf::client()
+pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, QueryError> {
+    let mut response = surf::client()
         .post(BridgeUrl::Query(port).to_string())
         .body_json(&operaton)?
-        .await?
-        .body_json::<Vec<Record>>()
         .await?;
 
-    Ok(response)
+    if matches!(response.status(), StatusCode::InternalServerError) {
+        Err(QueryError::InternalServerError)
+    } else {
+        Ok(response.body_json::<Vec<Record>>().await?)
+    }
 }
 
 #[derive(Deserialize, Debug)]
 pub enum ApiErrorKind {
     ConstraintViolation(Constraint),
+}
+
+#[allow(dead_code)]
+pub enum QueryError {
+    Surf(surf::Error),
+    InternalServerError,
+}
+
+impl From<surf::Error> for QueryError {
+    fn from(error: surf::Error) -> Self {
+        Self::Surf(error)
+    }
 }
 
 #[allow(dead_code)]

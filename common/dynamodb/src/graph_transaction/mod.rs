@@ -617,7 +617,7 @@ impl GetIds for PossibleChanges {
 pub type TransactionOutput = HashMap<TxItem, AttributeValue>;
 
 #[cfg(feature = "local")]
-pub type TransactionOutput = (String, Vec<String>, Option<OperationKind>);
+pub type TransactionOutput = (String, Vec<String>, Option<crate::local::types::OperationKind>);
 
 pub type ToTransactionFuture<'a> =
     Pin<Box<dyn Future<Output = Result<TransactionOutput, ToTransactionError>> + Send + 'a>>;
@@ -1335,7 +1335,7 @@ async fn load_keys(
 
     #[cfg(feature = "local")]
     {
-        use crate::local::types::{Constraint, OperationKind};
+        use crate::local::types::Constraint;
         use bridge_api::{mutation, ApiErrorKind, MutationError};
 
         let operations = execute(batcher, ctx, tx).await?;
