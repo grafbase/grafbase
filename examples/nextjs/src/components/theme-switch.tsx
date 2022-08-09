@@ -8,7 +8,7 @@ const ThemeSwitch = () => {
   return (
     <label
       htmlFor="theme-switcher"
-      className="inline-flex relative items-center cursor-pointer"
+      className="relative inline-flex items-center cursor-pointer"
     >
       <input
         type="checkbox"
@@ -24,7 +24,7 @@ const ThemeSwitch = () => {
         viewBox="0 0 18 18"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="absolute left-2 z-10 dark:text-gray-400"
+        className="absolute z-10 left-2 dark:text-gray-400"
       >
         <path
           fillRule="evenodd"
@@ -39,7 +39,7 @@ const ThemeSwitch = () => {
         viewBox="0 0 18 18"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="absolute right-2 z-10 text-gray-400 dark:text-white"
+        className="absolute z-10 text-gray-400 right-2 dark:text-white"
       >
         <path
           fillRule="evenodd"

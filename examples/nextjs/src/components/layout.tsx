@@ -15,7 +15,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         <link rel="icon" href="/favicon.png" />
       </Head>
       <div>
-        <nav className="flex items-center justify-between flex-wrap p-4 bg-zinc-100 dark:bg-gray-700">
+        <nav className="flex flex-wrap items-center justify-between p-4 bg-zinc-100 dark:bg-gray-700">
           <div className="flex items-center space-x-6">
             <Logo className="text-black dark:text-white" />
           </div>
