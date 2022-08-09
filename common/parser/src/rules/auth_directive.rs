@@ -333,6 +333,27 @@ mod tests {
     }
 
     #[test]
+    fn test_groups_rule_with_null_group() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: groups, groups: ["A", null, "B"] } ],
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rule: invalid type: null, expected a string",
+        );
+    }
+
+    #[test]
     fn test_groups_rule_with_null_groups() {
         let schema = r#"
             schema @auth(
