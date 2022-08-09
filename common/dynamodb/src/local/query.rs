@@ -103,7 +103,7 @@ impl Loader<QueryKey> for QueryLoader {
                         let relation_names = current.relation_names.clone();
 
                         match accumulator.values.entry(pk.to_string()) {
-                            Entry::Vacant(vac) => {
+                            Entry::Vacant(vacant) => {
                                 let mut value = QueryValue {
                                     node: None,
                                     constraints: Vec::new(),
@@ -126,7 +126,7 @@ impl Loader<QueryKey> for QueryLoader {
                                     _ => {}
                                 }
 
-                                vac.insert(value);
+                                vacant.insert(value);
                             }
                             Entry::Occupied(mut occupied) => match (pk, sk) {
                                 (ID::NodeID(pk), ID::NodeID(sk)) => {
