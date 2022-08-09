@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 use serde_json::json;
-
 use std::{
     thread::sleep,
     time::{Duration, SystemTime},
