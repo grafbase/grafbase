@@ -59,6 +59,4 @@ fn unique() {
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_none());
-
-    assert!(errors.is_none());
 }
