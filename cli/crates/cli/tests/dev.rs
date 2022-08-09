@@ -1,7 +1,6 @@
 mod utils;
 
 use serde_json::{json, Value};
-use utils::client::Client;
 use utils::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
 use utils::environment::Environment;
 
@@ -15,7 +14,7 @@ fn dev() {
 
     env.grafbase_dev();
 
-    let client = Client::new(env.endpoint.clone());
+    let client = env.create_client();
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);

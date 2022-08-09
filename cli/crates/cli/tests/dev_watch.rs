@@ -5,7 +5,6 @@ use serde_json::{json, Value};
 use std::env;
 use std::thread::sleep;
 use std::time::Duration;
-use utils::client::Client;
 use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use utils::environment::Environment;
 
@@ -19,7 +18,7 @@ fn dev_watch() {
 
     env.grafbase_dev_watch();
 
-    let client = Client::new(env.endpoint.clone());
+    let client = env.create_client();
 
     client.poll_endpoint(30, 300);
 

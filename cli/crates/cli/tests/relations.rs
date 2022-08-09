@@ -1,7 +1,6 @@
 mod utils;
 
 use serde_json::{json, Value};
-use utils::client::Client;
 use utils::consts::{
     RELATIONS_LINK_BLOG_TO_AUTHOR, RELATIONS_MUTATION, RELATIONS_QUERY, RELATIONS_SCHEMA,
     RELATIONS_UNLINK_BLOG_FROM_AUTHOR,
@@ -11,12 +10,14 @@ use utils::environment::Environment;
 #[test]
 fn relations() {
     let mut env = Environment::init(4002);
+
     env.grafbase_init();
+
     env.write_schema(RELATIONS_SCHEMA);
 
     env.grafbase_dev_watch();
 
-    let client = Client::new(env.endpoint.clone());
+    let client = env.create_client();
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);

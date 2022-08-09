@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use super::cargo_bin::cargo_bin;
 use super::kill_with_children::kill_with_children;
+use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
 use std::{env, fs, io::Write, path::PathBuf, process::Command};
 use tempfile::{tempdir, TempDir};
@@ -30,6 +30,10 @@ impl Environment {
             temp_dir,
             port,
         }
+    }
+
+    pub fn create_client(&self) -> Client {
+        Client::new(self.endpoint.clone())
     }
 
     pub fn write_schema(&self, schema: &'static str) {
