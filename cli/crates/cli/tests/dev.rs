@@ -1,51 +1,21 @@
-mod cargo_bin;
-mod client;
-mod consts;
-mod macros;
 mod utils;
 
-use crate::cargo_bin::cargo_bin;
-use crate::client::Client;
-use crate::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
-use crate::utils::kill_with_children;
-use duct::cmd;
 use serde_json::{json, Value};
-use std::process::Command;
-use std::{env, fs};
-use tempfile::tempdir;
+use utils::client::Client;
+use utils::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
+use utils::environment::Environment;
 
 #[test]
 fn dev() {
-    let port = 4000;
-    let temp_dir = tempdir().unwrap();
-    let endpoint = format!("http://127.0.0.1:{port}/graphql");
+    let mut env = Environment::init(4000);
 
-    env::set_current_dir(temp_dir.path()).unwrap();
+    env.grafbase_init();
 
-    let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
+    env.write_schema(DEFAULT_SCHEMA);
 
-    Command::new(cargo_bin("grafbase"))
-        .args(&["init"])
-        .current_dir(&temp_dir.path())
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    env.grafbase_dev();
 
-    fs::write(&schema_path, DEFAULT_SCHEMA).unwrap();
-
-    let command = cmd!(
-        cargo_bin("grafbase"),
-        "dev",
-        "--disable-watch",
-        "--port",
-        port.to_string()
-    )
-    .dir(&temp_dir.path())
-    .start()
-    .unwrap();
-
-    let client = Client::new(endpoint);
+    let client = Client::new(env.endpoint.clone());
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);
@@ -62,6 +32,4 @@ fn dev() {
 
     assert!(todo_list_id.starts_with("TodoList#"));
     assert!(first_todo_id.starts_with("Todo#"));
-
-    kill_with_children(*command.pids().first().unwrap());
 }

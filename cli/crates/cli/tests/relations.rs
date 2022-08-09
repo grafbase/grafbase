@@ -1,48 +1,22 @@
-mod cargo_bin;
-mod client;
-mod consts;
-mod macros;
 mod utils;
 
-use crate::cargo_bin::cargo_bin;
-use crate::client::Client;
-use crate::consts::{
+use serde_json::{json, Value};
+use utils::client::Client;
+use utils::consts::{
     RELATIONS_LINK_BLOG_TO_AUTHOR, RELATIONS_MUTATION, RELATIONS_QUERY, RELATIONS_SCHEMA,
     RELATIONS_UNLINK_BLOG_FROM_AUTHOR,
 };
-use crate::utils::kill_with_children;
-use duct::cmd;
-use serde_json::{json, Value};
-use std::process::Command;
-use std::{env, fs};
-use tempfile::tempdir;
+use utils::environment::Environment;
 
 #[test]
 fn relations() {
-    let port = 4002;
-    let temp_dir = tempdir().unwrap();
-    let endpoint = format!("http://127.0.0.1:{port}/graphql");
+    let mut env = Environment::init(4002);
+    env.grafbase_init();
+    env.write_schema(RELATIONS_SCHEMA);
 
-    env::set_current_dir(temp_dir.path()).unwrap();
+    env.grafbase_dev_watch();
 
-    let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
-
-    Command::new(cargo_bin("grafbase"))
-        .args(&["init"])
-        .current_dir(&temp_dir.path())
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
-
-    fs::write(&schema_path, RELATIONS_SCHEMA).unwrap();
-
-    let command = cmd!(cargo_bin("grafbase"), "dev", "--port", port.to_string())
-        .dir(&temp_dir.path())
-        .start()
-        .unwrap();
-
-    let client = Client::new(endpoint.clone());
+    let client = Client::new(env.endpoint.clone());
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);
@@ -95,6 +69,4 @@ fn relations() {
 
     assert_eq!(current_first_author_id, first_author_id);
     assert!(first_authors_blogs.is_empty());
-
-    kill_with_children(*command.pids().first().unwrap());
 }
