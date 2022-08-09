@@ -10,7 +10,7 @@ pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, Q
         .body_json(&operaton)?
         .await?;
 
-    if matches!(response.status(), StatusCode::InternalServerError) {
+    if response.status() == StatusCode::InternalServerError {
         Err(QueryError::InternalServerError)
     } else {
         Ok(response.body_json::<Vec<Record>>().await?)
