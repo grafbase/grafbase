@@ -14,3 +14,7 @@ pub const RELATIONS_QUERY: &str = include_str!("../graphql/relations/query.graph
 pub const RELATIONS_LINK_BLOG_TO_AUTHOR: &str = include_str!("../graphql/relations/link-blog-to-author.graphql");
 pub const RELATIONS_UNLINK_BLOG_FROM_AUTHOR: &str =
     include_str!("../graphql/relations/unlink-blog-from-author.graphql");
+
+pub const UNIQUE_SCHEMA: &str = include_str!("../graphql/unique/schema.graphql");
+pub const UNIQUE_MUTATION: &str = include_str!("../graphql/unique/mutation.graphql");
+pub const UNIQUE_QUERY: &str = include_str!("../graphql/unique/query.graphql");
