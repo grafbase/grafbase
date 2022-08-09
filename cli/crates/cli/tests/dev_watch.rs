@@ -1,15 +1,15 @@
 mod cargo_bin;
 mod consts;
-mod types;
+mod macros;
 mod utils;
 
 use crate::cargo_bin::cargo_bin;
 use crate::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
-use crate::types::{AuthorCollectionResponse, TodoListCollectionResponse};
 use crate::utils::{kill_with_children, poll_endpoint};
 use common::environment::Environment;
 use duct::cmd;
-use serde_json::json;
+use json_dotpath::DotPaths;
+use serde_json::{json, Value};
 use std::io::Write;
 use std::process::Command;
 use std::thread::sleep;
@@ -18,7 +18,7 @@ use std::{env, fs};
 use tempfile::tempdir;
 
 #[test]
-fn sanity() {
+fn dev_watch() {
     let port = 4001;
     let temp_dir = tempdir().unwrap();
     let endpoint = format!("http://127.0.0.1:{port}/graphql");
@@ -53,12 +53,13 @@ fn sanity() {
         .body(json!({ "query": DEFAULT_QUERY }).to_string())
         .send()
         .unwrap()
-        .json::<TodoListCollectionResponse>()
+        .json::<Value>()
         .unwrap();
 
-    let todo_list_collection = response.data.todo_list_collection;
+    let todo_list_collection: Value = dot_get!(response, "data.todoListCollection.edges");
 
-    assert!(todo_list_collection.edges.is_empty());
+    assert!(todo_list_collection.is_array());
+    assert!(!todo_list_collection.dot_has_checked("<").unwrap());
 
     let mut file = fs::OpenOptions::new().append(true).open(&schema_path).unwrap();
 
@@ -88,12 +89,12 @@ fn sanity() {
         .body(json!({ "query": UPDATED_QUERY }).to_string())
         .send()
         .unwrap()
-        .json::<AuthorCollectionResponse>()
+        .json::<Value>()
         .unwrap();
 
-    let authors = response.data.author_collection.edges.first().unwrap().node.clone();
+    let author_id: String = dot_get!(response, "data.authorCollection.edges.0.node.id");
 
-    assert!(authors.id.starts_with("Author#"));
+    assert!(author_id.starts_with("Author#"));
 
     kill_with_children(*command.pids().first().unwrap());
 }

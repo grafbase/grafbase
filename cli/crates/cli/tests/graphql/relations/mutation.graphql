@@ -1,0 +1,30 @@
+mutation {
+  blogCreate(
+    input: {
+      title: "My Blog"
+      authors: [{ create: { name: "1" } }, { create: { name: "2" } }]
+      secondaryAuthors: [{ create: { name: "3" } }, { create: { name: "4" } }]
+    }
+  ) {
+    blog {
+      id
+      title
+      authors {
+        id
+        name
+        blogs {
+          id
+          title
+        }
+      }
+      secondaryAuthors {
+        id
+        name
+        blogs {
+          id
+          title
+        }
+      }
+    }
+  }
+}

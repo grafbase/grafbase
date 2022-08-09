@@ -1,21 +1,20 @@
 mod cargo_bin;
 mod consts;
-mod types;
+mod macros;
 mod utils;
 
 use crate::cargo_bin::cargo_bin;
 use crate::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
-use crate::types::TodoListCollectionResponse;
 use crate::utils::{kill_with_children, poll_endpoint};
 use common::environment::Environment;
 use duct::cmd;
-use serde_json::json;
+use serde_json::{json, Value};
 use std::process::Command;
 use std::{env, fs};
 use tempfile::tempdir;
 
 #[test]
-fn sanity() {
+fn dev() {
     let port = 4000;
     let temp_dir = tempdir().unwrap();
     let endpoint = format!("http://127.0.0.1:{port}/graphql");
@@ -63,13 +62,17 @@ fn sanity() {
         .body(json!({ "query": DEFAULT_QUERY }).to_string())
         .send()
         .unwrap()
-        .json::<TodoListCollectionResponse>()
+        .json::<Value>()
         .unwrap();
 
-    let todo_list = response.data.todo_list_collection.edges.first().unwrap().node.clone();
+    let todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
 
-    assert!(todo_list.id.starts_with("TodoList#"));
-    assert!(todo_list.todos.first().unwrap().id.starts_with("Todo#"));
+    let todo_list_id: String = dot_get!(todo_list, "id");
+
+    let first_todo_id: String = dot_get!(todo_list, "todos.0.id");
+
+    assert!(todo_list_id.starts_with("TodoList#"));
+    assert!(first_todo_id.starts_with("Todo#"));
 
     kill_with_children(*command.pids().first().unwrap());
 }

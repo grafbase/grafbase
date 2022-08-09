@@ -1,0 +1,12 @@
+type Blog @model {
+  id: ID!
+  title: String!
+  authors: [Author] @relation(name: "authors")
+  secondaryAuthors: [Author] @relation(name: "secondaryAuthors")
+}
+
+type Author @model {
+  id: ID!
+  name: String!
+  blogs: [Blog] @relation(name: "blogs")
+}
