@@ -8,7 +8,6 @@ edition = "2021"
 jwt-compact = { version = "0.5", default-features = false, features = ["clock", "with_rsa"] }
 quick-error = "2"
 serde = { version = "1", features = ["derive"] }
-serde_with = "1"
 url = "2"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

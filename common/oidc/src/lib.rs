@@ -39,8 +39,7 @@ struct CustomClaims {
     issuer: Url,
 
     #[serde(default)]
-    #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
-    groups: HashSet<String>, // TODO: use configured claim name
+    groups: Option<HashSet<String>>, // TODO: use configured claim name
 }
 
 #[derive(Debug)]
@@ -124,8 +123,12 @@ pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOpti
 
     // Check "groups" claim
     if let Some(allowed_groups) = opts.allowed_groups {
-        if allowed_groups.is_disjoint(&claims.custom.groups) {
-            return Err(VerificationError::InvalidGroups);
+        if let Some(has_groups) = &claims.custom.groups {
+            if allowed_groups.is_disjoint(&has_groups) {
+                return Err(VerificationError::InvalidGroups);
+            }
+        } else {
+            return Err(VerificationError::MissingGroups);
         }
     };
 
@@ -185,6 +188,27 @@ mod tests {
         */
     const TOKEN_WITH_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA";
     const TOKEN_WITH_GROUPS_IAT: i64 = 1_658_141_914;
+
+    /* TOKEN_WITH_NULL_GROUPS decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "exp": 1660041574,
+        "groups": null,
+        "iat": 1660040974,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "jti": "1c976f3586fe343c146b",
+        "nbf": 1660040969,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+    */
+    const TOKEN_WITH_NULL_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg";
+    const TOKEN_WITH_NULL_GROUPS_IAT: i64 = 1_660_040_974;
 
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
@@ -276,7 +300,25 @@ mod tests {
         };
 
         let result = verify_token(TOKEN, opts).await;
-        assert_matches!(result, Err(VerificationError::InvalidGroups));
+        assert_matches!(result, Err(VerificationError::MissingGroups));
+    }
+
+    #[tokio::test]
+    async fn test_verify_token_with_null_groups() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+
+        set_up_mock_server(&issuer, &server).await;
+
+        let leeway = Duration::seconds(5);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NULL_GROUPS_IAT, 0), Utc);
+        let opts = VerificationOptions {
+            issuer: issuer.clone(),
+            allowed_groups: None,
+            time: Some(TimeOptions::new(leeway, clock_fn)),
+            http_client: None,
+        };
+        verify_token(TOKEN_WITH_NULL_GROUPS, opts).await.unwrap();
     }
 
     #[tokio::test]
