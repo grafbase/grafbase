@@ -9,3 +9,6 @@ generates:
       - typescript
       - typescript-operations
       - typed-document-node
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
