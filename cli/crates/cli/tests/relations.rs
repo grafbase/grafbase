@@ -11,7 +11,6 @@ use crate::consts::{
     RELATIONS_UNLINK_BLOG_FROM_AUTHOR,
 };
 use crate::utils::kill_with_children;
-use common::environment::Environment;
 use duct::cmd;
 use serde_json::{json, Value};
 use std::process::Command;
@@ -37,8 +36,6 @@ fn relations() {
         .unwrap();
 
     fs::write(&schema_path, RELATIONS_SCHEMA).unwrap();
-
-    Environment::try_init().unwrap();
 
     let command = cmd!(cargo_bin("grafbase"), "dev", "--port", port.to_string())
         .dir(&temp_dir.path())

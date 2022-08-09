@@ -8,7 +8,6 @@ use crate::cargo_bin::cargo_bin;
 use crate::client::Client;
 use crate::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use crate::utils::kill_with_children;
-use common::environment::Environment;
 use duct::cmd;
 use json_dotpath::DotPaths;
 use serde_json::{json, Value};
@@ -38,8 +37,6 @@ fn dev_watch() {
         .unwrap();
 
     fs::write(&schema_path, DEFAULT_SCHEMA).unwrap();
-
-    Environment::try_init().unwrap();
 
     let command = cmd!(cargo_bin("grafbase"), "dev", "--port", port.to_string())
         .dir(&temp_dir.path())
