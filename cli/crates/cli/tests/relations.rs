@@ -25,6 +25,7 @@ fn relations() {
     client.gql::<Value>(json!({ "query": RELATIONS_MUTATION }).to_string());
 
     let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
+    println!("{:#?}", response);
 
     let blog: Value = dot_get!(response, "data.blogCollection.edges.0.node");
     let blog_id: String = dot_get!(blog, "id");
@@ -32,7 +33,7 @@ fn relations() {
     let first_author_name: String = dot_get!(blog, "authors.0.name");
     let first_authors_blogs: Vec<Value> = dot_get!(response, "data.blogCollection.edges.0.node.authors.0.blogs");
 
-    assert!(blog_id.starts_with("Blog#"));
+    assert!(blog_id.starts_with("blog_"));
     // latest first
     assert_eq!(first_author_name, "2");
     assert!(first_authors_blogs.is_empty());

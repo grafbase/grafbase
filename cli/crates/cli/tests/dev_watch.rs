@@ -37,5 +37,5 @@ fn dev_watch() {
     let response = client.gql::<Value>(json!({ "query": UPDATED_QUERY }).to_string());
     let author_id: String = dot_get!(response, "data.authorCollection.edges.0.node.id");
 
-    assert!(author_id.starts_with("Author#"));
+    assert!(author_id.starts_with("author_"));
 }

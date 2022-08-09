@@ -28,6 +28,6 @@ fn dev() {
 
     let first_todo_id: String = dot_get!(todo_list, "todos.0.id");
 
-    assert!(todo_list_id.starts_with("TodoList#"));
-    assert!(first_todo_id.starts_with("Todo#"));
+    assert!(todo_list_id.starts_with("todolist_"));
+    assert!(first_todo_id.starts_with("todo_"));
 }
