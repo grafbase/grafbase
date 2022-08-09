@@ -2,9 +2,6 @@ mod utils;
 
 use json_dotpath::DotPaths;
 use serde_json::{json, Value};
-use std::env;
-use std::thread::sleep;
-use std::time::Duration;
 use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use utils::environment::Environment;
 
@@ -18,7 +15,7 @@ fn dev_watch() {
 
     env.grafbase_dev_watch();
 
-    let client = env.create_client();
+    let mut client = env.create_client();
 
     client.poll_endpoint(30, 300);
 
@@ -29,16 +26,11 @@ fn dev_watch() {
     assert!(todo_list_collection.is_array());
     assert!(!todo_list_collection.dot_has_checked("<").unwrap());
 
+    client.snapshot();
+
     env.append_to_schema(UPDATED_SCHEMA);
 
-    // wait for change to be picked up
-    if env::var("CI").is_ok() {
-        sleep(Duration::from_secs(4));
-    } else {
-        sleep(Duration::from_secs(2));
-    }
-
-    client.poll_endpoint(30, 300);
+    client.poll_endpoint_for_changes(30, 300);
 
     client.gql::<Value>(json!({ "query": UPDATED_MUTATION }).to_string());
 
