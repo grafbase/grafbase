@@ -1,38 +1,43 @@
-import { TodoCreateDocument } from "graphql/schema";
-import { useMutation } from "urql";
-import { useMemo, useState } from "react";
+import { TodoCreateDocument } from 'graphql/schema'
+import { useMutation } from 'urql'
+import { ChangeEvent, FormEvent, useMemo, useState } from 'react'
 
 const TodoListCreateTodo = ({ todoListId }: { todoListId: string }) => {
-  const context = useMemo(() => ({ additionalTypenames: ["Todo"] }), []);
+  const context = useMemo(() => ({ additionalTypenames: ['Todo'] }), [])
 
-  const [title, setTitle] = useState<string>("");
+  const [title, setTitle] = useState<string>('')
 
-  const [{ fetching }, createTodo] = useMutation(TodoCreateDocument);
+  const [{ fetching }, createTodo] = useMutation(TodoCreateDocument)
+
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    createTodo({ title, todoListId }, context)
+    setTitle('')
+  }
+
+  const onChangeTitle = (event: ChangeEvent<HTMLInputElement>) =>
+    setTitle(event.target.value)
 
   return (
     <form
-      className="flex items-center space-x-2 rounded-lg border-2 border-dashed border-gray-200 dark:border-gray-800 p-3"
-      onSubmit={(e) => {
-        e.preventDefault();
-        createTodo({ title, todoListId }, context);
-        setTitle("");
-      }}
+      className="flex items-center p-3 space-x-2 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-800"
+      onSubmit={onSubmit}
     >
       <input
         required
         value={title}
         placeholder="Todo title"
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-[177px] bg-gray-50 dark:bg-zinc-800 px-2 py-1 text-sm border border-gray-300 dark:border-gray-800 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block w-full placeholder-gray-400 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+        onChange={onChangeTitle}
+        className="block w-full px-2 py-1 text-sm text-gray-900 placeholder-gray-400 border border-gray-300 rounded-md bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
       />
       <button
         disabled={fetching}
-        className="bg-blue-800 text-sm rounded-md px-2 py-1 text-white whitespace-nowrap disabled:bg-blue-400"
+        className="px-2 py-1 text-sm text-white bg-blue-800 rounded-md whitespace-nowrap disabled:bg-blue-400"
       >
-        {fetching ? "Adding..." : "Add Todo"}
+        {fetching ? 'Adding...' : 'Add Todo'}
       </button>
     </form>
-  );
-};
+  )
+}
 
-export default TodoListCreateTodo;
+export default TodoListCreateTodo

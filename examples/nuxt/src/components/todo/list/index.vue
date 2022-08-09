@@ -1,34 +1,34 @@
 <script setup lang="ts">
-import { useMutation } from "@urql/vue";
+import { useMutation } from '@urql/vue'
 import {
   TodoListFragment,
   TodoListDeleteDocument,
-  TodoListUpdateDocument,
-} from "@/graphql/schema";
+  TodoListUpdateDocument
+} from '@/graphql/schema'
 
 interface Props {
-  id: TodoListFragment["id"];
-  title: TodoListFragment["title"];
-  todos?: TodoListFragment["todos"];
+  id: TodoListFragment['id']
+  title: TodoListFragment['title']
+  todos?: TodoListFragment['todos']
 }
 
-const { id, title, todos } = defineProps<Props>();
-const titleRef = ref(title);
-const inputRef = ref<HTMLElement>();
+const { id, title, todos } = defineProps<Props>()
+const titleRef = ref(title)
+const inputRef = ref<HTMLElement>()
 
-const todoListUpdate = useMutation(TodoListUpdateDocument);
+const todoListUpdate = useMutation(TodoListUpdateDocument)
 const { executeMutation: todoListDelete, fetching: isDeleting } = useMutation(
   TodoListDeleteDocument
-);
+)
 
 const handleTodoListDelete = () => {
-  todoListDelete({ id }, { additionalTypenames: ["TodoList"] });
-};
+  todoListDelete({ id }, { additionalTypenames: ['TodoList'] })
+}
 
 watch(titleRef, (newValue) => {
-  if (!newValue || newValue === title) return;
-  todoListUpdate.executeMutation({ id, title: newValue });
-});
+  if (!newValue || newValue === title) return
+  todoListUpdate.executeMutation({ id, title: newValue })
+})
 </script>
 
 <template>

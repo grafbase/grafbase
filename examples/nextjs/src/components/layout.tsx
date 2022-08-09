@@ -1,7 +1,7 @@
-import { ReactNode } from "react";
-import Head from "next/head";
-import Logo from "components/logo";
-import ThemeSwitch from "components/theme-switch";
+import { ReactNode } from 'react'
+import Head from 'next/head'
+import Logo from 'components/logo'
+import ThemeSwitch from 'components/theme-switch'
 
 const Layout = ({ children }: { children: ReactNode }) => {
   return (
@@ -15,7 +15,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         <link rel="icon" href="/favicon.png" />
       </Head>
       <div>
-        <nav className="flex items-center justify-between flex-wrap p-4 bg-zinc-100 dark:bg-zinc-800">
+        <nav className="flex flex-wrap items-center justify-between p-4 bg-zinc-100 dark:bg-gray-700">
           <div className="flex items-center space-x-6">
             <Logo className="text-black dark:text-white" />
           </div>
@@ -30,7 +30,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
         {children}
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default Layout;
+export default Layout

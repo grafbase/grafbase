@@ -1,40 +1,40 @@
 <script setup lang="ts">
-import { useMutation } from "@urql/vue";
+import { useMutation } from '@urql/vue'
 import {
   TodoFragment,
   TodoDeleteDocument,
-  TodoUpdateDocument,
-} from "@/graphql/schema";
+  TodoUpdateDocument
+} from '@/graphql/schema'
 
 interface Props {
-  id: TodoFragment["id"];
-  title: TodoFragment["title"];
-  complete?: TodoFragment["complete"];
+  id: TodoFragment['id']
+  title: TodoFragment['title']
+  complete?: TodoFragment['complete']
 }
 
-const todo = defineProps<Props>();
-const titleRef = ref(todo.title);
-const completed = ref(!!todo.complete);
+const todo = defineProps<Props>()
+const titleRef = ref(todo.title)
+const completed = ref(!!todo.complete)
 
 const { executeMutation: todoDelete, fetching } =
-  useMutation(TodoDeleteDocument);
-const { executeMutation: todoUpdate } = useMutation(TodoUpdateDocument);
+  useMutation(TodoDeleteDocument)
+const { executeMutation: todoUpdate } = useMutation(TodoUpdateDocument)
 
 const onTodoUpdate = (newTodo: Partial<TodoFragment>) =>
-  todoUpdate({ ...todo, ...newTodo });
+  todoUpdate({ ...todo, ...newTodo })
 
 const handleTodoDelete = () => {
-  todoDelete({ id: todo.id }, { additionalTypenames: ["Todo"] });
-};
+  todoDelete({ id: todo.id }, { additionalTypenames: ['Todo'] })
+}
 
 watch(titleRef, (newValue) => {
-  if (!newValue || newValue === todo.title) return;
-  onTodoUpdate({ title: newValue });
-});
+  if (!newValue || newValue === todo.title) return
+  onTodoUpdate({ title: newValue })
+})
 watch(completed, (newValue) => {
-  if (newValue === todo.complete) return;
-  onTodoUpdate({ complete: newValue });
-});
+  if (newValue === todo.complete) return
+  onTodoUpdate({ complete: newValue })
+})
 </script>
 
 <template>
@@ -43,7 +43,7 @@ watch(completed, (newValue) => {
     :class="
       completed
         ? 'bg-emerald-200 dark:bg-emerald-800 border-emerald-600'
-        : 'bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-transparent'
+        : 'bg-zinc-50 dark:bg-gray-700 border-gray-200 dark:border-transparent'
     "
   >
     <div
@@ -82,7 +82,7 @@ watch(completed, (newValue) => {
               : 'bg-gray-300 dark:bg-gray-600'
           "
         >
-          {{ completed ? "Completed" : "Not completed" }}
+          {{ completed ? 'Completed' : 'Not completed' }}
         </div>
       </div>
     </div>

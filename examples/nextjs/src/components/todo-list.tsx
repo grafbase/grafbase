@@ -1,47 +1,63 @@
 import {
   TodoListFragment,
   TodoListDeleteDocument,
-  TodoListUpdateDocument,
-} from "graphql/schema";
-import { useMutation } from "urql";
-import { useMemo, useRef } from "react";
-import TodoListCreateTodo from "components/todo-list.create-todo";
-import TodoListTodo from "components/todo-list.todo";
+  TodoListUpdateDocument
+} from 'graphql/schema'
+import { useMutation } from 'urql'
+import { useMemo, useRef } from 'react'
+import TodoListCreateTodo from 'components/todo-list.create-todo'
+import TodoListTodo from 'components/todo-list.todo'
 import {
   DotsVerticalIcon,
   PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/outline";
-import getColor from "utils/get-color";
-import Spinner from "components/spinner";
-import Dropdown from "components/dropdown";
-import debounce from "lodash.debounce";
+  TrashIcon
+} from '@heroicons/react/outline'
+import getColor from 'utils/get-color'
+import Spinner from 'components/spinner'
+import Dropdown from 'components/dropdown'
+import debounce from 'lodash.debounce'
 
 const TodoList = (props: TodoListFragment) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { id, title, todos } = props;
+  const inputRef = useRef<HTMLInputElement>(null)
+  const { id, title, todos } = props
   const contextDeleteTodoList = useMemo(
-    () => ({ additionalTypenames: ["TodoList", "Todo"] }),
+    () => ({ additionalTypenames: ['TodoList', 'Todo'] }),
     []
-  );
-  const [{ fetching }, todoListDelete] = useMutation(TodoListDeleteDocument);
-  const [{}, todoListUpdate] = useMutation(TodoListUpdateDocument);
+  )
+  const [{ fetching }, todoListDelete] = useMutation(TodoListDeleteDocument)
+  const [{}, todoListUpdate] = useMutation(TodoListUpdateDocument)
+
+  const dropdownOptions = useMemo(
+    () => [
+      {
+        name: 'Rename',
+        icon: PencilIcon,
+        onClick: () => setTimeout(() => inputRef.current?.focus(), 100)
+      },
+      {
+        name: 'Delete',
+        icon: TrashIcon,
+        onClick: () => todoListDelete({ id }, contextDeleteTodoList)
+      }
+    ],
+    [contextDeleteTodoList, id, todoListDelete]
+  )
 
   const onTitleChange = debounce((title: string) => {
-    todoListUpdate({ id, title });
-  }, 500);
+    todoListUpdate({ id, title })
+  }, 500)
 
   return (
     <div className="space-y-4 flex-1 min-w-[300px]">
       <div
         className="flex justify-between border-b-2 "
-        title={title}
+        title={title || ''}
         style={{ borderColor: getColor(id) }}
       >
-        <h2 className="font-bold text-xl truncate">
+        <h2 className="text-xl font-bold truncate">
           <input
             ref={inputRef}
-            defaultValue={title}
+            defaultValue={title || ''}
             className="bg-transparent focus:outline-0 focus:text-blue-600 focus:dark:text-blue-400"
             onChange={(e) => onTitleChange(e.target.value)}
           />
@@ -50,22 +66,8 @@ const TodoList = (props: TodoListFragment) => {
           {fetching ? (
             <Spinner />
           ) : (
-            <Dropdown
-              options={[
-                {
-                  name: "Rename",
-                  icon: PencilIcon,
-                  onClick: () =>
-                    setTimeout(() => inputRef.current?.focus(), 100),
-                },
-                {
-                  name: "Delete",
-                  icon: TrashIcon,
-                  onClick: () => todoListDelete({ id }, contextDeleteTodoList),
-                },
-              ]}
-            >
-              <DotsVerticalIcon className="w-5 h-5 text-gray-400 hover:text-red-400 transition" />
+            <Dropdown options={dropdownOptions}>
+              <DotsVerticalIcon className="w-5 h-5 text-gray-400 transition hover:text-red-400" />
             </Dropdown>
           )}
         </div>
@@ -77,7 +79,7 @@ const TodoList = (props: TodoListFragment) => {
       </div>
       <TodoListCreateTodo todoListId={id} />
     </div>
-  );
-};
+  )
+}
 
-export default TodoList;
+export default TodoList
