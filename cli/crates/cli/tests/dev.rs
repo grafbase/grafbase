@@ -1,11 +1,13 @@
 mod cargo_bin;
+mod client;
 mod consts;
 mod macros;
 mod utils;
 
 use crate::cargo_bin::cargo_bin;
+use crate::client::Client;
 use crate::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
-use crate::utils::{kill_with_children, poll_endpoint};
+use crate::utils::kill_with_children;
 use common::environment::Environment;
 use duct::cmd;
 use serde_json::{json, Value};
@@ -46,24 +48,14 @@ fn dev() {
     .start()
     .unwrap();
 
+    let client = Client::new(endpoint);
+
     // wait for node to be ready
-    poll_endpoint(&endpoint, 30, 300);
+    client.poll_endpoint(30, 300);
 
-    let client = reqwest::blocking::Client::new();
+    client.gql::<Value>(json!({ "query": DEFAULT_MUTATION }).to_string());
 
-    client
-        .post(endpoint.clone())
-        .body(json!({ "query": DEFAULT_MUTATION }).to_string())
-        .send()
-        .unwrap();
-
-    let response = client
-        .post(endpoint)
-        .body(json!({ "query": DEFAULT_QUERY }).to_string())
-        .send()
-        .unwrap()
-        .json::<Value>()
-        .unwrap();
+    let response = client.gql::<Value>(json!({ "query": DEFAULT_QUERY }).to_string());
 
     let todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
 

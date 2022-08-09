@@ -1,11 +1,13 @@
 mod cargo_bin;
+mod client;
 mod consts;
 mod macros;
 mod utils;
 
 use crate::cargo_bin::cargo_bin;
+use crate::client::Client;
 use crate::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
-use crate::utils::{kill_with_children, poll_endpoint};
+use crate::utils::kill_with_children;
 use common::environment::Environment;
 use duct::cmd;
 use json_dotpath::DotPaths;
@@ -44,17 +46,11 @@ fn dev_watch() {
         .start()
         .unwrap();
 
-    poll_endpoint(&endpoint, 30, 300);
+    let client = Client::new(endpoint.clone());
 
-    let client = reqwest::blocking::Client::new();
+    client.poll_endpoint(30, 300);
 
-    let response = client
-        .post(&endpoint)
-        .body(json!({ "query": DEFAULT_QUERY }).to_string())
-        .send()
-        .unwrap()
-        .json::<Value>()
-        .unwrap();
+    let response = client.gql::<Value>(json!({ "query": DEFAULT_QUERY }).to_string());
 
     let todo_list_collection: Value = dot_get!(response, "data.todoListCollection.edges");
 
@@ -76,22 +72,11 @@ fn dev_watch() {
         sleep(Duration::from_secs(2));
     }
 
-    poll_endpoint(&endpoint, 30, 300);
+    client.poll_endpoint(30, 300);
 
-    client
-        .post(&endpoint)
-        .body(json!({ "query": UPDATED_MUTATION }).to_string())
-        .send()
-        .unwrap();
+    client.gql::<Value>(json!({ "query": UPDATED_MUTATION }).to_string());
 
-    let response = client
-        .post(endpoint)
-        .body(json!({ "query": UPDATED_QUERY }).to_string())
-        .send()
-        .unwrap()
-        .json::<Value>()
-        .unwrap();
-
+    let response = client.gql::<Value>(json!({ "query": UPDATED_QUERY }).to_string());
     let author_id: String = dot_get!(response, "data.authorCollection.edges.0.node.id");
 
     assert!(author_id.starts_with("Author#"));
