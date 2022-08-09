@@ -124,7 +124,7 @@ pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOpti
     // Check "groups" claim
     if let Some(allowed_groups) = opts.allowed_groups {
         if let Some(has_groups) = &claims.custom.groups {
-            if allowed_groups.is_disjoint(&has_groups) {
+            if allowed_groups.is_disjoint(has_groups) {
                 return Err(VerificationError::InvalidGroups);
             }
         } else {
