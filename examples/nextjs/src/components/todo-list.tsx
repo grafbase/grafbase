@@ -54,7 +54,7 @@ const TodoList = (props: TodoListFragment) => {
         title={title || ''}
         style={{ borderColor: getColor(id) }}
       >
-        <h2 className="font-bold text-xl truncate">
+        <h2 className="text-xl font-bold truncate">
           <input
             ref={inputRef}
             defaultValue={title || ''}
@@ -67,7 +67,7 @@ const TodoList = (props: TodoListFragment) => {
             <Spinner />
           ) : (
             <Dropdown options={dropdownOptions}>
-              <DotsVerticalIcon className="w-5 h-5 text-gray-400 hover:text-red-400 transition" />
+              <DotsVerticalIcon className="w-5 h-5 text-gray-400 transition hover:text-red-400" />
             </Dropdown>
           )}
         </div>

@@ -42,11 +42,11 @@ const TodoListTodo = (props: {
       className={`relative rounded-md border p-3 overflow-hidden ${
         completed
           ? 'bg-emerald-800 border-emerald-600'
-          : 'bg-zinc-50 dark:bg-zinc-800 border-gray-200 dark:border-transparent'
+          : 'bg-zinc-50 dark:bg-gray-700 border-gray-200 dark:border-transparent'
       }`}
     >
       {completed && (
-        <div className="absolute text-8xl font-bold left-0 -top-3 text-white text-opacity-5 tracking-wider">
+        <div className="absolute left-0 font-bold tracking-wider text-white text-8xl -top-3 text-opacity-5">
           DONE
         </div>
       )}
@@ -56,7 +56,7 @@ const TodoListTodo = (props: {
             <input
               type="checkbox"
               defaultChecked={completed}
-              className="border-gray-200 text-green-600 dark:border-gray-500 bg-white dark:bg-black rounded accent-green-600 hover:bg-green-600 focus:ring-0"
+              className="text-green-600 bg-white border-gray-200 rounded dark:border-gray-500 dark:bg-black accent-green-600 hover:bg-green-600 focus:ring-0"
               onClick={onCheckboxClick}
             />
             <input
@@ -68,13 +68,13 @@ const TodoListTodo = (props: {
             />
           </div>
           <button
-            className="text-gray-400 hover:text-red-400 transition"
+            className="text-gray-400 transition hover:text-red-400"
             onClick={() => todoDelete({ id }, contextDeleteTodoList)}
           >
             {fetching ? <Spinner /> : <TrashIcon className="w-4 h-4" />}
           </button>
         </div>
-        <div className="flex justify-between text-sm mt-2">
+        <div className="flex justify-between mt-2 text-sm">
           <div
             className={`text-xs px-1 py-0.5 rounded ${
               completed
