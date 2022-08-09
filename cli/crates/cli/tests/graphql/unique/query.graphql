@@ -1,10 +1,6 @@
-{
-  authorCollection(first: 100) {
-    edges {
-      node {
-        id
-        name
-      }
-    }
+query Author($id: ID) {
+  author(id: $id) {
+    id
+    name
   }
 }

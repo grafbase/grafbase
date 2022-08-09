@@ -18,4 +18,5 @@ pub const RELATIONS_UNLINK_BLOG_FROM_AUTHOR: &str =
 pub const UNIQUE_SCHEMA: &str = include_str!("../graphql/unique/schema.graphql");
 pub const UNIQUE_CREATE_MUTATION: &str = include_str!("../graphql/unique/create-mutation.graphql");
 pub const UNIQUE_DELETE_MUTATION: &str = include_str!("../graphql/unique/delete-mutation.graphql");
+pub const UNIQUE_PAGINATED_QUERY: &str = include_str!("../graphql/unique/paginated-query.graphql");
 pub const UNIQUE_QUERY: &str = include_str!("../graphql/unique/query.graphql");
