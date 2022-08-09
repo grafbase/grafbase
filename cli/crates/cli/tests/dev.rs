@@ -16,7 +16,6 @@ fn dev() {
 
     let client = env.create_client();
 
-    // wait for node to be ready
     client.poll_endpoint(30, 300);
 
     client.gql::<Value>(json!({ "query": DEFAULT_MUTATION }).to_string());
