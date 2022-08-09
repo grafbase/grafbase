@@ -1,0 +1,26 @@
+{
+  blogCollection(first: 100) {
+    edges {
+      node {
+        id
+        title
+        authors {
+          id
+          name
+          blogs {
+            id
+            title
+          }
+        }
+        secondaryAuthors {
+          id
+          name
+          blogs {
+            id
+            title
+          }
+        }
+      }
+    }
+  }
+}
