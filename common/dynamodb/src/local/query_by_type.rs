@@ -1,6 +1,7 @@
 use super::bridge_api;
 use super::types::Sql;
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::model::id::ID;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dynomite::AttributeValue;
 use indexmap::map::Entry;
@@ -27,6 +28,8 @@ quick_error! {
 pub struct QueryValue {
     pub node: Option<HashMap<String, AttributeValue>>,
     pub edges: IndexMap<String, Vec<HashMap<String, AttributeValue>>>,
+    /// Constraints are other kind of row we can store, it'll add data over a node
+    pub constraints: Vec<HashMap<String, AttributeValue>>,
 }
 
 pub struct QueryTypeLoader {
@@ -51,12 +54,15 @@ pub struct QueryTypeKey {
 impl QueryTypeKey {
     pub fn new(r#type: String, mut edges: Vec<String>) -> Self {
         Self {
-            r#type,
+            r#type: r#type.to_lowercase(),
             edges: {
                 edges.sort();
                 edges
             },
         }
+    }
+    fn ty(&self) -> &String {
+        &self.r#type
     }
 }
 
@@ -90,7 +96,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                 Sql::SelectType.to_string()
             };
 
-            let entity_type = query_key.r#type.clone();
+            let entity_type = query_key.ty().clone();
 
             // TODO: use .extend() rather than if (suggested by @jakubadamw)
             let values = if has_edges {
@@ -113,44 +119,56 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         },
                     ),
                     |(query_key, mut accumulator), current| {
-                        let pk = current.pk.clone();
-                        let sk = current.sk.clone();
+                        let pk = ID::try_from(current.pk.clone()).expect("can't fail");
+                        let sk = ID::try_from(current.sk.clone()).expect("can't fail");
                         let relation_names = current.relation_names.clone();
 
-                        match accumulator.values.entry(pk.clone()) {
+                        match accumulator.values.entry(pk.to_string()) {
                             Entry::Vacant(vacant) => {
                                 let mut value = QueryValue {
                                     node: None,
                                     edges: IndexMap::with_capacity(5),
+                                    constraints: Vec::new(),
                                 };
-
-                                // If it's the entity
-                                if sk == pk {
-                                    value.node = Some(current.document.clone());
-                                // If it's a relation
-                                } else if !relation_names.is_empty() {
-                                    for edge in relation_names {
-                                        value.edges.insert(edge, vec![current.document.clone()]);
+                                match (pk, sk) {
+                                    (ID::NodeID(_), ID::NodeID(sk)) => {
+                                        if sk.ty() == *query_key.ty() {
+                                            value.node = Some(current.document.clone());
+                                        } else if let Some(edge) =
+                                            query_key.edges.iter().find(|edge| relation_names.contains(edge))
+                                        {
+                                            value.edges.insert(edge.clone(), vec![current.document.clone()]);
+                                        }
                                     }
+                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                        value.constraints.push(current.document.clone());
+                                    }
+                                    _ => {}
                                 }
 
                                 vacant.insert(value);
                             }
-                            Entry::Occupied(mut occupied) => {
-                                if sk == pk {
-                                    occupied.get_mut().node = Some(current.document.clone());
-                                } else if !relation_names.is_empty() {
-                                    for edge in relation_names {
+                            Entry::Occupied(mut occupied) => match (pk, sk) {
+                                (ID::NodeID(_), ID::NodeID(sk)) => {
+                                    if sk.ty() == *query_key.ty() {
+                                        occupied.get_mut().node = Some(current.document.clone());
+                                    } else if let Some(edge) =
+                                        query_key.edges.iter().find(|edge| relation_names.contains(edge))
+                                    {
                                         occupied
                                             .get_mut()
                                             .edges
-                                            .entry(edge)
+                                            .entry(edge.clone())
                                             .or_default()
                                             .push(current.document.clone());
                                     }
                                 }
-                            }
-                        };
+                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                    occupied.get_mut().constraints.push(current.document.clone());
+                                }
+                                _ => {}
+                            },
+                        }
                         Ok::<_, QueryTypeLoaderError>((query_key, accumulator))
                     },
                 )

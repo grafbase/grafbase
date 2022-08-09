@@ -2,6 +2,7 @@ use super::bridge_api;
 use super::types::Sql;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
+use crate::model::node::NodeID;
 use crate::paginated::QueryResult;
 use crate::paginated::QueryValue;
 use crate::{DynamoDBRequestedIndex, LocalContext};
@@ -57,27 +58,30 @@ impl Loader<QueryKey> for QueryLoader {
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let number_of_edges = query_key.edges.len();
-            let query_pk = self.index.pk();
-
-            let query = if has_edges {
-                Sql::SelectIdWithEdges(query_pk, number_of_edges).to_string()
-            } else {
-                Sql::SelectId(query_pk).to_string()
+            let pk = match NodeID::from_borrowed(&query_key.pk) {
+                Ok(id) => id,
+                Err(_) => {
+                    query_result.insert(query_key.clone(), QueryResult::default());
+                    continue;
+                }
             };
 
-            let entity_type = ID::try_from(query_key.pk.as_ref())
-                .map_err(|_| QueryLoaderError::UnknownError)?
-                .ty()
-                .to_string();
+            let query = if has_edges {
+                Sql::SelectIdWithEdges(self.index.pk(), number_of_edges).to_string()
+            } else {
+                Sql::SelectId(self.index.pk()).to_string()
+            };
+
+            let entity_type = pk.ty().to_string();
 
             let values = if has_edges {
                 vec![
-                    vec![query_key.pk.clone(), entity_type, query_key.pk.clone()],
+                    vec![pk.to_string(), entity_type, pk.to_string()],
                     query_key.edges.clone(),
                 ]
                 .concat()
             } else {
-                vec![query_key.pk.clone()]
+                vec![pk.to_string()]
             };
 
             let future = || async move {
@@ -94,11 +98,11 @@ impl Loader<QueryKey> for QueryLoader {
                         },
                     ),
                     |(query_key, mut accumulator), current| {
-                        let pk = current.pk.clone();
-                        let sk = current.sk.clone();
+                        let pk = ID::try_from(current.pk.clone()).expect("Can't fail");
+                        let sk = ID::try_from(current.sk.clone()).expect("Can't fail");
                         let relation_names = current.relation_names.clone();
 
-                        match accumulator.values.entry(pk.clone()) {
+                        match accumulator.values.entry(pk.to_string()) {
                             Entry::Vacant(vacant) => {
                                 let mut value = QueryValue {
                                     node: None,
@@ -106,32 +110,44 @@ impl Loader<QueryKey> for QueryLoader {
                                     edges: IndexMap::with_capacity(5),
                                 };
 
-                                // If it's the entity
-                                if sk == pk {
-                                    value.node = Some(current.document.clone());
-                                // If it's a relation
-                                } else if !relation_names.is_empty() {
-                                    for edge in relation_names {
-                                        value.edges.insert(edge, vec![current.document.clone()]);
+                                match (pk, sk) {
+                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                        if sk.eq(&pk) {
+                                            value.node = Some(current.document.clone());
+                                        } else if !relation_names.is_empty() {
+                                            for edge in relation_names {
+                                                value.edges.insert(edge, vec![current.document.clone()]);
+                                            }
+                                        }
                                     }
+                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                        value.constraints.push(current.document.clone());
+                                    }
+                                    _ => {}
                                 }
 
                                 vacant.insert(value);
                             }
-                            Entry::Occupied(mut occupied) => {
-                                if sk == pk {
-                                    occupied.get_mut().node = Some(current.document.clone());
-                                } else if !relation_names.is_empty() {
-                                    for edge in relation_names {
-                                        occupied
-                                            .get_mut()
-                                            .edges
-                                            .entry(edge)
-                                            .or_default()
-                                            .push(current.document.clone());
+                            Entry::Occupied(mut occupied) => match (pk, sk) {
+                                (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                    if sk.eq(&pk) {
+                                        occupied.get_mut().node = Some(current.document.clone());
+                                    } else if !relation_names.is_empty() {
+                                        for edge in relation_names {
+                                            occupied
+                                                .get_mut()
+                                                .edges
+                                                .entry(edge)
+                                                .or_default()
+                                                .push(current.document.clone());
+                                        }
                                     }
                                 }
-                            }
+                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                    occupied.get_mut().constraints.push(current.document.clone());
+                                }
+                                _ => {}
+                            },
                         };
                         Ok::<_, QueryLoaderError>((query_key, accumulator))
                     },
