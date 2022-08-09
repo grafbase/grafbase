@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0]
+
+### Breaking
+
+- Supports new ID format (e.g. `author_01GA1B6QD2189C2GNQC7KNJRP2`)
+- Supports `@unique` directive
+
+### Features
+
+- Differentiates and correctly reports user and logic errors (bugs) in SQL operations
+
+### Testing
+
+- Adds new tests
+
 ## [0.3.0]
 
 ### Features
