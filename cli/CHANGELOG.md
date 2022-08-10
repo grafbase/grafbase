@@ -15,6 +15,10 @@
 
 - Adds new tests
 
+### Notes
+
+- As this is a breaking change, if you have an existing database in a project (under `project/.grafbase`), please remove the `.grafbase` folder before running the CLI
+
 ## [0.3.0]
 
 ### Features
