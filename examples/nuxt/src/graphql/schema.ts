@@ -105,7 +105,7 @@ export type QueryTodoListCollectionArgs = {
 
 export type Todo = {
   __typename?: 'Todo'
-  complete?: Maybe<Scalars['Boolean']>
+  complete: Scalars['Boolean']
   id: Scalars['ID']
   list?: Maybe<TodoList>
   title: Scalars['String']
@@ -120,7 +120,7 @@ export type TodoConnection = {
 
 /** Input to create a new Todo */
 export type TodoCreateInput = {
-  complete?: InputMaybe<Scalars['Boolean']>
+  complete: Scalars['Boolean']
   list?: InputMaybe<TodoTodoRelateTodoListTodoListCreateRelationInput>
   title: Scalars['String']
 }
@@ -181,7 +181,7 @@ export type TodoListEdge = {
 
 /** Input to create a new TodoListTodoRelateTodoListTodo */
 export type TodoListTodoRelateTodoListTodoCreateInput = {
-  complete?: InputMaybe<Scalars['Boolean']>
+  complete: Scalars['Boolean']
   title: Scalars['String']
 }
 
@@ -249,7 +249,7 @@ export type TodoListFragment = {
     __typename?: 'Todo'
     id: string
     title: string
-    complete?: boolean | null
+    complete: boolean
   } | null> | null
 }
 
@@ -257,7 +257,7 @@ export type TodoFragment = {
   __typename?: 'Todo'
   id: string
   title: string
-  complete?: boolean | null
+  complete: boolean
 }
 
 export type TodoListsQueryVariables = Exact<{ [key: string]: never }>
@@ -276,7 +276,7 @@ export type TodoListsQuery = {
           __typename?: 'Todo'
           id: string
           title: string
-          complete?: boolean | null
+          complete: boolean
         } | null> | null
       }
     } | null> | null
@@ -299,7 +299,7 @@ export type TodoListCreateMutation = {
         __typename?: 'Todo'
         id: string
         title: string
-        complete?: boolean | null
+        complete: boolean
       } | null> | null
     } | null
   } | null
@@ -318,7 +318,7 @@ export type TodoCreateMutation = {
       __typename?: 'Todo'
       id: string
       title: string
-      complete?: boolean | null
+      complete: boolean
     } | null
   } | null
 }
@@ -352,7 +352,7 @@ export type TodoListUpdateMutation = {
         __typename?: 'Todo'
         id: string
         title: string
-        complete?: boolean | null
+        complete: boolean
       } | null> | null
     } | null
   } | null
@@ -381,7 +381,7 @@ export type TodoUpdateMutation = {
       __typename?: 'Todo'
       id: string
       title: string
-      complete?: boolean | null
+      complete: boolean
     } | null
   } | null
 }

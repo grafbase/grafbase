@@ -10,9 +10,9 @@ export default defineNuxtConfig({
     transpile: ['@headlessui/vue']
   },
 
-  buildModules: ['@unocss/nuxt', 'unplugin-icons/nuxt', 'nuxt-graphql-codegen'],
+  buildModules: ['@unocss/nuxt', 'unplugin-icons/nuxt'],
 
-  modules: ['@nuxtjs/color-mode'],
+  modules: ['@nuxtjs/color-mode', 'nuxt-graphql-codegen'],
 
   publicRuntimeConfig: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',
