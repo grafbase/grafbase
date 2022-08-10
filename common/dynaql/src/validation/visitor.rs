@@ -7,7 +7,7 @@ use crate::parser::types::{
     Directive, ExecutableDocument, Field, FragmentDefinition, FragmentSpread, InlineFragment,
     OperationDefinition, OperationType, Selection, SelectionSet, TypeCondition, VariableDefinition,
 };
-use crate::registry::{self, MetaType, MetaTypeName};
+use crate::registry::{self, MetaInputValue, MetaType, MetaTypeName};
 use crate::{InputType, Name, Pos, Positioned, ServerError, ServerResult, Variables};
 
 #[doc(hidden)]
@@ -284,6 +284,7 @@ pub(crate) trait Visitor<'a> {
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &'a Value,
+        _meta: Option<&'a MetaInputValue>,
     ) {
     }
     fn exit_input_value(
@@ -292,6 +293,7 @@ pub(crate) trait Visitor<'a> {
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &Value,
+        _meta: Option<&'a MetaInputValue>,
     ) {
     }
 }
@@ -514,6 +516,34 @@ where
         self.0.exit_inline_fragment(ctx, inline_fragment);
         self.1.exit_inline_fragment(ctx, inline_fragment);
     }
+
+    fn enter_input_value(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        pos: Pos,
+        expected_type: &Option<MetaTypeName<'a>>,
+        value: &'a Value,
+        meta: Option<&'a MetaInputValue>,
+    ) {
+        self.0
+            .enter_input_value(ctx, pos, expected_type, value, meta);
+        self.1
+            .enter_input_value(ctx, pos, expected_type, value, meta);
+    }
+
+    fn exit_input_value(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        pos: Pos,
+        expected_type: &Option<MetaTypeName<'a>>,
+        value: &Value,
+        meta: Option<&'a MetaInputValue>,
+    ) {
+        self.0
+            .exit_input_value(ctx, pos, expected_type, value, meta);
+        self.1
+            .exit_input_value(ctx, pos, expected_type, value, meta);
+    }
 }
 
 pub(crate) fn visit<'a, V: Visitor<'a>>(
@@ -552,7 +582,6 @@ fn visit_operation_definition<'a, V: Visitor<'a>>(
         OperationType::Subscription => ctx.registry.subscription_type.as_deref(),
     };
 
-    dbg!(&root_name);
     if let Some(root_name) = root_name {
         ctx.with_type(Some(&ctx.registry.types[&*root_name]), |ctx| {
             visit_variable_definitions(v, ctx, &operation.node.variable_definitions);
@@ -642,16 +671,24 @@ fn visit_field<'a, V: Visitor<'a>>(
     field: &'a Positioned<Field>,
 ) {
     v.enter_field(ctx, field);
-
     for (name, value) in &field.node.arguments {
         v.enter_argument(ctx, name, value);
-        let expected_ty = ctx
+        let meta_input_value = ctx
             .parent_type()
             .and_then(|ty| ty.field_by_name(&field.node.name.node))
-            .and_then(|schema_field| schema_field.args.get(&*name.node))
-            .map(|input_ty| MetaTypeName::create(&input_ty.ty));
+            .and_then(|schema_field| schema_field.args.get(&*name.node));
+
+        let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(&input_ty.ty));
+
         ctx.with_input_type(expected_ty, |ctx| {
-            visit_input_value(v, ctx, field.pos, expected_ty, &value.node)
+            visit_input_value(
+                v,
+                ctx,
+                field.pos,
+                expected_ty,
+                &value.node,
+                meta_input_value,
+            )
         });
         v.exit_argument(ctx, name, value);
     }
@@ -667,8 +704,9 @@ fn visit_input_value<'a, V: Visitor<'a>>(
     pos: Pos,
     expected_ty: Option<MetaTypeName<'a>>,
     value: &'a Value,
+    meta: Option<&'a MetaInputValue>,
 ) {
-    v.enter_input_value(ctx, pos, &expected_ty, value);
+    v.enter_input_value(ctx, pos, &expected_ty, value, meta);
 
     match value {
         Value::List(values) => {
@@ -682,6 +720,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                             pos,
                             Some(MetaTypeName::create(expected_ty)),
                             value,
+                            meta,
                         );
                     }
                 }
@@ -704,6 +743,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                                     pos,
                                     Some(MetaTypeName::create(&input_value.ty)),
                                     item_value,
+                                    Some(input_value),
                                 );
                             }
                         }
@@ -714,7 +754,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
         _ => {}
     }
 
-    v.exit_input_value(ctx, pos, &expected_ty, value);
+    v.exit_input_value(ctx, pos, &expected_ty, value, meta);
 }
 
 fn visit_variable_definitions<'a, V: Visitor<'a>>(
@@ -740,11 +780,11 @@ fn visit_directives<'a, V: Visitor<'a>>(
 
         for (name, value) in &d.node.arguments {
             v.enter_argument(ctx, name, value);
-            let expected_ty = schema_directive
-                .and_then(|schema_directive| schema_directive.args.get(&*name.node))
-                .map(|input_ty| MetaTypeName::create(&input_ty.ty));
+            let meta_input_value = schema_directive
+                .and_then(|schema_directive| schema_directive.args.get(&*name.node));
+            let expected_ty = meta_input_value.map(|input_ty| MetaTypeName::create(&input_ty.ty));
             ctx.with_input_type(expected_ty, |ctx| {
-                visit_input_value(v, ctx, d.pos, expected_ty, &value.node)
+                visit_input_value(v, ctx, d.pos, expected_ty, &value.node, meta_input_value)
             });
             v.exit_argument(ctx, name, value);
         }
