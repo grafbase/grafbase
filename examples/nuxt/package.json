@@ -24,6 +24,7 @@
     "graphql": "16.5.0",
     "nuxt": "rc",
     "nuxt-graphql-codegen": "0.3.3",
+    "prettier": "2.7.1",
     "unplugin-icons": "0.14.7",
     "unplugin-vue-components": "0.21.0"
   }
