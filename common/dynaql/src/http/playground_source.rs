@@ -121,23 +121,24 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     .cEPVvT .CodeMirror-linenumbers {
       background-color: var(--bg1);
     }
-    .cATAit {
-      background-color: var(--bg1);
-      border-top: 1px solid var(--bg3);
+    /* Variable Editor */
+    .sc-eTuwsz .CodeMirror,
+    .sc-hXRMBi .CodeMirror {
+      background-color: var(--bg1) !important;
     }
-    .hQHJtw {
-      background-color: var(--bg1);
+    .sc-gwVKww {
+      background-color: var(--bg1) !important;
+      border-top: 1px solid var(--bg3) !important;
     }
-    .ikhImY .CodeMirror,
-    .hrcFBJ,
-    .izRzzn,
-    .ibqBBB {
-      background-color: var(--bg1);
+    /* Tracing */
+    .sc-gwVKww {
+      background-color: var(--bg1) !important;
+      border-top: 1px solid var(--bg3) !important;
     }
-    .ikhImY,
-    .hQHJtw {
-      border-top: 1px solid var(--bg3);
+    .sc-eTuwsz {
+      background-color: var(--bg1) !important;
     }
+    /* Execute Button */
     .kJytub {
       background-color: var(--accent);
       border: none;
@@ -145,6 +146,7 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     .kJytub:hover {
       background-color: var(--accentHover);
     }
+    /* Stop Button */
     .iRpNsC {
       background-color: var(--error);
       border: none;
