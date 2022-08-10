@@ -195,7 +195,7 @@ mod tests {
 
     #[test]
     fn int_into_id() {
-        expect_passes_rule!(
+        expect_fails_rule!(
             factory,
             r#"
             {

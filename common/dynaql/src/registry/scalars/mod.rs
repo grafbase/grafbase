@@ -4,19 +4,21 @@ use dynaql_value::ConstValue;
 #[derive(Debug, Clone, Copy)]
 pub enum PossibleScalar {
     String,
-    Number,
+    Int,
+    Float,
     Boolean,
     ID,
 }
 
 impl PossibleScalar {
     pub(crate) fn check_valid(&self, value: &ConstValue) -> bool {
-        matches!(
-            (self, value),
-            (Self::String | Self::ID, ConstValue::String(_))
-                | (Self::Boolean, ConstValue::Boolean(_))
-                | (Self::Number, ConstValue::Number(_))
-        )
+        match (self, value) {
+            (Self::String | Self::ID, ConstValue::String(_)) => true,
+            (Self::Boolean, ConstValue::Boolean(_)) => true,
+            (Self::Int, ConstValue::Number(num)) => !num.is_f64(),
+            (Self::Float, ConstValue::Number(_)) => true,
+            _ => false,
+        }
     }
 }
 
@@ -31,8 +33,8 @@ impl TryFrom<&str> for PossibleScalar {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         match value {
             "String" => Ok(PossibleScalar::String),
-            "Int" => Ok(PossibleScalar::Number),
-            "Float" => Ok(PossibleScalar::Number),
+            "Int" => Ok(PossibleScalar::Int),
+            "Float" => Ok(PossibleScalar::Float),
             "Boolean" => Ok(PossibleScalar::Boolean),
             "ID" => Ok(PossibleScalar::ID),
             _ => Err(PossibleScalarErrors::NotAScalar {
