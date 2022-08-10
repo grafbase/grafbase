@@ -5,7 +5,7 @@ use dynaql_value::Value;
 use crate::parser::types::{
     ExecutableDocument, FragmentDefinition, FragmentSpread, OperationDefinition, VariableDefinition,
 };
-use crate::registry::MetaTypeName;
+use crate::registry::{MetaInputValue, MetaTypeName};
 use crate::validation::utils::Scope;
 use crate::validation::visitor::{Visitor, VisitorContext};
 use crate::{Name, Pos, Positioned};
@@ -121,6 +121,7 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &'a Value,
+        _meta: Option<&'a MetaInputValue>,
     ) {
         if let Value::Variable(name) = value {
             if let Some(expected_type) = expected_type {

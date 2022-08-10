@@ -3,6 +3,7 @@ mod export_sdl;
 pub mod relations;
 pub mod resolver_chain;
 pub mod resolvers;
+pub mod scalars;
 mod stringify_exec_doc;
 pub mod transformers;
 pub mod utils;

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use dynaql_value::{ConstValue, Value};
 
 use crate::context::QueryPathNode;
+use crate::registry::scalars::PossibleScalar;
 use crate::{registry, QueryPathSegment};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -71,8 +72,18 @@ pub fn is_valid_input_value(
             }
 
             match registry.types.get(type_name).unwrap() {
-                registry::MetaType::Scalar { is_valid, .. } => {
-                    if is_valid.map(|f| f(&value)).unwrap_or(true) {
+                registry::MetaType::Scalar { .. } => {
+                    let possible_scalar = match PossibleScalar::try_from(type_name) {
+                        Ok(val) => val,
+                        Err(_) => {
+                            return Some(valid_error(
+                                &path_node,
+                                format!("expected type \"{}\"", type_name),
+                            ));
+                        }
+                    };
+
+                    if possible_scalar.check_valid(&value) {
                         None
                     } else {
                         Some(valid_error(
