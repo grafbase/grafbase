@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.1]
+
+### Misc.
+
+- Adds styling for the GraphQL playground
+
 ## [0.4.0]
 
 ### Breaking

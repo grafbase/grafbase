@@ -712,7 +712,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "grafbase"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -745,7 +745,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "exitcode",
  "grafbase-local-common",
@@ -756,7 +756,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "dirs",
  "exitcode",
@@ -766,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "anyhow",
  "axum",
