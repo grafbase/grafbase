@@ -4,7 +4,9 @@ on:
   push:
     paths:
       - 'cli/**'
-  workflow_dispatch
+  workflow_dispatch:
+    paths:
+      - '*'
 
 permissions:
   # Allow checks read
