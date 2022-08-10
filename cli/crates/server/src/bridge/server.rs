@@ -1,8 +1,11 @@
 use super::consts::{CREATE_TABLE, DB_FILE, DB_URL_PREFIX};
-use super::types::{Payload, Record};
+use super::types::{Mutation, Operation, Record};
+use crate::bridge::errors::ApiError;
+use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
-use axum::{http::StatusCode, routing::post, Extension, Json, Router};
+use axum::{http::StatusCode, routing::post, Router};
+use axum::{Extension, Json};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
@@ -12,12 +15,12 @@ use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
-    Json(payload): Json<Payload>,
+    Json(payload): Json<Operation>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<Json<Vec<Record>>, ServerError> {
+) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
-    let template = query_as::<_, Record>(&payload.query);
+    let template = query_as::<_, Record>(&payload.sql);
 
     let result = payload
         .iter_variables()
@@ -35,22 +38,41 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
-    Json(payload): Json<Payload>,
+    Json(payload): Json<Mutation>,
     Extension(pool): Extension<Arc<SqlitePool>>,
-) -> Result<StatusCode, ServerError> {
+) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
-    let template = query(&payload.query);
+    if payload.mutations.is_empty() {
+        return Ok(StatusCode::OK);
+    };
 
-    payload
-        .iter_variables()
-        .fold(template, Query::bind)
-        .execute(pool.as_ref())
-        .await
-        .map_err(|error| {
+    let mut transaction = pool.begin().await.map_err(|error| {
+        error!("transaction start error: {error}");
+        error
+    })?;
+
+    for operation in payload.mutations {
+        let template = query(&operation.sql);
+
+        let query = operation.iter_variables().fold(template, Query::bind);
+
+        query.execute(&mut transaction).await.map_err(|error| {
             error!("mutation error: {error}");
-            error
+            match operation.kind {
+                Some(OperationKind::Constraint(Constraint {
+                    kind: ConstraintKind::Unique,
+                    ..
+                })) => ApiError::from_error_and_operation(error, operation),
+                None => error.into(),
+            }
         })?;
+    }
+
+    transaction.commit().await.map_err(|error| {
+        error!("transaction commit error: {error}");
+        error
+    })?;
 
     Ok(StatusCode::OK)
 }

@@ -1,0 +1,8 @@
+mutation CreateAuthor($name: String!) {
+  authorCreate(input: { name: $name }) {
+    author {
+      id
+      name
+    }
+  }
+}

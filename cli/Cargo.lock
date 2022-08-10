@@ -712,7 +712,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "grafbase"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -727,6 +727,7 @@ dependencies = [
  "grafbase-local-common",
  "hex-literal",
  "indoc",
+ "json_dotpath",
  "log",
  "once_cell",
  "os_type",
@@ -744,7 +745,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "exitcode",
  "grafbase-local-common",
@@ -755,7 +756,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "dirs",
  "exitcode",
@@ -765,7 +766,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1061,6 +1062,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3fac17f7123a73ca62df411b1bf727ccc805daa070338fda671c86dac1bdc27"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "json_dotpath"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbdcfef3cf5591f0cef62da413ae795e3d1f5a00936ccec0b2071499a32efd1a"
+dependencies = [
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

@@ -1,75 +1,33 @@
-mod cargo_bin;
-mod consts;
-mod types;
 mod utils;
 
-use crate::cargo_bin::cargo_bin;
-use crate::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
-use crate::types::TodoListCollectionResponse;
-use crate::utils::{kill_with_children, poll_endpoint};
-use common::environment::Environment;
-use duct::cmd;
-use serde_json::json;
-use std::process::Command;
-use std::{env, fs};
-use tempfile::tempdir;
+use serde_json::{json, Value};
+use utils::consts::{DEFAULT_MUTATION, DEFAULT_QUERY, DEFAULT_SCHEMA};
+use utils::environment::Environment;
 
 #[test]
-fn sanity() {
-    let port = 4000;
-    let temp_dir = tempdir().unwrap();
-    let endpoint = format!("http://127.0.0.1:{port}/graphql");
+fn dev() {
+    let mut env = Environment::init(4000);
 
-    env::set_current_dir(temp_dir.path()).unwrap();
+    env.grafbase_init();
 
-    let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
+    env.write_schema(DEFAULT_SCHEMA);
 
-    Command::new(cargo_bin("grafbase"))
-        .args(&["init"])
-        .current_dir(&temp_dir.path())
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap();
+    env.grafbase_dev();
 
-    fs::write(&schema_path, DEFAULT_SCHEMA).unwrap();
+    let client = env.create_client();
 
-    Environment::try_init().unwrap();
+    client.poll_endpoint(30, 300);
 
-    let command = cmd!(
-        cargo_bin("grafbase"),
-        "dev",
-        "--disable-watch",
-        "--port",
-        port.to_string()
-    )
-    .dir(&temp_dir.path())
-    .start()
-    .unwrap();
+    client.gql::<Value>(json!({ "query": DEFAULT_MUTATION }).to_string());
 
-    // wait for node to be ready
-    poll_endpoint(&endpoint, 30, 300);
+    let response = client.gql::<Value>(json!({ "query": DEFAULT_QUERY }).to_string());
 
-    let client = reqwest::blocking::Client::new();
+    let todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
 
-    client
-        .post(endpoint.clone())
-        .body(json!({ "query": DEFAULT_MUTATION }).to_string())
-        .send()
-        .unwrap();
+    let todo_list_id: String = dot_get!(todo_list, "id");
 
-    let response = client
-        .post(endpoint)
-        .body(json!({ "query": DEFAULT_QUERY }).to_string())
-        .send()
-        .unwrap()
-        .json::<TodoListCollectionResponse>()
-        .unwrap();
+    let first_todo_id: String = dot_get!(todo_list, "todos.0.id");
 
-    let todo_list = response.data.todo_list_collection.edges.first().unwrap().node.clone();
-
-    assert!(todo_list.id.starts_with("TodoList#"));
-    assert!(todo_list.todos.first().unwrap().id.starts_with("Todo#"));
-
-    kill_with_children(*command.pids().first().unwrap());
+    assert!(todo_list_id.starts_with("todolist_"));
+    assert!(first_todo_id.starts_with("todo_"));
 }
