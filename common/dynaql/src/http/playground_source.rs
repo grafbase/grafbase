@@ -20,32 +20,216 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
 <html>
 
 <head>
-  <meta charset=utf-8 />
-  <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
-  <title>GraphQL Playground</title>
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/css/index.css" />
-  <link rel="shortcut icon" href="//cdn.jsdelivr.net/npm/graphql-playground-react/build/favicon.png" />
-  <script src="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/js/middleware.js"></script>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700|Source+Code+Pro:400,700" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui" />
+  <title>GraphQL Playground - Grafbase</title>
+  <link rel="shortcut icon" href="https://grafbase.com/images/other/grafbase-logo-circle.png" />
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.28/build/static/css/index.css" />
+  <script src="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.28/build/static/js/middleware.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" />
 </head>
 
 <body>
   <style type="text/css">
+    /* Grafbase Theme */
+    :root {
+      --mono: Consolas, Inconsolata, 'Droid Sans Mono', Monaco, monospace;
+      --sm: 0.875rem;
+      /* Colors */
+      --base: #dedede;
+      --blue: #7fa2c0;
+      --blue-light: #599dd9;
+      --green: #54b484;
+      --purple: #b783ba;
+      --yellow: #c59f67;
+      --red: #d47575;
+      --grey: #878787;
+      --positive: #125634;
+      --text-positive: #b0e5cb;
+      --negative: #732f2f;
+      --text-negative: #fbb6b6;
+      --bg: #000000;
+      --bg-border: #ffffff16;
+      --transparent: #ffffff00;
+      --text1: #ffffff;
+      --accent: #4a9c6d;
+      --accentHover: #41895f;
+      --error: #be4444;
+      --errorHover: #a83a3a;
+      --bg1: #16171b;
+      --bg2: #222226;
+      --bg3: #363739;
+    }
+
     html {
-      font-family: "Open Sans", sans-serif;
+      font-family: 'Open Sans', sans-serif;
       overflow: hidden;
     }
-
     body {
       margin: 0;
-      background: #172a3a;
+      background: var(--bg1);
     }
 
+    .cEPVvT .CodeMirror {
+      font-family: var(--mono);
+      font-size: var(--sm);
+    }
+    .sc-daURTG {
+      background-color: var(--bg1);
+    }
+    .cEPVvT .CodeMirror div.CodeMirror-cursor {
+      border-left: 1px solid var(--text1);
+    }
+    .jqqEqQ .CodeMirror {
+      background-color: var(--bg2);
+    }
+    .kOflzg {
+      background-color: var(--bg2);
+    }
+    .dUUizb {
+      border-color: var(--bg2);
+    }
+    .bfVYLy {
+      background-color: var(--bg2);
+    }
+    .bfVYLy:hover {
+      background-color: var(--bg2);
+      opacity: 0.9;
+    }
+    .hnqzUG {
+      background-color: var(--bg1);
+    }
+    .hnqzUG:hover {
+      background-color: var(--bg1);
+      opacity: 0.9;
+    }
+    .hrrKPQ {
+      background-color: var(--transparent);
+      cursor: pointer;
+    }
+    .hrrKPQ:hover {
+      background-color: var(--transparent);
+      opacity: 0.9;
+    }
+    .dvmgwq {
+      background-color: var(--bg1);
+      text-transform: unset;
+    }
+    .dvmgwq:hover {
+      background-color: var(--bg1);
+      opacity: 0.9;
+    }
+    .cljqcK {
+      background-color: var(--bg1);
+    }
+    .biDfcz {
+      background-color: var(--bg2);
+    }
+    .sc-cMhqgX {
+      border-color: var(--transparent) !important;
+    }
+    .CodeMirror .cm-s-graphiql,
+    .imcoIY .CodeMirror,
+    .cEPVvT .CodeMirror-linenumbers {
+      background-color: var(--bg1);
+    }
+    /* Variable Editor */
+    .sc-eTuwsz .CodeMirror,
+    .sc-hXRMBi .CodeMirror {
+      background-color: var(--bg1) !important;
+    }
+    .sc-gwVKww {
+      background-color: var(--bg1) !important;
+      border-top: 1px solid var(--bg3) !important;
+    }
+    /* Tracing */
+    .sc-gwVKww {
+      background-color: var(--bg1) !important;
+      border-top: 1px solid var(--bg3) !important;
+    }
+    .sc-eTuwsz {
+      background-color: var(--bg1) !important;
+    }
+    /* Execute Button */
+    .kJytub {
+      background-color: var(--accent);
+      border: none;
+    }
+    .kJytub:hover {
+      background-color: var(--accentHover);
+    }
+    /* Stop Button */
+    .iRpNsC {
+      background-color: var(--error);
+      border: none;
+    }
+    .iRpNsC:hover {
+      background-color: var(--errorHover);
+      border: none;
+    }
+    .cIypmL {
+      fill: var(--text1);
+    }
+    .jmsfqV {
+      text-transform: none;
+    }
+    .emFIyf {
+      display: none;
+    }
+
+    /* Editor Highlighting Colors */
+    .cEPVvT .cm-keyword {
+      color: var(--blue);
+    }
+    .cEPVvT .cm-def {
+      color: var(--blue);
+    }
+    .cEPVvT .cm-ws {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-comment {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-punctuation {
+      color: var(--grey);
+    }
+    .cEPVvT .cm-property {
+      color: var(--green);
+    }
+    .cEPVvT .cm-attribute {
+      color: var(--yellow);
+    }
+    .cEPVvT .cm-variable {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-number {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-string {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-string2 {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-builtin {
+      color: var(--purple);
+    }
+    .cEPVvT .cm-meta {
+      color: var(--blue-light);
+      font-weight: 'bold';
+    }
+    .cEPVvT .cm-qualifier {
+      color: '#1c92a9';
+    }
+    .cEPVvT .cm-atom {
+      color: '#ca9800';
+    }
+
+    /* Playground Animations */
     .playgroundIn {
       -webkit-animation: playgroundIn 0.5s ease-out forwards;
       animation: playgroundIn 0.5s ease-out forwards;
     }
-
     @-webkit-keyframes playgroundIn {
       from {
         opacity: 0;
@@ -60,7 +244,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(0);
       }
     }
-
     @keyframes playgroundIn {
       from {
         opacity: 0;
@@ -76,13 +259,12 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       }
     }
   </style>
-
   <style type="text/css">
+    /* Loading Animations */
     .fadeOut {
       -webkit-animation: fadeOut 0.5s ease-out forwards;
       animation: fadeOut 0.5s ease-out forwards;
     }
-
     @-webkit-keyframes fadeIn {
       from {
         opacity: 0;
@@ -97,7 +279,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(0);
       }
     }
-
     @keyframes fadeIn {
       from {
         opacity: 0;
@@ -112,7 +293,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(0);
       }
     }
-
     @-webkit-keyframes fadeOut {
       from {
         opacity: 1;
@@ -127,7 +307,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(-10px);
       }
     }
-
     @keyframes fadeOut {
       from {
         opacity: 1;
@@ -142,7 +321,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(-10px);
       }
     }
-
     @-webkit-keyframes appearIn {
       from {
         opacity: 0;
@@ -157,7 +335,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(0);
       }
     }
-
     @keyframes appearIn {
       from {
         opacity: 0;
@@ -172,7 +349,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: translateY(0);
       }
     }
-
     @-webkit-keyframes scaleIn {
       from {
         -webkit-transform: scale(0);
@@ -185,7 +361,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: scale(1);
       }
     }
-
     @keyframes scaleIn {
       from {
         -webkit-transform: scale(0);
@@ -198,7 +373,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         transform: scale(1);
       }
     }
-
     @-webkit-keyframes innerDrawIn {
       0% {
         stroke-dashoffset: 70;
@@ -210,7 +384,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         stroke-dashoffset: 210;
       }
     }
-
     @keyframes innerDrawIn {
       0% {
         stroke-dashoffset: 70;
@@ -222,7 +395,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         stroke-dashoffset: 210;
       }
     }
-
     @-webkit-keyframes outerDrawIn {
       0% {
         stroke-dashoffset: 76;
@@ -231,7 +403,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         stroke-dashoffset: 152;
       }
     }
-
     @keyframes outerDrawIn {
       0% {
         stroke-dashoffset: 76;
@@ -240,7 +411,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
         stroke-dashoffset: 152;
       }
     }
-
     .hHWjkv {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -251,7 +421,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.2222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.2222222222222222s;
     }
-
     .gCDOzd {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -262,7 +431,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.4222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.4222222222222222s;
     }
-
     .hmCcxi {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -273,7 +441,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.6222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.6222222222222222s;
     }
-
     .eHamQi {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -284,7 +451,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.8222222222222223s;
       animation: scaleIn 0.25s linear forwards 0.8222222222222223s;
     }
-
     .byhgGu {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -295,7 +461,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 1.0222222222222221s;
       animation: scaleIn 0.25s linear forwards 1.0222222222222221s;
     }
-
     .llAKP {
       -webkit-transform-origin: 0px 0px;
       -ms-transform-origin: 0px 0px;
@@ -306,7 +471,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 1.2222222222222223s;
       animation: scaleIn 0.25s linear forwards 1.2222222222222223s;
     }
-
     .bglIGM {
       -webkit-transform-origin: 64px 28px;
       -ms-transform-origin: 64px 28px;
@@ -317,7 +481,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.2222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.2222222222222222s;
     }
-
     .ksxRII {
       -webkit-transform-origin: 95.98500061035156px 46.510000228881836px;
       -ms-transform-origin: 95.98500061035156px 46.510000228881836px;
@@ -328,7 +491,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.4222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.4222222222222222s;
     }
-
     .cWrBmb {
       -webkit-transform-origin: 95.97162628173828px 83.4900016784668px;
       -ms-transform-origin: 95.97162628173828px 83.4900016784668px;
@@ -339,7 +501,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.6222222222222222s;
       animation: scaleIn 0.25s linear forwards 0.6222222222222222s;
     }
-
     .Wnusb {
       -webkit-transform-origin: 64px 101.97999572753906px;
       -ms-transform-origin: 64px 101.97999572753906px;
@@ -350,7 +511,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 0.8222222222222223s;
       animation: scaleIn 0.25s linear forwards 0.8222222222222223s;
     }
-
     .bfPqf {
       -webkit-transform-origin: 32.03982162475586px 83.4900016784668px;
       -ms-transform-origin: 32.03982162475586px 83.4900016784668px;
@@ -361,7 +521,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 1.0222222222222221s;
       animation: scaleIn 0.25s linear forwards 1.0222222222222221s;
     }
-
     .edRCTN {
       -webkit-transform-origin: 32.033552169799805px 46.510000228881836px;
       -ms-transform-origin: 32.033552169799805px 46.510000228881836px;
@@ -372,88 +531,96 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: scaleIn 0.25s linear forwards 1.2222222222222223s;
       animation: scaleIn 0.25s linear forwards 1.2222222222222223s;
     }
-
     .iEGVWn {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.3333333333333333s, appearIn 0.1s ease-out forwards 0.3333333333333333s;
-      animation: outerDrawIn 0.5s ease-out forwards 0.3333333333333333s, appearIn 0.1s ease-out forwards 0.3333333333333333s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.3333333333333333s,
+        appearIn 0.1s ease-out forwards 0.3333333333333333s;
+      animation: outerDrawIn 0.5s ease-out forwards 0.3333333333333333s,
+        appearIn 0.1s ease-out forwards 0.3333333333333333s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .bsocdx {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.5333333333333333s, appearIn 0.1s ease-out forwards 0.5333333333333333s;
-      animation: outerDrawIn 0.5s ease-out forwards 0.5333333333333333s, appearIn 0.1s ease-out forwards 0.5333333333333333s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.5333333333333333s,
+        appearIn 0.1s ease-out forwards 0.5333333333333333s;
+      animation: outerDrawIn 0.5s ease-out forwards 0.5333333333333333s,
+        appearIn 0.1s ease-out forwards 0.5333333333333333s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .jAZXmP {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.7333333333333334s, appearIn 0.1s ease-out forwards 0.7333333333333334s;
-      animation: outerDrawIn 0.5s ease-out forwards 0.7333333333333334s, appearIn 0.1s ease-out forwards 0.7333333333333334s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.7333333333333334s,
+        appearIn 0.1s ease-out forwards 0.7333333333333334s;
+      animation: outerDrawIn 0.5s ease-out forwards 0.7333333333333334s,
+        appearIn 0.1s ease-out forwards 0.7333333333333334s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .hSeArx {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.9333333333333333s, appearIn 0.1s ease-out forwards 0.9333333333333333s;
-      animation: outerDrawIn 0.5s ease-out forwards 0.9333333333333333s, appearIn 0.1s ease-out forwards 0.9333333333333333s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 0.9333333333333333s,
+        appearIn 0.1s ease-out forwards 0.9333333333333333s;
+      animation: outerDrawIn 0.5s ease-out forwards 0.9333333333333333s,
+        appearIn 0.1s ease-out forwards 0.9333333333333333s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .bVgqGk {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 1.1333333333333333s, appearIn 0.1s ease-out forwards 1.1333333333333333s;
-      animation: outerDrawIn 0.5s ease-out forwards 1.1333333333333333s, appearIn 0.1s ease-out forwards 1.1333333333333333s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 1.1333333333333333s,
+        appearIn 0.1s ease-out forwards 1.1333333333333333s;
+      animation: outerDrawIn 0.5s ease-out forwards 1.1333333333333333s,
+        appearIn 0.1s ease-out forwards 1.1333333333333333s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .hEFqBt {
       opacity: 0;
       stroke-dasharray: 76;
-      -webkit-animation: outerDrawIn 0.5s ease-out forwards 1.3333333333333333s, appearIn 0.1s ease-out forwards 1.3333333333333333s;
-      animation: outerDrawIn 0.5s ease-out forwards 1.3333333333333333s, appearIn 0.1s ease-out forwards 1.3333333333333333s;
+      -webkit-animation: outerDrawIn 0.5s ease-out forwards 1.3333333333333333s,
+        appearIn 0.1s ease-out forwards 1.3333333333333333s;
+      animation: outerDrawIn 0.5s ease-out forwards 1.3333333333333333s,
+        appearIn 0.1s ease-out forwards 1.3333333333333333s;
       -webkit-animation-iteration-count: 1, 1;
       animation-iteration-count: 1, 1;
     }
-
     .dzEKCM {
       opacity: 0;
       stroke-dasharray: 70;
-      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.3666666666666667s, appearIn 0.1s linear forwards 1.3666666666666667s;
-      animation: innerDrawIn 1s ease-in-out forwards 1.3666666666666667s, appearIn 0.1s linear forwards 1.3666666666666667s;
+      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.3666666666666667s,
+        appearIn 0.1s linear forwards 1.3666666666666667s;
+      animation: innerDrawIn 1s ease-in-out forwards 1.3666666666666667s,
+        appearIn 0.1s linear forwards 1.3666666666666667s;
       -webkit-animation-iteration-count: infinite, 1;
       animation-iteration-count: infinite, 1;
     }
-
     .DYnPx {
       opacity: 0;
       stroke-dasharray: 70;
-      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.5333333333333332s, appearIn 0.1s linear forwards 1.5333333333333332s;
-      animation: innerDrawIn 1s ease-in-out forwards 1.5333333333333332s, appearIn 0.1s linear forwards 1.5333333333333332s;
+      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.5333333333333332s,
+        appearIn 0.1s linear forwards 1.5333333333333332s;
+      animation: innerDrawIn 1s ease-in-out forwards 1.5333333333333332s,
+        appearIn 0.1s linear forwards 1.5333333333333332s;
       -webkit-animation-iteration-count: infinite, 1;
       animation-iteration-count: infinite, 1;
     }
-
     .hjPEAQ {
       opacity: 0;
       stroke-dasharray: 70;
-      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.7000000000000002s, appearIn 0.1s linear forwards 1.7000000000000002s;
-      animation: innerDrawIn 1s ease-in-out forwards 1.7000000000000002s, appearIn 0.1s linear forwards 1.7000000000000002s;
+      -webkit-animation: innerDrawIn 1s ease-in-out forwards 1.7000000000000002s,
+        appearIn 0.1s linear forwards 1.7000000000000002s;
+      animation: innerDrawIn 1s ease-in-out forwards 1.7000000000000002s,
+        appearIn 0.1s linear forwards 1.7000000000000002s;
       -webkit-animation-iteration-count: infinite, 1;
       animation-iteration-count: infinite, 1;
     }
-
     #loading-wrapper {
       position: absolute;
       width: 100vw;
@@ -474,7 +641,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -ms-flex-direction: column;
       flex-direction: column;
     }
-
     .logo {
       width: 75px;
       height: 75px;
@@ -483,7 +649,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: fadeIn 0.5s ease-out forwards;
       animation: fadeIn 0.5s ease-out forwards;
     }
-
     .text {
       font-size: 32px;
       font-weight: 200;
@@ -493,7 +658,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       -webkit-animation: fadeIn 0.5s ease-out forwards;
       animation: fadeIn 0.5s ease-out forwards;
     }
-
     .dGfHfc {
       font-weight: 400;
     }
