@@ -23,9 +23,9 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
   <meta charset="utf-8" />
   <meta name="viewport" content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui" />
   <title>GraphQL Playground - Grafbase</title>
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/css/index.css" />
   <link rel="shortcut icon" href="https://grafbase.com/images/other/grafbase-logo-circle.png" />
-  <script src="//cdn.jsdelivr.net/npm/graphql-playground-react/build/static/js/middleware.js"></script>
+  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.28/build/static/css/index.css" />
+  <script src="//cdn.jsdelivr.net/npm/graphql-playground-react@1.7.28/build/static/js/middleware.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" />
 </head>
 
@@ -61,7 +61,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
       --bg3: #363739;
     }
 
-    
     .cEPVvT .CodeMirror {
       font-family: var(--mono);
       font-size: var(--sm);
@@ -110,6 +109,12 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     }
     .cljqcK {
       background-color: var(--bg1);
+    }
+    .biDfcz {
+      background-color: var(--bg2);
+    }
+    .sc-cMhqgX {
+      border-color: var(--transparent) !important;
     }
     .CodeMirror .cm-s-graphiql,
     .imcoIY .CodeMirror,
