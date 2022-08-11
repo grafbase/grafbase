@@ -74,5 +74,5 @@ fn unique() {
 
     let first_author: Option<Value> = response.dot_get("data.author").unwrap();
 
-    assert!(first_author.is_none())
+    assert!(first_author.is_none());
 }

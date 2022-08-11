@@ -89,6 +89,6 @@ impl Drop for Environment {
     fn drop(&mut self) {
         self.commands.iter().for_each(|command| {
             kill_with_children(*command.pids().first().unwrap());
-        })
+        });
     }
 }
