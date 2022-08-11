@@ -9,12 +9,12 @@
 // Based on dynaql's visitor.
 
 use dynaql::Positioned;
-use dynaql_parser::types::ConstDirective;
 use dynaql_parser::types::DirectiveLocation;
+use dynaql_parser::types::{ConstDirective, TypeDefinition};
 
 use super::visitor::VisitorContext;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct CheckAllDirectivesAreKnown {
     location_stack: Vec<DirectiveLocation>,
 }
@@ -24,6 +24,7 @@ fn pretty_location_context(location: DirectiveLocation) -> &'static str {
         DirectiveLocation::FieldDefinition => "field",
         DirectiveLocation::Schema => "schema",
         DirectiveLocation::Object => "type",
+        DirectiveLocation::Scalar => "scalar",
         _ => unreachable!("unexpected, other variants are never pushed onto the stack"),
     }
 }
@@ -57,6 +58,22 @@ impl<'a> super::visitor::Visitor<'a> for CheckAllDirectivesAreKnown {
                 );
             }
         }
+    }
+
+    fn enter_scalar_definition(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+        self.location_stack.push(DirectiveLocation::Scalar);
+    }
+
+    fn exit_scalar_definition(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+        self.location_stack.pop();
     }
 
     fn enter_field(

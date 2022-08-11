@@ -8,5 +8,6 @@ pub mod check_types_underscore;
 pub mod enum_type;
 pub mod model_directive;
 pub mod relations;
+pub mod scalar_hydratation;
 pub mod unique_directive;
 pub mod visitor;

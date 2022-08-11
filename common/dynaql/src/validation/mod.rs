@@ -79,6 +79,7 @@ pub fn check_rules(
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth));
+
             visit(&mut visitor, &mut ctx, doc);
         }
         ValidationMode::Fast => {
@@ -90,6 +91,7 @@ pub fn check_rules(
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth));
+
             visit(&mut visitor, &mut ctx, doc);
         }
     }

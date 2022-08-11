@@ -1,3 +1,4 @@
+use dynaql::registry::scalars::PossibleScalar;
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
@@ -14,6 +15,8 @@ use rules::unique_directive::UniqueDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 pub use dynaql::registry::Registry;
+
+use crate::rules::scalar_hydratation::ScalarHydratation;
 
 mod registry;
 mod rules;
@@ -46,10 +49,17 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(AuthDirective)
         .with(BasicType)
         .with(EnumType)
+        .with(ScalarHydratation)
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 
-    let schema = format!("{}\n{}", rules.directives(), input.as_ref());
+    let schema = format!(
+        "{}\n{}\n{}",
+        PossibleScalar::directives(),
+        rules.directives(),
+        input.as_ref()
+    );
+
     let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new(&schema);

@@ -239,6 +239,19 @@ pub trait Visitor<'a> {
     fn enter_object_definition(&mut self, _ctx: &mut VisitorContext<'a>, _object_definition: &'a ObjectType) {}
     fn exit_object_definition(&mut self, _ctx: &mut VisitorContext<'a>, _object_definition: &'a ObjectType) {}
 
+    fn enter_scalar_definition(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+    }
+    fn exit_scalar_definition(
+        &mut self,
+        _ctx: &mut VisitorContext<'a>,
+        _type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+    }
+
     fn enter_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<ConstDirective>) {}
     fn exit_directive(&mut self, _ctx: &mut VisitorContext<'a>, _directive: &'a Positioned<ConstDirective>) {}
 
@@ -284,25 +297,6 @@ pub trait Visitor<'a> {
         _value: &'a Positioned<ConstValue>,
     ) {
     }
-
-    /*
-    fn enter_input_value(
-        &mut self,
-        _ctx: &mut VisitorContext<'a>,
-        _pos: Pos,
-        _expected_type: &Option<MetaTypeName<'a>>,
-        _value: &'a Value,
-    ) {
-    }
-    fn exit_input_value(
-        &mut self,
-        _ctx: &mut VisitorContext<'a>,
-        _pos: Pos,
-        _expected_type: &Option<MetaTypeName<'a>>,
-        _value: &Value,
-    ) {
-    }
-    */
 }
 
 /// Empty Value
@@ -350,6 +344,24 @@ where
     fn exit_schema(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a Positioned<SchemaDefinition>) {
         self.0.exit_schema(ctx, doc);
         self.1.exit_schema(ctx, doc);
+    }
+
+    fn enter_scalar_definition(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+        self.0.enter_scalar_definition(ctx, type_definition);
+        self.1.enter_scalar_definition(ctx, type_definition);
+    }
+
+    fn exit_scalar_definition(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        type_definition: &'a Positioned<TypeDefinition>,
+    ) {
+        self.0.exit_scalar_definition(ctx, type_definition);
+        self.1.exit_scalar_definition(ctx, type_definition);
     }
 
     fn enter_document(&mut self, ctx: &mut VisitorContext<'a>, doc: &'a ServiceDocument) {
@@ -466,16 +478,21 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
     match operation {
         TypeSystemDefinition::Type(ty) => {
             v.enter_type_definition(ctx, ty);
-
-            ctx.with_definition_type(Some(ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
             // Inside Type Definition we should visit_field
             match &ty.node.kind {
                 TypeKind::Object(object) => {
+                    ctx.with_definition_type(Some(ty), |ctx| visit_directives(v, ctx, &ty.node.directives));
+
                     v.enter_object_definition(ctx, object);
                     for field in &object.fields {
                         visit_field(v, ctx, field, ty);
                     }
                     v.exit_object_definition(ctx, object);
+                }
+                TypeKind::Scalar => {
+                    v.enter_scalar_definition(ctx, &ty);
+                    visit_directives(v, ctx, &ty.node.directives);
+                    v.exit_scalar_definition(ctx, &ty);
                 }
                 _ => {}
             };

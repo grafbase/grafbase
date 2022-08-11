@@ -83,13 +83,13 @@ pub fn is_valid_input_value(
                         }
                     };
 
-                    if possible_scalar.check_valid(&value) {
-                        None
-                    } else {
-                        Some(valid_error(
+                    match possible_scalar.check_valid(&value) {
+                        Ok(true) => None,
+                        Ok(false) => Some(valid_error(
                             &path_node,
                             format!("expected type \"{}\"", type_name),
-                        ))
+                        )),
+                        Err(err) => Some(valid_error(&path_node, err.message())),
                     }
                 }
                 registry::MetaType::Enum {

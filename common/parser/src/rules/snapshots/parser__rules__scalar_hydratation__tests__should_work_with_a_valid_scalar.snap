@@ -1,0 +1,10 @@
+---
+source: common/parser/src/rules/scalar_hydratation.rs
+assertion_line: 115
+expression: scalar_ty.unwrap()
+---
+Scalar {
+    name: "DateTime",
+    description: None,
+    specified_by_url: None,
+}
