@@ -490,9 +490,9 @@ fn visit_type_system_definition<'a, V: Visitor<'a>>(
                     v.exit_object_definition(ctx, object);
                 }
                 TypeKind::Scalar => {
-                    v.enter_scalar_definition(ctx, &ty);
+                    v.enter_scalar_definition(ctx, ty);
                     visit_directives(v, ctx, &ty.node.directives);
-                    v.exit_scalar_definition(ctx, &ty);
+                    v.exit_scalar_definition(ctx, ty);
                 }
                 _ => {}
             };
