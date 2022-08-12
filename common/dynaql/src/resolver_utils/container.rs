@@ -397,7 +397,7 @@ impl<'a> Fields<'a> {
                                 .schema_env
                                 .registry
                                 .implements
-                                .get(&*introspection_type_name)
+                                .get(introspection_type_name)
                                 .map_or(false, |interfaces| interfaces.contains(condition))
                     });
                     if applies_concrete_object {

@@ -583,7 +583,7 @@ fn visit_operation_definition<'a, V: Visitor<'a>>(
     };
 
     if let Some(root_name) = root_name {
-        ctx.with_type(Some(&ctx.registry.types[&*root_name]), |ctx| {
+        ctx.with_type(Some(&ctx.registry.types[root_name]), |ctx| {
             visit_variable_definitions(v, ctx, &operation.node.variable_definitions);
             visit_directives(v, ctx, &operation.node.directives);
             visit_selection_set(v, ctx, &operation.node.selection_set);
