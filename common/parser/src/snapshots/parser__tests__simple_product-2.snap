@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 91
 expression: sdl
 ---
 type Mutation {
@@ -72,7 +73,7 @@ type ProductUpdatePayload {
 }
 type Query {
 	"""
-	Get a Product by ID
+	Get Product by ID
 	"""
 	product(id: ID!): Product
 	"""

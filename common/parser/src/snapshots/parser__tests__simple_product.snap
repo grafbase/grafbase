@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 86
+assertion_line: 90
 expression: reg_string
 ---
 {
@@ -840,7 +840,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get a Product by ID",
+            "description": "Get Product by ID",
             "edges": [],
             "external": false,
             "name": "product",

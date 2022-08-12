@@ -178,7 +178,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 ctx.queries.push(MetaField {
                     // byID query
                     name: to_lower_camelcase(&type_name),
-                    description: Some(format!("Get a {} by ID", type_name)),
+                    description: Some(format!("Get {} by ID", type_name)),
                     args: {
                         let mut args = IndexMap::new();
                         args.insert(
