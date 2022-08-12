@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 255
+assertion_line: 259
 expression: reg_string
 ---
 {
@@ -2424,7 +2424,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get a Author by ID",
+            "description": "Get Author by ID",
             "edges": [],
             "external": false,
             "name": "author",
@@ -2534,7 +2534,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get a Blog by ID",
+            "description": "Get Blog by ID",
             "edges": [],
             "external": false,
             "name": "blog",
@@ -2644,7 +2644,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get a Post by ID",
+            "description": "Get Post by ID",
             "edges": [],
             "external": false,
             "name": "post",

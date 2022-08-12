@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 216
+assertion_line: 220
 expression: reg_string
 ---
 {
@@ -565,7 +565,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get a Todo by ID",
+            "description": "Get Todo by ID",
             "edges": [],
             "external": false,
             "name": "todo",

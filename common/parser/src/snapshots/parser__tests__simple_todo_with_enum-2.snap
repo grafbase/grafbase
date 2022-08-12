@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 221
 expression: sdl
 ---
 type Author {
@@ -39,7 +40,7 @@ type PageInfo {
 }
 type Query {
 	"""
-	Get a Todo by ID
+	Get Todo by ID
 	"""
 	todo(id: ID!): Todo
 	"""

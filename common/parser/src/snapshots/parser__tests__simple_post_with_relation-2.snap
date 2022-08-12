@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 260
 expression: sdl
 ---
 type Author {
@@ -265,7 +266,7 @@ type PostUpdatePayload {
 }
 type Query {
 	"""
-	Get a Blog by ID
+	Get Blog by ID
 	"""
 	blog(id: ID!): Blog
 	"""
@@ -273,7 +274,7 @@ type Query {
 	"""
 	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
-	Get a Post by ID
+	Get Post by ID
 	"""
 	post(id: ID!): Post
 	"""
@@ -281,7 +282,7 @@ type Query {
 	"""
 	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
-	Get a Author by ID
+	Get Author by ID
 	"""
 	author(id: ID!): Author
 	"""

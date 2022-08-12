@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 146
 expression: sdl
 ---
 type Mutation {
@@ -36,7 +37,7 @@ type PageInfo {
 }
 type Query {
 	"""
-	Get a TodoList by ID
+	Get TodoList by ID
 	"""
 	todoList(id: ID!): TodoList
 	"""
@@ -44,7 +45,7 @@ type Query {
 	"""
 	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
 	"""
-	Get a Todo by ID
+	Get Todo by ID
 	"""
 	todo(id: ID!): Todo
 	"""
