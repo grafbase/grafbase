@@ -70,7 +70,7 @@ pub enum ServerError {
     #[error("$HOME/.grafbase is a non utf8 path")]
     CachePath,
 
-    /// returned if the `.grafbase` folder cannot be created
+    /// returned if the `.grafbase` directory cannot be created
     #[error("could not create a project cache directory")]
     CreateCacheDir,
 

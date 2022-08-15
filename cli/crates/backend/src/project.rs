@@ -1,6 +1,6 @@
 use crate::consts::DEFAULT_SCHEMA;
 use crate::errors::BackendError;
-use common::consts::{GRAFBASE_FOLDER, GRAFBASE_SCHEMA};
+use common::consts::{GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA};
 use common::environment::Environment;
 use std::env;
 use std::fs;
@@ -12,7 +12,7 @@ use std::path::PathBuf;
 ///
 /// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
 ///
-/// - returns [`BackendError::ProjectDirectoryExists`] if a named is passed and a folder with the same name already exists in the current directory
+/// - returns [`BackendError::ProjectDirectoryExists`] if a named is passed and a directory with the same name already exists in the current directory
 ///
 /// - returns [`BackendError::AlreadyAProject`] if there's already a grafbase/schema.graphql in the target
 ///
@@ -21,7 +21,7 @@ use std::path::PathBuf;
 /// - returns [`BackendError::WriteSchema`] if the schema file cannot be written
 pub fn init(name: Option<&str>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
-    let grafbase_path = project_path.join(GRAFBASE_FOLDER);
+    let grafbase_path = project_path.join(GRAFBASE_DIRECTORY);
     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA);
 
     if schema_path.exists() {
