@@ -39,5 +39,5 @@ fn dev_watch() {
     let author_birthday: String = dot_get!(response, "data.authorCollection.edges.0.node.birthday");
 
     assert!(author_id.starts_with("author_"));
-    assert!(author_birthday.ends_with("Z"));
+    assert!(author_birthday.ends_with('Z'));
 }
