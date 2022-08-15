@@ -40,7 +40,7 @@ pub fn init(name: Option<&str>) -> Result<(), BackendError> {
 ///
 /// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
 ///
-/// - returns [`BackendError::DeleteDotGrafbaseDirectory`] if the .grafbase directory cannot be deleted
+/// - returns [`BackendError::DeleteDotGrafbaseDirectory`] if the `.grafbase` directory cannot be deleted
 pub fn reset() -> Result<(), BackendError> {
     let environment = Environment::get();
 
