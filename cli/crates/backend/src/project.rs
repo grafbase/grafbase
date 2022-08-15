@@ -34,7 +34,7 @@ pub fn init(name: Option<&str>) -> Result<(), BackendError> {
     }
 }
 
-/// resets the local project data by removing the `.grafbase` directory
+/// Resets the local data for the current project by removing the `.grafbase` directory
 ///
 /// # Errors
 ///
