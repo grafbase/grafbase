@@ -52,7 +52,7 @@ pub fn build_cli() -> Command<'static> {
                 "}),
         )
         .subcommand(Command::new("reset").about(indoc! {"
-            Resets all local project data for the current project by removing the .grafbase directory
+            Resets the local data for the current project by removing the .grafbase directory
         "}))
     // .subcommand(Command::new("login").about("TBD"))
     // .subcommand(Command::new("deploy").about("TBD"))
