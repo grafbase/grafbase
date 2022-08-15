@@ -48,9 +48,12 @@ pub fn build_cli() -> Command<'static> {
                     // arg!(-t --template "the name of the template to use for the new project"),
                 ])
                 .about(indoc! {"
-                Sets up the current or a new project for Grafbase
-            "}),
+                    Sets up the current or a new project for Grafbase
+                "}),
         )
+        .subcommand(Command::new("reset").about(indoc! {"
+            Resets all local project data by removing the .grafbase directory for the current project
+        "}))
     // .subcommand(Command::new("login").about("TBD"))
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))

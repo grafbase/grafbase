@@ -3,7 +3,7 @@
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
-use std::{env, fs, io::Write, path::PathBuf, process::Command};
+use std::{env, fs, io::Write, path::PathBuf};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
@@ -41,10 +41,9 @@ impl Environment {
     }
 
     pub fn grafbase_init(&self) {
-        Command::new(cargo_bin("grafbase"))
-            .args(&["init"])
-            .current_dir(&self.directory)
-            .spawn()
+        cmd!(cargo_bin("grafbase"), "init")
+            .dir(&self.directory)
+            .start()
             .unwrap()
             .wait()
             .unwrap();
@@ -65,6 +64,15 @@ impl Environment {
         self.commands.push(command);
     }
 
+    pub fn grafbase_reset(&mut self) {
+        cmd!(cargo_bin("grafbase"), "reset")
+            .dir(&self.directory)
+            .start()
+            .unwrap()
+            .wait()
+            .unwrap();
+    }
+
     pub fn grafbase_dev_watch(&mut self) {
         let command = cmd!(cargo_bin("grafbase"), "dev", "--port", self.port.to_string())
             .dir(&self.directory)
@@ -83,12 +91,22 @@ impl Environment {
 
         drop(file);
     }
+
+    pub fn kill_processes(&mut self) {
+        self.commands.iter().for_each(|command| {
+            kill_with_children(*command.pids().first().unwrap());
+        });
+
+        self.commands = vec![];
+    }
+
+    pub fn has_dot_grafbase_folder(&mut self) -> bool {
+        fs::metadata(self.directory.clone().join(".grafbase")).is_ok()
+    }
 }
 
 impl Drop for Environment {
     fn drop(&mut self) {
-        self.commands.iter().for_each(|command| {
-            kill_with_children(*command.pids().first().unwrap());
-        });
+        self.kill_processes();
     }
 }

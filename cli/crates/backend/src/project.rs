@@ -1,6 +1,7 @@
 use crate::consts::DEFAULT_SCHEMA;
 use crate::errors::BackendError;
 use common::consts::{GRAFBASE_FOLDER, GRAFBASE_SCHEMA};
+use common::environment::Environment;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -31,6 +32,22 @@ pub fn init(name: Option<&str>) -> Result<(), BackendError> {
 
         Ok(())
     }
+}
+
+/// resets the local project data by removing the `.grafbase` directory
+///
+/// # Errors
+///
+/// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
+///
+/// - returns [`BackendError::DeleteDotGrafbaseDirectory`] if the schema file cannot be deleted
+pub fn reset() -> Result<(), BackendError> {
+    let environment = Environment::get();
+
+    fs::remove_dir_all(environment.project_dot_grafbase_path.clone())
+        .map_err(BackendError::DeleteDotGrafbaseDirectory)?;
+
+    Ok(())
 }
 
 fn to_project_path(name: Option<&str>) -> Result<PathBuf, BackendError> {

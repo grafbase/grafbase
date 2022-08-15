@@ -1,5 +1,5 @@
 use common::traits::ToExitCode;
-use std::path::PathBuf;
+use std::{io, path::PathBuf};
 use thiserror::Error;
 
 pub use server::errors::ServerError;
@@ -31,6 +31,9 @@ pub enum BackendError {
     /// returned if a schema.graphql file cannot be created
     #[error("could not create a schema.graphql file")]
     WriteSchema,
+    /// returned if the dot grafbase directory cannot be deleted
+    #[error("could not delete the .grafbase directory\ncaused by: {0}")]
+    DeleteDotGrafbaseDirectory(io::Error),
 }
 
 impl ToExitCode for BackendError {
@@ -38,7 +41,10 @@ impl ToExitCode for BackendError {
         match &self {
             Self::AvailablePort | Self::PortInUse(_) => exitcode::UNAVAILABLE,
             Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) => exitcode::USAGE,
-            Self::ReadCurrentDirectory | Self::CreateGrafbaseDirectory | Self::WriteSchema => exitcode::DATAERR,
+            Self::ReadCurrentDirectory
+            | Self::CreateGrafbaseDirectory
+            | Self::WriteSchema
+            | Self::DeleteDotGrafbaseDirectory(_) => exitcode::DATAERR,
             Self::ServerError(inner) => inner.to_exit_code(),
         }
     }

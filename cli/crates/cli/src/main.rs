@@ -7,11 +7,13 @@ mod errors;
 mod init;
 mod output;
 mod panic_hook;
+mod reset;
 mod watercolor;
 
 #[macro_use]
 extern crate log;
 
+use crate::reset::reset;
 use cli_input::build_cli;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
@@ -82,6 +84,7 @@ fn try_main() -> Result<(), CliError> {
 
             init(name)
         }
+        Some(("reset", _)) => reset(),
         _ => unreachable!(),
     }
 }

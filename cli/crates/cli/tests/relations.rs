@@ -25,7 +25,6 @@ fn relations() {
     client.gql::<Value>(json!({ "query": RELATIONS_MUTATION }).to_string());
 
     let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
-    println!("{:#?}", response);
 
     let blog: Value = dot_get!(response, "data.blogCollection.edges.0.node");
     let blog_id: String = dot_get!(blog, "id");

@@ -1,5 +1,6 @@
 use backend::errors::{BackendError, ServerError};
 use common::{errors::CommonError, traits::ToExitCode};
+use std::io::ErrorKind;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -57,6 +58,13 @@ impl CliError {
             }
             Self::BackendError(BackendError::AlreadyAProject(_)) => {
                 Some("try running 'grafbase dev'".to_owned())
+            }
+            Self::BackendError(BackendError::DeleteDotGrafbaseDirectory(error)) => {
+                match error.kind() {
+                    ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running `grafbase reset` on a new project".to_owned()),
+                    ErrorKind::PermissionDenied => Some("it apppears you do not have permissions to delete the .grafbase folder, try modifying the folder permissions".to_owned()),
+                    _ => None,
+                }
             }
             _ => None,
         }
