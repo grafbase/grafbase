@@ -1,5 +1,5 @@
 mutation {
-  authorCreate(input: { name: "New Author" }) {
+  authorCreate(input: { name: "New Author", birthday: "2007-12-03T10:15:30Z" }) {
     author {
       id
       name

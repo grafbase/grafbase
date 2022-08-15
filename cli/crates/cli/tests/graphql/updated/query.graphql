@@ -4,6 +4,7 @@
       node {
         id
         name
+        birthday
       }
     }
   }
