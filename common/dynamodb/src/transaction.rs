@@ -77,10 +77,19 @@ async fn transaction_by_pk(
     let item_collections = again
         .retry(|| async { ctx.dynamodb_client.transact_write_items(input.clone()).await })
         .instrument(info_span!("fetch transaction"))
-        .inspect_err(|err|
-            // FIXME: Logging this as an error will cause many false positive alerts for @unique.
-            // OTOH, we probably want to log this as an error otherwise.
-            log::warn!(ctx.trace_id, "Error while writing the transaction: {:?}", err))
+        .inspect_err(|err| match err {
+            rusoto_core::RusotoError::Service(rusoto_dynamodb::TransactWriteItemsError::TransactionCanceled(msg))
+                if msg.contains("ConditionalCheckFailed") =>
+            {
+                log::warn!(
+                    ctx.trace_id,
+                    "Error writing items in transaction due to ConditionalCheckFailed: {err:?}",
+                );
+            }
+            _ => {
+                log::error!(ctx.trace_id, "Error writing items in transaction: {err:?}");
+            }
+        })
         .map_err(|_| TransactionError::UnknownError)
         .await?;
 
