@@ -1,0 +1,19 @@
+schema
+  @auth(
+    providers: [{ type: oidc, issuer: "CLERK_ISSUER_URL" }]
+    rules: [{ allow: private }]
+  ) {
+  query: Query
+}
+
+type TodoList @model {
+  id: ID!
+  title: String!
+  todos: [Todo]
+}
+
+type Todo @model {
+  id: ID!
+  title: String!
+  complete: Boolean!
+}
