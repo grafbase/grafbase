@@ -61,7 +61,7 @@ impl CliError {
             }
             Self::BackendError(BackendError::DeleteDotGrafbaseDirectory(error)) => {
                 match error.kind() {
-                    ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running `grafbase reset` on a new project".to_owned()),
+                    ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running 'grafbase reset' on a new project".to_owned()),
                     ErrorKind::PermissionDenied => Some("it appears you do not have sufficient permissions to delete the .grafbase directory, try modifying the directory permissions".to_owned()),
                     _ => None,
                 }
