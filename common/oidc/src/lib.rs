@@ -42,97 +42,102 @@ struct CustomClaims {
     groups: Option<HashSet<String>>, // TODO: use configured claim name
 }
 
-#[derive(Debug)]
-pub struct VerificationOptions {
-    pub issuer: Url,
-    pub allowed_groups: Option<HashSet<String>>,
-    pub time: Option<TimeOptions>,
-    pub http_client: Option<surf::Client>,
+#[derive(Debug, Default)]
+pub struct Client {
+    pub http_client: surf::Client,
+    pub time_opts: TimeOptions,
 }
 
-pub async fn verify_token<S: AsRef<str> + Send>(token: S, opts: VerificationOptions) -> Result<(), VerificationError> {
-    let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
+impl Client {
+    pub async fn verify_token<S: AsRef<str> + Send>(
+        &self,
+        token: S,
+        issuer: Url,
+        allowed_groups: Option<HashSet<String>>,
+    ) -> Result<(), VerificationError> {
+        let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
-    // We support the same signing algorithms as AppSync
-    // https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html#openid-connect-authorization
-    let rsa = match token.algorithm() {
-        "RS256" => Rsa::rs256(),
-        "RS384" => Rsa::rs384(),
-        "RS512" => Rsa::rs512(),
-        _ => return Err(VerificationError::UnsupportedAlgorithm),
-    };
+        // We support the same signing algorithms as AppSync
+        // https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html#openid-connect-authorization
+        let rsa = match token.algorithm() {
+            "RS256" => Rsa::rs256(),
+            "RS384" => Rsa::rs384(),
+            "RS512" => Rsa::rs512(),
+            _ => return Err(VerificationError::UnsupportedAlgorithm),
+        };
 
-    let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
-    // Get JWKS endpoint from OIDC config
-    let http_client = opts.http_client.unwrap_or_default();
-    let discovery_url = opts.issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
-    let oidc_config: OidcConfig = http_client
-        .get(discovery_url)
-        .recv_json()
-        .await
-        .map_err(VerificationError::HttpRequest)?;
+        // Get JWKS endpoint from OIDC config
+        let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+        let oidc_config: OidcConfig = self
+            .http_client
+            .get(discovery_url)
+            .recv_json()
+            .await
+            .map_err(VerificationError::HttpRequest)?;
 
-    if oidc_config.issuer != opts.issuer {
-        return Err(VerificationError::InvalidIssuerUrl);
-    }
-
-    // Get JWKS
-    // TODO: cache JWKS based on kid header
-    let jwks: JsonWebKeySet<'_> = http_client
-        .get(oidc_config.jwks_uri)
-        .recv_json()
-        .await
-        .map_err(VerificationError::HttpRequest)?;
-
-    // Find JWK to verify JWT
-    let jwk = jwks
-        .keys
-        .iter()
-        .find(|key| &key.id == kid)
-        .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
-
-    // Verify JWT signature
-    let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
-    let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
-    let rsa = StrongAlg(rsa);
-    let token = rsa
-        .validate_integrity::<CustomClaims>(&token, &pub_key)
-        .map_err(VerificationError::Integrity)?;
-
-    // Verify claims
-    let claims = token.claims();
-    let time_opts = &opts.time.unwrap_or_default();
-
-    // Check "exp" claim
-    claims
-        .validate_expiration(time_opts)
-        .map_err(VerificationError::Integrity)?;
-
-    // Check "nbf" claim
-    claims
-        .validate_maturity(time_opts)
-        .map_err(VerificationError::Integrity)?;
-
-    // Check "iat" claim
-    // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
-    match claims.issued_at {
-        Some(issued_at) if issued_at <= (time_opts.clock_fn)() + time_opts.leeway => Ok(()),
-        _ => Err(VerificationError::InvalidIssueTime),
-    }?;
-
-    // Check "groups" claim
-    if let Some(allowed_groups) = opts.allowed_groups {
-        if let Some(has_groups) = &claims.custom.groups {
-            if allowed_groups.is_disjoint(has_groups) {
-                return Err(VerificationError::InvalidGroups);
-            }
-        } else {
-            return Err(VerificationError::MissingGroups);
+        if oidc_config.issuer != issuer {
+            return Err(VerificationError::InvalidIssuerUrl);
         }
-    };
 
-    Ok(())
+        // Get JWKS
+        // TODO: cache JWKS based on kid header
+        let jwks: JsonWebKeySet<'_> = self
+            .http_client
+            .get(oidc_config.jwks_uri)
+            .recv_json()
+            .await
+            .map_err(VerificationError::HttpRequest)?;
+
+        // Find JWK to verify JWT
+        let jwk = jwks
+            .keys
+            .iter()
+            .find(|key| &key.id == kid)
+            .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
+
+        // Verify JWT signature
+        let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
+        let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
+        let rsa = StrongAlg(rsa);
+        let token = rsa
+            .validate_integrity::<CustomClaims>(&token, &pub_key)
+            .map_err(VerificationError::Integrity)?;
+
+        // Verify claims
+        let claims = token.claims();
+
+        // Check "exp" claim
+        claims
+            .validate_expiration(&self.time_opts)
+            .map_err(VerificationError::Integrity)?;
+
+        // Check "nbf" claim
+        claims
+            .validate_maturity(&self.time_opts)
+            .map_err(VerificationError::Integrity)?;
+
+        // Check "iat" claim
+        // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
+        match claims.issued_at {
+            Some(issued_at) if issued_at <= (self.time_opts.clock_fn)() + self.time_opts.leeway => Ok(()),
+            _ => Err(VerificationError::InvalidIssueTime),
+        }?;
+
+        // Check "groups" claim
+        if let Some(allowed_groups) = allowed_groups {
+            if let Some(has_groups) = &claims.custom.groups {
+                if allowed_groups.is_disjoint(has_groups) {
+                    return Err(VerificationError::InvalidGroups);
+                }
+            } else {
+                return Err(VerificationError::MissingGroups);
+            }
+        };
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -250,17 +255,16 @@ mod tests {
         let issuer: Url = server.uri().parse().unwrap();
         set_up_mock_server(&issuer, &server).await;
 
-        let leeway = Duration::seconds(5);
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
-
-        let opts = VerificationOptions {
-            issuer,
-            allowed_groups: None,
-            time: Some(TimeOptions::new(leeway, clock_fn)),
-            http_client: None,
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
         };
 
-        verify_token(TOKEN, opts).await.unwrap();
+        client.verify_token(TOKEN, issuer, None).await.unwrap();
     }
 
     #[tokio::test]
@@ -269,18 +273,17 @@ mod tests {
         let issuer: Url = server.uri().parse().unwrap();
         set_up_mock_server(&issuer, &server).await;
 
-        let leeway = Duration::seconds(5);
-        // now == nbf which is 10s before the issue date.
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
-
-        let opts = VerificationOptions {
-            issuer,
-            allowed_groups: None,
-            time: Some(TimeOptions::new(leeway, clock_fn)),
-            http_client: None,
+        let client = {
+            let leeway = Duration::seconds(5);
+            // now == nbf which is 10s before the issue date.
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
         };
 
-        let result = verify_token(TOKEN, opts).await;
+        let result = client.verify_token(TOKEN, issuer, None).await;
         assert_matches!(result, Err(VerificationError::InvalidIssueTime));
     }
 
@@ -290,16 +293,17 @@ mod tests {
         let issuer: Url = server.uri().parse().unwrap();
         set_up_mock_server(&issuer, &server).await;
 
-        let leeway = Duration::seconds(5);
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
-        let opts = VerificationOptions {
-            issuer: issuer.clone(),
-            allowed_groups: Some(vec!["any".to_string()].into_iter().collect()),
-            time: Some(TimeOptions::new(leeway, clock_fn)),
-            http_client: None,
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
         };
+        let allowed_groups = Some(vec!["any".to_string()].into_iter().collect());
 
-        let result = verify_token(TOKEN, opts).await;
+        let result = client.verify_token(TOKEN, issuer, allowed_groups).await;
         assert_matches!(result, Err(VerificationError::MissingGroups));
     }
 
@@ -310,21 +314,32 @@ mod tests {
 
         set_up_mock_server(&issuer, &server).await;
 
-        let leeway = Duration::seconds(5);
-        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NULL_GROUPS_IAT, 0), Utc);
-        let opts = VerificationOptions {
-            issuer: issuer.clone(),
-            allowed_groups: None,
-            time: Some(TimeOptions::new(leeway, clock_fn)),
-            http_client: None,
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NULL_GROUPS_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
         };
-        verify_token(TOKEN_WITH_NULL_GROUPS, opts).await.unwrap();
+
+        client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer, None).await.unwrap();
     }
 
     #[tokio::test]
     async fn test_verify_token_with_groups_succeeds() {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
+
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
+        };
 
         let valid_groups = vec![
             vec!["admin"],
@@ -336,15 +351,12 @@ mod tests {
         for groups in valid_groups {
             set_up_mock_server(&issuer, &server).await;
 
-            let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
-            let opts = VerificationOptions {
-                issuer: issuer.clone(),
-                allowed_groups: Some(groups.into_iter().map(String::from).collect()),
-                time: Some(TimeOptions::new(leeway, clock_fn)),
-                http_client: None,
-            };
-            verify_token(TOKEN_WITH_GROUPS, opts).await.unwrap();
+            let allowed_groups = Some(groups.into_iter().map(String::from).collect());
+
+            client
+                .verify_token(TOKEN_WITH_GROUPS, issuer.clone(), allowed_groups)
+                .await
+                .unwrap();
 
             server.reset().await;
         }
@@ -355,20 +367,25 @@ mod tests {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
 
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ..Default::default()
+            }
+        };
+
         let invalid_groups = vec![vec![], vec![""], vec!["Admin"]];
 
         for groups in invalid_groups {
             set_up_mock_server(&issuer, &server).await;
 
-            let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
-            let opts = VerificationOptions {
-                issuer: issuer.clone(),
-                allowed_groups: Some(groups.into_iter().map(String::from).collect()),
-                time: Some(TimeOptions::new(leeway, clock_fn)),
-                http_client: None,
-            };
-            let result = verify_token(TOKEN_WITH_GROUPS, opts).await;
+            let allowed_groups = Some(groups.into_iter().map(String::from).collect());
+
+            let result = client
+                .verify_token(TOKEN_WITH_GROUPS, issuer.clone(), allowed_groups)
+                .await;
             assert_matches!(result, Err(VerificationError::InvalidGroups));
 
             server.reset().await;
