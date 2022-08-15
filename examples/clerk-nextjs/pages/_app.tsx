@@ -1,14 +1,13 @@
-import "../styles/globals.css";
 import {
   ClerkLoaded,
   ClerkProvider,
   SignedIn,
   SignedOut,
-  RedirectToSignIn,
-} from "@clerk/nextjs";
-import type { AppProps } from "next/app";
+  RedirectToSignIn
+} from '@clerk/nextjs'
+import type { AppProps } from 'next/app'
 
-const publicPages = ["/", "/sign-in/[[...index]]", "/sign-up/[[...index]]"];
+const publicPages = ['/', '/sign-in/[[...index]]', '/sign-up/[[...index]]']
 
 function MyApp({ Component, pageProps, router }: AppProps) {
   return (
@@ -28,7 +27,7 @@ function MyApp({ Component, pageProps, router }: AppProps) {
         )}
       </ClerkLoaded>
     </ClerkProvider>
-  );
+  )
 }
 
-export default MyApp;
+export default MyApp

@@ -1,5 +1,5 @@
-import { SignedIn, SignedOut } from "@clerk/nextjs";
-import type { NextPage } from "next";
+import { SignedIn, SignedOut } from '@clerk/nextjs'
+import type { NextPage } from 'next'
 
 const Home: NextPage = () => {
   return (
@@ -11,7 +11,7 @@ const Home: NextPage = () => {
         <p>Sign up for an account to get started</p>
       </SignedOut>
     </>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home
