@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{DOT_GRAFBASE_FOLDER, GRAFBASE_FOLDER, GRAFBASE_SCHEMA, REGISTRY_FILE},
+    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE},
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -18,16 +18,16 @@ pub struct Environment {
     /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
     /// with a `grafbase/schema.graphql` file
     pub project_path: PathBuf,
-    /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database folder,
+    /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database directory,
     /// in the nearest ancestor directory with `grafbase/schema.graphql`
     pub project_dot_grafbase_path: PathBuf,
-    /// the path of `$PROJECT/grafbase/`, the Grafbase schema folder in the nearest ancestor directory
+    /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
     /// with `grafbase/schema.graphql`
     pub project_grafbase_path: PathBuf,
     /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
-    /// in the nearest ancestor directory with said folder and file
+    /// in the nearest ancestor directory with said directory and file
     pub project_grafbase_schema_path: PathBuf,
-    /// the path of `$HOME/.grafbase`, the user level local developer tool cache folder
+    /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
     pub user_dot_grafbase_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
@@ -50,16 +50,16 @@ impl Environment {
             Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
-            .expect("the schema folder must have a parent by definiton")
+            .expect("the schema directory must have a parent by definiton")
             .to_path_buf();
         let project_path = project_grafbase_path
             .parent()
-            .expect("the grafbase folder must have a parent folder by definition")
+            .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
-        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_FOLDER);
+        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
         let user_dot_grafbase_path = {
             let home = dirs::home_dir().unwrap_or_else(|| project_grafbase_path.clone());
-            home.join(DOT_GRAFBASE_FOLDER)
+            home.join(DOT_GRAFBASE_DIRECTORY)
         };
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         ENVIRONMENT
@@ -105,9 +105,9 @@ impl Environment {
             .find_map(|ancestor| {
                 let mut path = PathBuf::from(ancestor);
 
-                // if we're looking at a folder called `grafbase`, also check for the schema in the current folder
+                // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
                 if let Some(first) = path.components().next() {
-                    if Path::new(&first) == PathBuf::from(GRAFBASE_FOLDER) {
+                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY) {
                         path.push(GRAFBASE_SCHEMA);
                         if path.is_file() {
                             return Some(path);
@@ -116,7 +116,7 @@ impl Environment {
                     }
                 }
 
-                path.push([GRAFBASE_FOLDER, GRAFBASE_SCHEMA].iter().collect::<PathBuf>());
+                path.push([GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA].iter().collect::<PathBuf>());
 
                 if path.is_file() {
                     Some(path)

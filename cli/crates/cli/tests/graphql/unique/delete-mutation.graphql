@@ -1,4 +1,4 @@
-mutation DeleteAuthor($id: String) {
+mutation DeleteAuthor($id: ID!) {
   authorDelete(id: $id) {
     deletedId
   }

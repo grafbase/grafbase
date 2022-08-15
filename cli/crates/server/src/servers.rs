@@ -47,7 +47,7 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
     let handle = thread::spawn(move || {
         export_embedded_files()?;
 
-        create_project_dot_grafbase_folder()?;
+        create_project_dot_grafbase_directory()?;
 
         // the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
         // making the port choice and availability transprent to the user
@@ -239,7 +239,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
     Ok(())
 }
 
-fn create_project_dot_grafbase_folder() -> Result<(), ServerError> {
+fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     let environment = Environment::get();
 
     let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();

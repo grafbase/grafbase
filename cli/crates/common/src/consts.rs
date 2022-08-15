@@ -4,12 +4,12 @@ pub const DEFAULT_PORT: u16 = 4000;
 pub const MAX_PORT: u16 = u16::MAX;
 /// localhost IP
 pub const LOCALHOST: &str = "127.0.0.1";
-/// the name of the folder indicating a grafbase project
-pub const GRAFBASE_FOLDER: &str = "grafbase";
-/// a file expected to be in the grafbase folder
+/// the name of the directory indicating a grafbase project
+pub const GRAFBASE_DIRECTORY: &str = "grafbase";
+/// a file expected to be in the grafbase directory
 pub const GRAFBASE_SCHEMA: &str = "schema.graphql";
 /// the name for the db / cache directory per project and the global cache directory for the user
-pub const DOT_GRAFBASE_FOLDER: &str = ".grafbase";
+pub const DOT_GRAFBASE_DIRECTORY: &str = ".grafbase";
 /// the registry.json file generated from schema.graphql
 pub const REGISTRY_FILE: &str = "registry.json";
 /// the tracing filter to be used when tracing is on

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0]
+
+### Features
+
+- Adds support for the `DateTime` scalar
+- Adds a `reset` command (removes local data for a project)
+
+### Tooling
+
+- Updates Rust to `1.63.0`
+- Bundles and minifies some of the embedded assets
+  - slightly reduces overall size and solves an incompatibility issue in wasm-pack with node
+
 ## [0.4.1]
 
 ### Misc.
@@ -23,7 +36,7 @@
 
 ### Notes
 
-- As this is a breaking change, if you have an existing database in a project (under `project/.grafbase`), please remove the `.grafbase` folder before running the CLI
+- As this is a breaking change, if you have an existing database in a project (under `project/.grafbase`), please remove the `.grafbase` directory before running the CLI
 
 ## [0.3.0]
 
@@ -54,7 +67,7 @@
 - Consolidates the CLI CI
 - Allows skipping asset export using an env variable (for CI)
 - Improves caching
-- Exports assets to home folder in CI to reduce wait time
+- Exports assets to home directory in CI to reduce wait time
 - Updates Rust to `1.62.1`
 
 ## [0.2.2]
@@ -146,7 +159,7 @@
 - Adds `miniflare` spawning
 - Bundles worker files into the executable
 - Adds an SQLite bridge server
-- Stores the DB in the project `.grafbase` folder
+- Stores the DB in the project `.grafbase` directory
 - Allows searching the entire port range for an open port
 - Adds panic hook
 - Supports schema parsing
@@ -221,7 +234,7 @@
 - Lifts `tokio` one level up to simplify task spawning and handling
 - Moves `.grafbase` dir creation to `servers`
 - Adds `colorize!` macro
-- Moves asset folder to root
+- Moves asset directory to root
 - Removes deprecated `clap` APIs
 - Manually instantiates `tokio` runtime due to a Rust Analyzer issue
 - Uses only `node` rather than `npx` as well

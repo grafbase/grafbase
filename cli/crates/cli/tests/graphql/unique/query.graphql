@@ -1,4 +1,4 @@
-query Author($id: ID) {
+query Author($id: ID!) {
   author(id: $id) {
     id
     name

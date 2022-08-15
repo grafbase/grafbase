@@ -72,4 +72,8 @@ pub mod report {
     pub fn reload() {
         println!("🔄 detected a schema change, reloading");
     }
+
+    pub fn project_reset() {
+        watercolor::output!(r#"✨ successfully reset your project!"#, @BrightBlue);
+    }
 }

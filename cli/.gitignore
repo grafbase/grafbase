@@ -30,7 +30,7 @@ coverage
 *.profraw
 .nyc_output
 
-# grafbase folders
+# grafbase directories
 grafbase/
 .grafbase/
 
