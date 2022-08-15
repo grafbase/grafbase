@@ -14,7 +14,7 @@ include = ["/src", "/assets"]
 axum = "0.5"
 common = { package = "grafbase-local-common", path = "../common", version = "0.4.1" }
 exitcode = "1"
-futures = "0.3.21"
+futures = "0.3.23"
 hyper = "0.14"
 log = "0.4"
 notify = "4.0.17"
