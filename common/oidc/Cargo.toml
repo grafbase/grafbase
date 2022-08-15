@@ -5,7 +5,12 @@ description = "Verify identity tokens used as part of the OpenID Connect flow"
 edition = "2021"
 
 [dependencies]
-jwt-compact = { version = "0.5", default-features = false, features = ["clock", "with_rsa"] }
+futures-util = "0.3"
+jwt-compact = { version = "0.5", default-features = false, features = [
+    "clock",
+    "with_rsa",
+] }
+lazy_static = "1"
 quick-error = "2"
 serde = { version = "1", features = ["derive"] }
 url = "2"
@@ -14,7 +19,9 @@ url = "2"
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, features = ["h1-client-rustls"] }
+surf = { version = "2", default-features = false, features = [
+    "h1-client-rustls",
+] }
 
 [dev-dependencies]
 chrono = "0.4"

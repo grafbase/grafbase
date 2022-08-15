@@ -2,6 +2,7 @@ mod error;
 
 pub use error::VerificationError;
 
+use futures_util::lock::Mutex;
 use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
@@ -48,6 +49,10 @@ pub struct Client {
     pub time_opts: TimeOptions,
 }
 
+lazy_static::lazy_static! {
+    static ref CACHED_JWKS: Mutex<Option<JsonWebKeySet<'static>>> = Mutex::new(None);
+}
+
 impl Client {
     pub async fn verify_token<S: AsRef<str> + Send>(
         &self,
@@ -66,32 +71,38 @@ impl Client {
             _ => return Err(VerificationError::UnsupportedAlgorithm),
         };
 
-        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+        // FIXME: cache JWKS based on kid
+        if CACHED_JWKS.lock().await.is_none() {
+            // Get JWKS endpoint from OIDC config
+            let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+            let oidc_config: OidcConfig = self
+                .http_client
+                .get(discovery_url)
+                .recv_json()
+                .await
+                .map_err(VerificationError::HttpRequest)?;
 
-        // Get JWKS endpoint from OIDC config
-        let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
-        let oidc_config: OidcConfig = self
-            .http_client
-            .get(discovery_url)
-            .recv_json()
-            .await
-            .map_err(VerificationError::HttpRequest)?;
+            if oidc_config.issuer != issuer {
+                return Err(VerificationError::InvalidIssuerUrl);
+            }
 
-        if oidc_config.issuer != issuer {
-            return Err(VerificationError::InvalidIssuerUrl);
-        }
+            // Get JWKS
+            let jwks: JsonWebKeySet<'_> = self
+                .http_client
+                .get(oidc_config.jwks_uri)
+                .recv_json()
+                .await
+                .map_err(VerificationError::HttpRequest)?;
 
-        // Get JWKS
-        // TODO: cache JWKS based on kid header
-        let jwks: JsonWebKeySet<'_> = self
-            .http_client
-            .get(oidc_config.jwks_uri)
-            .recv_json()
-            .await
-            .map_err(VerificationError::HttpRequest)?;
+            *CACHED_JWKS.lock().await = Some(jwks);
+        };
 
         // Find JWK to verify JWT
+        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+        let jwks = CACHED_JWKS.lock().await;
         let jwk = jwks
+            .as_ref()
+            .expect("should be cached")
             .keys
             .iter()
             .find(|key| &key.id == kid)
