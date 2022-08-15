@@ -10,7 +10,8 @@
 ### Tooling
 
 - Updates Rust to `1.63.0`
-- Bundles and minifies some of the embedded assets (slightly reduces overall size and solves an incompatibility issue in wasm-pack with node)
+- Bundles and minifies some of the embedded assets
+  - slightly reduces overall size and solves an incompatibility issue in wasm-pack with node
 
 ## [0.4.1]
 
