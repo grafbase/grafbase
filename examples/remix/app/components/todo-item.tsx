@@ -12,7 +12,7 @@ const TodoItem = (props: Props) => {
   const { id, title, complete } = props
   const { Form, submission, submit } = useFetcher()
   const completed = submission
-    ? Boolean(submission.formData.get('complete'))
+    ? submission.formData.get('complete') === 'true'
     : complete
 
   const isDeleting = submission?.formData.get('_action') === 'todo-item-delete'
