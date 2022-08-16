@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-again = { git = "https://github.com/Miaxos/again", default-features = false, features = [
+again = { version = "0.1", default-features = false, features = [
     "wasm-bindgen",
     "log",
 ] }
