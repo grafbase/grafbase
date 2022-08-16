@@ -1,8 +1,6 @@
 mod utils;
 
 use serde_json::{json, Value};
-use std::time::Duration;
-use tokio::time::sleep;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
