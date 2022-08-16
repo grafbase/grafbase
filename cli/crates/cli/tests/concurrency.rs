@@ -4,8 +4,6 @@ use serde_json::{json, Value};
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
-// takes 45 seconds to run
-#[ignore]
 #[tokio::test]
 async fn process() {
     let mut env1 = Environment::init(4005);
@@ -24,7 +22,7 @@ async fn process() {
     let async_client2 = env2.create_async_client();
     async_client2.poll_endpoint(30, 300).await;
 
-    for _ in 0..50 {
+    for _ in 0..15 {
         let (response1, response2): (Value, Value) = tokio::join!(
             async_client1.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
             async_client2.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
@@ -47,8 +45,8 @@ async fn process() {
     let result_list1: Vec<Value> = dot_get!(response1, "data.todoListCollection.edges");
     let result_list2: Vec<Value> = dot_get!(response2, "data.todoListCollection.edges");
 
-    assert_eq!(result_list1.len(), 100);
-    assert_eq!(result_list2.len(), 100);
+    assert_eq!(result_list1.len(), 30);
+    assert_eq!(result_list2.len(), 30);
 }
 
 #[tokio::test]
