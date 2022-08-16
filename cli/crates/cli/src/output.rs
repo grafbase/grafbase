@@ -76,6 +76,6 @@ pub mod report {
     pub fn project_reset() {
         watercolor::output!(r#"✨ successfully reset your project!"#, @BrightBlue);
         #[cfg(target_family = "unix")]
-        watercolor::output!(r#"if you have a running 'grafbase dev' instance in this project, it will need to be restarted for the change to take effect"#, @BrightBlue);
+        watercolor::output!(r#"if you have a running 'grafbase dev' instance in this project, it will need to be restarted for this change to take effect"#, @BrightBlue);
     }
 }
