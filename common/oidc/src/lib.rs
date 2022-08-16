@@ -2,7 +2,6 @@ mod error;
 
 pub use error::VerificationError;
 
-use futures_util::lock::Mutex;
 use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
@@ -12,8 +11,11 @@ use jwt_compact::{
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use url::Url;
+use worker::kv::KvError;
 
 const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
+
+const JWKS_CACHE_TTL: u64 = 5 * 60; // TODO: cache for 1d min
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
@@ -21,7 +23,7 @@ struct OidcConfig {
     jwks_uri: Url,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct ExtendedJsonWebKey<'a> {
     #[serde(flatten)]
     base: JsonWebKey<'a>,
@@ -29,7 +31,7 @@ struct ExtendedJsonWebKey<'a> {
     id: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
 }
@@ -43,14 +45,11 @@ struct CustomClaims {
     groups: Option<HashSet<String>>, // TODO: use configured claim name
 }
 
-#[derive(Debug, Default)]
+#[derive(Default)]
 pub struct Client {
     pub http_client: surf::Client,
     pub time_opts: TimeOptions,
-}
-
-lazy_static::lazy_static! {
-    static ref CACHED_JWKS: Mutex<Option<JsonWebKeySet<'static>>> = Mutex::new(None);
+    pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
 impl Client {
@@ -71,8 +70,17 @@ impl Client {
             _ => return Err(VerificationError::UnsupportedAlgorithm),
         };
 
-        // FIXME: cache JWKS based on kid
-        if CACHED_JWKS.lock().await.is_none() {
+        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+
+        // Use JWK from cache if available
+        let cached_jwk = self
+            .get_jwk_from_cache(kid)
+            .await
+            .map_err(VerificationError::CacheError)?;
+
+        let jwk = if let Some(cached_jwk) = cached_jwk {
+            cached_jwk
+        } else {
             // Get JWKS endpoint from OIDC config
             let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
             let oidc_config: OidcConfig = self
@@ -94,19 +102,20 @@ impl Client {
                 .await
                 .map_err(VerificationError::HttpRequest)?;
 
-            *CACHED_JWKS.lock().await = Some(jwks);
-        };
+            // Find JWK to verify JWT
+            let jwk = jwks
+                .keys
+                .into_iter()
+                .find(|key| &key.id == kid)
+                .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
 
-        // Find JWK to verify JWT
-        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
-        let jwks = CACHED_JWKS.lock().await;
-        let jwk = jwks
-            .as_ref()
-            .expect("should be cached")
-            .keys
-            .iter()
-            .find(|key| &key.id == kid)
-            .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
+            // Add JWK to cache
+            self.add_jwk_to_cache(&jwk)
+                .await
+                .map_err(VerificationError::CacheError)?;
+
+            jwk
+        };
 
         // Verify JWT signature
         let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
@@ -148,6 +157,31 @@ impl Client {
         };
 
         Ok(())
+    }
+
+    async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
+        if let Some(cache) = &self.jwks_cache {
+            cache
+                .get(kid)
+                .cache_ttl(JWKS_CACHE_TTL)
+                .json::<ExtendedJsonWebKey<'_>>()
+                .await
+        } else {
+            Ok(None)
+        }
+    }
+
+    async fn add_jwk_to_cache(&self, jwk: &ExtendedJsonWebKey<'_>) -> Result<(), KvError> {
+        if let Some(cache) = &self.jwks_cache {
+            cache
+                .put(&jwk.id, &jwk)
+                .expect("cannot fail")
+                .expiration_ttl(JWKS_CACHE_TTL)
+                .execute()
+                .await
+        } else {
+            Ok(())
+        }
     }
 }
 

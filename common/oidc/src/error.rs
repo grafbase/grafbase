@@ -33,5 +33,8 @@ quick_error! {
         JwkFormat {
             display("invalid JWK format")
         }
+        CacheError(err: worker::kv::KvError) {
+            display("{}", err)
+        }
     }
 }
