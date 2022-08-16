@@ -35,10 +35,14 @@ expression: mutations
     "relation": null,
     "resolve": {
       "id": "author_create_resolver",
-      "type": {"DynamoMutationResolver": {"UpdateNode": {
-            "id": {"InputTypeName": "id"
+      "type": {
+        "DynamoMutationResolver": {
+          "UpdateNode": {
+            "id": {
+              "InputTypeName": "id"
             },
-            "input": {"InputTypeName": "input"
+            "input": {
+              "InputTypeName": "input"
             },
             "ty": "Author"
           }
