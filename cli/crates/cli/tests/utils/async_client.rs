@@ -1,9 +1,7 @@
 #![allow(dead_code)]
 use serde_json::json;
-use std::{
-    thread::sleep,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
+use tokio::time::sleep;
 
 pub struct AsyncClient {
     endpoint: String,
@@ -81,7 +79,7 @@ impl AsyncClient {
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
 
-            sleep(Duration::from_millis(interval_millis));
+            sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 
@@ -107,7 +105,7 @@ impl AsyncClient {
             };
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
-            sleep(Duration::from_millis(interval_millis));
+            sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 }
