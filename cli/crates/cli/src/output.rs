@@ -75,5 +75,7 @@ pub mod report {
 
     pub fn project_reset() {
         watercolor::output!(r#"✨ successfully reset your project!"#, @BrightBlue);
+        #[cfg(target_family = "unix")]
+        watercolor::output!(r#"please restart any running instances for this change to take effect"#, @BrightBlue);
     }
 }
