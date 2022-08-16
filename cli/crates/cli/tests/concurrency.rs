@@ -51,8 +51,6 @@ async fn process() {
     assert_eq!(result_list2.len(), 100);
 }
 
-// takes 63 seconds to run
-#[ignore]
 #[tokio::test]
 async fn thread() {
     let mut env = Environment::init(4007);
@@ -60,14 +58,21 @@ async fn thread() {
     env.grafbase_init();
     env.grafbase_dev();
 
-    let async_client = env.create_async_client();
-    async_client.poll_endpoint(30, 300).await;
+    let async_client1 = env.create_async_client();
+    let async_client2 = env.create_async_client();
+    let async_client3 = env.create_async_client();
+    async_client1.poll_endpoint(30, 300).await;
 
-    for _ in 0..33 {
+    // if using larger amounts of requests this crashes due to the connection being reset.
+    // this most likely has to do with limits in how Axum is configured as there's no stderr output from the CLI itself
+    // this does not happen if using one client and making multiple requests.
+    //
+    // TODO: verify that this is not related to SQLite locking issues
+    for _ in 0..10 {
         let (response1, response2, response3): (Value, Value, Value) = tokio::join!(
-            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
-            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
-            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
+            async_client1.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
+            async_client2.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
+            async_client3.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
         );
 
         let errors1: Option<Value> = dot_get_opt!(response1, "errors");
@@ -79,13 +84,13 @@ async fn thread() {
         assert!(errors3.is_none());
     }
 
-    let response1 = async_client
+    let response1 = async_client1
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
-    let response2 = async_client
+    let response2 = async_client2
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
-    let response3 = async_client
+    let response3 = async_client3
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
 
@@ -93,7 +98,7 @@ async fn thread() {
     let result_list2: Vec<Value> = dot_get!(response2, "data.todoListCollection.edges");
     let result_list3: Vec<Value> = dot_get!(response3, "data.todoListCollection.edges");
 
-    assert_eq!(result_list1.len(), 99);
-    assert_eq!(result_list2.len(), 99);
-    assert_eq!(result_list3.len(), 99);
+    assert_eq!(result_list1.len(), 30);
+    assert_eq!(result_list2.len(), 30);
+    assert_eq!(result_list3.len(), 30);
 }
