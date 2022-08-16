@@ -34,13 +34,19 @@ thread_local! {
 
 #[cfg(feature = "with-worker")]
 pub fn print_with_worker(status: LogSeverity, message: &str) {
-    match status {
-        LogSeverity::Debug => worker::console_debug!("{}", message),
-        LogSeverity::Info => worker::console_log!("{}", message),
-        LogSeverity::Warn => worker::console_warn!("{}", message),
-        LogSeverity::Error => worker::console_error!("{}", message),
+    let config = Config::from_bits_truncate(LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
+    if config.contains(Config::WORKER) {
+        match status {
+            LogSeverity::Debug => worker::console_debug!("{}", message),
+            LogSeverity::Info => worker::console_log!("{}", message),
+            LogSeverity::Warn => worker::console_warn!("{}", message),
+            LogSeverity::Error => worker::console_error!("{}", message),
+        }
     }
 }
+
+#[cfg(not(feature = "with-worker"))]
+pub fn print_with_worker(status: LogSeverity, message: &str) {}
 
 #[macro_export]
 macro_rules! log {
@@ -52,12 +58,7 @@ macro_rules! log {
 
         let config = $crate::Config::from_bits_truncate($crate::LOG_CONFIG.load(std::sync::atomic::Ordering::SeqCst));
 
-        #[cfg(feature = "with-worker")]
-        {
-            if config.contains($crate::Config::WORKER) {
-                $crate::print_with_worker($status, &message);
-            }
-        }
+        $crate::print_with_worker($status, &message);
 
         if config.contains($crate::Config::STDLOG) {
             match $status {
