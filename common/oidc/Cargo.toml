@@ -14,6 +14,8 @@ serde = { version = "1", features = ["derive"] }
 url = "2"
 worker = "0.0.10"
 
+log = { path = "../log" }
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, features = ["wasm-client"] }
 

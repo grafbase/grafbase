@@ -23,7 +23,8 @@ struct OidcConfig {
     jwks_uri: Url,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+// A wrapper around JsonWebKey that makes the kid accessible
+#[derive(Serialize, Deserialize, Debug)]
 struct ExtendedJsonWebKey<'a> {
     #[serde(flatten)]
     base: JsonWebKey<'a>,
@@ -31,7 +32,7 @@ struct ExtendedJsonWebKey<'a> {
     id: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
 }
@@ -47,6 +48,7 @@ struct CustomClaims {
 
 #[derive(Default)]
 pub struct Client {
+    pub trace_id: String,
     pub http_client: surf::Client,
     pub time_opts: TimeOptions,
     pub jwks_cache: Option<worker::kv::KvStore>,
@@ -79,6 +81,7 @@ impl Client {
             .map_err(VerificationError::CacheError)?;
 
         let jwk = if let Some(cached_jwk) = cached_jwk {
+            log::debug!(self.trace_id, "Found JWK {kid} in cache");
             cached_jwk
         } else {
             // Get JWKS endpoint from OIDC config
@@ -90,6 +93,9 @@ impl Client {
                 .await
                 .map_err(VerificationError::HttpRequest)?;
 
+            log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
+
+            // FIXME
             if oidc_config.issuer != issuer {
                 return Err(VerificationError::InvalidIssuerUrl);
             }
@@ -110,6 +116,7 @@ impl Client {
                 .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
 
             // Add JWK to cache
+            log::debug!(self.trace_id, "Adding JWK {kid} to cache");
             self.add_jwk_to_cache(&jwk)
                 .await
                 .map_err(VerificationError::CacheError)?;
