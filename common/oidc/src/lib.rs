@@ -15,8 +15,11 @@ use worker::kv::KvError;
 
 const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
 
-// JWKS are unique with unique key IDs (kid). It's okay for us to cache them for 30 days.
-const JWKS_CACHE_TTL: u64 = 30 * 24 * 60 * 60;
+// JWKS are unique with unique key IDs (kid). We could cache them for a much
+// longer time, but we also need to consider that an IdP's private keys might
+// get compromised. Our cache lifetime must strike a good balance between
+// performance and security.
+const JWKS_CACHE_TTL: u64 = 60 * 60; // 1h
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
