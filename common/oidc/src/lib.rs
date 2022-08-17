@@ -15,7 +15,8 @@ use worker::kv::KvError;
 
 const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
 
-const JWKS_CACHE_TTL: u64 = 5 * 60; // TODO: cache for 1d min
+// JWKS are unique with unique key IDs (kid). It's okay for us to cache them for 30 days.
+const JWKS_CACHE_TTL: u64 = 30 * 24 * 60 * 60;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
@@ -95,7 +96,7 @@ impl Client {
 
             log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
 
-            // FIXME
+            // XXX: we might relax this requirement and ignore issuer altogether
             if oidc_config.issuer != issuer {
                 return Err(VerificationError::InvalidIssuerUrl);
             }
