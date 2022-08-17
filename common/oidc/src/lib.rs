@@ -55,6 +55,7 @@ pub struct Client {
     pub trace_id: String,
     pub http_client: surf::Client,
     pub time_opts: TimeOptions,
+    pub ignore_iss_claim: bool, // used for testing
     pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
@@ -138,6 +139,11 @@ impl Client {
 
         // Verify claims
         let claims = token.claims();
+
+        // Check "iss" claim
+        if !self.ignore_iss_claim && claims.custom.issuer != issuer {
+            return Err(VerificationError::InvalidIssuerUrl);
+        }
 
         // Check "exp" claim
         claims
@@ -316,6 +322,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
@@ -335,6 +342,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
@@ -354,6 +362,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
@@ -376,6 +385,7 @@ mod tests {
                 || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NULL_GROUPS_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
@@ -393,6 +403,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
@@ -428,6 +439,7 @@ mod tests {
             let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
                 ..Default::default()
             }
         };
