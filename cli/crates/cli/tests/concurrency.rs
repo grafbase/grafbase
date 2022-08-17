@@ -49,12 +49,6 @@ async fn process() {
     assert_eq!(result_list2.len(), 30);
 }
 
-// has issues in the CI with the connection being reset,
-// also happens locally if using a larger number of requests.
-// due to the CLI not erroring this seems like a configuration issue or due to using multiple clients
-// but
-// TODO: make sure this isn't due to a concurrency issue
-#[ignore]
 #[tokio::test]
 async fn thread() {
     let mut env = Environment::init(4007);
@@ -62,22 +56,20 @@ async fn thread() {
     env.grafbase_init();
     env.grafbase_dev();
 
-    let async_client1 = env.create_async_client();
-    let async_client2 = env.create_async_client();
-    let async_client3 = env.create_async_client();
-    async_client1.poll_endpoint(30, 300).await;
+    // if using multiple clients, has issues in the CI with the connection being reset,
+    // also happens locally if using a larger number of requests.
+    // due to the CLI not erroring this seems like a configuration issue or due to using multiple clients
+    // but
+    // TODO: make sure this isn't due to a concurrency issue
+    let async_client = env.create_async_client();
 
-    // if using larger amounts of requests this crashes due to the connection being reset.
-    // this most likely has to do with limits in how Axum is configured as there's no stderr output from the CLI itself
-    // this does not happen if using one client and making multiple requests.
-    // this does not happen if using one client.
-    //
-    // TODO: verify that this is not related to SQLite locking issues
+    async_client.poll_endpoint(30, 300).await;
+
     for _ in 0..10 {
         let (response1, response2, response3): (Value, Value, Value) = tokio::join!(
-            async_client1.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
-            async_client2.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
-            async_client3.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
+            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
+            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
+            async_client.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
         );
 
         let errors1: Option<Value> = dot_get_opt!(response1, "errors");
@@ -89,13 +81,13 @@ async fn thread() {
         assert!(errors3.is_none());
     }
 
-    let response1 = async_client1
+    let response1 = async_client
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
-    let response2 = async_client2
+    let response2 = async_client
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
-    let response3 = async_client3
+    let response3 = async_client
         .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
         .await;
 
