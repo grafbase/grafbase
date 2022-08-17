@@ -51,7 +51,8 @@ async fn process() {
 
 #[tokio::test]
 async fn thread() {
-    let mut env = Environment::init(4007);
+    // 4007 seems to be in use in the CI
+    let mut env = Environment::init(4008);
 
     env.grafbase_init();
     env.grafbase_dev();
