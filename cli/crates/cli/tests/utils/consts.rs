@@ -24,3 +24,5 @@ pub const UNIQUE_QUERY: &str = include_str!("../graphql/unique/query.graphql");
 pub const CONCURRENCY_SCHEMA: &str = include_str!("../graphql/concurrency/schema.graphql");
 pub const CONCURRENCY_MUTATION: &str = include_str!("../graphql/concurrency/mutation.graphql");
 pub const CONCURRENCY_QUERY: &str = include_str!("../graphql/concurrency/query.graphql");
+
+pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");

@@ -11,7 +11,6 @@ async fn process() {
 
     env1.grafbase_init();
     env1.write_schema(CONCURRENCY_SCHEMA);
-
     env1.grafbase_dev();
 
     let async_client1 = env1.create_async_client();
