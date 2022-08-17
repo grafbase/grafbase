@@ -9,6 +9,7 @@ accepted = [
     "NOASSERTION",
     "CC0-1.0",
 ]
+
 targets = [
     "aarch64-apple-darwin",
     "x86_64-apple-darwin",
