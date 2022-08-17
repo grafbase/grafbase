@@ -4,12 +4,6 @@ use serde_json::{json, Value};
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
-// has issues in the CI with the connection being reset,
-// also happens locally if using a larger number of requests.
-// due to the CLI not erroring this seems like a configuration issue or due to using multiple clients
-// but
-// TODO: make sure this isn't due to a concurrency issue
-#[ignore]
 #[tokio::test]
 async fn process() {
     let mut env1 = Environment::init(4005);
@@ -76,6 +70,7 @@ async fn thread() {
     // if using larger amounts of requests this crashes due to the connection being reset.
     // this most likely has to do with limits in how Axum is configured as there's no stderr output from the CLI itself
     // this does not happen if using one client and making multiple requests.
+    // this does not happen if using one client.
     //
     // TODO: verify that this is not related to SQLite locking issues
     for _ in 0..10 {
