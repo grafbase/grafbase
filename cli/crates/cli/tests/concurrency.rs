@@ -1,6 +1,9 @@
 mod utils;
 
+use std::time::Duration;
+
 use serde_json::{json, Value};
+use tokio::time::sleep;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
@@ -13,10 +16,13 @@ async fn process() {
     env1.write_schema(CONCURRENCY_SCHEMA);
 
     env1.grafbase_dev();
-    // apparently if creating two dev servers at the exact same time, the bridge server can attempt to use the same port twice
-    // TODO: look into a solution for this edge case
+
     let async_client1 = env1.create_async_client();
     async_client1.poll_endpoint(30, 300).await;
+
+    // apparently if creating two dev servers at the exact same time, the bridge server can attempt to use the same port twice
+    // TODO: look into a solution for this edge case
+    sleep(Duration::from_millis(100)).await;
 
     env2.grafbase_dev();
     let async_client2 = env2.create_async_client();
