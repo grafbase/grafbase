@@ -1,15 +1,17 @@
 #![allow(dead_code)]
 
+use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
+use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
     directory: PathBuf,
-    temp_dir: TempDir,
+    temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
     port: u16,
@@ -17,7 +19,7 @@ pub struct Environment {
 
 impl Environment {
     pub fn init(port: u16) -> Self {
-        let temp_dir = tempdir().unwrap();
+        let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
         let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
@@ -32,8 +34,25 @@ impl Environment {
         }
     }
 
+    pub fn from(other: &Environment, port: u16) -> Self {
+        let temp_dir = other.temp_dir.clone();
+
+        Self {
+            directory: other.directory.clone(),
+            commands: vec![],
+            endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            schema_path: other.schema_path.clone(),
+            temp_dir,
+            port,
+        }
+    }
+
     pub fn create_client(&self) -> Client {
         Client::new(self.endpoint.clone())
+    }
+
+    pub fn create_async_client(&self) -> AsyncClient {
+        AsyncClient::new(self.endpoint.clone())
     }
 
     pub fn write_schema(&self, schema: &'static str) {

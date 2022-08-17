@@ -41,6 +41,7 @@ serde_json = "1.0.83"
 sysinfo = "0.25.2"
 tempfile = "3.3.0"
 json_dotpath = "1.1.0"
+tokio = { version = "1.20.1", features = ["full"] }
 
 [[bin]]
 name = "grafbase"
