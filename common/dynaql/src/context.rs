@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::pin::Pin;
 use std::sync::{Arc, Mutex, RwLock};
 
+use derivative::Derivative;
 use dynaql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
 use futures_util::Future;
@@ -232,7 +233,8 @@ type ResolverCacheType = Arc<
 /// Query context.
 ///
 /// **This type is not stable and should not be used directly.**
-#[derive(Clone)]
+#[derive(Derivative, Clone)]
+#[derivative(Debug)]
 pub struct ContextBase<'a, T> {
     /// The current path node being resolved.
     pub path_node: Option<QueryPathNode<'a>>,
@@ -241,10 +243,13 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     pub item: T,
     #[doc(hidden)]
+    #[derivative(Debug = "ignore")]
     pub schema_env: &'a SchemaEnv,
     #[doc(hidden)]
+    #[derivative(Debug = "ignore")]
     pub query_env: &'a QueryEnv,
     #[doc(hidden)]
+    #[derivative(Debug = "ignore")]
     pub resolvers_cache: ResolverCacheType,
     #[doc(hidden)]
     /// Every Resolvers are able to store a Value inside this cache

@@ -435,8 +435,8 @@ impl MetaField {
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
                 let len = match resolved_value?.data_resolved {
-                    serde_json::Value::Null => 0,
-                    serde_json::Value::Array(arr) => arr.len(),
+                    serde_json::Value::Null => Vec::new(),
+                    serde_json::Value::Array(arr) => arr,
                     _ => panic!(),
                 };
 
@@ -769,8 +769,9 @@ impl Registry {
             .unwrap()
     }
 
-    /// Resolve fields based on where you are inside
-    // async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>>;
+    /// Function ran when resolving a field.
+    ///
+    /// When working with custom field, it'll trigger the resolve of the `MetaField`.
     pub async fn resolve_field<'a>(
         &self,
         ctx: &'a Context<'a>,
