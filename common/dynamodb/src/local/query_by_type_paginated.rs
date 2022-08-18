@@ -1,4 +1,4 @@
-use dynomite::AttributeValue;
+use dynomite::{attr_map, AttributeValue};
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use quick_error::quick_error;
@@ -155,19 +155,25 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let entity_type = query_key.r#type.clone();
+
+            let user_limit = match query_key.cursor {
+                PaginatedCursor::Forward { first, .. } => first,
+                PaginatedCursor::Backward { last, .. } => last,
+            };
+
+            // as we currently limit the result count to 100, will not overflow
+            let query_limit = user_limit + 1;
+
             // TODO: consider matching over entire query key (suggested by @jakubadamw)
             let (query, values) = match query_key.cursor.clone() {
-                PaginatedCursor::Forward {
-                    exclusive_last_key,
-                    first,
-                } => {
+                PaginatedCursor::Forward { exclusive_last_key, .. } => {
                     let query = if has_edges {
                         Sql::SelectTypePaginatedForwardWithEdges(exclusive_last_key.is_some(), query_key.edges.len())
                     } else {
                         Sql::SelectTypePaginatedForward(exclusive_last_key.is_some())
                     };
 
-                    let values = vec![Some(entity_type), exclusive_last_key, Some(first.to_string())]
+                    let values = vec![Some(entity_type), exclusive_last_key, Some(query_limit.to_string())]
                         .iter()
                         .filter_map(|value| value.clone())
                         .chain(query_key.edges.iter().cloned())
@@ -176,8 +182,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     (query, values)
                 }
                 PaginatedCursor::Backward {
-                    exclusive_first_key,
-                    last,
+                    exclusive_first_key, ..
                 } => {
                     let query = if has_edges {
                         Sql::SelectTypePaginatedBackwardWithEdges(exclusive_first_key.is_some(), query_key.edges.len())
@@ -185,7 +190,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                         Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some())
                     };
 
-                    let values = vec![Some(entity_type), exclusive_first_key, Some(last.to_string())]
+                    let values = vec![Some(entity_type), exclusive_first_key, Some(query_limit.to_string())]
                         .iter()
                         .filter_map(|value| value.clone())
                         .chain(query_key.edges.iter().cloned())
@@ -207,12 +212,26 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 .await
                 .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
-                query_results.iter().try_fold(
+                let last_evaluated_key = if user_limit > 0 && query_results.len() > user_limit {
+                    // we currently use only pk/sk for pagination
+                    // the last evaluated key is always the last item, regardless of direction
+                    Some(
+                        serde_json::to_string(&attr_map! {
+                            "pk" => query_results.last().expect("must exist").pk.clone(),
+                            "sk" => query_results.last().expect("must exist").sk.clone(),
+                        })
+                        .expect("must parse"),
+                    )
+                } else {
+                    None
+                };
+
+                query_results.iter().take(user_limit).try_fold(
                     (
                         query_key.clone(),
                         QueryResult {
                             values: IndexMap::with_capacity(100),
-                            last_evaluated_key: None,
+                            last_evaluated_key,
                         },
                     ),
                     |(query_key, mut accumulator), current| {
