@@ -1,7 +1,5 @@
-// TODO: itertools::Itertools::join() (suggested by @jakubadamw)
+use itertools::join;
+
 pub fn joined_repeating(repeated: &'static str, times: usize, delimiter: &'static str) -> String {
-    std::iter::repeat(repeated.to_owned())
-        .take(times)
-        .collect::<Vec<String>>()
-        .join(delimiter)
+    join(std::iter::repeat(repeated.to_owned()).take(times), delimiter)
 }

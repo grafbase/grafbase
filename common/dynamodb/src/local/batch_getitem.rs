@@ -1,8 +1,9 @@
 use super::bridge_api;
-use super::types::{Operation, Record, Sql};
+use super::types::{Operation, Record, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::LocalContext;
 use dynomite::AttributeValue;
+use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -27,14 +28,21 @@ impl Loader<(String, String)> for BatchGetItemLoader {
     type Error = BatchGetItemLoaderError;
 
     async fn load(&self, keys: &[(String, String)]) -> Result<HashMap<(String, String), Self::Value>, Self::Error> {
-        let serial_keys: Vec<String> = keys.iter().flat_map(|(pk, sk)| [pk.clone(), sk.clone()]).collect();
+        let (partition_keys, sorting_keys): (Vec<String>, Vec<String>) = keys.iter().cloned().unzip();
 
-        let query = Sql::SelectIdPairs(serial_keys.len() / 2);
+        let key_count = partition_keys.len();
+
+        let value_map = hashmap! {
+            "partition_keys" => SqlValue::VecDeque(partition_keys.into()),
+            "sorting_keys"=> SqlValue::VecDeque(sorting_keys.into()),
+        };
+
+        let (query, values) = Sql::SelectIdPairs(key_count).compile(value_map);
 
         let results = bridge_api::query(
             Operation {
-                sql: query.to_string(),
-                values: serial_keys,
+                sql: query,
+                values,
                 kind: None,
             },
             &self.local_ctx.bridge_port,

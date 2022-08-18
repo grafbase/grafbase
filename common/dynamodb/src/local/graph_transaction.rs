@@ -7,12 +7,14 @@ use crate::graph_transaction::{
     InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError,
     ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
 };
+use crate::local::types::SqlValue;
 use crate::model::constraint::db::ConstraintID;
 use crate::model::node::NodeID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
 use dynomite::{Attribute, AttributeValue};
 use itertools::Itertools;
+use maplit::hashmap;
 use std::collections::HashMap;
 
 impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
@@ -66,7 +68,9 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
 
             let row = Row::from_record(record);
 
-            Ok((Sql::Insert(&row).into(), row.values, None))
+            let (query, values) = Sql::Insert(&row).compile(row.values.clone());
+
+            Ok((query, values, None))
         })
     }
 }
@@ -92,7 +96,14 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            Ok((Sql::Update.into(), vec![document, updated_at, pk, sk], None))
+            let (query, values) = Sql::Update.compile(hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+                "document" => SqlValue::String(document),
+                "updated_at" => SqlValue::String(updated_at),
+            });
+
+            Ok((query, values, None))
         })
     }
 }
@@ -104,7 +115,13 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
+        Box::pin(async {
+            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+            });
+            Ok((query, values, None))
+        })
     }
 }
 
@@ -182,11 +199,13 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
 
             let row = Row::from_record(record);
 
-            Ok((
-                Sql::InsertRelation(&row, relation_names.len()).into(),
-                vec![vec![pk, sk], relation_names, row.values].concat(),
-                None,
-            ))
+            let mut value_map = row.values.clone();
+
+            value_map.insert("to_add", SqlValue::VecDeque(relation_names.clone().into()));
+
+            let (query, values) = Sql::InsertRelation(&row, relation_names.len()).compile(value_map);
+
+            Ok((query, values, None))
         })
     }
 }
@@ -199,7 +218,13 @@ impl ExecuteChangesOnDatabase for DeleteAllRelationsInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
+        Box::pin(async {
+            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+                "pk"=> SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+            });
+            Ok((query, values, None))
+        })
     }
 }
 
@@ -224,16 +249,17 @@ impl ExecuteChangesOnDatabase for DeleteMultipleRelationsInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            Ok((
-                Sql::DeleteRelations(relation_names.len()).into(),
-                vec![
-                    vec![pk.clone(), sk.clone()],
-                    relation_names,
-                    vec![document, updated_at, pk, sk],
-                ]
-                .concat(),
-                None,
-            ))
+            let value_map = hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+                "to_remove" => SqlValue::VecDeque(relation_names.clone().into()),
+                "document" => SqlValue::String(document),
+                "updated_at" => SqlValue::String(updated_at),
+            };
+
+            let (query, values) = Sql::DeleteRelations(relation_names.len()).compile(value_map);
+
+            Ok((query, values, None))
         })
     }
 }
@@ -284,17 +310,18 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            Ok((
-                Sql::UpdateWithRelations(removed.len(), added.len()).into(),
-                vec![
-                    vec![pk.clone(), sk.clone()],
-                    removed,
-                    added,
-                    vec![document, updated_at, pk, sk],
-                ]
-                .concat(),
-                None,
-            ))
+            let value_map = hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+                "to_remove" => SqlValue::VecDeque(removed.clone().into()),
+                "to_add" => SqlValue::VecDeque(added.clone().into()),
+                "document" => SqlValue::String(document),
+                "updated_at" => SqlValue::String(updated_at)
+            };
+
+            let (query, values) = Sql::UpdateWithRelations(removed.len(), added.len()).compile(value_map);
+
+            Ok((query, values, None))
         })
     }
 }
@@ -359,7 +386,14 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
-        Box::pin(async { Ok((Sql::DeleteByIds.into(), vec![pk, sk], None)) })
+        Box::pin(async {
+            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk)
+            });
+
+            Ok((query, values, None))
+        })
     }
 }
 
@@ -404,9 +438,11 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
 
             let row = Row::from_record(record);
 
+            let (query, values) = Sql::Insert(&row).compile(row.values.clone());
+
             Ok((
-                Sql::Insert(&row).into(),
-                row.values,
+                query,
+                values,
                 Some(OperationKind::Constraint(Constraint::Unique {
                     value: id.value().to_string(),
                     field: id.field().to_string(),

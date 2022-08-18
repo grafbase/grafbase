@@ -1,11 +1,12 @@
 use super::bridge_api;
-use super::types::{Operation, Sql};
+use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dynomite::AttributeValue;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
+use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -83,26 +84,23 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     type Error = QueryTypeLoaderError;
 
     async fn load(&self, keys: &[QueryTypeKey]) -> Result<HashMap<QueryTypeKey, Self::Value>, Self::Error> {
-        let mut query_result = HashMap::new();
         let mut concurrent_futures = vec![];
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let number_of_edges = query_key.edges.len();
 
-            // TODO: unify SelectType and SelectTypeWithEdges (suggested by @jakubadamw)
-            let query = if has_edges {
-                Sql::SelectTypeWithEdges(number_of_edges).to_string()
-            } else {
-                Sql::SelectType.to_string()
-            };
-
             let entity_type = query_key.ty().clone();
 
-            // TODO: use .extend() rather than if (suggested by @jakubadamw)
-            let values = if has_edges {
-                vec![vec![entity_type], query_key.edges.clone()].concat()
+            let value_map = hashmap! {
+                "entity_type" => SqlValue::String(entity_type),
+                "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
+            };
+
+            // TODO: unify SelectType and SelectTypeWithEdges (suggested by @jakubadamw)
+            let (query, values) = if has_edges {
+                Sql::SelectTypeWithEdges(number_of_edges).compile(value_map)
             } else {
-                vec![entity_type]
+                Sql::SelectType.compile(value_map)
             };
 
             let future = || async move {
@@ -187,12 +185,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
             .await
             .map_err(|_| QueryTypeLoaderError::QueryError)?;
 
-        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
-        for (query_key, result) in joined_futures {
-            query_result.insert(query_key, result);
-        }
-
-        Ok(query_result)
+        Ok(joined_futures.into_iter().collect())
     }
 }
 
