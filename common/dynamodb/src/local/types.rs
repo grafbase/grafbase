@@ -600,13 +600,14 @@ fn minify(sql_string: String) -> String {
     minified.trim().to_owned()
 }
 
+// TODO: might be possible to shift some of this work to compile time
 fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String> {
     VARIABLES
         .find_iter(&query)
         .map(|variable_match| {
             let mut name = (&query[variable_match.range()]).to_owned();
+            // remove the leading `?`
             name.remove(0);
-            log::worker::console_debug!("name: {}", name);
             let values = match values.get_mut(name.as_str()).expect("must exist") {
                 SqlValue::String(value) => value.clone(),
                 SqlValue::VecDeque(values) => values.pop_front().expect("must exist"),
