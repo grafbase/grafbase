@@ -604,6 +604,7 @@ fn minify(sql_string: String) -> String {
 fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String> {
     VARIABLES
         .find_iter(&query)
+        // TODO: this map has side effects (values.pop_front()), to be refactored
         .map(|variable_match| {
             let mut name = (&query[variable_match.range()]).to_owned();
             // remove the leading `?`
