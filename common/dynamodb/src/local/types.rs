@@ -600,7 +600,7 @@ fn minify(sql_string: String) -> String {
     minified.trim().to_owned()
 }
 
-// TODO: might be possible to shift some of this work to compile time
+// TODO: it may be possible to shift some of this work to compile time
 fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String> {
     VARIABLES
         .find_iter(&query)
