@@ -45,7 +45,7 @@ pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {
 }
 
 #[cfg(not(feature = "with-worker"))]
-pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {}
+pub fn print_with_worker(_config: &Config, _status: LogSeverity, _message: &str) {}
 
 #[macro_export]
 macro_rules! log {
