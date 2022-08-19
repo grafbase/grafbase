@@ -163,17 +163,22 @@ impl Client {
         }?;
 
         // Check "groups" claim
-        if let Some(allowed_groups) = allowed_groups {
-            if let Some(has_groups) = &claims.custom.groups {
-                if allowed_groups.is_disjoint(has_groups) {
-                    return Err(VerificationError::InvalidGroups);
-                }
-            } else {
-                return Err(VerificationError::MissingGroups);
-            }
-        };
-
-        Ok(())
+        allowed_groups
+            .map(|allowed_groups| {
+                claims
+                    .custom
+                    .groups
+                    .as_ref()
+                    .ok_or(VerificationError::MissingGroups)
+                    .and_then(|has_groups| {
+                        if allowed_groups.is_disjoint(has_groups) {
+                            Err(VerificationError::InvalidGroups)
+                        } else {
+                            Ok(())
+                        }
+                    })
+            })
+            .unwrap_or(Ok(()))
     }
 
     async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
