@@ -15,10 +15,13 @@ pub struct AuthDirective;
 #[derive(Debug)]
 struct Auth {
     allow_anonymous_access: bool,
+    allowed_anonymous_ops: Operations,
 
     allow_private_access: bool,
+    allowed_private_ops: Operations,
 
     allowed_groups: HashSet<String>,
+    allowed_group_ops: Operations,
 
     providers: Vec<AuthProvider>,
 }
@@ -81,7 +84,13 @@ impl Default for Operations {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+impl std::iter::FromIterator<Operation> for Operations {
+    fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
+        Operations(iter.into_iter().collect())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 enum Operation {
     Create,
@@ -151,9 +160,34 @@ impl TryFrom<&ConstDirective> for Auth {
             },
             None => Vec::new(),
         };
-        dbg!(&rules);
+
+        let allowed_anonymous_ops = rules
+            .iter()
+            .filter_map(|rule| match rule {
+                AuthRule::Anonymous { operations, .. } => Some(operations.0.clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
 
         let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private { .. }));
+        let allowed_private_ops = rules
+            .iter()
+            .filter_map(|rule| match rule {
+                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+
+        let allowed_group_ops = rules
+            .iter()
+            .filter_map(|rule| match rule {
+                AuthRule::Groups { operations, .. } => Some(operations.0.clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
 
         let allowed_groups: HashSet<_> = rules
             .iter()
@@ -179,12 +213,15 @@ impl TryFrom<&ConstDirective> for Auth {
             }
         }
 
-        Ok(Auth {
+        dbg!(Ok(Auth {
             allow_anonymous_access: true,
+            allowed_anonymous_ops,
             allow_private_access,
+            allowed_private_ops,
             allowed_groups,
+            allowed_group_ops,
             providers,
-        })
+        }))
     }
 }
 
