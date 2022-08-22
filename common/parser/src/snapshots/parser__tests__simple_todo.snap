@@ -4,8 +4,6 @@ expression: reg_string
 ---
 {
   "auth": {
-    "allow_anonymous_access": true,
-    "allow_private_access": false,
     "allowed_anonymous_ops": [
       "create",
       "read",

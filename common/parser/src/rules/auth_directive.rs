@@ -14,10 +14,8 @@ pub struct AuthDirective;
 
 #[derive(Debug)]
 struct Auth {
-    allow_anonymous_access: bool,
     allowed_anonymous_ops: Operations,
 
-    allow_private_access: bool,
     allowed_private_ops: Operations,
 
     allowed_groups: HashSet<String>,
@@ -131,6 +129,7 @@ impl TryFrom<&ConstDirective> for Auth {
             None => Vec::new(),
         };
 
+        // FIXME or DELETEME
         // let allowed_anonymous_ops = rules
         //     .iter()
         //     .filter_map(|rule| match rule {
@@ -140,8 +139,7 @@ impl TryFrom<&ConstDirective> for Auth {
         //     .flatten()
         //     .collect();
 
-        let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private { .. }));
-        let allowed_private_ops = rules
+        let allowed_private_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
                 AuthRule::Private { operations, .. } => Some(operations.values().clone()),
@@ -169,7 +167,7 @@ impl TryFrom<&ConstDirective> for Auth {
             .collect();
 
         if providers.is_empty() {
-            if allow_private_access {
+            if allowed_private_ops.any() {
                 return Err(ServerError::new(
                     "auth rule `private` requires provider of type `oidc` to be configured",
                     pos,
@@ -184,9 +182,7 @@ impl TryFrom<&ConstDirective> for Auth {
         }
 
         Ok(Auth {
-            allow_anonymous_access: true,
             allowed_anonymous_ops: Operations::all(),
-            allow_private_access,
             allowed_private_ops,
             allowed_groups,
             allowed_group_ops,
@@ -238,10 +234,8 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
-            allow_anonymous_access: auth.allow_anonymous_access,
             allowed_anonymous_ops: auth.allowed_anonymous_ops,
 
-            allow_private_access: auth.allow_private_access,
             allowed_private_ops: auth.allowed_private_ops,
 
             allowed_groups: auth.allowed_groups,
@@ -300,7 +294,6 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                allow_anonymous_access: true,
                 allowed_anonymous_ops: Operations::all(),
                 ..Default::default()
             }
@@ -326,7 +319,6 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                allow_private_access: true,
                 allowed_private_ops: Operations::all(),
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
@@ -355,7 +347,6 @@ mod tests {
         assert_eq!(
             ctx.registry.borrow().auth,
             dynaql::Auth {
-                allow_private_access: true,
                 allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
