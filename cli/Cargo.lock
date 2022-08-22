@@ -712,7 +712,7 @@ checksum = "78cc372d058dcf6d5ecd98510e7fbc9e5aec4d21de70f65fea8fecebcd881bd4"
 
 [[package]]
 name = "grafbase"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -738,6 +738,7 @@ dependencies = [
  "sysinfo",
  "tempfile",
  "thiserror",
+ "tokio",
  "toml",
  "tracing-subscriber",
  "uuid",
@@ -745,7 +746,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "exitcode",
  "grafbase-local-common",
@@ -756,7 +757,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "dirs",
  "exitcode",
@@ -766,7 +767,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.5.0"
+version = "0.5.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -2193,9 +2194,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.20.0"
+version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57aec3cfa4c296db7255446efb4928a6be304b431a806216105542a67b6ca82e"
+checksum = "7a8325f63a7d4774dd041e363b2409ed1c5cbbd0f867795e661df066b2b0a581"
 dependencies = [
  "autocfg",
  "bytes",

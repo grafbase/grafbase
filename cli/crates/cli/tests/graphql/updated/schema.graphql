@@ -1,5 +1,12 @@
-type Author @model {
+enum Verified {
+  VERIFIED
+  PENDING
+  UNVERIFIED
+}
+
+type User @model {
   id: ID!
   name: String!
+  verified: Verified!
   birthday: DateTime!
 }

@@ -1,28 +1,26 @@
 #![allow(dead_code)]
 use serde_json::json;
-use std::{
-    thread::sleep,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
+use tokio::time::sleep;
 
 use crate::utils::consts::INTROSPECTION_QUERY;
 
-pub struct Client {
+pub struct AsyncClient {
     endpoint: String,
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     snapshot: Option<String>,
 }
 
-impl Client {
+impl AsyncClient {
     pub fn new(endpoint: String) -> Self {
         Self {
             endpoint,
-            client: reqwest::blocking::Client::new(),
+            client: reqwest::Client::new(),
             snapshot: None,
         }
     }
 
-    pub fn gql<T>(&self, body: String) -> T
+    pub async fn gql<T>(&self, body: String) -> T
     where
         T: for<'de> serde::de::Deserialize<'de>,
     {
@@ -30,29 +28,34 @@ impl Client {
             .post(&self.endpoint)
             .body(body)
             .send()
+            .await
             .unwrap()
             .json::<T>()
+            .await
             .unwrap()
     }
 
-    fn introspect(&self) -> String {
+    async fn introspect(&self) -> String {
         self.client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .send()
+            .await
             .unwrap()
             .text()
+            .await
             .unwrap()
     }
 
-    fn safe_introspect(&self) -> Option<String> {
+    async fn safe_introspect(&self) -> Option<String> {
         if let Ok(response) = self
             .client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .send()
+            .await
         {
-            if let Ok(text) = response.text() {
+            if let Ok(text) = response.text().await {
                 return Some(text);
             }
         }
@@ -63,32 +66,32 @@ impl Client {
     /// # Panics
     ///
     /// panics if the set timeout is reached
-    pub fn poll_endpoint(&self, timeout_secs: u64, interval_millis: u64) {
+    pub async fn poll_endpoint(&self, timeout_secs: u64, interval_millis: u64) {
         let start = SystemTime::now();
 
         loop {
-            if self.client.head(&self.endpoint).send().is_ok() {
+            if self.client.head(&self.endpoint).send().await.is_ok() {
                 break;
             }
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
 
-            sleep(Duration::from_millis(interval_millis));
+            sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 
-    pub fn snapshot(&mut self) {
-        self.snapshot = Some(self.introspect());
+    pub async fn snapshot(&mut self) {
+        self.snapshot = Some(self.introspect().await);
     }
 
-    pub fn poll_endpoint_for_changes(&mut self, timeout_secs: u64, interval_millis: u64) {
+    pub async fn poll_endpoint_for_changes(&mut self, timeout_secs: u64, interval_millis: u64) {
         let start = SystemTime::now();
 
         loop {
             // panic if a snapshot was not taken
             let snapshot = self.snapshot.clone().unwrap();
 
-            match self.safe_introspect() {
+            match self.safe_introspect().await {
                 Some(current) => {
                     if snapshot != current {
                         self.snapshot = Some(current);
@@ -99,7 +102,7 @@ impl Client {
             };
 
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
-            sleep(Duration::from_millis(interval_millis));
+            sleep(Duration::from_millis(interval_millis)).await;
         }
     }
 }

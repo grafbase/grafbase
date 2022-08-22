@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.1]
+
+### Fixes
+
+- Fixes enum support
+
 ## [0.5.0]
 
 ### Features
