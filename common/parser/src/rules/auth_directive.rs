@@ -38,17 +38,15 @@ enum AuthProvider {
 #[serde(tag = "allow")]
 #[serde(deny_unknown_fields)]
 enum AuthRule {
-    /// Public data access
+    /// Public data access via API keys
     // Ex: { allow: anonymous }
-    //     { allow: anonymous, operations: [read] }
     #[serde(alias = "public")]
     #[serde(rename_all = "camelCase")]
     Anonymous {
-        #[serde(default)]
-        operations: Operations,
+        // Note: we don't support operations as our playground needs full access
     },
 
-    // Signed-in user data access
+    // Signed-in user data access via OIDC
     // Ex: { allow: private }
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
@@ -57,8 +55,9 @@ enum AuthRule {
         operations: Operations,
     },
 
-    /// User group-based data access
+    /// User group-based data access via OIDC
     // Ex: { allow: groups, groups: ["admin"] }
+    //     { allow: groups, groups: ["admin"], operations: [update, delete] }
     #[serde(rename_all = "camelCase")]
     Groups {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
@@ -128,16 +127,6 @@ impl TryFrom<&ConstDirective> for Auth {
             },
             None => Vec::new(),
         };
-
-        // FIXME or DELETEME
-        // let allowed_anonymous_ops = rules
-        //     .iter()
-        //     .filter_map(|rule| match rule {
-        //         AuthRule::Anonymous { operations, .. } => Some(operations.values().clone()),
-        //         _ => None,
-        //     })
-        //     .flatten()
-        //     .collect();
 
         let allowed_private_ops: Operations = rules
             .iter()
@@ -297,6 +286,27 @@ mod tests {
                 allowed_anonymous_ops: Operations::all(),
                 ..Default::default()
             }
+        );
+    }
+
+    #[test]
+    fn test_anonymous_rule_with_unsupported_ops() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: anonymous, operations: [read] } ]
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "auth rule: unknown field `operations`, there are no fields",
         );
     }
 
