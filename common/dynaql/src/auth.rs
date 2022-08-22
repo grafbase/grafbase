@@ -1,3 +1,4 @@
+use std::collections::BTreeSet;
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
@@ -40,8 +41,19 @@ impl Default for Auth {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Default)]
-pub struct Operations(#[serde(with = "sets_duplicate_value_is_error")] HashSet<Operation>);
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+pub struct Operations(#[serde(with = "sets_duplicate_value_is_error")] BTreeSet<Operation>);
+
+impl Default for Operations {
+    fn default() -> Self {
+        Self::new(&[
+            Operation::Create,
+            Operation::Read,
+            Operation::Update,
+            Operation::Delete,
+        ])
+    }
+}
 
 impl std::iter::FromIterator<Operation> for Operations {
     fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
@@ -50,29 +62,24 @@ impl std::iter::FromIterator<Operation> for Operations {
 }
 
 impl Operations {
-    pub fn all() -> Self {
-        Operations(
-            vec![
-                Operation::Create,
-                Operation::Read,
-                Operation::Update,
-                Operation::Delete,
-            ]
-            .into_iter()
-            .collect(),
-        )
+    pub fn new(ops: &[Operation]) -> Self {
+        Operations(ops.iter().copied().collect())
     }
 
-    pub fn none() -> Self {
+    pub fn all() -> Self {
         Operations::default()
     }
 
-    pub fn values(&self) -> &HashSet<Operation> {
+    pub fn none() -> Self {
+        Operations(BTreeSet::new())
+    }
+
+    pub fn values(&self) -> &BTreeSet<Operation> {
         &self.0
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum Operation {
     Create,

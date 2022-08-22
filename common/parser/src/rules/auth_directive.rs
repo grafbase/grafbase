@@ -131,14 +131,14 @@ impl TryFrom<&ConstDirective> for Auth {
             None => Vec::new(),
         };
 
-        let allowed_anonymous_ops = rules
-            .iter()
-            .filter_map(|rule| match rule {
-                AuthRule::Anonymous { operations, .. } => Some(operations.values().clone()),
-                _ => None,
-            })
-            .flatten()
-            .collect();
+        // let allowed_anonymous_ops = rules
+        //     .iter()
+        //     .filter_map(|rule| match rule {
+        //         AuthRule::Anonymous { operations, .. } => Some(operations.values().clone()),
+        //         _ => None,
+        //     })
+        //     .flatten()
+        //     .collect();
 
         let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private { .. }));
         let allowed_private_ops = rules
@@ -185,7 +185,7 @@ impl TryFrom<&ConstDirective> for Auth {
 
         Ok(Auth {
             allow_anonymous_access: true,
-            allowed_anonymous_ops,
+            allowed_anonymous_ops: Operations::all(),
             allow_private_access,
             allowed_private_ops,
             allowed_groups,
@@ -262,6 +262,7 @@ impl From<Auth> for dynaql::Auth {
 mod tests {
     use super::*;
     use crate::rules::visitor::visit;
+    use dynaql::Operation;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
@@ -296,25 +297,14 @@ mod tests {
         visit(&mut AuthDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty());
-        assert_eq!(ctx.registry.borrow().auth, Default::default());
-    }
-
-    #[test]
-    fn test_anonymous_rule_with_ops() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: anonymous, operations: [read] } ]
-            ){
-              query: Query
+        assert_eq!(
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
+                allow_anonymous_access: true,
+                allowed_anonymous_ops: Operations::all(),
+                ..Default::default()
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(ctx.registry.borrow().auth, Default::default());
+        );
     }
 
     #[test]
@@ -337,6 +327,36 @@ mod tests {
             ctx.registry.borrow().auth,
             dynaql::Auth {
                 allow_private_access: true,
+                allowed_private_ops: Operations::all(),
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
+                ..Default::default()
+            }
+        );
+    }
+
+    #[test]
+    fn test_private_rule_with_ops() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+              rules: [ { allow: private, operations: [create, delete] } ]
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
+                allow_private_access: true,
+                allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 }],
@@ -365,6 +385,36 @@ mod tests {
             ctx.registry.borrow().auth,
             dynaql::Auth {
                 allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+                allowed_group_ops: Operations::all(),
+                oidc_providers: vec![dynaql::OidcProvider {
+                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                }],
+                ..Default::default()
+            }
+        );
+    }
+
+    #[test]
+    fn test_groups_rule_with_ops() {
+        let schema = r#"
+            schema @auth(
+              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+              rules: [ { allow: groups, groups: ["admin", "moderator"], operations: ["get"] } ],
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
+                allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+                allowed_group_ops: Operations::new(&[Operation::Get]),
                 oidc_providers: vec![dynaql::OidcProvider {
                     issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 }],
@@ -451,7 +501,13 @@ mod tests {
         visit(&mut AuthDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty());
-        assert_eq!(ctx.registry.borrow().auth, Default::default());
+        assert_eq!(
+            ctx.registry.borrow().auth,
+            dynaql::Auth {
+                allowed_group_ops: Operations::all(),
+                ..Default::default()
+            }
+        );
     }
 
     #[test]
