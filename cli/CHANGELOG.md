@@ -5,7 +5,6 @@
 ### Fixes
 
 - Fixes enum support
-- Fixes installation on Windows
 
 ## [0.5.0]
 
