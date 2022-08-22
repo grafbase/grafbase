@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::ServerError;
+use dynaql::{Operations, ServerError};
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
@@ -71,36 +71,6 @@ enum AuthRule {
     },
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Operations(#[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")] HashSet<Operation>);
-
-impl Default for Operations {
-    fn default() -> Self {
-        Operations(
-            vec![Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
-                .into_iter()
-                .collect(),
-        )
-    }
-}
-
-impl std::iter::FromIterator<Operation> for Operations {
-    fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
-        Operations(iter.into_iter().collect())
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
-#[serde(rename_all = "camelCase")]
-enum Operation {
-    Create,
-    Read,
-    Update,
-    Delete,
-    Get,  // More granual read access
-    List, // More granual read access
-}
-
 impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
@@ -164,7 +134,7 @@ impl TryFrom<&ConstDirective> for Auth {
         let allowed_anonymous_ops = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Anonymous { operations, .. } => Some(operations.0.clone()),
+                AuthRule::Anonymous { operations, .. } => Some(operations.values().clone()),
                 _ => None,
             })
             .flatten()
@@ -174,7 +144,7 @@ impl TryFrom<&ConstDirective> for Auth {
         let allowed_private_ops = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
+                AuthRule::Private { operations, .. } => Some(operations.values().clone()),
                 _ => None,
             })
             .flatten()
@@ -183,7 +153,7 @@ impl TryFrom<&ConstDirective> for Auth {
         let allowed_group_ops = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Groups { operations, .. } => Some(operations.0.clone()),
+                AuthRule::Groups { operations, .. } => Some(operations.values().clone()),
                 _ => None,
             })
             .flatten()
@@ -213,7 +183,7 @@ impl TryFrom<&ConstDirective> for Auth {
             }
         }
 
-        dbg!(Ok(Auth {
+        Ok(Auth {
             allow_anonymous_access: true,
             allowed_anonymous_ops,
             allow_private_access,
@@ -221,7 +191,7 @@ impl TryFrom<&ConstDirective> for Auth {
             allowed_groups,
             allowed_group_ops,
             providers,
-        }))
+        })
     }
 }
 
@@ -269,8 +239,14 @@ impl From<Auth> for dynaql::Auth {
     fn from(auth: Auth) -> Self {
         Self {
             allow_anonymous_access: auth.allow_anonymous_access,
+            allowed_anonymous_ops: auth.allowed_anonymous_ops,
+
             allow_private_access: auth.allow_private_access,
+            allowed_private_ops: auth.allowed_private_ops,
+
             allowed_groups: auth.allowed_groups,
+            allowed_group_ops: auth.allowed_group_ops,
+
             oidc_providers: auth
                 .providers
                 .iter()
@@ -310,6 +286,24 @@ mod tests {
         let schema = r#"
             schema @auth(
               rules: [ { allow: anonymous } ]
+            ){
+              query: Query
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut AuthDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty());
+        assert_eq!(ctx.registry.borrow().auth, Default::default());
+    }
+
+    #[test]
+    fn test_anonymous_rule_with_ops() {
+        let schema = r#"
+            schema @auth(
+              rules: [ { allow: anonymous, operations: [read] } ]
             ){
               query: Query
             }
