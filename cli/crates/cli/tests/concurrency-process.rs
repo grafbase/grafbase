@@ -29,8 +29,8 @@ async fn process() {
         let errors1: Option<Value> = dot_get_opt!(response1, "errors");
         let errors2: Option<Value> = dot_get_opt!(response2, "errors");
 
-        assert!(errors1.is_none());
-        assert!(errors2.is_none());
+        assert!(errors1.is_none(), "errors1: {:#?}", errors1);
+        assert!(errors2.is_none(), "errors2: {:#?}", errors2);
     }
 
     let response1 = async_client1

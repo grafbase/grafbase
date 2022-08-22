@@ -35,9 +35,12 @@ fn dev_watch() {
     client.gql::<Value>(json!({ "query": UPDATED_MUTATION }).to_string());
 
     let response = client.gql::<Value>(json!({ "query": UPDATED_QUERY }).to_string());
-    let author_id: String = dot_get!(response, "data.authorCollection.edges.0.node.id");
-    let author_birthday: String = dot_get!(response, "data.authorCollection.edges.0.node.birthday");
 
-    assert!(author_id.starts_with("author_"));
-    assert!(author_birthday.ends_with('Z'));
+    let user_id: String = dot_get!(response, "data.userCollection.edges.0.node.id");
+    let user_birthday: String = dot_get!(response, "data.userCollection.edges.0.node.birthday");
+    let user_verified: String = dot_get!(response, "data.userCollection.edges.0.node.verified");
+
+    assert!(user_id.starts_with("user_"));
+    assert!(user_birthday.ends_with('Z'));
+    assert_eq!(user_verified, "VERIFIED");
 }
