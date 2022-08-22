@@ -39,12 +39,22 @@ enum AuthProvider {
 enum AuthRule {
     /// Public data access
     // Ex: { allow: anonymous }
+    //     { allow: anonymous, operations: [read] }
     #[serde(alias = "public")]
-    Anonymous,
+    #[serde(rename_all = "camelCase")]
+    Anonymous {
+        #[serde(default)]
+        operations: Operations,
+    },
 
     // Signed-in user data access
     // Ex: { allow: private }
-    Private,
+    //     { allow: private, operations: [create, read] }
+    #[serde(rename_all = "camelCase")]
+    Private {
+        #[serde(default)]
+        operations: Operations,
+    },
 
     /// User group-based data access
     // Ex: { allow: groups, groups: ["admin"] }
@@ -52,7 +62,34 @@ enum AuthRule {
     Groups {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
         groups: HashSet<String>,
+
+        #[serde(default)]
+        operations: Operations,
     },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Operations(#[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")] HashSet<Operation>);
+
+impl Default for Operations {
+    fn default() -> Self {
+        Operations(
+            vec![Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
+                .into_iter()
+                .collect(),
+        )
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(rename_all = "camelCase")]
+enum Operation {
+    Create,
+    Read,
+    Update,
+    Delete,
+    Get,  // More granual read access
+    List, // More granual read access
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -114,13 +151,14 @@ impl TryFrom<&ConstDirective> for Auth {
             },
             None => Vec::new(),
         };
+        dbg!(&rules);
 
-        let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private));
+        let allow_private_access = rules.iter().any(|rule| matches!(rule, AuthRule::Private { .. }));
 
         let allowed_groups: HashSet<_> = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Groups { groups } => Some(groups.clone()),
+                AuthRule::Groups { groups, .. } => Some(groups.clone()),
                 _ => None,
             })
             .flatten()
