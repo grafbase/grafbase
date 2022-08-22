@@ -164,13 +164,6 @@ impl TryFrom<&ConstDirective> for Auth {
             .flatten()
             .collect();
 
-        if allow_private_access && !allowed_groups.is_empty() {
-            return Err(ServerError::new(
-                "auth rules `private` and `groups` cannot be used together",
-                pos,
-            ));
-        }
-
         if providers.is_empty() {
             if allow_private_access {
                 return Err(ServerError::new(
@@ -428,30 +421,6 @@ mod tests {
 
         assert!(ctx.errors.is_empty());
         assert_eq!(ctx.registry.borrow().auth, Default::default());
-    }
-
-    #[test]
-    fn test_incompatible_rules() {
-        let schema = r#"
-            schema @auth(
-              rules: [
-                { allow: groups, groups: ["admin"] },
-                { allow: private }
-              ]
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth rules `private` and `groups` cannot be used together",
-        );
     }
 
     #[test]
