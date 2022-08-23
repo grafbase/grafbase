@@ -53,6 +53,8 @@ mod paginated;
 
 mod transaction;
 
+mod runtime;
+
 pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
 pub use paginated::PaginatedCursor;
 

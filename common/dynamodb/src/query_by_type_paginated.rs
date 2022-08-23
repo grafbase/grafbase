@@ -7,6 +7,7 @@ use tracing::{info_span, Instrument};
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, QueryResult};
+use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
 // TODO: Should ensure Rosoto Errors impl clone
@@ -120,7 +121,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
     ///   }
     /// }
     /// ```
-    type Value = QueryResult;
+    type Value = Arc<QueryResult>;
     type Error = QueryTypePaginatedLoaderError;
 
     async fn load(
@@ -145,7 +146,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     )
                     .instrument(info_span!("fetch query by type paginated"))
                     .await
-                    .map(|r| (query_key.clone(), r))
+                    .map(|r| (query_key.clone(), Arc::new(r)))
             };
             concurrent_f.push(future_get());
         }
@@ -173,7 +174,7 @@ pub fn get_loader_paginated_query_type(
 ) -> DataLoader<QueryTypePaginatedLoader, LruCache> {
     DataLoader::with_cache(
         QueryTypePaginatedLoader { ctx, index },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
     .max_batch_size(10)

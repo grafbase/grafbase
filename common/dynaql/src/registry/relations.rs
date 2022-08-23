@@ -1,6 +1,6 @@
 use dynaql_parser::types::{BaseType, Type};
 
-#[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub enum MetaRelationKind {
     ManyToMany,
     ManyToOne,
@@ -161,7 +161,7 @@ impl MetaRelationKind {
 ///   authors: [Author]
 /// }
 /// ```
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct MetaRelation {
     pub name: String,
     pub kind: MetaRelationKind,

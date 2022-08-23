@@ -12,10 +12,12 @@
 use self::debug::DebugResolver;
 use crate::{Context, Error};
 use context_data::ContextDataResolver;
+use derivative::Derivative;
 use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
+use std::sync::Arc;
 use ulid_rs::Ulid;
 
 use super::{MetaField, MetaType};
@@ -26,7 +28,7 @@ pub mod dynamo_mutation;
 pub mod dynamo_querying;
 
 /// Resolver declarative struct to assign a Resolver for a Field.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct Resolver {
     /// Unique id to identify Resolver.
     pub id: Option<String>,
@@ -89,7 +91,7 @@ impl<'a> ResolverContext<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Clone)]
 pub enum ResolvedPaginationDirection {
     Forward,
     Backward,
@@ -104,7 +106,7 @@ impl ResolvedPaginationDirection {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, Clone)]
 pub struct ResolvedPaginationInfo {
     pub direction: ResolvedPaginationDirection,
     pub end_cursor: Option<String>,
@@ -160,10 +162,14 @@ impl ResolvedPaginationInfo {
 /// ResolvedValue are values passed arround between resolvers, it contains the actual Resolver data
 /// but will also contain other informations wich may be use later by custom resolvers, like for
 /// example Pagination Details.
-#[derive(Debug)]
+///
+/// Cheap to Clone
+#[derive(Debug, Derivative, Clone)]
+#[derivative(Hash)]
 pub struct ResolvedValue {
     /// Data Resolved by the current Resolver
-    pub data_resolved: serde_json::Value,
+    #[derivative(Hash = "ignore")]
+    pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
     /// Resolvers can set this value when resolving so the engine will know it's
@@ -172,7 +178,7 @@ pub struct ResolvedValue {
 }
 
 impl ResolvedValue {
-    pub fn new(value: serde_json::Value) -> Self {
+    pub fn new(value: Arc<serde_json::Value>) -> Self {
         Self {
             data_resolved: value,
             pagination: None,
@@ -245,7 +251,7 @@ impl ResolverTrait for Resolver {
 }
 
 #[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ResolverType {
     DynamoResolver(DynamoResolver),
     DynamoMutationResolver(DynamoMutationResolver),

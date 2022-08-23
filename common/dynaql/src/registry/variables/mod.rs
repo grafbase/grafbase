@@ -14,7 +14,7 @@ pub mod id;
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
 #[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum VariableResolveDefinition {
     /// A Debug VariableResolveDefinition where you can just put the Value you
     /// would like to have.

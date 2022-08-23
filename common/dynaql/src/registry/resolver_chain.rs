@@ -1,14 +1,52 @@
+//! ResolvingChain is a main component which translate the Resolving logic into Rust
+//!
+//! In Graphql you can have a Query like:
+//!
+//! ```graphql
+//! query {
+//!   container {
+//!     a
+//!     b
+//!     list {
+//!       c
+//!     }
+//!   }
+//! }
+//! ```
+//!
+//! For the resolving to work, we we'll traverse the whole query like this:
+//!
+//! resolve(query)
+//!   json -> resolve(container)
+//!     -> resolve(a)
+//!     -> resolve(b)
+//!     -> resolve list
+//!       -> resolve(c)
+//!
+//! Resolve function:
+//! fn resolve ->
+//!     resolve_parent
+//!     resolve_current(resolve_parent);
+//!     index;
+//!     transform;
+//!
+//! A memoization is applied on the resolve function.
+
 use crate::registry::{
     resolvers::Resolver,
     transformers::{Transformer, TransformerTrait},
 };
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
+use cached::Cached;
 use dynaql_parser::{
     types::{Field, SelectionSet},
     Positioned,
 };
 use dynaql_value::{Name, Value};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
@@ -21,7 +59,8 @@ use super::{
 
 /// A path to the current query with resolvers, transformers and associated type.
 /// Reverse linked list used to help us construct the whole resolving flow.
-#[derive(Debug, Clone)]
+#[derive(derivative::Derivative, Debug, Clone, PartialEq, Eq)]
+#[derivative(Hash)]
 pub struct ResolverChainNode<'a> {
     /// The parent node to this, if there is one.
     pub parent: Option<&'a ResolverChainNode<'a>>,
@@ -104,22 +143,24 @@ impl<'a> ResolverChainNode<'a> {
 
 #[async_trait::async_trait]
 impl<'a> ResolverTrait for ResolverChainNode<'a> {
-    // TODO: As there is no memoization implemented for resolvers yet, when we got an error, we
-    // may have the same error multiple time.
     async fn resolve(
         &self,
         ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        // TODO: Memoization
-        // We can create a little quick hack to allow some kind of modelization, we have to check
-        // if the execution_id was already requested before.
-        let mut final_result = ResolvedValue::new(serde_json::Value::Null);
+        let mut hash_value = DefaultHasher::new();
+        self.hash(&mut hash_value);
+        let hash_value = hash_value.finish();
+        {
+            let mut guard = ctx.resolvers_cache.write().await;
+            if let Some(value) = guard.cache_get(&hash_value) {
+                let cached_value = value.clone();
+                return cached_value;
+            }
+        }
+        let mut final_result = ResolvedValue::new(Arc::new(serde_json::Value::Null));
 
-        // We must run this if it's not run because some resolvers can have side effect with the
-        // actual modelization.
-        // It's supposed to be removed in the future. (cf. @miaxos)
         if let Some(parent) = self.parent {
             let parent_ctx = ResolverContext::new(&parent.execution_id)
                 .with_ty(parent.ty)
@@ -133,13 +174,14 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
 
         if let QueryPathSegment::Index(idx) = self.segment {
             // If we are in a segment, it means we do not have a current resolver (YET).
-            final_result = ResolvedValue::new(
+            final_result = ResolvedValue::new(Arc::new(
                 final_result
                     .data_resolved
-                    .get_mut(idx)
-                    .map(serde_json::Value::take)
+                    .as_ref()
+                    .get(idx)
+                    .map(Clone::clone)
                     .unwrap_or(serde_json::Value::Null),
-            );
+            ));
         }
 
         if let Some(actual) = self.resolver {
@@ -160,7 +202,13 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
             //
             // It can be done by transforming the Resolver Return type to a struct with the result
             // and with the extra data, where each resolver can add extra data.
-            final_result.data_resolved = transformers.transform(final_result.data_resolved)?;
+            final_result.data_resolved =
+                Arc::new(transformers.transform(final_result.data_resolved.as_ref().clone())?);
+        }
+
+        {
+            let mut guard = ctx.resolvers_cache.write().await;
+            guard.cache_set(hash_value, Ok(final_result.clone()));
         }
 
         Ok(final_result)

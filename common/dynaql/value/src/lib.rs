@@ -13,6 +13,7 @@ mod variables;
 
 use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Formatter, Write};
+use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -367,6 +368,22 @@ pub enum Value {
     List(Vec<Value>),
     /// An object. This is a map of keys to values.
     Object(IndexMap<Name, Value>),
+}
+
+#[allow(clippy::derive_hash_xor_eq)]
+impl Hash for Value {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Object(a) => a.as_slice().hash(state),
+            Self::Null => false.hash(state),
+            Self::Number(n) => n.hash(state),
+            Self::String(n) => n.hash(state),
+            Self::Boolean(n) => n.hash(state),
+            Self::Binary(n) => n.hash(state),
+            Self::List(n) => n.hash(state),
+            Self::Variable(n) | Self::Enum(n) => n.hash(state),
+        }
+    }
 }
 
 impl Value {
