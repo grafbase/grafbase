@@ -40,17 +40,6 @@ impl Default for Auth {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Operations(#[serde(with = "sets_duplicate_value_is_error")] BTreeSet<Operation>);
 
-impl Default for Operations {
-    fn default() -> Self {
-        Self::new(&[
-            Operation::Create,
-            Operation::Read,
-            Operation::Update,
-            Operation::Delete,
-        ])
-    }
-}
-
 impl std::iter::FromIterator<Operation> for Operations {
     fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
         Operations(iter.into_iter().collect())
@@ -71,7 +60,12 @@ impl Operations {
     }
 
     pub fn all() -> Self {
-        Operations::default()
+        Self::new(&[
+            Operation::Create,
+            Operation::Read,
+            Operation::Update,
+            Operation::Delete,
+        ])
     }
 
     pub fn none() -> Self {

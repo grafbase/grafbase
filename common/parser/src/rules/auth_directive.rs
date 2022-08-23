@@ -51,7 +51,7 @@ enum AuthRule {
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
     Private {
-        #[serde(default)]
+        #[serde(default = "Operations::all")]
         operations: Operations,
     },
 
@@ -63,7 +63,7 @@ enum AuthRule {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
         groups: HashSet<String>,
 
-        #[serde(default)]
+        #[serde(default = "Operations::all")]
         operations: Operations,
     },
 }
