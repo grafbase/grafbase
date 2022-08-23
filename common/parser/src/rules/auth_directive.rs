@@ -272,7 +272,7 @@ mod tests {
                 visit(&mut AuthDirective, &mut ctx, &schema);
 
                 assert_eq!(ctx.errors.len(), 1);
-                assert_eq!(ctx.errors.get(0).unwrap().message, $err,);
+                assert_eq!(ctx.errors.get(0).unwrap().message, $err);
             }
         };
     }
@@ -345,6 +345,25 @@ mod tests {
         "#,
         dynaql::Auth {
             allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        private_rule_with_empty_ops,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: private, operations: [] } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_private_ops: Operations::none(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
