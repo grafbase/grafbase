@@ -249,312 +249,226 @@ mod tests {
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
-    #[test]
-    fn test_no_auth_directive() {
-        let schema = r#"
-            schema {
-              query: Query
+    macro_rules! parse_test {
+        ($fn_name:ident, $schema:literal, $expect:expr) => {
+            #[test]
+            fn $fn_name() {
+                let schema = parse_schema($schema).unwrap();
+                let mut ctx = VisitorContext::new(&schema);
+                visit(&mut AuthDirective, &mut ctx, &schema);
+
+                assert!(ctx.errors.is_empty());
+                assert_eq!(ctx.registry.borrow().auth, $expect);
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(ctx.registry.borrow().auth, Default::default());
+        };
     }
 
-    #[test]
-    fn test_anonymous_rule() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: anonymous } ]
-            ){
-              query: Query
-            }
-            "#;
+    macro_rules! parse_fail {
+        ($fn_name:ident, $schema:literal, $err:literal) => {
+            #[test]
+            fn $fn_name() {
+                let schema = parse_schema($schema).unwrap();
+                let mut ctx = VisitorContext::new(&schema);
+                visit(&mut AuthDirective, &mut ctx, &schema);
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_anonymous_ops: Operations::all(),
-                ..Default::default()
+                assert_eq!(ctx.errors.len(), 1);
+                assert_eq!(ctx.errors.get(0).unwrap().message, $err,);
             }
-        );
+        };
     }
 
-    #[test]
-    fn test_anonymous_rule_with_unsupported_ops() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: anonymous, operations: [read] } ]
-            ){
-              query: Query
-            }
-            "#;
+    parse_test!(
+        no_auth_directive,
+        r#"
+        schema {
+          query: Query
+        }
+        "#,
+        Default::default()
+    );
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
+    parse_test!(
+        anonymous_rule,
+        r#"
+        schema @auth(
+          rules: [ { allow: anonymous } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_anonymous_ops: Operations::all(),
+            ..Default::default()
+        }
+    );
 
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth rule: unknown field `operations`, there are no fields",
-        );
-    }
+    parse_fail!(
+        anonymous_rule_with_unsupported_ops,
+        r#"
+        schema @auth(
+          rules: [ { allow: anonymous, operations: [read] } ]
+        ){
+          query: Query
+        }
+        "#,
+        "auth rule: unknown field `operations`, there are no fields"
+    );
 
-    #[test]
-    fn test_private_rule() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-              rules: [ { allow: private } ]
-            ){
-              query: Query
-            }
-            "#;
+    parse_test!(
+        private_rule,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_private_ops: Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
+    parse_test!(
+        private_rule_with_ops,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: private, operations: [create, delete] } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
 
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_private_ops: Operations::all(),
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                ..Default::default()
-            }
-        );
-    }
+    parse_test!(
+        groups_rule,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            allowed_group_ops: Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
 
-    #[test]
-    fn test_private_rule_with_ops() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-              rules: [ { allow: private, operations: [create, delete] } ]
-            ){
-              query: Query
-            }
-            "#;
+    parse_test!(
+        groups_rule_with_ops,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: groups, groups: ["admin", "moderator"], operations: ["get"] } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            allowed_group_ops: Operations::new(&[Operation::Get]),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
+    parse_fail!(
+        groups_rule_with_duplicate_group,
+        r#"
+        schema @auth(
+          rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
+        ){
+          query: Query
+        }
+        "#,
+        "auth rule: invalid entry: found duplicate value"
+    );
 
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                ..Default::default()
-            }
-        );
-    }
+    parse_fail!(
+        groups_rule_with_null_group,
+        r#"
+        schema @auth(
+          rules: [ { allow: groups, groups: ["A", null, "B"] } ],
+        ){
+          query: Query
+        }
+        "#,
+        "auth rule: invalid type: null, expected a string"
+    );
 
-    #[test]
-    fn test_groups_rule() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-              rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
-            ){
-              query: Query
-            }
-            "#;
+    parse_fail!(
+        groups_rule_with_null_groups,
+        r#"
+        schema @auth(
+          rules: [ { allow: groups, groups: null } ],
+        ){
+          query: Query
+        }
+        "#,
+        "auth rule: invalid type: null, expected a sequence"
+    );
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
+    parse_test!(
+        groups_rule_with_empty_groups,
+        r#"
+        schema @auth(
+          rules: [ { allow: groups, groups: [] } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            allowed_group_ops: Operations::all(),
+            ..Default::default()
+        }
+    );
 
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-                allowed_group_ops: Operations::all(),
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                ..Default::default()
-            }
-        );
-    }
+    parse_test!(
+        oidc_without_rule,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::Auth {
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
 
-    #[test]
-    fn test_groups_rule_with_ops() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-              rules: [ { allow: groups, groups: ["admin", "moderator"], operations: ["get"] } ],
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-                allowed_group_ops: Operations::new(&[Operation::Get]),
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                ..Default::default()
-            }
-        );
-    }
-
-    #[test]
-    fn test_groups_rule_with_duplicate_group() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: groups, groups: ["A", "B", "B"] } ],
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth rule: invalid entry: found duplicate value",
-        );
-    }
-
-    #[test]
-    fn test_groups_rule_with_null_group() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: groups, groups: ["A", null, "B"] } ],
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth rule: invalid type: null, expected a string",
-        );
-    }
-
-    #[test]
-    fn test_groups_rule_with_null_groups() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: groups, groups: null } ],
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth rule: invalid type: null, expected a sequence",
-        );
-    }
-
-    #[test]
-    fn test_groups_rule_with_empty_groups() {
-        let schema = r#"
-            schema @auth(
-              rules: [ { allow: groups, groups: [] } ],
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                allowed_group_ops: Operations::all(),
-                ..Default::default()
-            }
-        );
-    }
-
-    #[test]
-    fn test_oidc_without_rule() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
-        assert_eq!(
-            ctx.registry.borrow().auth,
-            dynaql::Auth {
-                oidc_providers: vec![dynaql::OidcProvider {
-                    issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                }],
-                ..Default::default()
-            }
-        );
-    }
-
-    #[test]
-    fn test_oidc_with_missing_field() {
-        let schema = r#"
-            schema @auth(
-              providers: [ { type: oidc } ]
-            ){
-              query: Query
-            }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut AuthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "auth provider: missing field `issuer`",
-        );
-    }
+    parse_fail!(
+        oidc_with_missing_field,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc } ]
+        ){
+          query: Query
+        }
+        "#,
+        "auth provider: missing field `issuer`"
+    );
 }
