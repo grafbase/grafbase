@@ -85,6 +85,7 @@ impl TryFrom<&str> for PossibleScalar {
             "Boolean" => Ok(PossibleScalar::Boolean),
             "ID" => Ok(PossibleScalar::ID),
             "DateTime" => Ok(PossibleScalar::DateTime),
+            "JSON" => Ok(PossibleScalar::JSON),
             _ => Err(PossibleScalarErrors::NotAScalar {
                 expected_ty: value.to_string(),
             }),
