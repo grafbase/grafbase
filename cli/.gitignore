@@ -34,8 +34,6 @@ coverage
 grafbase/
 .grafbase/
 
-# cargo-about
-licenses.html
 
 #=================================#
 # Rust

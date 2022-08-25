@@ -1,0 +1,19 @@
+mutation TodoListCreate($title: String!) {
+  todoListCreate(
+    input: {
+      title: $title
+      todos: [
+        { create: { title: "1", complete: true } }
+        { create: { title: "2", complete: false } }
+        { create: { title: "3", complete: true } }
+      ]
+    }
+  ) {
+    todoList {
+      title
+      todos {
+        title
+      }
+    }
+  }
+}
