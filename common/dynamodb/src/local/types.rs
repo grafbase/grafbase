@@ -1,12 +1,16 @@
 use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::AttributeValue;
+use itertools::Itertools;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rusoto_dynamodb::Put;
 use serde::{Deserialize, Serialize};
 use serde_json::to_string as json_string;
-use std::{collections::HashMap, iter, net::Ipv4Addr};
+use std::{
+    collections::{HashMap, VecDeque},
+    net::Ipv4Addr,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -86,7 +90,7 @@ pub enum Column {
 }
 
 impl Column {
-    pub const fn as_str(&self) -> &str {
+    pub const fn as_str(self) -> &'static str {
         match self {
             Self::Pk => "pk",
             Self::Sk => "sk",
@@ -105,19 +109,28 @@ impl Column {
 
 pub struct Row {
     pub columns: String,
-    pub values: Vec<String>,
+    pub values: HashMap<&'static str, SqlValue>,
     pub placeholders: String,
 }
 
 impl Row {
-    pub fn from(array: &[(Column, Option<String>)]) -> Self {
-        let (keys, values): (Vec<Column>, Vec<String>) = array
-            .iter()
-            .filter_map(|(c, val)| val.as_ref().map(|val| (c, val.clone())))
-            .unzip();
+    pub fn from(array: [(Column, Option<String>); 11]) -> Self {
+        let keyed_values = array.iter().cloned().filter_map(|(column, value)| {
+            value
+                .as_ref()
+                .map(move |value| (column, SqlValue::String(value.clone())))
+        });
 
-        let columns = keys.iter().map(Column::as_str).collect::<Vec<_>>().join(",");
-        let placeholders = iter::repeat("?").take(keys.len()).collect::<Vec<_>>().join(",");
+        let keys: Vec<&str> = keyed_values
+            .clone()
+            .map(|(key, _)| key)
+            .map(|key| key.as_str())
+            .collect();
+
+        let values = keyed_values.map(|(column, value)| (column.as_str(), value)).collect();
+
+        let columns = keys.join(",");
+        let placeholders = keys.iter().map(|key| format!("?{}", key)).collect::<Vec<_>>().join(",");
 
         Self {
             columns,
@@ -132,7 +145,7 @@ impl Row {
         let created_at = record.created_at.to_rfc3339_opts(SecondsFormat::Millis, true);
         let updated_at = record.updated_at.to_rfc3339_opts(SecondsFormat::Millis, true);
 
-        Self::from(&[
+        let record_mapping = [
             (Column::Pk, Some(record.pk)),
             (Column::Sk, Some(record.sk)),
             (Column::Gsi1Pk, record.gsi1pk),
@@ -144,7 +157,9 @@ impl Row {
             (Column::UpdatedAt, Some(updated_at)),
             (Column::RelationNames, Some(relation_names)),
             (Column::Document, Some(document)),
-        ])
+        ];
+
+        Self::from(record_mapping)
     }
 }
 
@@ -193,42 +208,64 @@ pub struct Operation {
 pub enum Sql<'a> {
     /// value ordering: handled by [`Row`]
     Insert(&'a Row),
-    /// value ordering: pk, sk, relation_names, Row values
+    /// values: to_add[], Row.values,
     InsertRelation(&'a Row, usize),
-    /// value ordering: document, updated_at, pk, sk
+    /// values: document, updated_at, pk, sk
     Update,
-    /// value ordering: pk, sk, vec of values to remove, vec of values to add, document, updated_at, pk, sk
+    /// values: pk, sk, to_remove[], to_add[], document, updated_at
     UpdateWithRelations(usize, usize),
-    /// value ordering: pk, sk, vec of values to remove, document, updated_at, pk, sk
+    /// values: pk, sk, to_remove[], document, updated_at
     DeleteRelations(usize),
-    /// value ordering: pk, sk
+    /// values: pk, sk
     DeleteByIds,
-    /// value ordering: vec of alternating pk, sk
+    /// values: partition_keys[], sorting_keys[]
     SelectIdPairs(usize),
-    /// value ordering: pk, entity_type, pk, edges
+    /// values: pk, entity_type, edges[]
     SelectIdWithEdges(String, usize),
-    /// value ordering: pk
+    /// values: pk
     SelectId(String),
-    /// value ordering: entity_type, sk if has key, limit
+    /// values: entity_type, sk?, query_limit
     SelectTypePaginatedForward(bool),
-    /// value ordering: entity_type, sk if has key, limit
+    /// values: entity_type, sk?, query_limit
     SelectTypePaginatedBackward(bool),
-    /// value ordering: entity_type, sk if has key, limit, edges
+    /// values: entity_type, sk?, query_limit, edges[]
     SelectTypePaginatedForwardWithEdges(bool, usize),
-    /// value ordering: entity_type, sk if has key, limit, edges
+    /// values: entity_type, sk?, query_limit, edges[]
     SelectTypePaginatedBackwardWithEdges(bool, usize),
-    /// value ordering: entity_type
+    /// values: entity_type
     SelectType,
-    /// value ordering: entity_type, vec of edges
+    /// values: entity_type, edges[]
     SelectTypeWithEdges(usize),
+}
+
+#[derive(Clone)]
+pub enum SqlValue {
+    String(String),
+    VecDeque(VecDeque<String>),
 }
 
 impl<'a> Sql<'a> {
     const TABLE: &'static str = "records";
-}
 
-impl<'a> ToString for Sql<'a> {
-    fn to_string(&self) -> String {
+    /// returns a minified sql query with stripped value names, and a list of ordered values accoridng to their positioning within the query.
+    ///
+    /// passed values are either [`SqlValue::String`] in which case they can be used an arbitrary amount of times, or
+    /// [`SqlValue::VecDeque`] in which case the number of usages should match the length of the passed [`VecDeque`].
+    ///
+    /// keys should match the value names used in the specific query (without the leading `?`).
+    ///
+    /// will panic if a required key is missing. unused keys are allowed.
+    ///
+    /// ```no_run
+    /// # use maplit::hashmmap;
+    /// #
+    ///  Sql::SelectTypeWithEdges(number_of_edges).compile(hashmap! {
+    ///     "entity_type" => SqlValue::String(/* ... */),
+    ///     "edges" => SqlValue::VecDeque(vec![/* ... */]),
+    ///  })
+    ///
+    /// ```
+    pub fn compile(&self, values: HashMap<&'a str, SqlValue>) -> (String, Vec<String>) {
         let sql_string = match self {
             Self::Insert(Row {
                 columns, placeholders, ..
@@ -247,7 +284,7 @@ impl<'a> ToString for Sql<'a> {
                 let to_add = if *to_add_count > 0 {
                     format!(
                         "(SELECT * FROM original UNION VALUES {to_add_placeholders})",
-                        to_add_placeholders = joined_repeating("(?)", *to_add_count, ",")
+                        to_add_placeholders = joined_repeating("(?to_add)", *to_add_count, ",")
                     )
                 } else {
                     String::new()
@@ -255,7 +292,7 @@ impl<'a> ToString for Sql<'a> {
 
                 format!("
                     WITH
-                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
+                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         updated AS (SELECT DISTINCT * FROM {to_add})
 
                     INSERT INTO 
@@ -272,21 +309,23 @@ impl<'a> ToString for Sql<'a> {
                 )
             }
 
-            Self::Update => format!(
-                indoc::indoc! {"
+            Self::Update => {
+                format!(
+                    indoc::indoc! {"
                     UPDATE {table}
                     SET 
-                        document=json_patch(document, ?),
-                        updated_at=?
-                    WHERE pk=? AND sk=?
+                        document=json_patch(document, ?document),
+                        updated_at=?updated_at
+                    WHERE pk=?pk AND sk=?sk
                 "},
-                table = Self::TABLE
-            ),
+                    table = Self::TABLE
+                )
+            }
             Self::UpdateWithRelations(to_remove_count, to_add_count) => {
                 let to_remove = if *to_remove_count > 0 {
                     format!(
                         "WHERE value NOT IN ({to_remove_placeholders})",
-                        to_remove_placeholders = joined_repeating("?", *to_remove_count, ",")
+                        to_remove_placeholders = joined_repeating("?to_remove", *to_remove_count, ",")
                     )
                 } else {
                     String::new()
@@ -295,7 +334,7 @@ impl<'a> ToString for Sql<'a> {
                 let to_add = if *to_add_count > 0 {
                     format!(
                         "(SELECT * FROM removed UNION VALUES {to_add_placeholders})",
-                        to_add_placeholders = joined_repeating("(?)", *to_add_count, ",")
+                        to_add_placeholders = joined_repeating("(?to_add)", *to_add_count, ",")
                     )
                 } else {
                     "removed".to_owned()
@@ -304,15 +343,15 @@ impl<'a> ToString for Sql<'a> {
                 format!(
                     indoc::indoc! {"
                     WITH
-                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
+                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove}),
                         updated AS (SELECT DISTINCT * FROM {to_add})
                 
                     UPDATE {table} SET 
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
-                        document=json_patch(document, ?),
-                        updated_at=?
-                    WHERE pk=? AND sk=?
+                        document=json_patch(document, ?document),
+                        updated_at=?updated_at
+                    WHERE pk=?pk AND sk=?sk
                 "},
                     table = Self::TABLE,
                     to_remove = to_remove,
@@ -323,7 +362,7 @@ impl<'a> ToString for Sql<'a> {
                 let to_remove = if *to_remove_count > 0 {
                     format!(
                         "WHERE value NOT IN ({to_remove_placeholders})",
-                        to_remove_placeholders = joined_repeating("?", *to_remove_count, ",")
+                        to_remove_placeholders = joined_repeating("?to_remove", *to_remove_count, ",")
                     )
                 } else {
                     String::new()
@@ -332,35 +371,40 @@ impl<'a> ToString for Sql<'a> {
                 format!(
                     indoc::indoc! {"
                     WITH
-                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=? AND sk=?),
+                        original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove})
                 
                     UPDATE {table} SET 
                         relation_names=(SELECT json_group_array(removed.value) FROM removed),
-                        document=json_patch(document, ?),
-                        updated_at=?
-                    WHERE pk=? AND sk=?
+                        document=json_patch(document, ?document),
+                        updated_at=?updated_at
+                    WHERE pk=?pk AND sk=?sk
                 "},
                     table = Self::TABLE,
                     to_remove = to_remove,
                 )
             }
-            Self::DeleteByIds => format!("DELETE FROM {table} WHERE pk=? AND sk=?", table = Self::TABLE),
-            Self::SelectIdPairs(pair_count) => format!(
-                "SELECT * FROM {table} WHERE {id_pairs}",
-                table = Self::TABLE,
-                // AND has precedence over OR so no grouping needed
-                id_pairs = joined_repeating("pk=? AND sk=?", *pair_count, " OR ")
-            ),
-            Self::SelectIdWithEdges(pk, number_of_edges) => format!(
-                indoc::indoc! {"
+            Self::DeleteByIds => {
+                format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE)
+            }
+            Self::SelectIdPairs(pair_count) => {
+                format!(
+                    "SELECT * FROM {table} WHERE {id_pairs}",
+                    table = Self::TABLE,
+                    // AND has precedence over OR so no grouping needed
+                    id_pairs = joined_repeating("pk=?partition_keys AND sk=?sorting_keys", *pair_count, " OR ")
+                )
+            }
+            Self::SelectIdWithEdges(pk, number_of_edges) => {
+                format!(
+                    indoc::indoc! {"
                     SELECT
                         *
                     FROM
                         {table}
                     WHERE
-                        {pk}=?
-                        AND entity_type=?
+                        {pk}=?pk
+                        AND entity_type=?entity_type
                     UNION ALL
                     SELECT
                         {table}.*
@@ -368,19 +412,22 @@ impl<'a> ToString for Sql<'a> {
                         {table},
                         json_each({table}.relation_names)
                     WHERE
-                        {table}.pk=?
+                        {table}.pk=?pk
                         AND ({edges})
                 "},
-                table = Self::TABLE,
-                pk = pk,
-                edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
-            ),
-            Self::SelectId(pk) => format!("SELECT * FROM {table} WHERE {pk}=?", table = Self::TABLE),
+                    table = Self::TABLE,
+                    pk = pk,
+                    edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
+                )
+            }
+            Self::SelectId(pk) => {
+                format!("SELECT * FROM {table} WHERE {pk}=?pk", table = Self::TABLE)
+            }
             Self::SelectType => {
                 format!(
                     indoc::indoc! {"
                             SELECT * from {table}
-                            WHERE entity_type=? AND pk=sk
+                            WHERE entity_type=?entity_type AND pk=sk
                             ORDER BY pk
                         "},
                     table = Self::TABLE,
@@ -391,7 +438,7 @@ impl<'a> ToString for Sql<'a> {
                     indoc::indoc! {"
                             WITH entities AS (
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk
+                                WHERE entity_type=?entity_type AND pk=sk
                                 ORDER BY pk
                             )
                             
@@ -406,7 +453,7 @@ impl<'a> ToString for Sql<'a> {
                             ORDER BY pk DESC
                         "},
                     table = Self::TABLE,
-                    edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
+                    edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
                 )
             }
             Self::SelectTypePaginatedForwardWithEdges(has_key, number_of_edges) => {
@@ -415,8 +462,8 @@ impl<'a> ToString for Sql<'a> {
                         indoc::indoc! {"
                             WITH page AS (
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk AND sk < ?
-                                ORDER BY pk DESC LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk AND sk < ?sk
+                                ORDER BY pk DESC LIMIT ?query_limit
                             )
                             
                             SELECT * FROM page
@@ -430,15 +477,15 @@ impl<'a> ToString for Sql<'a> {
                             ORDER BY pk DESC
                         "},
                         table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
+                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
                     )
                 } else {
                     format!(
                         indoc::indoc! {"
                             WITH page AS (
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk
-                                ORDER BY pk DESC LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk
+                                ORDER BY pk DESC LIMIT ?query_limit
                             )
                             
                             SELECT * FROM page
@@ -452,7 +499,7 @@ impl<'a> ToString for Sql<'a> {
                             ORDER BY pk DESC
                         "},
                         table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
+                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
                     )
                 }
             }
@@ -462,8 +509,8 @@ impl<'a> ToString for Sql<'a> {
                         indoc::indoc! {"
                             WITH page AS (
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk AND sk > ?
-                                ORDER BY pk LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk AND sk > ?sk
+                                ORDER BY pk LIMIT ?query_limit
                             )
                             
                             SELECT * FROM page
@@ -474,18 +521,18 @@ impl<'a> ToString for Sql<'a> {
                             WHERE
                                 ({table}.pk) IN (SELECT pk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
+                            ORDER BY pk
                         "},
                         table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
+                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
                     )
                 } else {
                     format!(
                         indoc::indoc! {"
                             WITH page AS (
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk
-                                ORDER BY pk LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk
+                                ORDER BY pk LIMIT ?query_limit
                             )
                             
                             SELECT * FROM page
@@ -496,10 +543,10 @@ impl<'a> ToString for Sql<'a> {
                             WHERE
                                 ({table}.pk) IN (SELECT pk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
+                            ORDER BY pk
                         "},
                         table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?", *number_of_edges, " OR "),
+                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
                     )
                 }
             }
@@ -508,8 +555,8 @@ impl<'a> ToString for Sql<'a> {
                     format!(
                         indoc::indoc! {"
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk AND sk < ?
-                                ORDER BY pk DESC LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk AND sk < ?sk
+                                ORDER BY pk DESC LIMIT ?query_limit
                             "},
                         table = Self::TABLE,
                     )
@@ -517,8 +564,8 @@ impl<'a> ToString for Sql<'a> {
                     format!(
                         indoc::indoc! {"
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk
-                                ORDER BY pk DESC LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk
+                                ORDER BY pk DESC LIMIT ?query_limit
                             "},
                         table = Self::TABLE,
                     )
@@ -529,8 +576,8 @@ impl<'a> ToString for Sql<'a> {
                     format!(
                         indoc::indoc! {"
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk AND sk > ?
-                                ORDER BY pk LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk AND sk > ?sk
+                                ORDER BY pk LIMIT ?query_limit
                             "},
                         table = Self::TABLE
                     )
@@ -538,8 +585,8 @@ impl<'a> ToString for Sql<'a> {
                     format!(
                         indoc::indoc! {"
                                 SELECT * FROM {table}
-                                WHERE entity_type=? AND pk=sk
-                                ORDER BY pk LIMIT ?
+                                WHERE entity_type=?entity_type AND pk=sk
+                                ORDER BY pk LIMIT ?query_limit
                             "},
                         table = Self::TABLE
                     )
@@ -547,22 +594,38 @@ impl<'a> ToString for Sql<'a> {
             }
         };
 
-        minify(sql_string)
+        (minify(sql_string.clone()), fold_values(sql_string, values))
     }
 }
 
 static NEWLINES_AND_TABS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(\n|\t)+").expect("must parse"));
 static SPACES: Lazy<Regex> = Lazy::new(|| Regex::new(r"\s+").expect("must parse"));
+static VARIABLES: Lazy<Regex> = Lazy::new(|| Regex::new(r"\?\w+").expect("must parse"));
 
 fn minify(sql_string: String) -> String {
     let temp = NEWLINES_AND_TABS.replace_all(&sql_string, " ").clone();
+    let temp = VARIABLES.replace_all(&temp, "?").clone();
     let minified = SPACES.replace_all(&temp, " ");
 
     minified.trim().to_owned()
 }
 
-impl<'a> From<Sql<'a>> for String {
-    fn from(sql: Sql<'a>) -> Self {
-        sql.to_string()
-    }
+// TODO: it may be possible to shift some of this work to compile time
+fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String> {
+    VARIABLES
+        .find_iter(&query)
+        // TODO: this map has side effects (values.pop_front()), to be refactored
+        .map(|variable_match| {
+            let mut name = (&query[variable_match.range()]).to_owned();
+            // remove the leading `?`
+            name.remove(0);
+            let values = match values.get_mut(name.as_str()).expect("must exist") {
+                SqlValue::String(value) => value.clone(),
+                SqlValue::VecDeque(values) => values.pop_front().expect("must exist"),
+            };
+            (variable_match.start(), values)
+        })
+        .sorted_by_key(|item| item.0)
+        .map(|item| item.1)
+        .collect()
 }

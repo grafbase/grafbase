@@ -1,6 +1,7 @@
-use dynomite::AttributeValue;
+use dynomite::{attr_map, AttributeValue};
 use indexmap::map::Entry;
 use indexmap::IndexMap;
+use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -11,7 +12,7 @@ use crate::model::id::ID;
 use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
 
 use super::bridge_api;
-use super::types::{Operation, Sql};
+use super::types::{Operation, Sql, SqlValue};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -79,13 +80,12 @@ pub enum QueryTypePaginatedInfo {
     },
 }
 
-// TODO: remove or change this documentation to fit sqlite (suggested by @Miaxos)
 /// The Result of the Paginated query.
 ///
 /// # Modelization
 ///
-/// When we query the GSI1 we do have the entities stored together, it means that if we
-/// ask Node of a type A we would have this kind of answer:
+/// When we query we have the entities stored together, that means that if we
+/// ask Node of type A we would get this kind of answer:
 ///
 /// ```ignore
 /// ┌────────┐
@@ -150,48 +150,60 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         &self,
         keys: &[QueryTypePaginatedKey],
     ) -> Result<HashMap<QueryTypePaginatedKey, Self::Value>, Self::Error> {
-        let mut query_result = HashMap::new();
         let mut concurrent_futures = vec![];
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let entity_type = query_key.r#type.clone();
-            // TODO: consider matching over entire query key (suggested by @jakubadamw)
-            let (query, values) = match query_key.cursor.clone() {
-                PaginatedCursor::Forward {
-                    exclusive_last_key,
-                    first,
+
+            let user_limit = match query_key.cursor {
+                PaginatedCursor::Forward { first, .. } => first,
+                PaginatedCursor::Backward { last, .. } => last,
+            };
+
+            // as we currently limit the result count to 100, will not overflow
+            let query_limit = user_limit + 1;
+
+            let mut value_map = hashmap! {
+                "entity_type" => SqlValue::String(entity_type),
+                "user_limit" => SqlValue::String(user_limit.to_string()),
+                "query_limit" => SqlValue::String(query_limit.to_string()),
+                "edges" => SqlValue::VecDeque(query_key.edges.clone().into())
+            };
+
+            // TODO: optimize the query by omitting the edges for the n+1 entity
+            let (query, values) = match query_key {
+                QueryTypePaginatedKey {
+                    cursor: PaginatedCursor::Forward { exclusive_last_key, .. },
+                    ..
                 } => {
-                    let query = if has_edges {
+                    if let Some(exclusive_last_key) = exclusive_last_key.clone() {
+                        value_map.insert("sk", SqlValue::String(exclusive_last_key));
+                    }
+
+                    if has_edges {
                         Sql::SelectTypePaginatedForwardWithEdges(exclusive_last_key.is_some(), query_key.edges.len())
+                            .compile(value_map)
                     } else {
-                        Sql::SelectTypePaginatedForward(exclusive_last_key.is_some())
-                    };
-
-                    let values = vec![Some(entity_type), exclusive_last_key, Some(first.to_string())]
-                        .iter()
-                        .filter_map(|value| value.clone())
-                        .chain(query_key.edges.iter().cloned())
-                        .collect::<Vec<String>>();
-
-                    (query, values)
+                        Sql::SelectTypePaginatedForward(exclusive_last_key.is_some()).compile(value_map)
+                    }
                 }
-                PaginatedCursor::Backward {
-                    exclusive_first_key,
-                    last,
+                QueryTypePaginatedKey {
+                    cursor:
+                        PaginatedCursor::Backward {
+                            exclusive_first_key, ..
+                        },
+                    ..
                 } => {
-                    let query = if has_edges {
+                    if let Some(exclusive_first_key) = exclusive_first_key.clone() {
+                        value_map.insert("sk", SqlValue::String(exclusive_first_key));
+                    }
+
+                    if has_edges {
                         Sql::SelectTypePaginatedBackwardWithEdges(exclusive_first_key.is_some(), query_key.edges.len())
+                            .compile(value_map)
                     } else {
-                        Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some())
-                    };
-
-                    let values = vec![Some(entity_type), exclusive_first_key, Some(last.to_string())]
-                        .iter()
-                        .filter_map(|value| value.clone())
-                        .chain(query_key.edges.iter().cloned())
-                        .collect::<Vec<String>>();
-
-                    (query, values)
+                        Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some()).compile(value_map)
+                    }
                 }
             };
 
@@ -207,68 +219,92 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 .await
                 .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
-                query_results.iter().try_fold(
-                    (
-                        query_key.clone(),
-                        QueryResult {
-                            values: IndexMap::with_capacity(100),
-                            last_evaluated_key: None,
-                        },
-                    ),
-                    |(query_key, mut accumulator), current| {
-                        let pk = ID::try_from(current.pk.clone()).expect("can't fail");
-                        let sk = ID::try_from(current.sk.clone()).expect("can't fail");
-                        let relation_names = current.relation_names.clone();
+                let top_level_result_count = query_results.iter().filter(|result| result.pk == result.sk).count();
 
-                        match accumulator.values.entry(pk.to_string()) {
-                            Entry::Vacant(vacant) => {
-                                let mut value = QueryValue {
-                                    node: None,
-                                    edges: IndexMap::with_capacity(5),
-                                    constraints: Vec::new(),
-                                };
-                                match (pk, sk) {
+                let (last_evaluated_key, excluded_item) = if user_limit > 0 && top_level_result_count > user_limit {
+                    // we currently use only pk/sk for pagination
+                    // the last evaluated key is always the last item, regardless of direction
+
+                    let last_item = query_results.get(user_limit - 1).expect("must exist");
+                    let last_evaluated_key = serde_json::to_string(&attr_map! {
+                        "pk" => last_item.pk.clone(),
+                        "sk" => last_item.sk.clone(),
+                    })
+                    .expect("must parse");
+
+                    let excluded_item = query_results.last().expect("must exist");
+
+                    (Some(last_evaluated_key), Some(excluded_item))
+                } else {
+                    (None, None)
+                };
+
+                query_results
+                    .iter()
+                    // filter the exluded item and any relations
+                    .filter(|record| excluded_item.filter(|item| record.pk == item.pk).is_none())
+                    .try_fold(
+                        (
+                            query_key.clone(),
+                            QueryResult {
+                                values: IndexMap::with_capacity(100),
+                                last_evaluated_key,
+                            },
+                        ),
+                        |(query_key, mut accumulator), current| {
+                            let pk = ID::try_from(current.pk.clone()).expect("can't fail");
+                            let sk = ID::try_from(current.sk.clone()).expect("can't fail");
+                            let relation_names = current.relation_names.clone();
+
+                            match accumulator.values.entry(pk.to_string()) {
+                                Entry::Vacant(vacant) => {
+                                    let mut value = QueryValue {
+                                        node: None,
+                                        edges: IndexMap::with_capacity(5),
+                                        constraints: Vec::new(),
+                                    };
+                                    match (pk, sk) {
+                                        (ID::NodeID(_), ID::NodeID(sk)) => {
+                                            if sk.ty() == *query_key.ty() {
+                                                value.node = Some(current.document.clone());
+                                            } else if let Some(edge) =
+                                                query_key.edges.iter().find(|edge| relation_names.contains(edge))
+                                            {
+                                                value.edges.insert(edge.clone(), vec![current.document.clone()]);
+                                            }
+                                        }
+                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                            value.constraints.push(current.document.clone());
+                                        }
+                                        _ => {}
+                                    }
+
+                                    vacant.insert(value);
+                                }
+                                Entry::Occupied(mut occupied) => match (pk, sk) {
                                     (ID::NodeID(_), ID::NodeID(sk)) => {
                                         if sk.ty() == *query_key.ty() {
-                                            value.node = Some(current.document.clone());
+                                            occupied.get_mut().node = Some(current.document.clone());
                                         } else if let Some(edge) =
                                             query_key.edges.iter().find(|edge| relation_names.contains(edge))
                                         {
-                                            value.edges.insert(edge.clone(), vec![current.document.clone()]);
+                                            occupied
+                                                .get_mut()
+                                                .edges
+                                                .entry(edge.clone())
+                                                .or_default()
+                                                .push(current.document.clone());
                                         }
                                     }
                                     (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        value.constraints.push(current.document.clone());
+                                        occupied.get_mut().constraints.push(current.document.clone());
                                     }
                                     _ => {}
-                                }
-
-                                vacant.insert(value);
+                                },
                             }
-                            Entry::Occupied(mut occupied) => match (pk, sk) {
-                                (ID::NodeID(_), ID::NodeID(sk)) => {
-                                    if sk.ty() == *query_key.ty() {
-                                        occupied.get_mut().node = Some(current.document.clone());
-                                    } else if let Some(edge) =
-                                        query_key.edges.iter().find(|edge| relation_names.contains(edge))
-                                    {
-                                        occupied
-                                            .get_mut()
-                                            .edges
-                                            .entry(edge.clone())
-                                            .or_default()
-                                            .push(current.document.clone());
-                                    }
-                                }
-                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                    occupied.get_mut().constraints.push(current.document.clone());
-                                }
-                                _ => {}
-                            },
-                        }
-                        Ok::<_, QueryTypePaginatedLoaderError>((query_key, accumulator))
-                    },
-                )
+                            Ok::<_, QueryTypePaginatedLoaderError>((query_key, accumulator))
+                        },
+                    )
             };
 
             concurrent_futures.push(future_get());
@@ -278,12 +314,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             .await
             .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
-        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
-        for (query_key, result) in joined_futures {
-            query_result.insert(query_key, result);
-        }
-
-        Ok(query_result)
+        Ok(joined_futures.into_iter().collect())
     }
 }
 

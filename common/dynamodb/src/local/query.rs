@@ -1,5 +1,5 @@
 use super::bridge_api;
-use super::types::{Operation, Sql};
+use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::model::node::NodeID;
@@ -7,6 +7,7 @@ use crate::paginated::QueryResult;
 use crate::paginated::QueryValue;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use indexmap::{map::Entry, IndexMap};
+use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -66,22 +67,16 @@ impl Loader<QueryKey> for QueryLoader {
                 }
             };
 
-            let query = if has_edges {
-                Sql::SelectIdWithEdges(self.index.pk(), number_of_edges).to_string()
-            } else {
-                Sql::SelectId(self.index.pk()).to_string()
+            let value_map = hashmap! {
+                "pk" => SqlValue::String(pk.to_string()),
+                "entity_type" => SqlValue::String(pk.ty().to_string()),
+                "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
             };
 
-            let entity_type = pk.ty().to_string();
-
-            let values = if has_edges {
-                vec![
-                    vec![pk.to_string(), entity_type, pk.to_string()],
-                    query_key.edges.clone(),
-                ]
-                .concat()
+            let (query, values) = if has_edges {
+                Sql::SelectIdWithEdges(self.index.pk(), number_of_edges).compile(value_map)
             } else {
-                vec![pk.to_string()]
+                Sql::SelectId(self.index.pk()).compile(value_map)
             };
 
             let future = || async move {
@@ -167,10 +162,7 @@ impl Loader<QueryKey> for QueryLoader {
             .await
             .map_err(|_| QueryLoaderError::QueryError)?;
 
-        // TODO: joined_futures.into_iter().collect() (suggested by @jakubadamw)
-        for (query_key, result) in joined_futures {
-            query_result.insert(query_key, result);
-        }
+        query_result.extend(joined_futures.into_iter().collect::<HashMap<_, _>>());
 
         Ok(query_result)
     }
