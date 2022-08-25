@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use const_format::concatcp;
 use dynaql_value::ConstValue;
 
 use crate::{InputValueError, InputValueResult};
@@ -12,7 +13,28 @@ pub enum PossibleScalar {
     Boolean,
     ID,
     DateTime,
+    JSON,
 }
+
+const SPECIFIED_BY_DIRECTIVE: &str = r#"
+directive @specifiedBy(url: String!) on SCALAR
+"#;
+
+const DATETIME_DIRECTIVE: &str = r#"
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+"""
+scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339")
+"#;
+
+const JSON_DIRECTIVE: &str = r#"
+"""
+Any JSON value.
+"""
+scalar JSON
+"#;
 
 impl PossibleScalar {
     /// Function to **check** if the inputed value is able to be cast into the expected type.
@@ -29,22 +51,21 @@ impl PossibleScalar {
                     .map_err(|err| InputValueError::ty_custom("DateTime", err))?;
                 Ok(true)
             }
+            // TODO: Should ensure that a JSON got string key value
+            (Self::JSON, ConstValue::Object(_)) => Ok(true),
             _ => Ok(false),
         }
     }
 
     /// Generate directives associated
     pub const fn directives() -> &'static str {
-        r#"
-        directive @specifiedBy(url: String!) on SCALAR
-
-        """
-        A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
-
-        This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
-        """
-        scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339")
-        "#
+        concatcp!(
+            SPECIFIED_BY_DIRECTIVE,
+            '\n',
+            DATETIME_DIRECTIVE,
+            '\n',
+            JSON_DIRECTIVE
+        )
     }
 }
 
@@ -68,5 +89,31 @@ impl TryFrom<&str> for PossibleScalar {
                 expected_ty: value.to_string(),
             }),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use dynaql_value::ConstValue;
+
+    use super::PossibleScalar;
+
+    #[test]
+    fn check_json_valid() {
+        let value = serde_json::json!({
+            "code": 200,
+            "success": true,
+            "payload": {
+                "features": [
+                    "serde",
+                    "json"
+                ]
+            }
+        });
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::JSON.check_valid(&const_value);
+        assert!(scalar.is_ok());
     }
 }
