@@ -197,6 +197,7 @@ where
                             relation: None,
                             resolve: None,
                             transforms: None,
+                            required_operation: None,
                         },
                     );
 
@@ -220,6 +221,7 @@ where
                             relation: None,
                             resolve: None,
                             transforms: None,
+                            required_operation: None,
                         },
                     );
 

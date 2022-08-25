@@ -12,6 +12,7 @@ use dynaql::registry::{
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
+use dynaql::Operation;
 use dynaql_parser::types::{FieldDefinition, ObjectType};
 
 mod create_mutation;
@@ -96,6 +97,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         relation: None,
                         resolve: None,
                         transforms: None,
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields.insert(
@@ -123,6 +125,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "__pk".to_string(),
                         }]),
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields
@@ -180,6 +183,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "has_previous_page".to_string(),
                             functions: vec![],
                         }]),
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields.insert(
@@ -206,6 +210,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "has_next_page".to_string(),
                             functions: vec![],
                         }]),
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields.insert(
@@ -232,6 +237,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "start_cursor".to_string(),
                             functions: vec![],
                         }]),
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields.insert(
@@ -258,6 +264,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "end_cursor".to_string(),
                             functions: vec![],
                         }]),
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields
@@ -306,6 +313,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         relation: None,
                         resolve: None,
                         transforms: None,
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields.insert(
@@ -326,6 +334,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         relation: None,
                         resolve: None,
                         transforms: None,
+                        required_operation: Some(Operation::List),
                     },
                 );
                 fields
@@ -422,6 +431,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
             }),
         }),
         transforms: None,
+        required_operation: Some(Operation::List),
     });
 }
 
@@ -460,6 +470,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                             property: "id".to_string(),
                             functions: vec![],
                         }]),
+                        required_operation: Some(Operation::Delete),
                     },
                 );
                 fields
@@ -520,5 +531,6 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
             }),
         }),
         transforms: None,
+        required_operation: Some(Operation::Delete),
     });
 }

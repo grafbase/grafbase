@@ -49,6 +49,7 @@ expression: mutations
         }
       }
     },
-    "transforms": null
+    "transforms": null,
+    "required_operation": "update"
   }
 ]

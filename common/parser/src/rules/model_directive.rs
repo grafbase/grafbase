@@ -34,6 +34,7 @@ use dynaql::registry::{
 };
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
+use dynaql::Operation;
 use dynaql_parser::types::{Type, TypeKind};
 use if_chain::if_chain;
 
@@ -147,6 +148,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 },
                                 relation,
                                 transforms,
+                                required_operation: None,
                             });
                         };
                         fields
@@ -217,6 +219,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         })
                     }),
                     transforms: None,
+                    required_operation: Some(Operation::Get),
                 });
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);

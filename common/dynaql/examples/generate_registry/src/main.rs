@@ -52,6 +52,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "pk".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -72,6 +73,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "slug".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -92,6 +94,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "name".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields
@@ -135,6 +138,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "pk".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -155,6 +159,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "clerk_user_id".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -175,6 +180,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "name".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -195,6 +201,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "email".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields.insert(
@@ -215,6 +222,7 @@ async fn main() {
                         transforms: Some(vec![Transformer::DynamoSelect {
                             property: "avatar".to_string(),
                         }]),
+                        required_operation: None,
                     },
                 );
                 fields
@@ -260,6 +268,7 @@ async fn main() {
                             compute_complexity: None,
                             resolve: None,
                             transforms: None,
+                            required_operation: None,
                         },
                     );
                     fields.insert(
@@ -305,6 +314,7 @@ async fn main() {
                                 }),
                             }),
                             transforms: None,
+                            required_operation: None,
                         },
                     );
                     fields.insert(
@@ -350,6 +360,7 @@ async fn main() {
                                 }),
                             }),
                             transforms: None,
+                            required_operation: None,
                         },
                     );
                     fields

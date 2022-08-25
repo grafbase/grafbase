@@ -108,6 +108,7 @@ impl<'a> ExtensionContext<'a> {
 }
 
 /// Parameters for `Extension::resolve_field_start`
+#[derive(Debug)]
 pub struct ResolveInfo<'a> {
     /// Current path node, You can go through the entire path.
     pub path_node: &'a QueryPathNode<'a>,
@@ -123,6 +124,9 @@ pub struct ResolveInfo<'a> {
 
     /// Current field alias
     pub alias: Option<&'a str>,
+
+    /// Required permission to access the field
+    pub required_operation: Option<crate::Operation>,
 }
 
 type RequestFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);

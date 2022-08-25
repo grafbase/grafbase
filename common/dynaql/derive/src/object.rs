@@ -487,6 +487,7 @@ pub fn generate(
                         relation: None,
                         resolve: None,
                         transforms: None,
+                        required_operation: None,
                     });
                 });
 

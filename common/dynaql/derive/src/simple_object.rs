@@ -182,6 +182,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     relation: None,
                     resolve: None,
                     transforms: None,
+                    required_operation: None,
                 });
             });
         }
@@ -401,6 +402,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
                         resolve: None,
                         transforms: None,
+                        required_operation: None,
                         constraints: vec![],
                     })
                 }

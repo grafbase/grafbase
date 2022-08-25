@@ -270,19 +270,15 @@ impl<'a> Fields<'a> {
                                 ))
                             } else {
                                 let type_name = root.name();
+                                let meta_field =
+                                    ctx_field.schema_env.registry.types.get(type_name).and_then(
+                                        |ty| ty.field_by_name(field.node.name.node.as_str()),
+                                    );
+
                                 let resolve_info = ResolveInfo {
                                     path_node: ctx_field.path_node.as_ref().unwrap(),
                                     parent_type: &type_name,
-                                    return_type: match ctx_field
-                                        .schema_env
-                                        .registry
-                                        .types
-                                        .get(type_name)
-                                        .and_then(|ty| {
-                                            ty.field_by_name(field.node.name.node.as_str())
-                                        })
-                                        .map(|field| &field.ty)
-                                    {
+                                    return_type: match meta_field.map(|field| &field.ty) {
                                         Some(ty) => &ty,
                                         None => {
                                             return Err(ServerError::new(
@@ -300,6 +296,8 @@ impl<'a> Fields<'a> {
                                         .alias
                                         .as_ref()
                                         .map(|alias| alias.node.as_str()),
+                                    required_operation: meta_field
+                                        .and_then(|f| f.required_operation),
                                 };
 
                                 let resolve_fut = registry.resolve_field(&ctx_field, root);
@@ -454,19 +452,17 @@ impl<'a> Fields<'a> {
                                 ))
                             } else {
                                 let type_name = T::type_name();
+                                let meta_field = ctx_field
+                                    .schema_env
+                                    .registry
+                                    .types
+                                    .get(type_name.as_ref())
+                                    .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
+
                                 let resolve_info = ResolveInfo {
                                     path_node: ctx_field.path_node.as_ref().unwrap(),
                                     parent_type: &type_name,
-                                    return_type: match ctx_field
-                                        .schema_env
-                                        .registry
-                                        .types
-                                        .get(type_name.as_ref())
-                                        .and_then(|ty| {
-                                            ty.field_by_name(field.node.name.node.as_str())
-                                        })
-                                        .map(|field| &field.ty)
-                                    {
+                                    return_type: match meta_field.map(|field| &field.ty) {
                                         Some(ty) => &ty,
                                         None => {
                                             return Err(ServerError::new(
@@ -484,6 +480,8 @@ impl<'a> Fields<'a> {
                                         .alias
                                         .as_ref()
                                         .map(|alias| alias.node.as_str()),
+                                    required_operation: meta_field
+                                        .and_then(|f| f.required_operation),
                                 };
 
                                 let resolve_fut = root.resolve_field(&ctx_field);

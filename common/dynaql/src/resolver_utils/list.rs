@@ -30,6 +30,7 @@ pub async fn resolve_list<'a>(
                         return_type: &return_type,
                         name: field.node.name.node.as_str(),
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
+                        required_operation: None,
                     };
 
                     let resolve_fut = async {
@@ -107,6 +108,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         return_type: &T::qualified_type_name(),
                         name: field.node.name.node.as_str(),
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
+                        required_operation: None,
                     };
                     let resolve_fut = async {
                         OutputType::resolve(&item, &ctx_idx, field)

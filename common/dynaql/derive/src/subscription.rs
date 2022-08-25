@@ -310,6 +310,7 @@ pub fn generate(
                     compute_complexity: #complexity,
                     resolve: ::std::option::Option::None,
                     transforms: ::std::option::Option::None,
+                    required_operation: None,
                 });
             });
 
@@ -372,6 +373,7 @@ pub fn generate(
                                     return_type: &<<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::OutputType>::qualified_type_name(),
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
+                                    required_operation: None,
                                 };
                                 let resolve_fut = async {
                                     #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)

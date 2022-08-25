@@ -127,6 +127,7 @@ impl<'a> VisitorContext<'a> {
                                 edges: Vec::new(),
                                 relation: None,
                                 transforms: None,
+                                required_operation: None,
                             },
                         );
                         for query in &self.queries {
