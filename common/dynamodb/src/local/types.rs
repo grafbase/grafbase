@@ -309,16 +309,18 @@ impl<'a> Sql<'a> {
                 )
             }
 
-            Self::Update => format!(
-                indoc::indoc! {"
+            Self::Update => {
+                format!(
+                    indoc::indoc! {"
                     UPDATE {table}
                     SET 
                         document=json_patch(document, ?document),
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
                 "},
-                table = Self::TABLE
-            ),
+                    table = Self::TABLE
+                )
+            }
             Self::UpdateWithRelations(to_remove_count, to_add_count) => {
                 let to_remove = if *to_remove_count > 0 {
                     format!(
@@ -382,15 +384,20 @@ impl<'a> Sql<'a> {
                     to_remove = to_remove,
                 )
             }
-            Self::DeleteByIds => format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE),
-            Self::SelectIdPairs(pair_count) => format!(
-                "SELECT * FROM {table} WHERE {id_pairs}",
-                table = Self::TABLE,
-                // AND has precedence over OR so no grouping needed
-                id_pairs = joined_repeating("pk=?partition_keys AND sk=?sorting_keys", *pair_count, " OR ")
-            ),
-            Self::SelectIdWithEdges(pk, number_of_edges) => format!(
-                indoc::indoc! {"
+            Self::DeleteByIds => {
+                format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE)
+            }
+            Self::SelectIdPairs(pair_count) => {
+                format!(
+                    "SELECT * FROM {table} WHERE {id_pairs}",
+                    table = Self::TABLE,
+                    // AND has precedence over OR so no grouping needed
+                    id_pairs = joined_repeating("pk=?partition_keys AND sk=?sorting_keys", *pair_count, " OR ")
+                )
+            }
+            Self::SelectIdWithEdges(pk, number_of_edges) => {
+                format!(
+                    indoc::indoc! {"
                     SELECT
                         *
                     FROM
@@ -408,11 +415,14 @@ impl<'a> Sql<'a> {
                         {table}.pk=?pk
                         AND ({edges})
                 "},
-                table = Self::TABLE,
-                pk = pk,
-                edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
-            ),
-            Self::SelectId(pk) => format!("SELECT * FROM {table} WHERE {pk}=?pk", table = Self::TABLE),
+                    table = Self::TABLE,
+                    pk = pk,
+                    edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
+                )
+            }
+            Self::SelectId(pk) => {
+                format!("SELECT * FROM {table} WHERE {pk}=?pk", table = Self::TABLE)
+            }
             Self::SelectType => {
                 format!(
                     indoc::indoc! {"
@@ -511,7 +521,7 @@ impl<'a> Sql<'a> {
                             WHERE
                                 ({table}.pk) IN (SELECT pk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
+                            ORDER BY pk
                         "},
                         table = Self::TABLE,
                         edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
@@ -533,7 +543,7 @@ impl<'a> Sql<'a> {
                             WHERE
                                 ({table}.pk) IN (SELECT pk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
+                            ORDER BY pk
                         "},
                         table = Self::TABLE,
                         edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
