@@ -3,6 +3,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::model::node::NodeID;
 use crate::paginated::{QueryResult, QueryValue};
+use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
@@ -13,7 +14,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tracing::{info_span, Instrument};
-
+#[cfg(not(feature = "wasm"))]
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum QueryLoaderError {
     #[error("An internal error happened")]
@@ -199,7 +200,7 @@ impl Loader<QueryKey> for QueryLoader {
 pub fn get_loader_query(ctx: Arc<DynamoDBContext>, index: DynamoDBRequestedIndex) -> DataLoader<QueryLoader, LruCache> {
     DataLoader::with_cache(
         QueryLoader { ctx, index },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
     .max_batch_size(10)

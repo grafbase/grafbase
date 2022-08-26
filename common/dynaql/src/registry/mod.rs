@@ -13,6 +13,8 @@ use dynaql_parser::Pos;
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::hash::Hash;
+use std::sync::Arc;
 use ulid_rs::Ulid;
 
 use crate::auth::Auth;
@@ -119,17 +121,19 @@ impl<'a> MetaTypeName<'a> {
 }
 
 #[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
-#[derivative(Debug)]
+#[derivative(Debug, Hash, PartialEq)]
 pub struct MetaInputValue {
     pub name: String,
     pub description: Option<String>,
     pub ty: String,
     pub default_value: Option<String>,
     #[serde(skip)]
-    #[derivative(Debug = "ignore")]
+    #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
     pub is_secret: bool,
 }
+
+impl Eq for MetaInputValue {}
 
 impl MetaInputValue {
     /// We should be able to link every variables listed in the registry with the actual request.
@@ -172,7 +176,7 @@ pub enum ComplexityType {
     Fn(ComputeComplexityFn),
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum Deprecation {
     NoDeprecated,
     Deprecated { reason: Option<String> },
@@ -199,12 +203,16 @@ impl Deprecation {
     }
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
+)]
 pub enum ConstraintType {
     Unique,
 }
 
-#[derive(Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
+)]
 pub struct Constraint {
     pub field: String,
     pub r#type: ConstraintType,
@@ -254,6 +262,44 @@ pub struct MetaField {
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
 }
+
+impl Hash for MetaField {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        self.description.hash(state);
+        self.args.as_slice().hash(state);
+        self.ty.hash(state);
+        self.deprecation.hash(state);
+        self.cache_control.hash(state);
+        self.external.hash(state);
+        self.requires.hash(state);
+        self.provides.hash(state);
+        self.edges.hash(state);
+        self.relation.hash(state);
+        self.resolve.hash(state);
+        self.transforms.hash(state);
+    }
+}
+
+impl PartialEq for MetaField {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(&other.name)
+            && self.description.eq(&other.description)
+            && self.args.as_slice().eq(&other.args.as_slice())
+            && self.ty.eq(&other.ty)
+            && self.deprecation.eq(&other.deprecation)
+            && self.cache_control.eq(&other.cache_control)
+            && self.external.eq(&other.external)
+            && self.requires.eq(&other.requires)
+            && self.provides.eq(&other.provides)
+            && self.edges.eq(&other.edges)
+            && self.relation.eq(&other.relation)
+            && self.resolve.eq(&other.resolve)
+            && self.transforms.eq(&other.transforms)
+    }
+}
+
+impl Eq for MetaField {}
 
 /// Utility function
 /// From a given type, check if the type is an Array Nullable/NonNullable.
@@ -314,7 +360,7 @@ impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
         let execution_id = Ulid::new();
-        let registry = &ctx.registry();
+        let registry = ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
         let current_resolver_type = CurrentResolverType::new(&self, ctx);
@@ -324,7 +370,7 @@ impl MetaField {
             CurrentResolverType::PRIMITIVE => {
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
-                let value = ResolvedValue::new(serde_json::Value::Null);
+                let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                 let resolved_value = resolvers
                     .resolve(&ctx, &resolver_ctx, Some(&value))
                     .await
@@ -332,7 +378,8 @@ impl MetaField {
 
                 let result = match resolved_value {
                     Ok(result) => {
-                        if self.ty.ends_with('!') && result.data_resolved == serde_json::Value::Null
+                        if self.ty.ends_with('!')
+                            && *result.data_resolved.as_ref() == serde_json::Value::Null
                         {
                             #[cfg(feature = "tracing_worker")]
                             logworker::error!(
@@ -353,7 +400,7 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ))
                         } else {
-                            Ok(result.data_resolved)
+                            Ok(result.data_resolved.as_ref().clone())
                         }
                     }
                     Err(err) => {
@@ -374,7 +421,7 @@ impl MetaField {
                 // asking to resolve the other fields
                 if let Some(resolvers) = &ctx_obj.resolver_node {
                     let resolver_ctx = ResolverContext::new(&execution_id);
-                    let value = ResolvedValue::new(serde_json::Value::Null);
+                    let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                     let resolved_value = resolvers
                         .resolve(&ctx, &resolver_ctx, Some(&value))
                         .await
@@ -428,16 +475,21 @@ impl MetaField {
 
                 let resolvers = ctx_obj.resolver_node.as_ref().expect("shouldn't be null");
                 let resolver_ctx = ResolverContext::new(&execution_id);
-                let value = ResolvedValue::new(serde_json::Value::Null);
+                let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                 let resolved_value = resolvers
                     .resolve(&ctx, &resolver_ctx, Some(&value))
                     .await
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
-                let len = match resolved_value?.data_resolved {
+                let len = match &resolved_value?.data_resolved.as_ref() {
                     serde_json::Value::Null => Vec::new(),
-                    serde_json::Value::Array(arr) => arr,
-                    _ => panic!(),
+                    serde_json::Value::Array(arr) => arr.clone(),
+                    _ => {
+                        return Err(ServerError::new(
+                            "An internal error happened",
+                            Some(ctx.item.pos),
+                        ));
+                    }
                 };
 
                 match resolve_list(&ctx_obj, ctx.item, container_type, len).await {
@@ -457,15 +509,17 @@ impl MetaField {
 }
 
 #[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
-#[derivative(Debug)]
+#[derivative(Debug, Hash, PartialEq)]
 pub struct MetaEnumValue {
     pub name: String,
     pub description: Option<String>,
     pub deprecation: Deprecation,
     #[serde(skip)]
-    #[derivative(Debug = "ignore")]
+    #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
 }
+
+impl Eq for MetaEnumValue {}
 
 type MetaVisibleFn = fn(&Context<'_>) -> bool;
 
@@ -608,6 +662,271 @@ pub enum MetaType {
     },
 }
 
+// Hash custom implementation must be done as we can't derive Hash Indexmap Implementation.
+impl Hash for MetaType {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Scalar {
+                name,
+                description,
+                specified_by_url,
+                visible: _,
+                is_valid: _,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                specified_by_url.hash(state);
+            }
+            Self::Object {
+                name,
+                description,
+                fields,
+                cache_control,
+                extends,
+                keys,
+                visible: _,
+                is_subscription,
+                is_node,
+                rust_typename,
+                constraints,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                fields.as_slice().hash(state);
+                cache_control.hash(state);
+                extends.hash(state);
+                keys.hash(state);
+                is_subscription.hash(state);
+                is_node.hash(state);
+                rust_typename.hash(state);
+                constraints.hash(state);
+            }
+            Self::Interface {
+                name,
+                description,
+                fields,
+                possible_types,
+                extends,
+                keys,
+                visible: _,
+                rust_typename,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                fields.as_slice().hash(state);
+                possible_types.as_slice().hash(state);
+                extends.hash(state);
+                keys.hash(state);
+                rust_typename.hash(state);
+            }
+            Self::Enum {
+                name,
+                description,
+                enum_values,
+                visible: _,
+                rust_typename,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                enum_values.as_slice().hash(state);
+                rust_typename.hash(state);
+            }
+            Self::Union {
+                name,
+                description,
+                possible_types,
+                visible: _,
+                rust_typename,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                possible_types.as_slice().hash(state);
+                rust_typename.hash(state);
+            }
+            Self::InputObject {
+                name,
+                description,
+                input_fields,
+                visible: _,
+                rust_typename,
+                oneof,
+            } => {
+                name.hash(state);
+                description.hash(state);
+                input_fields.as_slice().hash(state);
+                oneof.hash(state);
+                rust_typename.hash(state);
+            }
+        }
+    }
+}
+
+// PartialEq custom implementation must be done as we can't derive Hash Indexmap Implementation.
+impl PartialEq for MetaType {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (
+                Self::Scalar {
+                    name,
+                    description,
+                    specified_by_url,
+                    visible: _,
+                    is_valid: _,
+                },
+                Self::Scalar {
+                    name: o_name,
+                    description: o_descrition,
+                    specified_by_url: o_specified_by_url,
+                    visible: _,
+                    is_valid: _,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_descrition)
+                    && specified_by_url.eq(o_specified_by_url)
+            }
+            (
+                Self::Object {
+                    name,
+                    description,
+                    fields,
+                    cache_control,
+                    extends,
+                    keys,
+                    visible: _,
+                    is_subscription,
+                    is_node,
+                    rust_typename,
+                    constraints,
+                },
+                Self::Object {
+                    name: o_name,
+                    description: o_description,
+                    fields: o_fields,
+                    cache_control: o_cache_control,
+                    extends: o_extends,
+                    keys: o_keys,
+                    visible: _,
+                    is_subscription: o_is_subscription,
+                    is_node: o_is_node,
+                    rust_typename: o_rust_typename,
+                    constraints: o_constraints,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_description)
+                    && fields.as_slice().eq(o_fields.as_slice())
+                    && cache_control.eq(o_cache_control)
+                    && extends.eq(o_extends)
+                    && keys.eq(o_keys)
+                    && is_subscription.eq(o_is_subscription)
+                    && is_node.eq(o_is_node)
+                    && rust_typename.eq(o_rust_typename)
+                    && constraints.eq(o_constraints)
+            }
+            (
+                Self::Interface {
+                    name,
+                    description,
+                    fields,
+                    possible_types,
+                    extends,
+                    keys,
+                    visible: _,
+                    rust_typename,
+                },
+                Self::Interface {
+                    name: o_name,
+                    description: o_description,
+                    fields: o_fields,
+                    possible_types: o_possible_types,
+                    extends: o_extends,
+                    keys: o_keys,
+                    visible: _,
+                    rust_typename: o_rust_typename,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_description)
+                    && fields.as_slice().eq(o_fields.as_slice())
+                    && possible_types.as_slice().eq(o_possible_types.as_slice())
+                    && extends.eq(o_extends)
+                    && keys.eq(o_keys)
+                    && rust_typename.eq(o_rust_typename)
+            }
+            (
+                Self::Enum {
+                    name,
+                    description,
+                    enum_values,
+                    visible: _,
+                    rust_typename,
+                },
+                Self::Enum {
+                    name: o_name,
+                    description: o_description,
+                    enum_values: o_enum_values,
+                    visible: _,
+                    rust_typename: o_rust_typename,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_description)
+                    && enum_values.as_slice().eq(o_enum_values.as_slice())
+                    && rust_typename.eq(o_rust_typename)
+            }
+            (
+                Self::Union {
+                    name,
+                    description,
+                    possible_types,
+                    visible: _,
+                    rust_typename,
+                },
+                Self::Union {
+                    name: o_name,
+                    description: o_description,
+                    possible_types: o_possible_types,
+                    visible: _,
+                    rust_typename: o_rust_typename,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_description)
+                    && possible_types.as_slice().eq(o_possible_types.as_slice())
+                    && rust_typename.eq(o_rust_typename)
+            }
+            (
+                Self::InputObject {
+                    name,
+                    description,
+                    input_fields,
+                    visible: _,
+                    rust_typename,
+                    oneof,
+                },
+                Self::InputObject {
+                    name: o_name,
+                    description: o_description,
+                    input_fields: o_input_fields,
+                    visible: _,
+                    rust_typename: o_rust_typename,
+                    oneof: o_oneof,
+                },
+            ) => {
+                name.eq(o_name)
+                    && description.eq(o_description)
+                    && input_fields.as_slice().eq(o_input_fields.as_slice())
+                    && oneof.eq(o_oneof)
+                    && rust_typename.eq(o_rust_typename)
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for MetaType {}
+
 impl MetaType {
     #[inline]
     pub fn field_by_name(&self, name: &str) -> Option<&MetaField> {
@@ -730,7 +1049,7 @@ impl MetaType {
     }
 }
 
-#[derive(derivative::Derivative, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub struct MetaDirective {
     pub name: String,
@@ -743,7 +1062,7 @@ pub struct MetaDirective {
     pub visible: Option<MetaVisibleFn>,
 }
 
-#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
     pub directives: HashMap<String, MetaDirective>,

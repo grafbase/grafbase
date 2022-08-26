@@ -1,4 +1,5 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::runtime::Runtime;
 use crate::DynamoDBContext;
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
@@ -114,7 +115,7 @@ impl Loader<TxItem> for TransactionLoader {
 pub fn get_loader_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<TransactionLoader, LruCache> {
     DataLoader::with_cache(
         TransactionLoader { ctx },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
     .max_batch_size(25)

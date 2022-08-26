@@ -1,17 +1,18 @@
 //! Query context.
 
+use async_lock::RwLock as AsynRwLock;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{self, Debug, Display, Formatter};
+use std::hash::Hash;
 use std::ops::Deref;
-use std::pin::Pin;
 use std::sync::{Arc, Mutex, RwLock};
 
+use cached::UnboundCache;
 use derivative::Derivative;
 use dynaql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
-use futures_util::Future;
 use http::header::{AsHeaderName, HeaderMap, IntoHeaderName};
 use http::HeaderValue;
 use serde::ser::{SerializeSeq, Serializer};
@@ -22,6 +23,7 @@ use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
 use crate::registry::resolver_chain::ResolverChainNode;
+use crate::registry::resolvers::ResolvedValue;
 use crate::registry::Registry;
 use crate::registry::{get_basic_type, MetaInputValue, MetaType};
 use crate::schema::SchemaEnv;
@@ -97,7 +99,7 @@ pub type ContextDirective<'a> = ContextBase<'a, &'a Positioned<Directive>>;
 ///
 /// This is a borrowed form of [`PathSegment`](enum.PathSegment.html) used during execution instead
 /// of passed back when errors occur.
-#[derive(Debug, Clone, Copy, Serialize)]
+#[derive(Debug, Clone, Copy, Serialize, Hash, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum QueryPathSegment<'a> {
     /// We are currently resolving an element in a list.
@@ -226,9 +228,7 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
-type ResolverCacheType = Arc<
-    RwLock<HashMap<u64, Option<Pin<Box<dyn Future<Output = Result<Value, Error>> + Send + Sync>>>>>,
->;
+type ResolverCacheType = Arc<AsynRwLock<UnboundCache<u64, Result<ResolvedValue, Error>>>>;
 
 /// Query context.
 ///
@@ -303,7 +303,7 @@ impl QueryEnv {
             item,
             schema_env,
             query_env: self,
-            resolvers_cache: Default::default(),
+            resolvers_cache: Arc::new(AsynRwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
         }
     }

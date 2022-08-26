@@ -8,6 +8,7 @@ use tracing::{info_span, Instrument};
 
 use crate::constant::{PK, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::runtime::Runtime;
 use crate::DynamoDBContext;
 
 // TODO: Should ensure Rosoto Errors impl clone
@@ -99,7 +100,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 pub fn get_loader_batch_transaction(ctx: Arc<DynamoDBContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
     DataLoader::with_cache(
         BatchGetItemLoader { ctx },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(128),
     )
     .max_batch_size(100)

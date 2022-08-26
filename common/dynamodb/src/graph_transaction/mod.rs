@@ -4,6 +4,7 @@ use crate::model::constraint::db::ConstraintID;
 use crate::model::constraint::{ConstraintDefinition, ConstraintType};
 use crate::model::node::NodeID;
 use crate::paginated::QueryValue;
+use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
@@ -1398,7 +1399,7 @@ pub fn get_loader_transaction_new(
             #[cfg(feature = "local")]
             local_ctx,
         },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(128),
     )
     .max_batch_size(1024)

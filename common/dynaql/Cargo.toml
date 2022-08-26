@@ -26,14 +26,18 @@ chrono-duration = ["iso8601-duration"]
 password-strength-validator = ["zxcvbn"]
 unstable_oneof = ["dynaql-derive/unstable_oneof"]
 tracing_worker = ["logworker"]
+tokio_runtime = ["dynamodb/tokio_runtime"]
+wasm_runtime = ["dynamodb/wasm_runtime"]
 
 [dependencies]
 dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
+async-lock = "2.5"
 async-stream = "0.3"
 async-trait = "0.1"
+cached = { version = "0.38" }
 derivative = "2"
 dynomite = "0.10"
 fnv = "1"
@@ -41,7 +45,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "io",
     "sink",
 ] }
-indexmap = "~1.8"
+indexmap = { git = "https://github.com/bluss/indexmap", rev = "aa4ee74bec3f64f452aa107fecd2c1bd04abe66b" }
 itertools = "0.10"
 pin-project-lite = "0.2"
 regex = "1"
@@ -65,9 +69,7 @@ url = { version = "2" }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
-logworker = { path = "../log", package = "log", optional = true, features = [
-    "with-worker",
-] }
+logworker = { path = "../log", package = "log", optional = true}
 ulid-rs = { path = "../ulid-rs" }
 
 # Feature optional dependencies

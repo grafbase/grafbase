@@ -146,9 +146,13 @@ mod tests {
 
     #[test]
     fn ensure_constraint_new() {
-        const TEST_TY: &str = "__C_author_name_\"Val\"";
+        const TEST_TY: &str = "__C_author_name_\"Val_1\"";
 
-        let id = ConstraintID::from_owned("Author".into(), "name".into(), serde_json::Value::String("Val".into()));
+        let id = ConstraintID::from_owned(
+            "Author".into(),
+            "name".into(),
+            serde_json::Value::String("Val_1".into()),
+        );
 
         assert_eq!(id.to_string(), TEST_TY, "Should give the same result");
     }

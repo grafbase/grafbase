@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use async_lock::RwLock;
+use cached::UnboundCache;
 use futures_util::stream::{self, Stream, StreamExt};
 use indexmap::map::IndexMap;
 
@@ -568,7 +570,7 @@ impl Schema {
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
-            resolvers_cache: Default::default(),
+            resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
         };
 

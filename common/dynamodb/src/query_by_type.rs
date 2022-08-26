@@ -2,6 +2,7 @@ use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::paginated::{QueryResult, QueryValue};
+use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
@@ -213,7 +214,7 @@ pub fn get_loader_query_type(
 ) -> DataLoader<QueryTypeLoader, LruCache> {
     DataLoader::with_cache(
         QueryTypeLoader { ctx, index },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
     .max_batch_size(10)

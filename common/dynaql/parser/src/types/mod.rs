@@ -149,7 +149,7 @@ impl ConstDirective {
 /// A GraphQL directive, such as `@deprecated(reason: "Use the other field")`.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#Directive).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct Directive {
     /// The name of the directive.
     pub name: Positioned<Name>,

@@ -12,7 +12,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 #[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum DynamoResolver {
     /// A Query based on the PK and the SK
     ///
@@ -190,22 +190,26 @@ impl ResolverTrait for DynamoResolver {
                     .with_start(result.values.iter().next().map(|(pk, _)| pk.clone()))
                     .with_end(result.values.iter().last().map(|(pk, _)| pk.clone()))
                     .with_more_data(result.last_evaluated_key.is_some());
+
                 let result: Vec<serde_json::Value> = result
                     .values
-                    .into_iter()
+                    .iter()
                     .map(|(_, query_value)| {
                         let mut value_result: Map<String, serde_json::Value> =
-                            query_value.edges.into_iter().fold(
+                            query_value.edges.iter().fold(
                                 Map::with_capacity(len),
                                 |mut acc, (edge_key, dyna_value)| {
                                     let value = serde_json::to_value(dyna_value);
 
                                     match value {
                                         Ok(value) => {
-                                            acc.insert(edge_key, value);
+                                            acc.insert(edge_key.to_string(), value);
                                         }
                                         Err(err) => {
-                                            acc.insert(edge_key, serde_json::Value::Null);
+                                            acc.insert(
+                                                edge_key.to_string(),
+                                                serde_json::Value::Null,
+                                            );
                                             ctx.add_error(
                                                 Error::new_with_source(err)
                                                     .into_server_error(ctx.item.pos),
@@ -216,7 +220,7 @@ impl ResolverTrait for DynamoResolver {
                                 },
                             );
 
-                        match serde_json::to_value(query_value.node) {
+                        match serde_json::to_value(&query_value.node) {
                             Ok(value) => {
                                 value_result.insert(pk.clone(), value);
                             }
@@ -233,7 +237,7 @@ impl ResolverTrait for DynamoResolver {
                     .collect();
 
                 Ok(
-                    ResolvedValue::new(serde_json::Value::Array(result))
+                    ResolvedValue::new(Arc::new(serde_json::Value::Array(result)))
                         .with_pagination(pagination),
                 )
             }
@@ -312,7 +316,9 @@ impl ResolverTrait for DynamoResolver {
                     })
                     .collect();
 
-                Ok(ResolvedValue::new(serde_json::Value::Array(result)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(
+                    result,
+                ))))
             }
             DynamoResolver::QueryPKSK { pk, sk } => {
                 let pk = match pk
@@ -342,16 +348,15 @@ impl ResolverTrait for DynamoResolver {
                         Some(dyna) => {
                             let value = serde_json::to_value(dyna)
                                 .map_err(|err| Error::new(err.to_string()))?;
-                            return Ok(ResolvedValue::new(serde_json::json!({
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                                 current_ty: value,
-                            })));
+                            }))));
                         }
                         // If we do not have any value inside our fetch, it's not an
                         // error, it's only we didn't found the value.
                         None => {
-                            return Ok(
-                                ResolvedValue::new(serde_json::Value::Null).with_early_return()
-                            );
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
+                                .with_early_return());
                         }
                     }
                 }
@@ -387,7 +392,9 @@ impl ResolverTrait for DynamoResolver {
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(ResolvedValue::new(serde_json::Value::Null).with_early_return());
+                    return Ok(
+                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
+                    );
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -406,7 +413,9 @@ impl ResolverTrait for DynamoResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::new(serde_json::Value::Object(result)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
+                    result,
+                ))))
             }
         }
     }

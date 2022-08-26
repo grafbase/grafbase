@@ -16,7 +16,7 @@ use dynomite::AttributeValue;
 use std::collections::HashMap;
 
 /// Describe the Transformer step used to transform a Value from the Resolver.
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum Transformer {
     Functions {
         /// Functions to be applied to a Value.
@@ -35,7 +35,7 @@ pub enum Transformer {
 }
 
 /// JSONFunction to be applied to the Value
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum JSONFunction {
     ExtractCompositeID,
 }
