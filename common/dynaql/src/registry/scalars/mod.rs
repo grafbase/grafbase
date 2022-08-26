@@ -3,6 +3,7 @@ use std::str::FromStr;
 use chrono::{DateTime, Utc};
 use const_format::concatcp;
 use dynaql_value::ConstValue;
+use fast_chemail::parse_email;
 use url::Url;
 
 use crate::{InputValueError, InputValueResult};
@@ -18,6 +19,7 @@ pub enum PossibleScalar {
     DateTime,
     JSON,
     Url,
+    Email,
 }
 
 const SPECIFIED_BY_DIRECTIVE: &str = r#"
@@ -47,6 +49,13 @@ Any JSON value.
 scalar JSON
 "#;
 
+const EMAIL_DIRECTIVE: &str = r#"
+"""
+A scalar to validate the email as it is defined in the HTML specification.
+"""
+scalar Email @specifiedBy(url: "https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address"
+"#;
+
 impl PossibleScalar {
     /// Function to **check** if the inputed value is able to be cast into the expected type.
     /// TODO: In the future, we should also do more than just a check at the request parsing, we
@@ -65,6 +74,9 @@ impl PossibleScalar {
             (Self::Url, ConstValue::String(value)) => Url::from_str(value)
                 .map_err(|err| InputValueError::ty_custom("Url", err))
                 .map(|_| true),
+            (Self::Email, ConstValue::String(value)) => parse_email(value)
+                .map_err(|err| InputValueError::ty_custom("Email", err))
+                .map(|_| true),
             (Self::JSON, ConstValue::Object(_)) => Ok(true),
             _ => Ok(false),
         }
@@ -79,7 +91,9 @@ impl PossibleScalar {
             '\n',
             JSON_DIRECTIVE,
             '\n',
-            URL_DIRECTIVE
+            URL_DIRECTIVE,
+            '\n',
+            EMAIL_DIRECTIVE
         )
     }
 }
@@ -102,6 +116,7 @@ impl TryFrom<&str> for PossibleScalar {
             "DateTime" => Ok(PossibleScalar::DateTime),
             "JSON" => Ok(PossibleScalar::JSON),
             "Url" => Ok(PossibleScalar::Url),
+            "Email" => Ok(PossibleScalar::Email),
             _ => Err(PossibleScalarErrors::NotAScalar {
                 expected_ty: value.to_string(),
             }),
@@ -151,5 +166,25 @@ mod tests {
 
         let scalar = PossibleScalar::Url.check_valid(&const_value);
         assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn check_mail_valid() {
+        let value = serde_json::Value::String("anthony@grafbase.com".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::Email.check_valid(&const_value);
+        assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn check_not_mail_valid() {
+        let value = serde_json::Value::String("anthony @grafbase.com".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::Email.check_valid(&const_value);
+        assert!(scalar.is_err());
     }
 }
