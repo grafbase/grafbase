@@ -1,0 +1,8 @@
+node_modules
+dist
+
+.cache
+.env
+.vercel
+.output
+.DS_Store
