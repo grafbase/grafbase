@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
@@ -39,6 +41,14 @@ quick_error! {
 
 /// Transform the input schema into a Registry
 pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
+    to_registry_with_variables(input, &HashMap::new())
+}
+
+/// Transform the input schema into a Registry in the context of provided environment variables
+pub fn to_registry_with_variables<S: AsRef<str>>(
+    input: S,
+    variables: &HashMap<String, String>,
+) -> Result<Registry, Error> {
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckModelizedFieldReserved)
@@ -57,7 +67,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
 
     let schema = parse_schema(schema)?;
 
-    let mut ctx = VisitorContext::new(&schema);
+    let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
     visit(&mut rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {

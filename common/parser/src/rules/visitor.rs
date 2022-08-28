@@ -32,7 +32,7 @@ pub struct VisitorContext<'a> {
     /// Relations by name
     pub(crate) relations: IndexMap<String, MetaRelation>,
     pub registry: RefCell<Registry>,
-    variables: HashMap<String, String>,
+    variables: &'a HashMap<String, String>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -57,11 +57,15 @@ fn add_fake_scalar<'a>(types: &mut HashMap<String, Cow<'a, Positioned<TypeDefini
 }
 
 impl<'a> VisitorContext<'a> {
+    #[allow(dead_code)] // Used in tests.
     pub(crate) fn new(document: &'a ServiceDocument) -> Self {
-        Self::new_with_variables(document, Default::default())
+        lazy_static::lazy_static! {
+            static ref EMPTY_HASHMAP: HashMap<String, String> = HashMap::new();
+        }
+        Self::new_with_variables(document, &EMPTY_HASHMAP)
     }
 
-    pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: HashMap<String, String>) -> Self {
+    pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
         let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();

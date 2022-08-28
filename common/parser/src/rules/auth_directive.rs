@@ -270,8 +270,9 @@ mod tests {
         ($fn_name:ident, $schema:literal, $variables:expr, $expect:expr) => {
             #[test]
             fn $fn_name() {
+                let variables = $variables;
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new_with_variables(&schema, $variables);
+                let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
 
                 assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
@@ -287,8 +288,9 @@ mod tests {
         ($fn_name:ident, $schema:literal, $variables:expr, $err:literal) => {
             #[test]
             fn $fn_name() {
+                let variables = $variables;
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new_with_variables(&schema, $variables);
+                let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
 
                 assert_eq!(ctx.errors.len(), 1);
