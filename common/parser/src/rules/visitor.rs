@@ -233,7 +233,7 @@ impl<'a> VisitorContext<'a> {
             if let Some(variable_name) = key.strip_prefix("env.") {
                 println!("{variable_name}");
                 if let Some(variable_value) = self.variables.get(variable_name) {
-                    &variable_value
+                    variable_value
                 } else {
                     errors.push(format!("undefined variable `{variable_name}`"));
                     ""

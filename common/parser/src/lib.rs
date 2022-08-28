@@ -67,7 +67,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
 
     let schema = parse_schema(schema)?;
 
-    let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+    let mut ctx = VisitorContext::new_with_variables(&schema, variables);
     visit(&mut rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {
