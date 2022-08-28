@@ -30,7 +30,7 @@ struct Auth {
 #[serde(deny_unknown_fields)]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
-    Oidc { issuer: url::Url },
+    Oidc { issuer: String },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -86,7 +86,7 @@ impl<'a> Visitor<'a> for AuthDirective {
             .iter()
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
-            match (&directive.node).try_into() as Result<Auth, ServerError> {
+            match Auth::from_value(ctx, &directive.node) {
                 Ok(auth) => {
                     ctx.registry.get_mut().auth = auth.into();
                 }
@@ -98,17 +98,15 @@ impl<'a> Visitor<'a> for AuthDirective {
     }
 }
 
-impl TryFrom<&ConstDirective> for Auth {
-    type Error = ServerError;
-
-    fn try_from(value: &ConstDirective) -> Result<Self, Self::Error> {
+impl Auth {
+    fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
         let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
                 ConstValue::List(value) if !value.is_empty() => value
                     .iter()
-                    .map(AuthProvider::try_from)
+                    .map(|value| AuthProvider::from_value(ctx, value))
                     .collect::<Result<_, _>>()
                     .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth providers must be a non-empty list", pos)),
@@ -120,7 +118,7 @@ impl TryFrom<&ConstDirective> for Auth {
             Some(arg) => match &arg.node {
                 ConstValue::List(value) if !value.is_empty() => value
                     .iter()
-                    .map(AuthRule::try_from)
+                    .map(|value| AuthRule::from_value(ctx, value))
                     .collect::<Result<_, _>>()
                     .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
@@ -189,10 +187,8 @@ impl TryFrom<&ConstDirective> for Auth {
     }
 }
 
-impl TryFrom<&ConstValue> for AuthProvider {
-    type Error = ServerError;
-
-    fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
+impl AuthProvider {
+    fn from_value(ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
         // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
@@ -202,17 +198,22 @@ impl TryFrom<&ConstValue> for AuthProvider {
             _ => return Err(ServerError::new("auth provider must be an object", None)),
         };
 
-        let provider: AuthProvider =
+        let mut provider: AuthProvider =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
+
+        let &mut AuthProvider::Oidc { ref mut issuer } = &mut provider;
+        ctx.expand_variables(issuer)?;
+        if let Err(err) = issuer.parse::<url::Url>() {
+            // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
+            return Err(ServerError::new(format!("auth provider: {err}"), None));
+        }
 
         Ok(provider)
     }
 }
 
-impl TryFrom<&ConstValue> for AuthRule {
-    type Error = ServerError;
-
-    fn try_from(value: &ConstValue) -> Result<Self, Self::Error> {
+impl AuthRule {
+    fn from_value(_ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
         // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
@@ -243,7 +244,9 @@ impl From<Auth> for dynaql::AuthConfig {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider { issuer: issuer.clone() },
+                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider {
+                        issuer: issuer.parse().unwrap(),
+                    },
                 })
                 .collect(),
         }
@@ -252,6 +255,8 @@ impl From<Auth> for dynaql::AuthConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::*;
     use crate::rules::visitor::visit;
     use dynaql::Operation;
@@ -260,13 +265,16 @@ mod tests {
 
     macro_rules! parse_test {
         ($fn_name:ident, $schema:literal, $expect:expr) => {
+            parse_test!($fn_name, $schema, HashMap::new(), $expect);
+        };
+        ($fn_name:ident, $schema:literal, $variables:expr, $expect:expr) => {
             #[test]
             fn $fn_name() {
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new(&schema);
+                let mut ctx = VisitorContext::new_with_variables(&schema, $variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
 
-                assert!(ctx.errors.is_empty());
+                assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
                 assert_eq!(ctx.registry.borrow().auth, $expect);
             }
         };
@@ -274,10 +282,13 @@ mod tests {
 
     macro_rules! parse_fail {
         ($fn_name:ident, $schema:literal, $err:literal) => {
+            parse_fail!($fn_name, $schema, HashMap::new(), $err);
+        };
+        ($fn_name:ident, $schema:literal, $variables:expr, $err:literal) => {
             #[test]
             fn $fn_name() {
                 let schema = parse_schema($schema).unwrap();
-                let mut ctx = VisitorContext::new(&schema);
+                let mut ctx = VisitorContext::new_with_variables(&schema, $variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
 
                 assert_eq!(ctx.errors.len(), 1);
@@ -340,6 +351,54 @@ mod tests {
             }],
             ..Default::default()
         }
+    );
+
+    parse_test!(
+        issuer_url_from_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),]),
+        dynaql::Auth {
+            allowed_private_ops: Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_fail!(
+        issuer_url_from_nonexistent_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "undefined variable `ISSUER_URL`"
+    );
+
+    parse_fail!(
+        issuer_url_from_invalid_template_key,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
 
     parse_test!(

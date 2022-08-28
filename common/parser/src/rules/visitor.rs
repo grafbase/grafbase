@@ -2,12 +2,13 @@ use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{MetaField, Registry};
-use dynaql::{Name, OutputType, Pos, Positioned, Schema};
+use dynaql::{Name, OutputType, Pos, Positioned, Schema, ServerError};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use dynaql_value::ConstValue;
+use regex::Regex;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
@@ -31,6 +32,7 @@ pub struct VisitorContext<'a> {
     /// Relations by name
     pub(crate) relations: IndexMap<String, MetaRelation>,
     pub registry: RefCell<Registry>,
+    variables: HashMap<String, String>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -56,6 +58,10 @@ fn add_fake_scalar<'a>(types: &mut HashMap<String, Cow<'a, Positioned<TypeDefini
 
 impl<'a> VisitorContext<'a> {
     pub(crate) fn new(document: &'a ServiceDocument) -> Self {
+        Self::new_with_variables(document, Default::default())
+    }
+
+    pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: HashMap<String, String>) -> Self {
         let mut schema = Vec::new();
         let mut types = HashMap::new();
         let mut directives = HashMap::new();
@@ -91,6 +97,7 @@ impl<'a> VisitorContext<'a> {
             mutations: Default::default(),
             queries: Default::default(),
             relations: Default::default(),
+            variables,
         }
     }
 
@@ -209,6 +216,38 @@ impl<'a> VisitorContext<'a> {
         self.type_stack.push((None, ty));
         f(self);
         self.type_stack.pop();
+    }
+
+    pub fn expand_variables(&self, string: &mut String) -> Result<(), ServerError> {
+        lazy_static::lazy_static! {
+            static ref RE: Regex = Regex::new(r"\{\{\s+([[[:alnum:]]_.]+)\s+\}\}").unwrap();
+        }
+
+        let mut errors = vec![];
+        let result = RE.replace_all(string, |caps: &regex::Captures<'_>| {
+            let key = &caps[1];
+            if let Some(variable_name) = key.strip_prefix("env.") {
+                println!("{variable_name}");
+                if let Some(variable_value) = self.variables.get(variable_name) {
+                    &variable_value
+                } else {
+                    errors.push(format!("undefined variable `{variable_name}`"));
+                    ""
+                }
+            } else {
+                errors.push(format!(
+                    "right now only variables scoped with 'env.' are supported: `{key}`"
+                ));
+                ""
+            }
+        });
+
+        if let Some(first_error) = errors.pop() {
+            return Err(ServerError::new(first_error, None));
+        } else if let Cow::Owned(changed) = result {
+            *string = changed;
+        }
+        Ok(())
     }
 }
 
