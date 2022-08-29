@@ -1,6 +1,6 @@
 type User @model {
   id: ID!
-  email: String! @unique
+  email: Email! @unique
   name: String!
   posts: [Post]
 }
