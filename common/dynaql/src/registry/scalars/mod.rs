@@ -53,7 +53,7 @@ const EMAIL_DIRECTIVE: &str = r#"
 """
 A scalar to validate the email as it is defined in the HTML specification.
 """
-scalar Email @specifiedBy(url: "https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address"
+scalar Email @specifiedBy(url: "https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address")
 "#;
 
 impl PossibleScalar {
