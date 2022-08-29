@@ -21,14 +21,15 @@ use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
 use crate::registry::{add_create_mutation, add_update_mutation};
-use crate::utils::is_id_type_and_non_nullable;
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
+use crate::utils::{is_id_type_and_non_nullable, pagination_arguments};
+use case::CaseExt;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::MetaType;
+use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
@@ -78,17 +79,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 generate_metarelation(&type_definition.node, &field.node)
                             });
 
-                            // Property which correspond to the fact that the expecting node got
-                            // edges
-                            let is_node = ty.and_then(|x| {
-                                match &x.node.kind {
-                                    TypeKind::Object(obj) => Some(obj),
-                                    _ => None
-                                }
-                            }).and_then(|obj| {
-                                obj.fields.iter().find(|field| is_modelized_node(&ctx.types, &field.node.ty.node).is_some())
-                            }).is_some();
-
                             let is_edge = relation.as_ref().map(|x| {
                                 let target_ty = Type::new(x.relation.1.as_str()).expect("shouldn't fail");
                                 is_modelized_node(&ctx.types, &target_ty).is_some()
@@ -106,13 +96,23 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 }])
                             };
 
+                            let is_expecting_array = is_array_basic_type(&field.node.ty.to_string());
+                            let relation_array = relation.is_some() && is_expecting_array;
+
                             let resolve = match (is_edge, &relation) {
                                 (true, Some(relation)) => Some(Resolver {
-                                    id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
-                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::Edge {
-                                        key: relation.name.clone(),
-                                        is_node,
-                                        expected_ty: to_base_type_str(&field.node.ty.node.base),
+                                    id: Some(format!("{}_edge_resolver", relation.relation.0.to_lowercase())),
+                                    r#type: ResolverType::ContextDataResolver(if relation_array {
+                                        ContextDataResolver::EdgeArray {
+                                            key: relation.relation.0.clone(),
+                                            relation_name: relation.name.clone(),
+                                            expected_ty: to_base_type_str(&field.node.ty.node.base),
+                                        }
+                                    } else {
+                                        ContextDataResolver::SingleEdge {
+                                            key: relation.relation.0.clone(),
+                                            relation_name: relation.name.clone(),
+                                        }
                                     }),
                                 }),
                                 (false, Some(relation)) => Some(Resolver {
@@ -129,8 +129,16 @@ impl<'a> Visitor<'a> for ModelDirective {
                             fields.insert(name.clone(), MetaField {
                                 name,
                                 description: field.node.description.clone().map(|x| x.node),
-                                args: Default::default(),
-                                ty: field.node.ty.clone().node.to_string(),
+                                args: if relation_array {
+                                    pagination_arguments()
+                                } else {
+                                    Default::default()
+                                },
+                                ty: if relation_array {
+                                    format!("{}Connection", to_base_type_str(&field.node.ty.node.base).to_camel())
+                                } else {
+                                    field.node.ty.clone().node.to_string()
+                                },
                                 deprecation: Default::default(),
                                 cache_control: Default::default(),
                                 external: false,

@@ -204,7 +204,36 @@ expression: reg_string
             "ty": "String!"
           },
           "posts": {
-            "args": {},
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -232,16 +261,17 @@ expression: reg_string
               "id": "author_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "Edge": {
+                  "RelationArray": {
                     "expected_ty": "Post",
                     "is_node": true,
-                    "key": "published"
+                    "key": "Author",
+                    "relation_name": "published"
                   }
                 }
               }
             },
             "transforms": null,
-            "ty": "[Post]"
+            "ty": "PostConnection"
           }
         },
         "is_node": true,
@@ -747,10 +777,9 @@ expression: reg_string
               "id": "blog_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "Edge": {
-                    "expected_ty": "Author",
-                    "is_node": true,
-                    "key": "AuthorRelateBlog"
+                  "SingleRelation": {
+                    "key": "Blog",
+                    "relation_name": "AuthorRelateBlog"
                   }
                 }
               }
@@ -759,7 +788,36 @@ expression: reg_string
             "ty": "Author!"
           },
           "posts": {
-            "args": {},
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -787,16 +845,17 @@ expression: reg_string
               "id": "blog_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "Edge": {
+                  "RelationArray": {
                     "expected_ty": "Post",
                     "is_node": true,
-                    "key": "BlogRelatePost"
+                    "key": "Blog",
+                    "relation_name": "BlogRelatePost"
                   }
                 }
               }
             },
             "transforms": null,
-            "ty": "[Post]"
+            "ty": "PostConnection"
           }
         },
         "is_node": true,
@@ -1901,7 +1960,36 @@ expression: reg_string
         "extends": false,
         "fields": {
           "authors": {
-            "args": {},
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String"
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String"
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int"
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int"
+              }
+            },
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1929,16 +2017,17 @@ expression: reg_string
               "id": "post_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "Edge": {
+                  "RelationArray": {
                     "expected_ty": "Author",
                     "is_node": true,
-                    "key": "published"
+                    "key": "Post",
+                    "relation_name": "published"
                   }
                 }
               }
             },
             "transforms": null,
-            "ty": "[Author]"
+            "ty": "AuthorConnection"
           },
           "content": {
             "args": {},
@@ -2556,6 +2645,7 @@ expression: reg_string
                     "last": {
                       "InputTypeName": "last"
                     },
+                    "nested": null,
                     "type": {
                       "DebugString": "Author"
                     }
@@ -2668,6 +2758,7 @@ expression: reg_string
                     "last": {
                       "InputTypeName": "last"
                     },
+                    "nested": null,
                     "type": {
                       "DebugString": "Blog"
                     }
@@ -2780,6 +2871,7 @@ expression: reg_string
                     "last": {
                       "InputTypeName": "last"
                     },
+                    "nested": null,
                     "type": {
                       "DebugString": "Post"
                     }

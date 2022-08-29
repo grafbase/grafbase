@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 146
 expression: sdl
 ---
 type Mutation {
@@ -85,7 +84,7 @@ type TodoEdge {
 type TodoList {
 	id: ID!
 	title: String!
-	todos: [Todo]
+	todos(after: String, before: String, first: Int, last: Int): TodoConnection
 }
 type TodoListConnection {
 	"""

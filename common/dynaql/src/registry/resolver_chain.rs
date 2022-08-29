@@ -118,13 +118,27 @@ impl<'a> ResolverChainNode<'a> {
     fn get_arguments_internal(
         &'a self,
     ) -> Box<dyn Iterator<Item = (Positioned<Name>, Positioned<Value>)> + 'a> {
-        match self
-            .executable_field
-            // TODO: Remove cloning when reworking the variable resolution.
-            // Not so trivial as it would mean a lot of changes inside functions.
-            .map(|f| f.node.arguments.clone().into_iter())
-        {
-            Some(x) => Box::new(x),
+        match (self.field, self.executable_field) {
+            (Some(field), Some(executable_field)) => {
+                let arguments = field.args.iter().map(|(field_argument_name, _)| {
+                    match executable_field
+                        .node
+                        .arguments
+                        .iter()
+                        .find(|(name, _)| name.node.as_str() == field_argument_name)
+                    {
+                        Some(executable_field_argument) => executable_field_argument.clone(),
+                        None => (
+                            Positioned::new(Name::new(field_argument_name), executable_field.pos),
+                            Positioned::new(Value::Null, executable_field.pos),
+                        ),
+                    }
+                });
+                Box::new(arguments)
+            }
+            (None, Some(executable_field)) => {
+                Box::new(executable_field.node.arguments.clone().into_iter())
+            }
             _ => Box::new(std::iter::empty::<(Positioned<Name>, Positioned<Value>)>()),
         }
     }

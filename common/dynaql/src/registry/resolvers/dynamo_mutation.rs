@@ -798,12 +798,18 @@ fn relation_handle<'a>(
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
 ) -> Vec<RecursiveCreation<'a>> {
+    let child_ty_name = &type_to_base_type(
+        &parent_ty
+            .field_by_name(relation_field)
+            .unwrap()
+            .ty
+            // we want to persist the underlying type rather than the connection
+            .trim_end_matches("Connection"),
+    )
+    .unwrap();
+
     // We determinate the subtype of this relation
-    let child_ty: &MetaType = ctx
-        .registry()
-        .types
-        .get(&type_to_base_type(&parent_ty.field_by_name(relation_field).unwrap().ty).unwrap())
-        .unwrap();
+    let child_ty: &MetaType = ctx.registry().types.get(child_ty_name).unwrap();
 
     // We need to tell if it's a `create` or a `link`
     // So we get the child input first

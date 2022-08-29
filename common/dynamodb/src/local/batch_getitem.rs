@@ -1,6 +1,7 @@
 use super::bridge_api;
 use super::types::{Operation, Record, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::runtime::Runtime;
 use crate::LocalContext;
 use dynomite::AttributeValue;
 use maplit::hashmap;
@@ -69,7 +70,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 pub fn get_loader_batch_transaction(local_ctx: Arc<LocalContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
     DataLoader::with_cache(
         BatchGetItemLoader { local_ctx },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(128),
     )
     .max_batch_size(100)

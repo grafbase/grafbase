@@ -4,26 +4,31 @@ cfg_if::cfg_if! {
         mod query;
         mod query_by_type;
         mod query_by_type_paginated;
+        mod query_single_by_relation;
 
         use batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
         use query::get_loader_query;
         use query_by_type::get_loader_query_type;
         use query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
+        use query_single_by_relation::get_loader_single_relation_query;
 
         pub use query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
         pub use query::{QueryKey, QueryLoader, QueryLoaderError};
         pub use batch_getitem::BatchGetItemLoaderError;
         pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
+        pub use query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
     } else {
         mod local;
 
         use local::batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
         use local::query::get_loader_query;
+        use local::query_single_by_relation::get_loader_single_relation_query;
         use local::query_by_type::get_loader_query_type;
         use local::query_by_type_paginated::{get_loader_paginated_query_type, QueryTypePaginatedLoader};
 
         pub use local::query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
         pub use local::query_by_type::{QueryTypeKey, QueryTypeLoader, QueryTypeLoaderError};
+        pub use local::query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
         pub use local::query::{QueryKey, QueryLoader, QueryLoaderError};
         pub use local::local_context::LocalContext;
         pub use local::batch_getitem::BatchGetItemLoaderError;
@@ -247,6 +252,8 @@ pub struct DynamoDBBatchersData {
     pub paginated_query_fat: DataLoader<QueryTypePaginatedLoader, LruCache>,
     /// Bl
     pub transaction_new: DataLoader<NewTransactionLoader, LruCache>,
+    /// Used to load single relations
+    pub query_single_relation: DataLoader<QuerySingleRelationLoader, LruCache>,
 }
 
 #[cfg(not(feature = "local"))]
@@ -264,6 +271,7 @@ impl DynamoDBBatchersData {
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
+            query_single_relation: get_loader_single_relation_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
         })
     }
 }
@@ -283,6 +291,10 @@ impl DynamoDBBatchersData {
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone(), Arc::clone(local_ctx)),
+            query_single_relation: get_loader_single_relation_query(
+                Arc::clone(local_ctx),
+                DynamoDBRequestedIndex::None,
+            ),
         })
     }
 }

@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 260
 expression: sdl
 ---
 type Author {
@@ -8,7 +7,7 @@ type Author {
 	name: String!
 	lastname: String!
 	country: Country!
-	posts: [Post]
+	posts(after: String, before: String, first: Int, last: Int): PostConnection
 }
 type AuthorConnection {
 	"""
@@ -71,7 +70,7 @@ type AuthorUpdatePayload {
 }
 type Blog {
 	id: ID!
-	posts: [Post]
+	posts(after: String, before: String, first: Int, last: Int): PostConnection
 	owner: Author!
 }
 """
@@ -205,7 +204,7 @@ type PageInfo {
 type Post {
 	id: ID!
 	content: String!
-	authors: [Author]
+	authors(after: String, before: String, first: Int, last: Int): AuthorConnection
 }
 type PostConnection {
 	"""
