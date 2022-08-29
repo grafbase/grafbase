@@ -1,3 +1,4 @@
+use std::net::IpAddr;
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
@@ -20,6 +21,7 @@ pub enum PossibleScalar {
     JSON,
     Url,
     Email,
+    IPAddress,
 }
 
 const SPECIFIED_BY_DIRECTIVE: &str = r#"
@@ -56,6 +58,13 @@ A scalar to validate the email as it is defined in the HTML specification.
 scalar Email @specifiedBy(url: "https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address")
 "#;
 
+const IPADDRESS_DIRECTIVE: &str = r#"
+"""
+A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation (123.12.34.56). IPv6 addresses are expected in non-bracketed, colon-separated format (1a2b:3c4b::1234:4567).
+"""
+scalar IPAddress @specifiedBy(url: "https://tools.ietf.org/html/rfc4291")
+"#;
+
 impl PossibleScalar {
     /// Function to **check** if the inputed value is able to be cast into the expected type.
     /// TODO: In the future, we should also do more than just a check at the request parsing, we
@@ -69,6 +78,11 @@ impl PossibleScalar {
             (Self::DateTime, ConstValue::String(date)) => {
                 date.parse::<DateTime<Utc>>()
                     .map_err(|err| InputValueError::ty_custom("DateTime", err))?;
+                Ok(true)
+            }
+            (Self::IPAddress, ConstValue::String(ip)) => {
+                ip.parse::<IpAddr>()
+                    .map_err(|err| InputValueError::ty_custom("IPAddress", err))?;
                 Ok(true)
             }
             (Self::Url, ConstValue::String(value)) => Url::from_str(value)
@@ -93,7 +107,9 @@ impl PossibleScalar {
             '\n',
             URL_DIRECTIVE,
             '\n',
-            EMAIL_DIRECTIVE
+            EMAIL_DIRECTIVE,
+            '\n',
+            IPADDRESS_DIRECTIVE,
         )
     }
 }
@@ -117,6 +133,7 @@ impl TryFrom<&str> for PossibleScalar {
             "JSON" => Ok(PossibleScalar::JSON),
             "URL" => Ok(PossibleScalar::Url),
             "Email" => Ok(PossibleScalar::Email),
+            "IPAddress" => Ok(PossibleScalar::IPAddress),
             _ => Err(PossibleScalarErrors::NotAScalar {
                 expected_ty: value.to_string(),
             }),
@@ -185,6 +202,26 @@ mod tests {
         let const_value = ConstValue::from_json(value).unwrap();
 
         let scalar = PossibleScalar::Email.check_valid(&const_value);
+        assert!(scalar.is_err());
+    }
+
+    #[test]
+    fn check_valid_ip_address_ipv4() {
+        let value = serde_json::Value::String("127.0.0.1".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
+        assert!(scalar.is_err());
+    }
+
+    #[test]
+    fn check_valid_ip_address_ipv6() {
+        let value = serde_json::Value::String("::1".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
         assert!(scalar.is_err());
     }
 }
