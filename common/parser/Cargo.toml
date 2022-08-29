@@ -9,6 +9,7 @@ dynaql-value = { path = "../dynaql/value" }
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 case = "1"
 if_chain = "1"
+itertools = "0.10"
 lazy_static = "1"
 quick-error = "2"
 regex = "1"

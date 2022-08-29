@@ -223,6 +223,8 @@ impl<'a> VisitorContext<'a> {
     }
 
     pub fn expand_variables(&self, string: &mut String) -> Result<(), ServerError> {
+        use itertools::Itertools;
+
         lazy_static::lazy_static! {
             static ref RE: Regex = Regex::new(r"\{\{\s+([[[:alnum:]]_.]+)\s+\}\}").unwrap();
         }
@@ -230,8 +232,8 @@ impl<'a> VisitorContext<'a> {
         let mut errors = vec![];
         let result = RE.replace_all(string, |caps: &regex::Captures<'_>| {
             let key = &caps[1];
-            if let Some(variable_name) = key.strip_prefix("env.") {
-                println!("{variable_name}");
+            let path = key.split('.');
+            if let Some(("env", variable_name)) = path.collect_tuple() {
                 if let Some(variable_value) = self.variables.get(variable_name) {
                     variable_value
                 } else {
