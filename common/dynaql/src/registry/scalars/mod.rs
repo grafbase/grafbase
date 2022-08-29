@@ -1,10 +1,10 @@
-use std::str::FromStr;
-
 use chrono::{DateTime, Utc};
 use const_format::concatcp;
 use dynaql_value::ConstValue;
 use fast_chemail::parse_email;
 use ipnet::IpNet;
+use std::net::IpAddr;
+use std::str::FromStr;
 use url::Url;
 
 use crate::{InputValueError, InputValueResult};
@@ -83,9 +83,14 @@ impl PossibleScalar {
                 Ok(true)
             }
             (Self::IPAddress, ConstValue::String(ip)) => {
-                ip.parse::<IpNet>()
-                    .map_err(|err| InputValueError::ty_custom("IPAddress", err))?;
-                Ok(true)
+                ip.parse::<IpNet>().map(|_| true).or_else(|_| {
+                    ip.parse::<IpAddr>().map(|_| true).map_err(|_| {
+                        InputValueError::ty_custom(
+                            "IPAddress",
+                            "Can't parse it into an IP address or an IP range.",
+                        )
+                    })
+                })
             }
             (Self::Url, ConstValue::String(value)) => Url::from_str(value)
                 .map_err(|err| InputValueError::ty_custom("URL", err))
@@ -214,7 +219,8 @@ mod tests {
         let const_value = ConstValue::from_json(value).unwrap();
 
         let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
-        assert!(scalar.is_err());
+        dbg!(&scalar);
+        assert!(scalar.is_ok());
     }
 
     #[test]
@@ -224,7 +230,7 @@ mod tests {
         let const_value = ConstValue::from_json(value).unwrap();
 
         let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
-        assert!(scalar.is_err());
+        assert!(scalar.is_ok());
     }
 
     #[test]
@@ -234,6 +240,6 @@ mod tests {
         let const_value = ConstValue::from_json(value).unwrap();
 
         let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
-        assert!(scalar.is_err());
+        assert!(scalar.is_ok());
     }
 }
