@@ -1,10 +1,10 @@
-use std::net::IpAddr;
 use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use const_format::concatcp;
 use dynaql_value::ConstValue;
 use fast_chemail::parse_email;
+use ipnet::IpNet;
 use url::Url;
 
 use crate::{InputValueError, InputValueResult};
@@ -81,7 +81,7 @@ impl PossibleScalar {
                 Ok(true)
             }
             (Self::IPAddress, ConstValue::String(ip)) => {
-                ip.parse::<IpAddr>()
+                ip.parse::<IpNet>()
                     .map_err(|err| InputValueError::ty_custom("IPAddress", err))?;
                 Ok(true)
             }
@@ -218,6 +218,16 @@ mod tests {
     #[test]
     fn check_valid_ip_address_ipv6() {
         let value = serde_json::Value::String("::1".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PossibleScalar::IPAddress.check_valid(&const_value);
+        assert!(scalar.is_err());
+    }
+
+    #[test]
+    fn check_valid_ip_range() {
+        let value = serde_json::Value::String("123.45.67.89/16".to_string());
 
         let const_value = ConstValue::from_json(value).unwrap();
 
