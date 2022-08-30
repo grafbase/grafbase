@@ -137,7 +137,7 @@ impl TryFrom<&ConstDirective> for Auth {
             .flatten()
             .collect();
 
-        let allowed_group_ops = rules
+        let allowed_group_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
                 AuthRule::Groups { operations, .. } => Some(operations.values().clone()),
@@ -146,6 +146,7 @@ impl TryFrom<&ConstDirective> for Auth {
             .flatten()
             .collect();
 
+        // TODO: don't merge all groups, but handle ops per group
         let allowed_groups: HashSet<_> = rules
             .iter()
             .filter_map(|rule| match rule {
@@ -154,6 +155,14 @@ impl TryFrom<&ConstDirective> for Auth {
             })
             .flatten()
             .collect();
+
+        // TODO: this should be possible
+        if allowed_private_ops.any() && allowed_group_ops.any() {
+            return Err(ServerError::new(
+                "auth rules `private` and `groups` cannot be used together",
+                pos,
+            ));
+        }
 
         if providers.is_empty() {
             if allowed_private_ops.any() {
@@ -369,6 +378,21 @@ mod tests {
             }],
             ..Default::default()
         }
+    );
+
+    parse_fail!(
+        incompatible_rules,
+        r#"
+        schema @auth(
+          rules: [
+            { allow: groups, groups: ["admin"] },
+            { allow: private }
+          ]
+        ){
+          query: Query
+        }
+        "#,
+        "auth rules `private` and `groups` cannot be used together"
     );
 
     parse_test!(
