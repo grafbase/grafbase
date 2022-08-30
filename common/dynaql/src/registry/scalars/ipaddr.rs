@@ -13,11 +13,9 @@ impl<'a> SDLDefinitionScalar<'a> for IPAddressScalar {
 
     fn description() -> Option<&'a str> {
         Some(
-            r#"
-            A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
+            r#"A valid IPv4 or IPv6 address. IPv4 addresses are expected in quad-dotted notation `(123.12.34.56)`. IPv6 addresses are expected in non-bracketed, colon-separated format `(1a2b:3c4b::1234:4567)`.
 
-            You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask.
-            "#,
+You can include an optional CIDR suffix `(123.45.67.89/16)` to indicate subnet mask."#,
         )
     }
 
@@ -77,8 +75,10 @@ impl DynamicParse for IPAddressScalar {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SDLDefinitionScalar;
     use crate::registry::scalars::{DynamicParse, IPAddressScalar};
     use dynaql_value::ConstValue;
+    use insta::assert_snapshot;
 
     #[test]
     fn check_valid_ip_address_ipv4() {
@@ -108,5 +108,10 @@ mod tests {
 
         let scalar = IPAddressScalar::parse(const_value);
         assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn ensure_directives_sdl() {
+        assert_snapshot!(IPAddressScalar::sdl());
     }
 }

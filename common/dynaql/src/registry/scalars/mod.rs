@@ -13,7 +13,7 @@ pub use float::FloatScalar;
 mod int;
 pub use int::IntScalar;
 mod datetime;
-pub use datetime::DatetimeScalar;
+pub use datetime::DateTimeScalar;
 mod email;
 pub use email::EmailScalar;
 mod json;
@@ -62,7 +62,7 @@ pub trait SDLDefinitionScalar<'a> {
                 writeln!(sdl, "\"\"\"\n{}\n\"\"\"", desc).ok();
             }
             let directive = Self::specified_by()
-                .map(|directive| format!("@specifiedBy(url: \"{directive}\""))
+                .map(|directive| format!("@specifiedBy(url: \"{directive}\")"))
                 .unwrap_or_default();
             writeln!(sdl, "scalar {name} {directive}").ok();
             sdl
@@ -116,6 +116,8 @@ pub trait DynamicScalar: Sized {
         expected_ty: S,
         value: serde_json::Value,
     ) -> Result<ConstValue, Error>;
+
+    fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool;
 }
 
 pub struct PossibleScalarNil;
@@ -128,6 +130,10 @@ impl PossibleScalarNil {
 }
 
 impl DynamicScalar for PossibleScalarNil {
+    fn test_scalar_name<S: AsRef<str>>(_expected_ty: S) -> bool {
+        false
+    }
+
     fn parse<S: AsRef<str>>(
         expected_ty: S,
         _value: ConstValue,
@@ -159,21 +165,15 @@ impl<A, B> PossibleScalarCons<A, B> {
     }
 }
 
-impl<'a, A, B> PossibleScalarCons<A, B>
-where
-    A: DynamicParse + SDLDefinitionScalar<'a>,
-    B: DynamicScalar,
-{
-    pub fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool {
-        A::name().unwrap_or_default() == expected_ty.as_ref()
-    }
-}
-
 impl<'a, A, B> DynamicScalar for PossibleScalarCons<A, B>
 where
     A: DynamicParse + SDLDefinitionScalar<'a>,
     B: DynamicScalar,
 {
+    fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool {
+        A::name().unwrap_or_default() == expected_ty.as_ref() || B::test_scalar_name(&expected_ty)
+    }
+
     fn parse<S: AsRef<str>>(
         expected_ty: S,
         value: ConstValue,
@@ -250,7 +250,7 @@ pub type PossibleScalar = merge_scalar!(
     IntScalar,
     FloatScalar,
     EmailScalar,
-    DatetimeScalar,
+    DateTimeScalar,
     JSONScalar,
     IPAddressScalar,
     URLScalar,

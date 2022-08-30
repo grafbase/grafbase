@@ -15,11 +15,7 @@ impl<'a> SDLDefinitionScalar<'a> for EmailScalar {
     }
 
     fn description() -> Option<&'a str> {
-        Some(
-            r#"
-            A scalar to validate the email as it is defined in the HTML specification.
-            "#,
-        )
+        Some("A scalar to validate the email as it is defined in the HTML specification.")
     }
 }
 
@@ -55,8 +51,10 @@ impl DynamicParse for EmailScalar {
 
 #[cfg(test)]
 mod tests {
-    use crate::registry::scalars::{DynamicParse, EmailScalar, JSONScalar};
+    use super::super::SDLDefinitionScalar;
+    use crate::registry::scalars::{DynamicParse, EmailScalar};
     use dynaql_value::ConstValue;
+    use insta::assert_snapshot;
 
     #[test]
     fn check_mail_valid() {
@@ -76,5 +74,10 @@ mod tests {
 
         let scalar = EmailScalar::parse(const_value);
         assert!(scalar.is_err());
+    }
+
+    #[test]
+    fn ensure_directives_sdl() {
+        assert_snapshot!(EmailScalar::sdl());
     }
 }

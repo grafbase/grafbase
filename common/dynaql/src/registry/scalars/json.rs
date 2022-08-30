@@ -10,11 +10,7 @@ impl<'a> SDLDefinitionScalar<'a> for JSONScalar {
     }
 
     fn description() -> Option<&'a str> {
-        Some(
-            r#"
-            A JSON Value
-            "#,
-        )
+        Some("A JSON Value")
     }
 }
 
@@ -49,8 +45,10 @@ impl DynamicParse for JSONScalar {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SDLDefinitionScalar;
     use crate::registry::scalars::{DynamicParse, JSONScalar};
     use dynaql_value::ConstValue;
+    use insta::assert_snapshot;
 
     #[test]
     fn check_json_valid() {
@@ -69,5 +67,10 @@ mod tests {
 
         let scalar = JSONScalar::parse(const_value);
         assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn ensure_directives_sdl() {
+        assert_snapshot!(JSONScalar::sdl());
     }
 }

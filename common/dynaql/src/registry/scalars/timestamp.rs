@@ -11,11 +11,7 @@ impl<'a> SDLDefinitionScalar<'a> for TimestampScalar {
     }
 
     fn description() -> Option<&'a str> {
-        Some(
-            r#"
-            A Unix Timestamp with milliseconds precision.
-            "#,
-        )
+        Some("A Unix Timestamp with milliseconds precision.")
     }
 
     fn specified_by() -> Option<&'a str> {
@@ -70,8 +66,10 @@ impl DynamicParse for TimestampScalar {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SDLDefinitionScalar;
     use crate::registry::scalars::{DynamicParse, TimestampScalar};
     use dynaql_value::ConstValue;
+    use insta::assert_snapshot;
 
     #[test]
     fn check_test_timestamp() {
@@ -81,5 +79,10 @@ mod tests {
 
         let scalar = TimestampScalar::parse(const_value);
         assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn ensure_directives_sdl() {
+        assert_snapshot!(TimestampScalar::sdl());
     }
 }

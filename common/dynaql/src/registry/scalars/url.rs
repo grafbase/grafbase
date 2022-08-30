@@ -12,11 +12,7 @@ impl<'a> SDLDefinitionScalar<'a> for URLScalar {
     }
 
     fn description() -> Option<&'a str> {
-        Some(
-            r#"
-            An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
-            "#,
-        )
+        Some("An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.")
     }
 
     fn specified_by() -> Option<&'a str> {
@@ -55,8 +51,10 @@ impl DynamicParse for URLScalar {
 
 #[cfg(test)]
 mod tests {
+    use super::super::SDLDefinitionScalar;
     use crate::registry::scalars::{DynamicParse, URLScalar};
     use dynaql_value::ConstValue;
+    use insta::assert_snapshot;
 
     #[test]
     fn check_url_valid() {
@@ -76,5 +74,10 @@ mod tests {
 
         let scalar = URLScalar::parse(const_value);
         assert!(scalar.is_ok());
+    }
+
+    #[test]
+    fn ensure_directives_sdl() {
+        assert_snapshot!(URLScalar::sdl());
     }
 }
