@@ -43,7 +43,7 @@ impl Extension for AuthExtension {
         {
             if !allowed_ops.contains(&required_op) {
                 let msg = format!(
-                    "Unauthorized to call {name} (missing `{required_op}` access)",
+                    "Unauthorized to call {name} (missing `{required_op}` operation)",
                     name = info.name
                 );
                 warn!(self.trace_id, "{msg}");
