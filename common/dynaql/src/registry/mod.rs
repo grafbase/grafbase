@@ -17,7 +17,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 use ulid_rs::Ulid;
 
-use crate::auth::Auth;
+use crate::auth::AuthConfig;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
@@ -1074,7 +1074,7 @@ pub struct Registry {
     pub disable_introspection: bool,
     pub enable_federation: bool,
     pub federation_subscription: bool,
-    pub auth: Auth,
+    pub auth: AuthConfig,
 }
 
 impl Registry {

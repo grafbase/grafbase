@@ -229,7 +229,7 @@ impl TryFrom<&ConstValue> for AuthRule {
     }
 }
 
-impl From<Auth> for dynaql::Auth {
+impl From<Auth> for dynaql::AuthConfig {
     fn from(auth: Auth) -> Self {
         Self {
             allowed_anonymous_ops: auth.allowed_anonymous_ops,
@@ -305,7 +305,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_anonymous_ops: Operations::all(),
             ..Default::default()
         }
@@ -333,7 +333,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_private_ops: Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
@@ -352,7 +352,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
@@ -371,7 +371,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_private_ops: Operations::none(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
@@ -405,7 +405,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
             allowed_group_ops: Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
@@ -425,7 +425,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
             allowed_group_ops: Operations::new(&[Operation::Get]),
             oidc_providers: vec![dynaql::OidcProvider {
@@ -480,7 +480,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_group_ops: Operations::all(),
             ..Default::default()
         }
@@ -495,7 +495,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::Auth {
+        dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],

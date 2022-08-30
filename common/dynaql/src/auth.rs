@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::rust::sets_duplicate_value_is_error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Auth {
+pub struct AuthConfig {
     pub allowed_anonymous_ops: Operations,
 
     pub allowed_private_ops: Operations,
@@ -22,9 +22,9 @@ pub struct OidcProvider {
     pub issuer: url::Url,
 }
 
-impl Default for Auth {
+impl Default for AuthConfig {
     fn default() -> Self {
-        Auth {
+        AuthConfig {
             allowed_anonymous_ops: Operations::all(),
 
             allowed_private_ops: Operations::none(),
