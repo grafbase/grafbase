@@ -29,13 +29,7 @@ impl<'a> SDLDefinitionScalar<'a> for IPAddressScalar {
 impl DynamicParse for IPAddressScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::String(ip) => {
-                if ip.parse::<IpNet>().is_ok() || ip.parse::<IpAddr>().is_ok() {
-                    true
-                } else {
-                    false
-                }
-            }
+            ConstValue::String(ip) => ip.parse::<IpNet>().is_ok() || ip.parse::<IpAddr>().is_ok(),
             _ => false,
         }
     }

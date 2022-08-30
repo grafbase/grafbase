@@ -35,7 +35,7 @@ impl DynamicParse for URLScalar {
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
             serde_json::Value::String(url) => Url::from_str(&url)
-                .map_err(|err| Error::new_with_source(err))
+                .map_err(Error::new_with_source)
                 .map(|url| ConstValue::String(url.to_string())),
             _ => Err(Error::new(
                 "Data violation: Cannot coerce the initial value to a URL",

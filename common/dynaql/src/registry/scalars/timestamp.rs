@@ -26,13 +26,7 @@ impl<'a> SDLDefinitionScalar<'a> for TimestampScalar {
 impl DynamicParse for TimestampScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::Number(ms) => {
-                if ms.is_u64() {
-                    true
-                } else {
-                    false
-                }
-            }
+            ConstValue::Number(ms) => ms.is_u64(),
             _ => false,
         }
     }
