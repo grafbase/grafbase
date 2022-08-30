@@ -76,12 +76,12 @@ impl DynamicParse for TimestampScalar {
 
 #[cfg(test)]
 mod tests {
-    use crate::registry::scalars::{DynamicParse, JSONScalar, TimestampScalar};
+    use crate::registry::scalars::{DynamicParse, TimestampScalar};
     use dynaql_value::ConstValue;
 
     #[test]
     fn check_test_timestamp() {
-        let value = serde_json::json!(123223123123123);
+        let value = serde_json::json!(1_232_231);
 
         let const_value = ConstValue::from_json(value).unwrap();
 
