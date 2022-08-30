@@ -67,6 +67,7 @@ chrono = { version = "0.4", default-features = false, features = [
     "std",
 ] }
 url = { version = "2" }
+strum = { version = "0.24", features = ["derive"] }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }

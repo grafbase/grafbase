@@ -59,6 +59,15 @@ impl Operations {
         !self.0.is_empty()
     }
 
+    pub fn contains(&self, op: &Operation) -> bool {
+        match op {
+            Operation::Get | Operation::List => {
+                self.0.contains(op) || self.0.contains(&Operation::Read)
+            }
+            _ => self.0.contains(op),
+        }
+    }
+
     pub fn all() -> Self {
         Self::new(&[
             Operation::Create,
@@ -73,8 +82,11 @@ impl Operations {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[derive(
+    Debug, strum::Display, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone,
+)]
 #[serde(rename_all = "camelCase")]
+#[strum(serialize_all = "camelCase")]
 pub enum Operation {
     Create,
     Read,

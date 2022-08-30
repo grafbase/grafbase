@@ -5,6 +5,7 @@ mod analyzer;
 pub mod apollo_persisted_queries;
 #[cfg(feature = "apollo_tracing")]
 mod apollo_tracing;
+mod auth;
 #[cfg(feature = "log")]
 mod logger;
 #[cfg(feature = "opentelemetry")]
@@ -15,6 +16,7 @@ mod tracing;
 pub use self::analyzer::Analyzer;
 #[cfg(feature = "apollo_tracing")]
 pub use self::apollo_tracing::ApolloTracing;
+pub use self::auth::Auth;
 #[cfg(feature = "log")]
 pub use self::logger::Logger;
 #[cfg(feature = "opentelemetry")]
