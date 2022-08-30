@@ -37,9 +37,9 @@ scalar DateTime @specifiedBy(url: "https://datatracker.ietf.org/doc/html/rfc3339
 
 const URL_DIRECTIVE: &str = r#"
 """
-An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
+A URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
 """
-scalar Url @specifiedBy(url: "http://url.spec.whatwg.org/")
+scalar URL @specifiedBy(url: "http://url.spec.whatwg.org/")
 "#;
 
 const JSON_DIRECTIVE: &str = r#"
@@ -72,7 +72,7 @@ impl PossibleScalar {
                 Ok(true)
             }
             (Self::Url, ConstValue::String(value)) => Url::from_str(value)
-                .map_err(|err| InputValueError::ty_custom("Url", err))
+                .map_err(|err| InputValueError::ty_custom("URL", err))
                 .map(|_| true),
             (Self::Email, ConstValue::String(value)) => parse_email(value)
                 .map_err(|err| InputValueError::ty_custom("Email", err))
@@ -115,7 +115,7 @@ impl TryFrom<&str> for PossibleScalar {
             "ID" => Ok(PossibleScalar::ID),
             "DateTime" => Ok(PossibleScalar::DateTime),
             "JSON" => Ok(PossibleScalar::JSON),
-            "Url" => Ok(PossibleScalar::Url),
+            "URL" => Ok(PossibleScalar::Url),
             "Email" => Ok(PossibleScalar::Email),
             _ => Err(PossibleScalarErrors::NotAScalar {
                 expected_ty: value.to_string(),
