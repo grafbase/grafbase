@@ -22,6 +22,15 @@ pub async fn resolve_list<'a>(
                     let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
                     let extensions = &ctx.query_env.extensions;
 
+                    let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
+                    let required_operation = ctx_field
+                        .schema_env
+                        .registry
+                        .types
+                        .get(type_name)
+                        .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
+                        .and_then(|f| f.required_operation);
+
                     let parent_type = format!("[{}]", type_name);
                     let return_type = format!("{}!", type_name);
                     let resolve_info = ResolveInfo {
@@ -30,7 +39,7 @@ pub async fn resolve_list<'a>(
                         return_type: &return_type,
                         name: field.node.name.node.as_str(),
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
-                        required_operation: None,
+                        required_operation,
                     };
 
                     let resolve_fut = async {
@@ -102,13 +111,23 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                     let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
                     let extensions = &ctx.query_env.extensions;
 
+                    let type_name = <T>::type_name();
+                    let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
+                    let required_operation = ctx_field
+                        .schema_env
+                        .registry
+                        .types
+                        .get(type_name.as_ref())
+                        .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
+                        .and_then(|f| f.required_operation);
+
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
                         parent_type: &Vec::<T>::type_name(),
                         return_type: &T::qualified_type_name(),
                         name: field.node.name.node.as_str(),
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
-                        required_operation: None,
+                        required_operation,
                     };
                     let resolve_fut = async {
                         OutputType::resolve(&item, &ctx_idx, field)
