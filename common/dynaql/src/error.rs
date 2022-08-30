@@ -165,7 +165,7 @@ pub struct InputValueError<T> {
     phantom: PhantomData<T>,
 }
 
-impl<T: InputType> InputValueError<T> {
+impl<T> InputValueError<T> {
     fn new(message: String) -> Self {
         Self {
             message,
@@ -173,6 +173,17 @@ impl<T: InputType> InputValueError<T> {
         }
     }
 
+    /// A custom error message.
+    ///
+    /// TODO: Temp function to provide an error message, should change as soon as we work on
+    /// scalars to have a proper parsing and not just checking.
+    #[must_use]
+    pub fn ty_custom(ty: impl Display, msg: impl Display) -> Self {
+        Self::new(format!(r#"Failed to parse "{}": {}"#, ty, msg))
+    }
+}
+
+impl<T: InputType> InputValueError<T> {
     pub fn message(self) -> String {
         self.message
     }
@@ -185,15 +196,6 @@ impl<T: InputType> InputValueError<T> {
             T::type_name(),
             actual
         ))
-    }
-
-    /// A custom error message.
-    ///
-    /// TODO: Temp function to provide an error message, should change as soon as we work on
-    /// scalars to have a proper parsing and not just checking.
-    #[must_use]
-    pub fn ty_custom(ty: impl Display, msg: impl Display) -> Self {
-        Self::new(format!(r#"Failed to parse "{}": {}"#, ty, msg))
     }
 
     /// A custom error message.

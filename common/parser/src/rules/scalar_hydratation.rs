@@ -22,8 +22,8 @@ impl<'a> Visitor<'a> for ScalarHydratation {
     ) {
         let name = type_definition.node.name.node.as_str().to_string();
 
-        match PossibleScalar::try_from(name.as_str()) {
-            Ok(_) => {
+        match PossibleScalar::test_scalar_name(name.as_str()) {
+            true => {
                 ctx.registry.get_mut().create_type(
                     &mut |_| {
                         let specified_by_url = type_definition
@@ -53,8 +53,8 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                     name.as_str(),
                 );
             }
-            Err(err) => {
-                ctx.report_error(vec![type_definition.pos], err.to_string());
+            false => {
+                ctx.report_error(vec![type_definition.pos], format!("{name} is not a valid scalar."));
             }
         }
     }

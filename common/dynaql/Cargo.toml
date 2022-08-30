@@ -38,7 +38,6 @@ async-lock = "2.5"
 async-stream = "0.3"
 async-trait = "0.1"
 cached = { version = "0.38" }
-const_format = "0.2"
 derivative = "2"
 dynomite = "0.10"
 fnv = "1"
