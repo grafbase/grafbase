@@ -2,7 +2,7 @@ mutation {
   scalarsCreate(
     input: {
       ip: "127.0.0.1"
-      timestamp: 1661965789
+      timestamp: 1661971087977
       url: "https://example.com"
       email: "hello@grafbase.com"
       json: { a: "hello", b: 2, c: { a: 11, b: 22 } }
