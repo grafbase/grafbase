@@ -3,7 +3,6 @@ use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
 use phonenumber::{self as _, country};
 
-// TODO: Input coercion to accept either ms or a date
 pub struct PhoneScalar;
 
 impl<'a> SDLDefinitionScalar<'a> for PhoneScalar {
