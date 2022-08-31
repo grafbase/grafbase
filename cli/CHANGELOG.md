@@ -14,6 +14,7 @@
 ### Fixes
 
 - Fixes cursor support in paginated queries
+- Fixes result ordering in paginated queries using `last`
 
 ### Refactoring
 
