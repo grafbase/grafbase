@@ -20,6 +20,7 @@ impl DynamicParse for PhoneScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
             ConstValue::String(phone) => phonenumber::parse(None, phone)
+                .or_else(|_| phonenumber::parse(Some(country::US), phone))
                 .map(|phone| phone.is_valid())
                 .unwrap_or_default(),
             _ => false,
