@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0]
+
+### Features
+
+- Adds support for new scalars:
+  - JSON
+  - URL
+  - Email
+  - Timestamp
+  - IPAddress
+
+### Fixes
+
+- Fixes cursor support in paginated queries
+
+### Refactoring
+
+- (internal) Changes queries to use named SQL params in the Gateway worker
+
 ## [0.5.1]
 
 ### Fixes
