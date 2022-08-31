@@ -1,0 +1,10 @@
+---
+source: common/dynaql/src/registry/scalars/phone.rs
+assertion_line: 56
+expression: "PhoneScalar::sdl()"
+---
+"""
+A phone number. This value is stored as a string. Phone numbers can contain either spaces or hyphens to separate digit groups. Phone numbers without a country code are assumed to be US/North American numbers adhering to the North American Numbering Plan (NANP).
+"""
+scalar Phone 
+
