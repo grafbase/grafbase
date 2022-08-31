@@ -1,0 +1,10 @@
+---
+source: common/dynaql/src/registry/scalars/email.rs
+assertion_line: 81
+expression: "EmailScalar::sdl()"
+---
+"""
+A scalar to validate the email as it is defined in the HTML specification.
+"""
+scalar Email @specifiedBy(url: "https://html.spec.whatwg.org/multipage/input.html#valid-e-mail-address")
+

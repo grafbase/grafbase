@@ -1,4 +1,4 @@
-use dynaql::registry::scalars::PossibleScalar;
+use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
@@ -53,12 +53,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 
-    let schema = format!(
-        "{}\n{}\n{}",
-        PossibleScalar::directives(),
-        rules.directives(),
-        input.as_ref()
-    );
+    let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());
 
     let schema = parse_schema(schema)?;
 

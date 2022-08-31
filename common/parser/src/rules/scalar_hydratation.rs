@@ -3,7 +3,7 @@
 //! The user defined scalars can be hydrated to the generated API only if those scalars belongs to
 //! the list of PossibleScalar from dynaql for now.
 //!
-use dynaql::registry::scalars::PossibleScalar;
+use dynaql::registry::scalars::{DynamicScalar, PossibleScalar};
 use dynaql::{Positioned, Value};
 use dynaql_parser::types::TypeDefinition;
 
@@ -22,40 +22,37 @@ impl<'a> Visitor<'a> for ScalarHydratation {
     ) {
         let name = type_definition.node.name.node.as_str().to_string();
 
-        match PossibleScalar::try_from(name.as_str()) {
-            Ok(_) => {
-                ctx.registry.get_mut().create_type(
-                    &mut |_| {
-                        let specified_by_url = type_definition
-                            .node
-                            .directives
-                            .iter()
-                            .find(|directive| directive.node.name.node.as_str() == SPECIFIED_BY_DIRECTIVE)
-                            .and_then(|directive| directive.node.get_argument(SPECIFIED_BY_ARGUMENT_URL))
-                            .and_then(|x| match &x.node {
-                                Value::String(s) => Some(s.clone()),
-                                _ => None,
-                            });
+        if PossibleScalar::test_scalar_name_recursive(name.as_str()) {
+            ctx.registry.get_mut().create_type(
+                &mut |_| {
+                    let specified_by_url = type_definition
+                        .node
+                        .directives
+                        .iter()
+                        .find(|directive| directive.node.name.node.as_str() == SPECIFIED_BY_DIRECTIVE)
+                        .and_then(|directive| directive.node.get_argument(SPECIFIED_BY_ARGUMENT_URL))
+                        .and_then(|x| match &x.node {
+                            Value::String(s) => Some(s.clone()),
+                            _ => None,
+                        });
 
-                        dynaql::registry::MetaType::Scalar {
-                            name: name.clone(),
-                            description: type_definition
-                                .node
-                                .description
-                                .clone()
-                                .map(|x| x.node.as_str().to_string()),
-                            is_valid: None,
-                            visible: None,
-                            specified_by_url,
-                        }
-                    },
-                    name.as_str(),
-                    name.as_str(),
-                );
-            }
-            Err(err) => {
-                ctx.report_error(vec![type_definition.pos], err.to_string());
-            }
+                    dynaql::registry::MetaType::Scalar {
+                        name: name.clone(),
+                        description: type_definition
+                            .node
+                            .description
+                            .clone()
+                            .map(|x| x.node.as_str().to_string()),
+                        is_valid: None,
+                        visible: None,
+                        specified_by_url,
+                    }
+                },
+                name.as_str(),
+                name.as_str(),
+            );
+        } else {
+            ctx.report_error(vec![type_definition.pos], format!("\"{name}\" is not a proper scalar"));
         }
     }
 }
