@@ -1,7 +1,7 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
-use phonenumber as _;
+use phonenumber::{self as _, country};
 
 // TODO: Input coercion to accept either ms or a date
 pub struct PhoneScalar;
@@ -38,7 +38,8 @@ impl DynamicParse for PhoneScalar {
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value> {
         match value {
             ConstValue::String(phone) => {
-                let e164_phone = phonenumber::parse(None, phone)
+                let e164_phone = phonenumber::parse(None, &phone)
+                    .or_else(|_| phonenumber::parse(Some(country::US), phone))
                     .map_err(|err| InputValueError::ty_custom("Phone", err))?;
 
                 if e164_phone.is_valid() {
@@ -86,6 +87,26 @@ mod tests {
         let scalar = PhoneScalar::parse(const_value);
         assert!(scalar.is_err());
         insta::assert_debug_snapshot!(scalar);
+    }
+
+    #[test]
+    fn check_test_fail_phonenumber_fr() {
+        let value = serde_json::Value::String("0612121211".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PhoneScalar::parse(const_value);
+        assert!(scalar.is_err());
+    }
+
+    #[test]
+    fn check_test_success_phonenumber_us() {
+        let value = serde_json::Value::String("206-867-5309".to_string());
+
+        let const_value = ConstValue::from_json(value).unwrap();
+
+        let scalar = PhoneScalar::parse(const_value);
+        assert!(scalar.is_ok());
     }
 
     #[test]
