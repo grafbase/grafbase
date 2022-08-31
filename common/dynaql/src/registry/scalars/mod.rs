@@ -171,7 +171,7 @@ where
     B: DynamicScalar,
 {
     fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool {
-        A::name().unwrap_or_default() == expected_ty.as_ref() || B::test_scalar_name(&expected_ty)
+        A::name().unwrap_or_default() == expected_ty.as_ref()
     }
 
     fn parse<S: AsRef<str>>(
