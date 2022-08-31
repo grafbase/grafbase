@@ -22,7 +22,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
     ) {
         let name = type_definition.node.name.node.as_str().to_string();
 
-        if PossibleScalar::test_scalar_name(name.as_str()) {
+        if PossibleScalar::test_scalar_name_recursive(name.as_str()) {
             ctx.registry.get_mut().create_type(
                 &mut |_| {
                     let specified_by_url = type_definition

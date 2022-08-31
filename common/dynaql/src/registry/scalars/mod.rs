@@ -118,6 +118,7 @@ pub trait DynamicScalar: Sized {
     ) -> Result<ConstValue, Error>;
 
     fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool;
+    fn test_scalar_name_recursive<S: AsRef<str>>(expected_ty: S) -> bool;
 }
 
 pub struct PossibleScalarNil;
@@ -131,6 +132,10 @@ impl PossibleScalarNil {
 
 impl DynamicScalar for PossibleScalarNil {
     fn test_scalar_name<S: AsRef<str>>(_expected_ty: S) -> bool {
+        false
+    }
+
+    fn test_scalar_name_recursive<S: AsRef<str>>(_expected_ty: S) -> bool {
         false
     }
 
@@ -172,6 +177,11 @@ where
 {
     fn test_scalar_name<S: AsRef<str>>(expected_ty: S) -> bool {
         A::name().unwrap_or_default() == expected_ty.as_ref()
+    }
+
+    fn test_scalar_name_recursive<S: AsRef<str>>(expected_ty: S) -> bool {
+        A::name().unwrap_or_default() == expected_ty.as_ref()
+            || B::test_scalar_name_recursive(&expected_ty)
     }
 
     fn parse<S: AsRef<str>>(
