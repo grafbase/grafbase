@@ -4,15 +4,10 @@ expression: reg_string
 ---
 {
   "auth": {
-    "allowed_anonymous_ops": [
-      "create",
-      "read",
-      "update",
-      "delete"
-    ],
-    "allowed_group_ops": [],
+    "allowed_anonymous_ops": 31,
+    "allowed_group_ops": 0,
     "allowed_groups": [],
-    "allowed_private_ops": [],
+    "allowed_private_ops": 0,
     "oidc_providers": []
   },
   "directives": {
