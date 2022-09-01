@@ -95,3 +95,17 @@ pub enum Operation {
     Update,
     Delete,
 }
+
+bitflags::bitflags! {
+    #[allow(clippy::unsafe_derive_deserialize)]
+    #[derive(Serialize, Deserialize)]
+    #[serde(transparent)]
+    pub struct Operations_: u8 {
+        const CREATE = 0b0000_0001;
+        const GET    = 0b0000_0010; // More granual read access
+        const LIST   = 0b0000_0100; // More granual read access
+        const UPDATE = 0b0000_1000;
+        const DELETE = 0b0001_0000;
+        const READ   = Self::GET.bits | Self::LIST.bits;
+    }
+}
