@@ -47,7 +47,6 @@ impl Extension for AuthExtension {
                     name = info.name
                 );
                 warn!(self.trace_id, "{msg}");
-                // TODO: more user-friendly to return a 401 instead of a 200 error here
                 return Err(ServerError::new(msg, None));
             }
         }
