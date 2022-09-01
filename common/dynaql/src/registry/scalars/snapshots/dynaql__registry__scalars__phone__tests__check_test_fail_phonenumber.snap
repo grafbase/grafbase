@@ -1,11 +1,11 @@
 ---
 source: common/dynaql/src/registry/scalars/phone.rs
-assertion_line: 88
+assertion_line: 92
 expression: scalar
 ---
 Err(
     InputValueError {
-        message: "Failed to parse \"Phone\": Invalid phone number",
+        message: "Failed to parse \"PhoneNumber\": Invalid phone number",
         phantom: PhantomData,
     },
 )
