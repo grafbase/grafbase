@@ -1,13 +1,13 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
-use phonenumber::{self as _, country};
+use phonenumber::country;
 
-pub struct PhoneScalar;
+pub struct PhoneNumberScalar;
 
-impl<'a> SDLDefinitionScalar<'a> for PhoneScalar {
+impl<'a> SDLDefinitionScalar<'a> for PhoneNumberScalar {
     fn name() -> Option<&'a str> {
-        Some("Phone")
+        Some("PhoneNumber")
     }
 
     fn description() -> Option<&'a str> {
@@ -15,7 +15,7 @@ impl<'a> SDLDefinitionScalar<'a> for PhoneScalar {
     }
 }
 
-impl DynamicParse for PhoneScalar {
+impl DynamicParse for PhoneNumberScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
             ConstValue::String(phone) => phonenumber::parse(None, phone)
@@ -50,12 +50,15 @@ impl DynamicParse for PhoneScalar {
                             .to_string(),
                     ))
                 } else {
-                    Err(InputValueError::ty_custom("Phone", "Invalid phone number"))
+                    Err(InputValueError::ty_custom(
+                        "PhoneNumber",
+                        "Invalid phone number",
+                    ))
                 }
             }
             _ => Err(InputValueError::ty_custom(
-                "Phone",
-                "Cannot parse into a Phone",
+                "PhoneNumber",
+                "Cannot parse into a PhoneNumber",
             )),
         }
     }
@@ -64,7 +67,7 @@ impl DynamicParse for PhoneScalar {
 #[cfg(test)]
 mod tests {
     use super::super::SDLDefinitionScalar;
-    use crate::registry::scalars::{DynamicParse, PhoneScalar};
+    use crate::registry::scalars::{DynamicParse, PhoneNumberScalar};
     use dynaql_value::ConstValue;
     use insta::assert_snapshot;
 
@@ -74,7 +77,7 @@ mod tests {
 
         let const_value = ConstValue::from_json(value).unwrap();
 
-        let scalar = PhoneScalar::parse(const_value);
+        let scalar = PhoneNumberScalar::parse(const_value);
         assert!(scalar.is_ok());
     }
 
@@ -84,7 +87,7 @@ mod tests {
 
         let const_value = ConstValue::from_json(value).unwrap();
 
-        let scalar = PhoneScalar::parse(const_value);
+        let scalar = PhoneNumberScalar::parse(const_value);
         assert!(scalar.is_err());
         insta::assert_debug_snapshot!(scalar);
     }
@@ -95,7 +98,7 @@ mod tests {
 
         let const_value = ConstValue::from_json(value).unwrap();
 
-        let scalar = PhoneScalar::parse(const_value);
+        let scalar = PhoneNumberScalar::parse(const_value);
         assert!(scalar.is_err());
     }
 
@@ -105,12 +108,12 @@ mod tests {
 
         let const_value = ConstValue::from_json(value).unwrap();
 
-        let scalar = PhoneScalar::parse(const_value);
+        let scalar = PhoneNumberScalar::parse(const_value);
         assert!(scalar.is_ok());
     }
 
     #[test]
     fn ensure_directives_sdl() {
-        assert_snapshot!(PhoneScalar::sdl());
+        assert_snapshot!(PhoneNumberScalar::sdl());
     }
 }
