@@ -24,6 +24,8 @@ mod ipaddr;
 pub use ipaddr::IPAddressScalar;
 mod timestamp;
 pub use timestamp::TimestampScalar;
+mod phone;
+pub use phone::PhoneNumberScalar;
 
 /// ` SDLDefinitionScalar` trait is to be implemented for every custom scalar we add into `dynaql`
 ///
@@ -264,5 +266,6 @@ pub type PossibleScalar = merge_scalar!(
     JSONScalar,
     IPAddressScalar,
     URLScalar,
-    TimestampScalar
+    TimestampScalar,
+    PhoneNumberScalar
 );
