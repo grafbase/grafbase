@@ -46,7 +46,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "sink",
 ] }
 ipnet = "2.5"
-indexmap = { git = "https://github.com/bluss/indexmap", rev = "aa4ee74bec3f64f452aa107fecd2c1bd04abe66b" }
+indexmap = "2.0.0-pre"
 itertools = "0.10"
 pin-project-lite = "0.2"
 phonenumber = { git = "https://github.com/meh/rust-phonenumber", rev = "f936b0545fc8ad3ac195714de0c6ae8cd941723e" }
