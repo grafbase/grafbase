@@ -383,7 +383,7 @@ impl MetaField {
                             && *result.data_resolved.as_ref() == serde_json::Value::Null
                         {
                             #[cfg(feature = "tracing_worker")]
-                            logworker::error!(
+                            logworker::warn!(
                                 ctx.data_unchecked::<dynamodb::DynamoDBContext>().trace_id,
                                 "{}",
                                 serde_json::to_string_pretty(&serde_json::json!({
