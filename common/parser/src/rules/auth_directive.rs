@@ -2,7 +2,7 @@ use std::collections::{BTreeSet, HashSet};
 
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::{Operations_, ServerError};
+use dynaql::ServerError;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
@@ -26,7 +26,7 @@ struct Auth {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-pub struct Operations(#[serde(with = "sets_duplicate_value_is_error")] BTreeSet<Operation>);
+struct Operations(#[serde(with = "sets_duplicate_value_is_error")] BTreeSet<Operation>);
 
 impl std::iter::FromIterator<Operation> for Operations {
     fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
@@ -34,54 +34,50 @@ impl std::iter::FromIterator<Operation> for Operations {
     }
 }
 
-impl From<Operations> for dynaql::Operations_ {
-    fn from(ops: Operations) -> Self {
-        let mut res = Operations_::empty();
-        for op in ops.values() {
-            res |= match op {
-                Operation::Create => Operations_::CREATE,
-                Operation::Read => Operations_::READ,
-                Operation::Get => Operations_::GET,
-                Operation::List => Operations_::LIST,
-                Operation::Update => Operations_::UPDATE,
-                Operation::Delete => Operations_::DELETE,
-            };
-        }
-        res
-    }
-}
-
 impl Operations {
-    pub fn new(ops: &[Operation]) -> Self {
+    fn new(ops: &[Operation]) -> Self {
         Operations(ops.iter().copied().collect())
     }
 
-    pub fn values(&self) -> &BTreeSet<Operation> {
+    fn values(&self) -> &BTreeSet<Operation> {
         &self.0
     }
 
-    pub fn any(&self) -> bool {
+    fn any(&self) -> bool {
         !self.0.is_empty()
     }
 
-    pub fn all() -> Self {
+    fn all() -> Self {
         Self::new(&[Operation::Create, Operation::Read, Operation::Update, Operation::Delete])
-    }
-
-    pub fn none() -> Self {
-        Operations(BTreeSet::new())
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
-pub enum Operation {
+enum Operation {
     Create,
     Read,
     Get,  // More granual read access
     List, // More granual read access
     Update,
     Delete,
+}
+
+impl From<Operations> for dynaql::Operations {
+    fn from(ops: Operations) -> Self {
+        let mut res = dynaql::Operations::empty();
+        for op in ops.values() {
+            res |= match op {
+                Operation::Create => Self::CREATE,
+                Operation::Read => Self::READ,
+                Operation::Get => Self::GET,
+                Operation::List => Self::LIST,
+                Operation::Update => Self::UPDATE,
+                Operation::Delete => Self::DELETE,
+            };
+        }
+        res
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -390,7 +386,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations_::all(),
+            allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -409,7 +405,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations_::CREATE | Operations_::DELETE,
+            allowed_private_ops: dynaql::Operations::CREATE | dynaql::Operations::DELETE,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -428,7 +424,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations_::empty(),
+            allowed_private_ops: dynaql::Operations::empty(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -463,7 +459,7 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: Operations_::all(),
+            allowed_group_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -483,7 +479,7 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: Operations_::GET,
+            allowed_group_ops: dynaql::Operations::GET,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -537,7 +533,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_group_ops: Operations_::all(),
+            allowed_group_ops: dynaql::Operations::all(),
             ..Default::default()
         }
     );

@@ -126,7 +126,7 @@ pub struct ResolveInfo<'a> {
     pub alias: Option<&'a str>,
 
     /// Required permission to access the field
-    pub required_operation: Option<crate::Operations_>,
+    pub required_operation: Option<crate::Operations>,
 }
 
 type RequestFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);

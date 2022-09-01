@@ -9,7 +9,7 @@ use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
     MetaType,
 };
-use dynaql::Operations_;
+use dynaql::Operations;
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
 
@@ -319,7 +319,7 @@ pub fn add_update_mutation<'a>(
                             }),
                         }),
                         transforms: None,
-                        required_operation: Some(Operations_::UPDATE),
+                        required_operation: Some(Operations::UPDATE),
                     },
                 );
                 fields
@@ -392,7 +392,7 @@ pub fn add_update_mutation<'a>(
             }),
         }),
         transforms: None,
-        required_operation: Some(Operations_::UPDATE),
+        required_operation: Some(Operations::UPDATE),
     });
 }
 
