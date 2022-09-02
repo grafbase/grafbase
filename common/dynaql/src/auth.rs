@@ -53,25 +53,6 @@ bitflags::bitflags! {
 
 impl fmt::Display for Operations {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.is_empty() {
-            return write!(f, "(empty)");
-        }
-        let mut parts = vec![];
-        if self.contains(Operations::CREATE) {
-            parts.push("create");
-        }
-        if self.contains(Operations::GET) {
-            parts.push("get");
-        }
-        if self.contains(Operations::LIST) {
-            parts.push("list");
-        }
-        if self.contains(Operations::UPDATE) {
-            parts.push("update");
-        }
-        if self.contains(Operations::DELETE) {
-            parts.push("delete");
-        }
-        write!(f, "{}", parts.join(", "))
+        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }
