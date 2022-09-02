@@ -37,7 +37,7 @@ dynaql-parser = { path = "parser", version = "3" }
 async-lock = "2.5"
 async-stream = "0.3"
 async-trait = "0.1"
-cached = { version = "0.38" }
+cached = { version = "0.39" }
 derivative = "2"
 dynomite = "0.10"
 fnv = "1"
