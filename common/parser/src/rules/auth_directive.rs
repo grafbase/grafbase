@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::HashSet;
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -26,7 +26,7 @@ struct Auth {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Operations(#[serde(with = "sets_duplicate_value_is_error")] BTreeSet<Operation>);
+struct Operations(#[serde(with = "sets_duplicate_value_is_error")] HashSet<Operation>);
 
 impl std::iter::FromIterator<Operation> for Operations {
     fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
@@ -34,25 +34,25 @@ impl std::iter::FromIterator<Operation> for Operations {
     }
 }
 
-impl Operations {
-    fn new(ops: &[Operation]) -> Self {
-        Operations(ops.iter().copied().collect())
+impl Default for Operations {
+    fn default() -> Self {
+        [Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
+            .into_iter()
+            .collect()
     }
+}
 
-    fn values(&self) -> &BTreeSet<Operation> {
+impl Operations {
+    fn values(&self) -> &HashSet<Operation> {
         &self.0
     }
 
     fn any(&self) -> bool {
         !self.0.is_empty()
     }
-
-    fn all() -> Self {
-        Self::new(&[Operation::Create, Operation::Read, Operation::Update, Operation::Delete])
-    }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 enum Operation {
     Create,
@@ -107,7 +107,7 @@ enum AuthRule {
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
     Private {
-        #[serde(default = "Operations::all")]
+        #[serde(default)]
         operations: Operations,
     },
 
@@ -119,7 +119,7 @@ enum AuthRule {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
         groups: HashSet<String>,
 
-        #[serde(default = "Operations::all")]
+        #[serde(default)]
         operations: Operations,
     },
 }
@@ -236,7 +236,7 @@ impl TryFrom<&ConstDirective> for Auth {
         }
 
         Ok(Auth {
-            allowed_anonymous_ops: Operations::all(),
+            allowed_anonymous_ops: Operations::default(),
             allowed_private_ops,
             allowed_groups,
             allowed_group_ops,
