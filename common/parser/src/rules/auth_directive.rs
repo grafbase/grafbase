@@ -65,7 +65,7 @@ enum Operation {
 
 impl From<Operations> for dynaql::Operations {
     fn from(ops: Operations) -> Self {
-        let mut res = dynaql::Operations::empty();
+        let mut res = Self::empty();
         for op in ops.values() {
             res |= match op {
                 Operation::Create => Self::CREATE,

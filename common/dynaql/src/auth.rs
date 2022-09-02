@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 
 use serde::{Deserialize, Serialize};
 use serde_with::rust::sets_duplicate_value_is_error;
@@ -47,5 +48,30 @@ bitflags::bitflags! {
         const UPDATE = 0b0000_1000;
         const DELETE = 0b0001_0000;
         const READ   = Self::GET.bits | Self::LIST.bits;
+    }
+}
+
+impl fmt::Display for Operations {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_empty() {
+            return write!(f, "(empty)");
+        }
+        let mut parts = vec![];
+        if self.contains(Operations::CREATE) {
+            parts.push("create");
+        }
+        if self.contains(Operations::GET) {
+            parts.push("get");
+        }
+        if self.contains(Operations::LIST) {
+            parts.push("list");
+        }
+        if self.contains(Operations::UPDATE) {
+            parts.push("update");
+        }
+        if self.contains(Operations::DELETE) {
+            parts.push("delete");
+        }
+        write!(f, "{}", parts.join(", "))
     }
 }
