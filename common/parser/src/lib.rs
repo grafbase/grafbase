@@ -20,6 +20,7 @@ pub use dynaql::registry::Registry;
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 
+mod dynamic_string;
 mod registry;
 mod rules;
 mod utils;

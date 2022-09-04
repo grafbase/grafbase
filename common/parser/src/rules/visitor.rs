@@ -8,12 +8,13 @@ use dynaql_parser::types::{
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
 };
 use dynaql_value::ConstValue;
-use regex::Regex;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{self, Display, Formatter};
+
+use crate::dynamic_string::DynamicString;
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
 
@@ -222,37 +223,8 @@ impl<'a> VisitorContext<'a> {
         self.type_stack.pop();
     }
 
-    pub fn expand_variables(&self, string: &mut String) -> Result<(), ServerError> {
-        use itertools::Itertools;
-
-        lazy_static::lazy_static! {
-            static ref RE: Regex = Regex::new(r"\{\{\s+([[[:alnum:]]_.]+)\s+\}\}").unwrap();
-        }
-
-        let mut errors = vec![];
-        let result = RE.replace_all(string, |caps: &regex::Captures<'_>| {
-            let key = &caps[1];
-            let path = key.split('.');
-            if let Some(("env", variable_name)) = path.collect_tuple() {
-                if let Some(variable_value) = self.variables.get(variable_name) {
-                    variable_value
-                } else {
-                    errors.push(format!("undefined variable `{variable_name}`"));
-                    ""
-                }
-            } else {
-                errors.push(format!(
-                    "right now only variables scoped with 'env.' are supported: `{key}`"
-                ));
-                ""
-            }
-        });
-
-        if let Some(first_error) = errors.pop() {
-            return Err(ServerError::new(first_error, None));
-        } else if let Cow::Owned(changed) = result {
-            *string = changed;
-        }
+    pub fn partially_evaluate_literal(&self, string: &mut DynamicString) -> Result<(), ServerError> {
+        string.partially_evaluate(self.variables)?;
         Ok(())
     }
 }

@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use crate::dynamic_string::DynamicString;
+
 use super::visitor::{Visitor, VisitorContext};
 
 use dynaql::{Operations, ServerError};
@@ -30,7 +32,7 @@ struct Auth {
 #[serde(deny_unknown_fields)]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
-    Oidc { issuer: String },
+    Oidc { issuer: DynamicString },
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -202,8 +204,12 @@ impl AuthProvider {
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
 
         let &mut AuthProvider::Oidc { ref mut issuer } = &mut provider;
-        ctx.expand_variables(issuer)?;
-        if let Err(err) = issuer.parse::<url::Url>() {
+        ctx.partially_evaluate_literal(issuer)?;
+        if let Err(err) = issuer
+            .as_fully_evaluated_str()
+            .map(|s| s.parse::<url::Url>())
+            .transpose()
+        {
             // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
             return Err(ServerError::new(format!("auth provider: {err}"), None));
         }
@@ -245,7 +251,14 @@ impl From<Auth> for dynaql::AuthConfig {
                 .iter()
                 .map(|provider| match provider {
                     AuthProvider::Oidc { issuer } => dynaql::OidcProvider {
-                        issuer: issuer.parse().unwrap(),
+                        issuer: issuer
+                            .as_fully_evaluated_str()
+                            .expect(
+                                "environment variables have been expanded by now \
+                                and we don't support any other types of variables",
+                            )
+                            .parse()
+                            .unwrap(),
                     },
                 })
                 .collect(),
@@ -366,7 +379,7 @@ mod tests {
         }
         "#,
         HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),]),
-        dynaql::Auth {
+        dynaql::AuthConfig {
             allowed_private_ops: Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
@@ -400,7 +413,7 @@ mod tests {
         }
         "#,
         HashMap::new(),
-        "right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
+        "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
 
     parse_test!(
