@@ -432,7 +432,7 @@ mod tests {
         "#,
         HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),]),
         dynaql::AuthConfig {
-            allowed_private_ops: Operations::all(),
+            allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
