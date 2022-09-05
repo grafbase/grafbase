@@ -2,11 +2,12 @@ use std::collections::HashSet;
 
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::{Operations, ServerError};
+use dynaql::ServerError;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
 use serde::{Deserialize, Serialize};
+use serde_with::rust::sets_duplicate_value_is_error;
 
 const AUTH_DIRECTIVE: &str = "auth";
 
@@ -22,6 +23,61 @@ struct Auth {
     allowed_group_ops: Operations,
 
     providers: Vec<AuthProvider>,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+struct Operations(#[serde(with = "sets_duplicate_value_is_error")] HashSet<Operation>);
+
+impl std::iter::FromIterator<Operation> for Operations {
+    fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
+        Operations(iter.into_iter().collect())
+    }
+}
+
+impl Default for Operations {
+    fn default() -> Self {
+        [Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
+            .into_iter()
+            .collect()
+    }
+}
+
+impl Operations {
+    fn values(&self) -> &HashSet<Operation> {
+        &self.0
+    }
+
+    fn any(&self) -> bool {
+        !self.0.is_empty()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
+#[serde(rename_all = "camelCase")]
+enum Operation {
+    Create,
+    Read,
+    Get,  // More granual read access
+    List, // More granual read access
+    Update,
+    Delete,
+}
+
+impl From<Operations> for dynaql::Operations {
+    fn from(ops: Operations) -> Self {
+        let mut res = Self::empty();
+        for op in ops.values() {
+            res |= match op {
+                Operation::Create => Self::CREATE,
+                Operation::Read => Self::READ,
+                Operation::Get => Self::GET,
+                Operation::List => Self::LIST,
+                Operation::Update => Self::UPDATE,
+                Operation::Delete => Self::DELETE,
+            };
+        }
+        res
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -51,7 +107,7 @@ enum AuthRule {
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
     Private {
-        #[serde(default = "Operations::all")]
+        #[serde(default)]
         operations: Operations,
     },
 
@@ -63,7 +119,7 @@ enum AuthRule {
         #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
         groups: HashSet<String>,
 
-        #[serde(default = "Operations::all")]
+        #[serde(default)]
         operations: Operations,
     },
 }
@@ -180,7 +236,7 @@ impl TryFrom<&ConstDirective> for Auth {
         }
 
         Ok(Auth {
-            allowed_anonymous_ops: Operations::all(),
+            allowed_anonymous_ops: Operations::default(),
             allowed_private_ops,
             allowed_groups,
             allowed_group_ops,
@@ -232,12 +288,12 @@ impl TryFrom<&ConstValue> for AuthRule {
 impl From<Auth> for dynaql::AuthConfig {
     fn from(auth: Auth) -> Self {
         Self {
-            allowed_anonymous_ops: auth.allowed_anonymous_ops,
+            allowed_anonymous_ops: auth.allowed_anonymous_ops.into(),
 
-            allowed_private_ops: auth.allowed_private_ops,
+            allowed_private_ops: auth.allowed_private_ops.into(),
 
             allowed_groups: auth.allowed_groups,
-            allowed_group_ops: auth.allowed_group_ops,
+            allowed_group_ops: auth.allowed_group_ops.into(),
 
             oidc_providers: auth
                 .providers
@@ -254,7 +310,6 @@ impl From<Auth> for dynaql::AuthConfig {
 mod tests {
     use super::*;
     use crate::rules::visitor::visit;
-    use dynaql::Operation;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
@@ -305,10 +360,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
-            allowed_anonymous_ops: Operations::all(),
-            ..Default::default()
-        }
+        Default::default()
     );
 
     parse_fail!(
@@ -334,7 +386,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations::all(),
+            allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -353,7 +405,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations::new(&[Operation::Create, Operation::Delete]),
+            allowed_private_ops: dynaql::Operations::CREATE | dynaql::Operations::DELETE,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -372,7 +424,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: Operations::none(),
+            allowed_private_ops: dynaql::Operations::empty(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -407,7 +459,7 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: Operations::all(),
+            allowed_group_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -427,7 +479,7 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: Operations::new(&[Operation::Get]),
+            allowed_group_ops: dynaql::Operations::GET,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -481,7 +533,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_group_ops: Operations::all(),
+            allowed_group_ops: dynaql::Operations::all(),
             ..Default::default()
         }
     );

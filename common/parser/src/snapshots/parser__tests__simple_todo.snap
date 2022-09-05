@@ -4,15 +4,10 @@ expression: reg_string
 ---
 {
   "auth": {
-    "allowed_anonymous_ops": [
-      "create",
-      "read",
-      "update",
-      "delete"
-    ],
-    "allowed_group_ops": [],
+    "allowed_anonymous_ops": 31,
+    "allowed_group_ops": 0,
     "allowed_groups": [],
-    "allowed_private_ops": [],
+    "allowed_private_ops": 0,
     "oidc_providers": []
   },
   "directives": {
@@ -282,7 +277,7 @@ expression: reg_string
             "name": "todoCreate",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "todo_create_resolver",
@@ -321,7 +316,7 @@ expression: reg_string
             "name": "todoDelete",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": {
               "id": "todo_delete_resolver",
@@ -367,7 +362,7 @@ expression: reg_string
             "name": "todoUpdate",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "todo_create_resolver",
@@ -419,7 +414,7 @@ expression: reg_string
             "name": "endCursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -450,7 +445,7 @@ expression: reg_string
             "name": "hasNextPage",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -481,7 +476,7 @@ expression: reg_string
             "name": "hasPreviousPage",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -512,7 +507,7 @@ expression: reg_string
             "name": "startCursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -588,7 +583,7 @@ expression: reg_string
             "name": "todo",
             "provides": null,
             "relation": null,
-            "required_operation": "get",
+            "required_operation": 2,
             "requires": null,
             "resolve": {
               "id": "todo_resolver",
@@ -650,7 +645,7 @@ expression: reg_string
             "name": "todoCollection",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": "todo_resolver",
@@ -837,7 +832,7 @@ expression: reg_string
             "name": "edges",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -856,7 +851,7 @@ expression: reg_string
             "name": "pageInfo",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -917,7 +912,7 @@ expression: reg_string
             "name": "todo",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "todo_resolver",
@@ -968,7 +963,7 @@ expression: reg_string
             "name": "deletedId",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": null,
             "transforms": [
@@ -1012,7 +1007,7 @@ expression: reg_string
             "name": "cursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -1046,7 +1041,7 @@ expression: reg_string
             "name": "node",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -1107,7 +1102,7 @@ expression: reg_string
             "name": "todo",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "todo_resolver",

@@ -4,15 +4,10 @@ expression: reg_string
 ---
 {
   "auth": {
-    "allowed_anonymous_ops": [
-      "create",
-      "read",
-      "update",
-      "delete"
-    ],
-    "allowed_group_ops": [],
+    "allowed_anonymous_ops": 31,
+    "allowed_group_ops": 0,
     "allowed_groups": [],
-    "allowed_private_ops": [],
+    "allowed_private_ops": 0,
     "oidc_providers": []
   },
   "directives": {
@@ -282,7 +277,7 @@ expression: reg_string
             "name": "edges",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -301,7 +296,7 @@ expression: reg_string
             "name": "pageInfo",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -376,7 +371,7 @@ expression: reg_string
             "name": "author",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "author_resolver",
@@ -427,7 +422,7 @@ expression: reg_string
             "name": "deletedId",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": null,
             "transforms": [
@@ -471,7 +466,7 @@ expression: reg_string
             "name": "cursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -505,7 +500,7 @@ expression: reg_string
             "name": "node",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -652,7 +647,7 @@ expression: reg_string
             "name": "author",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "author_resolver",
@@ -1010,7 +1005,7 @@ expression: reg_string
             "name": "edges",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -1029,7 +1024,7 @@ expression: reg_string
             "name": "pageInfo",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -1090,7 +1085,7 @@ expression: reg_string
             "name": "blog",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "blog_resolver",
@@ -1141,7 +1136,7 @@ expression: reg_string
             "name": "deletedId",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": null,
             "transforms": [
@@ -1185,7 +1180,7 @@ expression: reg_string
             "name": "cursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -1219,7 +1214,7 @@ expression: reg_string
             "name": "node",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -1280,7 +1275,7 @@ expression: reg_string
             "name": "blog",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "blog_resolver",
@@ -1386,7 +1381,7 @@ expression: reg_string
             "name": "authorCreate",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "author_create_resolver",
@@ -1425,7 +1420,7 @@ expression: reg_string
             "name": "authorDelete",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": {
               "id": "author_delete_resolver",
@@ -1471,7 +1466,7 @@ expression: reg_string
             "name": "authorUpdate",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "author_create_resolver",
@@ -1513,7 +1508,7 @@ expression: reg_string
             "name": "blogCreate",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "blog_create_resolver",
@@ -1552,7 +1547,7 @@ expression: reg_string
             "name": "blogDelete",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": {
               "id": "blog_delete_resolver",
@@ -1598,7 +1593,7 @@ expression: reg_string
             "name": "blogUpdate",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "blog_create_resolver",
@@ -1640,7 +1635,7 @@ expression: reg_string
             "name": "postCreate",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "post_create_resolver",
@@ -1679,7 +1674,7 @@ expression: reg_string
             "name": "postDelete",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": {
               "id": "post_delete_resolver",
@@ -1725,7 +1720,7 @@ expression: reg_string
             "name": "postUpdate",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "post_create_resolver",
@@ -1777,7 +1772,7 @@ expression: reg_string
             "name": "endCursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -1808,7 +1803,7 @@ expression: reg_string
             "name": "hasNextPage",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -1839,7 +1834,7 @@ expression: reg_string
             "name": "hasPreviousPage",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -1870,7 +1865,7 @@ expression: reg_string
             "name": "startCursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -2047,7 +2042,7 @@ expression: reg_string
             "name": "edges",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -2066,7 +2061,7 @@ expression: reg_string
             "name": "pageInfo",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -2127,7 +2122,7 @@ expression: reg_string
             "name": "post",
             "provides": null,
             "relation": null,
-            "required_operation": "create",
+            "required_operation": 1,
             "requires": null,
             "resolve": {
               "id": "post_resolver",
@@ -2178,7 +2173,7 @@ expression: reg_string
             "name": "deletedId",
             "provides": null,
             "relation": null,
-            "required_operation": "delete",
+            "required_operation": 16,
             "requires": null,
             "resolve": null,
             "transforms": [
@@ -2222,7 +2217,7 @@ expression: reg_string
             "name": "cursor",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": null,
@@ -2256,7 +2251,7 @@ expression: reg_string
             "name": "node",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": null,
             "transforms": null,
@@ -2403,7 +2398,7 @@ expression: reg_string
             "name": "post",
             "provides": null,
             "relation": null,
-            "required_operation": "update",
+            "required_operation": 8,
             "requires": null,
             "resolve": {
               "id": "post_resolver",
@@ -2481,7 +2476,7 @@ expression: reg_string
             "name": "author",
             "provides": null,
             "relation": null,
-            "required_operation": "get",
+            "required_operation": 2,
             "requires": null,
             "resolve": {
               "id": "author_resolver",
@@ -2543,7 +2538,7 @@ expression: reg_string
             "name": "authorCollection",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": "author_resolver",
@@ -2593,7 +2588,7 @@ expression: reg_string
             "name": "blog",
             "provides": null,
             "relation": null,
-            "required_operation": "get",
+            "required_operation": 2,
             "requires": null,
             "resolve": {
               "id": "blog_resolver",
@@ -2655,7 +2650,7 @@ expression: reg_string
             "name": "blogCollection",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": "blog_resolver",
@@ -2705,7 +2700,7 @@ expression: reg_string
             "name": "post",
             "provides": null,
             "relation": null,
-            "required_operation": "get",
+            "required_operation": 2,
             "requires": null,
             "resolve": {
               "id": "post_resolver",
@@ -2767,7 +2762,7 @@ expression: reg_string
             "name": "postCollection",
             "provides": null,
             "relation": null,
-            "required_operation": "list",
+            "required_operation": 4,
             "requires": null,
             "resolve": {
               "id": "post_resolver",

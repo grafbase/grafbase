@@ -261,7 +261,7 @@ pub struct MetaField {
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
-    pub required_operation: Option<crate::Operation>,
+    pub required_operation: Option<crate::Operations>,
 }
 
 impl Hash for MetaField {
