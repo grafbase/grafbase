@@ -42,11 +42,11 @@ bitflags::bitflags! {
     #[derive(Serialize, Deserialize)]
     #[serde(transparent)]
     pub struct Operations: u8 {
-        const CREATE = 0b0000_0001;
-        const GET    = 0b0000_0010; // More granual read access
-        const LIST   = 0b0000_0100; // More granual read access
-        const UPDATE = 0b0000_1000;
-        const DELETE = 0b0001_0000;
+        const CREATE = 1 << 0;
+        const GET    = 1 << 1; // More granual read access
+        const LIST   = 1 << 2; // More granual read access
+        const UPDATE = 1 << 3;
+        const DELETE = 1 << 4;
         const READ   = Self::GET.bits | Self::LIST.bits;
     }
 }
