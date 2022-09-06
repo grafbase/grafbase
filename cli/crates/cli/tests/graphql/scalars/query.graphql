@@ -1,0 +1,14 @@
+query {
+  scalarsCollection(first: 100) {
+    edges {
+      node {
+        id
+        ip
+        timestamp
+        url
+        email
+        json
+      }
+    }
+  }
+}
