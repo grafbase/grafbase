@@ -129,7 +129,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'cargo-binstall'
+          args: 'cargo-binstall --no-confirm'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
@@ -216,7 +216,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'cargo-binstall'
+          args: 'cargo-binstall --no-confirm'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
@@ -323,7 +323,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'cargo-binstall'
+          args: 'cargo-binstall --no-confirm'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
