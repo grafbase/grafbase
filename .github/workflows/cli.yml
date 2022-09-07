@@ -141,6 +141,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
+          args: 'run'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -227,6 +228,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
+          args: 'run'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -333,6 +335,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
+          args: 'run'
 
       - name: build
         uses: actions-rs/cargo@v1
