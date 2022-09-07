@@ -129,13 +129,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'binstall'
+          args: 'cargo-binstall'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
         with:
           command: binstall
-          args: 'nextest'
+          args: 'cargo-nextest --secure'
 
       - name: test
         uses: actions-rs/cargo@v1
@@ -216,13 +216,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'binstall'
+          args: 'cargo-binstall'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
         with:
           command: binstall
-          args: 'nextest'
+          args: 'cargo-nextest --secure'
 
       - name: test
         uses: actions-rs/cargo@v1
@@ -323,13 +323,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: install
-          args: 'binstall'
+          args: 'cargo-binstall'
 
       - name: install nextest
         uses: actions-rs/cargo@v1
         with:
           command: binstall
-          args: 'nextest'
+          args: 'cargo-nextest --secure'
 
       - name: test
         uses: actions-rs/cargo@v1
