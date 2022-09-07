@@ -141,7 +141,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
-          args: '--test-threads 1'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -228,7 +227,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
-          args: '--test-threads 1'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -335,7 +333,6 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: nextest
-          args: '--test-threads 1'
 
       - name: build
         uses: actions-rs/cargo@v1
