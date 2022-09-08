@@ -291,9 +291,9 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .spawn()
             .map_err(ServerError::SchemaParserError)?;
 
-        let node_command_stdin = node_command.stdin.as_mut().unwrap();
+        let node_command_stdin = node_command.stdin.as_mut().expect("stdin must be available");
         node_command_stdin
-            .write_all(&serde_json::to_vec(&environment_variables).unwrap())
+            .write_all(&serde_json::to_vec(&environment_variables).expect("must serialise to JSON just fine"))
             .await
             .map_err(ServerError::SchemaParserError)?;
 
