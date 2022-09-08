@@ -16,6 +16,7 @@ use std::{
     process::Stdio,
     thread::{self, JoinHandle},
 };
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 use tokio::runtime::Builder;
 use tokio::sync::broadcast::{self, channel};
@@ -253,6 +254,14 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
+#[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
+fn environment_variables() -> impl Iterator<Item = (String, String)> {
+    // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
+    // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
+    // changes which is something we may want to do in the future.
+    env::vars().chain(dotenv::dotenv_iter().into_iter().flatten().filter_map(Result::ok))
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser() -> Result<(), ServerError> {
@@ -265,29 +274,40 @@ async fn run_schema_parser() -> Result<(), ServerError> {
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
 
-    let output = Command::new("node")
-        .args(&[
-            &parser_path.to_str().ok_or(ServerError::CachePath)?,
-            &environment
-                .project_grafbase_schema_path
-                .to_str()
-                .ok_or(ServerError::ProjectPath)?,
-        ])
-        .current_dir(&environment.project_dot_grafbase_path)
-        .stderr(Stdio::piped())
-        .spawn()
-        .map_err(ServerError::SchemaParserError)?
-        .wait_with_output()
-        .await
-        .map_err(ServerError::SchemaParserError)?;
+    let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
+
+    let output = {
+        let mut node_command = Command::new("node")
+            .args(&[
+                &parser_path.to_str().ok_or(ServerError::CachePath)?,
+                &environment
+                    .project_grafbase_schema_path
+                    .to_str()
+                    .ok_or(ServerError::ProjectPath)?,
+            ])
+            .current_dir(&environment.project_dot_grafbase_path)
+            .stdin(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(ServerError::SchemaParserError)?;
+
+        let node_command_stdin = node_command.stdin.as_mut().unwrap();
+        node_command_stdin
+            .write_all(&serde_json::to_vec(&environment_variables).unwrap())
+            .await
+            .map_err(ServerError::SchemaParserError)?;
+
+        node_command
+            .wait_with_output()
+            .await
+            .map_err(ServerError::SchemaParserError)?
+    };
 
     output
         .status
         .success()
         .then_some(())
-        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))?;
-
-    Ok(())
+        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {
