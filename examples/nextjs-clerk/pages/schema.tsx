@@ -9,7 +9,7 @@ export const useQuery = (query: any, variables?: any) => {
   const { getToken } = useAuth()
 
   const fetcher = async () =>
-    await fetch(process.env.NEXT_PUBLIC_GRAFBASE_URL as string, {
+    await fetch(process.env.NEXT_PUBLIC_GRAFBASE_API_URL as string, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
