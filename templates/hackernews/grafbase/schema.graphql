@@ -1,7 +1,7 @@
 type User @model {
   id: ID!
   name: String!
-  email: String! @unique
+  email: Email! @unique
   posts: [Post]
   comments: [Comment]
 }
@@ -10,7 +10,7 @@ type Post @model {
   id: ID!
   author: User!
   title: String!
-  url: String!
+  url: URL!
   votes: [Vote]
 }
 
