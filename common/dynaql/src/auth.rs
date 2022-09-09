@@ -1,8 +1,7 @@
-use std::collections::HashSet;
+use std::collections::HashMap;
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
-use serde_with::rust::sets_duplicate_value_is_error;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
@@ -10,9 +9,7 @@ pub struct AuthConfig {
 
     pub allowed_private_ops: Operations,
 
-    #[serde(with = "sets_duplicate_value_is_error")]
-    pub allowed_groups: HashSet<String>,
-    pub allowed_group_ops: Operations,
+    pub allowed_group_ops: HashMap<String, Operations>,
 
     pub oidc_providers: Vec<OidcProvider>,
 }
@@ -29,8 +26,7 @@ impl Default for AuthConfig {
 
             allowed_private_ops: Operations::empty(),
 
-            allowed_groups: HashSet::new(),
-            allowed_group_ops: Operations::empty(),
+            allowed_group_ops: HashMap::new(),
 
             oidc_providers: vec![],
         }

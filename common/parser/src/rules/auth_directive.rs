@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use crate::dynamic_string::DynamicString;
 
@@ -21,8 +21,7 @@ struct Auth {
 
     allowed_private_ops: Operations,
 
-    allowed_groups: HashSet<String>,
-    allowed_group_ops: Operations,
+    allowed_group_ops: HashMap<String, Operations>,
 
     providers: Vec<AuthProvider>,
 }
@@ -193,27 +192,30 @@ impl Auth {
             .flatten()
             .collect();
 
-        let allowed_group_ops: Operations = rules
+        let allowed_group_ops = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Groups { operations, .. } => Some(operations.values().clone()),
+                AuthRule::Groups { groups, operations } => Some((groups, operations)),
                 _ => None,
             })
-            .flatten()
-            .collect();
-
-        // TODO: don't merge all groups, but handle ops per group
-        let allowed_groups: HashSet<_> = rules
-            .iter()
-            .filter_map(|rule| match rule {
-                AuthRule::Groups { groups, .. } => Some(groups.clone()),
-                _ => None,
-            })
-            .flatten()
-            .collect();
+            .try_fold(HashMap::new(), |mut res, (groups, operations)| {
+                if groups.is_empty() {
+                    return Err(ServerError::new("groups must be a non-empty list", pos));
+                }
+                for group in groups {
+                    if res.contains_key(group) {
+                        return Err(ServerError::new(
+                            format!("group {group:?} cannot be used in more than one auth rule"),
+                            pos,
+                        ));
+                    }
+                    res.insert(group.clone(), operations.clone());
+                }
+                Ok(res)
+            })?;
 
         // TODO: this should be possible
-        if allowed_private_ops.any() && allowed_group_ops.any() {
+        if allowed_private_ops.any() && !allowed_group_ops.is_empty() {
             return Err(ServerError::new(
                 "auth rules `private` and `groups` cannot be used together",
                 pos,
@@ -227,7 +229,7 @@ impl Auth {
                     pos,
                 ));
             }
-            if !allowed_groups.is_empty() {
+            if !allowed_group_ops.is_empty() {
                 return Err(ServerError::new(
                     "auth rule `groups` requires provider of type `oidc` to be configured",
                     pos,
@@ -238,7 +240,6 @@ impl Auth {
         Ok(Auth {
             allowed_anonymous_ops: Operations::default(),
             allowed_private_ops,
-            allowed_groups,
             allowed_group_ops,
             providers,
         })
@@ -299,8 +300,11 @@ impl From<Auth> for dynaql::AuthConfig {
 
             allowed_private_ops: auth.allowed_private_ops.into(),
 
-            allowed_groups: auth.allowed_groups,
-            allowed_group_ops: auth.allowed_group_ops.into(),
+            allowed_group_ops: auth
+                .allowed_group_ops
+                .into_iter()
+                .map(|(group, ops)| (group, ops.into()))
+                .collect(),
 
             oidc_providers: auth
                 .providers
@@ -532,8 +536,10 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: dynaql::Operations::all(),
+            allowed_group_ops: HashMap::from_iter(vec![
+                ("admin".to_string(), dynaql::Operations::all()),
+                ("moderator".to_string(), dynaql::Operations::all()),
+            ]),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -546,14 +552,23 @@ mod tests {
         r#"
         schema @auth(
           providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
-          rules: [ { allow: groups, groups: ["admin", "moderator"], operations: ["get"] } ],
+          rules: [
+            { allow: groups, groups: ["admin"] }
+            { allow: groups, groups: ["moderator", "editor"], operations: ["get", "list"] }
+          ],
         ){
           query: Query
         }
         "#,
         dynaql::AuthConfig {
-            allowed_groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            allowed_group_ops: dynaql::Operations::GET,
+            allowed_group_ops: HashMap::from_iter(vec![
+                ("admin".to_string(), dynaql::Operations::all()),
+                (
+                    "moderator".to_string(),
+                    dynaql::Operations::GET | dynaql::Operations::LIST
+                ),
+                ("editor".to_string(), dynaql::Operations::GET | dynaql::Operations::LIST)
+            ]),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
             }],
@@ -597,7 +612,7 @@ mod tests {
         "auth rule: invalid type: null, expected a sequence"
     );
 
-    parse_test!(
+    parse_fail!(
         groups_rule_with_empty_groups,
         r#"
         schema @auth(
@@ -606,10 +621,7 @@ mod tests {
           query: Query
         }
         "#,
-        dynaql::AuthConfig {
-            allowed_group_ops: dynaql::Operations::all(),
-            ..Default::default()
-        }
+        "groups must be a non-empty list"
     );
 
     parse_test!(
