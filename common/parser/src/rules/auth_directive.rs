@@ -214,14 +214,6 @@ impl Auth {
                 Ok(res)
             })?;
 
-        // TODO: this should be possible
-        if allowed_private_ops.any() && !allowed_group_ops.is_empty() {
-            return Err(ServerError::new(
-                "auth rules `private` and `groups` cannot be used together",
-                pos,
-            ));
-        }
-
         if providers.is_empty() {
             if allowed_private_ops.any() {
                 return Err(ServerError::new(
@@ -508,21 +500,6 @@ mod tests {
             }],
             ..Default::default()
         }
-    );
-
-    parse_fail!(
-        incompatible_rules,
-        r#"
-        schema @auth(
-          rules: [
-            { allow: groups, groups: ["admin"] },
-            { allow: private }
-          ]
-        ){
-          query: Query
-        }
-        "#,
-        "auth rules `private` and `groups` cannot be used together"
     );
 
     parse_test!(
