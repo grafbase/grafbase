@@ -1,6 +1,5 @@
 {
-  "name": "clerk-grafbase-starter",
-  "version": "0.1.0",
+  "name": "nextjs-clerk",
   "private": true,
   "scripts": {
     "dev": "next dev",
