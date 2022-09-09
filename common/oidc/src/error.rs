@@ -15,12 +15,6 @@ quick_error! {
         InvalidIssueTime {
             display("invalid issue time")
         }
-        MissingGroups {
-            display("missing groups")
-        }
-        InvalidGroups {
-            display("invalid groups")
-        }
         UnsupportedAlgorithm {
             display("only RS256, RS384, and RS512 are supported")
         }

@@ -64,8 +64,7 @@ impl Client {
         &self,
         token: S,
         issuer: Url,
-        allowed_groups: Option<HashSet<String>>,
-    ) -> Result<(), VerificationError> {
+    ) -> Result<HashSet<String>, VerificationError> {
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
         // We support the same signing algorithms as AppSync
@@ -162,23 +161,8 @@ impl Client {
             _ => Err(VerificationError::InvalidIssueTime),
         }?;
 
-        // Check "groups" claim
-        allowed_groups
-            .map(|allowed_groups| {
-                claims
-                    .custom
-                    .groups
-                    .as_ref()
-                    .ok_or(VerificationError::MissingGroups)
-                    .and_then(|has_groups| {
-                        if allowed_groups.is_disjoint(has_groups) {
-                            Err(VerificationError::InvalidGroups)
-                        } else {
-                            Ok(())
-                        }
-                    })
-            })
-            .unwrap_or(Ok(()))
+        // Return groups from "groups" claim if present
+        Ok(claims.custom.groups.clone().unwrap_or_default())
     }
 
     async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
@@ -332,49 +316,7 @@ mod tests {
             }
         };
 
-        client.verify_token(TOKEN, issuer, None).await.unwrap();
-    }
-
-    #[tokio::test]
-    async fn should_fail_if_jwt_is_from_the_future() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-        set_up_mock_server(&issuer, &server).await;
-
-        let client = {
-            let leeway = Duration::seconds(5);
-            // now == nbf which is 10s before the issue date.
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                ..Default::default()
-            }
-        };
-
-        let result = client.verify_token(TOKEN, issuer, None).await;
-        assert_matches!(result, Err(VerificationError::InvalidIssueTime));
-    }
-
-    #[tokio::test]
-    async fn should_fail_if_jwt_lacks_groups() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-        set_up_mock_server(&issuer, &server).await;
-
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                ..Default::default()
-            }
-        };
-        let allowed_groups = Some(vec!["any".to_string()].into_iter().collect());
-
-        let result = client.verify_token(TOKEN, issuer, allowed_groups).await;
-        assert_matches!(result, Err(VerificationError::MissingGroups));
+        assert!(client.verify_token(TOKEN, issuer).await.unwrap().is_empty());
     }
 
     #[tokio::test]
@@ -395,13 +337,18 @@ mod tests {
             }
         };
 
-        client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer, None).await.unwrap();
+        assert!(client
+            .verify_token(TOKEN_WITH_NULL_GROUPS, issuer)
+            .await
+            .unwrap()
+            .is_empty());
     }
 
     #[tokio::test]
-    async fn test_verify_token_with_groups_succeeds() {
+    async fn test_verify_token_with_groups() {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
+        set_up_mock_server(&issuer, &server).await;
 
         let client = {
             let leeway = Duration::seconds(5);
@@ -413,35 +360,22 @@ mod tests {
             }
         };
 
-        let valid_groups = vec![
-            vec!["admin"],
-            vec!["moderator"],
-            vec!["admin", "moderator"],
-            vec!["Admin", "moderator", "ignored"],
-        ];
-
-        for groups in valid_groups {
-            set_up_mock_server(&issuer, &server).await;
-
-            let allowed_groups = Some(groups.into_iter().map(String::from).collect());
-
-            client
-                .verify_token(TOKEN_WITH_GROUPS, issuer.clone(), allowed_groups)
-                .await
-                .unwrap();
-
-            server.reset().await;
-        }
+        assert_eq!(
+            client.verify_token(TOKEN_WITH_GROUPS, issuer).await.unwrap(),
+            vec!["admin", "moderator"].into_iter().map(String::from).collect()
+        );
     }
 
     #[tokio::test]
-    async fn test_verify_token_with_groups_fails() {
+    async fn test_verify_token_from_future() {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
+        set_up_mock_server(&issuer, &server).await;
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            // now == nbf which is 10s before the issue date.
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -449,19 +383,9 @@ mod tests {
             }
         };
 
-        let invalid_groups = vec![vec![], vec![""], vec!["Admin"]];
-
-        for groups in invalid_groups {
-            set_up_mock_server(&issuer, &server).await;
-
-            let allowed_groups = Some(groups.into_iter().map(String::from).collect());
-
-            let result = client
-                .verify_token(TOKEN_WITH_GROUPS, issuer.clone(), allowed_groups)
-                .await;
-            assert_matches!(result, Err(VerificationError::InvalidGroups));
-
-            server.reset().await;
-        }
+        assert_matches!(
+            client.verify_token(TOKEN, issuer).await,
+            Err(VerificationError::InvalidIssueTime)
+        );
     }
 }
