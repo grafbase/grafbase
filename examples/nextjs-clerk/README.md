@@ -3,7 +3,6 @@
 ## Getting Started
 
 1. Run `npx degit grafbase/grafbase/examples/nextjs-clerk grafbase-with-nextjs-clerk` to clone this example
-1. [Deploy schema to Grafbase](https://grafbase.com/new/configure?template=Todo&source=https%3A%2F%2Fgithub.com%2Fgrafbase%2Fgrafbase%2Ftree%2Fmain%2Ftemplates%2Ftodo)
 1. Change directory into the new folder `cd grafbase-with-nextjs-clerk`
 1. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
 1. Open `.env` in your code editor, and provide your Grafbase API endpoint and Clerk frontend and backend API keys, which you can copy from [here](https://dashboard.clerk.dev/last-active?path=api-keys)
