@@ -1,6 +1,8 @@
 schema
   @auth(
-    providers: [{ type: oidc, issuer: "https://clerk.one.parrot-7.lcl.dev" }]
+    providers: [
+      { type: oidc, issuer: "https://{{ env.NEXT_PUBLIC_CLERK_FRONTEND_API }}" }
+    ]
     rules: [{ allow: private }]
   ) {
   query: Query
@@ -14,6 +16,7 @@ type TodoList @model {
 
 type Todo @model {
   id: ID!
+  list: TodoList
   title: String!
   complete: Boolean!
 }

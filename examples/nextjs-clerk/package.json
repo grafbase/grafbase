@@ -1,5 +1,5 @@
 {
-  "name": "nextjs-clerk",
+  "name": "grafbase-with-nextjs-clerk",
   "private": true,
   "scripts": {
     "dev": "next dev",
