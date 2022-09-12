@@ -203,6 +203,7 @@ impl Auth {
                     return Err(ServerError::new("groups must be a non-empty list", pos));
                 }
                 for group in groups {
+                    // FIXME: replace with ::try_insert() when it's stable
                     if res.contains_key(group) {
                         return Err(ServerError::new(
                             format!("group {group:?} cannot be used in more than one auth rule"),

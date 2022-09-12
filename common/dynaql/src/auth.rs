@@ -9,6 +9,7 @@ pub struct AuthConfig {
 
     pub allowed_private_ops: Operations,
 
+    #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
     pub allowed_group_ops: HashMap<String, Operations>,
 
     pub oidc_providers: Vec<OidcProvider>,
