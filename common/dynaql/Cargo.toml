@@ -103,7 +103,7 @@ futures-channel = { version = "0.3", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
-lru = { version = "0.7", optional = true }
+lru = { version = "0.8", optional = true }
 sha2 = { version = "0.10", optional = true }
 serde_cbor = { version = "0.11", optional = true }
 zxcvbn = { version = "2", optional = true }
