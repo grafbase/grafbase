@@ -4,6 +4,9 @@ use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
+use std::collections::HashMap;
+use std::io;
+use std::process::Output;
 use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
 use tempfile::{tempdir, TempDir};
@@ -16,6 +19,8 @@ pub struct Environment {
     commands: Vec<Handle>,
     port: u16,
 }
+
+const DOT_ENV_FILE: &str = ".env";
 
 impl Environment {
     pub fn init(port: u16) -> Self {
@@ -81,6 +86,30 @@ impl Environment {
         .unwrap();
 
         self.commands.push(command);
+    }
+
+    pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
+        cmd!(
+            cargo_bin("grafbase"),
+            "dev",
+            "--disable-watch",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory)
+        .start()?
+        .into_output()
+    }
+
+    pub fn set_variables(&mut self, variables: HashMap<String, String>) {
+        let env_file = variables
+            .into_iter()
+            .fold(String::new(), |_, (key, value)| format!(r#"{key}="{value}""#));
+        std::fs::write(
+            self.schema_path.parent().expect("must exist").join(DOT_ENV_FILE),
+            env_file,
+        )
+        .unwrap();
     }
 
     pub fn grafbase_reset(&mut self) {

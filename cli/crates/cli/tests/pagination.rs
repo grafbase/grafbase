@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_lines)]
+
 mod utils;
 
 use serde_json::{json, Value};
@@ -7,6 +9,7 @@ use utils::consts::{
 use utils::environment::Environment;
 
 #[test]
+
 fn dev() {
     let mut env = Environment::init(4010);
 

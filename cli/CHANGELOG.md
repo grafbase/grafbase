@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0]
+
+### Features
+
+- Adds support for environment variables
+  - Supports `grafbase/.env` and process environment variables, with `grafbase/.env` being higher priority
+- Adds support for the `PhoneNumber` scalar
+
+### Dependencies
+
+- Updates Miniflare to `2.8.2`
+
+### Tooling
+
+- Changes the minimal supported Node.js version to `16.13.0` to match Miniflare `2.8.2`
+
 ## [0.6.0]
 
 ### Features

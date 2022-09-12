@@ -6,6 +6,7 @@ mutation {
       url: "https://example.com"
       email: "hello@grafbase.com"
       json: { a: "hello", b: 2, c: { a: 11, b: 22 } }
+      phone: "+33612121212"
     }
   ) {
     scalars {
@@ -15,6 +16,7 @@ mutation {
       url
       email
       json
+      phone
     }
   }
 }

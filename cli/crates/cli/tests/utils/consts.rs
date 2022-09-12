@@ -39,4 +39,6 @@ pub const SCALARS_SCHEMA: &str = include_str!("../graphql/scalars/schema.graphql
 pub const SCALARS_MUTATION: &str = include_str!("../graphql/scalars/mutation.graphql");
 pub const SCALARS_QUERY: &str = include_str!("../graphql/scalars/query.graphql");
 
+pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
+
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
