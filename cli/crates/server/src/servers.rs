@@ -1,5 +1,5 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
+    ASSET_VERSION_FILE, DOT_ENV_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
     SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
 use crate::event::{wait_for_event, Event};
@@ -256,10 +256,17 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
 
 #[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
 fn environment_variables() -> impl Iterator<Item = (String, String)> {
+    let environment = Environment::get();
+    let dot_env_file_path = environment.project_grafbase_path.join(DOT_ENV_FILE);
     // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
     // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
     // changes which is something we may want to do in the future.
-    env::vars().chain(dotenv::dotenv_iter().into_iter().flatten().filter_map(Result::ok))
+    env::vars().chain(
+        dotenv::from_path_iter(dot_env_file_path)
+            .into_iter()
+            .flatten()
+            .filter_map(Result::ok),
+    )
 }
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement

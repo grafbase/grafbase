@@ -1,0 +1,3 @@
+schema @auth(providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }], rules: [{ allow: private }]) {
+  query: Query
+}

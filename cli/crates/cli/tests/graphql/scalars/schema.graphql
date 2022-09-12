@@ -5,4 +5,5 @@ type Scalars @model {
   url: URL!
   email: Email!
   json: JSON!
+  phone: PhoneNumber!
 }
