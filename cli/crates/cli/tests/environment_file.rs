@@ -14,7 +14,7 @@ fn dot_env_file() {
 
     let dev_output = env.grafbase_dev_output();
 
-    assert!(!dev_output.is_ok());
+    assert!(dev_output.is_err());
 
     env.set_variables(HashMap::from([(
         "ISSUER_URL".to_owned(),

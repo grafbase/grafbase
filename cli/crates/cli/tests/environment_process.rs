@@ -13,7 +13,7 @@ fn process_environment() {
 
     let dev_output = env.grafbase_dev_output();
 
-    assert!(!dev_output.is_ok());
+    assert!(dev_output.is_err());
 
     std::env::set_var("ISSUER_URL", "https://example.com");
 

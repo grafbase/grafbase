@@ -89,7 +89,7 @@ impl Environment {
     }
 
     pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
-        Ok(cmd!(
+        cmd!(
             cargo_bin("grafbase"),
             "dev",
             "--disable-watch",
@@ -98,7 +98,7 @@ impl Environment {
         )
         .dir(&self.directory)
         .start()?
-        .into_output()?)
+        .into_output()
     }
 
     pub fn set_variables(&mut self, variables: HashMap<String, String>) {
@@ -109,7 +109,7 @@ impl Environment {
             self.schema_path.parent().expect("must exist").join(DOT_ENV_FILE),
             env_file,
         )
-        .unwrap()
+        .unwrap();
     }
 
     pub fn grafbase_reset(&mut self) {
