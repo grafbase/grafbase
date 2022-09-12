@@ -33,6 +33,6 @@
     "@grafbase/cli-x86_64-unknown-linux-musl": "^0.6.0"
   },
   "engines": {
-    "node": ">=16.7.0"
+    "node": ">=16.13.0"
   }
 }
