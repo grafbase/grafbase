@@ -28,5 +28,5 @@ fn dot_env_file() {
     client.poll_endpoint(30, 300);
 }
 
-// TODO: add test for precedence once we have a way to print variables
+// TODO: add a test for precedence once we have a way to print variables
 // (the .env variables are higher priority than process enviroment variables)
