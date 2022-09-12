@@ -142,13 +142,15 @@ where
 
 /// LRU cache.
 pub struct LruCache {
-    cap: usize,
+    cap: std::num::NonZeroUsize,
 }
 
 impl LruCache {
     /// Creates a new LRU Cache that holds at most `cap` items.
-    pub const fn new(cap: usize) -> Self {
-        Self { cap }
+    pub fn new(cap: usize) -> Self {
+        Self {
+            cap: std::num::NonZeroUsize::new(cap).expect("must be positive"),
+        }
     }
 }
 

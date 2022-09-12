@@ -9,7 +9,7 @@ again = { version = "0.1", default-features = false, features = [
     "log",
 ] }
 async-trait = "0.1"
-aws-region-nearby = "0.1"
+aws-region-nearby = "0.2"
 chrono = { version = "0.4", default-features = false, features = [
     "clock",
     "std",
@@ -27,7 +27,7 @@ futures-util = { version = "0.3", default-features = false, features = [
 indexmap = "2.0.0-pre"
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
-lru = { version = "0.7" }
+lru = { version = "0.8" }
 quick-error = "2"
 rusoto_core = "0.48"
 rusoto_dynamodb = "0.48"
