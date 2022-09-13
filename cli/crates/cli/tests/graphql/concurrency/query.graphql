@@ -4,10 +4,14 @@
       node {
         id
         title
-        todos {
-          id
-          title
-          complete
+        todos(last: 100) {
+          edges {
+            node {
+              id
+              title
+              complete
+            }
+          }
         }
       }
     }

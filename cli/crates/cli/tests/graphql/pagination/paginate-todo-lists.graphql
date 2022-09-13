@@ -8,10 +8,14 @@ query PaginateTodoLists($first: Int, $last: Int, $before: String, $after: String
       node {
         id
         title
-        todos {
-          id
-          title
-          complete
+        todos(first: $first, last: $last, before: $before, after: $after) {
+          edges {
+            node {
+              id
+              title
+              complete
+            }
+          }
         }
       }
     }

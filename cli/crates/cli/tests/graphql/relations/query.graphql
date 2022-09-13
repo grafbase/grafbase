@@ -4,20 +4,36 @@
       node {
         id
         title
-        authors {
-          id
-          name
-          blogs {
-            id
-            title
+        authors(first: 100) {
+          edges {
+            node {
+              id
+              name
+              blogs(last: 100) {
+                edges {
+                  node {
+                    id
+                    title
+                  }
+                }
+              }
+            }
           }
         }
-        secondaryAuthors {
-          id
-          name
-          blogs {
-            id
-            title
+        secondaryAuthors(last: 50) {
+          edges {
+            node {
+              id
+              name
+              blogs(last: 100) {
+                edges {
+                  node {
+                    id
+                    title
+                  }
+                }
+              }
+            }
           }
         }
       }
