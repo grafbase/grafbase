@@ -46,6 +46,9 @@ struct CustomClaims {
     #[serde(rename = "iss")]
     issuer: Url,
 
+    #[serde(rename = "sub")]
+    subject: String,
+
     #[serde(default)]
     groups: Option<HashSet<String>>, // TODO: use configured claim name
 }
@@ -59,12 +62,18 @@ pub struct Client {
     pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct VerifiedToken {
+    pub identity: String,
+    pub groups: HashSet<String>,
+}
+
 impl Client {
     pub async fn verify_token<S: AsRef<str> + Send>(
         &self,
         token: S,
         issuer: Url,
-    ) -> Result<HashSet<String>, VerificationError> {
+    ) -> Result<VerifiedToken, VerificationError> {
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
         // We support the same signing algorithms as AppSync
@@ -161,8 +170,10 @@ impl Client {
             _ => Err(VerificationError::InvalidIssueTime),
         }?;
 
-        // Return groups from "groups" claim if present
-        Ok(claims.custom.groups.clone().unwrap_or_default())
+        Ok(VerifiedToken {
+            identity: claims.custom.subject.clone(),
+            groups: claims.custom.groups.clone().unwrap_or_default(),
+        })
     }
 
     async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
@@ -220,6 +231,7 @@ mod tests {
     */
     const TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
     const TOKEN_IAT: i64 = 1_656_946_425;
+    const TOKEN_SUB: &str = "user_25sYSVDXCrWW58OusREXyl4zp30";
 
     /* TOKEN_WITH_GROUPS decoded:
     {
@@ -316,7 +328,13 @@ mod tests {
             }
         };
 
-        assert!(client.verify_token(TOKEN, issuer).await.unwrap().is_empty());
+        assert_eq!(
+            client.verify_token(TOKEN, issuer).await.unwrap(),
+            VerifiedToken {
+                identity: TOKEN_SUB.to_string(),
+                groups: HashSet::new(),
+            }
+        );
     }
 
     #[tokio::test]
@@ -337,11 +355,13 @@ mod tests {
             }
         };
 
-        assert!(client
-            .verify_token(TOKEN_WITH_NULL_GROUPS, issuer)
-            .await
-            .unwrap()
-            .is_empty());
+        assert_eq!(
+            client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer).await.unwrap(),
+            VerifiedToken {
+                identity: TOKEN_SUB.to_string(),
+                groups: HashSet::new(),
+            }
+        );
     }
 
     #[tokio::test]
@@ -362,7 +382,10 @@ mod tests {
 
         assert_eq!(
             client.verify_token(TOKEN_WITH_GROUPS, issuer).await.unwrap(),
-            vec!["admin", "moderator"].into_iter().map(String::from).collect()
+            VerifiedToken {
+                identity: TOKEN_SUB.to_string(),
+                groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+            }
         );
     }
 
