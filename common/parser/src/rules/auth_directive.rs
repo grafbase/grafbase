@@ -17,8 +17,6 @@ pub struct AuthDirective;
 
 #[derive(Debug)]
 struct Auth {
-    allowed_anonymous_ops: Operations,
-
     allowed_private_ops: Operations,
 
     allowed_group_ops: HashMap<String, Operations>,
@@ -257,7 +255,6 @@ impl Auth {
         }
 
         Ok(Auth {
-            allowed_anonymous_ops: Operations::default(),
             allowed_private_ops,
             allowed_group_ops,
             allowed_owner_ops,
@@ -316,8 +313,6 @@ impl AuthRule {
 impl From<Auth> for dynaql::AuthConfig {
     fn from(auth: Auth) -> Self {
         Self {
-            allowed_anonymous_ops: auth.allowed_anonymous_ops.into(),
-
             allowed_private_ops: auth.allowed_private_ops.into(),
 
             allowed_group_ops: auth
