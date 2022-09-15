@@ -103,7 +103,7 @@ enum AuthRule {
         // Note: we don't support operations as our playground needs full access
     },
 
-    // Signed-in user data access via OIDC
+    /// Signed-in user data access via OIDC
     // Ex: { allow: private }
     //     { allow: private, operations: [create, read] }
     #[serde(rename_all = "camelCase")]
@@ -124,9 +124,10 @@ enum AuthRule {
         operations: Operations,
     },
 
-    // Owner-based data access via OIDC
+    /// Owner-based data access via OIDC
     // Ex: { allow: owner }
     //     { allow: owner, operations: [create, read] }
+    // TODO: support configuration of ownerField and identityClaim
     #[serde(rename_all = "camelCase")]
     Owner {
         #[serde(default)]
