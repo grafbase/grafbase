@@ -3,6 +3,8 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
+const DEFAULT_OWNER_FIELD: &str = "owner";
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
     pub allowed_anonymous_ops: Operations,
@@ -11,6 +13,9 @@ pub struct AuthConfig {
 
     #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
     pub allowed_group_ops: HashMap<String, Operations>,
+
+    pub allowed_owner_ops: Operations,
+    pub owner_field: String,
 
     pub oidc_providers: Vec<OidcProvider>,
 }
@@ -28,6 +33,9 @@ impl Default for AuthConfig {
             allowed_private_ops: Operations::empty(),
 
             allowed_group_ops: HashMap::new(),
+
+            allowed_owner_ops: Operations::empty(),
+            owner_field: DEFAULT_OWNER_FIELD.to_string(),
 
             oidc_providers: vec![],
         }

@@ -23,6 +23,8 @@ struct Auth {
 
     allowed_group_ops: HashMap<String, Operations>,
 
+    allowed_owner_ops: Operations,
+
     providers: Vec<AuthProvider>,
 }
 
@@ -123,6 +125,15 @@ enum AuthRule {
         #[serde(default)]
         operations: Operations,
     },
+
+    // Owner-based data access via OIDC
+    // Ex: { allow: owner }
+    //     { allow: owner, operations: [create, read] }
+    #[serde(rename_all = "camelCase")]
+    Owner {
+        #[serde(default)]
+        operations: Operations,
+    },
 }
 
 impl<'a> Visitor<'a> for AuthDirective {
@@ -215,6 +226,15 @@ impl Auth {
                 Ok(res)
             })?;
 
+        let allowed_owner_ops: Operations = rules
+            .iter()
+            .filter_map(|rule| match rule {
+                AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
+                _ => None,
+            })
+            .flatten()
+            .collect();
+
         if providers.is_empty() {
             if allowed_private_ops.any() {
                 return Err(ServerError::new(
@@ -228,12 +248,19 @@ impl Auth {
                     pos,
                 ));
             }
+            if allowed_owner_ops.any() {
+                return Err(ServerError::new(
+                    "auth rule `owner` requires provider of type `oidc` to be configured",
+                    pos,
+                ));
+            }
         }
 
         Ok(Auth {
             allowed_anonymous_ops: Operations::default(),
             allowed_private_ops,
             allowed_group_ops,
+            allowed_owner_ops,
             providers,
         })
     }
@@ -299,6 +326,8 @@ impl From<Auth> for dynaql::AuthConfig {
                 .map(|(group, ops)| (group, ops.into()))
                 .collect(),
 
+            allowed_owner_ops: auth.allowed_owner_ops.into(),
+
             oidc_providers: auth
                 .providers
                 .iter()
@@ -315,6 +344,8 @@ impl From<Auth> for dynaql::AuthConfig {
                     },
                 })
                 .collect(),
+
+            ..Default::default()
         }
     }
 }
@@ -427,7 +458,7 @@ mod tests {
           query: Query
         }
         "#,
-        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),]),
+        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
         dynaql::AuthConfig {
             allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
@@ -600,6 +631,44 @@ mod tests {
         }
         "#,
         "groups must be a non-empty list"
+    );
+
+    parse_test!(
+        owner_rule,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: owner } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::AuthConfig {
+            allowed_owner_ops: dynaql::Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        owner_rule_with_ops,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
+          rules: [ { allow: owner, operations: ["create"] } ],
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::AuthConfig {
+            allowed_owner_ops: dynaql::Operations::CREATE,
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+            }],
+            ..Default::default()
+        }
     );
 
     parse_test!(
