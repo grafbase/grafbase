@@ -1,4 +1,4 @@
-use crate::constant::{PK, SK};
+use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
 use crate::model::node::NodeID;
@@ -68,6 +68,7 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
             };
 
             let mut exp_attr = HashMap::with_capacity(3);
+            exp_attr.insert("#relationname".to_string(), RELATION_NAMES.to_string());
             exp_attr.insert("#pk".to_string(), self.index.pk());
 
             exp.insert(":relationname".to_string(), query_key.relation_name.clone().into_attr());
