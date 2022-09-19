@@ -107,9 +107,7 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
                             let sk = ID::try_from(curr.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                                 .expect("Can't fail");
 
-                            // we currently use the SK here as the key since this will always be a top level nested
-                            // relation with no edges
-                            match acc.values.entry(sk.to_string()) {
+                            match acc.values.entry(pk.to_string()) {
                                 Entry::Vacant(vac) => {
                                     let mut value = QueryValue {
                                         node: None,
