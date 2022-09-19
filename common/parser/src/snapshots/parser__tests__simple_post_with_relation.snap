@@ -6,8 +6,10 @@ expression: reg_string
   "auth": {
     "allowed_anonymous_ops": 31,
     "allowed_group_ops": {},
+    "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
-    "oidc_providers": []
+    "oidc_providers": [],
+    "owner_field": "owner"
   },
   "directives": {
     "include": {
