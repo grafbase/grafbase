@@ -261,9 +261,8 @@ expression: reg_string
               "id": "author_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "RelationArray": {
+                  "EdgeArray": {
                     "expected_ty": "Post",
-                    "is_node": true,
                     "key": "Author",
                     "relation_name": "published"
                   }
@@ -777,7 +776,7 @@ expression: reg_string
               "id": "blog_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "SingleRelation": {
+                  "SingleEdge": {
                     "key": "Blog",
                     "relation_name": "AuthorRelateBlog"
                   }
@@ -845,9 +844,8 @@ expression: reg_string
               "id": "blog_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "RelationArray": {
+                  "EdgeArray": {
                     "expected_ty": "Post",
-                    "is_node": true,
                     "key": "Blog",
                     "relation_name": "BlogRelatePost"
                   }
@@ -2017,9 +2015,8 @@ expression: reg_string
               "id": "post_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "RelationArray": {
+                  "EdgeArray": {
                     "expected_ty": "Author",
-                    "is_node": true,
                     "key": "Post",
                     "relation_name": "published"
                   }
