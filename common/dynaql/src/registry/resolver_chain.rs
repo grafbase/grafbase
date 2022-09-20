@@ -137,6 +137,7 @@ impl<'a> ResolverChainNode<'a> {
                 Box::new(arguments)
             }
             (None, Some(executable_field)) => {
+                // TODO: Remove cloning when reworking the variable resolution.
                 Box::new(executable_field.node.arguments.clone().into_iter())
             }
             _ => Box::new(std::iter::empty::<(Positioned<Name>, Positioned<Value>)>()),
