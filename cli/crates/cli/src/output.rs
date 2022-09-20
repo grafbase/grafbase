@@ -37,7 +37,7 @@ pub mod report {
     pub fn project_created(name: Option<&str>) {
         let slash = std::path::MAIN_SEPARATOR.to_string();
         if let Some(name) = name {
-            watercolor::output!(r#"✨ "{name}" was succesfully created!"#, @BrightBlue);
+            watercolor::output!(r#"✨ "{name}" was successfully created!"#, @BrightBlue);
 
             let schema_path = &[".", name, "grafbase", "schema.graphql"].join(&slash);
 
