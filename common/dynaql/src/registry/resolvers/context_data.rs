@@ -106,28 +106,27 @@ impl ResolverTrait for ContextDataResolver {
             // between the queried item and it's edges as a nested pagination will not have pk == sk
             ContextDataResolver::SingleEdge { key, relation_name } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
-                    Some(serde_json::Value::Array(arr)) => arr.clone(),
-                    Some(val) => vec![val.clone()],
+                    Some(serde_json::Value::Array(arr)) => {
+                        // Check than the old_val is an array with only 1 element.
+                        if arr.len() > 1 {
+                            ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                        }
+
+                        arr.first()
+                            .map(std::clone::Clone::clone)
+                            .unwrap_or(serde_json::Value::Null)
+                    }
+                    Some(val) => val.clone(),
                     _ => {
                         return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
                             .with_early_return())
                     }
                 };
 
-                // Check than the old_val is an array with only 1 element.
-                if old_val.len() > 1 {
-                    ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
-                }
-
-                let result = old_val
-                    .first()
-                    .map(std::clone::Clone::clone)
-                    .unwrap_or(serde_json::Value::Null);
-
                 let sk = Transformer::DynamoSelect {
                     property: "__sk".to_string(),
                 }
-                .transform(result)?;
+                .transform(old_val)?;
 
                 let sk = match sk {
                     serde_json::Value::String(inner) => inner,
@@ -152,23 +151,27 @@ impl ResolverTrait for ContextDataResolver {
                 expected_ty,
             } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
-                    Some(serde_json::Value::Array(arr)) => arr.clone(),
-                    Some(val) => vec![val.clone()],
+                    Some(serde_json::Value::Array(arr)) => {
+                        // Check than the old_val is an array with only 1 element.
+                        if arr.len() > 1 {
+                            ctx.add_error(Error::new("An issue occured while resolving this field. Reason: Incoherent schema.").into_server_error(ctx.item.pos));
+                        }
+
+                        arr.first()
+                            .map(std::clone::Clone::clone)
+                            .unwrap_or(serde_json::Value::Null)
+                    }
+                    Some(val) => val.clone(),
                     _ => {
                         return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
                             .with_early_return())
                     }
                 };
 
-                let result = old_val
-                    .first()
-                    .map(std::clone::Clone::clone)
-                    .unwrap_or(serde_json::Value::Null);
-
                 let sk = Transformer::DynamoSelect {
                     property: "__sk".to_string(),
                 }
-                .transform(result)?;
+                .transform(old_val)?;
 
                 let sk = match sk {
                     serde_json::Value::String(inner) => inner,
