@@ -81,6 +81,8 @@ pub enum DynamoResolver {
         last: VariableResolveDefinition,
         after: VariableResolveDefinition,
         before: VariableResolveDefinition,
+        // (relation_name, parent_pk)
+        // TODO: turn this into a struct
         nested: Option<(String, String)>,
     },
     QuerySingleRelation {

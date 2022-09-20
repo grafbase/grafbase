@@ -22,11 +22,13 @@ pub enum PaginatedCursor {
     Forward {
         exclusive_last_key: Option<String>,
         first: usize,
+        // (relation_name, parent_pk)
         nested: Option<(String, String)>,
     },
     Backward {
         exclusive_first_key: Option<String>,
         last: usize,
+        // (relation_name, parent_pk)
         nested: Option<(String, String)>,
     },
 }
@@ -66,6 +68,7 @@ impl PaginatedCursor {
         last: Option<usize>,
         after: Option<String>,
         before: Option<String>,
+        // (relation_name, parent_pk)
         nested: Option<(String, String)>,
     ) -> Result<Self, CursorCreation> {
         match (first, after, last, before) {
