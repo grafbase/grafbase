@@ -52,6 +52,7 @@ pub enum ContextDataResolver {
     /// the sub-level edges are requested, and if they are, we'll need to perform
     /// a second query accross our database.
     SingleEdge { key: String, relation_name: String },
+    /// Used for an array of edges, e.g. [Todo]
     EdgeArray {
         key: String,
         relation_name: String,

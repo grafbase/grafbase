@@ -85,6 +85,25 @@ pub enum DynamoResolver {
         // TODO: turn this into a struct
         nested: Option<(String, String)>,
     },
+    /// A Query based on the PK and the relation name.
+    ///
+    /// # Returns
+    ///
+    /// We expect this resolver to return a Value with this type, if for example.
+    /// This resolver should ALWAYS be used for Unique Results.
+    ///
+    /// With an Author edge:
+    ///
+    /// ```json
+    /// {
+    ///   data: {
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// Even if the relation is unique, we'll return a Vec, it's the purpose of the EdgeResolver
+    /// to determine if the schema is coherent and to fallback an error if it's not.
     QuerySingleRelation {
         parent_pk: String,
         relation_name: String,
