@@ -191,6 +191,7 @@ where
 
         let edges_len = edges.len();
 
+        // TODO: consolidate these branches
         let primary_index = if cursor.is_nested_relation() {
             PK.to_string()
         } else {

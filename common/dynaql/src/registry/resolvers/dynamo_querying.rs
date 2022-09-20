@@ -155,6 +155,8 @@ impl ResolverTrait for DynamoResolver {
                 // We add the Node to the edges to also ask for the Node Data.
                 let edges: Vec<String> = relations_selected
                     .iter()
+                    // we won't be able to load any `ToMany` relations with the original item
+                    // since they need to be paginated
                     .filter(|relation| {
                         relation.1.kind == MetaRelationKind::ManyToOne
                             || relation.1.kind == MetaRelationKind::OneToOne
@@ -307,6 +309,8 @@ impl ResolverTrait for DynamoResolver {
                 // We add the Node to the edges to also ask for the Node Data.
                 let edges: Vec<String> = relations_selected
                     .iter()
+                    // we won't be able to load any `ToMany` relations with the original item
+                    // since they need to be paginated
                     .filter(|relation| {
                         relation.1.kind == MetaRelationKind::ManyToOne
                             || relation.1.kind == MetaRelationKind::OneToOne

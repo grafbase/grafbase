@@ -105,6 +105,8 @@ impl ResolverTrait for ContextDataResolver {
             }
             // TODO: look into loading single edges in the same query. This may be tricky as we can no longer differentiate
             // between the queried item and it's edges as a nested pagination will not have pk == sk
+            // also
+            // TODO: look into optimizing nested single edges
             ContextDataResolver::SingleEdge { key, relation_name } => {
                 let old_val = match last_resolver_value.and_then(|x| x.data_resolved.get(key)) {
                     Some(serde_json::Value::Array(arr)) => {
@@ -117,6 +119,7 @@ impl ResolverTrait for ContextDataResolver {
                             .map(std::clone::Clone::clone)
                             .unwrap_or(serde_json::Value::Null)
                     }
+                    // happens in nested relations
                     Some(val) => val.clone(),
                     _ => {
                         return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
@@ -162,6 +165,7 @@ impl ResolverTrait for ContextDataResolver {
                             .map(std::clone::Clone::clone)
                             .unwrap_or(serde_json::Value::Null)
                     }
+                    // happens in nested relations
                     Some(val) => val.clone(),
                     _ => {
                         return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
