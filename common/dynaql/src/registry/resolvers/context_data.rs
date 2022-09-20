@@ -19,7 +19,7 @@ pub enum ContextDataResolver {
     LocalKey { key: String },
     /// ContextDataResolver based on Edges.
     ///
-    /// When we fetch a Node, we'll also fetch the Edges of that node if needed.
+    /// When we fetch a Node, we'll also fetch the Edges of that node if needed (note: this is currenly disabled).
     /// We need to indicate in the ResolverChain than those fields will be Edges.
     ///
     /// The only side note is when your edge is also a Node:
