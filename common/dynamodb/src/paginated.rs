@@ -186,23 +186,19 @@ where
     ) -> Result<QueryResult, RusotoError<QueryError>> {
         let node_type = node_type.to_lowercase();
         let mut exp = dynomite::attr_map! {
-            ":pk" => if cursor.is_nested_relation() {
-                cursor.nested_parent_pk().unwrap()
-            } else {
-                node_type.clone()
-            },
+            ":pk" => cursor.nested_parent_pk().unwrap_or(node_type.clone())
         };
 
         let edges_len = edges.len();
 
         let primary_index = if cursor.is_nested_relation() {
-            "__pk".to_string()
+            PK.to_string()
         } else {
             index.pk()
         };
 
         let sort_index = if cursor.is_nested_relation() {
-            "__sk".to_string()
+            SK.to_string()
         } else {
             index.sk()
         };
