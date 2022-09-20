@@ -186,7 +186,7 @@ where
     ) -> Result<QueryResult, RusotoError<QueryError>> {
         let node_type = node_type.to_lowercase();
         let mut exp = dynomite::attr_map! {
-            ":pk" => cursor.nested_parent_pk().unwrap_or(node_type.clone())
+            ":pk" => cursor.nested_parent_pk().unwrap_or_else(|| node_type.clone())
         };
 
         let edges_len = edges.len();
