@@ -205,6 +205,7 @@ pub struct Operation {
     pub kind: Option<OperationKind>,
 }
 
+// TODO: turn these tuple arguments into structs
 pub enum Sql<'a> {
     /// value ordering: handled by [`Row`]
     Insert(&'a Row),
