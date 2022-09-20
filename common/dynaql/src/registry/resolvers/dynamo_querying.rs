@@ -1,10 +1,12 @@
 use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 
+use crate::registry::relations::{MetaRelation, MetaRelationKind};
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::{
-    DynamoDBBatchersData, PaginatedCursor, QueryKey, QueryTypeKey, QueryTypePaginatedKey,
+    DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
 };
+use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;
 use std::borrow::Borrow;
@@ -44,32 +46,6 @@ pub enum DynamoResolver {
         pk: VariableResolveDefinition,
         sk: VariableResolveDefinition,
     },
-    /// A Query based on the type of the entity.
-    ///
-    /// We query the reverted index by type to get a node and his edges.
-    /// This Resolver is non-paginated, it means it's designed to get EVERY NODE AND EDGES.
-    ///
-    /// With the workers limits, it can fails.
-    /// It should be used with items when we know that the items aren't too big.
-    /// A sub-query checker will live that'll allow users to avoid too big queries with partial
-    /// response.
-    ///
-    /// # Returns
-    ///
-    /// We expect this resolver to return a Value with this type, if for example.
-    ///
-    /// With a Blog example where Author would be an Edge:
-    ///
-    /// ```json
-    /// {
-    ///   data: [{
-    ///     "Blog": HashMap<String, AttributeValue>,
-    ///     "Author": Vec<HashMap<String, AttributeValue>>,
-    ///     "Edge2": Vec<HashMap<String, AttributeValue>>,
-    ///    }]
-    /// }
-    /// ```
-    ListResultByType { r#type: VariableResolveDefinition },
     /// A Paginated Query based on the type of the entity.
     ///
     /// We query the reverted index by type to get a node and his edges.
@@ -105,6 +81,32 @@ pub enum DynamoResolver {
         last: VariableResolveDefinition,
         after: VariableResolveDefinition,
         before: VariableResolveDefinition,
+        // (relation_name, parent_pk)
+        // TODO: turn this into a struct
+        nested: Option<(String, String)>,
+    },
+    /// A Query based on the PK and the relation name.
+    ///
+    /// # Returns
+    ///
+    /// We expect this resolver to return a Value with this type, if for example.
+    /// This resolver should ALWAYS be used for Unique Results.
+    ///
+    /// With an Author edge:
+    ///
+    /// ```json
+    /// {
+    ///   data: {
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// Even if the relation is unique, we'll return a Vec, it's the purpose of the EdgeResolver
+    /// to determine if the schema is coherent and to fallback an error if it's not.
+    QuerySingleRelation {
+        parent_pk: String,
+        relation_name: String,
     },
 }
 
@@ -121,8 +123,8 @@ impl ResolverTrait for DynamoResolver {
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
-        let query_loader_fat = &batchers.query_fat;
         let query_loader_fat_paginated = &batchers.paginated_query_fat;
+        let query_loader_single_relation = &batchers.query_single_relation;
 
         let ctx_ty = resolver_ctx
             .ty
@@ -136,13 +138,37 @@ impl ResolverTrait for DynamoResolver {
                 after,
                 last,
                 first,
+                nested,
             } => {
                 let pk = r#type
                     .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
-                let ctx_ty = ctx.registry().types.get(&pk).expect("can't fail");
+                // TODO: optimize single edges for the top level
                 // TODO: put selected relations
-                let relations_selected = ctx_ty.relations();
+                let relations_selected: IndexMap<&str, &MetaRelation> = IndexMap::new();
+                // When we query a Node with the Query Dataloader, we have to indicate
+                // which Edges should be getted with it because we are able to retreive
+                // a Node with his edges in one network request.
+                // We could also request to have only the node edges and not the node
+                // data.
+                //
+                // We add the Node to the edges to also ask for the Node Data.
+                let edges: Vec<String> = relations_selected
+                    .iter()
+                    // we won't be able to load any `ToMany` relations with the original item
+                    // since they need to be paginated
+                    .filter(|relation| {
+                        relation.1.kind == MetaRelationKind::ManyToOne
+                            || relation.1.kind == MetaRelationKind::OneToOne
+                    })
+                    .map(|(_, x)| x)
+                    .fold(Vec::new(), |mut acc, cur| {
+                        acc.push(cur.name.clone());
+                        acc
+                    })
+                    .into_iter()
+                    .unique()
+                    .collect();
 
                 let first = first.expect_opt_int(
                     ctx,
@@ -162,19 +188,10 @@ impl ResolverTrait for DynamoResolver {
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                     Some(PAGINATION_LIMIT),
                 )?;
-                let edges: Vec<String> = relations_selected
-                    .iter()
-                    .map(|(_, x)| x)
-                    .fold(Vec::new(), |mut acc, cur| {
-                        acc.push(cur.name.clone());
-                        acc
-                    })
-                    .into_iter()
-                    .unique()
-                    .collect();
                 let len = edges.len();
 
-                let cursor = PaginatedCursor::from_graphql(first, last, after, before)?;
+                let cursor =
+                    PaginatedCursor::from_graphql(first, last, after, before, nested.clone())?;
                 let mut pagination = ResolvedPaginationInfo::new(
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
                 );
@@ -241,85 +258,6 @@ impl ResolverTrait for DynamoResolver {
                         .with_pagination(pagination),
                 )
             }
-            DynamoResolver::ListResultByType { r#type } => {
-                let pk = match r#type
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
-                    .expect("can't fail")
-                {
-                    Value::String(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
-
-                let ctx_ty = ctx.registry().types.get(&pk).expect("can't fail");
-                // TODO: put selected relations
-                let relations_selected = ctx_ty.relations();
-
-                // When we query a Node with the Query Dataloader, we have to indicate
-                // which Edges should be getted with it because we are able to retreive
-                // a Node with his edges in one network request.
-                // We could also request to have only the node edges and not the node
-                // data.
-                //
-                // We add the Node to the edges to also ask for the Node Data.
-                let edges: Vec<String> = relations_selected
-                    .iter()
-                    .map(|(_, x)| x)
-                    .fold(Vec::new(), |mut acc, cur| {
-                        acc.push(cur.name.clone());
-                        acc
-                    })
-                    .into_iter()
-                    .unique()
-                    .collect();
-
-                let query_result = query_loader_fat
-                    .load_one(QueryTypeKey::new(pk.clone(), edges))
-                    .await?
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed to fetch the associated nodes.")
-                    })?;
-
-                let result: Vec<serde_json::Value> = query_result
-                    .values
-                    .into_iter()
-                    .map(|(_, query_value)| {
-                        let edges = query_value.edges;
-                        let len = edges.len();
-                        let value: Map<String, serde_json::Value> = edges.into_iter().fold(
-                            Map::with_capacity(len),
-                            |mut acc, (edge_key, dyna_value)| {
-                                let value = if edge_key == pk {
-                                    serde_json::to_value(dyna_value.first())
-                                } else {
-                                    serde_json::to_value(dyna_value)
-                                };
-
-                                match value {
-                                    Ok(value) => {
-                                        acc.insert(edge_key, value);
-                                    }
-                                    Err(err) => {
-                                        acc.insert(edge_key, serde_json::Value::Null);
-                                        ctx.add_error(
-                                            Error::new_with_source(err)
-                                                .into_server_error(ctx.item.pos),
-                                        );
-                                    }
-                                }
-                                acc
-                            },
-                        );
-
-                        serde_json::Value::Object(value)
-                    })
-                    .collect();
-
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(
-                    result,
-                ))))
-            }
             DynamoResolver::QueryPKSK { pk, sk } => {
                 let pk = match pk
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
@@ -341,7 +279,8 @@ impl ResolverTrait for DynamoResolver {
                     }
                 };
 
-                let relations_selected = ctx_ty.relations();
+                // TODO: optimize single edges for the top level
+                let relations_selected: IndexMap<&str, &MetaRelation> = ctx_ty.relations();
                 let relations_len = relations_selected.len();
                 if relations_len == 0 {
                     match loader_item.load_one((pk.clone(), sk)).await? {
@@ -370,6 +309,12 @@ impl ResolverTrait for DynamoResolver {
                 // We add the Node to the edges to also ask for the Node Data.
                 let edges: Vec<String> = relations_selected
                     .iter()
+                    // we won't be able to load any `ToMany` relations with the original item
+                    // since they need to be paginated
+                    .filter(|relation| {
+                        relation.1.kind == MetaRelationKind::ManyToOne
+                            || relation.1.kind == MetaRelationKind::OneToOne
+                    })
                     .map(|(_, x)| x)
                     .fold(Vec::new(), |mut acc, cur| {
                         acc.push(cur.name.clone());
@@ -381,6 +326,51 @@ impl ResolverTrait for DynamoResolver {
 
                 let query_result = query_loader
                     .load_one(QueryKey::new(pk, edges))
+                    .await?
+                    .map(|x| x.values)
+                    .ok_or_else(|| {
+                        Error::new("Internal Error: Failed to fetch the associated nodes.")
+                    })?;
+
+                let len = query_result.len();
+
+                // If we do not have any value inside our fetch, it's not an
+                // error, it's only we didn't found the value.
+                if len == 0 {
+                    return Ok(
+                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
+                    );
+                }
+
+                let result: Map<String, serde_json::Value> =
+                    query_result
+                        .into_iter()
+                        .fold(Map::with_capacity(len), |mut acc, (_, b)| {
+                            acc.insert(
+                                current_ty.to_string(),
+                                serde_json::to_value(b.node).expect("can't fail"),
+                            );
+
+                            for (edge, val) in b.edges {
+                                acc.insert(edge, serde_json::to_value(val).expect("can't fail"));
+                            }
+
+                            acc
+                        });
+
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
+                    result,
+                ))))
+            }
+            DynamoResolver::QuerySingleRelation {
+                parent_pk,
+                relation_name,
+            } => {
+                let query_result = query_loader_single_relation
+                    .load_one(QuerySingleRelationKey::new(
+                        parent_pk.to_string(),
+                        relation_name.to_string(),
+                    ))
                     .await?
                     .map(|x| x.values)
                     .ok_or_else(|| {

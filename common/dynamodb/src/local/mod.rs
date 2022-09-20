@@ -6,5 +6,6 @@ pub mod local_context;
 pub mod query;
 pub mod query_by_type;
 pub mod query_by_type_paginated;
+pub mod query_single_by_relation;
 pub mod types;
 pub mod utils;

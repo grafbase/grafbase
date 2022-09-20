@@ -22,10 +22,14 @@ pub enum PaginatedCursor {
     Forward {
         exclusive_last_key: Option<String>,
         first: usize,
+        // (relation_name, parent_pk)
+        nested: Option<(String, String)>,
     },
     Backward {
         exclusive_first_key: Option<String>,
         last: usize,
+        // (relation_name, parent_pk)
+        nested: Option<(String, String)>,
     },
 }
 
@@ -64,6 +68,8 @@ impl PaginatedCursor {
         last: Option<usize>,
         after: Option<String>,
         before: Option<String>,
+        // (relation_name, parent_pk)
+        nested: Option<(String, String)>,
     ) -> Result<Self, CursorCreation> {
         match (first, after, last, before) {
             (Some(_), _, Some(_), _) => Err(CursorCreation::SameParameterSameTime),
@@ -72,10 +78,12 @@ impl PaginatedCursor {
             (Some(first), after, None, None) => Ok(Self::Forward {
                 exclusive_last_key: after,
                 first,
+                nested,
             }),
             (None, None, Some(last), before) => Ok(Self::Backward {
                 exclusive_first_key: before,
                 last,
+                nested,
             }),
             (None, _, None, _) => Err(CursorCreation::Direction),
         }
@@ -94,6 +102,27 @@ impl PaginatedCursor {
             PaginatedCursor::Backward {
                 exclusive_first_key, ..
             } => exclusive_first_key.clone(),
+        }
+    }
+
+    fn relation_name(&self) -> Option<String> {
+        match self {
+            PaginatedCursor::Forward { nested, .. } => nested.clone().map(|nested| nested.0),
+            PaginatedCursor::Backward { nested, .. } => nested.clone().map(|nested| nested.0),
+        }
+    }
+
+    pub fn nested_parent_pk(&self) -> Option<String> {
+        match self {
+            PaginatedCursor::Forward { nested, .. } | PaginatedCursor::Backward { nested, .. } => {
+                nested.clone().map(|nested| nested.1)
+            }
+        }
+    }
+
+    fn is_nested_relation(&self) -> bool {
+        match self {
+            PaginatedCursor::Forward { nested, .. } | PaginatedCursor::Backward { nested, .. } => nested.is_some(),
         }
     }
 
@@ -157,15 +186,30 @@ where
     ) -> Result<QueryResult, RusotoError<QueryError>> {
         let node_type = node_type.to_lowercase();
         let mut exp = dynomite::attr_map! {
-            ":pk" => node_type.clone(),
+            ":pk" => cursor.nested_parent_pk().unwrap_or_else(|| node_type.clone())
         };
 
         let edges_len = edges.len();
 
-        let mut exp_att_name =
-            HashMap::from([("#pk".to_string(), index.pk()), ("#type".to_string(), TYPE.to_string())]);
+        // TODO: consolidate these branches
+        let primary_index = if cursor.is_nested_relation() {
+            PK.to_string()
+        } else {
+            index.pk()
+        };
 
-        let sk_string = if edges_len > 0 {
+        let sort_index = if cursor.is_nested_relation() {
+            SK.to_string()
+        } else {
+            index.sk()
+        };
+
+        let mut exp_att_name = HashMap::from([
+            ("#pk".to_string(), primary_index),
+            ("#type".to_string(), TYPE.to_string()),
+        ]);
+
+        let edge_query = if edges_len > 0 {
             exp_att_name.insert("#relationname".to_string(), RELATION_NAMES.to_string());
             let edges = edges
                 .clone()
@@ -177,11 +221,22 @@ where
                 })
                 .join(" OR ");
 
+            format!("OR ({edges})")
+        } else {
+            String::new()
+        };
+
+        let sk_string = if cursor.is_nested_relation() {
+            exp_att_name.insert("#relationname".to_string(), RELATION_NAMES.to_string());
+
+            exp.insert(":relation".to_string(), cursor.relation_name().into_attr());
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            Some(format!("begins_with(#type, :type) OR {edges}"))
+            Some(format!(
+                "(begins_with(#type, :type) AND contains(#relationname, :relation)) {edge_query}"
+            ))
         } else {
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            Some("begins_with(#type, :type)".to_string())
+            Some(format!("begins_with(#type, :type) {edge_query}"))
         };
 
         let pagination_string = cursor.pagination_string();
@@ -192,7 +247,7 @@ where
         };
 
         pagination_string.map(|x| {
-            exp_att_name.insert("#sk".to_string(), index.sk());
+            exp_att_name.insert("#sk".to_string(), sort_index);
             exp.insert(":pkorder".to_string(), x.into_attr())
         });
 
@@ -200,7 +255,11 @@ where
             table_name: table,
             key_condition_expression,
             filter_expression: sk_string,
-            index_name: index.to_index_name(),
+            index_name: if cursor.is_nested_relation() {
+                None
+            } else {
+                index.to_index_name()
+            },
             expression_attribute_values: Some(exp),
             expression_attribute_names: Some(exp_att_name),
             scan_index_forward: Some(cursor.scan_index_forward()),
@@ -253,7 +312,19 @@ where
                     let sk = ID::try_from(x.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                         .expect("Can't fail");
                     let relation_names = x.get(RELATION_NAMES).and_then(|y| y.ss.clone());
-                    match result.values.entry(pk.to_string()) {
+
+                    let is_top_level_nested = cursor
+                        .nested_parent_pk()
+                        .filter(|query_pk| query_pk == &pk.to_string())
+                        .is_some();
+
+                    let key = if is_top_level_nested {
+                        sk.to_string()
+                    } else {
+                        pk.to_string()
+                    };
+
+                    match result.values.entry(key) {
                         Entry::Vacant(vac) => {
                             // We do insert the PK just before inserting it the n+1 element.
                             if len == limit {

@@ -86,9 +86,6 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
     async fn load(&self, keys: &[QueryTypeKey]) -> Result<HashMap<QueryTypeKey, Self::Value>, Self::Error> {
         let mut concurrent_futures = vec![];
         for query_key in keys {
-            let has_edges = !query_key.edges.is_empty();
-            let number_of_edges = query_key.edges.len();
-
             let entity_type = query_key.ty().clone();
 
             let value_map = hashmap! {
@@ -97,11 +94,7 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
             };
 
             // TODO: unify SelectType and SelectTypeWithEdges (suggested by @jakubadamw)
-            let (query, values) = if has_edges {
-                Sql::SelectTypeWithEdges(number_of_edges).compile(value_map)
-            } else {
-                Sql::SelectType.compile(value_map)
-            };
+            let (query, values) = Sql::SelectType.compile(value_map);
 
             let future = || async move {
                 let query_results = bridge_api::query(

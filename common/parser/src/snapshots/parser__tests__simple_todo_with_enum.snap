@@ -665,6 +665,7 @@ expression: reg_string
                     "last": {
                       "InputTypeName": "last"
                     },
+                    "nested": null,
                     "type": {
                       "DebugString": "Todo"
                     }

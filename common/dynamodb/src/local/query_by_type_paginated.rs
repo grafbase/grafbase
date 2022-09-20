@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::id::ID;
+use crate::runtime::Runtime;
 use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
 
 use super::bridge_api;
@@ -173,36 +174,61 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             // TODO: optimize the query by omitting the edges for the n+1 entity
             let (query, values) = match query_key {
                 QueryTypePaginatedKey {
-                    cursor: PaginatedCursor::Forward { exclusive_last_key, .. },
+                    cursor:
+                        PaginatedCursor::Forward {
+                            exclusive_last_key,
+                            nested,
+                            ..
+                        },
                     ..
                 } => {
                     if let Some(exclusive_last_key) = exclusive_last_key.clone() {
                         value_map.insert("sk", SqlValue::String(exclusive_last_key));
                     }
+                    if let Some((relation_name, pk)) = nested {
+                        value_map.insert("pk", SqlValue::String(pk.to_string()));
+                        value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
+                    }
 
                     if has_edges {
-                        Sql::SelectTypePaginatedForwardWithEdges(exclusive_last_key.is_some(), query_key.edges.len())
-                            .compile(value_map)
+                        Sql::SelectTypePaginatedForwardWithEdges(
+                            exclusive_last_key.is_some(),
+                            query_key.edges.len(),
+                            nested.is_some(),
+                        )
+                        .compile(value_map)
                     } else {
-                        Sql::SelectTypePaginatedForward(exclusive_last_key.is_some()).compile(value_map)
+                        Sql::SelectTypePaginatedForward(exclusive_last_key.is_some(), nested.is_some())
+                            .compile(value_map)
                     }
                 }
                 QueryTypePaginatedKey {
                     cursor:
                         PaginatedCursor::Backward {
-                            exclusive_first_key, ..
+                            exclusive_first_key,
+                            nested,
+                            ..
                         },
                     ..
                 } => {
-                    if let Some(exclusive_first_key) = exclusive_first_key.clone() {
-                        value_map.insert("sk", SqlValue::String(exclusive_first_key));
+                    if let Some(exclusive_last_key) = exclusive_first_key.clone() {
+                        value_map.insert("sk", SqlValue::String(exclusive_last_key));
+                    }
+                    if let Some((relation_name, pk)) = nested {
+                        value_map.insert("pk", SqlValue::String(pk.to_string()));
+                        value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
                     }
 
                     if has_edges {
-                        Sql::SelectTypePaginatedBackwardWithEdges(exclusive_first_key.is_some(), query_key.edges.len())
-                            .compile(value_map)
+                        Sql::SelectTypePaginatedBackwardWithEdges(
+                            exclusive_first_key.is_some(),
+                            query_key.edges.len(),
+                            nested.is_some(),
+                        )
+                        .compile(value_map)
                     } else {
-                        Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some()).compile(value_map)
+                        Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some(), nested.is_some())
+                            .compile(value_map)
                     }
                 }
             };
@@ -219,9 +245,9 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 .await
                 .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
-                let top_level_result_count = query_results.iter().filter(|result| result.pk == result.sk).count();
+                let result_count = query_results.len();
 
-                let (last_evaluated_key, excluded_item) = if user_limit > 0 && top_level_result_count > user_limit {
+                let (last_evaluated_key, excluded_item) = if user_limit > 0 && result_count > user_limit {
                     // we currently use only pk/sk for pagination
                     // the last evaluated key is always the last item, regardless of direction
 
@@ -242,7 +268,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 query_results
                     .iter()
                     // filter the exluded item and any relations
-                    .filter(|record| excluded_item.filter(|item| record.pk == item.pk).is_none())
+                    .filter(|record| excluded_item.filter(|item| record.sk == item.sk).is_none())
                     .try_fold(
                         (
                             query_key.clone(),
@@ -256,7 +282,19 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                             let sk = ID::try_from(current.sk.clone()).expect("can't fail");
                             let relation_names = current.relation_names.clone();
 
-                            match accumulator.values.entry(pk.to_string()) {
+                            let is_top_level_nested = query_key
+                                .cursor
+                                .nested_parent_pk()
+                                .filter(|query_pk| query_pk == &pk.to_string())
+                                .is_some();
+
+                            let key = if is_top_level_nested {
+                                sk.to_string()
+                            } else {
+                                pk.to_string()
+                            };
+
+                            match accumulator.values.entry(key) {
                                 Entry::Vacant(vacant) => {
                                     let mut value = QueryValue {
                                         node: None,
@@ -324,7 +362,7 @@ pub fn get_loader_paginated_query_type(
 ) -> DataLoader<QueryTypePaginatedLoader, LruCache> {
     DataLoader::with_cache(
         QueryTypePaginatedLoader { local_context, index },
-        wasm_bindgen_futures::spawn_local,
+        |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
     .max_batch_size(10)

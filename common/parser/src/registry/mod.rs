@@ -3,7 +3,7 @@
 //! -> Split each of the creation and add tests with SDL
 //!
 use crate::rules::visitor::VisitorContext;
-use crate::utils::{to_input_type, to_lower_camelcase};
+use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::transformers::Transformer;
@@ -358,54 +358,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
     ctx.queries.push(MetaField {
         name: format!("{}Collection", to_lower_camelcase(type_name)),
         description: Some(format!("Paginated query to fetch the whole list of `{}`.", type_name)),
-        args: {
-            let mut args = IndexMap::new();
-            args.insert(
-                "after".to_owned(),
-                MetaInputValue {
-                    name: "after".to_owned(),
-                    description: None,
-                    ty: "String".to_string(),
-                    default_value: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            );
-            args.insert(
-                "before".to_owned(),
-                MetaInputValue {
-                    name: "before".to_owned(),
-                    description: None,
-                    ty: "String".to_string(),
-                    default_value: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            );
-            args.insert(
-                "first".to_owned(),
-                MetaInputValue {
-                    name: "first".to_owned(),
-                    description: None,
-                    ty: "Int".to_string(),
-                    default_value: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            );
-            args.insert(
-                "last".to_owned(),
-                MetaInputValue {
-                    name: "last".to_owned(),
-                    description: None,
-                    ty: "Int".to_string(),
-                    default_value: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            );
-            args
-        },
+        args: pagination_arguments(),
         ty: connection,
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
         cache_control: dynaql::CacheControl {
@@ -428,6 +381,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                 after: VariableResolveDefinition::InputTypeName("after".to_string()),
                 before: VariableResolveDefinition::InputTypeName("before".to_string()),
                 last: VariableResolveDefinition::InputTypeName("last".to_string()),
+                nested: None,
             }),
         }),
         transforms: None,

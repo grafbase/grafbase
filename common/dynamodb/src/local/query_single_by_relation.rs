@@ -16,7 +16,7 @@ use std::time::Duration;
 
 quick_error! {
     #[derive(Debug, Clone)]
-    pub enum QueryLoaderError {
+    pub enum QuerySingleRelationLoaderError {
         UnknownError {
             display("An internal error happened")
         }
@@ -26,41 +26,39 @@ quick_error! {
     }
 }
 
-pub struct QueryLoader {
+pub struct QuerySingleRelationLoader {
     local_context: Arc<LocalContext>,
     index: DynamoDBRequestedIndex,
 }
 
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
-pub struct QueryKey {
-    pk: String,
-    edges: Vec<String>,
+pub struct QuerySingleRelationKey {
+    parent_pk: String,
+    relation_name: String,
 }
 
-impl QueryKey {
-    pub fn new(pk: String, mut edges: Vec<String>) -> Self {
+impl QuerySingleRelationKey {
+    pub fn new(parent_pk: String, relation_name: String) -> Self {
         Self {
-            pk,
-            edges: {
-                edges.sort();
-                edges
-            },
+            parent_pk,
+            relation_name,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl Loader<QueryKey> for QueryLoader {
+impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
     type Value = QueryResult;
-    type Error = QueryLoaderError;
+    type Error = QuerySingleRelationLoaderError;
 
-    async fn load(&self, keys: &[QueryKey]) -> Result<HashMap<QueryKey, Self::Value>, Self::Error> {
+    async fn load(
+        &self,
+        keys: &[QuerySingleRelationKey],
+    ) -> Result<HashMap<QuerySingleRelationKey, Self::Value>, Self::Error> {
         let mut query_result = HashMap::new();
         let mut concurrent_futures = vec![];
         for query_key in keys {
-            let has_edges = !query_key.edges.is_empty();
-            let number_of_edges = query_key.edges.len();
-            let pk = match NodeID::from_borrowed(&query_key.pk) {
+            let parent_pk = match NodeID::from_borrowed(&query_key.parent_pk) {
                 Ok(id) => id,
                 Err(_) => {
                     query_result.insert(query_key.clone(), QueryResult::default());
@@ -69,16 +67,11 @@ impl Loader<QueryKey> for QueryLoader {
             };
 
             let value_map = hashmap! {
-                "pk" => SqlValue::String(pk.to_string()),
-                "entity_type" => SqlValue::String(pk.ty().to_string()),
-                "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
+                "parent_pk" => SqlValue::String(parent_pk.to_string()),
+                "relation_name" => SqlValue::String(query_key.relation_name.clone()),
             };
 
-            let (query, values) = if has_edges {
-                Sql::SelectIdWithEdges(self.index.pk(), number_of_edges).compile(value_map)
-            } else {
-                Sql::SelectId(self.index.pk()).compile(value_map)
-            };
+            let (query, values) = Sql::SelectSingleRelation(self.index.pk()).compile(value_map);
 
             let future = || async move {
                 let query_results = bridge_api::query(
@@ -90,7 +83,7 @@ impl Loader<QueryKey> for QueryLoader {
                     &self.local_context.bridge_port,
                 )
                 .await
-                .map_err(|_| QueryLoaderError::QueryError)?;
+                .map_err(|_| QuerySingleRelationLoaderError::QueryError)?;
 
                 query_results.iter().try_fold(
                     (
@@ -103,9 +96,8 @@ impl Loader<QueryKey> for QueryLoader {
                     |(query_key, mut accumulator), current| {
                         let pk = ID::try_from(current.pk.clone()).expect("Can't fail");
                         let sk = ID::try_from(current.sk.clone()).expect("Can't fail");
-                        let relation_names = current.relation_names.clone();
 
-                        match accumulator.values.entry(pk.to_string()) {
+                        match accumulator.values.entry(sk.to_string()) {
                             Entry::Vacant(vacant) => {
                                 let mut value = QueryValue {
                                     node: None,
@@ -114,14 +106,8 @@ impl Loader<QueryKey> for QueryLoader {
                                 };
 
                                 match (pk, sk) {
-                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                        if sk.eq(&pk) {
-                                            value.node = Some(current.document.clone());
-                                        } else if !relation_names.is_empty() {
-                                            for edge in relation_names {
-                                                value.edges.insert(edge, vec![current.document.clone()]);
-                                            }
-                                        }
+                                    (ID::NodeID(_), ID::NodeID(_)) => {
+                                        value.node = Some(current.document.clone());
                                     }
                                     (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                         value.constraints.push(current.document.clone());
@@ -132,19 +118,8 @@ impl Loader<QueryKey> for QueryLoader {
                                 vacant.insert(value);
                             }
                             Entry::Occupied(mut occupied) => match (pk, sk) {
-                                (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                    if sk.eq(&pk) {
-                                        occupied.get_mut().node = Some(current.document.clone());
-                                    } else if !relation_names.is_empty() {
-                                        for edge in relation_names {
-                                            occupied
-                                                .get_mut()
-                                                .edges
-                                                .entry(edge)
-                                                .or_default()
-                                                .push(current.document.clone());
-                                        }
-                                    }
+                                (ID::NodeID(_), ID::NodeID(_)) => {
+                                    occupied.get_mut().node = Some(current.document.clone());
                                 }
                                 (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                     occupied.get_mut().constraints.push(current.document.clone());
@@ -152,7 +127,7 @@ impl Loader<QueryKey> for QueryLoader {
                                 _ => {}
                             },
                         };
-                        Ok::<_, QueryLoaderError>((query_key, accumulator))
+                        Ok::<_, QuerySingleRelationLoaderError>((query_key, accumulator))
                     },
                 )
             };
@@ -161,7 +136,7 @@ impl Loader<QueryKey> for QueryLoader {
 
         let joined_futures = futures_util::future::try_join_all(concurrent_futures)
             .await
-            .map_err(|_| QueryLoaderError::QueryError)?;
+            .map_err(|_| QuerySingleRelationLoaderError::QueryError)?;
 
         query_result.extend(joined_futures.into_iter().collect::<HashMap<_, _>>());
 
@@ -169,12 +144,12 @@ impl Loader<QueryKey> for QueryLoader {
     }
 }
 
-pub fn get_loader_query(
+pub fn get_loader_single_relation_query(
     local_context: Arc<LocalContext>,
     index: DynamoDBRequestedIndex,
-) -> DataLoader<QueryLoader, LruCache> {
+) -> DataLoader<QuerySingleRelationLoader, LruCache> {
     DataLoader::with_cache(
-        QueryLoader { local_context, index },
+        QuerySingleRelationLoader { local_context, index },
         |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )
