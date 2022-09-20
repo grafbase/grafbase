@@ -804,6 +804,7 @@ fn relation_handle<'a>(
             .unwrap()
             .ty
             // we want to persist the underlying type rather than the connection
+            // TODO: look into other methods of doing this
             .trim_end_matches("Connection"),
     )
     .unwrap();
