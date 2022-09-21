@@ -26,7 +26,7 @@ fn dev() {
 
     let todo_list_id: String = dot_get!(todo_list, "id");
 
-    let first_todo_id: String = dot_get!(todo_list, "todos.0.id");
+    let first_todo_id: String = dot_get!(todo_list, "todos.edges.0.node.id");
 
     assert!(todo_list_id.starts_with("todolist_"));
     assert!(first_todo_id.starts_with("todo_"));

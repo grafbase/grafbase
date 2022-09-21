@@ -1,0 +1,9 @@
+type Scalars @model {
+  id: ID!
+  ip: IPAddress!
+  timestamp: Timestamp!
+  url: URL!
+  email: Email!
+  json: JSON!
+  phone: PhoneNumber!
+}

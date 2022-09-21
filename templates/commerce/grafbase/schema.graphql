@@ -26,7 +26,7 @@ type Customer @model {
   id: ID!
   firstName: String!
   lastName: String!
-  email: String! @unique
+  email: Email! @unique
   phoneNumber: String
   billingAddress: Address
 }
@@ -51,7 +51,7 @@ type LineItem @model {
 type Product @model {
   id: ID!
   title: String!
-  imageUrl: String!
+  imageUrl: URL!
   description: String!
   stock: Int!
   slug: String! @unique
