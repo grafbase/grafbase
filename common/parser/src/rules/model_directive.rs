@@ -66,7 +66,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     Some(id) => id,
                     _ => {
                         let name_ty = &type_definition.node.name.node;
-                        ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, you should have a NonNullable ID Field."));
+                        ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
                         return;
                     }
                 };
