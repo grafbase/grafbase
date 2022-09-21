@@ -29,10 +29,13 @@ fn relations() {
 
     let blog: Value = dot_get!(response, "data.blogCollection.edges.0.node");
     let blog_id: String = dot_get!(blog, "id");
-    let first_author_id: String = dot_get!(blog, "authors.0.id");
-    let second_author_id: String = dot_get!(blog, "authors.1.id");
-    let first_author_name: String = dot_get!(blog, "authors.0.name");
-    let first_authors_blogs: Vec<Value> = dot_get!(response, "data.blogCollection.edges.0.node.authors.0.blogs");
+    let first_author_id: String = dot_get!(blog, "authors.edges.0.node.id");
+    let second_author_id: String = dot_get!(blog, "authors.edges.1.node.id");
+    let first_author_name: String = dot_get!(blog, "authors.edges.0.node.name");
+    let first_authors_blogs: Vec<Value> = dot_get!(
+        response,
+        "data.blogCollection.edges.0.node.authors.edges.0.node.blogs.edges"
+    );
 
     assert!(blog_id.starts_with("blog_"));
     // latest first
@@ -49,9 +52,12 @@ fn relations() {
 
     let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
 
-    let current_first_author_id: String = dot_get!(response, "data.blogCollection.edges.0.node.authors.0.id");
-    let first_authors_first_blog_id: Value =
-        dot_get!(response, "data.blogCollection.edges.0.node.authors.0.blogs.0.id");
+    let current_first_author_id: String =
+        dot_get!(response, "data.blogCollection.edges.0.node.authors.edges.0.node.id");
+    let first_authors_first_blog_id: Value = dot_get!(
+        response,
+        "data.blogCollection.edges.0.node.authors.edges.0.node.blogs.edges.0.node.id"
+    );
 
     assert_eq!(current_first_author_id, first_author_id);
     assert_eq!(blog_id, first_authors_first_blog_id);
@@ -67,8 +73,12 @@ fn relations() {
 
     let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
 
-    let current_first_author_id: String = dot_get!(response, "data.blogCollection.edges.0.node.authors.0.id");
-    let first_authors_blogs: Vec<Value> = dot_get!(response, "data.blogCollection.edges.0.node.authors.0.blogs");
+    let current_first_author_id: String =
+        dot_get!(response, "data.blogCollection.edges.0.node.authors.edges.0.node.id");
+    let first_authors_blogs: Vec<Value> = dot_get!(
+        response,
+        "data.blogCollection.edges.0.node.authors.edges.0.node.blogs.edges"
+    );
 
     assert_eq!(current_first_author_id, first_author_id);
     assert!(first_authors_blogs.is_empty());

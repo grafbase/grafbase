@@ -11,8 +11,12 @@ mutation TodoListCreate($title: String!) {
   ) {
     todoList {
       title
-      todos {
-        title
+      todos(last: 3) {
+        edges {
+          node {
+            title
+          }
+        }
       }
     }
   }
