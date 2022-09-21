@@ -7,7 +7,7 @@ import {
 } from '@clerk/nextjs'
 import type { AppProps } from 'next/app'
 
-const publicPages = ['/', '/sign-in', '/sign-up']
+const publicPages = ['/', '/sign-in/[[...index]]', '/sign-up/[[...index]]']
 
 function MyApp({ Component, pageProps, router }: AppProps) {
   return (
