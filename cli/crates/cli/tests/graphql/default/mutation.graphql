@@ -10,8 +10,12 @@ mutation {
   ) {
     todoList {
       title
-      todos {
-        title
+      todos(last: 100) {
+        edges {
+          node {
+            title
+          }
+        }
       }
     }
   }

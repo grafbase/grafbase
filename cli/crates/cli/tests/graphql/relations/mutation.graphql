@@ -15,20 +15,36 @@ mutation {
     blog {
       id
       title
-      authors {
-        id
-        name
-        blogs {
-          id
-          title
+      authors(last: 5) {
+        edges {
+          node {
+            id
+            name
+            blogs(last: 5) {
+              edges {
+                node {
+                  id
+                  title
+                }
+              }
+            }
+          }
         }
       }
-      secondaryAuthors {
-        id
-        name
-        blogs {
-          id
-          title
+      secondaryAuthors(last: 2) {
+        edges {
+          node {
+            id
+            name
+            blogs(last: 5) {
+              edges {
+                node {
+                  id
+                  title
+                }
+              }
+            }
+          }
         }
       }
     }
