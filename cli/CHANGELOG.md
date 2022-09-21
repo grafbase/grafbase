@@ -1,7 +1,5 @@
 # Changelog
 
-Grafbase CLI
-
 ## [0.8.0]
 
 ### Breaking
