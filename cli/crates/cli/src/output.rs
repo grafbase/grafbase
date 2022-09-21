@@ -37,7 +37,7 @@ pub mod report {
     pub fn project_created(name: Option<&str>) {
         let slash = std::path::MAIN_SEPARATOR.to_string();
         if let Some(name) = name {
-            watercolor::output!(r#"✨ "{name}" was succesfully created!"#, @BrightBlue);
+            watercolor::output!(r#"✨ "{name}" was successfully created!"#, @BrightBlue);
 
             let schema_path = &[".", name, "grafbase", "schema.graphql"].join(&slash);
 
@@ -75,5 +75,7 @@ pub mod report {
 
     pub fn project_reset() {
         watercolor::output!(r#"✨ successfully reset your project!"#, @BrightBlue);
+        #[cfg(target_family = "unix")]
+        watercolor::output!(r#"if you have a running 'grafbase dev' instance in this project, it will need to be restarted for this change to take effect"#, @BrightBlue);
     }
 }

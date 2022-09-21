@@ -34,6 +34,9 @@ impl ToExitCode for CliError {
     }
 }
 
+#[cfg(target_family = "windows")]
+const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
+
 impl CliError {
     /// returns the appropriate hint for a [`CliError`]
     pub fn to_hint(&self) -> Option<String> {
@@ -63,7 +66,14 @@ impl CliError {
                 match error.kind() {
                     ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running 'grafbase reset' on a new project".to_owned()),
                     ErrorKind::PermissionDenied => Some("it appears that you do not have sufficient permissions to delete the .grafbase directory, try modifying its permissions".to_owned()),
-                    _ => None,
+                    // TODO: replace with ErrorKind::DirectoryNotEmpty once stable 
+                    #[cfg(target_family="windows")] 
+                    _ => error
+                            .raw_os_error()
+                            .filter(|raw| raw == &WINDOWS_DIR_NOT_EMPTY_CODE)
+                            .map(|_| "this may be caused by the .grafbase directory being in use by another instance of 'grafbase'".to_owned()),
+                    #[cfg(target_family="unix")] 
+                    _ => None
                 }
             }
             _ => None,

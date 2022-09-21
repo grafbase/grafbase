@@ -71,11 +71,11 @@ export type PageInfo = {
 
 export type Query = {
   __typename?: 'Query'
-  /** Get a Todo by ID */
+  /** Get Todo by ID */
   todo?: Maybe<Todo>
   /** Paginated query to fetch the whole list of `Todo`. */
   todoCollection?: Maybe<TodoConnection>
-  /** Get a TodoList by ID */
+  /** Get TodoList by ID */
   todoList?: Maybe<TodoList>
   /** Paginated query to fetch the whole list of `TodoList`. */
   todoListCollection?: Maybe<TodoListConnection>

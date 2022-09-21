@@ -1,8 +1,10 @@
 mutation {
-  authorCreate(input: { name: "New Author", birthday: "2007-12-03T10:15:30Z" }) {
-    author {
+  userCreate(input: { name: "New User", verified: VERIFIED, birthday: "2007-12-03T10:15:30Z" }) {
+    user {
       id
       name
+      verified
+      birthday
     }
   }
 }

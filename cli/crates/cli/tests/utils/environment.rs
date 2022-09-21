@@ -1,23 +1,30 @@
 #![allow(dead_code)]
 
+use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
+use std::collections::HashMap;
+use std::io;
+use std::process::Output;
+use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
 use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
     directory: PathBuf,
-    temp_dir: TempDir,
+    temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
     port: u16,
 }
 
+const DOT_ENV_FILE: &str = ".env";
+
 impl Environment {
     pub fn init(port: u16) -> Self {
-        let temp_dir = tempdir().unwrap();
+        let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
         let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
@@ -32,8 +39,25 @@ impl Environment {
         }
     }
 
+    pub fn from(other: &Environment, port: u16) -> Self {
+        let temp_dir = other.temp_dir.clone();
+
+        Self {
+            directory: other.directory.clone(),
+            commands: vec![],
+            endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            schema_path: other.schema_path.clone(),
+            temp_dir,
+            port,
+        }
+    }
+
     pub fn create_client(&self) -> Client {
         Client::new(self.endpoint.clone())
+    }
+
+    pub fn create_async_client(&self) -> AsyncClient {
+        AsyncClient::new(self.endpoint.clone())
     }
 
     pub fn write_schema(&self, schema: &'static str) {
@@ -62,6 +86,30 @@ impl Environment {
         .unwrap();
 
         self.commands.push(command);
+    }
+
+    pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
+        cmd!(
+            cargo_bin("grafbase"),
+            "dev",
+            "--disable-watch",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory)
+        .start()?
+        .into_output()
+    }
+
+    pub fn set_variables(&mut self, variables: HashMap<String, String>) {
+        let env_file = variables
+            .into_iter()
+            .fold(String::new(), |_, (key, value)| format!(r#"{key}="{value}""#));
+        std::fs::write(
+            self.schema_path.parent().expect("must exist").join(DOT_ENV_FILE),
+            env_file,
+        )
+        .unwrap();
     }
 
     pub fn grafbase_reset(&mut self) {

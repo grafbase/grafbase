@@ -22,7 +22,7 @@
     "@urql/vue": "0.6.3",
     "eslint": "8.19.0",
     "graphql": "16.5.0",
-    "nuxt": "rc",
+    "nuxt": "3.0.0-rc.11",
     "nuxt-graphql-codegen": "0.3.3",
     "prettier": "2.7.1",
     "unplugin-icons": "0.14.7",

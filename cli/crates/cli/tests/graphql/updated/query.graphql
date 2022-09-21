@@ -1,9 +1,10 @@
 {
-  authorCollection(first: 100) {
+  userCollection(first: 100) {
     edges {
       node {
         id
         name
+        verified
         birthday
       }
     }

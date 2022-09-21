@@ -1,0 +1,15 @@
+query PaginateTodos($first: Int, $last: Int, $before: String, $after: String) {
+  todoCollection(first: $first, last: $last, before: $before, after: $after) {
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+    }
+    edges {
+      node {
+        id
+        title
+        complete
+      }
+    }
+  }
+}

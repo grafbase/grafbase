@@ -1,0 +1,19 @@
+{
+  todoListCollection(first: 100) {
+    edges {
+      node {
+        id
+        title
+        todos(last: 100) {
+          edges {
+            node {
+              id
+              title
+              complete
+            }
+          }
+        }
+      }
+    }
+  }
+}
