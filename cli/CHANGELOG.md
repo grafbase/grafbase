@@ -17,6 +17,7 @@
 ### Tooling
 
 - Adds a nextest configuration limiting tests to run one at a time
+- Updates miniflare to version 2.9.0
 
 ## [0.7.0]
 
