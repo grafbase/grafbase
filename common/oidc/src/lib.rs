@@ -158,10 +158,12 @@ impl Client {
             .validate_expiration(&self.time_opts)
             .map_err(VerificationError::Integrity)?;
 
-        // Check "nbf" claim
-        claims
-            .validate_maturity(&self.time_opts)
-            .map_err(VerificationError::Integrity)?;
+        // Check "nbf" claim if present
+        if claims.not_before.is_some() {
+            claims
+                .validate_maturity(&self.time_opts)
+                .map_err(VerificationError::Integrity)?;
+        }
 
         // Check "iat" claim
         // Inspired by https://github.com/jedisct1/rust-jwt-simple/blob/0.10.3/src/claims.rs#L179
@@ -278,6 +280,28 @@ mod tests {
     const TOKEN_WITH_NULL_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg";
     const TOKEN_WITH_NULL_GROUPS_IAT: i64 = 1_660_040_974;
 
+    /* TOKEN_WITHOUT_NBF decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "-PStdICfaqAFdUnDSq63E"
+      },
+      "payload": {
+        "aud": "https://grafbase.com",
+        "azp": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P",
+        "exp": 1663930706,
+        "gty": "client-credentials",
+        "iat": 1663844306,
+        "iss": "https://gb-oidc.eu.auth0.com/",
+        "sub": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients"
+      }
+    }
+    */
+    const TOKEN_WITHOUT_NBF: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2Mzg0NDMwNiwiZXhwIjoxNjYzOTMwNzA2LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.B-CuTBNy_rbVrBt_b7xdwy0-1TMAvzEYXWfGqVeKDWsazUzDqqER0bLwIRoMfFgKngkFyFbLynUzp-fEyPAHSpPkFBUCGd3kMteY9phRaxgPGG4X3xjfd2ZXqEq3nKG0kLRW2zedQpkuj2-aTf4sT1VaELsRPJOxCUZtMF4PSBSFMur6FNfEBe7jfIkQ6I4plY1lmR9GEhJJzg4QvphTh4Gjl4BD5gkghzmugfeE2ZemoqBU5k5Zi-SYMMRoEZdDOhg8eOADZmarqhbv9MxLGiBB3HJehNB--kfQ6lJ0GZLcaPUacRupgpfmoSY37k79XOs2gHv1OjpWVBEHls5NXA";
+    const TOKEN_WITHOUT_NBF_IAT: i64 = 1_663_844_306;
+    const TOKEN_WITHOUT_NBF_SUB: &str = "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients";
+
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
         let jwks_uri = issuer.join(JWKS_PATH).unwrap();
@@ -296,6 +320,7 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!(
                 {
                     "keys": [
+                        // Clerk
                         {
                             "use": "sig",
                             "kty": "RSA",
@@ -303,6 +328,28 @@ mod tests {
                             "alg": "RS256",
                             "n": "z-Fz5w3CGNCvXJNK36DU3-t9Z6llP4j7JTJKcZWXViuqaHtnP0JuCQtesKlf58sjJinRYuSlMuRDeVZ-V7SqDqA0mfxkHqPYpgh1TOYeSMusKJjK36NlLa9nk6wPLv3C95OYTcvvEw0seE07bxiRP2U2W-ZlCE6wJQ9HtHUzLntpF5ZHLJgR3ziXTPHesp6HU4v2JfWS0laZIzgQaSXgysx6YRucZeJb0sWjPuj-aTjhXm5ThgnwzBchBIWMm2t7wh4Ma2hM_iE2MobxpOPfD25MPJ-EV-bG88B61uKbofllEn0ATs_AWSVkNvWCm9-QpTP_7MmsomrbfHEBg_VV9Q",
                             "e": "AQAB"
+                        },
+                        // Auth0 1/2
+                        {
+                            "alg": "RS256",
+                            "kty": "RSA",
+                            "use": "sig",
+                            "n": "uaJ64UOX_EBuzpCAP5KSPNT5I__wLDY6-bfUEsbImlHNtjOYUlZ48wBMc-2KO4UX1CnIHUOdE46LAOrLL8hoYKqGvJEwiumDsUtd2G8U8T1VuZgwKjjUqyhT0M-SAtXSRtyb756S9lYH3u7NHX585tsv-gJd3eDEafJQN4WrS8jFIQmi5LbmuTqc4hgNAuWGVRCYc-Sq4AxoJZnXRSH0NQOv0bGYGKXJ2Sfm-wifnm1ivEQH-JGmhn1oTrJzYGVFN8OBMYElO_hXiiWVccelpdqIrdbX3Xm9asKVin3u_GiT1CZhafu396K0JlzZX0oEoS-0yZEsCRQhYrcrmIoXzw",
+                            "e": "AQAB",
+                            "kid": "-PStdICfaqAFdUnDSq63E",
+                            "x5t": "SFHn51pJyhkgC6H75wRnZlQdOfE",
+                            "x5c": ["MIIDAzCCAeugAwIBAgIJeLAmhNIdUMvoMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5onrhQ5f8QG7OkIA/kpI81Pkj//AsNjr5t9QSxsiaUc22M5hSVnjzAExz7Yo7hRfUKcgdQ50TjosA6ssvyGhgqoa8kTCK6YOxS13YbxTxPVW5mDAqONSrKFPQz5IC1dJG3JvvnpL2Vgfe7s0dfnzm2y/6Al3d4MRp8lA3hatLyMUhCaLktua5OpziGA0C5YZVEJhz5KrgDGglmddFIfQ1A6/RsZgYpcnZJ+b7CJ+ebWK8RAf4kaaGfWhOsnNgZUU3w4ExgSU7+FeKJZVxx6Wl2oit1tfdeb1qwpWKfe78aJPUJmFp+7f3orQmXNlfSgShL7TJkSwJFCFityuYihfPAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFFHUGRkvemN9VG0XJkns/AAjzflGMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAkVqLT9/IMPGycGK//ZxxaeErHbgqujk051GJeYIJBN7kUXDrjGKo/WpiAnthw6GG5w1z9Ciw/anapRRnKauMIukhUAUrkmg0VQ0C81Jkt7dB+Jjb77z4kGmL53Ys+4ZKOHZWxRmedI4C7zHa/54rZK8oZUCgyGpM2sJ2VVkm7uXXfl93mOfqZW8PO/EVOlNrKLPC0VrrOMaynljw4NBbJfdbwsrel+VLKcZxLELyc0PeUjDYoyR56uIKNaJhu+oj2bUbU0aCYWeGp2zkSijn6WuzZbzryTHAgHxAUrKBHWbWM5Eclwa7PMP++1EYG8YwldUuw6tprZDVTAMEyjcwAA=="]
+                        },
+                        // Auth0 2/2
+                        {
+                            "alg": "RS256",
+                            "kty": "RSA",
+                            "use": "sig",
+                            "n": "wp3UvyUh_D_cGJ7Dyu7oSnDW2xbyR1K1VX2UDmDvxEWJJWo55LWS-wCjod3r52YRJOTVwEwp_Ys39keijonfOJA3qvtMT16I8FfxhNX4P5jRV3VeqDFN4zMd23_TDxBK6pHthxB_Iaqcq_KzYzSoCsFfnOTJqV6S8uTqursZfnQXVHFdsLK4T4JArgOTLMfF1CODgOWjUYhAOu_4fAsasLN-3r9Rv5S1LEDUOZIeVBEYdCRvmZAtCldFMy0SUkD37627E1KCdRInCHjY9oYF60g3ltLqAqFj5GkNrPr8AMkTLtGf7xBe4E7l-W7tLS2uklhiOck4XPW1faIz8OiTrw",
+                            "e": "AQAB",
+                            "kid": "8vDmhCLv3K-68FrYZ5HUg",
+                            "x5t": "2rCm4IYOopk4IIILYC0jSNNZq_s",
+                            "x5c": ["MIIDAzCCAeugAwIBAgIJM6Gk08Zskw4kMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDCndS/JSH8P9wYnsPK7uhKcNbbFvJHUrVVfZQOYO/ERYklajnktZL7AKOh3evnZhEk5NXATCn9izf2R6KOid84kDeq+0xPXojwV/GE1fg/mNFXdV6oMU3jMx3bf9MPEErqke2HEH8hqpyr8rNjNKgKwV+c5MmpXpLy5Oq6uxl+dBdUcV2wsrhPgkCuA5Msx8XUI4OA5aNRiEA67/h8Cxqws37ev1G/lLUsQNQ5kh5UERh0JG+ZkC0KV0UzLRJSQPfvrbsTUoJ1EicIeNj2hgXrSDeW0uoCoWPkaQ2s+vwAyRMu0Z/vEF7gTuX5bu0tLa6SWGI5yThc9bV9ojPw6JOvAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFKoOrf8iesXeD0nJFVXoEei95HDRMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAFZZqomEl/e9DXsboBmnCYFPI28ZzRyQ+J2QV7phtsBG0Vn1SVtNhY8zbvYfQdoCSHHrbdQEmG/nNKuCqh+j4uDYcKxF50QDFXCTTFTIvvlm3wSwdhWseEkyoklTQBOr4LUk7lIgllhYqGupu4ngNYjAzZ5YcGLa/q1dkTo2FKO1claIXVgrgfLmCl4hhtDdfGDPIOccQF09JOoTCag9c2Z6R5M6YP/lB+oxOq9/vGx1dPz5FHItmCv56QV5GA+UqFs8Dwln5A5bX6e3CQQXieFep71fgo0PmiGxMKNf1mERDBg4ltCSqW+OecBCRM+b2Xj5zwigUlbwt32j7iynpFg=="]
                         }
                     ]
                 }
@@ -409,6 +456,32 @@ mod tests {
         assert_matches!(
             client.verify_token(TOKEN, issuer).await,
             Err(VerificationError::InvalidIssueTime)
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_token_without_nbf() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+
+        set_up_mock_server(&issuer, &server).await;
+
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITHOUT_NBF_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
+                ..Default::default()
+            }
+        };
+
+        assert_eq!(
+            client.verify_token(TOKEN_WITHOUT_NBF, issuer).await.unwrap(),
+            VerifiedToken {
+                identity: TOKEN_WITHOUT_NBF_SUB.to_string(),
+                groups: HashSet::new(),
+            }
         );
     }
 }
