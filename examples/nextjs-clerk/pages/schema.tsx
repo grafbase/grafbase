@@ -1,14 +1,32 @@
 import { useAuth } from '@clerk/nextjs'
-import useSWR from 'swr'
+import { useState } from 'react'
 
-export const useQuery = (query: any, variables?: any) => {
-  if (!query) {
-    throw Error('No query provided to `useQuery`')
+const query = /* GraphQL */ `
+  {
+    postCollection(first: 100) {
+      edges {
+        node {
+          id
+          title
+          comments {
+            edges {
+              node {
+                id
+                message
+              }
+            }
+          }
+        }
+      }
+    }
   }
+`
 
+const SchemaPage = () => {
+  const [data, setData] = useState()
   const { getToken } = useAuth()
 
-  const fetcher = async () =>
+  const fetchData = async () => {
     await fetch(process.env.NEXT_PUBLIC_GRAFBASE_API_URL as string, {
       method: 'POST',
       headers: {
@@ -17,20 +35,15 @@ export const useQuery = (query: any, variables?: any) => {
           template: 'grafbase'
         })}`
       },
-      body: JSON.stringify({ query, variables })
-    }).then((res) => res.json().then(({ data }) => data))
-
-  return useSWR(query, fetcher)
-}
-
-const SchemaPage = () => {
-  const { data } = useQuery(`query { __schema { types { name } } }`)
+      body: JSON.stringify({ query })
+    }).then((res) => res.json().then(({ data }) => setData(data)))
+  }
 
   return (
-    <h2>
-      GraphQL schema has {data?.__schema?.types?.length || 0} types
+    <div>
+      <button onClick={fetchData}>Fetch data</button>
       <pre>{JSON.stringify({ data }, null, 2)}</pre>
-    </h2>
+    </div>
   )
 }
 

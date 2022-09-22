@@ -1,22 +1,22 @@
 schema
   @auth(
-    providers: [
-      { type: oidc, issuer: "https://{{ env.NEXT_PUBLIC_CLERK_FRONTEND_API }}" }
+    providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }]
+    rules: [
+      { allow: private, operations: ["read"] }
+      { allow: groups, groups: ["admin"], operations: ["delete"] }
     ]
-    rules: [{ allow: private }]
   ) {
   query: Query
 }
 
-type TodoList @model {
+type Post @model {
   id: ID!
   title: String!
-  todos: [Todo]
+  comments: [Comment!]!
 }
 
-type Todo @model {
+type Comment @model {
   id: ID!
-  list: TodoList
-  title: String!
-  complete: Boolean!
+  message: String!
+  post: Post!
 }
