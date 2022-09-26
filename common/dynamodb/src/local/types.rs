@@ -688,7 +688,7 @@ fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String
         .find_iter(&query)
         // TODO: this map has side effects (values.pop_front()), to be refactored
         .map(|variable_match| {
-            let mut name = (&query[variable_match.range()]).to_owned();
+            let mut name = query[variable_match.range()].to_owned();
             // remove the leading `?`
             name.remove(0);
             let values = match values.get_mut(name.as_str()).expect("must exist") {

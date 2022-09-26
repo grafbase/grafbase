@@ -67,7 +67,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             expression_attribute_names: None,
         };
 
-        request_items.insert((&self.ctx.dynamodb_table_name).clone(), keys_and_attributes);
+        request_items.insert(self.ctx.dynamodb_table_name.clone(), keys_and_attributes);
 
         let get_items = self
             .ctx
