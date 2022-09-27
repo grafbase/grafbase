@@ -8,7 +8,12 @@ const Home: NextPage = () => {
   return (
     <main>
       <SignedIn>
-        <p>You have successfully signed in</p>
+        <p>
+          You have successfully signed in.{' '}
+          <Link href="/schema">
+            <a>Test the schema!</a>
+          </Link>
+        </p>
         <button onClick={() => signOut()}>Sign Out</button>
       </SignedIn>
       <SignedOut>

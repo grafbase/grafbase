@@ -1,6 +1,6 @@
 schema
   @auth(
-    providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }]
+    providers: [{ type: oidc, issuer: "{{ env.CLERK_ISSUER_URL }}" }]
     rules: [
       { allow: private, operations: ["read"] }
       { allow: groups, groups: ["admin"], operations: ["delete"] }
