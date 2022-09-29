@@ -46,7 +46,7 @@ fn main() {
 fn try_main() -> Result<(), CliError> {
     let matches = build_cli().get_matches();
 
-    let filter = EnvFilter::builder().parse_lossy(if matches.contains_id("trace") {
+    let filter = EnvFilter::builder().parse_lossy(if matches.get_flag("trace") {
         TRACE_LOG_FILTER
     } else {
         DEFAULT_LOG_FILTER
@@ -73,8 +73,8 @@ fn try_main() -> Result<(), CliError> {
                 process::exit(exitcode::OK);
             });
 
-            let search = matches.contains_id("search");
-            let watch = !matches.contains_id("disable-watch");
+            let search = matches.get_flag("search");
+            let watch = !matches.get_flag("disable-watch");
             let port = matches.get_one::<u16>("port").copied();
 
             dev(search, watch, port)
