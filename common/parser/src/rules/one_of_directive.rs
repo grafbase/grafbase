@@ -1,5 +1,3 @@
-use std::vec;
-
 use super::visitor::{Visitor, VisitorContext};
 use dynaql::{
     indexmap::IndexMap,
@@ -7,6 +5,7 @@ use dynaql::{
 };
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
+use std::vec;
 
 pub struct OneOfDirective;
 
