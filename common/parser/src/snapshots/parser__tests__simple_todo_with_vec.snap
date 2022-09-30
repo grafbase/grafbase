@@ -1964,6 +1964,25 @@ expression: reg_string
             "transforms": null,
             "ty": "[__Type!]"
           },
+          "isOneOf": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "isOneOf",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transforms": null,
+            "ty": "Boolean"
+          },
           "kind": {
             "args": {},
             "cache_control": {
