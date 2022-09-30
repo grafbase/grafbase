@@ -129,14 +129,14 @@ pub fn is_valid_input_value(
                             if values.len() != 1 {
                                 return Some(valid_error(
                                     &path_node,
-                                    "Oneof Input Objects require exactly one field".to_string(),
+                                    "oneOf input objects require exactly one field".to_string(),
                                 ));
                             }
 
                             if let ConstValue::Null = values[0] {
                                 return Some(valid_error(
                                     &path_node,
-                                    "Oneof Input Objects require a non null argument".to_string(),
+                                    "oneOf input objects require a non null argument".to_string(),
                                 ));
                             }
                         }
