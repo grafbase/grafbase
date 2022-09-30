@@ -186,18 +186,17 @@ impl<'a> Visitor<'a> for ModelDirective {
                 }, &type_name, &type_name);
 
                 ctx.queries.push(MetaField {
-                    // byID query
                     name: to_lower_camelcase(&type_name),
-                    description: Some(format!("Get {} by ID", type_name)),
+                    description: Some(format!("Query a single {}", type_name)),
                     args: {
                         let mut args = IndexMap::new();
                         args.insert(
-                            "id".to_owned(),
+                            "by".to_owned(),
                             MetaInputValue {
-                                name: "id".to_owned(),
-                                ty: "ID!".to_string(),
+                                name: "by".to_owned(),
+                                ty: format!("{}ByInput", type_name),
                                 visible: None,
-                                description: Some(format!("{} id", type_name)),
+                                description: Some(format!("{} by", type_name)),
                                 is_secret: false,
                                 default_value: None,
                             },

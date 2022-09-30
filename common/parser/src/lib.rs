@@ -12,7 +12,6 @@ use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
-use rules::one_of_directive::OneOfDirective;
 use rules::relations::relations_rules;
 use rules::unique_directive::UniqueDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
