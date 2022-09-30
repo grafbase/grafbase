@@ -35,7 +35,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
                     if field.node.ty.to_string().ends_with('!') {
                         ctx.report_error(
                             vec![directive.pos],
-                            "oneOf variants must be nullable".to_string(),
+                            "oneOf input object fields must be nullable".to_string(),
                         );
                         return;
                     }
