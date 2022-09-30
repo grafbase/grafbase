@@ -45,7 +45,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
                 ctx.registry.get_mut().create_type(&mut |_| MetaType::InputObject  {
                     name: one_of_type_name.clone(),
-                    description: type_definition.node.description.clone().map(|x| x.node),
+                    description: type_definition.node.description.clone().map(|description| description.node),
                     visible: None,
                     rust_typename: one_of_type_name.clone(),
                     input_fields: {
