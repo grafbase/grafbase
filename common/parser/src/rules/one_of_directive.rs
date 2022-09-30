@@ -32,7 +32,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
             if let TypeKind::InputObject(input) = &type_definition.node.kind;
             then {
                 for field in &input.fields {
-                    if field.node.ty.to_string().ends_with("!") {
+                    if field.node.ty.to_string().ends_with('!') {
                         ctx.report_error(
                             vec![directive.pos],
                             "oneOf variants must be nullable".to_string(),
