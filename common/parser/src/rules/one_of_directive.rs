@@ -1,10 +1,9 @@
 use std::vec;
 
 use super::visitor::{Visitor, VisitorContext};
-use case::CaseExt;
 use dynaql::{
     indexmap::IndexMap,
-    registry::{MetaInputValue, MetaType},
+    registry::{MetaDirective, MetaInputValue, MetaType, __DirectiveLocation},
 };
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
@@ -30,10 +29,9 @@ impl<'a> Visitor<'a> for OneOfDirective {
         if_chain! {
             if let Some(directive) = directives
             .iter()
-            .find(|d| d.node.name.node == ONE_OF_DIRECTIVE);
+            .find(|directive| directive.node.name.node == ONE_OF_DIRECTIVE);
             if let TypeKind::InputObject(input) = &type_definition.node.kind;
             then {
-                let one_of_type_name = type_definition.node.name.node.to_string();
                 for field in &input.fields {
                     if field.node.ty.to_string().ends_with("!") {
                         ctx.report_error(
@@ -42,14 +40,21 @@ impl<'a> Visitor<'a> for OneOfDirective {
                         );
                         return;
                     }
-                    let type_name = format!("{}{}InputVariant", field.node.name, one_of_type_name.to_capitalized());
-                    ctx.registry.get_mut().create_type(&mut |_| MetaType::InputObject {
-                        name: type_name.clone(),
-                        description: None,
-                        input_fields: IndexMap::from([
-                            (
+                }
+
+                let one_of_type_name = type_definition.node.name.node.to_string();
+
+                ctx.registry.get_mut().create_type(&mut |_| MetaType::InputObject  {
+                    name: one_of_type_name.clone(),
+                    description: type_definition.node.description.clone().map(|x| x.node),
+                    visible: None,
+                    rust_typename: one_of_type_name.clone(),
+                    input_fields: {
+                        let mut input_fields = IndexMap::new();
+                        for field in &input.fields {
+                            input_fields.insert(
                                 field.node.name.to_string(),
-                                MetaInputValue{
+                                MetaInputValue {
                                     name: field.node.name.to_string(),
                                     description: None,
                                     ty: field.node.ty.to_string(),
@@ -57,23 +62,25 @@ impl<'a> Visitor<'a> for OneOfDirective {
                                     visible: None,
                                     is_secret: false
                                 }
-                            )
-                        ]),
-                        visible: None,
-                        rust_typename: type_name.clone(),
-                        oneof: false
-                    }, &type_name, &type_name);
+                            );
+                        }
+                        input_fields
+                    },
+                    oneof: true,
+                }, &one_of_type_name, &one_of_type_name);
+
+                let has_one_of = ctx.registry.get_mut().directives.iter().any(|directive| directive.1.name == ONE_OF_DIRECTIVE);
+
+                if !has_one_of {
+                    ctx.registry.get_mut().add_directive(MetaDirective {
+                        name: ONE_OF_DIRECTIVE.to_string(),
+                        description: Some("Indicates that an input object is a oneOf input object".to_string()),
+                        locations: vec![__DirectiveLocation::INPUT_OBJECT],
+                        args: IndexMap::new(),
+                        is_repeatable: false,
+                        visible: Some(|_| true),
+                    });
                 }
-                let union_type_name = format!("{one_of_type_name}ByInput");
-                ctx.registry.get_mut().create_type(&mut |_| MetaType::Union  {
-                    name: union_type_name.clone(),
-                    description: type_definition.node.description.clone().map(|x| x.node),
-                    visible: None,
-                    rust_typename: union_type_name.clone(),
-                    possible_types: input.fields.iter().map(|field|
-                        format!("{}{}InputVariant", field.node.name, one_of_type_name.to_capitalized())
-                    ).collect()
-                }, &union_type_name, &union_type_name);
             }
         }
     }
@@ -85,7 +92,7 @@ fn test_not_usable_on_nullable_fields() {
     use dynaql_parser::parse_schema;
 
     let schema = r#"
-        input User @oneOf {
+        input UserByInput @oneOf {
             id: ID
             email: String
             name: String
@@ -95,5 +102,16 @@ fn test_not_usable_on_nullable_fields() {
     let schema = parse_schema(schema).unwrap();
     let mut ctx = VisitorContext::new(&schema);
     visit(&mut OneOfDirective, &mut ctx, &schema);
-    println!("{:#?}", ctx.registry.get_mut().types)
+    assert!(ctx
+        .registry
+        .get_mut()
+        .directives
+        .iter()
+        .any(|directive| directive.1.name == "oneOf"));
+    assert!(ctx
+        .registry
+        .get_mut()
+        .types
+        .values()
+        .any(|r#type| matches!(r#type, MetaType::InputObject { oneof: true, .. })));
 }

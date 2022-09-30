@@ -58,7 +58,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckTypeValidity)
         .with(OneOfDirective)
         .with(UniqueDirective)
-        .with(ModelDirective)
+        // .with(ModelDirective)
         .with(AuthDirective)
         .with(BasicType)
         .with(EnumType)
