@@ -55,6 +55,7 @@ impl<'a> Visitor<'a> for BasicType {
                                     functions: Vec::new(),
                                 }]),
                                 required_operation: None,
+                                default_value: None,
                             });
                         };
                         fields

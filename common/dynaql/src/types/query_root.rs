@@ -139,6 +139,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        default_value: None,
                     },
                 );
 
@@ -177,6 +178,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        default_value: None,
                     },
                 );
             }

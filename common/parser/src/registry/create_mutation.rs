@@ -373,6 +373,7 @@ pub fn add_create_mutation<'a>(
                         }),
                         transforms: None,
                         required_operation: Some(Operations::CREATE),
+                        default_value: None,
                     },
                 );
                 fields
@@ -434,6 +435,7 @@ pub fn add_create_mutation<'a>(
         }),
         transforms: None,
         required_operation: Some(Operations::CREATE),
+        default_value: None,
     });
 }
 

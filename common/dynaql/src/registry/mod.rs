@@ -262,6 +262,8 @@ pub struct MetaField {
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
     pub required_operation: Option<crate::Operations>,
+
+    pub default_value: Option<dynaql_value::ConstValue>,
 }
 
 impl Hash for MetaField {
@@ -1360,6 +1362,7 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        default_value: None,
                     },
                 );
 
@@ -1396,6 +1399,7 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        default_value: None,
                     },
                 );
             }
@@ -1431,6 +1435,7 @@ impl Registry {
                             resolve: None,
                             transforms: None,
                             required_operation: None,
+                            default_value: None,
                         },
                     );
                     fields

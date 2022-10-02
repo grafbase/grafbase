@@ -98,6 +98,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields.insert(
@@ -126,6 +127,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "__pk".to_string(),
                         }]),
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields
@@ -184,6 +186,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields.insert(
@@ -211,6 +214,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields.insert(
@@ -238,6 +242,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields.insert(
@@ -265,6 +270,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields
@@ -314,6 +320,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields.insert(
@@ -335,6 +342,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
+                        default_value: None,
                     },
                 );
                 fields
@@ -386,6 +394,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
         }),
         transforms: None,
         required_operation: Some(Operations::LIST),
+        default_value: None,
     });
 }
 
@@ -425,6 +434,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::DELETE),
+                        default_value: None,
                     },
                 );
                 fields
@@ -486,5 +496,6 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         }),
         transforms: None,
         required_operation: Some(Operations::DELETE),
+        default_value: None,
     });
 }

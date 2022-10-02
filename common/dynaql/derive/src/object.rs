@@ -488,6 +488,7 @@ pub fn generate(
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        default_value: None,
                     });
                 });
 

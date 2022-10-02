@@ -348,6 +348,7 @@ pub fn generate(
                     requires: #requires,
                     visible: #visible,
                     compute_complexity: #complexity,
+                    default_value: None,
                 }));
             });
 

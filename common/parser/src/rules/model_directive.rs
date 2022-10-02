@@ -16,6 +16,7 @@
 //!
 //! TODO: Should have either: an ID or a PK
 
+use super::default_directive::{DEFAULT_DIRECTIVE, VALUE_ARGUMENT};
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
@@ -133,6 +134,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 _ => unreachable!("Can't happen yet"),
                             };
 
+                            let default_value = field.node.directives.iter().find(|directive| directive.node.name.node == DEFAULT_DIRECTIVE).and_then(|directive| directive.node.get_argument(VALUE_ARGUMENT)).cloned().map(|value| value.node);
+
                             fields.insert(name.clone(), MetaField {
                                 name,
                                 description: field.node.description.clone().map(|x| x.node),
@@ -164,6 +167,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 relation,
                                 transforms,
                                 required_operation: None,
+                                default_value
                             });
                         };
                         fields
@@ -235,6 +239,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transforms: None,
                     required_operation: Some(Operations::GET),
+                    default_value: None,
                 });
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);
