@@ -11,6 +11,8 @@ pub struct DefaultDirective;
 #[derive(Debug, Serialize, Deserialize)]
 struct Default {}
 
+// FIXME: Validate that the type of the default constant value is compatible with the type of the field.
+
 impl<'a> Visitor<'a> for DefaultDirective {
     fn directives(&self) -> String {
         r#"
