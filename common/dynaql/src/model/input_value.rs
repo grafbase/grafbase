@@ -33,6 +33,6 @@ impl<'a> __InputValue<'a> {
         self.input_value
             .default_value
             .as_ref()
-            .map(|default_value| default_value.to_string())
+            .map(std::string::ToString::to_string)
     }
 }
