@@ -1,7 +1,6 @@
 use super::visitor::{Visitor, VisitorContext};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_DIRECTIVE: &str = "default";
 pub const VALUE_ARGUMENT: &str = "value";
