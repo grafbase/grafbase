@@ -183,7 +183,6 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     resolve: None,
                     transforms: None,
                     required_operation: None,
-                    default_value: None,
                 });
             });
         }

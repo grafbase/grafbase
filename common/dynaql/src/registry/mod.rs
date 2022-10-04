@@ -126,7 +126,8 @@ pub struct MetaInputValue {
     pub name: String,
     pub description: Option<String>,
     pub ty: String,
-    pub default_value: Option<String>,
+    #[derivative(Hash = "ignore")]
+    pub default_value: Option<dynaql_value::ConstValue>,
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
@@ -262,8 +263,6 @@ pub struct MetaField {
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
     pub required_operation: Option<crate::Operations>,
-
-    pub default_value: Option<dynaql_value::ConstValue>,
 }
 
 impl Hash for MetaField {
@@ -1362,7 +1361,6 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
-                        default_value: None,
                     },
                 );
 
@@ -1399,7 +1397,6 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
-                        default_value: None,
                     },
                 );
             }
@@ -1435,7 +1432,6 @@ impl Registry {
                             resolve: None,
                             transforms: None,
                             required_operation: None,
-                            default_value: None,
                         },
                     );
                     fields

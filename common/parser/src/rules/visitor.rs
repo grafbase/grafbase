@@ -140,7 +140,6 @@ impl<'a> VisitorContext<'a> {
                                 relation: None,
                                 transforms: None,
                                 required_operation: None,
-                                default_value: None,
                             },
                         );
                         for query in &self.queries {

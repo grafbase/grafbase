@@ -320,7 +320,6 @@ pub fn add_update_mutation<'a>(
                         }),
                         transforms: None,
                         required_operation: Some(Operations::UPDATE),
-                        default_value: None,
                     },
                 );
                 fields
@@ -394,7 +393,6 @@ pub fn add_update_mutation<'a>(
         }),
         transforms: None,
         required_operation: Some(Operations::UPDATE),
-        default_value: None,
     });
 }
 

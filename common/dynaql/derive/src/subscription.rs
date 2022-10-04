@@ -311,7 +311,6 @@ pub fn generate(
                     resolve: ::std::option::Option::None,
                     transforms: ::std::option::Option::None,
                     required_operation: None,
-                    default_value: None,
                 });
             });
 

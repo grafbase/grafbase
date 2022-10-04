@@ -29,7 +29,10 @@ impl<'a> __InputValue<'a> {
     }
 
     #[inline]
-    async fn default_value(&self) -> Option<&str> {
-        self.input_value.default_value.as_deref()
+    async fn default_value(&self) -> Option<String> {
+        self.input_value
+            .default_value
+            .as_ref()
+            .map(|default_value| default_value.to_string())
     }
 }
