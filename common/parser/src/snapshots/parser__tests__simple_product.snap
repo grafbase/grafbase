@@ -66,6 +66,13 @@ expression: reg_string
         "specified_by_url": null
       }
     },
+    "DateTime": {
+      "Scalar": {
+        "description": "A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339\nprofile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.\n\nThis scalar is a description of an exact instant on the timeline such as the instant that a user account was created.\n\n# Input Coercion\n\nWhen expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.\n\n# Result Coercion\n\nWhere an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.\nFor example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
+        "name": "DateTime",
+        "specified_by_url": "https://datatracker.ietf.org/doc/html/rfc3339"
+      }
+    },
     "Float": {
       "Scalar": {
         "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
@@ -384,6 +391,40 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
+          "createdAt": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Product creation timestamp",
+            "edges": [],
+            "external": false,
+            "name": "createdAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__created_at"
+                }
+              }
+            ],
+            "ty": "DateTime!"
+          },
           "id": {
             "args": {},
             "cache_control": {
@@ -485,6 +526,40 @@ expression: reg_string
               }
             ],
             "ty": "Int!"
+          },
+          "updatedAt": {
+            "args": {},
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "most recent Product update timestamp",
+            "edges": [],
+            "external": false,
+            "name": "updatedAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
+                  }
+                }
+              }
+            },
+            "transforms": [
+              {
+                "DynamoSelect": {
+                  "property": "__updated_at"
+                }
+              }
+            ],
+            "ty": "DateTime!"
           }
         },
         "is_node": true,
