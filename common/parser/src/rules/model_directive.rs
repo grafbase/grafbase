@@ -235,7 +235,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transforms: None,
                     required_operation: Some(Operations::GET),
-
                 });
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);

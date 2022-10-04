@@ -8,9 +8,6 @@ pub const VALUE_ARGUMENT: &str = "value";
 
 pub struct DefaultDirective;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Default {}
-
 // FIXME: Validate that the type of the default constant value is compatible with the type of the field.
 
 const FIELDS_NOT_ALLOWED: &[&str] = &["id"];
@@ -18,7 +15,7 @@ const FIELDS_NOT_ALLOWED: &[&str] = &["id"];
 impl<'a> Visitor<'a> for DefaultDirective {
     fn directives(&self) -> String {
         r#"
-        directive @default on FIELD_DEFINITION
+        directive @default(value: String) on FIELD_DEFINITION
         "#
         .to_string()
     }

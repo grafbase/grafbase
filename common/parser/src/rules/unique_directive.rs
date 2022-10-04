@@ -7,9 +7,6 @@ const UNIQUE_DIRECTIVE: &str = "unique";
 
 pub struct UniqueDirective;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct Unique {}
-
 impl<'a> Visitor<'a> for UniqueDirective {
     fn directives(&self) -> String {
         r#"
