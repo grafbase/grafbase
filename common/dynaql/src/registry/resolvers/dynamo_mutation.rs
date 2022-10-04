@@ -953,19 +953,17 @@ impl ResolverTrait for DynamoMutationResolver {
                     }
                 };
 
-                let default_values: Vec<_> = create_input_fields
-                    .iter()
-                    .filter(|(name, _field)| !input.contains_key(name.as_str()))
-                    .filter_map(|(name, field)| {
-                        field
-                            .default_value
-                            .as_ref()
-                            .map(|default_value| (Name::new(name.as_str()), default_value.clone()))
-                    })
-                    .collect();
-
                 // Extend with default values for the fields missing in the input.
-                input.extend(default_values);
+                input.extend(
+                    create_input_fields
+                        .iter()
+                        .filter(|(name, _field)| !input.contains_key(name.as_str()))
+                        .filter_map(|(name, field)| {
+                            field.default_value.as_ref().map(|default_value| {
+                                (Name::new(name.as_str()), default_value.clone())
+                            })
+                        }),
+                );
 
                 let creation = node_create(
                     ctx,
