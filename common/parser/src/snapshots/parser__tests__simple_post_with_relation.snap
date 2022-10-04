@@ -75,7 +75,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -110,7 +109,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -145,7 +143,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -180,7 +177,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -244,7 +240,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -303,7 +298,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -325,7 +319,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Information to aid in pagination",
             "edges": [],
@@ -401,7 +394,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -453,7 +445,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -498,7 +489,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -533,7 +523,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -681,7 +670,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -733,7 +721,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -768,7 +755,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -837,7 +823,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -1068,7 +1053,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -1091,7 +1075,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Information to aid in pagination",
             "edges": [],
@@ -1153,7 +1136,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1205,7 +1187,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1250,7 +1231,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1285,7 +1265,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1347,7 +1326,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1454,7 +1432,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Create a Author",
             "edges": [],
@@ -1494,7 +1471,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Delete a Author by ID",
             "edges": [],
@@ -1541,7 +1517,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Update a Author",
             "edges": [],
@@ -1584,7 +1559,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Create a Blog",
             "edges": [],
@@ -1624,7 +1598,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Delete a Blog by ID",
             "edges": [],
@@ -1671,7 +1644,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Update a Blog",
             "edges": [],
@@ -1714,7 +1686,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Create a Post",
             "edges": [],
@@ -1754,7 +1725,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Delete a Post by ID",
             "edges": [],
@@ -1801,7 +1771,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Update a Post",
             "edges": [],
@@ -1854,7 +1823,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1886,7 +1854,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1918,7 +1885,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -1950,7 +1916,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2029,7 +1994,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -2070,7 +2034,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2105,7 +2068,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2158,7 +2120,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
@@ -2180,7 +2141,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Information to aid in pagination",
             "edges": [],
@@ -2242,7 +2202,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2294,7 +2253,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2339,7 +2297,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2374,7 +2331,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2522,7 +2478,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2574,7 +2529,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Access the current type schema of this server.",
             "edges": [],
@@ -2602,7 +2556,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Get Author by ID",
             "edges": [],
@@ -2665,7 +2618,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Paginated query to fetch the whole list of `Author`.",
             "edges": [],
@@ -2717,7 +2669,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Get Blog by ID",
             "edges": [],
@@ -2780,7 +2731,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Paginated query to fetch the whole list of `Blog`.",
             "edges": [],
@@ -2832,7 +2782,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Get Post by ID",
             "edges": [],
@@ -2895,7 +2844,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "Paginated query to fetch the whole list of `Post`.",
             "edges": [],
@@ -2964,7 +2912,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -2984,7 +2931,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3004,7 +2950,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3024,7 +2969,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3044,7 +2988,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3186,7 +3129,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3206,7 +3148,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3226,7 +3167,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3246,7 +3186,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3284,7 +3223,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3304,7 +3242,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3324,7 +3261,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3344,7 +3280,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3364,7 +3299,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3384,7 +3318,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3422,7 +3355,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3442,7 +3374,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3462,7 +3393,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3482,7 +3412,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3520,7 +3449,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "A list of all directives supported by this server.",
             "edges": [],
@@ -3540,7 +3468,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
             "edges": [],
@@ -3560,7 +3487,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "The type that query operations will be rooted at.",
             "edges": [],
@@ -3580,7 +3506,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "If this server support subscription, the type that subscription operations will be rooted at.",
             "edges": [],
@@ -3600,7 +3525,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": "A list of all types supported by this server.",
             "edges": [],
@@ -3638,7 +3562,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3655,7 +3578,7 @@ expression: reg_string
           "enumValues": {
             "args": {
               "includeDeprecated": {
-                "default_value": "false",
+                "default_value": false,
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
@@ -3666,7 +3589,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3683,7 +3605,7 @@ expression: reg_string
           "fields": {
             "args": {
               "includeDeprecated": {
-                "default_value": "false",
+                "default_value": false,
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
@@ -3694,7 +3616,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3714,7 +3635,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3734,7 +3654,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3773,7 +3692,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3793,7 +3711,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3813,7 +3730,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3833,7 +3749,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],
@@ -3853,7 +3768,6 @@ expression: reg_string
               "max_age": 0,
               "public": true
             },
-            "default_value": null,
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [],

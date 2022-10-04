@@ -50,7 +50,6 @@ expression: mutations
       }
     },
     "transforms": null,
-    "required_operation": 8,
-    "default_value": null
+    "required_operation": 8
   }
 ]
