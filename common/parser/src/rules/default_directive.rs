@@ -13,6 +13,8 @@ struct Default {}
 
 // FIXME: Validate that the type of the default constant value is compatible with the type of the field.
 
+const FIELDS_NOT_ALLOWED: &[&str] = &["id"];
+
 impl<'a> Visitor<'a> for DefaultDirective {
     fn directives(&self) -> String {
         r#"
@@ -33,6 +35,17 @@ impl<'a> Visitor<'a> for DefaultDirective {
             .iter()
             .find(|d| d.node.name.node == DEFAULT_DIRECTIVE)
         {
+            if let Some(field) = FIELDS_NOT_ALLOWED
+                .iter()
+                .copied()
+                .find(|field_name| field.node.name.node == *field_name)
+            {
+                ctx.report_error(
+                    vec![directive.pos],
+                    format!("The @default directive is not accepted on the `{field}` field"),
+                );
+            }
+
             let arguments: Vec<_> = directive
                 .node
                 .arguments
@@ -57,7 +70,7 @@ mod tests {
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_arguments1() {
+    fn test_default_wrong_argument_name() {
         let schema = r#"
             type Product @model {
                 id: ID!
@@ -77,7 +90,7 @@ mod tests {
     }
 
     #[test]
-    fn test_arguments2() {
+    fn test_default_missing_argument() {
         let schema = r#"
             type Product @model {
                 id: ID!
@@ -93,6 +106,26 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "The @default directive takes a single `value` argument",
+        );
+    }
+
+    #[test]
+    fn test_default_on_id_field() {
+        let schema = r#"
+            type Product @model {
+                id: ID! @default(value: "default")
+                name: String
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut DefaultDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "The @default directive is not accepted on the `id` field",
         );
     }
 
