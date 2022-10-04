@@ -205,8 +205,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 required_operation: None,
                             });
                         };
-                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some(format!("most recent {} update timestamp", &type_name)), "DateTime!", "__updated_at");
-                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some(format!("{} creation timestamp", &type_name)), "DateTime!", "__created_at");
+                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at");
+                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at");
 
                         fields
                     },
