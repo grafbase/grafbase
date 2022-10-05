@@ -255,7 +255,7 @@ mod tests {
         "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
       }
     }
-        */
+    */
     const TOKEN_WITH_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA";
     const TOKEN_WITH_GROUPS_IAT: i64 = 1_658_141_914;
 
@@ -280,7 +280,7 @@ mod tests {
     const TOKEN_WITH_NULL_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg";
     const TOKEN_WITH_NULL_GROUPS_IAT: i64 = 1_660_040_974;
 
-    /* TOKEN_WITHOUT_NBF decoded:
+    /* TOKEN_FROM_AUTH0 decoded:
     {
       "header": {
         "typ": "JWT",
@@ -290,17 +290,20 @@ mod tests {
       "payload": {
         "aud": "https://grafbase.com",
         "azp": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P",
-        "exp": 1663930706,
+        "exp": 1665047074,
         "gty": "client-credentials",
-        "iat": 1663844306,
+        "https://grafbase.com/jwt/claims/groups": [
+          "admin"
+        ],
+        "iat": 1664960674,
         "iss": "https://gb-oidc.eu.auth0.com/",
         "sub": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients"
       }
     }
     */
-    const TOKEN_WITHOUT_NBF: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2Mzg0NDMwNiwiZXhwIjoxNjYzOTMwNzA2LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.B-CuTBNy_rbVrBt_b7xdwy0-1TMAvzEYXWfGqVeKDWsazUzDqqER0bLwIRoMfFgKngkFyFbLynUzp-fEyPAHSpPkFBUCGd3kMteY9phRaxgPGG4X3xjfd2ZXqEq3nKG0kLRW2zedQpkuj2-aTf4sT1VaELsRPJOxCUZtMF4PSBSFMur6FNfEBe7jfIkQ6I4plY1lmR9GEhJJzg4QvphTh4Gjl4BD5gkghzmugfeE2ZemoqBU5k5Zi-SYMMRoEZdDOhg8eOADZmarqhbv9MxLGiBB3HJehNB--kfQ6lJ0GZLcaPUacRupgpfmoSY37k79XOs2gHv1OjpWVBEHls5NXA";
-    const TOKEN_WITHOUT_NBF_IAT: i64 = 1_663_844_306;
-    const TOKEN_WITHOUT_NBF_SUB: &str = "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients";
+    const TOKEN_FROM_AUTH0: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJodHRwczovL2dyYWZiYXNlLmNvbS9qd3QvY2xhaW1zL2dyb3VwcyI6WyJhZG1pbiJdLCJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2NDk2MDY3NCwiZXhwIjoxNjY1MDQ3MDc0LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.HI8mxp_05-GpXHewW7_noFkUcwm0vkTf_gdmfCxh8SlNGFEZycgT_l235nfZleQ4GfsTaP0yLvpvBn5pMdHRcUnAlImvALOXAFfnYFbvwjZP0vhqfz7-vNtMdoUlOyyaxWd0idVimVPJDHmZc0lWYuUks69BdEUXyJm19XzhPodi3HtLqiF7zPOflmiOAsZjSMc5jkqVO8qv39j9WpfStr0XO97n4vGOPoA1RPenYighbethBH6tWOph2Lp7gx1HUByHQwu5GlLeDKJO-n-dAV3xAUcVKtIh_u5Yd6gofC1HTdUjWjzjrpv9SpzrqDcmzaY1WPKi-7Il17TjgXT4kA";
+    const TOKEN_FROM_AUTH0_IAT: i64 = 1_664_960_674;
+    const TOKEN_FROM_AUTH0_SUB: &str = "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients";
 
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
@@ -460,7 +463,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_verify_token_without_nbf() {
+    async fn test_verify_token_from_auth0() {
         let server = MockServer::start().await;
         let issuer: Url = server.uri().parse().unwrap();
 
@@ -468,7 +471,7 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITHOUT_NBF_IAT, 0), Utc);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_FROM_AUTH0_IAT, 0), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -477,9 +480,9 @@ mod tests {
         };
 
         assert_eq!(
-            client.verify_token(TOKEN_WITHOUT_NBF, issuer).await.unwrap(),
+            client.verify_token(TOKEN_FROM_AUTH0, issuer).await.unwrap(),
             VerifiedToken {
-                identity: TOKEN_WITHOUT_NBF_SUB.to_string(),
+                identity: TOKEN_FROM_AUTH0_SUB.to_string(),
                 groups: HashSet::new(),
             }
         );
