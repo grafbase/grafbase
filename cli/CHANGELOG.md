@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.8.0]
+
+### Breaking
+
+- Adds support for paginated relations
+
+### Features
+
+- Adds support for OpenID Connect authorization
+
+### Fixes
+
+- Fixes a typo in the output of the `init` command (thank you @ajcwebdev!)
+
+### Tooling
+
+- Adds a nextest configuration limiting tests to run one at a time
+- Updates miniflare to version 2.9.0
+
 ## [0.7.0]
 
 ### Features
