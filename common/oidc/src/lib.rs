@@ -49,16 +49,17 @@ struct CustomClaims {
     #[serde(rename = "sub")]
     subject: String,
 
-    #[serde(default)]
-    groups: Option<HashSet<String>>, // TODO: use configured claim name
+    #[serde(flatten)]
+    extra: serde_json::Value,
 }
 
 #[derive(Default)]
 pub struct Client {
     pub trace_id: String,
     pub http_client: surf::Client,
-    pub time_opts: TimeOptions,
+    pub time_opts: TimeOptions, // used for testing
     pub ignore_iss_claim: bool, // used for testing
+    pub groups_claim: Option<String>,
     pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
@@ -172,9 +173,24 @@ impl Client {
             _ => Err(VerificationError::InvalidIssueTime),
         }?;
 
+        // Extract groups from custom claim if present
+        let groups = self
+            .groups_claim
+            .as_ref()
+            .map(|claim| {
+                claims.custom.extra.get(claim).map(|val| {
+                    let res: Option<HashSet<String>> = serde_json::from_value(val.clone())
+                        .map_err(|_| VerificationError::InvalidGroups(claim.to_string()))?;
+                    Ok(res.unwrap_or_default())
+                })
+            })
+            .unwrap_or_default()
+            .transpose()?
+            .unwrap_or_default();
+
         Ok(VerifiedToken {
             identity: claims.custom.subject.clone(),
-            groups: claims.custom.groups.clone().unwrap_or_default(),
+            groups,
         })
     }
 
@@ -401,6 +417,7 @@ mod tests {
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
+                groups_claim: Some("groups".to_string()),
                 ..Default::default()
             }
         };
@@ -426,6 +443,7 @@ mod tests {
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
+                groups_claim: Some("groups".to_string()),
                 ..Default::default()
             }
         };
@@ -475,6 +493,7 @@ mod tests {
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
+                groups_claim: Some("https://grafbase.com/jwt/claims/groups".to_string()),
                 ..Default::default()
             }
         };
@@ -483,7 +502,7 @@ mod tests {
             client.verify_token(TOKEN_FROM_AUTH0, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_FROM_AUTH0_SUB.to_string(),
-                groups: HashSet::new(),
+                groups: vec!["admin".to_string()].into_iter().collect(),
             }
         );
     }

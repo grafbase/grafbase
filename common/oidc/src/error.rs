@@ -4,16 +4,19 @@ quick_error! {
     #[derive(Debug)]
     pub enum VerificationError {
         HttpRequest(err: surf::Error) {
-            display("{}", err)
+            display("{err}")
         }
         Integrity(err: jwt_compact::ValidationError) {
-            display("{}", err)
+            display("{err}")
         }
         InvalidIssuerUrl {
             display("issuer URL mismatch")
         }
         InvalidIssueTime {
             display("invalid issue time")
+        }
+        InvalidGroups(claim: String) {
+            display("invalid groups claim {claim:?}")
         }
         UnsupportedAlgorithm {
             display("only RS256, RS384, and RS512 are supported")
@@ -28,7 +31,7 @@ quick_error! {
             display("invalid JWK format")
         }
         CacheError(err: worker::kv::KvError) {
-            display("{}", err)
+            display("{err}")
         }
     }
 }
