@@ -20,6 +20,7 @@ pub struct AuthConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+    pub groups_claim: String,
 }
 
 impl Default for AuthConfig {
