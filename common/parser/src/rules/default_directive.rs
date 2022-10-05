@@ -46,9 +46,28 @@ impl<'a> Visitor<'a> for DefaultDirective {
                 .node
                 .arguments
                 .iter()
-                .map(|(key, _)| key.node.as_str())
+                .map(|(key, value)| (key.node.as_str(), value))
                 .collect();
-            if arguments != ["value"] {
+            if let [("value", value)] = arguments.as_slice() {
+                let error = {
+                    let ctx_registry = ctx.registry.borrow();
+                    dynaql::validation::utils::is_valid_input_value(
+                        &ctx_registry,
+                        &field.node.ty.node.to_string(),
+                        &value.node,
+                        dynaql::QueryPathNode {
+                            parent: None,
+                            segment: dynaql::QueryPathSegment::Name(&field.node.name.node),
+                        },
+                    )
+                };
+                if let Some(err) = error {
+                    ctx.report_error(
+                        vec![directive.pos],
+                        format!("The @default value is of a wrong type: {err}"),
+                    );
+                }
+            } else {
                 ctx.report_error(
                     vec![directive.pos],
                     "The @default directive takes a single `value` argument".to_string(),
@@ -122,6 +141,26 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "The @default directive is not accepted on the `id` field",
+        );
+    }
+
+    #[test]
+    fn test_wrong_value_type() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                name: String! @default(value: 10)
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut DefaultDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "The @default value is of a wrong type: \"name\", expected type \"String\"",
         );
     }
 
