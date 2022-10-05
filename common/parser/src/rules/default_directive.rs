@@ -31,6 +31,13 @@ impl<'a> Visitor<'a> for DefaultDirective {
             .iter()
             .find(|d| d.node.name.node == DEFAULT_DIRECTIVE)
         {
+            if crate::utils::is_modelized_node(&ctx.types, &field.node.ty.node).is_some() {
+                ctx.report_error(
+                    vec![directive.pos],
+                    format!("The @default directive is not accepted on fields referring to other models"),
+                );
+            }
+
             if let Some(field) = FIELDS_NOT_ALLOWED
                 .iter()
                 .copied()
@@ -141,6 +148,32 @@ mod tests {
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
             "The @default directive is not accepted on the `id` field",
+        );
+    }
+
+    #[test]
+    fn test_default_model_field() {
+        let schema = r#"
+            type Category @model {
+                id: ID!
+                name: String!
+            }
+
+            type Product @model {
+                id: ID!
+                name: String!
+                category: Category @default(value: null)
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut DefaultDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "The @default directive is not accepted on fields referring to other models",
         );
     }
 
