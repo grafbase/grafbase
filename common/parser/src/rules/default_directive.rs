@@ -34,7 +34,7 @@ impl<'a> Visitor<'a> for DefaultDirective {
             if crate::utils::is_modelized_node(&ctx.types, &field.node.ty.node).is_some() {
                 ctx.report_error(
                     vec![directive.pos],
-                    format!("The @default directive is not accepted on fields referring to other models"),
+                    "The @default directive is not accepted on fields referring to other models".to_string(),
                 );
             }
 
