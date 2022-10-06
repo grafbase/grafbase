@@ -88,6 +88,7 @@ impl<'a> Visitor<'a> for DefaultDirective {
 mod tests {
     use super::*;
     use crate::rules::visitor::visit;
+    use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
@@ -211,5 +212,37 @@ mod tests {
         visit(&mut DefaultDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_default_with_enum_variant() {
+        let schema = r#"
+            type Product {
+                id: ID!
+                price: Int! @default(value: 0)
+                currency: Currency @default(value: USD)
+            }
+
+            enum Currency {
+                EUR
+                USD
+                GBP
+            }
+        "#;
+
+        let mut rules = crate::rules::visitor::VisitorNil
+            .with(crate::BasicType)
+            .with(crate::EnumType)
+            .with(crate::ScalarHydratation)
+            .with(crate::DefaultDirective)
+            .with(crate::CheckAllDirectivesAreKnown::default());
+
+        let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), schema);
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+
+        visit(&mut rules, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors, vec![]);
     }
 }

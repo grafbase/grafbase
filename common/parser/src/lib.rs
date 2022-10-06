@@ -56,7 +56,6 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckModelizedFieldReserved)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
-        .with(DefaultDirective)
         .with(UniqueDirective)
         .with(ModelDirective)
         .with(AuthDirective)
@@ -64,6 +63,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(EnumType)
         .with(ScalarHydratation)
         .with(relations_rules())
+        .with(DefaultDirective)
         .with(CheckAllDirectivesAreKnown::default());
 
     let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());

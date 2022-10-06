@@ -71,7 +71,11 @@ pub fn is_valid_input_value(
                 return None;
             }
 
-            match registry.types.get(type_name).unwrap() {
+            match registry
+                .types
+                .get(type_name)
+                .unwrap_or_else(|| panic!("{type_name} unknown"))
+            {
                 registry::MetaType::Scalar { .. } => {
                     if let true = PossibleScalar::is_valid(&type_name, &value) {
                         None
