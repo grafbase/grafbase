@@ -2,5 +2,7 @@ query Author($id: ID!) {
   author(id: $id) {
     id
     name
+    updatedAt
+    createdAt
   }
 }
