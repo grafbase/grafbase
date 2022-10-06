@@ -233,15 +233,14 @@ mod tests {
         let mut rules = crate::rules::visitor::VisitorNil
             .with(crate::BasicType)
             .with(crate::EnumType)
-            .with(crate::ScalarHydratation)
-            .with(crate::DefaultDirective)
-            .with(crate::CheckAllDirectivesAreKnown::default());
+            .with(crate::ScalarHydratation);
 
         let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), schema);
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
 
         visit(&mut rules, &mut ctx, &schema);
+        visit(&mut crate::DefaultDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors, vec![]);
     }

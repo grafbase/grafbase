@@ -62,9 +62,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(BasicType)
         .with(EnumType)
         .with(ScalarHydratation)
-        .with(relations_rules())
-        .with(DefaultDirective)
-        .with(CheckAllDirectivesAreKnown::default());
+        .with(relations_rules());
 
     let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());
 
@@ -72,6 +70,10 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
 
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
     visit(&mut rules, &mut ctx, &schema);
+    let mut second_pass_rules = rules::visitor::VisitorNil
+        .with(DefaultDirective)
+        .with(CheckAllDirectivesAreKnown::default());
+    visit(&mut second_pass_rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {
         return Err(ctx.errors.into());
