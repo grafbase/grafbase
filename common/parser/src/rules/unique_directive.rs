@@ -1,14 +1,10 @@
 use super::visitor::{Visitor, VisitorContext};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
-use serde::{Deserialize, Serialize};
 
 const UNIQUE_DIRECTIVE: &str = "unique";
 
 pub struct UniqueDirective;
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Unique {}
 
 impl<'a> Visitor<'a> for UniqueDirective {
     fn directives(&self) -> String {

@@ -126,7 +126,8 @@ pub struct MetaInputValue {
     pub name: String,
     pub description: Option<String>,
     pub ty: String,
-    pub default_value: Option<String>,
+    #[derivative(Hash = "ignore")]
+    pub default_value: Option<dynaql_value::ConstValue>,
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
