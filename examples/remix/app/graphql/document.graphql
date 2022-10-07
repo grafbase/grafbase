@@ -1,19 +1,23 @@
-fragment TodoList on TodoList {
-  id
-  title
-  todos {
-    ...Todo
-  }
-}
-
 fragment Todo on Todo {
   id
   title
   complete
 }
 
+fragment TodoList on TodoList {
+  id
+  title
+  todos(first: 100) {
+    edges {
+      node {
+        ...Todo
+      }
+    }
+  }
+}
+
 query TodoLists {
-  todoListCollection(first: 99) {
+  todoListCollection(first: 100) {
     edges {
       node {
         ...TodoList
