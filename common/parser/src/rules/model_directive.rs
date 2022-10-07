@@ -29,7 +29,7 @@ use case::CaseExt;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::{is_array_basic_type, MetaDirective, MetaType, __DirectiveLocation};
+use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
