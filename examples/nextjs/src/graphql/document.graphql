@@ -1,8 +1,12 @@
 fragment TodoList on TodoList {
   id
   title
-  todos {
-    ...Todo
+  todos(first: 100) {
+    edges {
+      node {
+        ...Todo
+      }
+    }
   }
 }
 
