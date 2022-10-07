@@ -1,4 +1,4 @@
-use chrono::{DateTime, FixedOffset, Local, Utc};
+use chrono::{DateTime, FixedOffset, Local, SecondsFormat, Utc};
 
 use crate::{InputValueError, InputValueResult, Scalar, ScalarType, Value};
 
@@ -19,7 +19,7 @@ impl ScalarType for DateTime<FixedOffset> {
     }
 
     fn to_value(&self) -> Value {
-        Value::String(self.to_rfc3339())
+        Value::String(self.to_rfc3339_opts(SecondsFormat::Millis, true))
     }
 }
 
@@ -40,7 +40,7 @@ impl ScalarType for DateTime<Local> {
     }
 
     fn to_value(&self) -> Value {
-        Value::String(self.to_rfc3339())
+        Value::String(self.to_rfc3339_opts(SecondsFormat::Millis, true))
     }
 }
 
@@ -61,6 +61,6 @@ impl ScalarType for DateTime<Utc> {
     }
 
     fn to_value(&self) -> Value {
-        Value::String(self.to_rfc3339())
+        Value::String(self.to_rfc3339_opts(SecondsFormat::Millis, true))
     }
 }
