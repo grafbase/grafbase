@@ -3,7 +3,8 @@ use super::{
     DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
     InsertNodeConstraintInternalInput, InsertNodeInternalInput, InsertRelationInternalInput, InsertUniqueConstraint,
     InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError,
-    ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
+    ToTransactionFuture, UpdateNodeConstraintInternalInput, UpdateNodeInternalInput, UpdateRelation,
+    UpdateRelationInternalInput, UpdateUniqueConstraint,
 };
 use crate::constant::{self, PK, SK};
 use crate::model::constraint::db::ConstraintID;
@@ -528,13 +529,23 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
             // A Unique directive is a Constraint on a specific field
-            let InsertUniqueConstraint { target } = self;
+            let InsertUniqueConstraint {
+                target,
+                mut user_defined_item,
+            } = self;
 
             let id = ConstraintID::try_from(pk).expect("Wrong Constraint ID");
 
             let exp_att_names = HashMap::from([("#pk".to_string(), constant::PK.to_string())]);
 
             let now_attr = Utc::now().to_string().into_attr();
+
+            user_defined_item.insert(constant::PK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::SK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), target.into_attr());
+            user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
+            user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
             let node_transaction = TxItem {
                 pk: id.to_string(),
@@ -546,14 +557,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                     // move to an update.
                     put: Some(Put {
                         table_name: ctx.dynamodb_table_name.clone(),
-                        item: dynomite::attr_map! {
-                            constant::PK => id.to_string(),
-                            constant::SK => id.to_string(),
-                            constant::INVERTED_INDEX_PK => target,
-                            constant::INVERTED_INDEX_SK => id.to_string(),
-                            constant::CREATED_AT => now_attr.clone(),
-                            constant::UPDATED_AT => now_attr,
-                        },
+                        item: user_defined_item,
                         condition_expression: Some("attribute_not_exists(#pk)".to_string()),
                         expression_attribute_names: Some(exp_att_names),
                         ..Default::default()
@@ -571,6 +575,75 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                     value: id.value().to_string(),
                     field: id.field().to_string(),
                 })
+        })
+    }
+}
+
+impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        Box::pin(async {
+            // A Unique directive is a Constraint on a specific field
+            let UpdateUniqueConstraint {
+                target,
+                mut user_defined_item,
+            } = self;
+
+            let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
+            let now_attr = Utc::now().to_string().into_attr();
+
+            user_defined_item.insert(constant::PK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::SK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), target.into_attr());
+            user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
+            user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
+
+            let key = dynomite::attr_map! {
+                constant::PK => pk.clone(),
+                constant::SK => sk.clone(),
+            };
+
+            let mut node_transaction = vec![];
+
+            let len = user_defined_item.len();
+
+            let mut exp_values = HashMap::with_capacity(len);
+            let mut exp_att_names =
+                HashMap::from([("#pk".to_string(), PK.to_string()), ("#sk".to_string(), SK.to_string())]);
+
+            let update_expression = Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names);
+
+            let update_transaction: TransactWriteItem = TransactWriteItem {
+                update: Some(Update {
+                    table_name: ctx.dynamodb_table_name.clone(),
+                    key,
+                    condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                    update_expression,
+                    expression_attribute_values: Some(exp_values),
+                    expression_attribute_names: Some(exp_att_names),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            };
+
+            node_transaction.push(TxItem {
+                pk,
+                sk,
+                relation_name: None,
+                transaction: update_transaction,
+            });
+
+            batchers
+                .transaction
+                .load_many(node_transaction)
+                .await
+                .map_err(ToTransactionError::TransactionError)
         })
     }
 }
@@ -613,6 +686,7 @@ impl ExecuteChangesOnDatabase for InternalNodeConstraintChanges {
     ) -> ToTransactionFuture<'a> {
         match self {
             Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Update(a) => a.to_transaction(batchers, ctx, pk, sk),
             Self::Insert(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
@@ -668,6 +742,20 @@ impl ExecuteChangesOnDatabase for InternalChanges {
             Self::Node(a) => a.to_transaction(batchers, ctx, pk, sk),
             Self::Relation(a) => a.to_transaction(batchers, ctx, pk, sk),
             Self::NodeConstraints(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
+impl ExecuteChangesOnDatabase for UpdateNodeConstraintInternalInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Unique(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }
