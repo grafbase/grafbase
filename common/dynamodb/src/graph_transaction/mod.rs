@@ -298,7 +298,6 @@ impl GetIds for UpdateNodeInput {
             let mut result = HashMap::with_capacity(id_len);
 
             for val in ids {
-                log::worker::console_debug!("val {:#?}", val);
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
                     let pk = node.remove(PK).and_then(|x| x.s);
                     let sk = node.remove(SK).and_then(|x| x.s);
