@@ -1,6 +1,7 @@
 query Author($id: ID!) {
-  author(id: $id) {
+  author(by: { id: $id }) {
     id
     name
+    age
   }
 }
