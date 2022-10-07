@@ -11,6 +11,7 @@ pub struct ConstraintDefinition {
 
 pub mod db {
     use super::super::id::ID_SEPARATOR;
+    use super::normalize_constraint_value;
     use std::borrow::{Borrow, Cow};
     use std::fmt::Display;
 
@@ -23,11 +24,8 @@ pub mod db {
 
     impl<'a> ConstraintID<'a> {
         pub fn from_owned(ty: String, field: String, value: serde_json::Value) -> Self {
-            let value = if value.is_string() {
-                value.as_str().unwrap().to_owned()
-            } else {
-                value.to_string()
-            };
+            let value = normalize_constraint_value(&value);
+
             Self {
                 ty: Cow::Owned(ty),
                 field: Cow::Owned(field),
@@ -116,6 +114,14 @@ pub mod db {
                 self.value
             )
         }
+    }
+}
+
+pub fn normalize_constraint_value(value: &serde_json::Value) -> String {
+    if value.is_string() {
+        value.as_str().unwrap().to_owned()
+    } else {
+        value.to_string()
     }
 }
 

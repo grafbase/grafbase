@@ -1,7 +1,7 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
-use crate::model::constraint::{ConstraintDefinition, ConstraintType};
+use crate::model::constraint::{normalize_constraint_value, ConstraintDefinition, ConstraintType};
 use crate::model::node::NodeID;
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
@@ -334,11 +334,7 @@ impl GetIds for UpdateNodeInput {
                                 .unwrap_or_default()
                                 .into_json();
 
-                            let updated_string = if updated.is_string() {
-                                updated.as_str().unwrap().to_owned()
-                            } else {
-                                updated.to_string()
-                            };
+                            let updated_string = normalize_constraint_value(&updated);
 
                             if updated_string == origin {
                                 result.insert(
