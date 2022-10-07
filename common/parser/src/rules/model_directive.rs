@@ -61,8 +61,15 @@ impl<'a> Visitor<'a> for ModelDirective {
         if_chain! {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
-            if let Some(id_field) = object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node));
             then {
+                let id_field = match object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node)) {
+                    Some(id) => id,
+                    _ => {
+                        let name_ty = &type_definition.node.name.node;
+                        ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
+                        return;
+                    }
+                };
                 let type_name = type_definition.node.name.node.to_string();
                 let mut connection_edges = Vec::new();
                 // If it's a modeled Type, we create the associated type into the registry.
@@ -297,5 +304,47 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_remove_query(ctx, &id_field.node, &type_name)
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ModelDirective;
+    use crate::rules::visitor::{visit, VisitorContext};
+    use dynaql_parser::parse_schema;
+    use serde_json as _;
+
+    #[test]
+    fn should_error_when_defining_an_invalid_model() {
+        let schema = r#"
+            type Product @model {
+                test: String!
+            }
+            "#;
+
+        let schema = parse_schema(schema).expect("");
+
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(!ctx.errors.is_empty(), "shouldn't be empty");
+        assert_eq!(ctx.errors.len(), 1, "should have one error");
+    }
+
+    #[test]
+    fn should_not_error_when_id() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                test: String!
+            }
+            "#;
+
+        let schema = parse_schema(schema).expect("");
+
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "should be empty");
     }
 }

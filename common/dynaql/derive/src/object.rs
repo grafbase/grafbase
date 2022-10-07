@@ -368,9 +368,7 @@ pub fn generate(
                         .as_ref()
                         .map(|value| {
                             quote! {
-                                ::std::option::Option::Some(::std::string::ToString::to_string(
-                                    &<#ty as #crate_name::InputType>::to_value(&#value)
-                                ))
+                                ::std::option::Option::Some(<#ty as #crate_name::InputType>::to_value(&#value))
                             }
                         })
                         .unwrap_or_else(|| quote! {::std::option::Option::None});

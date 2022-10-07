@@ -180,7 +180,7 @@ mod request;
 mod response;
 mod schema;
 mod subscription;
-mod validation;
+pub mod validation;
 
 pub mod auth;
 pub mod context;

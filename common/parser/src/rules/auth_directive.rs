@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_with::rust::sets_duplicate_value_is_error;
 
 const AUTH_DIRECTIVE: &str = "auth";
+const DEFAULT_GROUPS_CLAIM: &str = "groups";
 
 pub struct AuthDirective;
 
@@ -87,7 +88,16 @@ impl From<Operations> for dynaql::Operations {
 #[serde(deny_unknown_fields)]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
-    Oidc { issuer: DynamicString },
+    Oidc {
+        issuer: DynamicString,
+
+        #[serde(default = "default_groups_claim")]
+        groups_claim: String,
+    },
+}
+
+fn default_groups_claim() -> String {
+    DEFAULT_GROUPS_CLAIM.to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -278,7 +288,7 @@ impl AuthProvider {
         let mut provider: AuthProvider =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
 
-        let &mut AuthProvider::Oidc { ref mut issuer } = &mut provider;
+        let &mut AuthProvider::Oidc { ref mut issuer, .. } = &mut provider;
         ctx.partially_evaluate_literal(issuer)?;
         if let Err(err) = issuer
             .as_fully_evaluated_str()
@@ -328,7 +338,7 @@ impl From<Auth> for dynaql::AuthConfig {
                 .providers
                 .iter()
                 .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer } => dynaql::OidcProvider {
+                    AuthProvider::Oidc { issuer, groups_claim } => dynaql::OidcProvider {
                         issuer: issuer
                             .as_fully_evaluated_str()
                             .expect(
@@ -337,6 +347,7 @@ impl From<Auth> for dynaql::AuthConfig {
                             )
                             .parse()
                             .unwrap(),
+                        groups_claim: groups_claim.clone(),
                     },
                 })
                 .collect(),
@@ -439,6 +450,7 @@ mod tests {
             allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -459,6 +471,7 @@ mod tests {
             allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -506,6 +519,7 @@ mod tests {
             allowed_private_ops: dynaql::Operations::CREATE | dynaql::Operations::DELETE,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -525,6 +539,7 @@ mod tests {
             allowed_private_ops: dynaql::Operations::empty(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -547,6 +562,7 @@ mod tests {
             ]),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -576,6 +592,7 @@ mod tests {
             ]),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -643,6 +660,7 @@ mod tests {
             allowed_owner_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -662,6 +680,7 @@ mod tests {
             allowed_owner_ops: dynaql::Operations::CREATE,
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }
@@ -679,6 +698,7 @@ mod tests {
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
             }],
             ..Default::default()
         }

@@ -10,6 +10,7 @@ use rules::check_field_not_reserved::CheckModelizedFieldReserved;
 use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
+use rules::default_directive::DefaultDirective;
 use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
@@ -55,6 +56,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckModelizedFieldReserved)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
+        .with(DefaultDirective)
         .with(UniqueDirective)
         .with(ModelDirective)
         .with(AuthDirective)

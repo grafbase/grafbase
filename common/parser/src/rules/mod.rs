@@ -5,6 +5,7 @@ pub mod check_field_not_reserved;
 pub mod check_known_directives;
 pub mod check_type_validity;
 pub mod check_types_underscore;
+pub mod default_directive;
 pub mod enum_type;
 pub mod model_directive;
 pub mod one_of_directive;

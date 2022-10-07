@@ -8,8 +8,7 @@ expression: reg_string
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
-    "oidc_providers": [],
-    "owner_field": "owner"
+    "oidc_providers": []
   },
   "directives": {
     "include": {
@@ -3629,7 +3628,7 @@ expression: reg_string
           "enumValues": {
             "args": {
               "includeDeprecated": {
-                "default_value": "false",
+                "default_value": false,
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
@@ -3656,7 +3655,7 @@ expression: reg_string
           "fields": {
             "args": {
               "includeDeprecated": {
-                "default_value": "false",
+                "default_value": false,
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",

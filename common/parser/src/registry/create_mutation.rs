@@ -1,3 +1,4 @@
+use crate::rules::default_directive::{DEFAULT_DIRECTIVE, VALUE_ARGUMENT};
 use crate::rules::relations::generate_metarelation;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{is_modelized_node, to_base_type_str, to_defined_input_type, to_input_type, to_lower_camelcase};
@@ -223,7 +224,16 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
         }
 
         // TODO: Abstract this behind an `ID` utility;
-        if name.ne("id") {
+        if name != "id" {
+            let default_value = field
+                .node
+                .directives
+                .iter()
+                .find(|directive| directive.node.name.node == DEFAULT_DIRECTIVE)
+                .and_then(|directive| directive.node.get_argument(VALUE_ARGUMENT))
+                .cloned()
+                .map(|value| value.node);
+
             input_fields.insert(
                 name.clone().to_string(),
                 MetaInputValue {
@@ -231,7 +241,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
                     visible: None,
-                    default_value: None,
+                    default_value,
                     is_secret: false,
                 },
             );

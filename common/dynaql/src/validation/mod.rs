@@ -4,7 +4,7 @@ mod test_harness;
 
 mod rules;
 mod suggestion;
-mod utils;
+pub mod utils;
 mod visitor;
 mod visitors;
 
