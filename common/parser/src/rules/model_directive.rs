@@ -240,19 +240,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                         oneof: true,
                     }, &one_of_type_name, &one_of_type_name);
 
-                    let has_one_of = ctx.registry.get_mut().directives.iter().any(|directive| directive.1.name == "oneOf");
-
-                    if !has_one_of {
-                        ctx.registry.get_mut().add_directive(MetaDirective {
-                            name: "oneOf".to_string(),
-                            description: Some("Indicates that an input object is a oneOf input object".to_string()),
-                            locations: vec![__DirectiveLocation::INPUT_OBJECT],
-                            args: IndexMap::new(),
-                            is_repeatable: false,
-                            visible: Some(|_| true),
-                        });
-                    }
-
                 ctx.queries.push(MetaField {
                     // "by" query
                     name: to_lower_camelcase(&type_name),
