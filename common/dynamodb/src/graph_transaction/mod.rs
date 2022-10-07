@@ -9,7 +9,7 @@ use crate::utils::ConvertExtension;
 use crate::{constant, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
-use chrono::Utc;
+use chrono::{SecondsFormat, Utc};
 use derivative::Derivative;
 use dynomite::AttributeValue;
 use futures::Future;
@@ -688,7 +688,7 @@ impl UpdateNodeInternalInput {
             .chain(std::iter::once((
                 constant::UPDATED_AT.to_string(),
                 AttributeValue {
-                    s: Some(Utc::now().to_string()),
+                    s: Some(Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)),
                     ..Default::default()
                 },
             )))
@@ -786,7 +786,7 @@ impl UpdateRelationInternalInput {
                 .chain(std::iter::once((
                     constant::UPDATED_AT.to_string(),
                     AttributeValue {
-                        s: Some(Utc::now().to_string()),
+                        s: Some(Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)),
                         ..Default::default()
                     },
                 )))
