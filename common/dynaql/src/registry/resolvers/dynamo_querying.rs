@@ -491,8 +491,7 @@ impl ResolverTrait for DynamoResolver {
                                 current_ty: value,
                             }))));
                         }
-                        // If we do not have any value inside our fetch, it's not an
-                        // error, it's only we didn't found the value.
+                        // Return early if no value was found
                         None => {
                             return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
                                 .with_early_return());
