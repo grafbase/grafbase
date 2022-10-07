@@ -588,7 +588,6 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            // A Unique directive is a Constraint on a specific field
             let UpdateUniqueConstraint {
                 target,
                 mut user_defined_item,
