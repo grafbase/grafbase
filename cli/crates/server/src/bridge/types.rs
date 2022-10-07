@@ -1,6 +1,14 @@
+use chrono::{DateTime, Utc, SecondsFormat};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::vec::IntoIter;
+
+pub fn serialize_dt_to_rfc3339<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::ser::Serializer,
+{
+    serializer.serialize_str(&dt.to_rfc3339_opts(SecondsFormat::Millis, true))
+}
 
 /// a single sql statement to be executed or grouped for a transaction
 #[derive(Serialize, Deserialize, Debug)]
@@ -57,6 +65,8 @@ pub struct Record {
     pub entity_type: String,
     pub relation_names: Value,
     pub document: Value,
-    pub created_at: String,
-    pub updated_at: String,
+    #[serde(serialize_with = "serialize_dt_to_rfc3339")]
+    pub created_at: DateTime<Utc>,
+    #[serde(serialize_with = "serialize_dt_to_rfc3339")]
+    pub updated_at: DateTime<Utc>,
 }
