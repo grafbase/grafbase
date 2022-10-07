@@ -11,7 +11,7 @@ use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::Utc;
 use derivative::Derivative;
-use dynomite::{Attribute, AttributeValue};
+use dynomite::AttributeValue;
 use futures::Future;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
@@ -340,7 +340,20 @@ impl GetIds for UpdateNodeInput {
                                 updated.to_string()
                             };
 
-                            if updated_string != origin {
+                            if updated_string == origin {
+                                result.insert(
+                                    (constraint_id.to_string(), constraint_id.to_string()),
+                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                            target: constraint
+                                                .remove(constant::INVERTED_INDEX_PK)
+                                                .and_then(|x| x.s)
+                                                .unwrap(),
+                                            user_defined_item: self.user_defined_item.clone(),
+                                        }),
+                                    )),
+                                );
+                            } else {
                                 result.insert(
                                     (pk, sk),
                                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
@@ -357,19 +370,6 @@ impl GetIds for UpdateNodeInput {
                                     (new_id.to_string(), new_id.to_string()),
                                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                                         InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
-                                            target: constraint
-                                                .remove(constant::INVERTED_INDEX_PK)
-                                                .and_then(|x| x.s)
-                                                .unwrap(),
-                                            user_defined_item: self.user_defined_item.clone(),
-                                        }),
-                                    )),
-                                );
-                            } else {
-                                result.insert(
-                                    (constraint_id.to_string(), constraint_id.to_string()),
-                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
-                                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
                                             target: constraint
                                                 .remove(constant::INVERTED_INDEX_PK)
                                                 .and_then(|x| x.s)
@@ -1267,8 +1267,8 @@ impl InternalNodeConstraintChanges {
             ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(insert))),
             // TODO: Need to add addition
             (Self::Delete(left), Self::Delete(_right)) => Ok(Self::Delete(left)),
-            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => unreachable!(),
-            (Self::Delete(_), Self::Update(_)) | (Self::Update(_), Self::Delete(_)) => unreachable!(),
+            (Self::Insert(_) | Self::Update(_), Self::Delete(_))
+            | (Self::Delete(_), Self::Insert(_) | Self::Update(_)) => unreachable!(),
         }
     }
 }

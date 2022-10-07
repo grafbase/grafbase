@@ -135,7 +135,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             document.insert(SK.to_string(), id_attr.clone());
             document.insert(CREATED_AT.to_string(), now_attr.clone());
             document.insert(UPDATED_AT.to_string(), now_attr);
-            document.insert(INVERTED_INDEX_PK.to_string(), target.clone().into_attr());
+            document.insert(INVERTED_INDEX_PK.to_string(), target.into_attr());
             document.insert(INVERTED_INDEX_SK.to_string(), id_attr);
 
             let updated_at = utc_now;

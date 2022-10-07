@@ -35,7 +35,7 @@ use dynaql::registry::{
 };
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
-use dynaql::{InputObjectType, Operations, Positioned};
+use dynaql::{Operations, Positioned};
 use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 
