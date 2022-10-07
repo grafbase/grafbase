@@ -927,7 +927,7 @@ pub enum DeleteNodeConstraintInternalInput {
 
 #[derive(Debug, Clone, Derivative, PartialEq)]
 pub struct InsertUniqueConstraint {
-    /// The unique constraint target one Entity
+    /// The unique constraint targets one entity
     pub(crate) target: String,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
@@ -935,7 +935,7 @@ pub struct InsertUniqueConstraint {
 
 #[derive(Debug, Clone, Derivative, PartialEq)]
 pub struct UpdateUniqueConstraint {
-    /// The unique constraint target one Entity
+    /// The unique constraint targets one entity
     pub(crate) target: String,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
