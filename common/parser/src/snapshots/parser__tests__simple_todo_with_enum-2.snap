@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 221
 expression: sdl
 ---
 type Author {
@@ -40,9 +39,9 @@ type PageInfo {
 }
 type Query {
 	"""
-	Get Todo by ID
+	Query a single Todo by an ID or a unique field
 	"""
-	todo(id: ID!): Todo
+	todo(by: TodoByInput): Todo
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
@@ -53,6 +52,9 @@ type Todo {
 	content: String!
 	authors: [Author]
 	ty: TodoType!
+}
+input TodoByInput {
+	id: ID
 }
 type TodoConnection {
 	"""

@@ -31,6 +31,15 @@ expression: reg_string
       ],
       "name": "include"
     },
+    "oneOf": {
+      "args": {},
+      "description": "Indicates that an input object is a oneOf input object",
+      "is_repeatable": false,
+      "locations": [
+        "INPUT_OBJECT"
+      ],
+      "name": "oneOf"
+    },
     "skip": {
       "args": {
         "if": {
@@ -280,6 +289,23 @@ expression: reg_string
         "keys": null,
         "name": "Author",
         "rust_typename": "Author"
+      }
+    },
+    "AuthorByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID"
+          }
+        },
+        "name": "AuthorByInput",
+        "oneof": true,
+        "rust_typename": "AuthorByInput"
       }
     },
     "AuthorConnection": {
@@ -1035,6 +1061,23 @@ expression: reg_string
         "name": "BlogBlogRelatePostPostUpdateRelationInput",
         "oneof": true,
         "rust_typename": "BlogBlogRelatePostPostUpdateRelationInput"
+      }
+    },
+    "BlogByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID"
+          }
+        },
+        "name": "BlogByInput",
+        "oneof": true,
+        "rust_typename": "BlogByInput"
       }
     },
     "BlogConnection": {
@@ -2104,6 +2147,23 @@ expression: reg_string
         "rust_typename": "Post"
       }
     },
+    "PostByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID"
+          }
+        },
+        "name": "PostByInput",
+        "oneof": true,
+        "rust_typename": "PostByInput"
+      }
+    },
     "PostConnection": {
       "Object": {
         "cache_control": {
@@ -2544,12 +2604,12 @@ expression: reg_string
           },
           "author": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
-                "description": "Author id",
+                "description": "The field and value by which to query the Author",
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "AuthorByInput"
               }
             },
             "cache_control": {
@@ -2557,7 +2617,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get Author by ID",
+            "description": "Query a single Author by an ID or a unique field",
             "edges": [],
             "external": false,
             "name": "author",
@@ -2569,12 +2629,9 @@ expression: reg_string
               "id": "author_resolver",
               "type": {
                 "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "InputTypeName": "id"
-                    },
-                    "sk": {
-                      "InputTypeName": "id"
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
                     }
                   }
                 }
@@ -2657,12 +2714,12 @@ expression: reg_string
           },
           "blog": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
-                "description": "Blog id",
+                "description": "The field and value by which to query the Blog",
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "BlogByInput"
               }
             },
             "cache_control": {
@@ -2670,7 +2727,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get Blog by ID",
+            "description": "Query a single Blog by an ID or a unique field",
             "edges": [],
             "external": false,
             "name": "blog",
@@ -2682,12 +2739,9 @@ expression: reg_string
               "id": "blog_resolver",
               "type": {
                 "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "InputTypeName": "id"
-                    },
-                    "sk": {
-                      "InputTypeName": "id"
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
                     }
                   }
                 }
@@ -2770,12 +2824,12 @@ expression: reg_string
           },
           "post": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
-                "description": "Post id",
+                "description": "The field and value by which to query the Post",
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "PostByInput"
               }
             },
             "cache_control": {
@@ -2783,7 +2837,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get Post by ID",
+            "description": "Query a single Post by an ID or a unique field",
             "edges": [],
             "external": false,
             "name": "post",
@@ -2795,12 +2849,9 @@ expression: reg_string
               "id": "post_resolver",
               "type": {
                 "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "InputTypeName": "id"
-                    },
-                    "sk": {
-                      "InputTypeName": "id"
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
                     }
                   }
                 }

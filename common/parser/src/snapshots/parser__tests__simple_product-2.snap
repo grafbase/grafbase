@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/lib.rs
-assertion_line: 91
 expression: sdl
 ---
 type Mutation {
@@ -30,6 +29,9 @@ type Product {
 	The product's price in $
 	"""
 	price: Int!
+}
+input ProductByInput {
+	id: ID
 }
 type ProductConnection {
 	"""
@@ -73,9 +75,9 @@ type ProductUpdatePayload {
 }
 type Query {
 	"""
-	Get Product by ID
+	Query a single Product by an ID or a unique field
 	"""
-	product(id: ID!): Product
+	product(by: ProductByInput): Product
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""

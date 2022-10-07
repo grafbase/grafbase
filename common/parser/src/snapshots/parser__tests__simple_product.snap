@@ -31,6 +31,15 @@ expression: reg_string
       ],
       "name": "include"
     },
+    "oneOf": {
+      "args": {},
+      "description": "Indicates that an input object is a oneOf input object",
+      "is_repeatable": false,
+      "locations": [
+        "INPUT_OBJECT"
+      ],
+      "name": "oneOf"
+    },
     "skip": {
       "args": {
         "if": {
@@ -494,6 +503,23 @@ expression: reg_string
         "rust_typename": "Product"
       }
     },
+    "ProductByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID"
+          }
+        },
+        "name": "ProductByInput",
+        "oneof": true,
+        "rust_typename": "ProductByInput"
+      }
+    },
     "ProductConnection": {
       "Object": {
         "cache_control": {
@@ -846,12 +872,12 @@ expression: reg_string
           },
           "product": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
-                "description": "Product id",
+                "description": "The field and value by which to query the Product",
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "ProductByInput"
               }
             },
             "cache_control": {
@@ -859,7 +885,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Get Product by ID",
+            "description": "Query a single Product by an ID or a unique field",
             "edges": [],
             "external": false,
             "name": "product",
@@ -871,12 +897,9 @@ expression: reg_string
               "id": "product_resolver",
               "type": {
                 "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "InputTypeName": "id"
-                    },
-                    "sk": {
-                      "InputTypeName": "id"
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
                     }
                   }
                 }
