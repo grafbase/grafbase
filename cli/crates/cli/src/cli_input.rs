@@ -59,3 +59,8 @@ pub fn build_cli() -> Command {
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view
 }
+
+#[test]
+fn verify_cli() {
+    build_cli().debug_assert();
+}
