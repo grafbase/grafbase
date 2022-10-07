@@ -110,9 +110,26 @@ pub enum DynamoResolver {
         parent_pk: String,
         relation_name: String,
     },
-    QueryBy {
-        by: VariableResolveDefinition,
-    },
+    /// A Query based on any unique field (id or a field marked with @unique)
+    ///
+    /// # Returns
+    ///
+    /// We expect this resolver to return a Value with this type, if for example.
+    /// This resolver should ALWAYS be used for Unique Results.
+    ///
+    ///
+    /// This resolver should ALWAYS be used for Unique Results.
+    ///
+    /// With a Blog example:
+    ///
+    /// ```json
+    /// {
+    ///   data: {
+    ///     "Blog": HashMap<String, AttributeValue>,
+    ///   }
+    /// }
+    /// ```
+    QueryBy { by: VariableResolveDefinition },
 }
 
 #[async_trait::async_trait]
