@@ -70,9 +70,9 @@ watch(titleRef, (newValue) => {
         </Dropdown>
       </div>
     </div>
-    <div v-if="todos" class="space-y-4">
-      <div v-for="todo in todos" :key="todo?.id">
-        <TodoItem v-if="todo?.id" v-bind="todo" />
+    <div v-if="todos?.edges" class="space-y-4">
+      <div v-for="edge in todos.edges" :key="edge?.node?.id">
+        <TodoItem v-if="edge?.node?.id" v-bind="edge.node" />
       </div>
     </div>
     <TodoItemCreate :todoListId="id" />
