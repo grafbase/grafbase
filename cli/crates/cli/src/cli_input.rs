@@ -20,8 +20,7 @@ pub fn build_cli() -> Command {
             Command::new("dev").about("Run your grafbase project locally").args(&[
                 arg!(-p --port <port> "Use a specific port")
                     .default_value("4000")
-                    .value_parser(value_parser!(u16))
-                    .required(false),
+                    .value_parser(value_parser!(u16)),
                 arg!(-s --search "If a given port is unavailable, search for another").action(ArgAction::SetTrue),
                 Arg::new("disable-watch")
                     .long("disable-watch")
