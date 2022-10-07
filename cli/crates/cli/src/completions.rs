@@ -1,7 +1,7 @@
 use crate::cli_input::build_cli;
 use crate::errors::CliError;
-use clap_generate::generators::{Bash, Elvish, Fish, PowerShell, Zsh};
-use clap_generate::Generator;
+use clap_complete::shells::{Bash, Elvish, Fish, PowerShell, Zsh};
+use clap_complete::Generator;
 use std::io;
 
 /// generates shell specific completions for the cli and prints them to stdout
