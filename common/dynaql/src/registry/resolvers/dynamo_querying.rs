@@ -120,12 +120,16 @@ pub enum DynamoResolver {
     ///
     /// This resolver should ALWAYS be used for Unique Results.
     ///
-    /// With a Blog example:
+    /// With a Blog example with an Author edge:
+    ///
+    /// (Note: this query returns edges only for by id queries)F
     ///
     /// ```json
     /// {
     ///   data: {
     ///     "Blog": HashMap<String, AttributeValue>,
+    ///     "Author": Vec<HashMap<String, AttributeValue>>,
+    ///     "Edge2": Vec<HashMap<String, AttributeValue>>,
     ///   }
     /// }
     /// ```
@@ -472,7 +476,7 @@ impl ResolverTrait for DynamoResolver {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(mut dyna) => {
                             if !by_id {
-                                // populate the original SK to get the correct ID
+                                // Populate the original SK to get the correct ID
                                 dyna.insert(
                                     SK.to_string(),
                                     dyna.get(INVERTED_INDEX_PK).expect("must exist").clone(),
@@ -495,13 +499,13 @@ impl ResolverTrait for DynamoResolver {
                     }
                 }
 
-                // When we query a Node with the Query Dataloader, we have to indicate
-                // which Edges should be getted with it because we are able to retreive
-                // a Node with his edges in one network request.
-                // We could also request to have only the node edges and not the node
+                // When we query a Node with the QueryBy Dataloader, we have to indicate
+                // which edges should be queried with it, since we are able to retreive
+                // a node with its edges in one network request.
+                // We could also request to receive only the node edges and not the node
                 // data.
                 //
-                // We add the Node to the edges to also ask for the Node Data.
+                // We include the node in the edge list to also ask for the node data.
 
                 // FIXME: currently this is unused for non ID queries
                 // but we'll need to differentiate edge querying for
@@ -533,8 +537,7 @@ impl ResolverTrait for DynamoResolver {
 
                 let len = query_result.len();
 
-                // If we do not have any value inside our fetch, it's not an
-                // error, it's only we didn't found the value.
+                // Return early if no value was found
                 if len == 0 {
                     return Ok(
                         ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
