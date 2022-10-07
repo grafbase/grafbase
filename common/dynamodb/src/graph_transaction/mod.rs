@@ -278,7 +278,6 @@ impl GetIds for UpdateNodeInput {
     fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
         let pk = NodeID::new(&self.ty, &self.id).to_string();
 
-        log::worker::console_debug!("UpdateNodeInput");
         let query_loader_reversed = &batchers.query_reversed;
 
         let select_entities_to_update = query_loader_reversed
