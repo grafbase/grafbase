@@ -477,6 +477,8 @@ impl ResolverTrait for DynamoResolver {
                         Some(mut dyna) => {
                             if !by_id {
                                 // Populate the original SK to get the correct ID
+                                // TODO: consider using a transform by detecting the use
+                                // of a non id "by" query
                                 dyna.insert(
                                     SK.to_string(),
                                     dyna.get(INVERTED_INDEX_PK).expect("must exist").clone(),
