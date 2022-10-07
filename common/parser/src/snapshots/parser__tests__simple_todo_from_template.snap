@@ -73,11 +73,11 @@ type Todo {
 	title: String!
 	complete: Boolean
 	"""
-	most recent Todo update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Todo creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }
@@ -110,11 +110,11 @@ type TodoList {
 	title: String!
 	todos(after: String, before: String, first: Int, last: Int): TodoConnection
 	"""
-	most recent TodoList update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	TodoList creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }

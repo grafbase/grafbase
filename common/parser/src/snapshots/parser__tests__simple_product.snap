@@ -398,7 +398,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Product creation timestamp",
+            "description": "when the model was created",
             "edges": [],
             "external": false,
             "name": "createdAt",
@@ -534,7 +534,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "most recent Product update timestamp",
+            "description": "when the model was updated",
             "edges": [],
             "external": false,
             "name": "updatedAt",

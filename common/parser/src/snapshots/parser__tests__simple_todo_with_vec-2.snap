@@ -68,11 +68,11 @@ type Todo {
 	content: String!
 	authors: [Author]
 	"""
-	most recent Todo update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Todo creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }

@@ -110,7 +110,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Author creation timestamp",
+            "description": "when the model was created",
             "edges": [],
             "external": false,
             "name": "createdAt",
@@ -315,7 +315,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "most recent Author update timestamp",
+            "description": "when the model was updated",
             "edges": [],
             "external": false,
             "name": "updatedAt",
@@ -790,7 +790,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Blog creation timestamp",
+            "description": "when the model was created",
             "edges": [],
             "external": false,
             "name": "createdAt",
@@ -966,7 +966,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "most recent Blog update timestamp",
+            "description": "when the model was updated",
             "edges": [],
             "external": false,
             "name": "updatedAt",
@@ -2212,7 +2212,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Post creation timestamp",
+            "description": "when the model was created",
             "edges": [],
             "external": false,
             "name": "createdAt",
@@ -2280,7 +2280,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "most recent Post update timestamp",
+            "description": "when the model was updated",
             "edges": [],
             "external": false,
             "name": "updatedAt",

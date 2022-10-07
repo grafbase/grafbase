@@ -9,11 +9,11 @@ type Author {
 	country: Country!
 	posts(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
-	most recent Author update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Author creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }
@@ -81,11 +81,11 @@ type Blog {
 	posts(after: String, before: String, first: Int, last: Int): PostConnection
 	owner: Author!
 	"""
-	most recent Blog update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Blog creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }
@@ -238,11 +238,11 @@ type Post {
 	content: String!
 	authors(after: String, before: String, first: Int, last: Int): AuthorConnection
 	"""
-	most recent Post update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Post creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }

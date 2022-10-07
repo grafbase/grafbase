@@ -46,11 +46,11 @@ type Product {
 	"""
 	price: Int!
 	"""
-	most recent Product update timestamp
+	when the model was updated
 	"""
 	updatedAt: DateTime!
 	"""
-	Product creation timestamp
+	when the model was created
 	"""
 	createdAt: DateTime!
 }
