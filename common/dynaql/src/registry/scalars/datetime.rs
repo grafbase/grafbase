@@ -1,6 +1,6 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 use dynaql_value::ConstValue;
 
 pub struct DateTimeScalar;
@@ -43,7 +43,13 @@ impl DynamicParse for DateTimeScalar {
 
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
-            serde_json::Value::String(v) => Ok(ConstValue::String(v)),
+            serde_json::Value::String(v) => {
+                let dt = v.parse::<DateTime<Utc>>();
+                dt.map(|dt| ConstValue::String(dt.to_rfc3339_opts(SecondsFormat::Millis, true)))
+                    .map_err(|_| {
+                        Error::new("Data violation: Cannot coerce the initial value to a DateTime")
+                    })
+            }
             _ => Err(Error::new(
                 "Data violation: Cannot coerce the initial value to a DateTime",
             )),

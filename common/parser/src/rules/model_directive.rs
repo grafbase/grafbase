@@ -44,6 +44,44 @@ pub struct ModelDirective;
 pub const MODEL_DIRECTIVE: &str = "model";
 pub const UNIQUE_DIRECTIVE: &str = "unique";
 
+fn insert_metadata_field(
+    fields: &mut IndexMap<String, MetaField>,
+    type_name: &str,
+    field_name: &str,
+    description: Option<String>,
+    ty: &str,
+    dynamo_property_name: &str,
+) -> Option<MetaField> {
+    fields.insert(
+        field_name.to_owned(),
+        MetaField {
+            name: field_name.to_owned(),
+            description,
+            args: Default::default(),
+            ty: ty.to_owned(),
+            deprecation: Default::default(),
+            cache_control: Default::default(),
+            external: false,
+            requires: None,
+            provides: None,
+            visible: None,
+            compute_complexity: None,
+            resolve: Some(Resolver {
+                id: None,
+                r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                    key: type_name.to_string(),
+                }),
+            }),
+            edges: Vec::new(),
+            transforms: Some(vec![Transformer::DynamoSelect {
+                property: dynamo_property_name.to_owned(),
+            }]),
+            relation: None,
+            required_operation: None,
+        },
+    )
+}
+
 impl<'a> Visitor<'a> for ModelDirective {
     fn directives(&self) -> String {
         r#"
@@ -74,6 +112,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 let mut connection_edges = Vec::new();
                 // If it's a modeled Type, we create the associated type into the registry.
                 // Without more data, we infer it's from our modelization.
+
                 ctx.registry.get_mut().create_type(&mut |_| MetaType::Object {
                     name: type_name.clone(),
                     description: type_definition.node.description.clone().map(|x| x.node),
@@ -166,6 +205,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 required_operation: None,
                             });
                         };
+                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at");
+                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at");
+
                         fields
                     },
                     cache_control: dynaql::CacheControl {
