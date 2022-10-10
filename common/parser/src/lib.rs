@@ -65,7 +65,6 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(relations_rules());
 
     let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());
-
     let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
@@ -73,6 +72,17 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     let mut second_pass_rules = rules::visitor::VisitorNil
         .with(DefaultDirective)
         .with(CheckAllDirectivesAreKnown::default());
+
+    // FIXME: Get rid of the ugly double pass.
+    let schema = format!(
+        "{}\n{}\n{}\n{}",
+        PossibleScalar::sdl(),
+        rules.directives(),
+        second_pass_rules.directives(),
+        input.as_ref()
+    );
+    let schema = parse_schema(schema)?;
+    let mut ctx = VisitorContext::new_with_variables(&schema, variables);
     visit(&mut second_pass_rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {
