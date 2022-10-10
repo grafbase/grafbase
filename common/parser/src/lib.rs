@@ -63,7 +63,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(BasicType)
         .with(EnumType)
         .with(ScalarHydratation)
-        .with(DefaultDirectiveTypes)
+        .with(DefaultDirective)
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 
@@ -74,7 +74,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     visit(&mut rules, &mut ctx, &schema);
 
     // FIXME: Get rid of the ugly double pass.
-    let mut second_pass_rules = rules::visitor::VisitorNil.with(DefaultDirective);
+    let mut second_pass_rules = rules::visitor::VisitorNil.with(DefaultDirectiveTypes);
     visit(&mut second_pass_rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {
