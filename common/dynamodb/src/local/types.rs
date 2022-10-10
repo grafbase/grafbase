@@ -12,7 +12,14 @@ use std::{
     net::Ipv4Addr,
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+pub fn serialize_dt_to_rfc3339<S>(dt: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::ser::Serializer,
+{
+    serializer.serialize_str(&dt.to_rfc3339_opts(SecondsFormat::Millis, true))
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Record {
     pub pk: String,
@@ -24,7 +31,9 @@ pub struct Record {
     pub entity_type: Option<String>,
     pub relation_names: Vec<String>,
     pub document: HashMap<String, AttributeValue>,
+    #[serde(serialize_with = "serialize_dt_to_rfc3339")]
     pub created_at: DateTime<Utc>,
+    #[serde(serialize_with = "serialize_dt_to_rfc3339")]
     pub updated_at: DateTime<Utc>,
 }
 
@@ -700,4 +709,30 @@ fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String
         .sorted_by_key(|item| item.0)
         .map(|item| item.1)
         .collect()
+}
+
+#[test]
+fn test_serde_roundtrip_record() {
+    let rec = Record {
+        pk: "".to_owned(),
+        sk: "".to_owned(),
+        gsi1sk: None,
+        gsi1pk: None,
+        gsi2pk: None,
+        gsi2sk: None,
+        entity_type: None,
+        relation_names: Vec::new(),
+        document: HashMap::new(),
+        created_at: DateTime::<chrono::FixedOffset>::parse_from_rfc3339("1970-01-01T00:00:00.000Z")
+            .unwrap()
+            .with_timezone(&Utc),
+        updated_at: DateTime::<chrono::FixedOffset>::parse_from_rfc3339("1970-01-01T00:00:00.000Z")
+            .unwrap()
+            .with_timezone(&Utc),
+    };
+
+    let serialized = serde_json::to_string(&rec);
+    let roundtripped = serde_json::from_str::<Record>(&serialized.unwrap()).unwrap();
+    assert_eq!(roundtripped.updated_at.timezone(), Utc);
+    assert_eq!(roundtripped, rec);
 }
