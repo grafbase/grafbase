@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.1]
+
+### Fixes
+
+- Reverts `clap` to version `3` (due to [ArgAction::SetTrue / ArgAction::SetFalse is defaulted appearing only in --release for a seemingly valid input #4370](https://github.com/clap-rs/clap/issues/4370))
+
 ## [0.9.0]
 
 ### Features
