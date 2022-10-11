@@ -1,4 +1,5 @@
-use crate::rules::default_directive::{DEFAULT_DIRECTIVE, VALUE_ARGUMENT};
+use crate::rules::default_directive::DEFAULT_DIRECTIVE;
+use crate::rules::default_directive_types::VALUE_ARGUMENT;
 use crate::rules::relations::generate_metarelation;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{is_modelized_node, to_base_type_str, to_defined_input_type, to_input_type, to_lower_camelcase};
