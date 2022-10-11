@@ -9,11 +9,11 @@
 
 ### Dependencies
 
-- Updates to `clap` version `4`
+- Updates `clap` to version `4`
 
 ### Tooling
 
-- Updates to Rust `1.64.0`
+- Updates Rust to version `1.64.0`
 
 ## [0.8.0]
 
