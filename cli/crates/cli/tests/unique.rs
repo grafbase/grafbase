@@ -32,8 +32,21 @@ fn unique() {
     let response =
         client.gql::<Value>(json!({ "query": UNIQUE_QUERY, "variables": {"id": first_author_id } }).to_string());
 
-    let first_author_name: String = dot_get!(response, "data.author.name");
+    let updated_at: String = dot_get!(response, "data.author.updatedAt");
+    assert!(
+        chrono::DateTime::parse_from_rfc3339(&updated_at).is_ok(),
+        "{}",
+        updated_at
+    );
 
+    let created_at: String = dot_get!(response, "data.author.createdAt");
+    assert!(
+        chrono::DateTime::parse_from_rfc3339(&created_at).is_ok(),
+        "{}",
+        created_at
+    );
+
+    let first_author_name: String = dot_get!(response, "data.author.name");
     assert_eq!(first_author_name, "1");
 
     let response =
