@@ -1,6 +1,6 @@
 [package]
 name = "grafbase"
-version = "0.8.0"
+version = "0.9.0"
 edition = "2021"
 description = "The Grafbase command line interface"
 license = "Apache-2.0"
@@ -14,11 +14,11 @@ categories = ["command-line-utilities"]
 backtrace = "0.3"
 clap = { version = "4", features = ["cargo", "wrap_help"] }
 clap_complete = "4"
-common = { package = "grafbase-local-common", path = "../common", version = "0.8.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.9.0" }
 ctrlc = "3"
 exitcode = "1"
 indoc = "1"
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.8.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.9.0" }
 log = "0.4"
 os_type = "2"
 serde = "1"
@@ -33,6 +33,7 @@ colored = "2"
 cfg-if = "1"
 
 [dev-dependencies]
+chrono = "0.4.22"
 duct = "0.13"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 serde = { version = "1", features = ["derive"] }
