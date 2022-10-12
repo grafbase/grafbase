@@ -19,7 +19,7 @@
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
-use crate::registry::add_remove_query;
+use crate::registry::add_remove_mutation;
 use crate::registry::{add_create_mutation, add_update_mutation};
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
@@ -330,7 +330,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_update_mutation(ctx, &type_definition.node, object, &type_name);
 
                 add_list_query_paginated(ctx, &type_name, connection_edges);
-                add_remove_query(ctx, &id_field.node, &type_name)
+                add_remove_mutation(ctx, &id_field.node, &type_name)
             }
         }
     }

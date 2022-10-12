@@ -111,7 +111,7 @@ pub enum DynamoMutationResolver {
     /// }
     /// ```
     DeleteNode {
-        id: VariableResolveDefinition,
+        by: VariableResolveDefinition,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: String,
@@ -1018,10 +1018,57 @@ impl ResolverTrait for DynamoMutationResolver {
                     "id": serde_json::Value::String(id),
                 }))))
             }
-            DynamoMutationResolver::DeleteNode { id, ty } => {
+            DynamoMutationResolver::DeleteNode { by, ty } => {
                 let new_transaction = &batchers.transaction_new;
-                let id_to_be_deleted =
-                    id.expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                let loader = &batchers.loader;
+
+                let by = match by
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .expect("can't fail")
+                {
+                    Value::Object(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let (key, value) = by.first().expect("must exist");
+
+                let key = key.to_string();
+
+                let by_id = key == "id";
+
+                if by_id {
+                    let id_to_be_deleted: String =
+                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+
+                    let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, &ty)
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
+                    let ty = opaque_id.ty().to_string();
+                    let id = opaque_id.id().to_string();
+
+                    new_transaction
+                        .load_one(PossibleChanges::delete_node(ty.clone(), id.clone()))
+                        .await?;
+
+                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                        "id": serde_json::Value::String(id_to_be_deleted),
+                    }))))
+                } else {
+
+                    let pk = ConstraintID::from_owned(
+                        current_ty.to_string(),
+                        key.clone(),
+                        value.clone().into_json().expect("cannot fail"),
+                    )
+                    .to_string();
+                    let sk = pk.clone();
+
+                    loader.load_one((pk, sk)).await;
+
+                    let id_to_be_deleted: String =
+                    dynaql_value::from_value(value.clone()).expect("cannot fail");
 
                 let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, &ty)
                     .map_err(|err| err.into_server_error(ctx.item.pos))?;
@@ -1036,6 +1083,9 @@ impl ResolverTrait for DynamoMutationResolver {
                 Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                     "id": serde_json::Value::String(id_to_be_deleted),
                 }))))
+
+                    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+                }
             }
         }
     }
