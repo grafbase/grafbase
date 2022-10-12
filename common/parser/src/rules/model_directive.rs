@@ -292,7 +292,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             "by".to_owned(),
                             MetaInputValue {
                                 name: "by".to_owned(),
-                                ty: format!("{}ByInput", type_name),
+                                ty: format!("{}ByInput!", type_name),
                                 visible: None,
                                 description: Some(format!("The field and value by which to query the {}", type_name)),
                                 is_secret: false,
