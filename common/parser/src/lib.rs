@@ -11,6 +11,7 @@ use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::default_directive::DefaultDirective;
+use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::enum_type::EnumType;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
@@ -56,22 +57,25 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckModelizedFieldReserved)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
-        .with(DefaultDirective)
         .with(UniqueDirective)
         .with(ModelDirective)
         .with(AuthDirective)
         .with(BasicType)
         .with(EnumType)
         .with(ScalarHydratation)
+        .with(DefaultDirective)
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 
     let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());
-
     let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
     visit(&mut rules, &mut ctx, &schema);
+
+    // FIXME: Get rid of the ugly double pass.
+    let mut second_pass_rules = rules::visitor::VisitorNil.with(DefaultDirectiveTypes);
+    visit(&mut second_pass_rules, &mut ctx, &schema);
 
     if !ctx.errors.is_empty() {
         return Err(ctx.errors.into());

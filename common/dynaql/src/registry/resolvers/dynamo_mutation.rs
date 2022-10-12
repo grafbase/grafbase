@@ -4,7 +4,7 @@ use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
 use crate::{Context, Error, ServerError, Value};
-use chrono::Utc;
+use chrono::{SecondsFormat, Utc};
 use dynamodb::graph_transaction::PossibleChanges;
 use dynamodb::model::node::NodeID;
 use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
@@ -467,7 +467,9 @@ fn node_update<'a>(
                         if should_update_updated_at {
                             entity.insert(
                                 "updated_at".to_string(),
-                                Utc::now().to_string().into_attr(),
+                                Utc::now()
+                                    .to_rfc3339_opts(SecondsFormat::Millis, true)
+                                    .into_attr(),
                             );
                         }
                         (id, entity)
