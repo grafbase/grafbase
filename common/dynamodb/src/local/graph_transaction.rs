@@ -138,6 +138,9 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             document.insert(INVERTED_INDEX_PK.to_string(), target.into_attr());
             document.insert(INVERTED_INDEX_SK.to_string(), id_attr);
 
+            document.remove(&TYPE_INDEX_PK.to_string());
+            document.remove(&TYPE_INDEX_SK.to_string());
+
             let updated_at = utc_now;
             let document = serde_json::to_string(&document).expect("must serialize");
 

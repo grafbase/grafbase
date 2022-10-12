@@ -603,6 +603,9 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
+            user_defined_item.remove(&constant::TYPE_INDEX_PK.to_string());
+            user_defined_item.remove(&constant::TYPE_INDEX_SK.to_string());
+
             let key = dynomite::attr_map! {
                 constant::PK => pk.clone(),
                 constant::SK => sk.clone(),
