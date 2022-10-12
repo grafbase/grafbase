@@ -394,57 +394,6 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDef
     let type_name = type_name.to_string();
     let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
 
-    // DeletePayload
-    ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::Object {
-            name: delete_payload_name.clone(),
-            description: None,
-            fields: {
-                let mut fields = IndexMap::new();
-                let name = "deletedId".to_string();
-                fields.insert(
-                    name.clone(),
-                    MetaField {
-                        name,
-                        description: None,
-                        args: Default::default(),
-                        // TODO: Should be infered from the entity depending on the directives
-                        ty: "ID!".to_string(),
-                        deprecation: Default::default(),
-                        cache_control: Default::default(),
-                        external: false,
-                        requires: None,
-                        provides: None,
-                        visible: None,
-                        compute_complexity: None,
-                        edges: Vec::new(),
-                        relation: None,
-                        resolve: None,
-                        transforms: Some(vec![Transformer::JSONSelect {
-                            property: "id".to_string(),
-                            functions: vec![],
-                        }]),
-                        required_operation: Some(Operations::DELETE),
-                    },
-                );
-                fields
-            },
-            cache_control: dynaql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
-            extends: false,
-            keys: None,
-            is_node: false,
-            visible: None,
-            is_subscription: false,
-            rust_typename: delete_payload_name.clone(),
-            constraints: vec![],
-        },
-        &delete_payload_name,
-        &delete_payload_name,
-    );
-
     // deleteMutation
     ctx.mutations.push(MetaField {
         name: format!("{}Delete", to_lower_camelcase(&type_name)),

@@ -5,7 +5,9 @@ use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::MetaType;
 use crate::{Context, Error, ServerError, Value};
 use chrono::{SecondsFormat, Utc};
+use dynamodb::constant::INVERTED_INDEX_PK;
 use dynamodb::graph_transaction::PossibleChanges;
+use dynamodb::model::constraint::db::ConstraintID;
 use dynamodb::model::node::NodeID;
 use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
 use dynaql_value::Name;
@@ -13,6 +15,7 @@ use dynomite::{Attribute, AttributeValue};
 use futures_util::future::Shared;
 use futures_util::{FutureExt, StreamExt, TryFutureExt};
 use indexmap::IndexMap;
+use logworker::worker::console_debug;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::future::Future;
@@ -1056,35 +1059,37 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(id_to_be_deleted),
                     }))))
                 } else {
-
                     let pk = ConstraintID::from_owned(
-                        current_ty.to_string(),
+                        ty.to_string(),
                         key.clone(),
                         value.clone().into_json().expect("cannot fail"),
                     )
                     .to_string();
                     let sk = pk.clone();
 
-                    loader.load_one((pk, sk)).await;
+                    let original_pk = match loader.load_one((pk, sk)).await {
+                        Ok(Some(item)) => {
+                            console_debug!("item {:#?}", item);
+                            item.get(INVERTED_INDEX_PK).expect("must exist").clone()
+                        }
+                        _ => {
+                            ctx.add_error(Error::new("An issue occured while deleting this entity. Reason: The requested entity does not exist.").into_server_error(ctx.item.pos));
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
+                        }
+                    };
 
-                    let id_to_be_deleted: String =
-                    dynaql_value::from_value(value.clone()).expect("cannot fail");
+                    let id = NodeID::from_owned(original_pk.s.expect("must be a string")).unwrap();
 
-                let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, &ty)
-                    .map_err(|err| err.into_server_error(ctx.item.pos))?;
+                    let ty = id.ty().to_string();
+                    let ulid = id.ulid().to_string();
 
-                let ty = opaque_id.ty().to_string();
-                let id = opaque_id.id().to_string();
+                    new_transaction
+                        .load_one(PossibleChanges::delete_node(ty.clone(), ulid.clone()))
+                        .await?;
 
-                new_transaction
-                    .load_one(PossibleChanges::delete_node(ty.clone(), id.clone()))
-                    .await?;
-
-                Ok(ResolvedValue::new(Arc::new(serde_json::json!({
-                    "id": serde_json::Value::String(id_to_be_deleted),
-                }))))
-
-                    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                        "id": serde_json::Value::String(ulid),
+                    }))))
                 }
             }
         }
