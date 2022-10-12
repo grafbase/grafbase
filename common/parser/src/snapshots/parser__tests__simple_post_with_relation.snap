@@ -2819,7 +2819,7 @@ expression: reg_string
                 "description": "The field and value by which to query the Author",
                 "is_secret": false,
                 "name": "by",
-                "ty": "AuthorByInput"
+                "ty": "AuthorByInput!"
               }
             },
             "cache_control": {
@@ -2929,7 +2929,7 @@ expression: reg_string
                 "description": "The field and value by which to query the Blog",
                 "is_secret": false,
                 "name": "by",
-                "ty": "BlogByInput"
+                "ty": "BlogByInput!"
               }
             },
             "cache_control": {
@@ -3039,7 +3039,7 @@ expression: reg_string
                 "description": "The field and value by which to query the Post",
                 "is_secret": false,
                 "name": "by",
-                "ty": "PostByInput"
+                "ty": "PostByInput!"
               }
             },
             "cache_control": {

@@ -951,7 +951,7 @@ expression: reg_string
                 "description": "The field and value by which to query the Product",
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput"
+                "ty": "ProductByInput!"
               }
             },
             "cache_control": {

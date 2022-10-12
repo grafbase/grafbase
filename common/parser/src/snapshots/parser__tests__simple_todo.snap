@@ -585,7 +585,7 @@ expression: reg_string
                 "description": "The field and value by which to query the Todo",
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput"
+                "ty": "TodoByInput!"
               }
             },
             "cache_control": {

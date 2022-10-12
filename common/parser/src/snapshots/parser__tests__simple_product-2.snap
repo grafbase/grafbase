@@ -101,7 +101,7 @@ type Query {
 	"""
 	Query a single Product by an ID or a unique field
 	"""
-	product(by: ProductByInput): Product
+	product(by: ProductByInput!): Product
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""

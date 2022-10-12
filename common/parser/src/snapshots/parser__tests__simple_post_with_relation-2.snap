@@ -316,7 +316,7 @@ type Query {
 	"""
 	Query a single Blog by an ID or a unique field
 	"""
-	blog(by: BlogByInput): Blog
+	blog(by: BlogByInput!): Blog
 	"""
 	Paginated query to fetch the whole list of `Blog`.
 	"""
@@ -324,7 +324,7 @@ type Query {
 	"""
 	Query a single Post by an ID or a unique field
 	"""
-	post(by: PostByInput): Post
+	post(by: PostByInput!): Post
 	"""
 	Paginated query to fetch the whole list of `Post`.
 	"""
@@ -332,7 +332,7 @@ type Query {
 	"""
 	Query a single Author by an ID or a unique field
 	"""
-	author(by: AuthorByInput): Author
+	author(by: AuthorByInput!): Author
 	"""
 	Paginated query to fetch the whole list of `Author`.
 	"""

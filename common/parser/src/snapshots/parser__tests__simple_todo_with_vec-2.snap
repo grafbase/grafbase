@@ -57,7 +57,7 @@ type Query {
 	"""
 	Query a single Todo by an ID or a unique field
 	"""
-	todo(by: TodoByInput): Todo
+	todo(by: TodoByInput!): Todo
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
