@@ -1,13 +1,16 @@
 //! Query context.
 
 use async_lock::RwLock as AsynRwLock;
+use dynomite::AttributeValue;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::fmt::Write;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, RwLock};
+use stream_events::{export::internment::ArcIntern, SharedEntityRegistry};
 
 use cached::UnboundCache;
 use derivative::Derivative;
@@ -146,6 +149,24 @@ impl<'a> Display for QueryPathNode<'a> {
 }
 
 impl<'a> QueryPathNode<'a> {
+    /// Convert the path to a JSON Pointer
+    pub fn to_json_pointer(&self) -> String {
+        let mut result = String::new();
+        let mut first = true;
+        self.try_for_each(|segment| {
+            if !first {
+                write!(&mut result, "/");
+            }
+            first = false;
+
+            match segment {
+                QueryPathSegment::Index(idx) => write!(&mut result, "{}", *idx),
+                QueryPathSegment::Name(name) => write!(&mut result, "{}", name),
+            }
+        });
+        result
+    }
+
     /// Get the current field name.
     ///
     /// This traverses all the parents of the node until it finds one that is a field name.
@@ -761,6 +782,107 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         default: Option<fn() -> Value>,
     ) -> ServerResult<(Pos, Value)> {
         self.get_param_value_unchecked(arguments, name, default)
+    }
+
+    /// Add a node to follow
+    ///
+    /// Right now the query system is a little too much imperative, it's going to be switched to a
+    /// Query Planner to simplify the whole mechanism and have a way more robust way to resolve a
+    /// query.
+    pub async fn add_followed_node<S: ToString>(&self, id: S) {
+        let entity_registry = self.data::<SharedEntityRegistry>().ok();
+
+        if let Some(entity_registry) = entity_registry {
+            if let Some(path) = self.path_node {
+                entity_registry.write().await.node(
+                    id,
+                    format!("/{}", path.to_json_pointer()),
+                    self.field().selection_set().map(|field| field.name()),
+                );
+            }
+        }
+    }
+
+    /// Add a ty to follow
+    ///
+    /// Right now the query system is a little too much imperative, it's going to be switched to a
+    /// Query Planner to simplify the whole mechanism and have a way more robust way to resolve a
+    /// query.
+    pub async fn add_ty<S: ToString>(&self, ty: S) {
+        let entity_registry = self.data::<SharedEntityRegistry>().ok();
+
+        if let Some(entity_registry) = entity_registry {
+            if let Some(path) = self.path_node {
+                entity_registry.write().await.node_ty(
+                    ArcIntern::new(ty.to_string()),
+                    ArcIntern::new(format!("/{}", path.to_json_pointer())),
+                    self.relations_edges(),
+                );
+            }
+        }
+    }
+
+    /// When inside a Connection, we get the subfields asked
+    fn relations_edges(&self) -> HashSet<String> {
+        if let Some(iter) = self
+            .field()
+            .selection_set()
+            .find(|field| field.name() == "edges")
+            .and_then(|field| {
+                field
+                    .selection_set()
+                    .find(|inner_field| inner_field.name() == "node")
+                    .map(|inner_field| inner_field.selection_set())
+            })
+        {
+            iter.map(|field| field.name().to_string()).collect()
+        } else {
+            HashSet::new()
+        }
+    }
+
+    /// Add relations to follow
+    pub async fn add_followed_relations<S: ToString, I: ToString, F: IntoIterator<Item = I>>(
+        &self,
+        from: S,
+        relations: F,
+    ) {
+        let entity_registry = self.data::<SharedEntityRegistry>().ok();
+
+        if let Some(entity_registry) = entity_registry {
+            if let Some(path) = self.path_node {
+                entity_registry.write().await.relations(
+                    ArcIntern::new(from.to_string()),
+                    relations
+                        .into_iter()
+                        .map(|x| x.to_string())
+                        .map(ArcIntern::new),
+                    ArcIntern::new(format!("/{}", path.to_json_pointer())),
+                    self.relations_edges(),
+                );
+            }
+        }
+    }
+
+    /// Add relations to follow
+    pub async fn follow_nodes_from_dynamodb<
+        'b,
+        N: IntoIterator<Item = &'b HashMap<String, AttributeValue>>,
+    >(
+        &self,
+        nodes: N,
+    ) {
+        let entity_registry = self.data::<SharedEntityRegistry>().ok();
+
+        if let Some(entity_registry) = entity_registry {
+            if let Some(path) = self.path_node {
+                entity_registry.write().await.follow_nodes_from_dynamodb(
+                    nodes,
+                    format!("/{}", path.to_json_pointer()),
+                    self.relations_edges(),
+                );
+            }
+        }
     }
 
     /// Creates a uniform interface to inspect the forthcoming selections.

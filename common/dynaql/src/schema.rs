@@ -437,6 +437,17 @@ impl Schema {
             visible: Some(|_| true),
         });
 
+        registry.add_directive(MetaDirective {
+            name: "live".to_string(),
+            description: Some(
+                "Directs the executor to return values as a Streaming response.".to_string(),
+            ),
+            locations: vec![__DirectiveLocation::QUERY],
+            args: { IndexMap::new() },
+            is_repeatable: false,
+            visible: None,
+        });
+
         // register scalars
         <bool as InputType>::create_type_info(&mut registry);
         <i32 as InputType>::create_type_info(&mut registry);

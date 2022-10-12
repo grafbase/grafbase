@@ -47,8 +47,10 @@ use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
 pub mod dataloader;
-pub mod model;
-pub use model::constraint::{ConstraintDefinition, ConstraintType};
+
+pub mod export {
+    pub use graph_entities;
+}
 
 mod utils;
 pub use utils::{attribute_to_value, value_to_attribute};
@@ -61,7 +63,7 @@ mod transaction;
 mod runtime;
 
 pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
-pub use paginated::PaginatedCursor;
+pub use paginated::{PaginatedCursor, QueryValue};
 
 pub use transaction::{TransactionError, TxItem};
 

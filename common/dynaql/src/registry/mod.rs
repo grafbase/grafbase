@@ -223,12 +223,12 @@ pub struct Constraint {
     pub r#type: ConstraintType,
 }
 
-impl From<Constraint> for dynamodb::ConstraintDefinition {
+impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition {
     fn from(Constraint { field, r#type }: Constraint) -> Self {
         Self {
             field,
             r#type: match r#type {
-                ConstraintType::Unique => dynamodb::ConstraintType::Unique,
+                ConstraintType::Unique => dynamodb::export::graph_entities::ConstraintType::Unique,
             },
         }
     }

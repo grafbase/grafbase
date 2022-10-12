@@ -1,11 +1,11 @@
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::id::ID;
 use crate::paginated::{QueryResult, QueryValue};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
+use graph_entities::ID;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use itertools::Itertools;

@@ -1,10 +1,10 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::model::id::ID;
 use crate::DynamoDBRequestedIndex;
 use dynomite::Attribute;
 use futures::TryFutureExt;
+use graph_entities::ID;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -161,6 +161,35 @@ pub struct QueryValue {
     pub edges: IndexMap<String, Vec<HashMap<String, AttributeValue>>>,
     /// Constraints are other kind of row we can store, it'll add data over a node
     pub constraints: Vec<HashMap<String, AttributeValue>>,
+}
+
+pub struct QueryValueIter<'a> {
+    pub node: Option<&'a HashMap<String, AttributeValue>>,
+    pub edges: Box<dyn Iterator<Item = &'a HashMap<String, AttributeValue>> + 'a + Send + Sync>,
+}
+
+impl<'a> QueryValue
+where
+    Self: 'a,
+{
+    pub fn iter(&'a self) -> QueryValueIter<'a> {
+        let node = self.node.as_ref();
+        let edges = Box::new(self.edges.iter().flat_map(|(_, y)| y.into_iter()));
+        QueryValueIter { node, edges }
+    }
+}
+
+impl<'a> Iterator for QueryValueIter<'a> {
+    type Item = &'a HashMap<String, AttributeValue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.node {
+            self.node = None;
+            return Some(node);
+        }
+
+        self.edges.next()
+    }
 }
 
 #[derive(Debug, Clone, Default)]

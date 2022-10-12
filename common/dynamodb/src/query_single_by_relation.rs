@@ -1,12 +1,11 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::id::ID;
-use crate::model::node::NodeID;
 use crate::paginated::{QueryResult, QueryValue};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
+use graph_entities::{NodeID, ID};
 use indexmap::{map::Entry, IndexMap};
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;

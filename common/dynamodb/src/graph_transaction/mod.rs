@@ -1,8 +1,5 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::constraint::db::ConstraintID;
-use crate::model::constraint::{normalize_constraint_value, ConstraintDefinition, ConstraintType};
-use crate::model::node::NodeID;
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
@@ -14,6 +11,8 @@ use derivative::Derivative;
 use dynomite::AttributeValue;
 use futures::Future;
 use futures_util::TryFutureExt;
+use graph_entities::{normalize_constraint_value, ConstraintDefinition, ConstraintID, ConstraintType, NodeID};
+use graph_entities::{ConstraintDefinition, ConstraintID, ConstraintType, NodeID};
 use itertools::Itertools;
 use log::info;
 

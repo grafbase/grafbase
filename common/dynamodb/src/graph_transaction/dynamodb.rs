@@ -7,13 +7,12 @@ use super::{
     UpdateRelationInternalInput, UpdateUniqueConstraint,
 };
 use crate::constant::{self, PK, SK};
-use crate::model::constraint::db::ConstraintID;
-use crate::model::node::NodeID;
 use crate::transaction::TxItemMetadata;
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
 use dynomite::Attribute;
+use graph_entities::{ConstraintID, NodeID};
 use rusoto_dynamodb::{Delete, Put, TransactWriteItem, Update};
 use std::collections::HashMap;
 
