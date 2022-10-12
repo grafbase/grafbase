@@ -12,7 +12,7 @@ use if_chain::if_chain;
 
 pub struct CheckModelizedFieldReserved;
 
-const RESERVED_FIELDS: [&str; 2] = ["created_at", "updated_at"];
+const RESERVED_FIELDS: [&str; 4] = ["created_at", "updated_at", "createdAt", "updatedAt"];
 
 impl<'a> Visitor<'a> for CheckModelizedFieldReserved {
     fn directives(&self) -> String {
