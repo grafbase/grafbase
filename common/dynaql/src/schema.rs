@@ -334,6 +334,15 @@ impl Schema {
             visible: None,
         });
 
+        registry.add_directive(MetaDirective {
+            name: "oneOf".to_string(),
+            description: Some("Indicates that an input object is a oneOf input object".to_string()),
+            locations: vec![__DirectiveLocation::INPUT_OBJECT],
+            args: IndexMap::new(),
+            is_repeatable: false,
+            visible: Some(|_| true),
+        });
+
         // register scalars
         <bool as InputType>::create_type_info(&mut registry);
         <i32 as InputType>::create_type_info(&mut registry);
@@ -413,6 +422,15 @@ impl Schema {
             },
             is_repeatable: false,
             visible: None,
+        });
+
+        registry.add_directive(MetaDirective {
+            name: "oneOf".to_string(),
+            description: Some("Indicates that an input object is a oneOf input object".to_string()),
+            locations: vec![__DirectiveLocation::INPUT_OBJECT],
+            args: IndexMap::new(),
+            is_repeatable: false,
+            visible: Some(|_| true),
         });
 
         // register scalars

@@ -54,6 +54,9 @@ type Product {
 	"""
 	createdAt: DateTime!
 }
+input ProductByInput {
+	id: ID
+}
 type ProductConnection {
 	"""
 	Information to aid in pagination
@@ -96,9 +99,9 @@ type ProductUpdatePayload {
 }
 type Query {
 	"""
-	Get Product by ID
+	Query a single Product by an ID or a unique field
 	"""
-	product(id: ID!): Product
+	product(by: ProductByInput!): Product
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""

@@ -35,8 +35,8 @@ use dynaql::registry::{
 };
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
-use dynaql::Operations;
-use dynaql_parser::types::{Type, TypeKind};
+use dynaql::{Operations, Positioned};
+use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 
 pub struct ModelDirective;
@@ -234,19 +234,67 @@ impl<'a> Visitor<'a> for ModelDirective {
                         .collect(),
                 }, &type_name, &type_name);
 
+                let unique_fields: Vec<&Positioned<FieldDefinition>> = object.fields
+                    .iter()
+                    .filter(|field| field
+                        .node
+                        .directives
+                        .iter()
+                        .any(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)
+                    )
+                    .collect();
+
+                    let one_of_type_name = format!("{}ByInput", type_name);
+
+                    ctx.registry.get_mut().create_type(&mut |_| MetaType::InputObject  {
+                        name: one_of_type_name.clone(),
+                        description: type_definition.node.description.clone().map(|description| description.node),
+                        visible: None,
+                        rust_typename: one_of_type_name.clone(),
+                        input_fields: {
+                            let mut input_fields = IndexMap::new();
+                            input_fields.insert(
+                                "id".to_string(),
+                                MetaInputValue {
+                                    name: "id".to_string(),
+                                    description: None,
+                                    ty: "ID".to_string(),
+                                    default_value: None,
+                                    visible: None,
+                                    is_secret: false
+                                }
+                            );
+                            for field in &unique_fields {
+                                input_fields.insert(
+                                    field.node.name.to_string(),
+                                    MetaInputValue {
+                                        name: field.node.name.to_string(),
+                                        description: None,
+                                        ty: field.node.ty.to_string().trim_end_matches('!').to_string(),
+                                        default_value: None,
+                                        visible: None,
+                                        is_secret: false
+                                    }
+                                );
+                            }
+                            input_fields
+                        },
+                        oneof: true,
+                    }, &one_of_type_name, &one_of_type_name);
+
                 ctx.queries.push(MetaField {
-                    // byID query
+                    // "by" query
                     name: to_lower_camelcase(&type_name),
-                    description: Some(format!("Get {} by ID", type_name)),
+                    description: Some(format!("Query a single {} by an ID or a unique field", type_name)),
                     args: {
                         let mut args = IndexMap::new();
                         args.insert(
-                            "id".to_owned(),
+                            "by".to_owned(),
                             MetaInputValue {
-                                name: "id".to_owned(),
-                                ty: "ID!".to_string(),
+                                name: "by".to_owned(),
+                                ty: format!("{}ByInput!", type_name),
                                 visible: None,
-                                description: Some(format!("{} id", type_name)),
+                                description: Some(format!("The field and value by which to query the {}", type_name)),
                                 is_secret: false,
                                 default_value: None,
                             },
@@ -270,9 +318,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                         id: Some(format!("{}_resolver", type_name.to_lowercase())),
                         // TODO: Should be defined as a ResolveNode
                         // Single entity
-                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
-                            pk: VariableResolveDefinition::InputTypeName("id".to_owned()),
-                            sk: VariableResolveDefinition::InputTypeName("id".to_owned()),
+                        r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
+                            by: VariableResolveDefinition::InputTypeName("by".to_owned()),
                         })
                     }),
                     transforms: None,

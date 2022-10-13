@@ -5,7 +5,8 @@ use crate::graph_transaction::{
     DeleteNodeInternalInput, DeleteRelationInternalInput, DeleteUnitNodeConstraintInput, ExecuteChangesOnDatabase,
     InsertNodeConstraintInternalInput, InsertNodeInternalInput, InsertRelationInternalInput, InsertUniqueConstraint,
     InternalChanges, InternalNodeChanges, InternalNodeConstraintChanges, InternalRelationChanges, ToTransactionError,
-    ToTransactionFuture, UpdateNodeInternalInput, UpdateRelation, UpdateRelationInternalInput,
+    ToTransactionFuture, UpdateNodeConstraintInternalInput, UpdateNodeInternalInput, UpdateRelation,
+    UpdateRelationInternalInput, UpdateUniqueConstraint,
 };
 use crate::local::types::SqlValue;
 use crate::model::constraint::db::ConstraintID;
@@ -107,6 +108,54 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
         })
     }
 }
+
+impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
+    fn to_transaction<'a>(
+        self,
+        _batchers: &'a DynamoDBBatchersData,
+        _ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        Box::pin(async {
+            let UpdateUniqueConstraint {
+                target,
+                user_defined_item,
+                ..
+            } = self;
+
+            let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
+            let utc_now = Utc::now().to_string();
+            let now_attr = utc_now.clone().into_attr();
+            let id_attr = id.to_string().into_attr();
+
+            let mut document: HashMap<String, AttributeValue> = user_defined_item;
+
+            document.insert(PK.to_string(), id_attr.clone());
+            document.insert(SK.to_string(), id_attr.clone());
+            document.insert(CREATED_AT.to_string(), now_attr.clone());
+            document.insert(UPDATED_AT.to_string(), now_attr);
+            document.insert(INVERTED_INDEX_PK.to_string(), target.into_attr());
+            document.insert(INVERTED_INDEX_SK.to_string(), id_attr);
+
+            document.remove(&TYPE_INDEX_PK.to_string());
+            document.remove(&TYPE_INDEX_SK.to_string());
+
+            let updated_at = utc_now;
+            let document = serde_json::to_string(&document).expect("must serialize");
+
+            let (query, values) = Sql::Update.compile(hashmap! {
+                "pk" => SqlValue::String(pk),
+                "sk" => SqlValue::String(sk),
+                "document" => SqlValue::String(document),
+                "updated_at" => SqlValue::String(updated_at),
+            });
+
+            Ok((query, values, None))
+        })
+    }
+}
+
 impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
     fn to_transaction<'a>(
         self,
@@ -406,14 +455,17 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let InsertUniqueConstraint { target } = self;
+            let InsertUniqueConstraint {
+                target,
+                user_defined_item,
+            } = self;
 
             let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
             let utc_now = Utc::now();
             let now_attr = utc_now.to_rfc3339_opts(SecondsFormat::Millis, true).into_attr();
             let id_attr = id.to_string().into_attr();
 
-            let mut document: HashMap<String, AttributeValue> = HashMap::new();
+            let mut document: HashMap<String, AttributeValue> = user_defined_item;
 
             document.insert(PK.to_string(), id_attr.clone());
             document.insert(SK.to_string(), id_attr.clone());
@@ -480,6 +532,20 @@ impl ExecuteChangesOnDatabase for InsertNodeConstraintInternalInput {
     }
 }
 
+impl ExecuteChangesOnDatabase for UpdateNodeConstraintInternalInput {
+    fn to_transaction<'a>(
+        self,
+        batchers: &'a DynamoDBBatchersData,
+        ctx: &'a DynamoDBContext,
+        pk: String,
+        sk: String,
+    ) -> ToTransactionFuture<'a> {
+        match self {
+            Self::Unique(a) => a.to_transaction(batchers, ctx, pk, sk),
+        }
+    }
+}
+
 impl ExecuteChangesOnDatabase for InternalNodeConstraintChanges {
     fn to_transaction<'a>(
         self,
@@ -491,6 +557,7 @@ impl ExecuteChangesOnDatabase for InternalNodeConstraintChanges {
         match self {
             Self::Delete(a) => a.to_transaction(batchers, ctx, pk, sk),
             Self::Insert(a) => a.to_transaction(batchers, ctx, pk, sk),
+            Self::Update(a) => a.to_transaction(batchers, ctx, pk, sk),
         }
     }
 }

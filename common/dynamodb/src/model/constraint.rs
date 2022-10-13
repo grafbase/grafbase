@@ -11,20 +11,21 @@ pub struct ConstraintDefinition {
 
 pub mod db {
     use super::super::id::ID_SEPARATOR;
+    use super::normalize_constraint_value;
     use std::borrow::{Borrow, Cow};
     use std::fmt::Display;
-
-    const CONSTRAINT_PREFIX: &str = "__C";
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct ConstraintID<'a> {
         field: Cow<'a, str>,
         ty: Cow<'a, str>,
-        value: Cow<'a, serde_json::Value>,
+        value: Cow<'a, str>,
     }
 
     impl<'a> ConstraintID<'a> {
         pub fn from_owned(ty: String, field: String, value: serde_json::Value) -> Self {
+            let value = normalize_constraint_value(&value);
+
             Self {
                 ty: Cow::Owned(ty),
                 field: Cow::Owned(field),
@@ -32,7 +33,7 @@ pub mod db {
             }
         }
 
-        pub fn value(&self) -> &serde_json::Value {
+        pub fn value(&self) -> &str {
             self.value.borrow()
         }
 
@@ -56,29 +57,20 @@ pub mod db {
     impl<'a> TryFrom<String> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: String) -> Result<Self, Self::Error> {
-            let (prefix, rest) = match origin.split_once(&format!("{CONSTRAINT_PREFIX}{ID_SEPARATOR}")) {
-                Some((prefix, rest)) => (prefix, rest),
-                None => return Err(ConstraintIDError::NotAConstraint { origin }),
-            };
-
-            if !prefix.is_empty() {
-                return Err(ConstraintIDError::NotAConstraint { origin });
-            }
-
-            let (ty, rest) = match rest.split_once(ID_SEPARATOR) {
-                Some((field, rest)) => (field, rest),
+            let (ty, rest) = match origin.split_once(ID_SEPARATOR) {
+                Some((ty, rest)) => (ty, rest),
                 None => return Err(ConstraintIDError::NotAConstraint { origin }),
             };
 
             let (field, value) = match rest.split_once(ID_SEPARATOR) {
-                Some((ty, value)) => (ty, value),
+                Some((field, value)) => (field, value),
                 None => return Err(ConstraintIDError::NotAConstraint { origin }),
             };
 
             Ok(Self {
                 ty: Cow::Owned(ty.to_string()),
                 field: Cow::Owned(field.to_string()),
-                value: Cow::Owned(serde_json::from_str(value)?),
+                value: Cow::Owned(value.to_string()),
             })
         }
     }
@@ -86,23 +78,8 @@ pub mod db {
     impl<'a> TryFrom<&'a str> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: &'a str) -> Result<Self, Self::Error> {
-            let (prefix, rest) = match origin.split_once(&format!("{CONSTRAINT_PREFIX}{ID_SEPARATOR}")) {
-                Some((prefix, rest)) => (prefix, rest),
-                None => {
-                    return Err(ConstraintIDError::NotAConstraint {
-                        origin: origin.to_string(),
-                    })
-                }
-            };
-
-            if !prefix.is_empty() {
-                return Err(ConstraintIDError::NotAConstraint {
-                    origin: origin.to_string(),
-                });
-            }
-
-            let (ty, rest) = match rest.split_once(ID_SEPARATOR) {
-                Some((field, rest)) => (field, rest),
+            let (ty, rest) = match origin.split_once(ID_SEPARATOR) {
+                Some((ty, rest)) => (ty, rest),
                 None => {
                     return Err(ConstraintIDError::NotAConstraint {
                         origin: origin.to_string(),
@@ -111,7 +88,7 @@ pub mod db {
             };
 
             let (field, value) = match rest.split_once(ID_SEPARATOR) {
-                Some((ty, value)) => (ty, value),
+                Some((field, value)) => (field, value),
                 None => {
                     return Err(ConstraintIDError::NotAConstraint {
                         origin: origin.to_string(),
@@ -122,7 +99,7 @@ pub mod db {
             Ok(Self {
                 ty: Cow::Owned(ty.to_string()),
                 field: Cow::Owned(field.to_string()),
-                value: Cow::Owned(serde_json::from_str(value)?),
+                value: Cow::Owned(value.to_string()),
             })
         }
     }
@@ -131,12 +108,20 @@ pub mod db {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(
                 f,
-                "{CONSTRAINT_PREFIX}{ID_SEPARATOR}{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}",
+                "{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}",
                 self.ty.to_lowercase(),
                 self.field,
                 self.value
             )
         }
+    }
+}
+
+pub fn normalize_constraint_value(value: &serde_json::Value) -> String {
+    if value.is_string() {
+        value.as_str().unwrap().to_owned()
+    } else {
+        value.to_string()
     }
 }
 
@@ -146,7 +131,7 @@ mod tests {
 
     #[test]
     fn ensure_constraint_new() {
-        const TEST_TY: &str = "__C_author_name_\"Val_1\"";
+        const TEST_TY: &str = "author_name_Val_1";
 
         let id = ConstraintID::from_owned(
             "Author".into(),
@@ -159,7 +144,7 @@ mod tests {
 
     #[test]
     fn ensure_constraint_from_string() {
-        const TEST_TY: &str = "__C_author_name_\"Val\"";
+        const TEST_TY: &str = "author_name_Val";
 
         let id = ConstraintID::try_from(TEST_TY.to_string());
 

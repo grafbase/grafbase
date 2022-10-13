@@ -52,17 +52,17 @@ type PageInfo {
 }
 type Query {
 	"""
-	Get TodoList by ID
+	Query a single TodoList by an ID or a unique field
 	"""
-	todoList(id: ID!): TodoList
+	todoList(by: TodoListByInput!): TodoList
 	"""
 	Paginated query to fetch the whole list of `TodoList`.
 	"""
 	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
 	"""
-	Get Todo by ID
+	Query a single Todo by an ID or a unique field
 	"""
-	todo(id: ID!): Todo
+	todo(by: TodoByInput!): Todo
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
@@ -80,6 +80,9 @@ type Todo {
 	when the model was created
 	"""
 	createdAt: DateTime!
+}
+input TodoByInput {
+	id: ID
 }
 type TodoConnection {
 	"""
@@ -117,6 +120,9 @@ type TodoList {
 	when the model was created
 	"""
 	createdAt: DateTime!
+}
+input TodoListByInput {
+	id: ID
 }
 type TodoListConnection {
 	"""

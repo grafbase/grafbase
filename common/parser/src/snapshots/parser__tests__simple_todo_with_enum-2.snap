@@ -55,9 +55,9 @@ type PageInfo {
 }
 type Query {
 	"""
-	Get Todo by ID
+	Query a single Todo by an ID or a unique field
 	"""
-	todo(id: ID!): Todo
+	todo(by: TodoByInput!): Todo
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
@@ -76,6 +76,9 @@ type Todo {
 	when the model was created
 	"""
 	createdAt: DateTime!
+}
+input TodoByInput {
+	id: ID
 }
 type TodoConnection {
 	"""

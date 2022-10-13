@@ -17,6 +17,9 @@ type Author {
 	"""
 	createdAt: DateTime!
 }
+input AuthorByInput {
+	id: ID
+}
 type AuthorConnection {
 	"""
 	Information to aid in pagination
@@ -135,6 +138,9 @@ input BlogBlogRelatePostPostUpdateRelationInput {
 	link: ID
 	unlink: ID
 }
+input BlogByInput {
+	id: ID
+}
 type BlogConnection {
 	"""
 	Information to aid in pagination
@@ -246,6 +252,9 @@ type Post {
 	"""
 	createdAt: DateTime!
 }
+input PostByInput {
+	id: ID
+}
 type PostConnection {
 	"""
 	Information to aid in pagination
@@ -305,25 +314,25 @@ type PostUpdatePayload {
 }
 type Query {
 	"""
-	Get Blog by ID
+	Query a single Blog by an ID or a unique field
 	"""
-	blog(id: ID!): Blog
+	blog(by: BlogByInput!): Blog
 	"""
 	Paginated query to fetch the whole list of `Blog`.
 	"""
 	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
-	Get Post by ID
+	Query a single Post by an ID or a unique field
 	"""
-	post(id: ID!): Post
+	post(by: PostByInput!): Post
 	"""
 	Paginated query to fetch the whole list of `Post`.
 	"""
 	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
 	"""
-	Get Author by ID
+	Query a single Author by an ID or a unique field
 	"""
-	author(id: ID!): Author
+	author(by: AuthorByInput!): Author
 	"""
 	Paginated query to fetch the whole list of `Author`.
 	"""

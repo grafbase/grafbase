@@ -1,7 +1,7 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::model::constraint::db::ConstraintID;
-use crate::model::constraint::{ConstraintDefinition, ConstraintType};
+use crate::model::constraint::{normalize_constraint_value, ConstraintDefinition, ConstraintType};
 use crate::model::node::NodeID;
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
@@ -252,7 +252,10 @@ impl GetIds for InsertNodeInput {
                 result.insert(
                     (contraint_id.to_string(), contraint_id.to_string()),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
-                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint { target: pk.clone() }),
+                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                            target: pk.clone(),
+                            user_defined_item: self.user_defined_item.clone(),
+                        }),
                     )),
                 );
             }
@@ -322,14 +325,31 @@ impl GetIds for UpdateNodeInput {
                     let sk = constraint.remove(SK).and_then(|x| x.s);
                     if let (Some(pk), Some(sk)) = (pk, sk) {
                         if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
-                            let origin = constraint_id.value().clone().into_attribute();
+                            let origin = constraint_id.value();
+
                             let updated = self
                                 .user_defined_item
                                 .get(constraint_id.field())
                                 .map(std::clone::Clone::clone)
-                                .unwrap_or_default();
+                                .unwrap_or_default()
+                                .into_json();
 
-                            if updated != origin {
+                            let updated_string = normalize_constraint_value(&updated);
+
+                            if updated_string == origin {
+                                result.insert(
+                                    (constraint_id.to_string(), constraint_id.to_string()),
+                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                            target: constraint
+                                                .remove(constant::INVERTED_INDEX_PK)
+                                                .and_then(|x| x.s)
+                                                .unwrap(),
+                                            user_defined_item: self.user_defined_item.clone(),
+                                        }),
+                                    )),
+                                );
+                            } else {
                                 result.insert(
                                     (pk, sk),
                                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
@@ -340,7 +360,7 @@ impl GetIds for UpdateNodeInput {
                                 let new_id = ConstraintID::from_owned(
                                     constraint_id.ty().to_string(),
                                     constraint_id.field().to_string(),
-                                    updated.into_json(),
+                                    updated,
                                 );
                                 result.insert(
                                     (new_id.to_string(), new_id.to_string()),
@@ -350,6 +370,7 @@ impl GetIds for UpdateNodeInput {
                                                 .remove(constant::INVERTED_INDEX_PK)
                                                 .and_then(|x| x.s)
                                                 .unwrap(),
+                                            user_defined_item: self.user_defined_item.clone(),
                                         }),
                                     )),
                                 );
@@ -707,6 +728,37 @@ impl UpdateNodeInternalInput {
     }
 }
 
+impl UpdateUniqueConstraint {
+    pub fn to_update_expression(
+        values: HashMap<String, AttributeValue>,
+        exp_values: &mut HashMap<String, AttributeValue>,
+        exp_names: &mut HashMap<String, String>,
+    ) -> String {
+        let update_expression = values
+            .into_iter()
+            .filter(|(name, _)| !name.starts_with("__"))
+            .chain(std::iter::once((
+                constant::UPDATED_AT.to_string(),
+                AttributeValue {
+                    s: Some(Utc::now().to_string()),
+                    ..Default::default()
+                },
+            )))
+            .unique_by(|(name, _)| name.to_string())
+            .map(|(name, value)| {
+                let idx = format!(":{}", name.as_str());
+                let sanitized_name = format!("#{}", name.as_str());
+                let result = format!("{}={}", sanitized_name, idx);
+                exp_values.insert(idx, value);
+                exp_names.insert(sanitized_name, name.as_str().to_string());
+                result
+            })
+            .join(",");
+
+        format!("set {update_expression}")
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DeleteNodeInternalInput {
     id: String,
@@ -860,29 +912,45 @@ pub enum InternalNodeChanges {
     Delete(DeleteNodeInternalInput), // Unknow affected ids
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 /// Delete every constraint of a Node
 pub struct DeleteUnitNodeConstraintInput {}
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum DeleteNodeConstraintInternalInput {
     Unit(DeleteUnitNodeConstraintInput),
 }
 
-#[derive(Debug, Clone, Derivative, PartialEq, Eq)]
+#[derive(Debug, Clone, Derivative, PartialEq)]
 pub struct InsertUniqueConstraint {
-    /// The unique constraint target one Entity
+    /// The unique constraint targets one entity
     pub(crate) target: String,
+    #[derivative(Debug = "ignore", PartialEq = "ignore")]
+    pub user_defined_item: HashMap<String, AttributeValue>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone, Derivative, PartialEq)]
+pub struct UpdateUniqueConstraint {
+    /// The unique constraint targets one entity
+    pub(crate) target: String,
+    #[derivative(Debug = "ignore", PartialEq = "ignore")]
+    pub user_defined_item: HashMap<String, AttributeValue>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum InsertNodeConstraintInternalInput {
     Unique(InsertUniqueConstraint),
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
+pub enum UpdateNodeConstraintInternalInput {
+    Unique(UpdateUniqueConstraint),
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum InternalNodeConstraintChanges {
     Insert(InsertNodeConstraintInternalInput),
+    Update(UpdateNodeConstraintInternalInput),
     Delete(DeleteNodeConstraintInternalInput), // Unknow affected ids
 }
 
@@ -1176,16 +1244,27 @@ impl InternalChanges {
 impl InternalNodeConstraintChanges {
     pub fn with(self, other: Self) -> Result<Self, PossibleChangesInternalError> {
         match (self, other) {
-            (Self::Insert(_), Self::Delete(_)) | (Self::Delete(_), Self::Insert(_)) => {
-                todo!("Should be an update it's the same kind and addition or deletion if different")
-            }
-            // You can only have one unicity constraint value per node? NOwhat about array?
+            // these can't happen for unique constraints
             (
-                Self::Insert(InsertNodeConstraintInternalInput::Unique(a)),
-                Self::Insert(InsertNodeConstraintInternalInput::Unique(_b)),
-            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(a))),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(left)),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(_right)),
+            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(left))),
+            (
+                Self::Update(UpdateNodeConstraintInternalInput::Unique(left)),
+                Self::Update(UpdateNodeConstraintInternalInput::Unique(_right)),
+            ) => Ok(Self::Update(UpdateNodeConstraintInternalInput::Unique(left))),
+            (
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(insert)),
+                Self::Update(UpdateNodeConstraintInternalInput::Unique(_update)),
+            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(insert))),
+            (
+                Self::Update(UpdateNodeConstraintInternalInput::Unique(_update)),
+                Self::Insert(InsertNodeConstraintInternalInput::Unique(insert)),
+            ) => Ok(Self::Insert(InsertNodeConstraintInternalInput::Unique(insert))),
             // TODO: Need to add addition
-            (Self::Delete(a), Self::Delete(_)) => Ok(Self::Delete(a)),
+            (Self::Delete(left), Self::Delete(_right)) => Ok(Self::Delete(left)),
+            (Self::Insert(_) | Self::Update(_), Self::Delete(_))
+            | (Self::Delete(_), Self::Insert(_) | Self::Update(_)) => unreachable!(),
         }
     }
 }
