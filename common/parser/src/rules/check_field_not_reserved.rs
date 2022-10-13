@@ -12,7 +12,7 @@ use if_chain::if_chain;
 
 pub struct CheckModelizedFieldReserved;
 
-const RESERVED_FIELDS: [&str; 2] = ["created_at", "updated_at"];
+const RESERVED_FIELDS: [&str; 2] = ["createdAt", "updatedAt"];
 
 impl<'a> Visitor<'a> for CheckModelizedFieldReserved {
     fn directives(&self) -> String {
@@ -57,7 +57,7 @@ mod tests {
                 The product's price in $
                 """
                 __price: Int!
-                created_at: DateTime!
+                createdAt: DateTime!
             }
             "#;
 
@@ -70,7 +70,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Field created_at is reserved, you can't use it.",
+            "Field createdAt is reserved, you can't use it.",
             "should match"
         );
     }
