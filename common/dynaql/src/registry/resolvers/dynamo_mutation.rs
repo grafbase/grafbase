@@ -1088,7 +1088,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         .await?;
 
                     Ok(ResolvedValue::new(Arc::new(serde_json::json!({
-                        "id": serde_json::Value::String(ulid),
+                        "id": serde_json::Value::String(id.to_string()),
                     }))))
                 }
             }
