@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.10.0]
+
+### Breaking
+
+- Supports querying by unique fields
+  - This changes queries by `id` from `entity(id: "...")` to `entity(by: { id: "..." })`
+
+### Dependencies
+
+- Updates `clap` to version `4`
+
 ## [0.9.1]
 
 ### Fixes
