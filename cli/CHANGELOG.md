@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.9.1]
+
+### Fixes
+
+- Reverts `clap` to version `3` temporarily
+
+## [0.9.0]
+
+### Features
+
+- Adds support for the `@default` directive
+- Adds `createdAt` and `updatedAt` fields to `@model` types
+
+### Dependencies
+
+- Updates `clap` to version `4`
+
+### Tooling
+
+- Updates Rust to version `1.64.0`
+
 ## [0.8.0]
 
 ### Breaking

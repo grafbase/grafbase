@@ -71,11 +71,11 @@ export type PageInfo = {
 
 export type Query = {
   __typename?: 'Query'
-  /** Get a Todo by ID */
+  /** Get Todo by ID */
   todo?: Maybe<Todo>
   /** Paginated query to fetch the whole list of `Todo`. */
   todoCollection?: Maybe<TodoConnection>
-  /** Get a TodoList by ID */
+  /** Get TodoList by ID */
   todoList?: Maybe<TodoList>
   /** Paginated query to fetch the whole list of `TodoList`. */
   todoListCollection?: Maybe<TodoListConnection>
@@ -145,7 +145,14 @@ export type TodoList = {
   __typename?: 'TodoList'
   id: Scalars['ID']
   title: Scalars['String']
-  todos?: Maybe<Array<Maybe<Todo>>>
+  todos?: Maybe<TodoConnection>
+}
+
+export type TodoListTodosArgs = {
+  after?: InputMaybe<Scalars['String']>
+  before?: InputMaybe<Scalars['String']>
+  first?: InputMaybe<Scalars['Int']>
+  last?: InputMaybe<Scalars['Int']>
 }
 
 export type TodoListConnection = {
@@ -245,12 +252,18 @@ export type TodoListFragment = {
   __typename?: 'TodoList'
   id: string
   title: string
-  todos?: Array<{
-    __typename?: 'Todo'
-    id: string
-    title: string
-    complete: boolean
-  } | null> | null
+  todos?: {
+    __typename?: 'TodoConnection'
+    edges?: Array<{
+      __typename?: 'TodoEdge'
+      node: {
+        __typename?: 'Todo'
+        id: string
+        title: string
+        complete: boolean
+      }
+    } | null> | null
+  } | null
 }
 
 export type TodoFragment = {
@@ -272,12 +285,18 @@ export type TodoListsQuery = {
         __typename?: 'TodoList'
         id: string
         title: string
-        todos?: Array<{
-          __typename?: 'Todo'
-          id: string
-          title: string
-          complete: boolean
-        } | null> | null
+        todos?: {
+          __typename?: 'TodoConnection'
+          edges?: Array<{
+            __typename?: 'TodoEdge'
+            node: {
+              __typename?: 'Todo'
+              id: string
+              title: string
+              complete: boolean
+            }
+          } | null> | null
+        } | null
       }
     } | null> | null
   } | null
@@ -295,12 +314,18 @@ export type TodoListCreateMutation = {
       __typename?: 'TodoList'
       id: string
       title: string
-      todos?: Array<{
-        __typename?: 'Todo'
-        id: string
-        title: string
-        complete: boolean
-      } | null> | null
+      todos?: {
+        __typename?: 'TodoConnection'
+        edges?: Array<{
+          __typename?: 'TodoEdge'
+          node: {
+            __typename?: 'Todo'
+            id: string
+            title: string
+            complete: boolean
+          }
+        } | null> | null
+      } | null
     } | null
   } | null
 }
@@ -348,12 +373,18 @@ export type TodoListUpdateMutation = {
       __typename?: 'TodoList'
       id: string
       title: string
-      todos?: Array<{
-        __typename?: 'Todo'
-        id: string
-        title: string
-        complete: boolean
-      } | null> | null
+      todos?: {
+        __typename?: 'TodoConnection'
+        edges?: Array<{
+          __typename?: 'TodoEdge'
+          node: {
+            __typename?: 'Todo'
+            id: string
+            title: string
+            complete: boolean
+          }
+        } | null> | null
+      } | null
     } | null
   } | null
 }
@@ -425,12 +456,37 @@ export const TodoListFragmentDoc = {
           {
             kind: 'Field',
             name: { kind: 'Name', value: 'todos' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'first' },
+                value: { kind: 'IntValue', value: '100' }
+              }
+            ],
             selectionSet: {
               kind: 'SelectionSet',
               selections: [
                 {
-                  kind: 'FragmentSpread',
-                  name: { kind: 'Name', value: 'Todo' }
+                  kind: 'Field',
+                  name: { kind: 'Name', value: 'edges' },
+                  selectionSet: {
+                    kind: 'SelectionSet',
+                    selections: [
+                      {
+                        kind: 'Field',
+                        name: { kind: 'Name', value: 'node' },
+                        selectionSet: {
+                          kind: 'SelectionSet',
+                          selections: [
+                            {
+                              kind: 'FragmentSpread',
+                              name: { kind: 'Name', value: 'Todo' }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
                 }
               ]
             }
