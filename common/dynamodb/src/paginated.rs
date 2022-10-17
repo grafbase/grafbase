@@ -174,7 +174,7 @@ where
 {
     pub fn iter(&'a self) -> QueryValueIter<'a> {
         let node = self.node.as_ref();
-        let edges = Box::new(self.edges.iter().flat_map(|(_, y)| y.into_iter()));
+        let edges = Box::new(self.edges.iter().flat_map(|(_, y)| y.iter()));
         QueryValueIter { node, edges }
     }
 }

@@ -83,6 +83,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         return Err(ctx.errors.into());
     }
 
+
     let reg = ctx.finish();
     Ok(reg)
 }
