@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/lib.rs
+assertion_line: 242
 expression: reg_string
 ---
 {
@@ -30,6 +31,15 @@ expression: reg_string
         "INLINE_FRAGMENT"
       ],
       "name": "include"
+    },
+    "live": {
+      "args": {},
+      "description": "Directs the executor to return values as a Streaming response.",
+      "is_repeatable": false,
+      "locations": [
+        "QUERY"
+      ],
+      "name": "live"
     },
     "oneOf": {
       "args": {},

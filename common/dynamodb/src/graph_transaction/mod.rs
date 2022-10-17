@@ -12,7 +12,6 @@ use dynomite::AttributeValue;
 use futures::Future;
 use futures_util::TryFutureExt;
 use graph_entities::{normalize_constraint_value, ConstraintDefinition, ConstraintID, ConstraintType, NodeID};
-use graph_entities::{ConstraintDefinition, ConstraintID, ConstraintType, NodeID};
 use itertools::Itertools;
 use log::info;
 

@@ -4,10 +4,10 @@ use crate::registry::relations::{MetaRelation, MetaRelationKind};
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
-use dynamodb::model::constraint::db::ConstraintID;
 use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
 };
+use graph_entities::ConstraintID;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;

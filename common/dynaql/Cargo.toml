@@ -45,6 +45,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "io",
     "sink",
 ] }
+graph-entities = { path = "../graph_entities" }
 ipnet = "2.5"
 indexmap = "2.0.0-pre"
 itertools = "0.10"
