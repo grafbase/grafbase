@@ -1,18 +1,18 @@
-import { gql, useApolloClient, useMutation, useQuery } from "@apollo/client";
-import { SignedIn } from "@clerk/nextjs";
-import Img from "components/img";
-import ItemAddComment from "components/item-add-comment";
-import ItemComment from "components/item-comment";
-import ItemVotes from "components/item-votes";
-import formatDistanceToNow from "date-fns/formatDistanceToNow";
-import { ItemOneQuery } from "gql/graphql";
-import useViewer from "hooks/use-viewer";
-import Head from "next/head";
-import { useRouter } from "next/router";
+import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { SignedIn } from '@clerk/nextjs'
+import Img from 'components/img'
+import ItemAddComment from 'components/item-add-comment'
+import ItemComment from 'components/item-comment'
+import ItemVotes from 'components/item-votes'
+import formatDistanceToNow from 'date-fns/formatDistanceToNow'
+import { ItemOneQuery } from 'gql/graphql'
+import useViewer from 'hooks/use-viewer'
+import Head from 'next/head'
+import { useRouter } from 'next/router'
 
 const ITEM_QUERY = gql`
   query ItemOne($id: ID!) {
-    item(id: $id) {
+    item(by: { id: $id }) {
       id
       title
       comments(first: 100) {
@@ -20,7 +20,7 @@ const ITEM_QUERY = gql`
           node {
             id
             content
-            #            createdAt
+            createdAt
             author {
               id
               name
@@ -49,7 +49,7 @@ const ITEM_QUERY = gql`
       createdAt
     }
   }
-`;
+`
 
 const ITEM_DELETE_MUTATION = gql`
   mutation ItemOneDelete($id: ID!) {
@@ -57,30 +57,30 @@ const ITEM_DELETE_MUTATION = gql`
       deletedId
     }
   }
-`;
+`
 
 const ItemIdPage = () => {
-  const client = useApolloClient();
-  const { query, replace } = useRouter();
-  const { viewer } = useViewer();
+  const client = useApolloClient()
+  const { query, replace } = useRouter()
+  const { viewer } = useViewer()
   const { data, loading, error } = useQuery<ItemOneQuery>(ITEM_QUERY, {
-    variables: { id: query.id },
-  });
-  const [deleteMutation] = useMutation(ITEM_DELETE_MUTATION);
+    variables: { id: query.id }
+  })
+  const [deleteMutation] = useMutation(ITEM_DELETE_MUTATION)
 
   if (loading || !data?.item) {
-    return null;
+    return null
   }
 
-  const { id, title, comments, createdAt, url, votes, author } = data?.item;
+  const { id, title, comments, createdAt, url, votes, author } = data?.item
 
-  const isSessionUserItem = author.id === viewer?.id;
+  const isSessionUserItem = author.id === viewer?.id
 
   const onDelete = () => {
-    if (confirm("Are you sure you want to delete this item?")) {
-      deleteMutation({ variables: { id } }).then(() => replace("/"));
+    if (confirm('Are you sure you want to delete this item?')) {
+      deleteMutation({ variables: { id } }).then(() => replace('/'))
     }
-  };
+  }
 
   return (
     <div>
@@ -113,9 +113,9 @@ const ItemIdPage = () => {
               <time className="font-semibold text-gray-700">
                 {!!createdAt &&
                   formatDistanceToNow(Date.parse(createdAt), {
-                    addSuffix: true,
+                    addSuffix: true
                   })}
-              </time>{" "}
+              </time>{' '}
               by {author.name}
             </span>
             <Img src={author.imageUrl} alt={author.name} className="h-7 w-7" />
@@ -131,21 +131,21 @@ const ItemIdPage = () => {
           <h2 className="mt-6 text-lg mb-5">
             {comments?.edges?.length
               ? `Comments (${comments?.edges?.length})`
-              : "No comments yet"}
+              : 'No comments yet'}
           </h2>
           <div className="space-y-4">
             {comments?.edges?.map((edge) => {
               if (!edge?.node) {
-                return null;
+                return null
               }
 
-              return <ItemComment key={edge.node.id} {...edge.node} />;
+              return <ItemComment key={edge.node.id} {...edge.node} />
             })}
           </div>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ItemIdPage;
+export default ItemIdPage

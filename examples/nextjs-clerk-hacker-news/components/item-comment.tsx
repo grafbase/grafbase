@@ -1,8 +1,8 @@
-import Img from "components/img";
-import { gql, useApolloClient, useMutation } from "@apollo/client";
-import formatDistanceToNow from "date-fns/formatDistanceToNow";
-import { ItemOneQuery } from "gql/graphql";
-import useViewer from "hooks/use-viewer";
+import Img from 'components/img'
+import { gql, useApolloClient, useMutation } from '@apollo/client'
+import formatDistanceToNow from 'date-fns/formatDistanceToNow'
+import { ItemOneQuery } from 'gql/graphql'
+import useViewer from 'hooks/use-viewer'
 
 const ITEM_COMMENT_DELETE_MUTATION = gql`
   mutation ItemCommentDelete($id: ID!) {
@@ -10,38 +10,39 @@ const ITEM_COMMENT_DELETE_MUTATION = gql`
       deletedId
     }
   }
-`;
+`
 
 const ItemComment = (
   props: NonNullable<
     NonNullable<
-      NonNullable<NonNullable<ItemOneQuery["item"]>["comments"]>["edges"]
+      NonNullable<NonNullable<ItemOneQuery['item']>['comments']>['edges']
     >[0]
-  >["node"]
+  >['node']
 ) => {
-  const { viewer } = useViewer();
-  const client = useApolloClient();
+  const { viewer } = useViewer()
+  const client = useApolloClient()
   const {
     id,
     content,
-    author: { id: authorId, name, imageUrl },
-  } = props;
+    createdAt,
+    author: { id: authorId, name, imageUrl }
+  } = props
 
-  const [deleteMutation] = useMutation(ITEM_COMMENT_DELETE_MUTATION);
+  const [deleteMutation] = useMutation(ITEM_COMMENT_DELETE_MUTATION)
 
-  const isSignedInUserComment = authorId === viewer?.id;
+  const isSignedInUserComment = authorId === viewer?.id
 
   const onDelete = () => {
-    return alert("Not working yet");
+    return alert('Not working yet')
 
-    if (confirm("Are you sure you want to delete this comment?")) {
+    if (confirm('Are you sure you want to delete this comment?')) {
       deleteMutation({ variables: { id } }).then(() =>
         client.refetchQueries({
-          include: ["ItemOne"],
+          include: ['ItemOne']
         })
-      );
+      )
     }
-  };
+  }
 
   return (
     <div className="border w-full">
@@ -53,12 +54,12 @@ const ItemComment = (
         <div className="p-2 sm:p-0 flex items-center space-x-4">
           {isSignedInUserComment && (
             <div className="text-sm border whitespace-nowrap">
-              <button
-                onClick={() => alert("@todo")}
-                className="text-gray-700 hover:bg-gray-200 px-2 border-r"
-              >
-                Edit
-              </button>
+              {/*<button*/}
+              {/*  onClick={() => alert("@todo")}*/}
+              {/*  className="text-gray-700 hover:bg-gray-200 px-2 border-r"*/}
+              {/*>*/}
+              {/*  Edit*/}
+              {/*</button>*/}
               <button
                 onClick={onDelete}
                 className="text-gray-700 hover:bg-gray-200 px-2"
@@ -68,15 +69,14 @@ const ItemComment = (
             </div>
           )}
           <time className="text-gray-600 text-xs">
-            Date not working until createdAt is fixed in linked lists
-            {/*{!!createdAt &&*/}
-            {/*  formatDistanceToNow(Date.parse(createdAt), { addSuffix: true })}*/}
+            {!!createdAt &&
+              formatDistanceToNow(Date.parse(createdAt), { addSuffix: true })}
           </time>
         </div>
       </div>
       <div className="p-4 text-gray-700">{content}</div>
     </div>
-  );
-};
+  )
+}
 
-export default ItemComment;
+export default ItemComment

@@ -1,11 +1,11 @@
-import { gql, useApolloClient, useMutation } from "@apollo/client";
-import { useAuth, useSession } from "@clerk/nextjs";
-import LogoAnimated from "components/logo-animated";
-import { UserCreateLoginMutation, UserUpdateLoginMutation } from "gql/graphql";
-import useViewer from "hooks/use-viewer";
-import Head from "next/head";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { gql, useApolloClient, useMutation } from '@apollo/client'
+import { useAuth, useSession } from '@clerk/nextjs'
+import LogoAnimated from 'components/logo-animated'
+import { UserCreateLoginMutation, UserUpdateLoginMutation } from 'gql/graphql'
+import useViewer from 'hooks/use-viewer'
+import Head from 'next/head'
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
 
 const USER_CREATE_MUTATION = gql`
   mutation UserCreateLogin($name: String!, $email: Email!, $imageUrl: String!) {
@@ -13,7 +13,7 @@ const USER_CREATE_MUTATION = gql`
       __typename
     }
   }
-`;
+`
 
 const USER_UPDATE_MUTATION = gql`
   mutation UserUpdateLogin($id: ID!, $imageUrl: String!) {
@@ -21,54 +21,54 @@ const USER_UPDATE_MUTATION = gql`
       __typename
     }
   }
-`;
+`
 
 // Inserts or updates, for the viewer object
 const CallbackLoginPage = () => {
-  const client = useApolloClient();
-  const { isSignedIn } = useAuth();
-  const { session } = useSession();
-  const { replace } = useRouter();
-  const { viewer, loading: loadingViewer } = useViewer();
+  const client = useApolloClient()
+  const { isSignedIn } = useAuth()
+  const { session } = useSession()
+  const { replace } = useRouter()
+  const { viewer, loading: loadingViewer } = useViewer()
   const [mutateUserCreate] =
-    useMutation<UserCreateLoginMutation>(USER_CREATE_MUTATION);
+    useMutation<UserCreateLoginMutation>(USER_CREATE_MUTATION)
   const [mutateUserUpdate] =
-    useMutation<UserUpdateLoginMutation>(USER_UPDATE_MUTATION);
+    useMutation<UserUpdateLoginMutation>(USER_UPDATE_MUTATION)
 
   useEffect(() => {
     if (loadingViewer) {
-      return;
+      return
     }
 
     if (isSignedIn) {
-      (async () => {
-        const email = session?.user?.emailAddresses[0]?.emailAddress;
+      ;(async () => {
+        const email = session?.user?.emailAddresses[0]?.emailAddress
         // Update
         if (viewer) {
           mutateUserUpdate({
             variables: {
               id: viewer.id,
-              imageUrl: session?.user?.profileImageUrl,
-            },
-          });
+              imageUrl: session?.user?.profileImageUrl
+            }
+          })
         } else {
           mutateUserCreate({
             variables: {
               name: session?.user?.username,
               email: email,
-              imageUrl: session?.user?.profileImageUrl,
-            },
-          });
+              imageUrl: session?.user?.profileImageUrl
+            }
+          })
         }
 
         client.refetchQueries({
-          include: ["Viewer"],
-        });
+          include: ['Viewer']
+        })
 
-        localStorage.setItem("hasLoggedIn", "true");
+        localStorage.setItem('hasLoggedIn', 'true')
 
-        replace("/");
-      })();
+        replace('/')
+      })()
     }
   }, [
     client,
@@ -79,8 +79,8 @@ const CallbackLoginPage = () => {
     session?.user?.emailAddresses,
     session?.user?.profileImageUrl,
     session?.user?.username,
-    viewer,
-  ]);
+    viewer
+  ])
 
   return (
     <>
@@ -93,7 +93,7 @@ const CallbackLoginPage = () => {
         </div>
       </div>
     </>
-  );
-};
+  )
+}
 
-export default CallbackLoginPage;
+export default CallbackLoginPage

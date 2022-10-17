@@ -1,2 +1,2 @@
-export * from "gql/gql"
-export * from "gql/fragment-masking"
+export * from "./gql"
+export * from "./fragment-masking"

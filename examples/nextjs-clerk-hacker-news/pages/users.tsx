@@ -1,10 +1,10 @@
-import { gql, useQuery } from "@apollo/client";
-import Img from "components/img";
-import { users } from "data/dummy-data";
-import formatDistanceToNow from "date-fns/formatDistanceToNow";
-import { UsersListQuery } from "gql/graphql";
-import Head from "next/head";
-import Link from "next/link";
+import { gql, useQuery } from '@apollo/client'
+import Img from 'components/img'
+import { users } from 'data/dummy-data'
+import formatDistanceToNow from 'date-fns/formatDistanceToNow'
+import { UsersListQuery } from 'gql/graphql'
+import Head from 'next/head'
+import Link from 'next/link'
 
 const USERS_LIST_QUERY = gql`
   query UsersList {
@@ -19,10 +19,10 @@ const USERS_LIST_QUERY = gql`
       }
     }
   }
-`;
+`
 
 const UsersPage = () => {
-  const { data, loading, error } = useQuery<UsersListQuery>(USERS_LIST_QUERY);
+  const { data, loading, error } = useQuery<UsersListQuery>(USERS_LIST_QUERY)
 
   return (
     <div>
@@ -48,7 +48,7 @@ const UsersPage = () => {
         {!loading && !error && !data?.userCollection?.edges?.length && (
           <div className="border border-black bg-gray-200 min-h-24 w-full flex flex-col space-y-6 items-center justify-center py-6">
             <div className="text-lg">No users yet.</div>
-            <Link href="/examples/nextjs-clerk-hacker-news/pages/login" passHref>
+            <Link href="//login" passHref>
               <a>
                 <button className="px-2 py-1 bg-black text-white hover:bg-gray-700">
                   Be the first one
@@ -59,10 +59,10 @@ const UsersPage = () => {
         )}
         {data?.userCollection?.edges?.map((edge) => {
           if (!edge?.node) {
-            return null;
+            return null
           }
 
-          const { id, name, imageUrl, createdAt } = edge.node;
+          const { id, name, imageUrl, createdAt } = edge.node
 
           return (
             <div
@@ -75,19 +75,19 @@ const UsersPage = () => {
               </div>
               <div className="hidden sm:block">
                 <time className="text-gray-600">
-                  Joined{" "}
+                  Joined{' '}
                   {!!createdAt &&
                     formatDistanceToNow(Date.parse(createdAt), {
-                      addSuffix: true,
+                      addSuffix: true
                     })}
                 </time>
               </div>
             </div>
-          );
+          )
         })}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default UsersPage;
+export default UsersPage
