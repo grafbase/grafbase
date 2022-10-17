@@ -121,7 +121,7 @@ fn write_list<'a, T: Display + 'a>(
 
 #[cfg(test)]
 mod tests {
-    use super::{QueryResponse, QueryResponseNode, ResponsePrimitive};
+    use super::{QueryResponseNode, ResponsePrimitive};
     use insta::assert_display_snapshot;
 
     #[test]

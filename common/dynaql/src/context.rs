@@ -155,7 +155,7 @@ impl<'a> QueryPathNode<'a> {
         let mut first = true;
         self.try_for_each(|segment| {
             if !first {
-                write!(&mut result, "/");
+                write!(&mut result, "/").expect("Shouldn't fail");
             }
             first = false;
 
@@ -163,7 +163,8 @@ impl<'a> QueryPathNode<'a> {
                 QueryPathSegment::Index(idx) => write!(&mut result, "{}", *idx),
                 QueryPathSegment::Name(name) => write!(&mut result, "{}", name),
             }
-        });
+        })
+        .expect("Shouldn't fail");
         result
     }
 

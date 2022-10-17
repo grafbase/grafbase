@@ -7,7 +7,6 @@ use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::model::constraint::db::ConstraintID;
 use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
-    QueryValue,
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -15,7 +14,7 @@ use serde_json::Map;
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::hash::Hash;
-use std::ops::Deref;
+
 use std::sync::Arc;
 use stream_events::SharedEntityRegistry;
 
@@ -151,7 +150,7 @@ impl ResolverTrait for DynamoResolver {
         const PAGINATION_LIMIT: usize = 100;
 
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
-        let entity_registry = &ctx.data::<SharedEntityRegistry>().ok();
+        let _entity_registry = &ctx.data::<SharedEntityRegistry>().ok();
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
         let query_loader_fat_paginated = &batchers.paginated_query_fat;
@@ -331,7 +330,7 @@ impl ResolverTrait for DynamoResolver {
                 let relations_selected: IndexMap<&str, &MetaRelation> = ctx_ty
                     .relations()
                     .into_iter()
-                    .filter(|(key, val)| selected.contains(key))
+                    .filter(|(key, _val)| selected.contains(key))
                     .collect();
 
                 let relations_len = relations_selected.len();
