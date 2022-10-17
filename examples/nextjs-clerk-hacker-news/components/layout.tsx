@@ -64,7 +64,7 @@ const Layout = ({ children }: PropsWithChildren) => {
         >
           <div className="flex w-full items-center justify-between border-b py-4 lg:border-none">
             <div className="flex items-center">
-              <Link href="/examples/nextjs-clerk-hackernews-2/pages" passHref>
+              <Link href="/examples/nextjs-clerk-hacker-news/pages" passHref>
                 <a className="flex items-center space-x-3">
                   <LogoAnimated className="text-white w-6 h-6" />
                   <span className="text-white font-semibold text-xl">
@@ -100,7 +100,7 @@ const Layout = ({ children }: PropsWithChildren) => {
               </div>
             ) : (
               <div className="ml-10 space-x-4">
-                <Link href="/examples/nextjs-clerk-hackernews-2/pages/login" passHref>
+                <Link href="/examples/nextjs-clerk-hacker-news/pages/login" passHref>
                   <a className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75">
                     {isLoaded ? "Join" : "..."}
                   </a>
