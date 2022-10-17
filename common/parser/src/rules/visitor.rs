@@ -564,7 +564,7 @@ fn visit_directives<'a, V: Visitor<'a>>(
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RuleError {
     pub(crate) locations: Vec<Pos>,
     pub(crate) message: String,
