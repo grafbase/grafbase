@@ -997,11 +997,11 @@ pub enum InternalNodeChanges {
     Delete(DeleteNodeInternalInput), // Unknow affected ids
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 /// Delete every constraint of a Node
 pub struct DeleteUnitNodeConstraintInput {}
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum DeleteNodeConstraintInternalInput {
     Unit(DeleteUnitNodeConstraintInput),
 }
