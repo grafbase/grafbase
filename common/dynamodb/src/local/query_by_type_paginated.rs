@@ -32,6 +32,35 @@ pub struct QueryValue {
     pub constraints: Vec<HashMap<String, AttributeValue>>,
 }
 
+pub struct QueryValueIter<'a> {
+    pub node: Option<&'a HashMap<String, AttributeValue>>,
+    pub edges: Box<dyn Iterator<Item = &'a HashMap<String, AttributeValue>> + 'a + Send + Sync>,
+}
+
+impl<'a> QueryValue
+where
+    Self: 'a,
+{
+    pub fn iter(&'a self) -> QueryValueIter<'a> {
+        let node = self.node.as_ref();
+        let edges = Box::new(self.edges.iter().flat_map(|(_, y)| y.iter()));
+        QueryValueIter { node, edges }
+    }
+}
+
+impl<'a> Iterator for QueryValueIter<'a> {
+    type Item = &'a HashMap<String, AttributeValue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(node) = self.node {
+            self.node = None;
+            return Some(node);
+        }
+
+        self.edges.next()
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct QueryResult {
     /// Returned values by PK
