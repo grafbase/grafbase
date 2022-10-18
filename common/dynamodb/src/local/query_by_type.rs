@@ -1,9 +1,9 @@
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::id::ID;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dynomite::AttributeValue;
+use graph_entities::ID;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use maplit::hashmap;

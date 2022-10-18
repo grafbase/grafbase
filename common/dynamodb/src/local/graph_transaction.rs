@@ -9,11 +9,10 @@ use crate::graph_transaction::{
     UpdateRelationInternalInput, UpdateUniqueConstraint,
 };
 use crate::local::types::SqlValue;
-use crate::model::constraint::db::ConstraintID;
-use crate::model::node::NodeID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
 use dynomite::{Attribute, AttributeValue};
+use graph_entities::{ConstraintID, NodeID};
 use itertools::Itertools;
 use maplit::hashmap;
 use std::collections::HashMap;

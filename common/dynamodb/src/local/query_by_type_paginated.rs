@@ -1,4 +1,5 @@
 use dynomite::{attr_map, AttributeValue};
+use graph_entities::ID;
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use maplit::hashmap;
@@ -8,7 +9,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::model::id::ID;
 use crate::runtime::Runtime;
 use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
 
