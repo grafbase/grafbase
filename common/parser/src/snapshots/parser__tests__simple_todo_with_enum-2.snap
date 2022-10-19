@@ -41,11 +41,11 @@ type Mutation {
 	"""
 	Update a Todo
 	"""
-	todoUpdate(id: ID!, input: TodoUpdateInput!): TodoUpdatePayload
+	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
 	"""
-	Delete a Todo by ID
+	Delete a Todo by ID or unique field
 	"""
-	todoDelete(id: ID!): TodoDeletePayload
+	todoDelete(by: TodoByInput!): TodoDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!

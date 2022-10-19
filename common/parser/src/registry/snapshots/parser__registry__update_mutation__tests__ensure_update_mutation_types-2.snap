@@ -7,10 +7,10 @@ expression: mutations
     "name": "authorUpdate",
     "description": "Update a Author",
     "args": {
-      "id": {
-        "name": "id",
+      "by": {
+        "name": "by",
         "description": null,
-        "ty": "ID!",
+        "ty": "AuthorByInput!",
         "default_value": null,
         "is_secret": false
       },
@@ -38,8 +38,8 @@ expression: mutations
       "type": {
         "DynamoMutationResolver": {
           "UpdateNode": {
-            "id": {
-              "InputTypeName": "id"
+            "by": {
+              "InputTypeName": "by"
             },
             "input": {
               "InputTypeName": "input"

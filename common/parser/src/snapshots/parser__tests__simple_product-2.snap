@@ -26,11 +26,11 @@ type Mutation {
 	"""
 	Update a Product
 	"""
-	productUpdate(id: ID!, input: ProductUpdateInput!): ProductUpdatePayload
+	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
 	"""
-	Delete a Product by ID
+	Delete a Product by ID or unique field
 	"""
-	productDelete(id: ID!): ProductDeletePayload
+	productDelete(by: ProductByInput!): ProductDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!

@@ -1644,12 +1644,12 @@ expression: reg_string
           },
           "authorDelete": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "AuthorByInput!"
               }
             },
             "cache_control": {
@@ -1657,7 +1657,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Author by ID",
+            "description": "Delete a Author by ID or unique field",
             "edges": [],
             "external": false,
             "name": "authorDelete",
@@ -1670,8 +1670,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "ty": "Author"
                   }
@@ -1683,12 +1683,12 @@ expression: reg_string
           },
           "authorUpdate": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "AuthorByInput!"
               },
               "input": {
                 "default_value": null,
@@ -1716,8 +1716,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "input": {
                       "InputTypeName": "input"
@@ -1771,12 +1771,12 @@ expression: reg_string
           },
           "blogDelete": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "BlogByInput!"
               }
             },
             "cache_control": {
@@ -1784,7 +1784,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Blog by ID",
+            "description": "Delete a Blog by ID or unique field",
             "edges": [],
             "external": false,
             "name": "blogDelete",
@@ -1797,8 +1797,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "ty": "Blog"
                   }
@@ -1810,12 +1810,12 @@ expression: reg_string
           },
           "blogUpdate": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "BlogByInput!"
               },
               "input": {
                 "default_value": null,
@@ -1843,8 +1843,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "input": {
                       "InputTypeName": "input"
@@ -1898,12 +1898,12 @@ expression: reg_string
           },
           "postDelete": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "PostByInput!"
               }
             },
             "cache_control": {
@@ -1911,7 +1911,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Post by ID",
+            "description": "Delete a Post by ID or unique field",
             "edges": [],
             "external": false,
             "name": "postDelete",
@@ -1924,8 +1924,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "ty": "Post"
                   }
@@ -1937,12 +1937,12 @@ expression: reg_string
           },
           "postUpdate": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "PostByInput!"
               },
               "input": {
                 "default_value": null,
@@ -1970,8 +1970,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "input": {
                       "InputTypeName": "input"
