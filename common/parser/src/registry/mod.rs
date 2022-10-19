@@ -13,7 +13,7 @@ use dynaql::registry::{
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
 use dynaql::Operations;
-use dynaql_parser::types::{FieldDefinition, ObjectType};
+use dynaql_parser::types::ObjectType;
 
 mod create_mutation;
 mod relations;

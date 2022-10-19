@@ -100,13 +100,10 @@ impl<'a> Visitor<'a> for ModelDirective {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
             then {
-                let id_field = match object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node)) {
-                    Some(id) => id,
-                    _ => {
-                        let name_ty = &type_definition.node.name.node;
-                        ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
-                        return;
-                    }
+               if !object.fields.iter().any(|x| is_id_type_and_non_nullable(&x.node)) {
+                    let name_ty = &type_definition.node.name.node;
+                    ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
+                    return;
                 };
                 let type_name = type_definition.node.name.node.to_string();
                 let mut connection_edges = Vec::new();
