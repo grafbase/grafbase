@@ -347,11 +347,11 @@ pub fn add_update_mutation<'a>(
         args: {
             let mut args = IndexMap::new();
             args.insert(
-                "id".to_owned(),
+                "by".to_owned(),
                 MetaInputValue {
-                    name: "id".to_owned(),
+                    name: "by".to_owned(),
                     description: None,
-                    ty: "ID!".to_string(),
+                    ty: format!("{}ByInput!", type_name),
                     default_value: None,
                     visible: None,
                     is_secret: false,
@@ -386,7 +386,7 @@ pub fn add_update_mutation<'a>(
         resolve: Some(Resolver {
             id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
-                id: VariableResolveDefinition::InputTypeName("id".to_owned()),
+                by: VariableResolveDefinition::InputTypeName("by".to_owned()),
                 input: VariableResolveDefinition::InputTypeName("input".to_owned()),
                 ty: type_name,
             }),

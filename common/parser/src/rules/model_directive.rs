@@ -330,7 +330,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_update_mutation(ctx, &type_definition.node, object, &type_name);
 
                 add_list_query_paginated(ctx, &type_name, connection_edges);
-                add_remove_mutation(ctx, &id_field.node, &type_name)
+                add_remove_mutation(ctx, &type_name)
             }
         }
     }
