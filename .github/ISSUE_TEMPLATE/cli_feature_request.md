@@ -1,9 +1,9 @@
 ---
-name: Feature request
+name: CLI feature request
 about: Suggest an idea for this project
-title: ''
+title: ""
 labels: enhancement
-assignees: ''
+assignees: ""
 ---
 
 **Describe the solution you'd like**
