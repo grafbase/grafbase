@@ -1059,9 +1059,6 @@ impl ResolverTrait for DynamoMutationResolver {
 
                     let id = NodeID::from_owned(original_pk.clone()).unwrap();
 
-                    ObfuscatedID::expect(&id.to_string(), &ty)
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
-
                     let input = input
                         .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
