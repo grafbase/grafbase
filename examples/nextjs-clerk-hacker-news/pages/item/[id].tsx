@@ -1,5 +1,5 @@
 import { gql, useMutation, useQuery } from '@apollo/client'
-import { SignedIn } from '@clerk/nextjs'
+import { SignedIn, useAuth } from '@clerk/nextjs'
 import Img from 'components/img'
 import ItemAddComment from 'components/item-add-comment'
 import ItemComment from 'components/item-comment'
@@ -9,6 +9,9 @@ import { ItemOneQuery } from 'gql/graphql'
 import useViewer from 'hooks/use-viewer'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { graphQlRequestClient } from 'lib/request'
+import { GetServerSideProps } from 'next'
+import Link from 'next/link'
 
 const ITEM_QUERY = gql`
   query ItemOne($id: ID!, $afterComments: String) {
@@ -63,16 +66,23 @@ const ITEM_DELETE_MUTATION = gql`
   }
 `
 
-const ItemIdPage = () => {
+const ItemIdPage = (props: { data: ItemOneQuery }) => {
+  const { isSignedIn } = useAuth()
   const { query, replace } = useRouter()
   const { viewer } = useViewer()
-  const { data, loading, error, fetchMore } = useQuery<ItemOneQuery>(
-    ITEM_QUERY,
-    {
-      notifyOnNetworkStatusChange: true,
-      variables: { id: query.id }
-    }
-  )
+  const {
+    data: clientData,
+    loading,
+    error,
+    fetchMore
+  } = useQuery<ItemOneQuery>(ITEM_QUERY, {
+    skip: !isSignedIn,
+    notifyOnNetworkStatusChange: true,
+    variables: { id: query.id }
+  })
+
+  const data = clientData ?? props.data
+
   const [deleteMutation] = useMutation(ITEM_DELETE_MUTATION)
 
   if (loading && !data?.item) {
@@ -94,7 +104,7 @@ const ItemIdPage = () => {
     )
   }
 
-  const { id, title, comments, createdAt, url, votes, author } = data?.item
+  const { id, title, comments, createdAt, url, votes, author } = data?.item!
 
   const isSessionUserItem = author.id === viewer?.id
 
@@ -163,7 +173,7 @@ const ItemIdPage = () => {
 
               return <ItemComment key={edge.node.id} {...edge.node} />
             })}
-            {!!data?.item?.comments?.pageInfo?.hasNextPage && (
+            {!!data?.item?.comments?.pageInfo?.hasNextPage && isSignedIn && (
               <div className="text-center">
                 <button
                   onClick={() =>
@@ -179,11 +189,32 @@ const ItemIdPage = () => {
                 </button>
               </div>
             )}
+            {!!data?.item?.comments?.pageInfo?.hasNextPage && !isSignedIn && (
+              <div className="text-center">
+                <Link href="/login" passHref>
+                  <a className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50">
+                    Sign In to load More
+                  </a>
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  const data = await graphQlRequestClient.request(ITEM_QUERY, {
+    id: params?.id
+  })
+
+  return {
+    props: {
+      data: data ?? null
+    }
+  }
 }
 
 export default ItemIdPage

@@ -4,6 +4,8 @@ import ItemList from 'components/item-list'
 import { ItemsListQuery } from 'gql/graphql'
 import type { NextPage } from 'next'
 import Link from 'next/link'
+import { useAuth } from '@clerk/nextjs'
+import { graphQlRequestClient } from 'lib/request'
 
 const ITEMS_LIST_QUERY = gql`
   query ItemsList($after: String) {
@@ -45,13 +47,19 @@ const ITEMS_LIST_QUERY = gql`
   }
 `
 
-const Home: NextPage = () => {
-  const { data, loading, error, fetchMore } = useQuery<ItemsListQuery>(
-    ITEMS_LIST_QUERY,
-    {
-      notifyOnNetworkStatusChange: true
-    }
-  )
+const Home: NextPage = (props: { data: ItemsListQuery }) => {
+  const { isSignedIn } = useAuth()
+  const {
+    data: clientData,
+    loading,
+    error,
+    fetchMore
+  } = useQuery<ItemsListQuery>(ITEMS_LIST_QUERY, {
+    skip: !isSignedIn,
+    notifyOnNetworkStatusChange: true
+  })
+
+  const data = clientData ?? props.data
 
   return (
     <>
@@ -102,7 +110,7 @@ const Home: NextPage = () => {
         {data?.itemCollection?.edges?.map(
           (edge) => !!edge && <ItemList key={edge.node.id} {...edge.node} />
         )}
-        {!!data?.itemCollection?.pageInfo?.hasNextPage && (
+        {!!data?.itemCollection?.pageInfo?.hasNextPage && isSignedIn && (
           <div className="text-center">
             <button
               onClick={() =>
@@ -118,9 +126,28 @@ const Home: NextPage = () => {
             </button>
           </div>
         )}
+        {!!data?.itemCollection?.pageInfo?.hasNextPage && !isSignedIn && (
+          <div className="text-center">
+            <Link href="/login" passHref>
+              <a className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50">
+                Sign In to load More
+              </a>
+            </Link>
+          </div>
+        )}
       </div>
     </>
   )
+}
+
+export const getStaticProps = async () => {
+  const data = await graphQlRequestClient.request(ITEMS_LIST_QUERY)
+
+  return {
+    props: {
+      data: data ?? null
+    }
+  }
 }
 
 export default Home

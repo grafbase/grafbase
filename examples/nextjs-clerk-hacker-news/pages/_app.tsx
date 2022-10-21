@@ -1,19 +1,19 @@
-import "/styles/globals.css";
+import '/styles/globals.css'
 import {
   ClerkLoaded,
   ClerkProvider,
   SignedIn,
   SignedOut,
-  ClerkLoading,
-} from "@clerk/nextjs";
-import ApolloProviderWrapper from "components/apollo-provider";
-import Head from "components/head";
-import Layout from "components/layout";
-import LogoAnimated from "components/logo-animated";
-import Redirect from "components/redirect";
-import type { AppProps } from "next/app";
+  ClerkLoading
+} from '@clerk/nextjs'
+import ApolloProviderWrapper from 'components/apollo-provider'
+import Head from 'components/head'
+import Layout from 'components/layout'
+import LogoAnimated from 'components/logo-animated'
+import Redirect from 'components/redirect'
+import type { AppProps } from 'next/app'
 
-const publicPages = ["/login", "/callback"];
+const publicPages = ['/login', '/callback', '/', '/item/[id]']
 
 const placeholder = (
   <div className="flex items-center justify-center min-h-screen">
@@ -21,7 +21,7 @@ const placeholder = (
       <LogoAnimated />
     </div>
   </div>
-);
+)
 
 function MyApp({ Component, pageProps, router }: AppProps) {
   return (
@@ -47,7 +47,7 @@ function MyApp({ Component, pageProps, router }: AppProps) {
       </ClerkLoaded>
       <ClerkLoading>{placeholder}</ClerkLoading>
     </ClerkProvider>
-  );
+  )
 }
 
-export default MyApp;
+export default MyApp

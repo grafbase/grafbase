@@ -100,7 +100,7 @@ const Layout = ({ children }: PropsWithChildren) => {
               </div>
             ) : (
               <div className="ml-10 space-x-4">
-                <Link href="//login" passHref>
+                <Link href="/login" passHref>
                   <a className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75">
                     {isLoaded ? 'Join' : '...'}
                   </a>
