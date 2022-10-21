@@ -8,7 +8,7 @@ use crate::graph_transaction::{
     ToTransactionFuture, UpdateNodeConstraintInternalInput, UpdateNodeInternalInput, UpdateRelation,
     UpdateRelationInternalInput, UpdateUniqueConstraint,
 };
-use crate::local::types::SqlValue;
+use crate::local::types::{ByMutation, SqlValue};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::node::NodeID;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
@@ -85,7 +85,11 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let UpdateNodeInternalInput { user_defined_item, .. } = self;
+            let UpdateNodeInternalInput {
+                user_defined_item,
+                by_id,
+                ..
+            } = self;
 
             let now = Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true);
             let now_attr = now.clone().into_attr();
@@ -97,14 +101,27 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            let (query, values) = Sql::Update.compile(hashmap! {
-                "pk" => SqlValue::String(pk),
-                "sk" => SqlValue::String(sk),
-                "document" => SqlValue::String(document),
-                "updated_at" => SqlValue::String(updated_at),
-            });
+            let (query, values) = match by_id {
+                Some(ref id) => Sql::UpdateByNonPrimary("gsi2pk").compile(hashmap! {
+                    "pk" => SqlValue::String(pk),
+                    "sk" => SqlValue::String(sk),
+                    "document" => SqlValue::String(document),
+                    "updated_at" => SqlValue::String(updated_at),
+                    "by_id" => SqlValue::String(id.to_string())
+                }),
+                None => Sql::Update.compile(hashmap! {
+                    "pk" => SqlValue::String(pk),
+                    "sk" => SqlValue::String(sk),
+                    "document" => SqlValue::String(document),
+                    "updated_at" => SqlValue::String(updated_at),
+                }),
+            };
 
-            Ok((query, values, None))
+            Ok((
+                query,
+                values,
+                by_id.map(|_| OperationKind::ByMutation(ByMutation::Update)),
+            ))
         })
     }
 }
@@ -164,12 +181,22 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
+        let DeleteNodeInternalInput { by_id, .. } = self;
         Box::pin(async {
-            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
-                "pk" => SqlValue::String(pk),
-                "sk" => SqlValue::String(sk),
-            });
-            Ok((query, values, None))
+            let (query, values) = match by_id {
+                Some(ref id) => Sql::DeleteByNonPrimary("gsi2pk").compile(hashmap! {
+                    "by_id" => SqlValue::String(id.to_string()),
+                }),
+                None => Sql::DeleteByIds.compile(hashmap! {
+                    "pk" => SqlValue::String(pk),
+                    "sk" => SqlValue::String(sk),
+                }),
+            };
+            Ok((
+                query,
+                values,
+                by_id.map(|_| OperationKind::ByMutation(ByMutation::Delete)),
+            ))
         })
     }
 }

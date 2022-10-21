@@ -429,6 +429,7 @@ fn node_update<'a>(
     increment: Arc<AtomicUsize>,
     input: IndexMap<Name, Value>,
     id: String,
+    by_id: Option<String>,
 ) -> RecursiveCreation<'a> {
     let relations = node_ty.relations();
 
@@ -547,6 +548,7 @@ fn node_update<'a>(
                 from.ty().to_string(),
                 from.id().to_string(),
                 selection,
+                by_id,
             );
 
             transaction_batcher
@@ -1021,6 +1023,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         Arc::new(AtomicUsize::new(0)),
                         input,
                         value.to_string(),
+                        None,
                     );
 
                     let _ = update.selection.await?;
@@ -1069,6 +1072,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         Arc::new(AtomicUsize::new(0)),
                         input,
                         id.to_string(),
+                        Some(pk),
                     );
 
                     let _ = update.selection.await?;
@@ -1116,7 +1120,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     let id = opaque_id.id().to_string();
 
                     new_transaction
-                        .load_one(PossibleChanges::delete_node(ty.clone(), id.clone()))
+                        .load_one(PossibleChanges::delete_node(ty.clone(), id.clone(), None))
                         .await?;
 
                     Ok(ResolvedValue::new(Arc::new(serde_json::json!({
@@ -1147,7 +1151,11 @@ impl ResolverTrait for DynamoMutationResolver {
                     let ulid = id.ulid().to_string();
 
                     new_transaction
-                        .load_one(PossibleChanges::delete_node(ty.clone(), ulid.clone()))
+                        .load_one(PossibleChanges::delete_node(
+                            ty.clone(),
+                            ulid.clone(),
+                            Some(pk),
+                        ))
                         .await?;
 
                     Ok(ResolvedValue::new(Arc::new(serde_json::json!({

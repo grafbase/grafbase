@@ -88,6 +88,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 id,
                 mut user_defined_item,
                 ty,
+                by_id,
             } = self;
 
             let id = NodeID::new_owned(ty, id);
@@ -121,11 +122,20 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 constant::SK => sk.clone(),
             };
 
+            let by_condition = if let Some(id) = by_id {
+                exp_values.insert(":by_id".to_owned(), id.into_attr());
+                " AND attribute_exists(:by_id)"
+            } else {
+                ""
+            };
+
             let update_transaction: TransactWriteItem = TransactWriteItem {
                 update: Some(Update {
                     table_name: ctx.dynamodb_table_name.clone(),
                     key,
-                    condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                    condition_expression: Some(format!(
+                        "attribute_exists(#pk) AND attribute_exists(#sk){by_condition}"
+                    )),
                     update_expression,
                     expression_attribute_values: Some(exp_values),
                     expression_attribute_names: Some(exp_att_names),
@@ -158,7 +168,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let DeleteNodeInternalInput { .. } = self;
+            let DeleteNodeInternalInput { by_id, .. } = self;
 
             let key = dynomite::attr_map! {
                     constant::PK => pk.clone(),
@@ -170,11 +180,21 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
                 ("#sk".to_string(), constant::SK.to_string()),
             ]);
 
+            let mut exp_values = HashMap::with_capacity(1);
+
+            let by_condition = if let Some(id) = by_id {
+                exp_values.insert(":by_id".to_owned(), id.into_attr());
+                " AND attribute_exists(:by_id)"
+            } else {
+                ""
+            };
+
             let delete_transaction = Delete {
                 table_name: ctx.dynamodb_table_name.clone(),
-                condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                condition_expression: Some(format!("attribute_exists(#pk) AND attribute_exists(#sk){by_condition}")),
                 key,
                 expression_attribute_names: Some(exp_att_names),
+                expression_attribute_values: Some(exp_values),
                 ..Default::default()
             };
 

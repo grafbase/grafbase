@@ -70,6 +70,7 @@ pub struct UpdateNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    by_id: Option<String>,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -90,6 +91,7 @@ impl Hash for UpdateNodeInput {
 pub struct DeleteNodeInput {
     id: String,
     ty: String,
+    by_id: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -174,16 +176,22 @@ impl PossibleChanges {
         })
     }
 
-    pub const fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn update_node(
+        ty: String,
+        id: String,
+        user_defined_item: HashMap<String, AttributeValue>,
+        by_id: Option<String>,
+    ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
             user_defined_item,
+            by_id,
         })
     }
 
-    pub const fn delete_node(ty: String, id: String) -> Self {
-        Self::DeleteNode(DeleteNodeInput { id, ty })
+    pub const fn delete_node(ty: String, id: String, by_id: Option<String>) -> Self {
+        Self::DeleteNode(DeleteNodeInput { id, ty, by_id })
     }
 
     pub const fn new_link_cached(
@@ -316,6 +324,7 @@ impl GetIds for UpdateNodeInput {
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
                             user_defined_item: self.user_defined_item.clone(),
+                            by_id: self.by_id.clone(),
                         })),
                     );
                 }
@@ -400,6 +409,7 @@ impl GetIds for UpdateNodeInput {
                                 id: from_id,
                                 ty: from_ty,
                                 user_defined_item: self.user_defined_item.clone(),
+                                by_id: self.by_id.clone(),
                             })),
                         );
                     }
@@ -428,7 +438,7 @@ impl GetIds for DeleteNodeInput {
         });
 
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
-        Box::pin(async {
+        Box::pin(async move {
             let ids = items_to_be_deleted
                 .await
                 .map_err(|_| BatchGetItemLoaderError::UnknownError)?;
@@ -456,6 +466,7 @@ impl GetIds for DeleteNodeInput {
                         InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
+                            by_id: self.by_id.clone(),
                         })),
                     );
                 }
@@ -658,6 +669,8 @@ pub enum ToTransactionError {
         value: String,
         field: String,
     },
+    #[error(r#"Could not complete the transaction as the state of the target entity has changed"#)]
+    Consistency,
 }
 
 pub trait ExecuteChangesOnDatabase
@@ -695,6 +708,7 @@ pub struct UpdateNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    pub by_id: Option<String>,
 }
 
 impl UpdateNodeInternalInput {
@@ -761,8 +775,9 @@ impl UpdateUniqueConstraint {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DeleteNodeInternalInput {
-    id: String,
-    ty: String,
+    pub id: String,
+    pub ty: String,
+    pub by_id: Option<String>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -1011,6 +1026,7 @@ impl Add<Self> for UpdateNodeInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
+            by_id: self.by_id,
         }
     }
 }
@@ -1341,6 +1357,8 @@ async fn execute(
     changes: Vec<PossibleChanges>,
 ) -> Result<Vec<crate::local::types::Operation>, ToTransactionError> {
     use crate::local::types::Operation;
+    use crate::local::types::OperationKind;
+    use std::cmp::Ordering;
 
     info!(ctx.trace_id, "Public");
     for r in &changes {
@@ -1389,10 +1407,17 @@ async fn execute(
 
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let merged = transactions
+    let mut merged: Vec<Operation> = transactions
         .into_iter()
         .map(|(sql, values, kind)| Operation { sql, values, kind })
         .collect();
+
+    // ensures that conditions are always checked before conflicting operations
+    merged.sort_by(|left, right| match (&left.kind, &right.kind) {
+        (Some(OperationKind::ByMutation(_)), _) => Ordering::Less,
+        (_, Some(OperationKind::ByMutation(_))) => Ordering::Greater,
+        _ => Ordering::Equal,
+    });
 
     Ok(merged)
 }
@@ -1416,6 +1441,7 @@ async fn load_keys(
     #[cfg(feature = "local")]
     {
         use crate::local::types::Constraint;
+
         use bridge_api::{mutation, ApiErrorKind, MutationError};
 
         let operations = execute(batcher, ctx, tx).await?;
@@ -1433,6 +1459,7 @@ async fn load_keys(
                                 source: TransactionError::UnknownError,
                             }
                         }
+                        ApiErrorKind::Consistency(_) => ToTransactionError::Consistency,
                     },
                 })?;
         }
