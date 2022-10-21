@@ -47,7 +47,7 @@ const ITEMS_LIST_QUERY = gql`
   }
 `
 
-const Home: NextPage = (props: { data: ItemsListQuery }) => {
+const Home = (props: { data: ItemsListQuery }) => {
   const { isSignedIn } = useAuth()
   const {
     data: clientData,
