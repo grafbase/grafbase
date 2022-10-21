@@ -1,9 +1,9 @@
-import { gql, useMutation } from "@apollo/client";
-import { ItemMutation } from "gql/graphql";
-import useViewer from "hooks/use-viewer";
-import Head from "next/head";
-import { useRouter } from "next/router";
-import { FormEvent, useState } from "react";
+import { gql, useMutation } from '@apollo/client'
+import { ItemMutation } from 'gql/graphql'
+import useViewer from 'hooks/use-viewer'
+import Head from 'next/head'
+import { useRouter } from 'next/router'
+import { FormEvent, useState } from 'react'
 
 const ITEM_SUBMIT_MUTATION = gql`
   mutation Item($title: String!, $url: URL!, $authorId: ID!) {
@@ -15,44 +15,44 @@ const ITEM_SUBMIT_MUTATION = gql`
       }
     }
   }
-`;
+`
 
 const ItemSubmitPage = () => {
-  const { viewer } = useViewer();
-  const { push } = useRouter();
+  const { viewer } = useViewer()
+  const { push } = useRouter()
 
-  const [submitFunction, { loading, error }] =
-    useMutation<ItemMutation>(ITEM_SUBMIT_MUTATION);
+  const [submitFunction, { loading, error, called }] =
+    useMutation<ItemMutation>(ITEM_SUBMIT_MUTATION)
 
   const [form, setForm] = useState<{ url: string; title: string }>({
-    url: "",
-    title: "",
-  });
+    url: '',
+    title: ''
+  })
 
   const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    if (loading) {
-      return;
+    if (loading || called) {
+      return
     }
 
     const response = await submitFunction({
       variables: {
         title: form.title,
         url: form.url,
-        authorId: viewer?.id,
-      },
-    });
+        authorId: viewer?.id
+      }
+    })
 
     if (response.data?.itemCreate?.item?.id) {
       push({
-        pathname: "/item/[id]",
+        pathname: '/item/[id]',
         query: {
-          id: response.data?.itemCreate?.item?.id,
-        },
-      });
+          id: response.data?.itemCreate?.item?.id
+        }
+      })
     }
-  };
+  }
 
   return (
     <div>
@@ -107,16 +107,16 @@ const ItemSubmitPage = () => {
             type="submit"
             disabled={loading}
             className={
-              "border bg-black text-lg px-2 py-1 text-white hover:bg-gray-700 " +
-              (loading && "animate-pulse")
+              'border bg-black text-lg px-2 py-1 text-white hover:bg-gray-700 ' +
+              (loading && 'animate-pulse')
             }
           >
-            Submit
+            Submit {loading && '...'}
           </button>
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default ItemSubmitPage;
+export default ItemSubmitPage

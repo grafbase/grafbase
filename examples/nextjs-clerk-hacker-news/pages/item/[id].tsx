@@ -7,11 +7,11 @@ import ItemVotes from 'components/item-votes'
 import formatDistanceToNow from 'date-fns/formatDistanceToNow'
 import { ItemOneQuery } from 'gql/graphql'
 import useViewer from 'hooks/use-viewer'
-import Head from 'next/head'
-import { useRouter } from 'next/router'
 import { graphQlRequestClient } from 'lib/request'
 import { GetServerSideProps } from 'next'
+import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 
 const ITEM_QUERY = gql`
   query ItemOne($id: ID!, $afterComments: String) {
@@ -89,7 +89,7 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
     return (
       <div className="flex">
         <div className="animate-pulse bg-gray-200 h-[136.5px] w-[32px]" />
-        <div className="ml-4 animate-pulse bg-gray-200 h-[39px] w-[250px]" />
+        <div className="animate-pulse ml-4 bg-gray-200 h-[39px] w-[250px]" />
       </div>
     )
   }

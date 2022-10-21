@@ -7,8 +7,8 @@ import { PropsWithChildren, SVGProps } from 'react'
 const navigation = [
   { name: 'Feed', href: '/' },
   { name: 'Users', href: '/users' },
-  { name: 'Submit', href: '/item/submit' },
-  { name: 'About', href: '/about' }
+  { name: 'Submit', href: '/item/submit' }
+  // { name: 'About', href: '/about' }
 ]
 
 const footer = [
