@@ -1,4 +1,4 @@
-import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
+import { gql, useMutation, useQuery } from '@apollo/client'
 import { SignedIn } from '@clerk/nextjs'
 import Img from 'components/img'
 import ItemAddComment from 'components/item-add-comment'
@@ -11,11 +11,15 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 
 const ITEM_QUERY = gql`
-  query ItemOne($id: ID!) {
+  query ItemOne($id: ID!, $afterComments: String) {
     item(by: { id: $id }) {
       id
       title
-      comments(first: 100) {
+      comments(first: 6, after: $afterComments) {
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
         edges {
           node {
             id
@@ -60,16 +64,34 @@ const ITEM_DELETE_MUTATION = gql`
 `
 
 const ItemIdPage = () => {
-  const client = useApolloClient()
   const { query, replace } = useRouter()
   const { viewer } = useViewer()
-  const { data, loading, error } = useQuery<ItemOneQuery>(ITEM_QUERY, {
-    variables: { id: query.id }
-  })
+  const { data, loading, error, fetchMore } = useQuery<ItemOneQuery>(
+    ITEM_QUERY,
+    {
+      notifyOnNetworkStatusChange: true,
+      variables: { id: query.id }
+    }
+  )
   const [deleteMutation] = useMutation(ITEM_DELETE_MUTATION)
 
-  if (loading || !data?.item) {
-    return null
+  if (loading && !data?.item) {
+    return (
+      <div className="flex">
+        <div className="animate-pulse bg-gray-200 h-[136.5px] w-[32px]" />
+        <div className="ml-4 animate-pulse bg-gray-200 h-[39px] w-[250px]" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-500 min-h-24 w-full flex flex-col space-y-6 items-center justify-center py-6">
+        <div className="text-lg text-white">
+          Something went wrong in the API.
+        </div>
+      </div>
+    )
   }
 
   const { id, title, comments, createdAt, url, votes, author } = data?.item
@@ -141,6 +163,22 @@ const ItemIdPage = () => {
 
               return <ItemComment key={edge.node.id} {...edge.node} />
             })}
+            {!!data?.item?.comments?.pageInfo?.hasNextPage && (
+              <div className="text-center">
+                <button
+                  onClick={() =>
+                    fetchMore({
+                      variables: {
+                        afterComments: data?.item?.comments?.pageInfo?.endCursor
+                      }
+                    })
+                  }
+                  className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Load More {loading ? '...' : ''}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

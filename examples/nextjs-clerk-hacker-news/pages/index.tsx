@@ -1,13 +1,17 @@
-import { gql, useQuery } from "@apollo/client";
-import Head from "components/head";
-import ItemList from "components/item-list";
-import { ItemsListQuery } from "gql/graphql";
-import type { NextPage } from "next";
-import Link from "next/link";
+import { gql, useQuery } from '@apollo/client'
+import Head from 'components/head'
+import ItemList from 'components/item-list'
+import { ItemsListQuery } from 'gql/graphql'
+import type { NextPage } from 'next'
+import Link from 'next/link'
 
 const ITEMS_LIST_QUERY = gql`
-  query ItemsList {
-    itemCollection(first: 100) {
+  query ItemsList($after: String) {
+    itemCollection(first: 4, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -39,10 +43,15 @@ const ITEMS_LIST_QUERY = gql`
       }
     }
   }
-`;
+`
 
 const Home: NextPage = () => {
-  const { data, loading, error } = useQuery<ItemsListQuery>(ITEMS_LIST_QUERY);
+  const { data, loading, error, fetchMore } = useQuery<ItemsListQuery>(
+    ITEMS_LIST_QUERY,
+    {
+      notifyOnNetworkStatusChange: true
+    }
+  )
 
   return (
     <>
@@ -64,7 +73,7 @@ const Home: NextPage = () => {
             </a>
           </div>
         </div>
-        {(loading || !!error) && (
+        {(loading || !!error) && !data?.itemCollection?.edges?.length && (
           <>
             <div className="animate-pulse bg-gray-200 p-4 border border-gray-400 h-24 border-b-4 w-full" />
             <div className="animate-pulse bg-gray-200 p-4 border border-gray-400 h-24 border-b-4 w-full" />
@@ -93,14 +102,25 @@ const Home: NextPage = () => {
         {data?.itemCollection?.edges?.map(
           (edge) => !!edge && <ItemList key={edge.node.id} {...edge.node} />
         )}
-        {/*<div className="text-center">*/}
-        {/*  <button className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50">*/}
-        {/*    Load More*/}
-        {/*  </button>*/}
-        {/*</div>*/}
+        {!!data?.itemCollection?.pageInfo?.hasNextPage && (
+          <div className="text-center">
+            <button
+              onClick={() =>
+                fetchMore({
+                  variables: {
+                    after: data?.itemCollection?.pageInfo?.endCursor
+                  }
+                })
+              }
+              className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Load More {loading ? '...' : ''}
+            </button>
+          </div>
+        )}
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Home;
+export default Home

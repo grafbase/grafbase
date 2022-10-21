@@ -54,12 +54,6 @@ const ItemComment = (
         <div className="p-2 sm:p-0 flex items-center space-x-4">
           {isSignedInUserComment && (
             <div className="text-sm border whitespace-nowrap">
-              {/*<button*/}
-              {/*  onClick={() => alert("@todo")}*/}
-              {/*  className="text-gray-700 hover:bg-gray-200 px-2 border-r"*/}
-              {/*>*/}
-              {/*  Edit*/}
-              {/*</button>*/}
               <button
                 onClick={onDelete}
                 className="text-gray-700 hover:bg-gray-200 px-2"

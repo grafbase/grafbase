@@ -1,14 +1,17 @@
 import { gql, useQuery } from '@apollo/client'
 import Img from 'components/img'
-import { users } from 'data/dummy-data'
 import formatDistanceToNow from 'date-fns/formatDistanceToNow'
 import { UsersListQuery } from 'gql/graphql'
 import Head from 'next/head'
 import Link from 'next/link'
 
 const USERS_LIST_QUERY = gql`
-  query UsersList {
-    userCollection(first: 100) {
+  query UsersList($after: String) {
+    userCollection(first: 10, after: $after) {
+      pageInfo {
+        endCursor
+        hasNextPage
+      }
       edges {
         node {
           id
@@ -22,7 +25,8 @@ const USERS_LIST_QUERY = gql`
 `
 
 const UsersPage = () => {
-  const { data, loading, error } = useQuery<UsersListQuery>(USERS_LIST_QUERY)
+  const { data, loading, error, fetchMore } =
+    useQuery<UsersListQuery>(USERS_LIST_QUERY)
 
   return (
     <div>
@@ -38,7 +42,7 @@ const UsersPage = () => {
         Total ({data?.userCollection?.edges?.length || 0})
       </h3>
       <div className="space-y-4 mt-6">
-        {(loading || !!error) && (
+        {(loading || !!error) && !data?.userCollection?.edges?.length && (
           <>
             <div className="animate-pulse bg-gray-200 p-4 border h-11 border-b-4 w-full" />
             <div className="animate-pulse bg-gray-200 p-4 border h-11 border-b-4 w-full" />
@@ -85,6 +89,22 @@ const UsersPage = () => {
             </div>
           )
         })}
+        {!!data?.userCollection?.pageInfo?.hasNextPage && (
+          <div className="text-center">
+            <button
+              onClick={() =>
+                fetchMore({
+                  variables: {
+                    after: data?.userCollection?.pageInfo?.endCursor
+                  }
+                })
+              }
+              className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Load More {loading ? '...' : ''}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

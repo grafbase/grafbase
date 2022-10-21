@@ -4,7 +4,7 @@ This examples shows how to connect Clerk as your Identity Provider with your Gra
 
 ## Getting Started
 
-1. Run `npx degit grafbase/grafbase/examples/nextjs-clerk-hackernews grafnews-with-clerk` to clone this example
+1. Run `npx degit grafbase/grafbase/examples/nextjs-clerk-hacker-news grafnews-with-clerk` to clone this example
 2. Change directory into the new folder `cd grafnews-with-clerk`
 3. Run `cp .env.example .env` to copy the example `.env.example` file to `.env` in the root of your project
 4. Run `cp grafbase/.env.example grafbase/.env` to copy the example `.env.example` file to `.env` in the `grafbase` folder
@@ -16,14 +16,12 @@ This examples shows how to connect Clerk as your Identity Provider with your Gra
 10. Visit [http://localhost:3000](http://localhost:3000)
 
 ## Missing
--[ ] Explanation steps and how it works.
 -[ ] Pagination of items, users and posts.
 -[ ] Better typing by using fragments and remove the NonNullable thing.
--[ ] Uncomment delete (It brokes the app, as it also deletes the linked users).
 -[ ] About page.
 
 
-## Issues
+## Pending issues and technical debt
 
 ### General
 
