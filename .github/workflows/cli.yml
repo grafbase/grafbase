@@ -10,53 +10,25 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: "true"
+  ASSETS_VERSION: "gb-1322-local-gateway-assets-release/latest"
+  DEV_ASSETS_BUCKET: assets.grafbase.dev
+  PROD_ASSETS_BUCKET: assets.grafbase.com
+
+concurrency:
+  group: ${{ github.event.ref }}
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-
     steps:
-      - name: clone repository
+      - name: Get sources
         uses: actions/checkout@v3
 
-      - name: move CLI to root
-        run: |
-          shopt -s extglob
-          rm -r !("cli")
-          mv cli/* .
-          rm -r cli
-
-      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
-      - name: create `rust-toolchain`
-        run: |
-          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
-
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
-        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-        # Once it does, we should be able to remove the `with` block entirely.
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
         with:
-          profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
-          components: rustfmt, clippy
-          override: true
-
-      - name: set up a cache for .cargo
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: ~/.cargo/*
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: set up a cache for target
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
+          cdn: ${{ github.ref_name == 'main' && env.PROD_ASSETS_BUCKET || env.DEV_ASSETS_BUCKET }}
+          assets_version: ${{ env.ASSETS_VERSION }}
 
       - name: check formatting of Rust code
         uses: actions-rs/cargo@v1
@@ -73,265 +45,137 @@ jobs:
 
   windows:
     runs-on: windows-latest
+    needs: [lint]
     steps:
-      - name: clone repository
+      - name: Get sources
         uses: actions/checkout@v3
 
-      - name: move CLI to root
-        run: |
-          shopt -s extglob
-          rm -r !("cli")
-          mv cli/* .
-          rm -r cli
-        shell: bash
-
-      - run: echo "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Tools\Llvm\x64\bin" >> $GITHUB_PATH
-        shell: bash
-
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
-        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-        # Once it does, we should be able to remove the `with` block entirely.
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
         with:
-          profile: minimal
-          toolchain: "1.62.1"
-          target: x86_64-pc-windows-msvc
-          override: true
+          cdn: ${{ github.ref_name == 'main' && env.PROD_ASSETS_BUCKET || env.DEV_ASSETS_BUCKET }}
+          assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: set up a cache for .cargo
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: ~/.cargo/*
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: set up a cache for target
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: fetch assets
-        run: |
-          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
-          unzip assets.zip
-          rm -r crates/server/assets
-          mv assets crates/server/assets
-          cp -r crates/server/assets ~/.grafbase/
-          touch ~/.grafbase/version.txt
-        shell: bash
-
-      - name: test
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - name: build
+      - name: Build release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions-rs/cargo@v1
-        if: github.ref == 'refs/heads/main'
         with:
           command: build
           args: "--release --target x86_64-pc-windows-msvc"
 
-      - name: archive production artifacts
+      - name: Upload binaries
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v3
-        if: github.ref == 'refs/heads/main'
         with:
-          name: grafbase-x86_64-pc-windows-msvc.exe
-          path: target/x86_64-pc-windows-msvc/release/grafbase.exe
+          name: ${{ github.ref_name }}-windows
+          path: |
+            target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
     runs-on: ubuntu-latest
-
+    needs: [lint]
     steps:
-      - name: clone repository
+      - name: Get sources
         uses: actions/checkout@v3
 
-      - name: move CLI to root
-        run: |
-          shopt -s extglob
-          rm -r !("cli")
-          mv cli/* .
-          rm -r cli
-
-      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
-      - name: create `rust-toolchain`
-        run: |
-          grep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
-
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
-        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-        # Once it does, we should be able to remove the `with` block entirely.
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
         with:
-          profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
-          target: x86_64-unknown-linux-musl
-          override: true
+          cdn: ${{ github.ref_name == 'main' && env.PROD_ASSETS_BUCKET || env.DEV_ASSETS_BUCKET }}
+          assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: set up a cache for .cargo
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: ~/.cargo/*
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: set up a cache for target
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: fetch assets
-        run: |
-          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
-          unzip assets.zip
-          rm -r crates/server/assets
-          mv assets crates/server/assets
-          cp -r crates/server/assets ~/.grafbase/
-          touch ~/.grafbase/version.txt
-
-      - name: test
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - name: build
+      - name: Build release
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions-rs/cargo@v1
-        if: github.ref == 'refs/heads/main'
         with:
           use-cross: true
           command: build
           args: "--release --target x86_64-unknown-linux-musl"
 
       - name: chmod binary
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/')
         run: chmod +x target/x86_64-unknown-linux-musl/release/grafbase
 
-      - name: archive production artifacts
+      - name: Upload binaries
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v3
-        if: github.ref == 'refs/heads/main'
         with:
-          name: grafbase-x86_64-unknown-linux-musl
-          path: target/x86_64-unknown-linux-musl/release/grafbase
+          name: ${{ github.ref_name }}-linux
+          path: |
+            target/x86_64-unknown-linux-musl/release/grafbase
 
   darwin:
     runs-on: macos-latest
-
+    needs: [lint]
     steps:
-      - name: clone repository
+      - name: Get sources
         uses: actions/checkout@v3
 
-      - name: move CLI to root
-        run: |
-          shopt -s extglob
-          rm -r !("cli")
-          mv cli/* .
-          rm -r cli
-
-      - name: install grep
-        run: |
-          brew install grep
-
-      # FIXME: Drop when https://github.com/actions-rs/toolchain/issues/126 is fixed.
-      - name: create `rust-toolchain`
-        run: |
-          ggrep -Po '(?<=^channel = ")\d+\.\d+(\.\d+)?(?=")' rust-toolchain.toml > rust-toolchain && rm rust-toolchain.toml
-
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
-        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-        # Once it does, we should be able to remove the `with` block entirely.
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
         with:
-          profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
-          target: x86_64-apple-darwin
-          override: false
+          cdn: ${{ github.ref_name == 'main' && env.PROD_ASSETS_BUCKET || env.DEV_ASSETS_BUCKET }}
+          assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: install Rust stable
-        uses: actions-rs/toolchain@v1
-        # FIXME: We use rust-toolchain.toml to specify targets, etc. Unfortunately,
-        # the action doesn't support it yet (https://github.com/actions-rs/toolchain/issues/208).
-        # Once it does, we should be able to remove the `with` block entirely.
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
-          target: aarch64-apple-darwin
-          override: false
-
-      - name: set up a cache for .cargo
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: ~/.cargo/*
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: set up a cache for target
-        uses: actions/cache@v3
-        timeout-minutes: 5
-        continue-on-error: true
-        with:
-          path: target
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Cargo.lock', 'Cargo.toml') }}
-
-      - name: fetch assets
-        run: |
-          curl https://temp-artifact-storage.s3.eu-west-3.amazonaws.com/assets.zip --output assets.zip
-          unzip assets.zip
-          rm -r crates/server/assets
-          mv assets crates/server/assets
-          cp -r crates/server/assets ~/.grafbase/
-          touch ~/.grafbase/version.txt
-
-      - name: test
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
 
-      - name: build
+      - name: Build aarch64 release
         uses: actions-rs/cargo@v1
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           use-cross: true
           command: build
           args: "--release --target aarch64-apple-darwin"
 
-      - name: build
+      - name: Build x86_64 release
         uses: actions-rs/cargo@v1
-        if: github.ref == 'refs/heads/main'
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           use-cross: true
           command: build
           args: "--release --target x86_64-apple-darwin"
 
-      - name: chmod binary
-        if: github.ref == 'refs/heads/main'
-        run: chmod +x target/x86_64-apple-darwin/release/grafbase
+      - name: chmod binaries
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          chmod +x target/x86_64-apple-darwin/release/grafbase
+          chmod +x target/aarch64-apple-darwin/release/grafbase
 
-      - name: chmod binary
-        if: github.ref == 'refs/heads/main'
-        run: chmod +x target/aarch64-apple-darwin/release/grafbase
-
-      - name: archive production artifacts
+      - name: Upload aarch binary
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v3
-        if: github.ref == 'refs/heads/main'
         with:
-          name: grafbase-x86_64-apple-darwin
+          name: ${{ github.ref_name }}-aarch64-darwin
+          path: target/aarch64-apple-darwin/release/grafbase
+
+      - name: Upload x86_64 binary
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.ref_name }}-x86_64-darwin
           path: target/x86_64-apple-darwin/release/grafbase
 
-      - name: archive production artifacts
-        uses: actions/upload-artifact@v3
-        if: github.ref == 'refs/heads/main'
-        with:
-          name: grafbase-aarch64-apple-darwin
-          path: target/aarch64-apple-darwin/release/grafbase
+  release:
+    needs: [windows, linux, darwin]
+    if: startsWith(github.ref, 'refs/tags/')
+    uses: ./.github/workflows/partial-release.yml
+    secrets:
+      SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+    with:
+      draft: false
+      tag: ${{ github.ref_name }}
+

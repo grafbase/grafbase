@@ -1,0 +1,77 @@
+name: CLI rust job init
+description: Base steps for CLI jobs
+
+inputs:
+  cdn:
+    type: choice
+    description: CDN to use when fetching assets
+    required: true
+    options:
+      - assets.grafbase.dev
+      - assets.grafbase.com
+  platform:
+    type: choice
+    description: Target platform to use when setting up rust
+    required: true
+    options:
+      - windows
+      - macos
+      - linux
+  assets_version:
+    description: Version of the assets to fetch from CDN
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: move CLI to root
+      shell: bash
+      run: |
+        shopt -s extglob
+        rm -r !("cli")
+        mv cli/* .
+        rm -r cli
+
+    - name: Cargo cache
+      uses: actions/cache@v3
+      continue-on-error: false
+      with:
+        key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('Cargo.lock') }}
+        restore-keys: ${{ runner.os }}-${{ runner.arch }}-cargo-
+        path: |
+          ~/.cargo/
+          target/
+
+    - name: Install rustup linux
+      if: ${{ inputs.platform == 'linux' }}
+      shell: bash
+      working-directory: cli
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=stable --profile=minimal
+
+    - name: Install rustup windows
+      if: ${{ inputs.platform == 'windows' }}
+      uses: crazy-max/ghaction-chocolatey@v2
+      with:
+        args: install rustup
+
+    - name: Install rustup macos
+      if: ${{ inputs.platform == 'macos' }}
+      shell: bash
+      run: |
+        brew install rustup
+
+    - name: rustup
+      shell: bash
+      run: |
+        rustup target list
+
+    - name: Fetch CDN assets
+      shell: bash
+      run: |
+        curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.zip --output assets.zip
+        unzip assets.zip -d assets
+        rm -r crates/server/assets
+        mv assets crates/server/assets
+        cp -r crates/server/assets ~/.grafbase/
+        touch ~/.grafbase/version.txt
