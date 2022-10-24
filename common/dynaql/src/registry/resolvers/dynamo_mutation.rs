@@ -1010,6 +1010,9 @@ impl ResolverTrait for DynamoMutationResolver {
                 let by_id = key == "id";
 
                 if by_id {
+                    let value: String =
+                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+
                     ObfuscatedID::expect(&value.to_string(), &ty)
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
@@ -1058,6 +1061,9 @@ impl ResolverTrait for DynamoMutationResolver {
                     let original_pk = original_pk.s.expect("must be a string");
 
                     let id = NodeID::from_owned(original_pk.clone()).unwrap();
+
+                    ObfuscatedID::expect(&id.to_string(), &ty)
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
                     let input = input
                         .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
