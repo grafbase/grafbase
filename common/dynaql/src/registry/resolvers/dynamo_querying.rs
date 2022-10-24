@@ -433,6 +433,7 @@ impl ResolverTrait for DynamoResolver {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
 
+                ctx.add_followed_node(parent_pk).await;
                 ctx.add_followed_relations(parent_pk, std::iter::once(relation_name))
                     .await;
                 ctx.follow_nodes_from_dynamodb(query_result.iter().flat_map(|(_, x)| x.iter()))
