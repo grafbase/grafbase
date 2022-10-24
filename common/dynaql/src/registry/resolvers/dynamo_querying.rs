@@ -564,12 +564,14 @@ impl ResolverTrait for DynamoResolver {
                     .collect();
 
                 let query_result = query_loader
-                    .load_one(QueryKey::new(pk, edges))
+                    .load_one(QueryKey::new(pk.clone(), edges))
                     .await?
                     .map(|x| x.values)
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
+
+                ctx.add_followed_node(&pk).await;
 
                 let len = query_result.len();
 
