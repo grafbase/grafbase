@@ -321,6 +321,34 @@ mod tests {
     const TOKEN_FROM_AUTH0_IAT: i64 = 1_664_960_674;
     const TOKEN_FROM_AUTH0_SUB: &str = "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients";
 
+    /* TOKEN_WITH_NESTED_GROUPS decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV"
+      },
+      "payload": {
+        "exp": 1666715083,
+        "https://grafbase.com/jwt/claims": {
+          "x-grafbase-allowed-roles": [
+            "editor",
+            "user",
+            "mod"
+          ]
+        },
+        "iat": 1666714483,
+        "iss": "https://clerk.grafbase-vercel.dev",
+        "jti": "918f9036d1b5aa2a159a",
+        "nbf": 1666714478,
+        "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
+      }
+    }
+    */
+    const TOKEN_WITH_NESTED_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjY3MTUwODMsImh0dHBzOi8vZ3JhZmJhc2UuY29tL2p3dC9jbGFpbXMiOnsieC1ncmFmYmFzZS1hbGxvd2VkLXJvbGVzIjpbImVkaXRvciIsInVzZXIiLCJtb2QiXX0sImlhdCI6MTY2NjcxNDQ4MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5ncmFmYmFzZS12ZXJjZWwuZGV2IiwianRpIjoiOTE4ZjkwMzZkMWI1YWEyYTE1OWEiLCJuYmYiOjE2NjY3MTQ0NzgsInN1YiI6InVzZXJfMkU0c1Jqb2tuMnIxNFJMd2hFdmpWc0hnQ21HIn0.jA1pmbIBn_Vkos5-irFyFhwyq4OvxnkMcs8y_joWGmGnabS9I2YM5QBP-l7ZuFY9G8b5Up_Jzr0C1IsoIr0P3fM6yGdwe8MXEvZyKRXDbScq0sUvsMJTn2FJrUL0NgE-2fOVh-H0CNqDx2c584mYDgeMGXg2po_JAhszmqqLYC8KyypF2Y_j6jtyW6kiE_nbdRLINz-lEP3Wvmy60qeZHwDX4CzcME_y7avM10vTpqSoojuaoEKdCQh7tEKIpgCI0CdDx31B_bKaHPJ3nDw8fTZQ5HxK4YXkRPIdxMjG3Dby4EKuvvegZQDoASE4gUyPJ0qBgeOXUNdf5Vk6DJX9sQ";
+    const TOKEN_WITH_NESTED_GROUPS_IAT: i64 = 1_666_714_483;
+    const TOKEN_WITH_NESTED_GROUPS_SUB: &str = "user_2E4sRjokn2r14RLwhEvjVsHgCmG";
+
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
         let jwks_uri = issuer.join(JWKS_PATH).unwrap();
@@ -339,13 +367,22 @@ mod tests {
             .respond_with(ResponseTemplate::new(200).set_body_json(json!(
                 {
                     "keys": [
-                        // Clerk
+                        // clerk.b74v0.5y6hj.lcl.dev
                         {
                             "use": "sig",
                             "kty": "RSA",
                             "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ",
                             "alg": "RS256",
                             "n": "z-Fz5w3CGNCvXJNK36DU3-t9Z6llP4j7JTJKcZWXViuqaHtnP0JuCQtesKlf58sjJinRYuSlMuRDeVZ-V7SqDqA0mfxkHqPYpgh1TOYeSMusKJjK36NlLa9nk6wPLv3C95OYTcvvEw0seE07bxiRP2U2W-ZlCE6wJQ9HtHUzLntpF5ZHLJgR3ziXTPHesp6HU4v2JfWS0laZIzgQaSXgysx6YRucZeJb0sWjPuj-aTjhXm5ThgnwzBchBIWMm2t7wh4Ma2hM_iE2MobxpOPfD25MPJ-EV-bG88B61uKbofllEn0ATs_AWSVkNvWCm9-QpTP_7MmsomrbfHEBg_VV9Q",
+                            "e": "AQAB"
+                        },
+                        // clerk.grafbase-vercel.dev
+                        {
+                            "use": "sig",
+                            "kty": "RSA",
+                            "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV",
+                            "alg": "RS256",
+                            "n": "t8IlMSSequigQ3RG1LjYyO2yY2Y1BtOLi0reYGlZ-4BYAiH99jhQQw6R7Yvg_pbgREO--34fayzx7v0te75IAGwMX22sRAJ1aZqdQxBr1lVLSjLrT-WRlIN04MucV4SK8qK8mx94fxFtMAoQxiTICxmHOzrAaoWhS64qCsekUSOiYJyVKarBBM2FDhBanbhg1l0uZnbllMK8WQ4_nLnMRzpNUaYEDJtgUOIEFrVDGEIpbMwEBl4FSDgfCNPXF-OesOPvMwWkfdCklpkj8TecKVpqYBpEodHqDlV7uHpHx8pleStLcIQn1GCqTlA1-XtU3owk2kYEBFNs-sYG-ZRNIQ",
                             "e": "AQAB"
                         },
                         // Auth0 1/2
@@ -503,6 +540,34 @@ mod tests {
             VerifiedToken {
                 identity: TOKEN_FROM_AUTH0_SUB.to_string(),
                 groups: vec!["admin".to_string()].into_iter().collect(),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_verify_token_with_nested_groups() {
+        let server = MockServer::start().await;
+        let issuer: Url = server.uri().parse().unwrap();
+
+        set_up_mock_server(&issuer, &server).await;
+
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NESTED_GROUPS_IAT, 0), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                ignore_iss_claim: true,
+                groups_claim: Some("https://grafbase.com/jwt/claims[x-grafbase-allowed-roles]".to_string()),
+                ..Default::default()
+            }
+        };
+
+        assert_eq!(
+            client.verify_token(TOKEN_WITH_NESTED_GROUPS, issuer).await.unwrap(),
+            VerifiedToken {
+                identity: TOKEN_WITH_NESTED_GROUPS_SUB.to_string(),
+                groups: vec!["admin", "user", "mod"].into_iter().map(String::from).collect(),
             }
         );
     }
