@@ -1,6 +1,0 @@
----
-source: common/dynaql/src/registry/response/mod.rs
-assertion_line: 127
-expression: primitive
----
-"blbl"
