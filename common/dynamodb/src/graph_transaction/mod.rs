@@ -289,7 +289,7 @@ impl GetIds for UpdateNodeInput {
         let query_loader_reversed = &batchers.query_reversed;
 
         let select_entities_to_update = query_loader_reversed
-            .load_one(QueryKey::new(pk, Vec::new()))
+            .load_one(QueryKey::new(pk.clone(), Vec::new()))
             .map_ok(|x| {
                 x.into_iter()
                     .flat_map(|x| x.values.into_iter().map(|(_, val)| val))
@@ -303,6 +303,20 @@ impl GetIds for UpdateNodeInput {
 
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
+
+            let by_id = self.by_id.clone();
+
+            if let Some(id) = by_id {
+                result.insert(
+                    (id.clone(), id.clone()),
+                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                            target: pk,
+                            user_defined_item: self.user_defined_item.clone(),
+                        }),
+                    )),
+                );
+            }
 
             for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
@@ -444,7 +458,19 @@ impl GetIds for DeleteNodeInput {
                 .map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
             let id_len = ids.len() + 1;
+
             let mut result = HashMap::with_capacity(id_len);
+
+            let by_id = self.by_id.clone();
+
+            if let Some(id) = by_id {
+                result.insert(
+                    (id.clone(), id),
+                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                        DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                    )),
+                );
+            }
 
             for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
