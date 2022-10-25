@@ -123,9 +123,9 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             };
 
             let by_condition = if let Some(id) = by_id {
-                exp_att_names.insert("#by_id".to_string(), "by_id".to_string());
-                exp_values.insert(":by_id".to_owned(), id.into_attr());
-                " AND attribute_exists(#by_id)"
+                exp_att_names.insert("#byid".to_string(), "byid".to_string());
+                exp_values.insert(":byid".to_owned(), id.into_attr());
+                " AND attribute_exists(#byid)"
             } else {
                 ""
             };
@@ -184,9 +184,9 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
             let mut exp_values = HashMap::with_capacity(1);
 
             let by_condition = if let Some(id) = by_id {
-                exp_att_names.insert("#by_id".to_string(), "by_id".to_string());
-                exp_values.insert(":by_id".to_owned(), id.into_attr());
-                " AND attribute_exists(#by_id)"
+                exp_att_names.insert("#byid".to_string(), "byid".to_string());
+                exp_values.insert(":byid".to_owned(), id.into_attr());
+                " AND attribute_exists(#byid)"
             } else {
                 ""
             };
