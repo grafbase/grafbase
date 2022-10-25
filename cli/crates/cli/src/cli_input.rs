@@ -1,13 +1,13 @@
 use cfg_if::cfg_if;
-use clap::{arg, command, value_parser, Arg, Command};
+use clap::{arg, command, value_parser, Arg, ArgAction, Command};
 use indoc::indoc;
 
 /// creates the cli interface
 #[must_use]
-pub fn build_cli() -> Command<'static> {
+pub fn build_cli() -> Command {
     cfg_if! {
         if #[cfg(debug_assertions)] {
-            let command_builder = command!().arg(arg!(-t --trace "Activate tracing"));
+            let command_builder = command!().arg(arg!(-t --trace "Activate tracing").action(ArgAction::SetTrue));
         } else {
             let command_builder = command!();
         }
@@ -19,13 +19,12 @@ pub fn build_cli() -> Command<'static> {
         .subcommand(
             Command::new("dev").about("Run your grafbase project locally").args(&[
                 arg!(-p --port <port> "Use a specific port")
-                    .takes_value(true)
                     .default_value("4000")
-                    .value_parser(value_parser!(u16))
-                    .required(false),
-                arg!(-s --search "If a given port is unavailable, search for another"),
+                    .value_parser(value_parser!(u16)),
+                arg!(-s --search "If a given port is unavailable, search for another").action(ArgAction::SetTrue),
                 Arg::new("disable-watch")
-                    .long("--disable-watch")
+                    .long("disable-watch")
+                    .action(ArgAction::SetTrue)
                     .help("Do not listen for schema changes and reload"),
             ]),
         )
@@ -58,4 +57,9 @@ pub fn build_cli() -> Command<'static> {
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view
+}
+
+#[test]
+fn verify_cli() {
+    build_cli().debug_assert();
 }
