@@ -308,7 +308,7 @@ impl GetIds for UpdateNodeInput {
 
             if let Some(id) = by_id {
                 result.insert(
-                    (id.clone(), id.clone()),
+                    (id.clone(), id),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
                         UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
                             target: pk,
