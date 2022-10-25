@@ -1,10 +1,12 @@
-import { gql, useApolloClient, useMutation } from "@apollo/client";
+import { gql, useApolloClient, useMutation, useQuery } from '@apollo/client'
 import {
   ItemsListQuery,
   ItemVoteMutation,
-  ItemVoteUpdateMutation,
-} from "gql/graphql";
-import useViewer from "hooks/use-viewer";
+  ItemVoteUpdateMutation
+} from 'gql/graphql'
+import useViewer from 'hooks/use-viewer'
+import { useAuth } from '@clerk/nextjs'
+import { useRouter } from 'next/router'
 
 const ITEM_VOTE_MUTATION = gql`
   mutation ItemVote($vote: Boolean!, $authorId: ID!, $itemId: ID!) {
@@ -20,7 +22,7 @@ const ITEM_VOTE_MUTATION = gql`
       }
     }
   }
-`;
+`
 
 const ITEM_VOTE_UPDATE_MUTATION = gql`
   mutation ItemVoteUpdate($id: ID!, $vote: Boolean!) {
@@ -30,75 +32,81 @@ const ITEM_VOTE_UPDATE_MUTATION = gql`
       }
     }
   }
-`;
+`
 
 const ItemVotes = (props: {
-  itemId: string;
+  itemId: string
   votes?: NonNullable<
-    NonNullable<NonNullable<ItemsListQuery["itemCollection"]>["edges"]>[0]
-  >["node"]["votes"];
+    NonNullable<NonNullable<ItemsListQuery['itemCollection']>['edges']>[0]
+  >['node']['votes']
 }) => {
-  const { votes, itemId } = props;
-  const { viewer } = useViewer();
-  const client = useApolloClient();
+  const { isSignedIn } = useAuth()
+  const { push } = useRouter()
+  const { votes, itemId } = props
+  const { viewer } = useViewer()
+  const client = useApolloClient()
   const [voteFunction, { loading: voteLoading }] =
-    useMutation<ItemVoteMutation>(ITEM_VOTE_MUTATION);
+    useMutation<ItemVoteMutation>(ITEM_VOTE_MUTATION)
 
   const [voteUpdateFunction, { loading: voteUpdateLoading }] =
-    useMutation<ItemVoteUpdateMutation>(ITEM_VOTE_UPDATE_MUTATION);
+    useMutation<ItemVoteUpdateMutation>(ITEM_VOTE_UPDATE_MUTATION)
 
   const userVote = votes?.edges?.find((edge) => {
     if (!edge?.node) {
-      return false;
+      return false
     }
 
-    return edge?.node?.user?.id === viewer?.id;
-  });
+    return edge?.node?.user?.id === viewer?.id
+  })
 
   const aggregate = votes?.edges
     ?.map((edge) => {
       if (!edge?.node) {
-        return 0;
+        return 0
       }
 
-      return edge?.node?.positive ? 1 : -1;
+      return edge?.node?.positive ? 1 : -1
     })
-    .reduce<number>((a, b) => a + b, 0);
+    .reduce<number>((a, b) => a + b, 0)
 
   const onClick = async (vote: boolean) => {
+    if (!isSignedIn) {
+      return push('/login')
+    }
+
     if (voteLoading || voteUpdateLoading) {
-      return null;
+      return null
     }
 
     if (userVote) {
       await voteUpdateFunction({
         variables: {
           id: userVote.node?.id,
-          vote,
-        },
-      });
+          vote
+        }
+      })
     } else {
       await voteFunction({
         variables: {
           vote,
           authorId: viewer?.id,
-          itemId,
-        },
-      });
+          itemId
+        }
+      })
     }
 
     client.refetchQueries({
-      include: ["ItemOne", "ItemsList"],
-    });
-  };
+      include: ['ItemOne', 'ItemsList']
+    })
+  }
 
   return (
     <>
       <button
         onClick={() => onClick(true)}
         className={
-          "flex flex-1 items-center justify-center p-2 hover:bg-green-500 hover:text-white" +
-          (userVote?.node?.positive && " bg-green-500 pointer-events-none")
+          'flex flex-1 items-center justify-center p-2 hover:bg-green-500 hover:text-white' +
+          (userVote?.node?.positive && ' bg-green-500 pointer-events-none')
         }
       >
         <svg
@@ -119,9 +127,9 @@ const ItemVotes = (props: {
       <button
         onClick={() => onClick(false)}
         className={
-          "flex flex-1 items-center justify-center p-2 hover:bg-red-500 hover:text-white" +
+          'flex flex-1 items-center justify-center p-2 hover:bg-red-500 hover:text-white' +
           (userVote?.node?.positive === false &&
-            " bg-red-500 pointer-events-none")
+            ' bg-red-500 pointer-events-none')
         }
       >
         <svg
@@ -137,7 +145,7 @@ const ItemVotes = (props: {
         </svg>
       </button>
     </>
-  );
-};
+  )
+}
 
-export default ItemVotes;
+export default ItemVotes
