@@ -67,7 +67,7 @@ surf = { version = "2", default-features = false, optional = true, features = [
 ] }
 
 [features]
-default = ["wasm_runtime", "local"]
+default = ["wasm_runtime"]
 local = ["indoc", "maplit", "once_cell", "regex", "serde", "surf"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
