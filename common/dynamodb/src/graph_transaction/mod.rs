@@ -304,18 +304,55 @@ impl GetIds for UpdateNodeInput {
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
 
-            let by_id = self.by_id.clone();
+            // specific handling of the constraint that the ID was queried by (if any)
+            // to prevent ACID issues
+            if let Some(ref by_id) = self.by_id {
+                if let Ok(constraint_id) = ConstraintID::try_from(by_id.clone()) {
+                    let origin = constraint_id.value();
 
-            if let Some(id) = by_id {
-                result.insert(
-                    (id.clone(), id),
-                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
-                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
-                            target: pk,
-                            user_defined_item: self.user_defined_item.clone(),
-                        }),
-                    )),
-                );
+                    let updated = self
+                        .user_defined_item
+                        .get(constraint_id.field())
+                        .map(std::clone::Clone::clone)
+                        .unwrap_or_default()
+                        .into_json();
+
+                    let updated_string = normalize_constraint_value(&updated);
+
+                    if updated_string == origin {
+                        result.insert(
+                            (constraint_id.to_string(), constraint_id.to_string()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                                UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                    target: pk,
+                                    user_defined_item: self.user_defined_item.clone(),
+                                }),
+                            )),
+                        );
+                    } else {
+                        result.insert(
+                            (by_id.clone(), by_id.clone()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                            )),
+                        );
+
+                        let new_id = ConstraintID::from_owned(
+                            constraint_id.ty().to_string(),
+                            constraint_id.field().to_string(),
+                            updated,
+                        );
+                        result.insert(
+                            (new_id.to_string(), new_id.to_string()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                                InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                    target: pk,
+                                    user_defined_item: self.user_defined_item.clone(),
+                                }),
+                            )),
+                        );
+                    }
+                }
             }
 
             for val in ids {
@@ -338,7 +375,6 @@ impl GetIds for UpdateNodeInput {
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
                             user_defined_item: self.user_defined_item.clone(),
-                            by_id: self.by_id.clone(),
                         })),
                     );
                 }
@@ -346,7 +382,16 @@ impl GetIds for UpdateNodeInput {
                 for mut constraint in val.constraints {
                     let pk = constraint.remove(PK).and_then(|x| x.s);
                     let sk = constraint.remove(SK).and_then(|x| x.s);
+
                     if let (Some(pk), Some(sk)) = (pk, sk) {
+                        // skip the constraint that we queried by if any, since it
+                        // was already handled above
+                        if let Some(ref by_id) = self.by_id {
+                            if by_id == &pk {
+                                continue;
+                            }
+                        }
+
                         if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
                             let origin = constraint_id.value();
 
@@ -423,7 +468,6 @@ impl GetIds for UpdateNodeInput {
                                 id: from_id,
                                 ty: from_ty,
                                 user_defined_item: self.user_defined_item.clone(),
-                                by_id: self.by_id.clone(),
                             })),
                         );
                     }
@@ -461,11 +505,11 @@ impl GetIds for DeleteNodeInput {
 
             let mut result = HashMap::with_capacity(id_len);
 
-            let by_id = self.by_id.clone();
-
-            if let Some(id) = by_id {
+            // specific handling of the constraint that the ID was queried by (if any)
+            // to prevent ACID issues
+            if let Some(by_id) = self.by_id.clone() {
                 result.insert(
-                    (id.clone(), id),
+                    (by_id.clone(), by_id),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
                         DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
                     )),
@@ -492,7 +536,6 @@ impl GetIds for DeleteNodeInput {
                         InternalChanges::Node(InternalNodeChanges::Delete(DeleteNodeInternalInput {
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
-                            by_id: self.by_id.clone(),
                         })),
                     );
                 }
@@ -535,6 +578,14 @@ impl GetIds for DeleteNodeInput {
                     let sk = constraint.remove(SK).and_then(|x| x.s);
 
                     if let (Some(pk), Some(sk)) = (pk, sk) {
+                        // skip the constraint that we queried by if any, since it
+                        // was already handled above
+                        if let Some(ref by_id) = self.by_id {
+                            if by_id == &pk {
+                                continue;
+                            }
+                        }
+
                         result.insert(
                             (pk, sk),
                             InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
@@ -734,7 +785,6 @@ pub struct UpdateNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
-    pub by_id: Option<String>,
 }
 
 impl UpdateNodeInternalInput {
@@ -803,7 +853,6 @@ impl UpdateUniqueConstraint {
 pub struct DeleteNodeInternalInput {
     pub id: String,
     pub ty: String,
-    pub by_id: Option<String>,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -1052,7 +1101,6 @@ impl Add<Self> for UpdateNodeInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
-            by_id: self.by_id,
         }
     }
 }

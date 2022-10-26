@@ -230,16 +230,12 @@ pub enum Sql<'a> {
     InsertRelation(&'a Row, usize),
     /// values: document, updated_at, pk, sk
     Update,
-    /// values: document, updated_at, pk, sk, by_id
-    UpdateByNonPrimary(&'a str),
     /// values: pk, sk, to_remove[], to_add[], document, updated_at
     UpdateWithRelations(usize, usize),
     /// values: pk, sk, to_remove[], document, updated_at
     DeleteRelations(usize),
     /// values: pk, sk
     DeleteByIds,
-    /// values: by_id
-    DeleteByNonPrimary(&'a str),
     /// values: partition_keys[], sorting_keys[]
     SelectIdPairs(usize),
     /// values: pk, entity_type, edges[]
@@ -343,22 +339,6 @@ impl<'a> Sql<'a> {
                     table = Self::TABLE
                 )
             }
-            Self::UpdateByNonPrimary(index) => {
-                format!(
-                    indoc::indoc! {"
-                    WITH
-                        primary_key AS (SELECT {index} FROM {table} WHERE pk=?by_id AND sk=?by_id LIMIT 1)
-
-                    UPDATE {table}
-                    SET 
-                        document=json_patch(document, ?document),
-                        updated_at=?updated_at
-                    WHERE pk=(SELECT {index} FROM primary_key) AND sk=(SELECT {index} FROM primary_key)
-                "},
-                    table = Self::TABLE,
-                    index = index
-                )
-            }
             Self::UpdateWithRelations(to_remove_count, to_add_count) => {
                 let to_remove = if *to_remove_count > 0 {
                     format!(
@@ -424,18 +404,6 @@ impl<'a> Sql<'a> {
             }
             Self::DeleteByIds => {
                 format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE)
-            }
-            Self::DeleteByNonPrimary(index) => {
-                format!(
-                    indoc::indoc! {"
-                        WITH
-                            primary_key AS (SELECT {index} FROM {table} WHERE pk=?by_id AND sk=?by_id LIMIT 1)
-
-                        DELETE FROM {table} WHERE pk=(SELECT {index} FROM primary_key) AND sk=(SELECT {index} FROM primary_key)
-                    "},
-                    table = Self::TABLE,
-                    index = index
-                )
             }
             Self::SelectIdPairs(pair_count) => {
                 format!(
