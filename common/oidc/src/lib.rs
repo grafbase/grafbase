@@ -2,6 +2,9 @@ mod error;
 
 pub use error::VerificationError;
 
+use std::collections::BTreeSet;
+
+use json_dotpath::DotPaths;
 use jwt_compact::{
     alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
@@ -9,7 +12,6 @@ use jwt_compact::{
     TimeOptions,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use url::Url;
 use worker::kv::KvError;
 
@@ -66,7 +68,7 @@ pub struct Client {
 #[derive(Debug, PartialEq, Eq)]
 pub struct VerifiedToken {
     pub identity: String,
-    pub groups: HashSet<String>,
+    pub groups: BTreeSet<String>,
 }
 
 impl Client {
@@ -178,13 +180,12 @@ impl Client {
             .groups_claim
             .as_ref()
             .map(|claim| {
-                claims.custom.extra.get(claim).map(|val| {
-                    let res: Option<HashSet<String>> = serde_json::from_value(val.clone())
-                        .map_err(|_| VerificationError::InvalidGroups(claim.to_string()))?;
-                    Ok(res.unwrap_or_default())
-                })
+                claims
+                    .custom
+                    .extra
+                    .dot_get_or_default::<BTreeSet<String>>(claim)
+                    .map_err(|_| VerificationError::InvalidGroups(claim.to_string()))
             })
-            .unwrap_or_default()
             .transpose()?
             .unwrap_or_default();
 
@@ -435,7 +436,7 @@ mod tests {
             client.verify_token(TOKEN, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_SUB.to_string(),
-                groups: HashSet::new(),
+                groups: BTreeSet::new(),
             }
         );
     }
@@ -463,7 +464,7 @@ mod tests {
             client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_SUB.to_string(),
-                groups: HashSet::new(),
+                groups: BTreeSet::new(),
             }
         );
     }
@@ -530,7 +531,7 @@ mod tests {
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
-                groups_claim: Some("https://grafbase.com/jwt/claims/groups".to_string()),
+                groups_claim: Some("https://grafbase\\.com/jwt/claims/groups".to_string()),
                 ..Default::default()
             }
         };
@@ -558,7 +559,7 @@ mod tests {
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
-                groups_claim: Some("https://grafbase.com/jwt/claims[x-grafbase-allowed-roles]".to_string()),
+                groups_claim: Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles".to_string()),
                 ..Default::default()
             }
         };
@@ -567,7 +568,7 @@ mod tests {
             client.verify_token(TOKEN_WITH_NESTED_GROUPS, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_WITH_NESTED_GROUPS_SUB.to_string(),
-                groups: vec!["admin", "user", "mod"].into_iter().map(String::from).collect(),
+                groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
             }
         );
     }

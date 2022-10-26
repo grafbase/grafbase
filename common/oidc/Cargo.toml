@@ -5,6 +5,7 @@ description = "Verify identity tokens used as part of the OpenID Connect flow"
 edition = "2021"
 
 [dependencies]
+json_dotpath = "1"
 jwt-compact = { version = "0.5", default-features = false, features = [
     "clock",
     "with_rsa",
