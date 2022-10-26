@@ -10,7 +10,7 @@ use utils::environment::Environment;
 
 #[test]
 
-fn dev() {
+fn pagination() {
     let mut env = Environment::init(4010);
 
     env.grafbase_init();
