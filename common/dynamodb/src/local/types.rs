@@ -192,20 +192,12 @@ impl<'a> ToString for BridgeUrl<'a> {
 #[serde(rename_all = "camelCase")]
 pub enum OperationKind {
     Constraint(Constraint),
-    ByMutation(ByMutation),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "kind", content = "reportingData")]
 pub enum Constraint {
     Unique { value: String, field: String },
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "kind")]
-pub enum ByMutation {
-    Delete,
-    Update,
 }
 
 #[derive(Serialize, Debug)]

@@ -1431,8 +1431,6 @@ async fn execute(
     changes: Vec<PossibleChanges>,
 ) -> Result<Vec<crate::local::types::Operation>, ToTransactionError> {
     use crate::local::types::Operation;
-    use crate::local::types::OperationKind;
-    use std::cmp::Ordering;
 
     info!(ctx.trace_id, "Public");
     for r in &changes {
@@ -1481,17 +1479,10 @@ async fn execute(
 
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let mut merged: Vec<Operation> = transactions
+    let merged: Vec<Operation> = transactions
         .into_iter()
         .map(|(sql, values, kind)| Operation { sql, values, kind })
         .collect();
-
-    // ensures that conditions are always checked before conflicting operations
-    merged.sort_by(|left, right| match (&left.kind, &right.kind) {
-        (Some(OperationKind::ByMutation(_)), _) => Ordering::Less,
-        (_, Some(OperationKind::ByMutation(_))) => Ordering::Greater,
-        _ => Ordering::Equal,
-    });
 
     Ok(merged)
 }
@@ -1533,7 +1524,6 @@ async fn load_keys(
                                 source: TransactionError::UnknownError,
                             }
                         }
-                        ApiErrorKind::Consistency(_) => ToTransactionError::Consistency,
                     },
                 })?;
         }

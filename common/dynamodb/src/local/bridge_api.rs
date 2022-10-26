@@ -17,17 +17,9 @@ pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, Q
     }
 }
 
-// needed as this is flattened
-#[derive(Deserialize, Debug, Clone)]
-#[serde(tag = "kind")]
-pub enum ConsistencyError {
-    ByMutation,
-}
-
 #[derive(Deserialize, Debug)]
 pub enum ApiErrorKind {
     ConstraintViolation(Constraint),
-    Consistency(ConsistencyError),
 }
 
 #[allow(dead_code)]
