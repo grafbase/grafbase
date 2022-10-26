@@ -22,9 +22,9 @@ jobs:
 
       - name: move CLI to root
         run: |
-          shopt -s dotglob
           shopt -s extglob
           rm -r !("cli")
+          shopt -s dotglob
           mv cli/* .
           rm -r cli
 
@@ -81,9 +81,10 @@ jobs:
 
       - name: move CLI to root
         run: |
-          shopt -s dotglob
+
           shopt -s extglob
           rm -r !("cli")
+          shopt -s dotglob
           mv cli/* .
           rm -r cli
         shell: bash
@@ -162,9 +163,9 @@ jobs:
 
       - name: move CLI to root
         run: |
-          shopt -s dotglob
           shopt -s extglob
           rm -r !("cli")
+          shopt -s dotglob
           mv cli/* .
           rm -r cli
 
