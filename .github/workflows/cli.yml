@@ -22,6 +22,7 @@ jobs:
 
       - name: move CLI to root
         run: |
+          shopt -s dotglob
           shopt -s extglob
           rm -r !("cli")
           mv cli/* .
@@ -80,6 +81,7 @@ jobs:
 
       - name: move CLI to root
         run: |
+          shopt -s dotglob
           shopt -s extglob
           rm -r !("cli")
           mv cli/* .
@@ -160,6 +162,7 @@ jobs:
 
       - name: move CLI to root
         run: |
+          shopt -s dotglob
           shopt -s extglob
           rm -r !("cli")
           mv cli/* .
