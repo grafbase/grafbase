@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  GRAFBASE_SKIP_ASSET_VERSION_CHECK: "true"
+  GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
 
 jobs:
   lint:
@@ -95,7 +95,7 @@ jobs:
         # Once it does, we should be able to remove the `with` block entirely.
         with:
           profile: minimal
-          toolchain: "1.62.1"
+          toolchain: '1.62.1'
           target: x86_64-pc-windows-msvc
           override: true
 
@@ -125,17 +125,23 @@ jobs:
           touch ~/.grafbase/version.txt
         shell: bash
 
+      - name: Install cargo-nextest
+        run: |
+          curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+        shell: bash
+
       - name: test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: nextest
+          args: 'run --profile ci'
 
       - name: build
         uses: actions-rs/cargo@v1
         if: github.ref == 'refs/heads/main'
         with:
           command: build
-          args: "--release --target x86_64-pc-windows-msvc"
+          args: '--release --target x86_64-pc-windows-msvc'
 
       - name: archive production artifacts
         uses: actions/upload-artifact@v3
@@ -199,10 +205,15 @@ jobs:
           cp -r crates/server/assets ~/.grafbase/
           touch ~/.grafbase/version.txt
 
+      - name: Install cargo-nextest
+        run: |
+          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
       - name: test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: nextest
+          args: 'run --profile ci'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -210,7 +221,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: "--release --target x86_64-unknown-linux-musl"
+          args: '--release --target x86_64-unknown-linux-musl'
 
       - name: chmod binary
         if: github.ref == 'refs/heads/main'
@@ -293,10 +304,15 @@ jobs:
           cp -r crates/server/assets ~/.grafbase/
           touch ~/.grafbase/version.txt
 
+      - name: Install cargo-nextest
+        run: |
+          curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
       - name: test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: nextest
+          args: 'run --profile ci'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -304,7 +320,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: "--release --target aarch64-apple-darwin"
+          args: '--release --target aarch64-apple-darwin'
 
       - name: build
         uses: actions-rs/cargo@v1
@@ -312,7 +328,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: "--release --target x86_64-apple-darwin"
+          args: '--release --target x86_64-apple-darwin'
 
       - name: chmod binary
         if: github.ref == 'refs/heads/main'
