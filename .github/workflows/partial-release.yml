@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  workflow_call:
+    inputs:
+      draft:
+        type: boolean
+        required: true
+      tag:
+        type: string
+        required: true
+
+jobs:
+  release:
+    name: Release CLI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Download darwin-x86_64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.tag }}-x86_64-darwin
+          path: cli/npm/x86_64-apple-darwin
+
+      - name: Download darwin-aarch64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.tag }}-aarch64-darwin
+          path: cli/npm/aarch64-apple-darwin
+
+      - name: Download linux artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.tag }}-linux
+          path: cli/npm/x86_64-unknown-linux-musl
+
+      - name: Download windows artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ inputs.tag }}-windows
+          path: cli/npm/x86_64-pc-windows-msvc
+
+      - name: Rename artifacts
+        shell: bash
+        working-directory: cli/npm
+        run: |
+          mv aarch64-apple-darwin/grafbase aarch64-apple-darwin/grafbase-aarch64-apple-darwin
+          mv x86_64-apple-darwin/grafbase x86_64-apple-darwin/grafbase-x86_64-apple-darwin
+          mv x86_64-pc-windows-msvc/grafbase.exe x86_64-pc-windows-msvc/grafbase-x86_64-pc-windows-msvc.exe
+          mv x86_64-unknown-linux-musl/grafbase x86_64-unknown-linux-musl/grafbase-x86_64-unknown-linux-musl
+          
+          chmod +x aarch64-apple-darwin/grafbase-aarch64-apple-darwin
+          chmod +x x86_64-apple-darwin/grafbase-x86_64-apple-darwin
+          chmod +x x86_64-unknown-linux-musl/grafbase-x86_64-unknown-linux-musl
+
+      - name: Generate licenses
+        shell: bash
+        run: |
+          cargo install --locked cargo-about
+          (cd cli && cargo about generate -o "licenses.html" about.hbs)
+          find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+
+      - name: Publish cargo
+        shell: bash
+        working-directory: cli/crates
+        run: |
+          (cd common && cargo publish --allow-dirty)
+          (cd server && cargo publish --allow-dirty)
+          (cd backend && cargo publish --allow-dirty)
+          (cd cli && cargo publish --allow-dirty)
+
+      - name: Publish npm
+        shell: bash
+        working-directory: cli/npm
+        run: |
+          (cd aarch64-apple-darwin && npm publish)
+          (cd x86_64-apple-darwin && npm publish)
+          (cd x86_64-pc-windows-msvc && npm publish)
+          (cd x86_64-unknown-linux-musl && npm publish)
+          (cd cli && npm publish)
+
+      - name: Github Release
+        id: gh-release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: cli/changelog/${{ inputs.tag }}.md
+          draft: ${{ inputs.draft }}
+          files: |
+            cli/licenses.html
+            cli/npm/aarch64-apple-darwin/grafbase-aarch64-apple-darwin
+            cli/npm/x86_64-apple-darwin/grafbase-x86_64-apple-darwin
+            cli/npm/x86_64-pc-windows-msvc/grafbase-x86_64-pc-windows-msvc.exe
+            cli/npm/x86_64-unknown-linux-musl/grafbase-x86_64-unknown-linux-musl
