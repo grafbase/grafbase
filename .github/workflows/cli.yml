@@ -10,7 +10,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  CARGO_TERM_COLOR: always
+  CARGO_TERM_COLOR: 'always'
 
 jobs:
   lint:
