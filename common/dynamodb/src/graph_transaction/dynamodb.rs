@@ -88,7 +88,6 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 id,
                 mut user_defined_item,
                 ty,
-                ..
             } = self;
 
             let id = NodeID::new_owned(ty, id);
