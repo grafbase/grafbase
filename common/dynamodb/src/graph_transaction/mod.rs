@@ -746,8 +746,6 @@ pub enum ToTransactionError {
         value: String,
         field: String,
     },
-    #[error(r#"Could not complete the transaction as the state of the target entity has changed"#)]
-    Consistency,
 }
 
 pub trait ExecuteChangesOnDatabase
