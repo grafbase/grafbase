@@ -1477,7 +1477,7 @@ async fn execute(
 
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let merged: Vec<Operation> = transactions
+    let merged = transactions
         .into_iter()
         .map(|(sql, values, kind)| Operation { sql, values, kind })
         .collect();
@@ -1504,7 +1504,6 @@ async fn load_keys(
     #[cfg(feature = "local")]
     {
         use crate::local::types::Constraint;
-
         use bridge_api::{mutation, ApiErrorKind, MutationError};
 
         let operations = execute(batcher, ctx, tx).await?;
