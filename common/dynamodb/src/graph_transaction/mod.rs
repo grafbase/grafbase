@@ -502,7 +502,6 @@ impl GetIds for DeleteNodeInput {
                 .map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
             let id_len = ids.len() + 1;
-
             let mut result = HashMap::with_capacity(id_len);
 
             // specific handling of the constraint that the ID was queried by (if any)
