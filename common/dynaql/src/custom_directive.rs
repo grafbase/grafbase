@@ -1,3 +1,5 @@
+use graph_entities::ResponseNodeId;
+
 use crate::extensions::ResolveFut;
 use crate::parser::types::Directive;
 use crate::registry::Registry;
@@ -25,7 +27,7 @@ pub trait CustomDirective: Sync + Send + 'static {
         &self,
         ctx: &Context<'_>,
         resolve: ResolveFut<'_>,
-    ) -> ServerResult<Option<Value>> {
+    ) -> ServerResult<Option<ResponseNodeId>> {
         resolve.await
     }
 }

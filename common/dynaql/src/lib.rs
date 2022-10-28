@@ -193,6 +193,10 @@ pub mod resolver_utils;
 pub mod types;
 #[doc(hidden)]
 pub mod validators;
+#[cfg(feature = "wasm_runtime")]
+pub mod wasm;
+
+pub mod graph;
 
 #[doc(hidden)]
 pub mod registry;
@@ -205,6 +209,8 @@ pub use async_trait;
 pub use context::ContextSelectionSet;
 #[doc(hidden)]
 pub use futures_util;
+#[doc(hidden)]
+pub use graph_entities;
 #[doc(hidden)]
 pub use indexmap;
 #[doc(hidden)]

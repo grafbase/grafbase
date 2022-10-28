@@ -6,6 +6,7 @@ use std::sync::Arc;
 use async_lock::RwLock;
 use cached::UnboundCache;
 use futures_util::stream::{self, Stream, StreamExt};
+use graph_entities::{QueryResponse, QueryResponseNode, ResponseContainer};
 use indexmap::map::IndexMap;
 
 use crate::context::{Data, QueryEnvInner};
@@ -605,14 +606,15 @@ impl Schema {
             query_env: &env,
             resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
+            response_graph: Arc::new(RwLock::new(QueryResponse::default())),
         };
 
         let query = ctx.registry().query_root();
 
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_container(&ctx, query).await,
+            OperationType::Query => resolve_container(&ctx, query, None).await,
             OperationType::Mutation => {
-                resolve_container_serial(&ctx, ctx.registry().mutation_root()).await
+                resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await
             }
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
@@ -621,7 +623,13 @@ impl Schema {
         };
 
         let mut resp = match res {
-            Ok(value) => Response::new(value),
+            Ok(value) => {
+                let response = &mut *ctx.response_graph.write().await;
+                response.set_root_unchecked(value);
+                let a = QueryResponse::default();
+                let b = std::mem::replace(response, a);
+                Response::new(b)
+            }
             Err(err) => Response::from_errors(vec![err]),
         }
         .http_headers(std::mem::take(&mut *env.http_headers.lock().unwrap()));

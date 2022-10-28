@@ -17,6 +17,7 @@ use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
+use graph_entities::NodeID;
 use std::sync::Arc;
 use ulid_rs::Ulid;
 
@@ -194,6 +195,44 @@ impl ResolvedValue {
     pub fn with_early_return(mut self) -> Self {
         self.early_return_null = true;
         self
+    }
+
+    /// We can check from the schema definition if it's a node, if it is, we need to
+    /// have a way to get it
+    /// temp: Little hack here, we know that `ResolvedValue` are bound to have a format
+    /// of:
+    /// ```
+    /// {
+    ///   "Node": {
+    ///     "__sk": {
+    ///       "S": "node_id"
+    ///     }
+    ///   }
+    /// }
+    /// ```
+    /// We use that fact without checking it here.
+    ///
+    /// This have to be removed when we rework registry & dynaql to have a proper query
+    /// planning.
+    pub fn node_id<S: AsRef<str>>(&self, entity: S) -> Option<String> {
+        self.data_resolved.get(entity.as_ref()).and_then(|x| {
+            x.get("__sk")
+                .and_then(|x| {
+                    if let serde_json::Value::Object(value) = x {
+                        Some(value)
+                    } else {
+                        None
+                    }
+                })
+                .and_then(|x| x.get("S"))
+                .and_then(|value| {
+                    if let serde_json::Value::String(value) = value {
+                        Some(value.clone())
+                    } else {
+                        None
+                    }
+                })
+        })
     }
 
     pub fn is_early_returned(&self) -> bool {

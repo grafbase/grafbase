@@ -27,7 +27,7 @@ password-strength-validator = ["zxcvbn"]
 unstable_oneof = ["dynaql-derive/unstable_oneof"]
 tracing_worker = ["logworker"]
 tokio_runtime = ["dynamodb/tokio_runtime"]
-wasm_runtime = ["dynamodb/wasm_runtime"]
+wasm_runtime = ["dynamodb/wasm_runtime", "worker"]
 
 [dependencies]
 dynaql-derive = { path = "derive", version = "3" }
@@ -35,6 +35,7 @@ dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
 async-lock = "2.6"
+async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
 cached = { version = "0.40" }
@@ -102,6 +103,7 @@ time = { version = "0.3", optional = true, features = [
 ] }
 futures-timer = { version = "3", optional = true }
 futures-channel = { version = "0.3", optional = true }
+worker = { version = "0.0.11", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }

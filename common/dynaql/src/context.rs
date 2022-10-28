@@ -2,6 +2,7 @@
 
 use async_lock::RwLock as AsynRwLock;
 use dynomite::AttributeValue;
+use graph_entities::{QueryResponse, QueryResponseNode, ResponseContainer, ResponseNodeRelation};
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
@@ -91,6 +92,71 @@ impl Debug for Data {
 
 /// Context for `SelectionSet`
 pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
+
+/// When inside a Connection, we get the subfields asked by alias which are a relation
+pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &MetaType) -> HashSet<String> {
+    let mut result = HashSet::new();
+    for selection in &ctx.item.node.items {
+        match &selection.node {
+            Selection::Field(field) => {
+                let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+                // We do take the name and not the alias
+                let field_name = ctx_field.item.node.name.node.as_str();
+                if root
+                    .field_by_name(field_name)
+                    .and_then(|x| x.relation.as_ref().clone())
+                    .is_some()
+                {
+                    result.insert(field_name.to_string());
+                }
+            }
+            selection => {
+                let (type_condition, selection_set) = match selection {
+                    Selection::Field(_) => unreachable!(),
+                    Selection::FragmentSpread(spread) => {
+                        let fragment = ctx.query_env.fragments.get(&spread.node.fragment_name.node);
+                        let fragment = match fragment {
+                            Some(fragment) => fragment,
+                            None => {
+                                // Unknown fragment
+                                return HashSet::new();
+                            }
+                        };
+                        (
+                            Some(&fragment.node.type_condition),
+                            &fragment.node.selection_set,
+                        )
+                    }
+                    Selection::InlineFragment(fragment) => (
+                        fragment.node.type_condition.as_ref(),
+                        &fragment.node.selection_set,
+                    ),
+                };
+                let type_condition =
+                    type_condition.map(|condition| condition.node.on.node.as_str());
+
+                let introspection_type_name = ctx.registry().introspection_type_name(root);
+
+                let applies_concrete_object = type_condition.map_or(false, |condition| {
+                    introspection_type_name == condition
+                        || ctx
+                            .registry()
+                            .implements
+                            .get(introspection_type_name)
+                            .map_or(false, |interfaces| interfaces.contains(condition))
+                });
+                if applies_concrete_object {
+                    let tailed = relations_edges(&ctx.with_selection_set(selection_set), root);
+                    result.extend(tailed);
+                } else if type_condition.map_or(true, |condition| root.name() == condition) {
+                    // The fragment applies to an interface type.
+                    todo!()
+                }
+            }
+        }
+    }
+    result
+}
 
 /// Context object for resolve field
 pub type Context<'a> = ContextBase<'a, &'a Positioned<Field>>;
@@ -276,6 +342,8 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     /// Every Resolvers are able to store a Value inside this cache
     pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
+    #[doc(hidden)]
+    pub response_graph: Arc<AsynRwLock<QueryResponse>>,
 }
 
 #[doc(hidden)]
@@ -327,6 +395,7 @@ impl QueryEnv {
             query_env: self,
             resolvers_cache: Arc::new(AsynRwLock::new(UnboundCache::with_capacity(32))),
             resolvers_data: Default::default(),
+            response_graph: Arc::new(AsynRwLock::new(QueryResponse::default())),
         }
     }
 }
@@ -411,6 +480,7 @@ impl<'a, T> ContextBase<'a, T> {
             query_env: self.query_env,
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
+            response_graph: self.response_graph.clone(),
         }
     }
 
@@ -427,6 +497,7 @@ impl<'a, T> ContextBase<'a, T> {
             query_env: self.query_env,
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
+            response_graph: self.response_graph.clone(),
         }
     }
 
@@ -740,6 +811,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             query_env: self.query_env,
             resolvers_cache: self.resolvers_cache.clone(),
             resolvers_data: self.resolvers_data.clone(),
+            response_graph: self.response_graph.clone(),
         }
     }
 
@@ -824,7 +896,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     /// When inside a Connection, we get the subfields asked
-    fn relations_edges(&self) -> HashSet<String> {
+    pub fn relations_edges(&self) -> HashSet<String> {
         if let Some(iter) = self
             .field()
             .selection_set()

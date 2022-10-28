@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
 use http::HeaderValue;
 use serde::{Deserialize, Serialize};
@@ -7,11 +8,11 @@ use serde::{Deserialize, Serialize};
 use crate::{CacheControl, Result, ServerError, Value};
 
 /// Query response
-#[derive(Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Default, Serialize)]
 pub struct Response {
     /// Data of query result
     #[serde(default)]
-    pub data: Value,
+    pub data: QueryResponse,
 
     /// Extensions result
     #[serde(skip_serializing_if = "BTreeMap::is_empty", default)]
@@ -33,9 +34,9 @@ pub struct Response {
 impl Response {
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(data: impl Into<Value>) -> Self {
+    pub fn new(data: QueryResponse) -> Self {
         Self {
-            data: data.into(),
+            data,
             ..Default::default()
         }
     }

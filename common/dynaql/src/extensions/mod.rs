@@ -27,6 +27,7 @@ use std::future::Future;
 use std::sync::Arc;
 
 use futures_util::stream::BoxStream;
+use graph_entities::ResponseNodeId;
 
 use crate::parser::types::ExecutableDocument;
 use crate::{
@@ -142,7 +143,8 @@ type ValidationFut<'a> =
 type ExecuteFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);
 
 /// A future type used to resolve the field
-pub type ResolveFut<'a> = &'a mut (dyn Future<Output = ServerResult<Option<Value>>> + Send + Unpin);
+pub type ResolveFut<'a> =
+    &'a mut (dyn Future<Output = ServerResult<Option<ResponseNodeId>>> + Send + Unpin);
 
 /// The remainder of a extension chain for request.
 pub struct NextRequest<'a> {
@@ -305,7 +307,7 @@ impl<'a> NextResolve<'a> {
         self,
         ctx: &ExtensionContext<'_>,
         info: ResolveInfo<'_>,
-    ) -> ServerResult<Option<Value>> {
+    ) -> ServerResult<Option<ResponseNodeId>> {
         if let Some((first, next)) = self.chain.split_first() {
             first
                 .resolve(
@@ -387,7 +389,7 @@ pub trait Extension: Sync + Send + 'static {
         ctx: &ExtensionContext<'_>,
         info: ResolveInfo<'_>,
         next: NextResolve<'_>,
-    ) -> ServerResult<Option<Value>> {
+    ) -> ServerResult<Option<ResponseNodeId>> {
         next.run(ctx, info).await
     }
 }
@@ -505,7 +507,7 @@ impl Extensions {
         &self,
         info: ResolveInfo<'_>,
         resolve_fut: ResolveFut<'_>,
-    ) -> ServerResult<Option<Value>> {
+    ) -> ServerResult<Option<ResponseNodeId>> {
         let next = NextResolve {
             chain: &self.extensions,
             resolve_fut,

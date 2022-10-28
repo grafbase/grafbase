@@ -1,4 +1,8 @@
 use futures_util::FutureExt;
+use graph_entities::{
+    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
+    ResponsePrimitive,
+};
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -6,11 +10,12 @@ use std::sync::Arc;
 use indexmap::IndexMap;
 
 use crate::extensions::ResolveInfo;
+use crate::graph::field_into_node;
 use crate::parser::types::Selection;
 use crate::registry::MetaType;
 use crate::{
-    Context, ContextBase, ContextSelectionSet, Error, Name, OutputType, ServerError, ServerResult,
-    Value,
+    relations_edges, Context, ContextBase, ContextSelectionSet, Error, Name, OutputType,
+    ServerError, ServerResult, Value,
 };
 
 /// Represents a GraphQL container object.
@@ -57,10 +62,10 @@ pub trait ContainerType: OutputType {
 ///
 /// Objects do not have to override this, but interfaces and unions must call it on their
 /// internal type.
-fn collect_all_fields_meta<'a>(
+fn collect_all_fields_graph_meta<'a>(
     ty: &'a MetaType,
     ctx: &ContextSelectionSet<'a>,
-    fields: &mut Fields<'a>,
+    fields: &mut FieldsGraph<'a>,
 ) -> ServerResult<()> {
     fields.add_set(ctx, ty)
 }
@@ -119,16 +124,18 @@ impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for R
 pub async fn resolve_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-) -> ServerResult<Value> {
-    resolve_container_inner(ctx, true, root).await
+    node_id: Option<NodeID<'a>>,
+) -> ServerResult<ResponseNodeId> {
+    resolve_container_inner(ctx, true, root, node_id).await
 }
 
 /// Resolve an container by executing each of the fields serially.
 pub async fn resolve_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-) -> ServerResult<Value> {
-    resolve_container_inner(ctx, false, root).await
+    node_id: Option<NodeID<'a>>,
+) -> ServerResult<ResponseNodeId> {
+    resolve_container_inner(ctx, false, root, node_id).await
 }
 
 /// Resolve an container by executing each of the fields concurrently.
@@ -177,8 +184,9 @@ async fn resolve_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     parallel: bool,
     root: &'a MetaType,
-) -> ServerResult<Value> {
-    let mut fields = Fields(Vec::new());
+    node_id: Option<NodeID<'a>>,
+) -> ServerResult<ResponseNodeId> {
+    let mut fields = FieldsGraph(Vec::new());
     fields.add_set(ctx, root)?;
 
     let res = if parallel {
@@ -191,11 +199,51 @@ async fn resolve_container_inner<'a>(
         results
     };
 
-    let mut map = IndexMap::new();
-    for (name, value) in res {
-        insert_value(&mut map, name, value);
+    let relations = relations_edges(ctx, root);
+    #[cfg(feature = "tracing_worker")]
+    {
+        logworker::info!("", "");
+        logworker::info!("", "");
+        logworker::info!("", "");
+        logworker::info!("", "");
+        logworker::info!("", "Relations for {} {:?}", root.name(), relations);
+        logworker::info!("", "");
+        logworker::info!("", "");
+        logworker::info!("", "");
+        logworker::info!("", "");
     }
-    Ok(Value::Object(map))
+
+    if let Some(node_id) = node_id {
+        let mut container = ResponseContainer::new_node(node_id);
+        for (name, value) in res {
+            let name = name.to_string();
+            if relations.contains(&name) {
+                container.insert(ResponseNodeRelation::Relation(name.into()), value);
+            } else {
+                container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
+            }
+        }
+        Ok(ctx
+            .response_graph
+            .write()
+            .await
+            .new_node_unchecked(QueryResponseNode::from(container)))
+    } else {
+        let mut container = ResponseContainer::new_container();
+        for (name, value) in res {
+            let name = name.to_string();
+            if relations.contains(&name) {
+                container.insert(ResponseNodeRelation::Relation(name.into()), value);
+            } else {
+                container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
+            }
+        }
+        Ok(ctx
+            .response_graph
+            .write()
+            .await
+            .new_node_unchecked(QueryResponseNode::from(container)))
+    }
 }
 
 async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
@@ -217,18 +265,43 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
     };
 
     let mut map = IndexMap::new();
+    let response = ctx.response_graph.read().await;
     for (name, value) in res {
-        insert_value(&mut map, name, value);
+        let value = response
+            .get_node(&value)
+            .map(|x| x.to_json(&response))
+            .and_then(|x| serde_json::from_str::<Value>(&x).ok());
+
+        // TODO: Maybe fix it
+
+        if let Some(value) = value {
+            insert_value(&mut map, name, value);
+        }
     }
     Ok(Value::Object(map))
 }
-
-type BoxFieldFuture<'a> = Pin<Box<dyn Future<Output = ServerResult<(Name, Value)>> + 'a + Send>>;
-
+type BoxFieldGraphFuture<'a> =
+    Pin<Box<dyn Future<Output = ServerResult<(Name, ResponseNodeId)>> + 'a + Send>>;
 /// A set of fields on an container that are being selected.
-pub struct Fields<'a>(Vec<BoxFieldFuture<'a>>);
+pub struct FieldsGraph<'a>(Vec<BoxFieldGraphFuture<'a>>);
 
-impl<'a> Fields<'a> {
+async fn response_id_unwrap_or_null(
+    ctx: &Context<'_>,
+    opt_id: Option<ResponseNodeId>,
+) -> ResponseNodeId {
+    if let Some(id) = opt_id {
+        id
+    } else {
+        ctx.response_graph
+            .write()
+            .await
+            .new_node_unchecked(QueryResponseNode::Primitive(ResponsePrimitive::new(
+                Value::Null,
+            )))
+    }
+}
+
+impl<'a> FieldsGraph<'a> {
     /// Add another set of fields to this set of fields using the given container.
     pub fn add_set(
         &mut self,
@@ -247,7 +320,17 @@ impl<'a> Fields<'a> {
                         let typename = registry.introspection_type_name(root).to_owned();
 
                         self.0.push(Box::pin(async move {
-                            Ok((field_name, Value::String(typename)))
+                            let node = QueryResponseNode::from(ResponsePrimitive::new(
+                                Value::String(typename),
+                            ));
+                            Ok((
+                                field_name,
+                                ctx_field
+                                    .response_graph
+                                    .write()
+                                    .await
+                                    .new_node_unchecked(node),
+                            ))
                         }));
                         continue;
                     }
@@ -263,10 +346,11 @@ impl<'a> Fields<'a> {
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
                                     field_name,
-                                    registry
-                                        .resolve_field(&ctx_field, root)
-                                        .await?
-                                        .unwrap_or_default(),
+                                    response_id_unwrap_or_null(
+                                        &ctx_field,
+                                        registry.resolve_field(&ctx_field, root).await?,
+                                    )
+                                    .await,
                                 ))
                             } else {
                                 let type_name = root.name();
@@ -307,10 +391,13 @@ impl<'a> Fields<'a> {
                                     futures_util::pin_mut!(resolve_fut);
                                     Ok((
                                         field_name,
-                                        extensions
-                                            .resolve(resolve_info, &mut resolve_fut)
-                                            .await?
-                                            .unwrap_or_default(),
+                                        response_id_unwrap_or_null(
+                                            &ctx_field,
+                                            extensions
+                                                .resolve(resolve_info, &mut resolve_fut)
+                                                .await?,
+                                        )
+                                        .await,
                                     ))
                                 } else {
                                     let mut resolve_fut = resolve_fut.boxed();
@@ -329,6 +416,7 @@ impl<'a> Fields<'a> {
                                                 query_env: ctx_field.query_env,
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
+                                                response_graph: ctx_field.response_graph.clone(),
                                             };
                                             let directive_instance = directive_factory
                                                 .create(&ctx_directive, &directive.node)?;
@@ -345,10 +433,13 @@ impl<'a> Fields<'a> {
 
                                     Ok((
                                         field_name,
-                                        extensions
-                                            .resolve(resolve_info, &mut resolve_fut)
-                                            .await?
-                                            .unwrap_or_default(),
+                                        response_id_unwrap_or_null(
+                                            &ctx_field,
+                                            extensions
+                                                .resolve(resolve_info, &mut resolve_fut)
+                                                .await?,
+                                        )
+                                        .await,
                                     ))
                                 }
                             }
@@ -400,7 +491,7 @@ impl<'a> Fields<'a> {
                                 .map_or(false, |interfaces| interfaces.contains(condition))
                     });
                     if applies_concrete_object {
-                        collect_all_fields_meta(
+                        collect_all_fields_graph_meta(
                             root,
                             &ctx.with_selection_set(selection_set),
                             self,
@@ -416,7 +507,14 @@ impl<'a> Fields<'a> {
         }
         Ok(())
     }
+}
 
+type BoxFieldFuture<'a> =
+    Pin<Box<dyn Future<Output = ServerResult<(Name, ResponseNodeId)>> + 'a + Send>>;
+/// A set of fields on an container that are being selected.
+pub struct Fields<'a>(Vec<BoxFieldFuture<'a>>);
+
+impl<'a> Fields<'a> {
     /// Add another set of fields to this set of fields using the given container.
     /// Native way of resolving
     pub fn add_set_native<T: ContainerType + ?Sized>(
@@ -434,7 +532,17 @@ impl<'a> Fields<'a> {
                         let typename = root.introspection_type_name().into_owned();
 
                         self.0.push(Box::pin(async move {
-                            Ok((field_name, Value::String(typename)))
+                            let node = QueryResponseNode::from(ResponsePrimitive::new(
+                                Value::String(typename),
+                            ));
+                            Ok((
+                                field_name,
+                                ctx_field
+                                    .response_graph
+                                    .write()
+                                    .await
+                                    .new_node_unchecked(node),
+                            ))
                         }));
                         continue;
                     }
@@ -449,7 +557,11 @@ impl<'a> Fields<'a> {
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
                                     field_name,
-                                    root.resolve_field(&ctx_field).await?.unwrap_or_default(),
+                                    field_into_node(
+                                        root.resolve_field(&ctx_field).await?.unwrap_or_default(),
+                                        &ctx_field,
+                                    )
+                                    .await,
                                 ))
                             } else {
                                 let type_name = T::type_name();
@@ -486,16 +598,26 @@ impl<'a> Fields<'a> {
                                     auth: meta_field.and_then(|f| f.auth.as_ref()),
                                 };
 
-                                let resolve_fut = root.resolve_field(&ctx_field);
+                                let resolve_fut = async {
+                                    let a = field_into_node(
+                                        root.resolve_field(&ctx_field).await?.unwrap_or_default(),
+                                        &ctx_field,
+                                    )
+                                    .await;
+                                    Ok(Some(a))
+                                };
 
                                 if field.node.directives.is_empty() {
                                     futures_util::pin_mut!(resolve_fut);
                                     Ok((
                                         field_name,
-                                        extensions
-                                            .resolve(resolve_info, &mut resolve_fut)
-                                            .await?
-                                            .unwrap_or_default(),
+                                        response_id_unwrap_or_null(
+                                            &ctx_field,
+                                            extensions
+                                                .resolve(resolve_info, &mut resolve_fut)
+                                                .await?,
+                                        )
+                                        .await,
                                     ))
                                 } else {
                                     let mut resolve_fut = resolve_fut.boxed();
@@ -514,6 +636,7 @@ impl<'a> Fields<'a> {
                                                 query_env: ctx_field.query_env,
                                                 resolvers_cache: ctx_field.resolvers_cache.clone(),
                                                 resolvers_data: ctx_field.resolvers_data.clone(),
+                                                response_graph: ctx_field.response_graph.clone(),
                                             };
                                             let directive_instance = directive_factory
                                                 .create(&ctx_directive, &directive.node)?;
@@ -530,10 +653,13 @@ impl<'a> Fields<'a> {
 
                                     Ok((
                                         field_name,
-                                        extensions
-                                            .resolve(resolve_info, &mut resolve_fut)
-                                            .await?
-                                            .unwrap_or_default(),
+                                        response_id_unwrap_or_null(
+                                            &ctx_field,
+                                            extensions
+                                                .resolve(resolve_info, &mut resolve_fut)
+                                                .await?,
+                                        )
+                                        .await,
                                     ))
                                 }
                             }

@@ -10,6 +10,7 @@ pub mod utils;
 pub mod variables;
 
 use dynaql_parser::Pos;
+use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -18,6 +19,7 @@ use std::sync::Arc;
 use ulid_rs::Ulid;
 
 use crate::auth::{AuthConfig, Operations};
+use crate::graph::{field_into_node, selection_set_into_node};
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
@@ -365,7 +367,7 @@ impl CurrentResolverType {
 
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
-    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<Value, ServerError> {
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
         let execution_id = Ulid::new();
         let registry = ctx.registry();
 
@@ -420,13 +422,19 @@ impl MetaField {
                     }
                 }?;
 
-                Value::from_json(result)
-                    .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
+                let result = Value::from_json(result)
+                    .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?;
+
+                Ok(ctx
+                    .response_graph
+                    .write()
+                    .await
+                    .new_node_unchecked(ResponsePrimitive::new(result).into()))
             }
             CurrentResolverType::CONTAINER => {
                 // If there is a resolver associated to the container we execute it before
                 // asking to resolve the other fields
-                if let Some(resolvers) = &ctx_obj.resolver_node {
+                let resolved_value = if let Some(resolvers) = &ctx_obj.resolver_node {
                     let resolver_ctx = ResolverContext::new(&execution_id);
                     let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
                     let resolved_value = resolvers
@@ -444,10 +452,17 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(Value::Null);
+                            return Ok(ctx
+                                .response_graph
+                                .write()
+                                .await
+                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()));
                         }
                     }
-                }
+                    Some(resolved_value)
+                } else {
+                    None
+                };
 
                 let container_type = registry
                     .types
@@ -458,14 +473,41 @@ impl MetaField {
                         ServerError::new("An internal error happened", Some(ctx.item.pos))
                     })?;
 
-                match resolve_container(&ctx_obj, container_type).await {
+                // TEMP: Hack
+                // We can check from the schema definition if it's a node, if it is, we need to
+                // have a way to get it
+                // temp: Little hack here, we know that `ResolvedValue` are bound to have a format
+                // of:
+                // ```
+                // {
+                //   "Node": {
+                //     "__sk": {
+                //       "S": "node_id"
+                //     }
+                //   }
+                // }
+                // ```
+                // We use that fact without checking it here.
+                //
+                // This have to be removed when we rework registry & dynaql to have a proper query
+                // planning.
+                let node_id: Option<NodeID<'_>> = resolved_value
+                    .as_ref()
+                    .and_then(|x| x.node_id(container_type.name()))
+                    .and_then(|x| NodeID::from_owned(x).ok());
+
+                match resolve_container(&ctx_obj, container_type, node_id).await {
                     result @ Ok(_) => result,
                     Err(err) => {
                         if self.ty.ends_with('!') {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(Value::Null)
+                            Ok(ctx
+                                .response_graph
+                                .write()
+                                .await
+                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()))
                         }
                     }
                 }
@@ -506,7 +548,11 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(Value::Null)
+                            Ok(ctx
+                                .response_graph
+                                .write()
+                                .await
+                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()))
                         }
                     }
                 }
@@ -1114,34 +1160,47 @@ impl Registry {
         &self,
         ctx: &'a Context<'a>,
         root: &'a MetaType,
-    ) -> ServerResult<Option<Value>> {
+    ) -> ServerResult<Option<ResponseNodeId>> {
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                return OutputType::resolve(
-                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
+                let a = selection_set_into_node(
+                    OutputType::resolve(
+                        &__Schema::new(&ctx.schema_env.registry, &visible_types),
+                        &ctx_obj,
+                        ctx.item,
+                    )
+                    .await?,
                     &ctx_obj,
-                    ctx.item,
+                    root,
                 )
-                .await
-                .map(Some);
+                .await;
+
+                return Ok(Some(a));
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                return OutputType::resolve(
-                    &ctx.schema_env
-                        .registry
-                        .types
-                        .get(&type_name)
-                        .filter(|_| visible_types.contains(type_name.as_str()))
-                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
+                let a = selection_set_into_node(
+                    OutputType::resolve(
+                        &ctx.schema_env
+                            .registry
+                            .types
+                            .get(&type_name)
+                            .filter(|_| visible_types.contains(type_name.as_str()))
+                            .map(|ty| {
+                                __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)
+                            }),
+                        &ctx_obj,
+                        ctx.item,
+                    )
+                    .await?,
                     &ctx_obj,
-                    ctx.item,
+                    root,
                 )
-                .await
-                .map(Some);
+                .await;
+                return Ok(Some(a));
             }
         }
 

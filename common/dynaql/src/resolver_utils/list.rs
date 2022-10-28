@@ -1,4 +1,7 @@
+use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
+
 use crate::extensions::ResolveInfo;
+use crate::graph::selection_set_into_node;
 use crate::parser::types::Field;
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
@@ -10,7 +13,7 @@ pub async fn resolve_list<'a>(
     field: &Positioned<Field>,
     ty: &'a MetaType,
     values: Vec<serde_json::Value>,
-) -> ServerResult<Value> {
+) -> ServerResult<ResponseNodeId> {
     let extensions = &ctx.query_env.extensions;
     if !extensions.is_empty() {
         let mut futures = Vec::with_capacity(values.len());
@@ -45,14 +48,22 @@ pub async fn resolve_list<'a>(
                     let resolve_fut = async {
                         match ty {
                             MetaType::Scalar { .. } | MetaType::Enum { .. } => {
-                                Value::try_from(item).map(Some).map_err(|err| {
+                                let result = Value::try_from(item).map_err(|err| {
                                     ctx_idx.set_error_path(ServerError::new(
                                         format!("{:?}", err),
                                         Some(field.pos),
                                     ))
-                                })
+                                })?;
+                                Ok(Some(
+                                    ctx_idx.response_graph.write().await.new_node_unchecked(
+                                        QueryResponseNode::Primitive(ResponsePrimitive::new(
+                                            result,
+                                        )),
+                                    ),
+                                ))
                             }
-                            _ => resolve_container(&ctx_idx, ty)
+                            // TODO: node_step
+                            _ => resolve_container(&ctx_idx, ty, None)
                                 .await
                                 .map(Option::Some)
                                 .map_err(|err| ctx_idx.set_error_path(err)),
@@ -66,31 +77,42 @@ pub async fn resolve_list<'a>(
                 }
             });
         }
-        Ok(Value::List(
+        let node = QueryResponseNode::List(ResponseList::with_children(
             futures_util::future::try_join_all(futures).await?,
-        ))
+        ));
+
+        Ok(ctx.response_graph.write().await.new_node_unchecked(node))
     } else {
         let mut futures = Vec::with_capacity(values.len());
         for (idx, item) in values.into_iter().enumerate() {
             let ctx_idx = ctx.with_index(idx, Some(&ctx.item.node));
             futures.push(async move {
                 match ty {
-                    MetaType::Scalar { .. } | MetaType::Enum { .. } => Value::try_from(item)
-                        .map_err(|err| {
+                    MetaType::Scalar { .. } | MetaType::Enum { .. } => {
+                        let result = Value::try_from(item).map_err(|err| {
                             ctx_idx.set_error_path(ServerError::new(
                                 format!("{:?}", err),
                                 Some(field.pos),
                             ))
-                        }),
-                    _ => resolve_container(&ctx_idx, ty)
+                        })?;
+
+                        Ok(ctx_idx.response_graph.write().await.new_node_unchecked(
+                            QueryResponseNode::Primitive(ResponsePrimitive::new(result)),
+                        ))
+                    }
+                    // TODO: node_step
+                    _ => resolve_container(&ctx_idx, ty, None)
                         .await
                         .map_err(|err| ctx_idx.set_error_path(err)),
                 }
             });
         }
-        Ok(Value::List(
+
+        let node = QueryResponseNode::List(ResponseList::with_children(
             futures_util::future::try_join_all(futures).await?,
-        ))
+        ));
+
+        Ok(ctx.response_graph.write().await.new_node_unchecked(node))
     }
 }
 
@@ -119,6 +141,10 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         .types
                         .get(type_name.as_ref())
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
+                    let ty = ctx_field.schema_env.registry.types.get(type_name.as_ref());
+                    let required_operation = ty
+                        .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
+                        .and_then(|f| f.required_operation);
 
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
@@ -130,10 +156,17 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         auth: meta_field.and_then(|f| f.auth.as_ref()),
                     };
                     let resolve_fut = async {
-                        OutputType::resolve(&item, &ctx_idx, field)
-                            .await
-                            .map(Option::Some)
-                            .map_err(|err| ctx_idx.set_error_path(err))
+                        let a = selection_set_into_node(
+                            OutputType::resolve(&item, &ctx_idx, field)
+                                .await
+                                .map(Option::Some)
+                                .map_err(|err| ctx_idx.set_error_path(err))?
+                                .unwrap_or_default(),
+                            &ctx_idx,
+                            ty.unwrap(),
+                        )
+                        .await;
+                        Ok(Some(a))
                     };
                     futures_util::pin_mut!(resolve_fut);
                     extensions
@@ -143,9 +176,12 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                 }
             });
         }
-        Ok(Value::List(
-            futures_util::future::try_join_all(futures).await?,
-        ))
+        let a = futures_util::future::try_join_all(futures).await?;
+        let node = QueryResponseNode::List(ResponseList::with_children(a));
+        let result =
+            serde_json::from_str::<Value>(&node.to_json(&*ctx.response_graph.read().await))
+                .unwrap();
+        Ok(result)
     } else {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
         for (idx, item) in iter.into_iter().enumerate() {
