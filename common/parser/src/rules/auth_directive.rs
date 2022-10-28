@@ -56,6 +56,7 @@ impl Operations {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 enum Operation {
     Create,
     Read,
@@ -86,6 +87,7 @@ impl From<Operations> for dynaql::Operations {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
+#[non_exhaustive]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
     Oidc {
@@ -104,6 +106,7 @@ fn default_groups_claim() -> String {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "allow")]
 #[serde(deny_unknown_fields)]
+#[non_exhaustive]
 enum AuthRule {
     /// Public data access via API keys
     // Ex: { allow: anonymous }
