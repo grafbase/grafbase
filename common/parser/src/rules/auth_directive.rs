@@ -49,9 +49,9 @@ impl Operations {
         &self.0
     }
 
-    fn any(&self) -> bool {
-        !self.0.is_empty()
-    }
+    // fn any(&self) -> bool {
+    //     !self.0.is_empty()
+    // }
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
@@ -140,7 +140,6 @@ enum AuthRule {
     /// Owner-based data access via OIDC
     // Ex: { allow: owner }
     //     { allow: owner, operations: [create, read] }
-    // TODO: support configuration of ownerField and identityClaim
     #[serde(rename_all = "camelCase")]
     Owner {
         #[serde(default)]
@@ -152,7 +151,7 @@ impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
     fn directives(&self) -> String {
-        "directive @auth on SCHEMA".to_string()
+        "directive @auth on SCHEMA | OBJECT".to_string()
     }
 
     fn enter_schema(
@@ -169,6 +168,29 @@ impl<'a> Visitor<'a> for AuthDirective {
             match Auth::from_value(ctx, &directive.node) {
                 Ok(auth) => {
                     ctx.registry.get_mut().auth = auth.into();
+                }
+                Err(err) => {
+                    ctx.report_error(vec![directive.pos], err.message);
+                }
+            }
+        }
+    }
+
+    fn enter_type_definition(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+    ) {
+        if let Some(directive) = type_definition
+            .node
+            .directives
+            .iter()
+            .find(|d| d.node.name.node == AUTH_DIRECTIVE)
+        {
+            match Auth::from_value(ctx, &directive.node) {
+                Ok(auth) => {
+                    // TODO: store auth on type
+                    dbg!(dynaql::AuthConfig::from(auth));
                 }
                 Err(err) => {
                     ctx.report_error(vec![directive.pos], err.message);
@@ -247,26 +269,27 @@ impl Auth {
             .flatten()
             .collect();
 
-        if providers.is_empty() {
-            if allowed_private_ops.any() {
-                return Err(ServerError::new(
-                    "auth rule `private` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-            if !allowed_group_ops.is_empty() {
-                return Err(ServerError::new(
-                    "auth rule `groups` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-            if allowed_owner_ops.any() {
-                return Err(ServerError::new(
-                    "auth rule `owner` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-        }
+        // TODO: check the global auth config with model auth
+        // if providers.is_empty() {
+        //     if allowed_private_ops.any() {
+        //         return Err(ServerError::new(
+        //             "auth rule `private` requires provider of type `oidc` to be configured",
+        //             pos,
+        //         ));
+        //     }
+        //     if !allowed_group_ops.is_empty() {
+        //         return Err(ServerError::new(
+        //             "auth rule `groups` requires provider of type `oidc` to be configured",
+        //             pos,
+        //         ));
+        //     }
+        //     if allowed_owner_ops.any() {
+        //         return Err(ServerError::new(
+        //             "auth rule `owner` requires provider of type `oidc` to be configured",
+        //             pos,
+        //         ));
+        //     }
+        // }
 
         Ok(Auth {
             allowed_private_ops,
