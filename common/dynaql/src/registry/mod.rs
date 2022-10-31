@@ -263,6 +263,7 @@ pub struct MetaField {
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
     pub required_operation: Option<crate::Operations>,
+    pub auth: Option<crate::AuthConfig>,
 }
 
 impl Hash for MetaField {
@@ -1361,6 +1362,7 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        auth: None,
                     },
                 );
 
@@ -1397,6 +1399,7 @@ impl Registry {
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        auth: None,
                     },
                 );
             }
@@ -1432,6 +1435,7 @@ impl Registry {
                             resolve: None,
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
                     fields

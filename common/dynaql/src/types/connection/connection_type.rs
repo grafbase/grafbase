@@ -198,6 +198,7 @@ where
                             resolve: None,
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
 
@@ -222,6 +223,7 @@ where
                             resolve: None,
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
 

@@ -298,6 +298,7 @@ impl<'a> Fields<'a> {
                                         .map(|alias| alias.node.as_str()),
                                     required_operation: meta_field
                                         .and_then(|f| f.required_operation),
+                                    auth: meta_field.and_then(|f| f.auth.as_ref()),
                                 };
 
                                 let resolve_fut = registry.resolve_field(&ctx_field, root);
@@ -482,6 +483,7 @@ impl<'a> Fields<'a> {
                                         .map(|alias| alias.node.as_str()),
                                     required_operation: meta_field
                                         .and_then(|f| f.required_operation),
+                                    auth: meta_field.and_then(|f| f.auth.as_ref()),
                                 };
 
                                 let resolve_fut = root.resolve_field(&ctx_field);

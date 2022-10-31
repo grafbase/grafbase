@@ -78,6 +78,7 @@ fn insert_metadata_field(
             }]),
             relation: None,
             required_operation: None,
+            auth: None,
         },
     )
 }
@@ -203,6 +204,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 relation,
                                 transforms,
                                 required_operation: None,
+                                auth: None,
                             });
                         };
                         insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at");
@@ -324,6 +326,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transforms: None,
                     required_operation: Some(Operations::GET),
+                    auth: None,
                 });
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name);

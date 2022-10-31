@@ -53,6 +53,7 @@ async fn main() {
                             property: "pk".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -74,6 +75,7 @@ async fn main() {
                             property: "slug".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -95,6 +97,7 @@ async fn main() {
                             property: "name".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields
@@ -139,6 +142,7 @@ async fn main() {
                             property: "pk".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -160,6 +164,7 @@ async fn main() {
                             property: "clerk_user_id".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -181,6 +186,7 @@ async fn main() {
                             property: "name".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -202,6 +208,7 @@ async fn main() {
                             property: "email".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields.insert(
@@ -223,6 +230,7 @@ async fn main() {
                             property: "avatar".to_string(),
                         }]),
                         required_operation: None,
+                        auth: None,
                     },
                 );
                 fields
@@ -269,6 +277,7 @@ async fn main() {
                             resolve: None,
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
                     fields.insert(
@@ -315,6 +324,7 @@ async fn main() {
                             }),
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
                     fields.insert(
@@ -361,6 +371,7 @@ async fn main() {
                             }),
                             transforms: None,
                             required_operation: None,
+                            auth: None,
                         },
                     );
                     fields

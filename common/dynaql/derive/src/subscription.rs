@@ -309,6 +309,7 @@ pub fn generate(
                     resolve: ::std::option::Option::None,
                     transforms: ::std::option::Option::None,
                     required_operation: None,
+                    auth: None,
                 });
             });
 
@@ -372,6 +373,7 @@ pub fn generate(
                                     name: field.node.name.node.as_str(),
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                                     required_operation: None,
+                                    auth: None,
                                 };
                                 let resolve_fut = async {
                                     #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)
