@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -36,6 +36,20 @@ impl Default for AuthConfig {
 
             oidc_providers: vec![],
         }
+    }
+}
+
+impl AuthConfig {
+    pub fn authorize(&self, groups_from_token: BTreeSet<String>) -> (Operations, BTreeSet<String>) {
+        // Add ops for each group contained in ID token
+        // Minimum ops are that of any signed-in user, if present
+        let groups = self.allowed_group_ops.clone().into_keys().collect();
+        let ops = groups_from_token
+            .intersection(&groups)
+            .fold(self.allowed_private_ops, |ops, group| {
+                ops.union(self.allowed_group_ops[group])
+            });
+        (ops, groups)
     }
 }
 
