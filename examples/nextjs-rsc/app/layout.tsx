@@ -56,6 +56,14 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
                   </li>
                 ) : null
               )}
+              <li>
+                <Link
+                  href="/posts/not-found"
+                  className="py-2 rounded-md shadow-sm block px-3 text-gray-600 hover:text-gray-800 transition bg-white"
+                >
+                  Show 404 page
+                </Link>
+              </li>
             </ul>
           </nav>
           <main className="flex-1 p-6 md:p-24">
