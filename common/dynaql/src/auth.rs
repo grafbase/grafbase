@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -40,7 +40,7 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn authorize(&self, groups_from_token: &BTreeSet<String>) -> Operations {
+    pub fn authorize(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
         let groups = self.allowed_group_ops.clone().into_keys().collect();
