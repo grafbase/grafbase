@@ -1,8 +1,9 @@
-mutation CreateAuthor($name: String!) {
-  authorCreate(input: { name: $name }) {
+mutation CreateAuthor($name: String!, $age: Int!) {
+  authorCreate(input: { name: $name, age: $age }) {
     author {
       id
       name
+      age
     }
   }
 }

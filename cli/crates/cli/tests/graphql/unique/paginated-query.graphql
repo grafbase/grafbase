@@ -4,6 +4,7 @@ query {
       node {
         id
         name
+        age
       }
     }
   }

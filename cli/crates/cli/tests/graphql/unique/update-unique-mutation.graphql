@@ -1,0 +1,8 @@
+mutation UpdateAuthorUnique($id: ID!, $name: String!) {
+  authorUpdate(id: $id, input: { name: $name }) {
+    author {
+      id
+      name
+    }
+  }
+}
