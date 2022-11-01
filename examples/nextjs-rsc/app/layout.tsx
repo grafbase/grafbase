@@ -27,7 +27,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
     <html lang="en">
       <head>
-        <title>Grafbase + Next 13</title>
+        <title>Grafbase + Next.js 13</title>
       </head>
       <body>
         <div className="flex">
