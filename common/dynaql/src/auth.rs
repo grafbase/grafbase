@@ -40,16 +40,15 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn authorize(&self, groups_from_token: BTreeSet<String>) -> (Operations, BTreeSet<String>) {
+    pub fn authorize(&self, groups_from_token: &BTreeSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
         let groups = self.allowed_group_ops.clone().into_keys().collect();
-        let ops = groups_from_token
+        groups_from_token
             .intersection(&groups)
             .fold(self.allowed_private_ops, |ops, group| {
                 ops.union(self.allowed_group_ops[group])
-            });
-        (ops, groups)
+            })
     }
 }
 
