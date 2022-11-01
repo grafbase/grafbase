@@ -97,12 +97,10 @@ const Home = (props: { data: ItemsListQuery }) => {
         {!loading && !error && !data?.itemCollection?.edges?.length && (
           <div className="border border-black bg-gray-200 min-h-24 w-full flex flex-col space-y-6 items-center justify-center py-6">
             <div className="text-lg">No items yet.</div>
-            <Link href="/item/submit" passHref>
-              <a>
-                <button className="px-2 py-1 bg-black text-white hover:bg-gray-700">
-                  Submit item
-                </button>
-              </a>
+            <Link href="/item/submit">
+              <button className="px-2 py-1 bg-black text-white hover:bg-gray-700">
+                Submit item
+              </button>
             </Link>
           </div>
         )}
@@ -127,10 +125,11 @@ const Home = (props: { data: ItemsListQuery }) => {
         )}
         {!!data?.itemCollection?.pageInfo?.hasNextPage && !isSignedIn && (
           <div className="text-center">
-            <Link href="/login" passHref>
-              <a className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50">
-                Sign In to load More
-              </a>
+            <Link
+              href="/login"
+              className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+            >
+              Sign In to load More
             </Link>
           </div>
         )}

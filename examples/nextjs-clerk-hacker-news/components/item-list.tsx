@@ -1,15 +1,15 @@
-import Img from "components/img";
-import ItemVotes from "components/item-votes";
-import formatDistanceToNow from "date-fns/formatDistanceToNow";
-import { ItemsListQuery } from "gql/graphql";
-import Link from "next/link";
+import Img from 'components/img'
+import ItemVotes from 'components/item-votes'
+import formatDistanceToNow from 'date-fns/formatDistanceToNow'
+import { ItemsListQuery } from 'gql/graphql'
+import Link from 'next/link'
 
 const ItemList = (
   props: NonNullable<
-    NonNullable<NonNullable<ItemsListQuery["itemCollection"]>["edges"]>[0]
-  >["node"]
+    NonNullable<NonNullable<ItemsListQuery['itemCollection']>['edges']>[0]
+  >['node']
 ) => {
-  const { id, url, title, votes, createdAt, comments, author } = props;
+  const { id, url, title, votes, createdAt, comments, author } = props
 
   return (
     <div className="border w-full border-b-4 border-gray-500">
@@ -32,27 +32,26 @@ const ItemList = (
           <div className="sm:flex justify-between items-center bg-gray-200 w-full flex-1 px-4 py-2">
             <Link
               href={{
-                pathname: "/item/[id]",
+                pathname: '/item/[id]',
                 query: {
-                  id,
-                },
+                  id
+                }
               }}
               passHref
+              className="text-lg  text-gray-700"
             >
-              <a className="text-lg  text-gray-700">
-                {`${comments?.edges?.length} ${
-                  comments?.edges?.length === 1 ? "comment" : "comments"
-                } `}
-              </a>
+              {`${comments?.edges?.length} ${
+                comments?.edges?.length === 1 ? 'comment' : 'comments'
+              } `}
             </Link>
             <div className="flex space-x-2 items-center">
               <span className="text-gray-700">
                 <time className="font-semibold text-gray-800">
                   {!!createdAt &&
                     formatDistanceToNow(Date.parse(createdAt), {
-                      addSuffix: true,
+                      addSuffix: true
                     })}
-                </time>{" "}
+                </time>{' '}
                 by {author.name}
               </span>
               <Img
@@ -65,7 +64,7 @@ const ItemList = (
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ItemList;
+export default ItemList

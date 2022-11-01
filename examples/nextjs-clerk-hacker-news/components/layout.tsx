@@ -64,25 +64,23 @@ const Layout = ({ children }: PropsWithChildren) => {
         >
           <div className="flex w-full items-center justify-between border-b py-4 lg:border-none">
             <div className="flex items-center">
-              <Link href="/" passHref>
-                <a className="flex items-center space-x-3">
-                  <LogoAnimated className="text-white w-6 h-6" />
-                  <span className="text-white font-semibold text-xl">
-                    Grafnews
-                  </span>
-                </a>
+              <Link href="/" className="flex items-center space-x-3">
+                <LogoAnimated className="text-white w-6 h-6" />
+                <span className="text-white font-semibold text-xl">
+                  Grafnews
+                </span>
               </Link>
               <div className="ml-10 hidden space-x-8 lg:block">
                 {navigation.map(({ href, name }) => (
-                  <Link key={name} href={href} passHref>
-                    <a
-                      className={
-                        'text-base text-white hover:text-indigo-50 ' +
-                        (asPath === href && 'font-bold')
-                      }
-                    >
-                      {name}
-                    </a>
+                  <Link
+                    key={name}
+                    href={href}
+                    className={
+                      'text-base text-white hover:text-indigo-50 ' +
+                      (asPath === href && 'font-bold')
+                    }
+                  >
+                    {name}
                   </Link>
                 ))}
               </div>
@@ -91,29 +89,30 @@ const Layout = ({ children }: PropsWithChildren) => {
               <div className="ml-10 space-x-4">
                 <Link
                   href={{ pathname: '/user/[id]', query: { id: userId } }}
-                  passHref
+                  className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75"
                 >
-                  <a className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75">
-                    {session?.user?.username}
-                  </a>
+                  {session?.user?.username}
                 </Link>
               </div>
             ) : (
               <div className="ml-10 space-x-4">
-                <Link href="/login" passHref>
-                  <a className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75">
-                    {isLoaded ? 'Join' : '...'}
-                  </a>
+                <Link
+                  href="/login"
+                  className="inline-block rounded border border-transparent text-base font-bold text-white hover:bg-opacity-75"
+                >
+                  {isLoaded ? 'Join' : '...'}
                 </Link>
               </div>
             )}
           </div>
           <div className="flex flex-wrap justify-center space-x-6 py-4 lg:hidden">
             {navigation.map(({ href, name }) => (
-              <Link key={name} href={href} passHref>
-                <a className="text-base  text-white hover:text-indigo-50">
-                  {name}
-                </a>
+              <Link
+                key={name}
+                href={href}
+                className="text-base  text-white hover:text-indigo-50"
+              >
+                {name}
               </Link>
             ))}
           </div>

@@ -191,10 +191,11 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
             )}
             {!!data?.item?.comments?.pageInfo?.hasNextPage && !isSignedIn && (
               <div className="text-center">
-                <Link href="/login" passHref>
-                  <a className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50">
-                    Sign In to load More
-                  </a>
+                <Link
+                  href="/login"
+                  className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+                >
+                  Sign In to load More
                 </Link>
               </div>
             )}

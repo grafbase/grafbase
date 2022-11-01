@@ -52,12 +52,11 @@ const UsersPage = () => {
         {!loading && !error && !data?.userCollection?.edges?.length && (
           <div className="border border-black bg-gray-200 min-h-24 w-full flex flex-col space-y-6 items-center justify-center py-6">
             <div className="text-lg">No users yet.</div>
-            <Link href="//login" passHref>
-              <a>
-                <button className="px-2 py-1 bg-black text-white hover:bg-gray-700">
-                  Be the first one
-                </button>
-              </a>
+            <Link
+              href="/login"
+              className="px-2 py-1 bg-black text-white hover:bg-gray-700"
+            >
+              <button>Be the first one</button>
             </Link>
           </div>
         )}
