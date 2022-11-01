@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::dynamic_string::DynamicString;
+use crate::rules::model_directive::MODEL_DIRECTIVE;
 
 use super::visitor::{Visitor, VisitorContext};
 
@@ -151,7 +152,7 @@ impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
     fn directives(&self) -> String {
-        "directive @auth on SCHEMA | OBJECT".to_string()
+        format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT")
     }
 
     fn enter_schema(
@@ -176,26 +177,29 @@ impl<'a> Visitor<'a> for AuthDirective {
         }
     }
 
+    // Visit types to check that the auth directive is used correctly. Actual
+    // processing happens in the model directive.
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
         type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
     ) {
-        if let Some(directive) = type_definition
-            .node
-            .directives
-            .iter()
-            .find(|d| d.node.name.node == AUTH_DIRECTIVE)
-        {
-            match Auth::from_value(ctx, &directive.node) {
-                Ok(auth) => {
-                    // TODO: store auth on type
-                    dbg!(dynaql::AuthConfig::from(auth));
-                }
-                Err(err) => {
-                    ctx.report_error(vec![directive.pos], err.message);
-                }
-            }
+        if let (Some(auth_directive), false) = (
+            type_definition
+                .node
+                .directives
+                .iter()
+                .find(|d| d.node.name.node == AUTH_DIRECTIVE),
+            type_definition
+                .node
+                .directives
+                .iter()
+                .any(|d| d.node.name.node == MODEL_DIRECTIVE),
+        ) {
+            ctx.report_error(
+                vec![auth_directive.pos],
+                format!("The @{AUTH_DIRECTIVE} directive can only be used on @{MODEL_DIRECTIVE} types"),
+            );
         }
     }
 }
