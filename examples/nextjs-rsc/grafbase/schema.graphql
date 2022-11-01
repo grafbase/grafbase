@@ -2,9 +2,7 @@ type Post @model {
   id: ID!
   title: String!
   slug: String! @unique
-  content: String
   comments: [Comment]
-  views: Int @default(value: 0)
 }
 
 type Comment @model {
