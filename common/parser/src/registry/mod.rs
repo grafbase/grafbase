@@ -12,7 +12,7 @@ use dynaql::registry::{
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
-use dynaql::Operations;
+use dynaql::{AuthConfig, Operations};
 use dynaql_parser::types::{FieldDefinition, ObjectType};
 
 mod create_mutation;
@@ -68,7 +68,12 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
 ///   entityCollection(first: Int, last: Int, after: String, before: String): EntityCollection
 /// }
 /// ```
-pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, connection_edges: Vec<String>) {
+pub fn add_list_query_paginated<'a>(
+    ctx: &mut VisitorContext<'a>,
+    type_name: &str,
+    connection_edges: Vec<String>,
+    auth: Option<&AuthConfig>,
+) {
     // Edge
     let edge = format!("{}Edge", type_name.to_camel());
     ctx.registry.get_mut().create_type(
@@ -98,7 +103,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields.insert(
@@ -127,7 +132,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             property: "__pk".to_string(),
                         }]),
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields
@@ -186,7 +191,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields.insert(
@@ -214,7 +219,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields.insert(
@@ -242,7 +247,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields.insert(
@@ -270,7 +275,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields
@@ -320,7 +325,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields.insert(
@@ -342,7 +347,7 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
                         resolve: None,
                         transforms: None,
                         required_operation: Some(Operations::LIST),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields
@@ -394,12 +399,17 @@ pub fn add_list_query_paginated<'a>(ctx: &mut VisitorContext<'a>, type_name: &st
         }),
         transforms: None,
         required_operation: Some(Operations::LIST),
-        auth: None,
+        auth: auth.cloned(),
     });
 }
 
 /// Add the remove mutation for a given Object
-pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefinition, type_name: &str) {
+pub fn add_remove_query<'a>(
+    ctx: &mut VisitorContext<'a>,
+    id_field: &FieldDefinition,
+    type_name: &str,
+    auth: Option<&AuthConfig>,
+) {
     let type_name = type_name.to_string();
     let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
 
@@ -434,7 +444,7 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
                             functions: vec![],
                         }]),
                         required_operation: Some(Operations::DELETE),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields
@@ -496,6 +506,6 @@ pub fn add_remove_query<'a>(ctx: &mut VisitorContext<'a>, id_field: &FieldDefini
         }),
         transforms: None,
         required_operation: Some(Operations::DELETE),
-        auth: None,
+        auth: auth.cloned(),
     });
 }

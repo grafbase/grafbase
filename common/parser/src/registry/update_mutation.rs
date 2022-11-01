@@ -9,8 +9,8 @@ use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
     MetaType,
 };
-use dynaql::Operations;
 use dynaql::Positioned;
+use dynaql::{AuthConfig, Operations};
 use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
 
 /// Create an input type for a Node's Relation.
@@ -281,6 +281,7 @@ pub fn add_update_mutation<'a>(
     ty: &TypeDefinition,
     object: &ObjectType,
     type_name: &str,
+    auth: Option<&AuthConfig>,
 ) {
     create_input_without_relation_for_update(ctx, ty, object);
     let type_name = type_name.to_string();
@@ -320,7 +321,7 @@ pub fn add_update_mutation<'a>(
                         }),
                         transforms: None,
                         required_operation: Some(Operations::UPDATE),
-                        auth: None,
+                        auth: auth.cloned(),
                     },
                 );
                 fields
@@ -394,7 +395,7 @@ pub fn add_update_mutation<'a>(
         }),
         transforms: None,
         required_operation: Some(Operations::UPDATE),
-        auth: None,
+        auth: auth.cloned(),
     });
 }
 
@@ -459,7 +460,7 @@ mod tests {
         }
         .unwrap();
 
-        add_update_mutation(&mut ctx, &type_def.node, object_def, "Author");
+        add_update_mutation(&mut ctx, &type_def.node, object_def, "Author", None);
 
         let sdl = Schema::new(ctx.registry.take()).sdl();
         assert_snapshot!(sdl);

@@ -21,6 +21,7 @@ use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_query;
 use crate::registry::{add_create_mutation, add_update_mutation};
+use crate::rules::auth_directive::{Auth, AUTH_DIRECTIVE};
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
@@ -35,7 +36,7 @@ use dynaql::registry::{
 };
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
-use dynaql::{Operations, Positioned};
+use dynaql::{AuthConfig, Operations, Positioned};
 use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 
@@ -101,6 +102,25 @@ impl<'a> Visitor<'a> for ModelDirective {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
             then {
+                // FIXME
+                let mut auth: Option<AuthConfig> = None;
+                if let Some(directive) = type_definition
+                    .node
+                    .directives
+                    .iter()
+                    .find(|d| d.node.name.node == AUTH_DIRECTIVE)
+                {
+                    match Auth::from_value(ctx, &directive.node) {
+                        Ok(a) => {
+                            auth = Some(a.into());
+                            // dbg!(auth);
+                        }
+                        Err(err) => {
+                            ctx.report_error(vec![directive.pos], err.message);
+                        }
+                    }
+                }
+
                 let id_field = match object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node)) {
                     Some(id) => id,
                     _ => {
@@ -204,7 +224,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 relation,
                                 transforms,
                                 required_operation: None,
-                                auth: None,
+                                auth: auth.clone(),
                             });
                         };
                         insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at");
@@ -326,14 +346,14 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transforms: None,
                     required_operation: Some(Operations::GET),
-                    auth: None,
+                    auth: auth.clone(),
                 });
 
-                add_create_mutation(ctx, &type_definition.node, object, &type_name);
-                add_update_mutation(ctx, &type_definition.node, object, &type_name);
+                add_create_mutation(ctx, &type_definition.node, object, &type_name, auth.as_ref());
+                add_update_mutation(ctx, &type_definition.node, object, &type_name, auth.as_ref());
 
-                add_list_query_paginated(ctx, &type_name, connection_edges);
-                add_remove_query(ctx, &id_field.node, &type_name)
+                add_list_query_paginated(ctx, &type_name, connection_edges, auth.as_ref());
+                add_remove_query(ctx, &id_field.node, &type_name, auth.as_ref());
             }
         }
     }

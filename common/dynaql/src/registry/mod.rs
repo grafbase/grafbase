@@ -17,7 +17,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 use ulid_rs::Ulid;
 
-use crate::auth::AuthConfig;
+use crate::auth::{AuthConfig, Operations};
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
@@ -262,8 +262,8 @@ pub struct MetaField {
     /// Ordered transformations to be applied after a Resolver has been called.
     /// They are applied Serially and merged at the end.
     pub transforms: Option<Vec<Transformer>>,
-    pub required_operation: Option<crate::Operations>,
-    pub auth: Option<crate::AuthConfig>,
+    pub required_operation: Option<Operations>,
+    pub auth: Option<AuthConfig>,
 }
 
 impl Hash for MetaField {

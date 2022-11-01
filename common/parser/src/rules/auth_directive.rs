@@ -11,13 +11,13 @@ use dynaql_value::ConstValue;
 use serde::{Deserialize, Serialize};
 use serde_with::rust::sets_duplicate_value_is_error;
 
-const AUTH_DIRECTIVE: &str = "auth";
+pub const AUTH_DIRECTIVE: &str = "auth";
 const DEFAULT_GROUPS_CLAIM: &str = "groups";
 
 pub struct AuthDirective;
 
 #[derive(Debug)]
-struct Auth {
+pub struct Auth {
     allowed_private_ops: Operations,
 
     allowed_group_ops: HashMap<String, Operations>,
@@ -201,7 +201,7 @@ impl<'a> Visitor<'a> for AuthDirective {
 }
 
 impl Auth {
-    fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective) -> Result<Self, ServerError> {
+    pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
         let providers = match value.get_argument("providers") {
