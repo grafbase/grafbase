@@ -40,7 +40,11 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn authorize(&self, groups_from_token: &HashSet<String>) -> Operations {
+    pub fn api_key_ops(&self) -> Operations {
+        self.allowed_anonymous_ops
+    }
+
+    pub fn oidc_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
         let groups = self.allowed_group_ops.clone().into_keys().collect();
