@@ -2,7 +2,7 @@ mod error;
 
 pub use error::VerificationError;
 
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use json_dotpath::DotPaths;
 use jwt_compact::{
@@ -68,7 +68,7 @@ pub struct Client {
 #[derive(Debug, PartialEq, Eq)]
 pub struct VerifiedToken {
     pub identity: String,
-    pub groups: BTreeSet<String>,
+    pub groups: HashSet<String>,
 }
 
 impl Client {
@@ -183,7 +183,7 @@ impl Client {
                 claims
                     .custom
                     .extra
-                    .dot_get_or_default::<BTreeSet<String>>(claim)
+                    .dot_get_or_default::<HashSet<String>>(claim)
                     .map_err(|_| VerificationError::InvalidGroups(claim.to_string()))
             })
             .transpose()?
@@ -436,7 +436,7 @@ mod tests {
             client.verify_token(TOKEN, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_SUB.to_string(),
-                groups: BTreeSet::new(),
+                groups: HashSet::new(),
             }
         );
     }
@@ -464,7 +464,7 @@ mod tests {
             client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer).await.unwrap(),
             VerifiedToken {
                 identity: TOKEN_SUB.to_string(),
-                groups: BTreeSet::new(),
+                groups: HashSet::new(),
             }
         );
     }
