@@ -45,16 +45,6 @@ impl Default for Operations {
     }
 }
 
-impl Operations {
-    fn values(&self) -> &HashSet<Operation> {
-        &self.0
-    }
-
-    // fn any(&self) -> bool {
-    //     !self.0.is_empty()
-    // }
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
@@ -70,7 +60,7 @@ enum Operation {
 impl From<Operations> for dynaql::Operations {
     fn from(ops: Operations) -> Self {
         let mut res = Self::empty();
-        for op in ops.values() {
+        for op in ops.0 {
             res |= match op {
                 Operation::Create => Self::CREATE,
                 Operation::Read => Self::READ,
@@ -166,7 +156,7 @@ impl<'a> Visitor<'a> for AuthDirective {
             .iter()
             .find(|d| d.node.name.node == AUTH_DIRECTIVE)
         {
-            match Auth::from_value(ctx, &directive.node) {
+            match Auth::from_value(ctx, &directive.node, true) {
                 Ok(auth) => {
                     ctx.registry.get_mut().auth = auth.into();
                 }
@@ -205,7 +195,11 @@ impl<'a> Visitor<'a> for AuthDirective {
 }
 
 impl Auth {
-    pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective) -> Result<Self, ServerError> {
+    pub fn from_value(
+        ctx: &VisitorContext<'_>,
+        value: &ConstDirective,
+        is_global_directive: bool,
+    ) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
         let providers = match value.get_argument("providers") {
@@ -219,6 +213,11 @@ impl Auth {
             },
             None => Vec::new(),
         };
+
+        // XXX: introduce a separate type for non-global directives if we need more custom behavior
+        if !is_global_directive && !providers.is_empty() {
+            return Err(ServerError::new("auth providers can only be configured globally", pos));
+        }
 
         let rules = match value.get_argument("rules") {
             Some(arg) => match &arg.node {
@@ -235,7 +234,7 @@ impl Auth {
         let allowed_private_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Private { operations, .. } => Some(operations.values().clone()),
+                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
                 _ => None,
             })
             .flatten()
@@ -267,33 +266,11 @@ impl Auth {
         let allowed_owner_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
+                AuthRule::Owner { operations, .. } => Some(operations.0.clone()),
                 _ => None,
             })
             .flatten()
             .collect();
-
-        // TODO: check the global auth config with model auth
-        // if providers.is_empty() {
-        //     if allowed_private_ops.any() {
-        //         return Err(ServerError::new(
-        //             "auth rule `private` requires provider of type `oidc` to be configured",
-        //             pos,
-        //         ));
-        //     }
-        //     if !allowed_group_ops.is_empty() {
-        //         return Err(ServerError::new(
-        //             "auth rule `groups` requires provider of type `oidc` to be configured",
-        //             pos,
-        //         ));
-        //     }
-        //     if allowed_owner_ops.any() {
-        //         return Err(ServerError::new(
-        //             "auth rule `owner` requires provider of type `oidc` to be configured",
-        //             pos,
-        //         ));
-        //     }
-        // }
 
         Ok(Auth {
             allowed_private_ops,

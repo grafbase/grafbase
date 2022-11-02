@@ -110,7 +110,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     .iter()
                     .find(|d| d.node.name.node == AUTH_DIRECTIVE)
                 {
-                    match Auth::from_value(ctx, &directive.node) {
+                    match Auth::from_value(ctx, &directive.node, false) {
                         Ok(a) => {
                             auth = Some(a.into());
                             // dbg!(auth);
