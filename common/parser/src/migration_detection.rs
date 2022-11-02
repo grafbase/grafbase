@@ -1,0 +1,108 @@
+use std::collections::BTreeSet;
+
+use dynaql::registry::{MetaType, Registry};
+use dynaql_parser::types::Type;
+
+#[derive(Debug, PartialEq)]
+pub enum RequiredMigration {
+    FieldMadeNonOptional { path: String },
+}
+
+#[allow(dead_code)] // FIXME: To be removed.
+pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigration> {
+    // FIXME: Simplify when https://github.com/rust-lang/rfcs/issues/1893 is accomplished.
+    let from_type_names: BTreeSet<_> = from.types.keys().map(String::as_str).collect();
+    let to_type_names: BTreeSet<_> = to.types.keys().map(String::as_str).collect();
+
+    from_type_names
+        .intersection(&to_type_names)
+        .filter_map(|common_type_name| {
+            let from_type = from
+                .types
+                .get(*common_type_name)
+                .filter(|meta_type| matches!(meta_type, MetaType::Object { is_node: true, .. }));
+            let to_type = to
+                .types
+                .get(*common_type_name)
+                .filter(|meta_type| matches!(meta_type, MetaType::Object { is_node: true, .. }));
+            from_type.zip(to_type)
+        })
+        .flat_map(|(from_type, to_type)| {
+            let type_name = from_type.name();
+            from_type
+                .fields()
+                .zip(to_type.fields())
+                .into_iter()
+                .flat_map(|(from_fields, to_fields)| {
+                    let from_field_names: BTreeSet<_> = from_fields.keys().map(String::as_str).collect();
+                    let to_field_names: BTreeSet<_> = to_fields.keys().map(String::as_str).collect();
+
+                    from_field_names
+                        .intersection(&to_field_names)
+                        .filter_map(|&common_field_name| {
+                            let from_field = from_fields.get(common_field_name).unwrap();
+                            let to_field = to_fields.get(common_field_name).unwrap();
+                            let from_field_type = Type::new(&from_field.ty).unwrap();
+                            let to_field_type = Type::new(&to_field.ty).unwrap();
+                            if from_field_type.base == to_field_type.base
+                                && from_field_type.nullable
+                                && !to_field_type.nullable
+                            {
+                                Some(RequiredMigration::FieldMadeNonOptional {
+                                    path: format!("{type_name}.{common_field_name}"),
+                                })
+                            } else {
+                                None
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RequiredMigration;
+
+    #[rstest::rstest]
+    #[case(
+        r#"
+            type Product @model {
+                id: ID!
+                name: String!
+            }
+        "#,
+        r#"
+            type Product @model {
+                id: ID!
+                name: String
+            }
+        "#,
+        &[],
+    )]
+    #[case(
+        r#"
+            type Product @model {
+                id: ID!
+                name: String
+            }
+        "#,
+        r#"
+            type Product @model {
+                id: ID!
+                name: String!
+            }
+        "#,
+        &[RequiredMigration::FieldMadeNonOptional { path: "Product.name".into() }]
+    )]
+    fn test(#[case] from: &str, #[case] to: &str, #[case] expected_required_migrations: &[RequiredMigration]) {
+        let from_registry = crate::to_registry(from).unwrap();
+        let to_registry = crate::to_registry(to).unwrap();
+        assert_eq!(
+            super::required_migrations(&from_registry, &to_registry),
+            expected_required_migrations
+        );
+    }
+}
