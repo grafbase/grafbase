@@ -26,6 +26,7 @@ use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
+use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
 use crate::registry::Registry;
@@ -94,20 +95,24 @@ impl Debug for Data {
 pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
 
 /// When inside a Connection, we get the subfields asked by alias which are a relation
-pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &MetaType) -> HashSet<String> {
-    let mut result = HashSet::new();
+/// (response_key, relation)
+pub fn relations_edges<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    root: &'a MetaType,
+) -> HashMap<String, &'a MetaRelation> {
+    let mut result = HashMap::new();
     for selection in &ctx.item.node.items {
         match &selection.node {
             Selection::Field(field) => {
                 let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                 // We do take the name and not the alias
                 let field_name = ctx_field.item.node.name.node.as_str();
-                if root
+                let field_response_key = ctx_field.item.node.response_key().node.as_str();
+                if let Some(relation) = root
                     .field_by_name(field_name)
-                    .and_then(|x| x.relation.as_ref().clone())
-                    .is_some()
+                    .and_then(|x| x.relation.as_ref())
                 {
-                    result.insert(field_name.to_string());
+                    result.insert(field_response_key.to_string(), relation);
                 }
             }
             selection => {
@@ -119,7 +124,7 @@ pub fn relations_edges<'a>(ctx: &ContextSelectionSet<'a>, root: &MetaType) -> Ha
                             Some(fragment) => fragment,
                             None => {
                                 // Unknown fragment
-                                return HashSet::new();
+                                return HashMap::new();
                             }
                         };
                         (

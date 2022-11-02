@@ -1,7 +1,7 @@
 use futures_util::FutureExt;
 use graph_entities::{
-    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
-    ResponsePrimitive,
+    NodeID, QueryResponseNode, RelationOrigin, ResponseContainer, ResponseNodeId,
+    ResponseNodeRelation, ResponsePrimitive,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -202,23 +202,25 @@ async fn resolve_container_inner<'a>(
     let relations = relations_edges(ctx, root);
     #[cfg(feature = "tracing_worker")]
     {
-        logworker::info!("", "");
-        logworker::info!("", "");
-        logworker::info!("", "");
-        logworker::info!("", "");
         logworker::info!("", "Relations for {} {:?}", root.name(), relations);
-        logworker::info!("", "");
-        logworker::info!("", "");
-        logworker::info!("", "");
-        logworker::info!("", "");
     }
 
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);
         for (name, value) in res {
             let name = name.to_string();
-            if relations.contains(&name) {
-                container.insert(ResponseNodeRelation::Relation(name.into()), value);
+            // Temp: little hack while we rework the execution step, we should not do that here to
+            // follow OneToMany relations.
+            if let Some(relation) = relations.get(&name) {
+                container.insert(
+                    ResponseNodeRelation::relation(
+                        name.into(),
+                        relation.name.clone().into(),
+                        relation.relation.0.clone().map(|x| x.into()),
+                        relation.relation.1.clone().into(),
+                    ),
+                    value,
+                );
             } else {
                 container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
             }
@@ -232,8 +234,16 @@ async fn resolve_container_inner<'a>(
         let mut container = ResponseContainer::new_container();
         for (name, value) in res {
             let name = name.to_string();
-            if relations.contains(&name) {
-                container.insert(ResponseNodeRelation::Relation(name.into()), value);
+            if let Some(relation) = relations.get(&name) {
+                container.insert(
+                    ResponseNodeRelation::relation(
+                        name.into(),
+                        relation.name.clone().into(),
+                        relation.relation.0.clone().map(Into::into),
+                        relation.relation.1.clone().into(),
+                    ),
+                    value,
+                );
             } else {
                 container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
             }

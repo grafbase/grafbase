@@ -27,8 +27,13 @@ pub async fn selection_set_into_node<'a>(
             for (name, value) in value {
                 let id = selection_set_into_node(value, ctx, root).await;
                 let relation = name.to_string();
-                let rel = if relations.contains(&relation) {
-                    ResponseNodeRelation::Relation(relation.into())
+                let rel = if let Some(rel) = relations.get(name.as_str()) {
+                    ResponseNodeRelation::relation(
+                        relation.into(),
+                        rel.name.clone().into(),
+                        rel.relation.0.clone().map(Into::into),
+                        rel.relation.1.clone().into(),
+                    )
                 } else {
                     ResponseNodeRelation::NotARelation(relation.into())
                 };
@@ -63,7 +68,8 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 let id = field_into_node(value, ctx).await;
                 let relation = name.to_string();
                 let rel = if relations.contains(&relation) {
-                    ResponseNodeRelation::Relation(relation.into())
+                    // ResponseNodeRelation::Relation(relation.into())
+                    ResponseNodeRelation::NotARelation(relation.into())
                 } else {
                     ResponseNodeRelation::NotARelation(relation.into())
                 };

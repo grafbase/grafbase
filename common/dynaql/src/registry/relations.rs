@@ -17,6 +17,8 @@ pub enum RelationCombinationError {
     UndefinedError,
     #[error("You have multiple relations starting from `{from}`, the relation engine can't define them without a little help. Try using the `@relation` directive.")]
     MultipleRelationsError { from: String },
+    #[error("You have an impossible combination ongoing.")]
+    ImpossibleCombination,
 }
 
 impl MetaRelationKind {
@@ -167,7 +169,8 @@ pub struct MetaRelation {
     pub kind: MetaRelationKind,
     /// The direction is:
     /// 0 -> 1
-    pub relation: (String, String),
+    /// The relation can have a null origin, it means it's everything related to 1.
+    pub relation: (Option<String>, String),
     pub birectional: bool,
 }
 
@@ -184,9 +187,20 @@ impl MetaRelation {
         Self {
             name: name
                 .unwrap_or_else(|| MetaRelation::generate_relation_name(&base_from, &base_to)),
-            relation: (base_from.to_string(), base_to.to_string()),
+            relation: (Some(base_from.to_string()), base_to.to_string()),
             birectional: false,
             kind: MetaRelationKind::new(&from, &to),
+        }
+    }
+
+    /// Create a new collection relation
+    pub fn base_collection_relation(name: String, to: &Type) -> Self {
+        let base_to = to.base.to_base_type_str();
+        Self {
+            name,
+            relation: (None, base_to.to_string()),
+            birectional: false,
+            kind: MetaRelationKind::OneToMany,
         }
     }
 
@@ -197,9 +211,24 @@ impl MetaRelation {
             return Err(RelationCombinationError::UndefinedError);
         }
 
-        if self.relation.0 != relation.relation.1 || self.relation.1 != relation.relation.0 {
+        if self
+            .relation
+            .0
+            .as_ref()
+            .ok_or(RelationCombinationError::ImpossibleCombination)?
+            .ne(&relation.relation.1)
+            || self.relation.1.ne(relation
+                .relation
+                .0
+                .as_ref()
+                .ok_or(RelationCombinationError::ImpossibleCombination)?)
+        {
             return Err(RelationCombinationError::MultipleRelationsError {
-                from: self.relation.0.clone(),
+                from: self
+                    .relation
+                    .0
+                    .clone()
+                    .ok_or(RelationCombinationError::ImpossibleCombination)?,
             });
         }
 
