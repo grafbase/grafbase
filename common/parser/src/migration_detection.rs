@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use dynaql::registry::{MetaType, Registry};
 use dynaql_parser::types::Type;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum RequiredMigration {
     FieldMadeNonOptional { path: String },
 }
