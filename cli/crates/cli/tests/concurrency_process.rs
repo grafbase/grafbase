@@ -5,7 +5,7 @@ use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA}
 use utils::environment::Environment;
 
 #[tokio::test]
-async fn process() {
+async fn concurrency_process() {
     let mut env1 = Environment::init(4005);
     let mut env2 = Environment::from(&env1, 4006);
 

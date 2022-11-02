@@ -25,6 +25,7 @@ runs:
       run: |
         shopt -s extglob
         rm -r !("cli")
+        shopt -s dotglob
         mv cli/* .
         rm -r cli
 

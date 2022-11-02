@@ -1,5 +1,5 @@
 mutation RenameAuthor($id: ID!, $name: String!) {
-  authorUpdate(id: $id, input: { name: $name }) {
+  authorUpdate(by: { id: $id }, input: { name: $name }) {
     author {
       id
       name

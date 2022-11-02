@@ -5,7 +5,7 @@ use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA}
 use utils::environment::Environment;
 
 #[tokio::test]
-async fn thread() {
+async fn concurrency_thread() {
     let mut env = Environment::init(4007);
 
     env.grafbase_init();

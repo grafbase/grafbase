@@ -4,7 +4,8 @@ use json_dotpath::DotPaths;
 use serde_json::{json, Value};
 use utils::consts::{
     UNIQUE_CREATE_MUTATION, UNIQUE_DELETE_MUTATION, UNIQUE_PAGINATED_QUERY, UNIQUE_QUERY, UNIQUE_QUERY_BY_NAME,
-    UNIQUE_SCHEMA, UNIQUE_UPDATE_MUTATION, UNIQUE_UPDATE_UNIQUE_MUTATION,
+    UNIQUE_SCHEMA, UNIQUE_UPDATE_BY_NAME_MUTATION, UNIQUE_UPDATE_MUTATION, UNIQUE_UPDATE_UNIQUE_BY_NAME_MUTATION,
+    UNIQUE_UPDATE_UNIQUE_MUTATION,
 };
 use utils::environment::Environment;
 
@@ -86,9 +87,24 @@ fn unique() {
 
     let query_author_id: String = dot_get!(response, "data.author.id");
     let query_author_age: usize = dot_get!(response, "data.author.age");
+    let query_author_name: String = dot_get!(response, "data.author.name");
 
     assert_eq!(query_author_id, first_author_id);
     assert_eq!(query_author_age, 40);
+
+    client.gql::<Value>(
+        json!({ "query": UNIQUE_UPDATE_BY_NAME_MUTATION, "variables": { "name": query_author_name, "age": 50 } })
+            .to_string(),
+    );
+
+    let response = client
+        .gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": {"name": query_author_name } }).to_string());
+
+    let query_author_id: String = dot_get!(response, "data.author.id");
+    let query_author_age: usize = dot_get!(response, "data.author.age");
+
+    assert_eq!(query_author_id, first_author_id);
+    assert_eq!(query_author_age, 50);
 
     client.gql::<Value>(
         json!({ "query": UNIQUE_UPDATE_UNIQUE_MUTATION, "variables": { "id": first_author_id, "name": "3" } })
@@ -103,6 +119,20 @@ fn unique() {
 
     assert_eq!(query_author_id, first_author_id);
     assert_eq!(query_author_name, "3");
+
+    client.gql::<Value>(
+        json!({ "query": UNIQUE_UPDATE_UNIQUE_BY_NAME_MUTATION, "variables": { "queryName": query_author_name, "name": "4" } })
+            .to_string(),
+    );
+
+    let response =
+        client.gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": { "name": "4" } }).to_string());
+
+    let query_author_id: String = dot_get!(response, "data.author.id");
+    let query_author_name: String = dot_get!(response, "data.author.name");
+
+    assert_eq!(query_author_id, first_author_id);
+    assert_eq!(query_author_name, "4");
 
     let response = client
         .gql::<Value>(json!({ "query": UNIQUE_DELETE_MUTATION, "variables": { "id": first_author_id } }).to_string());

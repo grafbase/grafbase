@@ -5,7 +5,7 @@ use utils::consts::ENVIRONMENT_SCHEMA;
 use utils::environment::Environment;
 
 #[test]
-fn dot_env_file() {
+fn environment_file() {
     let mut env = Environment::init(4012);
 
     env.grafbase_init();
