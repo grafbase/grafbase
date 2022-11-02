@@ -25,40 +25,60 @@ pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigrat
                 .types
                 .get(*common_type_name)
                 .filter(|meta_type| matches!(meta_type, MetaType::Object { is_node: true, .. }));
-            from_type.zip(to_type)
-        })
-        .flat_map(|(from_type, to_type)| {
-            let type_name = from_type.name();
-            from_type
-                .fields()
-                .zip(to_type.fields())
-                .into_iter()
-                .flat_map(|(from_fields, to_fields)| {
-                    let from_field_names: BTreeSet<_> = from_fields.keys().map(String::as_str).collect();
-                    let to_field_names: BTreeSet<_> = to_fields.keys().map(String::as_str).collect();
 
-                    from_field_names
-                        .intersection(&to_field_names)
-                        .filter_map(|&common_field_name| {
-                            let from_field = from_fields.get(common_field_name).unwrap();
-                            let to_field = to_fields.get(common_field_name).unwrap();
-                            let from_field_type = Type::new(&from_field.ty).unwrap();
-                            let to_field_type = Type::new(&to_field.ty).unwrap();
-                            if from_field_type.base == to_field_type.base
-                                && from_field_type.nullable
-                                && !to_field_type.nullable
-                            {
-                                Some(RequiredMigration::FieldMadeNonOptional {
-                                    path: format!("{type_name}.{common_field_name}"),
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>()
+            let from_create_input_type = from.types.get(&format!("{common_type_name}CreateInput"));
+            let to_create_input_type = to.types.get(&format!("{common_type_name}CreateInput"));
+
+            from_type
+                .zip(from_create_input_type)
+                .zip(to_type.zip(to_create_input_type))
         })
+        .flat_map(
+            |((from_type, _from_create_input_type), (to_type, to_create_input_type))| {
+                let type_name = from_type.name();
+
+                let to_create_input_fields = match to_create_input_type {
+                    MetaType::InputObject { input_fields, .. } => input_fields,
+                    _ => panic!("unexpected type"),
+                };
+
+                from_type
+                    .fields()
+                    .zip(to_type.fields())
+                    .into_iter()
+                    .flat_map(|(from_fields, to_fields)| {
+                        let from_field_names: BTreeSet<_> = from_fields.keys().map(String::as_str).collect();
+                        let to_field_names: BTreeSet<_> = to_fields.keys().map(String::as_str).collect();
+
+                        from_field_names
+                            .intersection(&to_field_names)
+                            .filter_map(|&common_field_name| {
+                                let to_has_default_value = to_create_input_fields
+                                    .get(common_field_name)? // None if it's one of the built-in fields such as `id`, `createdAt` etc.
+                                    .default_value
+                                    .is_some();
+
+                                let from_field = from_fields.get(common_field_name).unwrap();
+                                let to_field = to_fields.get(common_field_name).unwrap();
+                                let from_field_type = Type::new(&from_field.ty).unwrap();
+                                let to_field_type = Type::new(&to_field.ty).unwrap();
+                                if from_field_type.base == to_field_type.base
+                                    && from_field_type.nullable
+                                    && !to_field_type.nullable
+                                    && !to_has_default_value
+                                {
+                                    Some(RequiredMigration::FieldMadeNonOptional {
+                                        path: format!("{type_name}.{common_field_name}"),
+                                    })
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>()
+            },
+        )
         .collect::<Vec<_>>()
 }
 
@@ -96,6 +116,21 @@ mod tests {
             }
         "#,
         &[RequiredMigration::FieldMadeNonOptional { path: "Product.name".into() }]
+    )]
+    #[case(
+        r#"
+            type Product @model {
+                id: ID!
+                name: String
+            }
+        "#,
+        r#"
+            type Product @model {
+                id: ID!
+                name: String! @default(value: "default value")
+            }
+        "#,
+        &[]
     )]
     fn test(#[case] from: &str, #[case] to: &str, #[case] expected_required_migrations: &[RequiredMigration]) {
         let from_registry = crate::to_registry(from).unwrap();
