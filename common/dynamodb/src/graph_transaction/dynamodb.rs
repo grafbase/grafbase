@@ -158,8 +158,6 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let DeleteNodeInternalInput { .. } = self;
-
             let key = dynomite::attr_map! {
                     constant::PK => pk.clone(),
                     constant::SK => sk.clone(),

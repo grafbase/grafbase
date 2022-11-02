@@ -70,6 +70,7 @@ pub struct UpdateNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    by_id: Option<String>,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -90,6 +91,7 @@ impl Hash for UpdateNodeInput {
 pub struct DeleteNodeInput {
     id: String,
     ty: String,
+    by_id: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -174,16 +176,22 @@ impl PossibleChanges {
         })
     }
 
-    pub const fn update_node(ty: String, id: String, user_defined_item: HashMap<String, AttributeValue>) -> Self {
+    pub const fn update_node(
+        ty: String,
+        id: String,
+        user_defined_item: HashMap<String, AttributeValue>,
+        by_id: Option<String>,
+    ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
             user_defined_item,
+            by_id,
         })
     }
 
-    pub const fn delete_node(ty: String, id: String) -> Self {
-        Self::DeleteNode(DeleteNodeInput { id, ty })
+    pub const fn delete_node(ty: String, id: String, by_id: Option<String>) -> Self {
+        Self::DeleteNode(DeleteNodeInput { id, ty, by_id })
     }
 
     pub const fn new_link_cached(
@@ -281,7 +289,7 @@ impl GetIds for UpdateNodeInput {
         let query_loader_reversed = &batchers.query_reversed;
 
         let select_entities_to_update = query_loader_reversed
-            .load_one(QueryKey::new(pk, Vec::new()))
+            .load_one(QueryKey::new(pk.clone(), Vec::new()))
             .map_ok(|x| {
                 x.into_iter()
                     .flat_map(|x| x.values.into_iter().map(|(_, val)| val))
@@ -295,6 +303,57 @@ impl GetIds for UpdateNodeInput {
 
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
+
+            // specific handling of the constraint that the ID was queried by (if any)
+            // to prevent ACID issues
+            if let Some(ref by_id) = self.by_id {
+                if let Ok(constraint_id) = ConstraintID::try_from(by_id.clone()) {
+                    let origin = constraint_id.value();
+
+                    let updated = self
+                        .user_defined_item
+                        .get(constraint_id.field())
+                        .map(std::clone::Clone::clone)
+                        .unwrap_or_default()
+                        .into_json();
+
+                    let updated_string = normalize_constraint_value(&updated);
+
+                    if updated_string == origin {
+                        result.insert(
+                            (constraint_id.to_string(), constraint_id.to_string()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                                UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                    target: pk,
+                                    user_defined_item: self.user_defined_item.clone(),
+                                }),
+                            )),
+                        );
+                    } else {
+                        result.insert(
+                            (by_id.clone(), by_id.clone()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                            )),
+                        );
+
+                        let new_id = ConstraintID::from_owned(
+                            constraint_id.ty().to_string(),
+                            constraint_id.field().to_string(),
+                            updated,
+                        );
+                        result.insert(
+                            (new_id.to_string(), new_id.to_string()),
+                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                                InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                    target: pk,
+                                    user_defined_item: self.user_defined_item.clone(),
+                                }),
+                            )),
+                        );
+                    }
+                }
+            }
 
             for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
@@ -323,7 +382,16 @@ impl GetIds for UpdateNodeInput {
                 for mut constraint in val.constraints {
                     let pk = constraint.remove(PK).and_then(|x| x.s);
                     let sk = constraint.remove(SK).and_then(|x| x.s);
+
                     if let (Some(pk), Some(sk)) = (pk, sk) {
+                        // skip the constraint that we queried by if any, since it
+                        // was already handled above
+                        if let Some(ref by_id) = self.by_id {
+                            if by_id == &pk {
+                                continue;
+                            }
+                        }
+
                         if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
                             let origin = constraint_id.value();
 
@@ -428,13 +496,24 @@ impl GetIds for DeleteNodeInput {
         });
 
         // To remove a Node, we Remove the node and every relations (as the node is deleted)
-        Box::pin(async {
+        Box::pin(async move {
             let ids = items_to_be_deleted
                 .await
                 .map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
             let id_len = ids.len() + 1;
             let mut result = HashMap::with_capacity(id_len);
+
+            // specific handling of the constraint that the ID was queried by (if any)
+            // to prevent ACID issues
+            if let Some(by_id) = self.by_id.clone() {
+                result.insert(
+                    (by_id.clone(), by_id),
+                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                        DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                    )),
+                );
+            }
 
             for val in ids {
                 if let Some((pk, sk)) = val.node.and_then(|mut node| {
@@ -498,6 +577,14 @@ impl GetIds for DeleteNodeInput {
                     let sk = constraint.remove(SK).and_then(|x| x.s);
 
                     if let (Some(pk), Some(sk)) = (pk, sk) {
+                        // skip the constraint that we queried by if any, since it
+                        // was already handled above
+                        if let Some(ref by_id) = self.by_id {
+                            if by_id == &pk {
+                                continue;
+                            }
+                        }
+
                         result.insert(
                             (pk, sk),
                             InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
@@ -761,8 +848,8 @@ impl UpdateUniqueConstraint {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct DeleteNodeInternalInput {
-    id: String,
-    ty: String,
+    pub id: String,
+    pub ty: String,
 }
 
 #[derive(Derivative, PartialEq, Clone)]

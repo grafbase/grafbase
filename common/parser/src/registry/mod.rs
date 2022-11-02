@@ -13,7 +13,7 @@ use dynaql::registry::{
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
 use dynaql::{AuthConfig, Operations};
-use dynaql_parser::types::{FieldDefinition, ObjectType};
+use dynaql_parser::types::ObjectType;
 
 mod create_mutation;
 mod relations;
@@ -404,12 +404,7 @@ pub fn add_list_query_paginated<'a>(
 }
 
 /// Add the remove mutation for a given Object
-pub fn add_remove_query<'a>(
-    ctx: &mut VisitorContext<'a>,
-    id_field: &FieldDefinition,
-    type_name: &str,
-    auth: Option<&AuthConfig>,
-) {
+pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, auth: Option<&AuthConfig>) {
     let type_name = type_name.to_string();
     let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
 
@@ -468,15 +463,15 @@ pub fn add_remove_query<'a>(
     // deleteMutation
     ctx.mutations.push(MetaField {
         name: format!("{}Delete", to_lower_camelcase(&type_name)),
-        description: Some(format!("Delete a {} by ID", type_name)),
+        description: Some(format!("Delete a {} by ID or unique field", type_name)),
         args: {
             let mut args = IndexMap::new();
             args.insert(
-                "id".to_owned(),
+                "by".to_owned(),
                 MetaInputValue {
-                    name: "id".to_owned(),
+                    name: "by".to_owned(),
                     description: None,
-                    ty: format!("{}!", id_field.ty.node.base),
+                    ty: format!("{}ByInput!", type_name),
                     default_value: None,
                     visible: None,
                     is_secret: false,
@@ -501,7 +496,7 @@ pub fn add_remove_query<'a>(
             id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
             r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
                 ty: type_name,
-                id: VariableResolveDefinition::InputTypeName("id".to_owned()),
+                by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),
         transforms: None,

@@ -20,7 +20,7 @@ use super::auth_directive::AuthDirective;
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_list_query_paginated;
-use crate::registry::add_remove_query;
+use crate::registry::add_remove_mutation;
 use crate::registry::{add_create_mutation, add_update_mutation};
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
@@ -110,13 +110,10 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }
                 };
 
-                let id_field = match object.fields.iter().find(|x| is_id_type_and_non_nullable(&x.node)) {
-                    Some(id) => id,
-                    _ => {
-                        let name_ty = &type_definition.node.name.node;
-                        ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
-                        return;
-                    }
+               if !object.fields.iter().any(|x| is_id_type_and_non_nullable(&x.node)) {
+                    let name_ty = &type_definition.node.name.node;
+                    ctx.report_error(vec![type_definition.pos], format!("\"{name_ty}\" doesn't implement @model properly, please add a non-nullable ID field."));
+                    return;
                 };
                 let type_name = type_definition.node.name.node.to_string();
                 let mut connection_edges = Vec::new();
@@ -342,7 +339,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 add_update_mutation(ctx, &type_definition.node, object, &type_name, auth.as_ref());
 
                 add_list_query_paginated(ctx, &type_name, connection_edges, auth.as_ref());
-                add_remove_query(ctx, &id_field.node, &type_name, auth.as_ref());
+                add_remove_mutation(ctx, &type_name, auth.as_ref());
             }
         }
     }

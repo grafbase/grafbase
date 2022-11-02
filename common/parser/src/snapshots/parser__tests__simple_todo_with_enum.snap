@@ -318,12 +318,12 @@ expression: reg_string
           },
           "todoDelete": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "TodoByInput!"
               }
             },
             "auth": null,
@@ -332,7 +332,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Todo by ID",
+            "description": "Delete a Todo by ID or unique field",
             "edges": [],
             "external": false,
             "name": "todoDelete",
@@ -345,8 +345,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "ty": "Todo"
                   }
@@ -358,12 +358,12 @@ expression: reg_string
           },
           "todoUpdate": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "TodoByInput!"
               },
               "input": {
                 "default_value": null,
@@ -392,8 +392,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "input": {
                       "InputTypeName": "input"

@@ -26,11 +26,11 @@ type Mutation {
 	"""
 	Update a TodoList
 	"""
-	todoListUpdate(id: ID!, input: TodoListUpdateInput!): TodoListUpdatePayload
+	todoListUpdate(by: TodoListByInput!, input: TodoListUpdateInput!): TodoListUpdatePayload
 	"""
-	Delete a TodoList by ID
+	Delete a TodoList by ID or unique field
 	"""
-	todoListDelete(id: ID!): TodoListDeletePayload
+	todoListDelete(by: TodoListByInput!): TodoListDeletePayload
 	"""
 	Create a Todo
 	"""
@@ -38,11 +38,11 @@ type Mutation {
 	"""
 	Update a Todo
 	"""
-	todoUpdate(id: ID!, input: TodoUpdateInput!): TodoUpdatePayload
+	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
 	"""
-	Delete a Todo by ID
+	Delete a Todo by ID or unique field
 	"""
-	todoDelete(id: ID!): TodoDeletePayload
+	todoDelete(by: TodoByInput!): TodoDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!

@@ -154,12 +154,12 @@ expression: reg_string
           },
           "productDelete": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "ProductByInput!"
               }
             },
             "auth": null,
@@ -168,7 +168,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Product by ID",
+            "description": "Delete a Product by ID or unique field",
             "edges": [],
             "external": false,
             "name": "productDelete",
@@ -181,8 +181,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "ty": "Product"
                   }
@@ -194,12 +194,12 @@ expression: reg_string
           },
           "productUpdate": {
             "args": {
-              "id": {
+              "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
-                "name": "id",
-                "ty": "ID!"
+                "name": "by",
+                "ty": "ProductByInput!"
               },
               "input": {
                 "default_value": null,
@@ -228,8 +228,8 @@ expression: reg_string
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
-                    "id": {
-                      "InputTypeName": "id"
+                    "by": {
+                      "InputTypeName": "by"
                     },
                     "input": {
                       "InputTypeName": "input"

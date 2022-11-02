@@ -203,11 +203,11 @@ type Mutation {
 	"""
 	Update a Blog
 	"""
-	blogUpdate(id: ID!, input: BlogUpdateInput!): BlogUpdatePayload
+	blogUpdate(by: BlogByInput!, input: BlogUpdateInput!): BlogUpdatePayload
 	"""
-	Delete a Blog by ID
+	Delete a Blog by ID or unique field
 	"""
-	blogDelete(id: ID!): BlogDeletePayload
+	blogDelete(by: BlogByInput!): BlogDeletePayload
 	"""
 	Create a Post
 	"""
@@ -215,11 +215,11 @@ type Mutation {
 	"""
 	Update a Post
 	"""
-	postUpdate(id: ID!, input: PostUpdateInput!): PostUpdatePayload
+	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
 	"""
-	Delete a Post by ID
+	Delete a Post by ID or unique field
 	"""
-	postDelete(id: ID!): PostDeletePayload
+	postDelete(by: PostByInput!): PostDeletePayload
 	"""
 	Create a Author
 	"""
@@ -227,11 +227,11 @@ type Mutation {
 	"""
 	Update a Author
 	"""
-	authorUpdate(id: ID!, input: AuthorUpdateInput!): AuthorUpdatePayload
+	authorUpdate(by: AuthorByInput!, input: AuthorUpdateInput!): AuthorUpdatePayload
 	"""
-	Delete a Author by ID
+	Delete a Author by ID or unique field
 	"""
-	authorDelete(id: ID!): AuthorDeletePayload
+	authorDelete(by: AuthorByInput!): AuthorDeletePayload
 }
 type PageInfo {
 	hasPreviousPage: Boolean!
