@@ -5,20 +5,20 @@ use crate::rules::model_directive::MODEL_DIRECTIVE;
 
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::ServerError;
+use dynaql::{Positioned, ServerError};
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
 use serde::{Deserialize, Serialize};
 use serde_with::rust::sets_duplicate_value_is_error;
 
-pub const AUTH_DIRECTIVE: &str = "auth";
+const AUTH_DIRECTIVE: &str = "auth";
 const DEFAULT_GROUPS_CLAIM: &str = "groups";
 
 pub struct AuthDirective;
 
 #[derive(Debug)]
-pub struct Auth {
+struct Auth {
     allowed_private_ops: Operations,
 
     allowed_group_ops: HashMap<String, Operations>,
@@ -138,6 +138,20 @@ enum AuthRule {
     },
 }
 
+impl AuthDirective {
+    pub fn parse(
+        ctx: &mut VisitorContext<'_>,
+        directives: &[Positioned<ConstDirective>],
+        is_global: bool,
+    ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
+        if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
+            Auth::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
@@ -150,20 +164,14 @@ impl<'a> Visitor<'a> for AuthDirective {
         ctx: &mut VisitorContext<'a>,
         schema_definition: &'a dynaql::Positioned<dynaql_parser::types::SchemaDefinition>,
     ) {
-        if let Some(directive) = schema_definition
-            .node
-            .directives
-            .iter()
-            .find(|d| d.node.name.node == AUTH_DIRECTIVE)
-        {
-            match Auth::from_value(ctx, &directive.node, true) {
-                Ok(auth) => {
-                    ctx.registry.get_mut().auth = auth.into();
-                }
-                Err(err) => {
-                    ctx.report_error(vec![directive.pos], err.message);
-                }
+        match Self::parse(ctx, &schema_definition.node.directives, true) {
+            Ok(Some(auth)) => {
+                ctx.registry.get_mut().auth = auth;
             }
+            Err(err) => {
+                ctx.report_error(err.locations, err.message);
+            }
+            _ => {}
         }
     }
 
@@ -195,11 +203,7 @@ impl<'a> Visitor<'a> for AuthDirective {
 }
 
 impl Auth {
-    pub fn from_value(
-        ctx: &VisitorContext<'_>,
-        value: &ConstDirective,
-        is_global_directive: bool,
-    ) -> Result<Self, ServerError> {
+    pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective, is_global: bool) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
         let providers = match value.get_argument("providers") {
@@ -215,7 +219,7 @@ impl Auth {
         };
 
         // XXX: introduce a separate type for non-global directives if we need more custom behavior
-        if !is_global_directive && !providers.is_empty() {
+        if !is_global && !providers.is_empty() {
             return Err(ServerError::new("auth providers can only be configured globally", pos));
         }
 
