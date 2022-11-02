@@ -696,7 +696,15 @@ expression: reg_string
             "external": false,
             "name": "todoCollection",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "todoCollection",
+              "relation": [
+                null,
+                "Todo"
+              ]
+            },
             "required_operation": 4,
             "requires": null,
             "resolve": {

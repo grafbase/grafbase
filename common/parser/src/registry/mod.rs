@@ -7,6 +7,7 @@ use crate::rules::visitor::VisitorContext;
 use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
 use dynaql::indexmap::IndexMap;
+use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
@@ -15,7 +16,7 @@ use dynaql::registry::{
 };
 use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::{AuthConfig, Operations};
-use dynaql_parser::types::{FieldDefinition, ObjectType};
+use dynaql_parser::types::{FieldDefinition, ObjectType, Type};
 
 mod create_mutation;
 mod relations;
@@ -387,7 +388,10 @@ pub fn add_list_query_paginated<'a>(
         visible: None,
         compute_complexity: None,
         edges: Vec::new(),
-        relation: None,
+        relation: Some(MetaRelation::base_collection_relation(
+            format!("{}Collection", to_lower_camelcase(type_name)),
+            &Type::new(&type_name).expect("Shouldn't fail"),
+        )),
         resolve: Some(Resolver {
             id: Some(format!("{}_resolver", type_name.to_lowercase())),
             // Multiple entities

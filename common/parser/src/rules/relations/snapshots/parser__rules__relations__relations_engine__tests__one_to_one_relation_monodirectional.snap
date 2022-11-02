@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/rules/relations/relations_engine.rs
-assertion_line: 126
+assertion_line: 137
 expression: "&ctx.relations"
 ---
 {
@@ -8,7 +8,9 @@ expression: "&ctx.relations"
         name: "AuthorRelatePost",
         kind: OneToOne,
         relation: (
-            "Post",
+            Some(
+                "Post",
+            ),
             "Author",
         ),
         birectional: false,

@@ -1,6 +1,6 @@
 ---
 source: common/parser/src/rules/relations/mod.rs
-assertion_line: 62
+assertion_line: 64
 expression: ctx.relations
 ---
 {
@@ -8,7 +8,9 @@ expression: ctx.relations
         name: "postsToday",
         kind: OneToMany,
         relation: (
-            "Author",
+            Some(
+                "Author",
+            ),
             "Post",
         ),
         birectional: false,
@@ -17,7 +19,9 @@ expression: ctx.relations
         name: "postsYesterday",
         kind: OneToMany,
         relation: (
-            "Author",
+            Some(
+                "Author",
+            ),
             "Post",
         ),
         birectional: false,
@@ -26,7 +30,9 @@ expression: ctx.relations
         name: "published",
         kind: ManyToMany,
         relation: (
-            "Author",
+            Some(
+                "Author",
+            ),
             "Post",
         ),
         birectional: true,

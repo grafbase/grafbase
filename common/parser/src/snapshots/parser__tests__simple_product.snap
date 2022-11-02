@@ -1071,7 +1071,15 @@ expression: reg_string
             "external": false,
             "name": "productCollection",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "productCollection",
+              "relation": [
+                null,
+                "Product"
+              ]
+            },
             "required_operation": 4,
             "requires": null,
             "resolve": {

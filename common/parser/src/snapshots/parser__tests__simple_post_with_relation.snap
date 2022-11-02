@@ -3035,7 +3035,15 @@ expression: reg_string
             "external": false,
             "name": "authorCollection",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "authorCollection",
+              "relation": [
+                null,
+                "Author"
+              ]
+            },
             "required_operation": 4,
             "requires": null,
             "resolve": {
@@ -3152,7 +3160,15 @@ expression: reg_string
             "external": false,
             "name": "blogCollection",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "blogCollection",
+              "relation": [
+                null,
+                "Blog"
+              ]
+            },
             "required_operation": 4,
             "requires": null,
             "resolve": {
@@ -3269,7 +3285,15 @@ expression: reg_string
             "external": false,
             "name": "postCollection",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "postCollection",
+              "relation": [
+                null,
+                "Post"
+              ]
+            },
             "required_operation": 4,
             "requires": null,
             "resolve": {

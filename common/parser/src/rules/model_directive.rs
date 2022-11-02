@@ -155,16 +155,16 @@ impl<'a> Visitor<'a> for ModelDirective {
 
                             let resolve = match (is_edge, &relation) {
                                 (true, Some(relation)) => Some(Resolver {
-                                    id: Some(format!("{}_edge_resolver", relation.relation.0.to_lowercase())),
+                                    id: Some(format!("{}_edge_resolver", relation.relation.0.clone().expect("Can't fail").to_lowercase())),
                                     r#type: ResolverType::ContextDataResolver(if relation_array {
                                         ContextDataResolver::EdgeArray {
-                                            key: relation.relation.0.clone(),
+                                            key: relation.relation.0.clone().expect("Can't fail"),
                                             relation_name: relation.name.clone(),
                                             expected_ty: to_base_type_str(&field.node.ty.node.base),
                                         }
                                     } else {
                                         ContextDataResolver::SingleEdge {
-                                            key: relation.relation.0.clone(),
+                                            key: relation.relation.0.clone().expect("Can't fail"),
                                             relation_name: relation.name.clone(),
                                         }
                                     }),
