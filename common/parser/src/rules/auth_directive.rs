@@ -373,6 +373,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+    use crate::rules::model_directive::ModelDirective;
     use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
@@ -388,6 +389,7 @@ mod tests {
                 let schema = parse_schema($schema).unwrap();
                 let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
+                visit(&mut ModelDirective, &mut ctx, &schema);
 
                 assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
                 assert_eq!(ctx.registry.borrow().auth, $expect);
@@ -406,8 +408,9 @@ mod tests {
                 let schema = parse_schema($schema).unwrap();
                 let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
+                visit(&mut ModelDirective, &mut ctx, &schema);
 
-                assert_eq!(ctx.errors.len(), 1);
+                assert_eq!(ctx.errors.len(), 1, "errors: {:?}", ctx.errors);
                 assert_eq!(ctx.errors.get(0).unwrap().message, $err);
             }
         };
@@ -725,5 +728,25 @@ mod tests {
         }
         "#,
         "auth provider: missing field `issuer`"
+    );
+
+    parse_fail!(
+        type_auth_without_model,
+        r#"
+        type Todo @auth(rules: []) {
+          id: ID!
+        }
+        "#,
+        "The @auth directive can only be used on @model types"
+    );
+
+    parse_fail!(
+        type_auth_with_provider,
+        r#"
+        type Todo @model @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ]) {
+          id: ID!
+        }
+        "#,
+        "auth providers can only be configured globally"
     );
 }
