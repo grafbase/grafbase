@@ -21,13 +21,13 @@ jobs:
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-x86_64-darwin
+          name: ${{ inputs.tag }}-x86_64-apple-darwin
           path: cli/npm/x86_64-apple-darwin
 
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-aarch64-darwin
+          name: ${{ inputs.tag }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
       - name: Download linux artifact
