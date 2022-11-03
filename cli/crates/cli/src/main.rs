@@ -56,7 +56,7 @@ fn try_main() -> Result<(), CliError> {
 
     let subcommand = matches.subcommand();
 
-    if let Some(("dev" | "init", ..)) = subcommand {
+    if let Some(("dev" | "init" | "reset", ..)) = subcommand {
         report::cli_header();
     }
 
