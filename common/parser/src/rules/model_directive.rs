@@ -36,7 +36,7 @@ use dynaql::registry::{
 };
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
-use dynaql::{Operations, Positioned};
+use dynaql::{AuthConfig, Operations, Positioned};
 use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 
@@ -52,6 +52,7 @@ fn insert_metadata_field(
     description: Option<String>,
     ty: &str,
     dynamo_property_name: &str,
+    auth: Option<&AuthConfig>,
 ) -> Option<MetaField> {
     fields.insert(
         field_name.to_owned(),
@@ -79,7 +80,7 @@ fn insert_metadata_field(
             }]),
             relation: None,
             required_operation: None,
-            auth: None,
+            auth: auth.cloned(),
         },
     )
 }
@@ -213,8 +214,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 auth: auth.clone(),
                             });
                         };
-                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at");
-                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at");
+                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at", auth.as_ref());
+                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at", auth.as_ref());
 
                         fields
                     },
@@ -416,6 +417,8 @@ mod tests {
             ("TodoEdge", "node", Some(Operations::LIST)),
             ("TodoEdge", "cursor", Some(Operations::LIST)),
             ("Todo", "id", None),
+            ("Todo", "createdAt", None),
+            ("Todo", "updatedAt", None),
         ];
 
         let types = &ctx.registry.borrow().types;
