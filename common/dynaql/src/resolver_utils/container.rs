@@ -207,8 +207,9 @@ async fn resolve_container_inner<'a>(
 
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);
-        for (name, value) in res {
+        for ((alias, name), value) in res {
             let name = name.to_string();
+            let alias = alias.map(|x| x.to_string().into());
             // Temp: little hack while we rework the execution step, we should not do that here to
             // follow OneToMany relations.
             if let Some(relation) = relations.get(&name) {
@@ -222,7 +223,13 @@ async fn resolve_container_inner<'a>(
                     value,
                 );
             } else {
-                container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
+                container.insert(
+                    ResponseNodeRelation::NotARelation {
+                        field: name.into(),
+                        response_key: alias,
+                    },
+                    value,
+                );
             }
         }
         Ok(ctx
@@ -232,8 +239,10 @@ async fn resolve_container_inner<'a>(
             .new_node_unchecked(QueryResponseNode::from(container)))
     } else {
         let mut container = ResponseContainer::new_container();
-        for (name, value) in res {
+        for ((alias, name), value) in res {
             let name = name.to_string();
+            let alias = alias.map(|x| x.to_string().into());
+
             if let Some(relation) = relations.get(&name) {
                 container.insert(
                     ResponseNodeRelation::relation(
@@ -245,7 +254,13 @@ async fn resolve_container_inner<'a>(
                     value,
                 );
             } else {
-                container.insert(ResponseNodeRelation::NotARelation(name.into()), value);
+                container.insert(
+                    ResponseNodeRelation::NotARelation {
+                        field: name.into(),
+                        response_key: alias,
+                    },
+                    value,
+                );
             }
         }
         Ok(ctx
@@ -291,7 +306,7 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
     Ok(Value::Object(map))
 }
 type BoxFieldGraphFuture<'a> =
-    Pin<Box<dyn Future<Output = ServerResult<(Name, ResponseNodeId)>> + 'a + Send>>;
+    Pin<Box<dyn Future<Output = ServerResult<((Option<Name>, Name), ResponseNodeId)>> + 'a + Send>>;
 /// A set of fields on an container that are being selected.
 pub struct FieldsGraph<'a>(Vec<BoxFieldGraphFuture<'a>>);
 
@@ -326,7 +341,8 @@ impl<'a> FieldsGraph<'a> {
                     if field.node.name.node == "__typename" {
                         // Get the typename
                         let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                        let field_name = ctx_field.item.node.response_key().node.clone();
+                        let field_name = ctx_field.item.node.name.node.clone();
+                        let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
                         let typename = registry.introspection_type_name(root).to_owned();
 
                         self.0.push(Box::pin(async move {
@@ -334,7 +350,7 @@ impl<'a> FieldsGraph<'a> {
                                 Value::String(typename),
                             ));
                             Ok((
-                                field_name,
+                                (alias, field_name),
                                 ctx_field
                                     .response_graph
                                     .write()
@@ -350,12 +366,13 @@ impl<'a> FieldsGraph<'a> {
                         async move {
                             let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                             let registry = ctx_field.registry();
-                            let field_name = ctx_field.item.node.response_key().node.clone();
+                            let field_name = ctx_field.item.node.name.node.clone();
+                            let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
                             let extensions = &ctx.query_env.extensions;
 
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
-                                    field_name,
+                                    (alias, field_name),
                                     response_id_unwrap_or_null(
                                         &ctx_field,
                                         registry.resolve_field(&ctx_field, root).await?,
@@ -400,7 +417,7 @@ impl<'a> FieldsGraph<'a> {
                                 if field.node.directives.is_empty() {
                                     futures_util::pin_mut!(resolve_fut);
                                     Ok((
-                                        field_name,
+                                        (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
                                             extensions
@@ -442,7 +459,7 @@ impl<'a> FieldsGraph<'a> {
                                     }
 
                                     Ok((
-                                        field_name,
+                                        (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
                                             extensions

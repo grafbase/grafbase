@@ -35,7 +35,10 @@ pub async fn selection_set_into_node<'a>(
                         rel.relation.1.clone().into(),
                     )
                 } else {
-                    ResponseNodeRelation::NotARelation(relation.into())
+                    ResponseNodeRelation::NotARelation {
+                        field: relation.into(),
+                        response_key: None,
+                    }
                 };
                 container.insert(rel, id);
             }
@@ -69,9 +72,15 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 let relation = name.to_string();
                 let rel = if relations.contains(&relation) {
                     // ResponseNodeRelation::Relation(relation.into())
-                    ResponseNodeRelation::NotARelation(relation.into())
+                    ResponseNodeRelation::NotARelation {
+                        field: relation.into(),
+                        response_key: None,
+                    }
                 } else {
-                    ResponseNodeRelation::NotARelation(relation.into())
+                    ResponseNodeRelation::NotARelation {
+                        field: relation.into(),
+                        response_key: None,
+                    }
                 };
                 container.insert(rel, id);
             }

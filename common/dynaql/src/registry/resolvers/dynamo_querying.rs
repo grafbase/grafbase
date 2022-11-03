@@ -16,7 +16,6 @@ use std::collections::HashSet;
 use std::hash::Hash;
 
 use std::sync::Arc;
-use stream_events::SharedEntityRegistry;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
@@ -150,7 +149,6 @@ impl ResolverTrait for DynamoResolver {
         const PAGINATION_LIMIT: usize = 100;
 
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
-        let _entity_registry = &ctx.data::<SharedEntityRegistry>().ok();
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
         let query_loader_fat_paginated = &batchers.paginated_query_fat;
@@ -226,13 +224,6 @@ impl ResolverTrait for DynamoResolver {
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
                 );
 
-                if let Some((relation, pk)) = nested {
-                    ctx.add_followed_relations(pk, std::iter::once(relation))
-                        .await;
-                } else {
-                    ctx.add_ty(pk.to_lowercase()).await;
-                }
-
                 let result = query_loader_fat_paginated
                     .load_one(QueryTypePaginatedKey::new(pk.clone(), edges, cursor))
                     .await?;
@@ -240,9 +231,6 @@ impl ResolverTrait for DynamoResolver {
                 let result = result.ok_or_else(|| {
                     Error::new("Internal Error: Failed to fetch the associated nodes.")
                 })?;
-
-                ctx.follow_nodes_from_dynamodb(result.values.iter().flat_map(|(_, x)| x.iter()))
-                    .await;
 
                 pagination = pagination
                     .with_start(result.values.iter().next().map(|(pk, _)| pk.clone()))
@@ -337,8 +325,6 @@ impl ResolverTrait for DynamoResolver {
                 if relations_len == 0 {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(dyna) => {
-                            ctx.add_followed_node(&pk).await;
-
                             let value = serde_json::to_value(dyna)
                                 .map_err(|err| Error::new(err.to_string()))?;
                             return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
@@ -386,8 +372,6 @@ impl ResolverTrait for DynamoResolver {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
 
-                ctx.add_followed_node(&pk).await;
-
                 let len = query_result.len();
 
                 // If we do not have any value inside our fetch, it's not an
@@ -432,12 +416,6 @@ impl ResolverTrait for DynamoResolver {
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
-
-                ctx.add_followed_node(parent_pk).await;
-                ctx.add_followed_relations(parent_pk, std::iter::once(relation_name))
-                    .await;
-                ctx.follow_nodes_from_dynamodb(query_result.iter().flat_map(|(_, x)| x.iter()))
-                    .await;
 
                 let len = query_result.len();
 
@@ -570,8 +548,6 @@ impl ResolverTrait for DynamoResolver {
                     .ok_or_else(|| {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
-
-                ctx.add_followed_node(&pk).await;
 
                 let len = query_result.len();
 
