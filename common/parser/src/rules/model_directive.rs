@@ -349,8 +349,10 @@ impl<'a> Visitor<'a> for ModelDirective {
 mod tests {
     use super::ModelDirective;
     use crate::rules::visitor::{visit, VisitorContext};
+    use dynaql::{AuthConfig, Operations};
     use dynaql_parser::parse_schema;
     use serde_json as _;
+    use std::collections::HashMap;
 
     #[test]
     fn should_error_when_defining_an_invalid_model() {
@@ -384,5 +386,51 @@ mod tests {
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "should be empty");
+    }
+
+    #[test]
+    fn should_handle_auth() {
+        let schema = r#"
+            type Todo @model @auth(rules: [ { allow: private } ]) {
+                id: ID!
+            }
+            "#;
+
+        let variables = HashMap::new();
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
+
+        let tests = vec![
+            ("TodoCreatePayload", "todo", Some(Operations::CREATE)),
+            ("TodoUpdatePayload", "todo", Some(Operations::UPDATE)),
+            ("TodoDeletePayload", "deletedId", Some(Operations::DELETE)),
+            ("PageInfo", "hasPreviousPage", Some(Operations::LIST)),
+            ("PageInfo", "hasNextPage", Some(Operations::LIST)),
+            ("PageInfo", "startCursor", Some(Operations::LIST)),
+            ("PageInfo", "endCursor", Some(Operations::LIST)),
+            ("TodoConnection", "pageInfo", Some(Operations::LIST)),
+            ("TodoConnection", "edges", Some(Operations::LIST)),
+            ("TodoEdge", "node", Some(Operations::LIST)),
+            ("TodoEdge", "cursor", Some(Operations::LIST)),
+            ("Todo", "id", None),
+        ];
+
+        let types = &ctx.registry.borrow().types;
+
+        for t in tests {
+            let field = types[t.0].field_by_name(t.1).unwrap();
+            assert_eq!(
+                field.auth.as_ref(),
+                Some(&AuthConfig {
+                    allowed_private_ops: Operations::all(),
+                    ..Default::default()
+                }),
+                "{t:?}",
+            );
+            assert_eq!(field.required_operation, t.2, "{t:?}");
+        }
     }
 }
