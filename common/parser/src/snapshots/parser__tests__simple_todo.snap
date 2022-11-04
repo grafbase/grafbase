@@ -18,7 +18,8 @@ expression: reg_string
           "description": "Included when true.",
           "is_secret": false,
           "name": "if",
-          "ty": "Boolean!"
+          "ty": "Boolean!",
+          "validators": null
         }
       },
       "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
@@ -46,7 +47,8 @@ expression: reg_string
           "description": "Skipped when true.",
           "is_secret": false,
           "name": "if",
-          "ty": "Boolean!"
+          "ty": "Boolean!",
+          "validators": null
         }
       },
       "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
@@ -198,28 +200,32 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "lastname",
-            "ty": "String!"
+            "ty": "String!",
+            "validators": null
           },
           "name": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "name",
-            "ty": "String!"
+            "ty": "String!",
+            "validators": null
           },
           "pseudo": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "pseudo",
-            "ty": "String"
+            "ty": "String",
+            "validators": null
           },
           "truc": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "truc",
-            "ty": "TrucInput!"
+            "ty": "TrucInput!",
+            "validators": null
           }
         },
         "name": "AuthorInput",
@@ -279,7 +285,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "TodoCreateInput!"
+                "ty": "TodoCreateInput!",
+                "validators": null
               }
             },
             "cache_control": {
@@ -318,7 +325,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!"
+                "ty": "TodoByInput!",
+                "validators": null
               }
             },
             "cache_control": {
@@ -357,14 +365,16 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!"
+                "ty": "TodoByInput!",
+                "validators": null
               },
               "input": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "TodoUpdateInput!"
+                "ty": "TodoUpdateInput!",
+                "validators": null
               }
             },
             "cache_control": {
@@ -585,7 +595,8 @@ expression: reg_string
                 "description": "The field and value by which to query the Todo",
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!"
+                "ty": "TodoByInput!",
+                "validators": null
               }
             },
             "cache_control": {
@@ -623,28 +634,32 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "after",
-                "ty": "String"
+                "ty": "String",
+                "validators": null
               },
               "before": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "before",
-                "ty": "String"
+                "ty": "String",
+                "validators": null
               },
               "first": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "first",
-                "ty": "Int"
+                "ty": "Int",
+                "validators": null
               },
               "last": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "last",
-                "ty": "Int"
+                "ty": "Int",
+                "validators": null
               }
             },
             "cache_control": {
@@ -900,7 +915,8 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "id",
-            "ty": "ID"
+            "ty": "ID",
+            "validators": null
           }
         },
         "name": "TodoByInput",
@@ -973,14 +989,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "AuthorInput"
+            "ty": "AuthorInput",
+            "validators": null
           },
           "content": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "content",
-            "ty": "String!"
+            "ty": "String!",
+            "validators": null
           }
         },
         "name": "TodoCreateInput",
@@ -1163,14 +1181,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "AuthorInput"
+            "ty": "AuthorInput",
+            "validators": null
           },
           "content": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "content",
-            "ty": "String"
+            "ty": "String",
+            "validators": null
           }
         },
         "name": "TodoUpdateInput",
@@ -1282,7 +1302,8 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "name",
-            "ty": "String!"
+            "ty": "String!",
+            "validators": null
           }
         },
         "name": "TrucInput",
@@ -1976,7 +1997,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
-                "ty": "Boolean!"
+                "ty": "Boolean!",
+                "validators": null
               }
             },
             "cache_control": {
@@ -2003,7 +2025,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
-                "ty": "Boolean!"
+                "ty": "Boolean!",
+                "validators": null
               }
             },
             "cache_control": {
