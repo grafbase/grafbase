@@ -24,14 +24,13 @@ enum LengthTestResult {
     InBounds,
 }
 
-fn test_length(count: usize, min: Option<usize>, max: Option<usize>) -> LengthTestResult {
+fn check_length(count: usize, min: Option<usize>, max: Option<usize>) -> LengthTestResult {
     match (
         min.as_ref().and_then(|min| count.partial_cmp(min)),
         max.as_ref().and_then(|max| count.partial_cmp(max)),
     ) {
         (Some(Ordering::Less), _) => LengthTestResult::TooShort,
         (_, Some(Ordering::Greater)) => LengthTestResult::TooLong,
-        // All Good
         (
             None | Some(Ordering::Greater | Ordering::Equal),
             None | Some(Ordering::Less | Ordering::Equal),
@@ -45,29 +44,29 @@ impl DynValidate<&Value> for LengthValidator {
         match value {
             Value::List(values) => {
                 let count = values.len();
-                match test_length(count, self.min, self.max) {
+                match check_length(count, self.min, self.max) {
                     InBounds => (),
                     TooLong => ctx.report_error(
                         vec![pos],
-                        "{count} too long, must be shorter than {max}".to_string(),
+                        "{count} is too long, must be shorter than {max}".to_string(),
                     ),
                     TooShort => ctx.report_error(
                         vec![pos],
-                        "{count} too short, must be at least {min} long".to_string(),
+                        "{count} is too short, must be at least {min} long".to_string(),
                     ),
                 }
             }
             Value::String(string) => {
                 let count = string.chars().count();
-                match test_length(count, self.min, self.max) {
+                match check_length(count, self.min, self.max) {
                     InBounds => (),
                     TooLong => ctx.report_error(
                         vec![pos],
-                        "{count} too long, must be shorter than {max}".to_string(),
+                        "{count} is too long, must be shorter than {max}".to_string(),
                     ),
                     TooShort => ctx.report_error(
                         vec![pos],
-                        "{count} too short, must be at least {min} long".to_string(),
+                        "{count} is too short, must be at least {min} long".to_string(),
                     ),
                 }
             }

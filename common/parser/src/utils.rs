@@ -33,6 +33,13 @@ fn get_base_from_type(ty: &Type) -> &str {
     }
 }
 
+pub fn is_type_with_length(ty: &Type) -> bool {
+    match &ty.base {
+        BaseType::Named(name) => name.as_str() == "String",
+        BaseType::List(_) => true,
+    }
+}
+
 /// Check if the given type is a basic type
 ///
 /// A BasicType is an Object and not an entity: it's not modelized.

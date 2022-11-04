@@ -13,6 +13,7 @@ use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::enum_type::EnumType;
+use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
 use rules::unique_directive::UniqueDirective;
@@ -68,6 +69,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(EnumType)
         .with(ScalarHydratation)
         .with(DefaultDirective)
+        .with(LengthDirective)
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 

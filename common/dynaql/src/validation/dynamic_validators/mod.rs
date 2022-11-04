@@ -13,11 +13,12 @@ pub(crate) trait DynValidate<T> {
     fn validate<'a>(&self, _ctx: &mut VisitorContext<'a>, pos: Pos, other: T);
 }
 
+type ValidationFnObj = Arc<dyn Fn(&Value) -> Result<(), String> + Send + Sync>;
 // Wrap Validators up in an enum to avoid having to box the context data
 #[derive(Clone, derivative::Derivative)]
 pub enum DynValidator {
     Length(LengthValidator),
-    Custom(Arc<dyn Fn(&Value) -> Result<(), String> + Send + Sync>),
+    Custom(ValidationFnObj),
 }
 
 impl DynValidator {
@@ -49,7 +50,7 @@ impl DynValidate<&Value> for DynValidator {
     }
 }
 
-impl DynValidate<&Value> for Arc<dyn Fn(&Value) -> Result<(), String> + Send + Sync> {
+impl DynValidate<&Value> for ValidationFnObj {
     fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, pos: Pos, value: &Value) {
         if let Err(message) = self(value) {
             ctx.report_error(vec![pos], message);

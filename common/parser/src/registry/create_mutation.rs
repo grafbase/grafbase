@@ -1,5 +1,7 @@
 use crate::rules::default_directive::DEFAULT_DIRECTIVE;
 use crate::rules::default_directive_types::VALUE_ARGUMENT;
+use crate::rules::length_directive::LENGTH_DIRECTIVE;
+use crate::rules::length_directive::{MAX_ARGUMENT, MIN_ARGUMENT};
 use crate::rules::relations::generate_metarelation;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{is_modelized_node, to_base_type_str, to_defined_input_type, to_input_type, to_lower_camelcase};
@@ -11,6 +13,7 @@ use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
     MetaType,
 };
+use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::Operations;
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, ObjectType, TypeDefinition, TypeKind};
@@ -231,6 +234,40 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
 
         // TODO: Abstract this behind an `ID` utility;
         if name != "id" {
+            let mut validators = None;
+            if let Some(length_validator) = field
+                .node
+                .directives
+                .iter()
+                .find(|directive| directive.node.name.node == LENGTH_DIRECTIVE)
+                .map(|directive| {
+                    (
+                        directive.node.get_argument(MIN_ARGUMENT),
+                        directive.node.get_argument(MAX_ARGUMENT),
+                    )
+                })
+                .map(|(min, max)| {
+                    DynValidator::length(
+                        min.and_then(|arg| {
+                            if let dynaql_value::ConstValue::Number(ref min) = arg.node {
+                                min.as_u64().and_then(|min| min.try_into().ok())
+                            } else {
+                                None
+                            }
+                        }),
+                        max.and_then(|arg| {
+                            if let dynaql_value::ConstValue::Number(ref max) = arg.node {
+                                max.as_u64().and_then(|min| min.try_into().ok())
+                            } else {
+                                None
+                            }
+                        }),
+                    )
+                })
+            {
+                validators.get_or_insert_with(Vec::new).push(length_validator);
+            };
+
             let default_value = field
                 .node
                 .directives
@@ -246,7 +283,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
-                    validators: None,
+                    validators,
                     visible: None,
                     default_value,
                     is_secret: false,
