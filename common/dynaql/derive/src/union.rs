@@ -14,9 +14,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
     let (impl_generics, ty_generics, where_clause) = union_args.generics.split_for_impl();
     let s = match &union_args.data {
         Data::Enum(s) => s,
-        _ => {
-            return Err(Error::new_spanned(ident, "Union can only be applied to an enum.").into())
-        }
+        _ => return Err(Error::new_spanned(ident, "Union can only be applied to an enum.").into()),
     };
     let mut enum_names = Vec::new();
     let mut enum_items = HashSet::new();

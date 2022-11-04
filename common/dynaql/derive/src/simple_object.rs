@@ -43,11 +43,9 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     let s = match &object_args.data {
         Data::Struct(e) => e,
         _ => {
-            return Err(Error::new_spanned(
-                ident,
-                "SimpleObject can only be applied to an struct.",
+            return Err(
+                Error::new_spanned(ident, "SimpleObject can only be applied to an struct.").into(),
             )
-            .into())
         }
     };
     let mut getters = Vec::new();
