@@ -210,7 +210,7 @@ impl Client {
     async fn add_jwk_to_cache(&self, jwk: &ExtendedJsonWebKey<'_>) -> Result<(), KvError> {
         if let Some(cache) = &self.jwks_cache {
             cache
-                .put(&jwk.id, &jwk)
+                .put(&jwk.id, jwk)
                 .expect("cannot fail")
                 .expiration_ttl(JWKS_CACHE_TTL)
                 .execute()
