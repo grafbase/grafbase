@@ -131,90 +131,41 @@ mod tests {
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
 
-    #[test]
-    fn test_length_wrong_argument_name() {
-        let schema = r#"
+    #[rstest::rstest]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String @length(foo: 10)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            format!("Unexpected argument foo, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
-        );
-    }
-
-    #[test]
-    fn test_length_missing_argument() {
-        let schema = r#"
+            "#, 1, &[
+            "Unexpected argument foo, @length directive expects at most 2 arguments; `min` and `max`"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String @length
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "The @length directive expects at least one of the `min` and `max` arguments"
-        );
-    }
-
-    #[test]
-    fn test_length_on_id_field() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID! @length(min: 0, max: 100)
                 name: String
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "The @length directive is only accepted on Strings and Lists"
-        );
-    }
-
-    #[test]
-    fn test_length_int_field() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String!
                 category: Int @length(min:0)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "The @length directive is only accepted on Strings and Lists"
-        );
-    }
-
-    #[test]
-    fn test_length_model_field() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Category @model {
                 id: ID!
                 name: String!
@@ -225,124 +176,68 @@ mod tests {
                 name: String!
                 category: Category @length(min: 0)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "The @length directive is only accepted on Strings and Lists"
-        );
-    }
-
-    #[test]
-    fn test_wrong_arg_type() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(min: "10")
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "The @length directive's min argument must be a positive number"
-        );
-    }
-
-    #[test]
-    fn test_wrong_arg_name() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(value: 10)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
-        );
-    }
-
-    #[test]
-    fn test_right_and_wrong_arg_name() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(min: 0, value: 10)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
+            "#, 1, &[
             "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
-        );
-    }
-
-    #[test]
-    fn test_valid() {
-        let schema = r#"
+    ])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(min: 10, max: 100)
             }
-            "#;
+            "#, 0, &[])]
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 0, "{}", ctx.errors.get(0).unwrap().message);
-    }
-
-    #[test]
-    fn test_valid_min() {
-        let schema = r#"
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(min: 10)
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut LengthDirective, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 0, "{}", ctx.errors.get(0).unwrap().message);
-    }
-
-    #[test]
-    fn test_valid_max() {
-        let schema = r#"
+            "#, 0, &[])]
+    #[case(r#"
             type Product @model {
                 id: ID!
                 name: String! @length(max: 10)
             }
-            "#;
+            "#, 0, &[ ])]
 
+    fn test_parse_result(
+        #[case] schema: &str,
+        #[case] error_count: usize,
+        #[case] error_messages: &[&str],
+    ) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut LengthDirective, &mut ctx, &schema);
 
-        assert_eq!(ctx.errors.len(), 0, "{}", ctx.errors.get(0).unwrap().message);
+        assert_eq!(ctx.errors.len(), error_count);
+        for (error, expected) in ctx.errors.iter().zip(error_messages) {
+            assert_eq!(
+                &&error.message,
+                expected
+            )
+        }
     }
 }
