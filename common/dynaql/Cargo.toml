@@ -87,7 +87,7 @@ tracing-futures = { version = "0.2", optional = true, features = [
     "std-future",
     "futures-03",
 ] }
-opentelemetry = { version = "0.18", optional = true, default-features = false, features = [
+opentelemetry = { version = "0.17", optional = true, default-features = false, features = [
     "trace",
 ] }
 uuid = { version = "1", optional = true, features = ["v4", "serde"] }
