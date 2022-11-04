@@ -98,7 +98,7 @@ pub fn generate(
                             FnArg::Typed(pat) => match &*pat.pat {
                                 Pat::Ident(ident) => Some(Ok(ident.ident.clone())),
                                 _ => {
-                                    Some(Err(Error::new_spanned(&pat, "Must be a simple argument")))
+                                    Some(Err(Error::new_spanned(pat, "Must be a simple argument")))
                                 }
                             },
                             FnArg::Receiver(_) => None,
@@ -556,7 +556,7 @@ pub fn generate(
 
     if resolvers.is_empty() && create_entity_types.is_empty() {
         return Err(Error::new_spanned(
-            &self_ty,
+            self_ty,
             "A GraphQL Object type must define one or more fields.",
         )
         .into());

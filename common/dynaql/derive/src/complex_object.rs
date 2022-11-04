@@ -83,7 +83,7 @@ pub fn generate(
                             FnArg::Typed(pat) => match &*pat.pat {
                                 Pat::Ident(ident) => Some(Ok(ident.ident.clone())),
                                 _ => {
-                                    Some(Err(Error::new_spanned(&pat, "Must be a simple argument")))
+                                    Some(Err(Error::new_spanned(pat, "Must be a simple argument")))
                                 }
                             },
                             FnArg::Receiver(_) => None,

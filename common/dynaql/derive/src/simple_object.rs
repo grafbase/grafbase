@@ -43,11 +43,9 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     let s = match &object_args.data {
         Data::Struct(e) => e,
         _ => {
-            return Err(Error::new_spanned(
-                &ident,
-                "SimpleObject can only be applied to an struct.",
+            return Err(
+                Error::new_spanned(ident, "SimpleObject can only be applied to an struct.").into(),
             )
-            .into())
         }
     };
     let mut getters = Vec::new();
@@ -101,7 +99,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
         let base_ident = match &field.ident {
             Some(ident) => ident,
-            None => return Err(Error::new_spanned(&ident, "All fields must be named.").into()),
+            None => return Err(Error::new_spanned(ident, "All fields must be named.").into()),
         };
 
         let ident = if let Some(derived) = derived {
@@ -253,7 +251,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
 
     if !object_args.fake && resolvers.is_empty() {
         return Err(Error::new_spanned(
-            &ident,
+            ident,
             "A GraphQL Object type must define one or more fields.",
         )
         .into());
