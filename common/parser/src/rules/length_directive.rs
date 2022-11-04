@@ -76,8 +76,8 @@ impl<'a> Visitor<'a> for LengthDirective {
                 })
                 .collect();
 
-            let min_value = deduplicated_arguments.remove(MIN_ARGUMENT);
-            let max_value = deduplicated_arguments.remove(MAX_ARGUMENT);
+            let min_value = deduplicated_arguments.remove(MIN_ARGUMENT).flatten();
+            let max_value = deduplicated_arguments.remove(MAX_ARGUMENT).flatten();
 
             for (key, _) in deduplicated_arguments {
                 ctx.report_error(
@@ -87,44 +87,30 @@ impl<'a> Visitor<'a> for LengthDirective {
             }
 
             // Parse the successfully extracted args
-            use tuple::TupleElements;
-            let parsed_args = ((MIN_ARGUMENT, min_value), (MAX_ARGUMENT, max_value))
-                .into_elements()
-                .map(|(key, value)| {
-                    value.and_then(|value| {
-                        if let Some(ConstValue::Number(ref min)) = value.as_ref() {
-                            min.as_u64().map(u64::try_from)
-                        } else {
-                            None
-                        }
-                        .or_else(|| {
-                            ctx.report_error(
-                                vec![directive.pos],
-                                format!("The @length directive's {key} argument must be a positive number"),
-                            );
-                            None
-                        })
-                    })
-                })
-                .collect::<Option<Result<Vec<_>, _>>>();
-
-            match parsed_args.as_ref().map(|inner| inner.as_deref()) {
-                Some(Ok(&[min, max])) => {
-                    if max <= min {
+            let mut value_as_number = |key, value: Option<_>| {
+                value.as_ref().and_then(|value| {
+                    match value {
+                        ConstValue::Number(ref min) => Some(min.as_u64().unwrap(/* Infallible */)),
+                        _ => None,
+                    }
+                    .or_else(|| {
                         ctx.report_error(
                             vec![directive.pos],
-                            format!("The `{MAX_ARGUMENT}` must be greater than the `{MIN_ARGUMENT}`"),
+                            format!("The @length directive's {key} argument must be a positive number"),
                         );
-                    }
-                }
-                Some(Err(e)) => {
+                        None
+                    })
+                })
+            };
+
+            let min_value = value_as_number(MIN_ARGUMENT, min_value);
+            let max_value = value_as_number(MAX_ARGUMENT, max_value);
+            if let Some((min_value, max_value)) = min_value.zip(max_value) {
+                if min_value > max_value {
                     ctx.report_error(
                         vec![directive.pos],
-                        format!("Error {e} while parsing @length directive"),
+                        format!("The `{MAX_ARGUMENT}` must be greater than the `{MIN_ARGUMENT}`"),
                     );
-                }
-                Some(Ok(_)) | None => {
-                    // All Good
                 }
             }
         }

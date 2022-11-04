@@ -24,10 +24,10 @@ enum LengthTestResult {
     InBounds,
 }
 
-fn check_length(count: usize, min: Option<usize>, max: Option<usize>) -> LengthTestResult {
+fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> LengthTestResult {
     match (
-        min.as_ref().and_then(|min| count.partial_cmp(min)),
-        max.as_ref().and_then(|max| count.partial_cmp(max)),
+        lower.as_ref().and_then(|lower| item.partial_cmp(lower)),
+        upper.as_ref().and_then(|upper| item.partial_cmp(upper)),
     ) {
         (Some(Ordering::Less), _) => LengthTestResult::TooShort,
         (_, Some(Ordering::Greater)) => LengthTestResult::TooLong,
@@ -41,36 +41,21 @@ fn check_length(count: usize, min: Option<usize>, max: Option<usize>) -> LengthT
 impl DynValidate<&Value> for LengthValidator {
     fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, pos: Pos, value: &Value) {
         use LengthTestResult::*;
-        match value {
-            Value::List(values) => {
-                let count = values.len();
-                match check_length(count, self.min, self.max) {
-                    InBounds => (),
-                    TooLong => ctx.report_error(
-                        vec![pos],
-                        "{count} is too long, must be shorter than {max}".to_string(),
-                    ),
-                    TooShort => ctx.report_error(
-                        vec![pos],
-                        "{count} is too short, must be at least {min} long".to_string(),
-                    ),
-                }
-            }
-            Value::String(string) => {
-                let count = string.chars().count();
-                match check_length(count, self.min, self.max) {
-                    InBounds => (),
-                    TooLong => ctx.report_error(
-                        vec![pos],
-                        "{count} is too long, must be shorter than {max}".to_string(),
-                    ),
-                    TooShort => ctx.report_error(
-                        vec![pos],
-                        "{count} is too short, must be at least {min} long".to_string(),
-                    ),
-                }
-            }
-            _ => (),
+        let count = match value {
+            Value::List(values) => values.len(),
+            Value::String(string) => string.chars().count(),
+            _ => return,
+        };
+        match check_bounds(count, self.min, self.max) {
+            InBounds => (),
+            TooLong => ctx.report_error(
+                vec![pos],
+                "{count} is too long, must be shorter than {max}".to_string(),
+            ),
+            TooShort => ctx.report_error(
+                vec![pos],
+                "{count} is too short, must be at least {min} long".to_string(),
+            ),
         }
     }
 }

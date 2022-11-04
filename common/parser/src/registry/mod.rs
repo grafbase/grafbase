@@ -15,7 +15,7 @@ use dynaql::registry::{
 };
 use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::Operations;
-use dynaql_parser::types::{ObjectType, FieldDefinition};
+use dynaql_parser::types::{FieldDefinition, ObjectType};
 
 mod create_mutation;
 mod relations;
