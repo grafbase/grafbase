@@ -494,32 +494,21 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str) {
 }
 
 fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
+    use tuple::Map;
     field
         .directives
         .iter()
         .find(|directive| directive.node.name.node == LENGTH_DIRECTIVE)
         .map(|directive| {
-            (
-                directive.node.get_argument(MIN_ARGUMENT),
-                directive.node.get_argument(MAX_ARGUMENT),
-            )
-        })
-        .map(|(min, max)| {
-            DynValidator::length(
-                min.and_then(|arg| {
-                    if let dynaql_value::ConstValue::Number(ref min) = arg.node {
+            let (min_value, max_value) = (MIN_ARGUMENT, MAX_ARGUMENT).map(|argument_name| {
+                directive.node.get_argument(argument_name).and_then(|argument| {
+                    if let dynaql_value::ConstValue::Number(ref min) = argument.node {
                         min.as_u64().and_then(|min| min.try_into().ok())
                     } else {
                         None
                     }
-                }),
-                max.and_then(|arg| {
-                    if let dynaql_value::ConstValue::Number(ref max) = arg.node {
-                        max.as_u64().and_then(|min| min.try_into().ok())
-                    } else {
-                        None
-                    }
-                }),
-            )
+                })
+            });
+            DynValidator::length(min_value, max_value)
         })
 }
