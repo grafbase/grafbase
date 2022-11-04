@@ -53,16 +53,13 @@ impl<'a> Visitor<'a> for LengthDirective {
                 .map(|(key, _)| key)
                 .sorted()
                 .dedup_with_count()
-                .collect(); // some combinators from `Itertools`.
+                .collect();
             let parsed_args = match &argument_names[..] {
                 // One of each arg
-                &[(1, &MAX_ARGUMENT), (1, &MIN_ARGUMENT)] => {
-                    Some(vec![(&MAX_ARGUMENT, arguments.iter().find(|(key, _)| key == &MAX_ARGUMENT).map(|(_, value)| &value.node)),
-                              (&MIN_ARGUMENT, arguments.iter().find(|(key, _)| key == &MIN_ARGUMENT).map(|(_, value)| &value.node))])
-                },
-                // Only one arg
-                &[(1, arg_name)] if allowed_args.contains(arg_name) => {
-                    Some(vec![(arg_name, arguments.iter().find(|(key, _)| key == arg_name).map(|(_, value)| &value.node))])
+                arg_names @ (&[(1, &MAX_ARGUMENT), (1, &MIN_ARGUMENT)] | [(1, &MIN_ARGUMENT | &MAX_ARGUMENT)] ) => {
+                    Some(arg_names.iter().map(|(_,  arg_name)|{
+                        (arg_name, arguments.iter().find(|(key, _)| &key == arg_name).map(|(_, value)| &value.node))
+                    }).collect::<Vec<_>>())
                 },
                 &[] => {
                     ctx.report_error(
@@ -79,18 +76,20 @@ impl<'a> Visitor<'a> for LengthDirective {
                     None
                 },
                 s => {
-                    for (_, arg) in s {
-                        ctx.report_error(
-                            vec![directive.pos],
-                            format!("Unexepected argument {arg}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
-                        );
+                    for (_, key) in s {
+                        if !allowed_args.contains(key) {
+                            ctx.report_error(
+                                vec![directive.pos],
+                                format!("Unexpected argument {key}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
+                            );
+                        }
                     }
                     None
                 }
             }.map(|parsed_args| {
                 parsed_args.into_iter().filter_map(|(key, value)|{
                     if let Some(ConstValue::Number(ref min)) = value {
-                        min.as_u64().map(|val| u64::try_from(val))
+                        min.as_u64().map(u64::try_from)
                     } else {
                         None
                     }.or_else (|| {
@@ -148,7 +147,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            format!("Unexepected argument foo, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
+            format!("Unexpected argument foo, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
         );
     }
 
@@ -275,7 +274,27 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "Unexepected argument value, @length directive expects at most 2 arguments; `min` and `max`"
+            "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
+        );
+    }
+
+    #[test]
+    fn test_right_and_wrong_arg_name() {
+        let schema = r#"
+            type Product @model {
+                id: ID!
+                name: String! @length(min: 0, value: 10)
+            }
+            "#;
+
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut LengthDirective, &mut ctx, &schema);
+
+        assert_eq!(ctx.errors.len(), 1);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
         );
     }
 
