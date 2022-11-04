@@ -256,7 +256,6 @@ pub fn create_input_without_relation_for_update<'a>(
 
         // TODO: Abstract this behind an `ID` utility;
         if name.ne("id") {
-
             input_fields.insert(
                 name.clone().to_string(),
                 MetaInputValue {
