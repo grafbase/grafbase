@@ -30,6 +30,8 @@ impl<'a> Visitor<'a> for LengthDirective {
             .iter()
             .find(|d| d.node.name.node == super::length_directive::LENGTH_DIRECTIVE)
         {
+            use itertools::Itertools;
+
             if !crate::utils::is_type_with_length(&field.node.ty.node) {
                 return ctx.report_error(
                     vec![directive.pos],
@@ -37,35 +39,87 @@ impl<'a> Visitor<'a> for LengthDirective {
                 );
             }
 
-            let arguments = directive
+            let arguments: Vec<_> = directive
                 .node
                 .arguments
                 .iter()
-                .map(|(key, value)| (key.node.as_str(), value));
+                .map(|(key, value)| (key.node.as_str(), value))
+                .collect();
 
-            let mut allowed_args = [MIN_ARGUMENT, MAX_ARGUMENT];
-            let mut remaining_args = allowed_args.len();
+            let allowed_args = [MIN_ARGUMENT, MAX_ARGUMENT];
 
-            for (name, value) in arguments {
-                if let Some(pos) = allowed_args[..remaining_args].iter().position(|x| x == &name) {
-                    allowed_args.swap(pos, remaining_args - 1);
-                    remaining_args -= 1;
-
-                    if !matches!(value.node, ConstValue::Number(_)) {
-                        return ctx.report_error(vec![directive.pos], format!("The {name} argument must be a Number"));
-                    }
-                } else {
-                    return ctx.report_error(
+            let argument_names: Vec<_> = arguments
+                .iter()
+                .map(|(key, _)| key)
+                .sorted()
+                .dedup_with_count()
+                .collect(); // some combinators from `Itertools`.
+            let parsed_args = match &argument_names[..] {
+                // One of each arg
+                &[(1, &MAX_ARGUMENT), (1, &MIN_ARGUMENT)] => {
+                    Some(vec![(&MAX_ARGUMENT, arguments.iter().find(|(key, _)| key == &MAX_ARGUMENT).map(|(_, value)| &value.node)),
+                              (&MIN_ARGUMENT, arguments.iter().find(|(key, _)| key == &MIN_ARGUMENT).map(|(_, value)| &value.node))])
+                },
+                // Only one arg
+                &[(1, arg_name)] if allowed_args.contains(arg_name) => {
+                    Some(vec![(arg_name, arguments.iter().find(|(key, _)| key == arg_name).map(|(_, value)| &value.node))])
+                },
+                &[] => {
+                    ctx.report_error(
                         vec![directive.pos],
-                        format!("The @length directive accepts the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
+                        format!("The @length directive expects at least one of the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
+                    );
+                    None
+                }
+                &[(_, &MAX_ARGUMENT), (_, &MIN_ARGUMENT)] => {
+                    ctx.report_error(
+                        vec![directive.pos],
+                        format!("The @length directive expects the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments only once each"),
+                    );
+                    None
+                },
+                s => {
+                    for (_, arg) in s {
+                        ctx.report_error(
+                            vec![directive.pos],
+                            format!("Unexepected argument {arg}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
+                        );
+                    }
+                    None
+                }
+            }.map(|parsed_args| {
+                parsed_args.into_iter().filter_map(|(key, value)|{
+                    if let Some(ConstValue::Number(ref min)) = value {
+                        min.as_u64().map(|val| u64::try_from(val))
+                    } else {
+                        None
+                    }.or_else (|| {
+                        ctx.report_error(
+                            vec![directive.pos],
+                            format!("The @length directive's {key} argument must be a positive number")
+                        );
+                        None
+                    })
+                }).collect::<Result<Vec<_>, _>>()
+            });
+            match parsed_args.as_ref().map(|inner| inner.as_deref()) {
+                Some(Ok(&[max, min])) => {
+                    if max <= min {
+                        ctx.report_error(
+                            vec![directive.pos],
+                            format!("The `{MAX_ARGUMENT}` must be greater than the `{MIN_ARGUMENT}`"),
+                        );
+                    }
+                }
+                Some(Err(e)) => {
+                    ctx.report_error(
+                        vec![directive.pos],
+                        format!("Error {e} while parsing @length directive"),
                     );
                 }
-            }
-            if remaining_args == allowed_args.len() {
-                ctx.report_error(
-                    vec![directive.pos],
-                    format!("The @length directive expects at least one of the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
-                );
+                Some(Ok(_)) | None => {
+                    // All Good
+                }
             }
         }
     }
@@ -94,7 +148,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            format!("The @length directive accepts the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
+            format!("Unexepected argument foo, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
         );
     }
 
@@ -199,7 +253,10 @@ mod tests {
         visit(&mut LengthDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(ctx.errors.get(0).unwrap().message, "The min argument must be a Number",);
+        assert_eq!(
+            ctx.errors.get(0).unwrap().message,
+            "The @length directive's min argument must be a positive number"
+        );
     }
 
     #[test]
@@ -218,7 +275,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1);
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "The @length directive accepts the `min` and `max` arguments"
+            "Unexepected argument value, @length directive expects at most 2 arguments; `min` and `max`"
         );
     }
 
