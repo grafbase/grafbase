@@ -24,10 +24,12 @@ use crate::parser::types::{
     BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
 };
 use crate::resolver_utils::{resolve_container, resolve_list};
+use crate::validation::dynamic_validators::DynValidator;
 use crate::{
     model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext, ID,
 };
+
 pub use cache_control::CacheControl;
 
 use self::relations::MetaRelation;
@@ -131,6 +133,9 @@ pub struct MetaInputValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
+    #[serde(skip)]
+    #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
+    pub validators: Option<Vec<DynValidator>>,
     pub is_secret: bool,
 }
 
@@ -1378,6 +1383,7 @@ impl Registry {
                                     description: None,
                                     ty: "[_Any!]!".to_string(),
                                     default_value: None,
+                                    validators: None,
                                     visible: None,
                                     is_secret: false,
                                 },

@@ -58,6 +58,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
                                     description: None,
                                     ty: field.node.ty.to_string(),
                                     default_value: None,
+                                    validators: None,
                                     visible: None,
                                     is_secret: false
                                 }
