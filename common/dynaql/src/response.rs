@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt::{self, Write};
 
 use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
@@ -32,6 +33,28 @@ pub struct Response {
 }
 
 impl Response {
+    pub fn to_response_string(&self) -> String {
+        let errors = if !self.errors.is_empty() {
+            format!(
+                ",\"errors\":{}",
+                serde_json::to_string(&self.errors).expect("Unchecked")
+            )
+        } else {
+            String::new()
+        };
+
+        let extensions = if !self.extensions.is_empty() {
+            format!(
+                ",\"extensions\":{}",
+                serde_json::to_string(&self.extensions).expect("Unchecked")
+            )
+        } else {
+            String::new()
+        };
+
+        format!("{{\"data\":{}{errors}{extensions}}}", self.data.to_string())
+    }
+
     /// Create a new successful response with the data.
     #[must_use]
     pub fn new(data: QueryResponse) -> Self {
@@ -155,6 +178,24 @@ impl BatchResponse {
                 .map(|current_name| (current_name, value))
         })
     }
+
+    pub fn to_json(&self, f: &mut dyn Write) -> fmt::Result {
+        match self {
+            Self::Batch(multiple) => {
+                write!(f, "[")?;
+                let len = multiple.len();
+                for (i, one) in multiple.into_iter().enumerate() {
+                    write!(f, "{}", one.to_response_string())?;
+                    if i != (len - 1) {
+                        write!(f, ",")?;
+                    }
+                }
+                write!(f, "]")?;
+                Ok(())
+            }
+            Self::Single(single) => write!(f, "{}", single.to_response_string()),
+        }
+    }
 }
 
 impl From<Response> for BatchResponse {
@@ -175,19 +216,37 @@ mod tests {
 
     #[test]
     fn test_batch_response_single() {
-        let resp = BatchResponse::Single(Response::new(Value::Boolean(true)));
-        assert_eq!(serde_json::to_string(&resp).unwrap(), r#"{"data":true}"#);
+        let json = Value::Boolean(true).into_json().unwrap();
+        let mut resp = QueryResponse::default();
+        let id = resp.from_serde_value(json);
+        resp.set_root_unchecked(id);
+
+        let resp = Response::new(resp);
+
+        let resp = BatchResponse::Single(resp);
+        let mut output = String::new();
+        resp.to_json(&mut output);
+
+        assert_eq!(output, r#"{"data":true}"#);
     }
 
     #[test]
     fn test_batch_response_batch() {
-        let resp = BatchResponse::Batch(vec![
-            Response::new(Value::Boolean(true)),
-            Response::new(Value::String("1".to_string())),
-        ]);
-        assert_eq!(
-            serde_json::to_string(&resp).unwrap(),
-            r#"[{"data":true},{"data":"1"}]"#
-        );
+        let json1 = Value::Boolean(true).into_json().unwrap();
+        let mut resp1 = QueryResponse::default();
+        let id = resp1.from_serde_value(json1);
+        resp1.set_root_unchecked(id);
+        let resp1 = Response::new(resp1);
+
+        let json2 = Value::String("1".to_string()).into_json().unwrap();
+        let mut resp2 = QueryResponse::default();
+        let id = resp2.from_serde_value(json2);
+        resp2.set_root_unchecked(id);
+        let resp2 = Response::new(resp2);
+
+        let resp = BatchResponse::Batch(vec![resp1, resp2]);
+        let mut output = String::new();
+        resp.to_json(&mut output);
+        assert_eq!(output, r#"[{"data":true},{"data":"1"}]"#);
     }
 }

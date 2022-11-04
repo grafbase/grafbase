@@ -365,6 +365,7 @@ pub fn generate(
                                 &field.node.selection_set,
                             );
 
+                            let type_name = <<#stream_ty as #crate_name::futures_util::stream::Stream>::Item as #crate_name::OutputType>::qualified_type_name();
                             let mut execute_fut = async {
                                 #[allow(bare_trait_objects)]
                                 let ri = #crate_name::extensions::ResolveInfo {
@@ -376,18 +377,55 @@ pub fn generate(
                                     required_operation: None,
                                     auth: None,
                                 };
+
+                                let resolve_fut = async {
+                                    let a = #crate_name::graph::selection_set_into_node(
+                                            #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)
+                                            .await
+                                            .map(::std::option::Option::Some)
+                                            .map_err(|err| ctx_selection_set.set_error_path(err)).unwrap()
+                                            .unwrap_or_default(),
+                                            &ctx_selection_set,
+                                            schema_env.registry.types.get(&type_name).unwrap(),
+                                        )
+                                        .await;
+                                    Ok(Some(a))
+                                };
+
+                                /*
                                 let resolve_fut = async {
                                     #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)
                                         .await
                                         .map(::std::option::Option::Some)
                                 };
+                                */
+
                                 #crate_name::futures_util::pin_mut!(resolve_fut);
-                                let mut resp = query_env.extensions.resolve(ri, &mut resolve_fut).await.map(|value| {
-                                    let mut map = #crate_name::indexmap::IndexMap::new();
-                                    map.insert(::std::clone::Clone::clone(&field_name), value.unwrap_or_default());
-                                    #crate_name::Response::new(#crate_name::Value::Object(map))
-                                })
-                                .unwrap_or_else(|err| #crate_name::Response::from_errors(::std::vec![err]));
+
+                                let mut resp = match query_env.extensions.resolve(ri, &mut resolve_fut).await {
+                                    Ok(Some(value)) => {
+                                        let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
+                                        container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, value);
+                                        let response = &mut *ctx.response_graph.write().await;
+                                        let container_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Container(container));
+                                        response.set_root_unchecked(container_id);
+                                        let a = #crate_name::graph_entities::QueryResponse::default();
+                                        let b = std::mem::replace(response, a);
+                                        #crate_name::Response::new(b)
+                                    }
+                                    Ok(None) => {
+                                        let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
+                                        let response = &mut *ctx.response_graph.write().await;
+                                        let primitive_node_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Primitive(#crate_name::graph_entities::ResponsePrimitive::default()));
+                                        container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, primitive_node_id);
+                                        let container_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Container(container));
+                                        response.set_root_unchecked(container_id);
+                                        let a = #crate_name::graph_entities::QueryResponse::default();
+                                        let b = std::mem::replace(response, a);
+                                        #crate_name::Response::new(b)
+                                    }
+                                    Err(err) => #crate_name::Response::from_errors(vec![err]),
+                                };
 
                                 use ::std::iter::Extend;
                                 resp.errors.extend(::std::mem::take(&mut *query_env.errors.lock().unwrap()));

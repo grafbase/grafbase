@@ -201,7 +201,7 @@ impl ResolvedValue {
     /// have a way to get it
     /// temp: Little hack here, we know that `ResolvedValue` are bound to have a format
     /// of:
-    /// ```
+    /// ```ignore
     /// {
     ///   "Node": {
     ///     "__sk": {
