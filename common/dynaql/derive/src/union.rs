@@ -15,7 +15,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
     let s = match &union_args.data {
         Data::Enum(s) => s,
         _ => {
-            return Err(Error::new_spanned(&ident, "Union can only be applied to an enum.").into())
+            return Err(Error::new_spanned(ident, "Union can only be applied to an enum.").into())
         }
     };
     let mut enum_names = Vec::new();
@@ -64,7 +64,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
             // This validates that the field type wasn't already used
             if !enum_items.insert(p) {
                 return Err(
-                    Error::new_spanned(&ty, "This type already used in another variant").into(),
+                    Error::new_spanned(ty, "This type already used in another variant").into(),
                 );
             }
 
@@ -133,7 +133,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
 
     if possible_types.is_empty() {
         return Err(Error::new_spanned(
-            &ident,
+            ident,
             "A GraphQL Union type must include one or more unique member types.",
         )
         .into());

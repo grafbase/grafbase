@@ -24,7 +24,7 @@ pub fn generate(object_args: &args::MergedSubscription) -> GeneratorResult<Token
         Data::Struct(e) => e,
         _ => {
             return Err(Error::new_spanned(
-                &ident,
+                ident,
                 "MergedSubscription can only be applied to an struct.",
             )
             .into())

@@ -26,7 +26,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
         let ty = &field.ty;
         let ident = match &field.ident {
             Some(ident) => ident,
-            None => return Err(Error::new_spanned(&ident, "All fields must be named.").into()),
+            None => return Err(Error::new_spanned(ident, "All fields must be named.").into()),
         };
         let attrs = field
             .attrs
@@ -177,7 +177,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
 
     if get_fields.is_empty() {
         return Err(Error::new_spanned(
-            &ident,
+            ident,
             "A GraphQL Input Object type must define one or more input fields.",
         )
         .into());

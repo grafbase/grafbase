@@ -134,14 +134,14 @@ impl SchemaBuilder {
     /// Override the name of the specified input type.
     #[must_use]
     pub fn override_input_type_description<T: InputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&*T::type_name(), desc);
+        self.registry.set_description(&T::type_name(), desc);
         self
     }
 
     /// Override the name of the specified output type.
     #[must_use]
     pub fn override_output_type_description<T: OutputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&*T::type_name(), desc);
+        self.registry.set_description(&T::type_name(), desc);
         self
     }
 

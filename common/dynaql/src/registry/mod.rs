@@ -1162,7 +1162,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1170,7 +1170,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1181,7 +1181,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1207,7 +1207,7 @@ impl Registry {
                 self.types.insert(
                     name.to_string(),
                     MetaType::Object {
-                        name: "".to_string(),
+                        name: String::new(),
                         description: None,
                         fields: Default::default(),
                         cache_control: Default::default(),
