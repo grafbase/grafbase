@@ -6,7 +6,7 @@ use crate::validation::visitor::VisitorContext;
 use super::DynValidate;
 use crate::Pos;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LengthValidator {
     min: Option<usize>,
     max: Option<usize>,

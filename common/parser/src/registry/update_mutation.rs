@@ -49,8 +49,11 @@ fn create_input_relation<'a>(
             let mut input_fields = IndexMap::new();
             for field in &object.fields {
                 let name = &field.node.name.node;
+
                 // If it's a modelized node, we want to generate
                 let actual_field_type = is_modelized_node(&ctx.types, &field.node.ty.node);
+
+                let validators = super::get_length_validator(&field.node).map(|val| vec![val]);
 
                 if actual_field_type.is_some() {
                     let relation_name = generate_metarelation(ty_to, &field.node).name;
@@ -73,7 +76,7 @@ fn create_input_relation<'a>(
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: to_defined_input_type(field.node.ty.clone().node, input_name).to_string(),
-                            validators: None,
+                            validators,
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -91,7 +94,7 @@ fn create_input_relation<'a>(
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
-                            validators: None,
+                            validators,
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -221,6 +224,9 @@ pub fn create_input_without_relation_for_update<'a>(
 
     for field in &object.fields {
         let name = &field.node.name.node;
+
+        let validators = super::get_length_validator(&field.node).map(|val| vec![val]);
+
         // If it's a modelized node, we want to generate
         let types = ctx.types.clone(); // TODO: We should change a little the way it works, this clone can be avoided, not really expensive but should still be reworked.
                                        //
@@ -239,7 +245,7 @@ pub fn create_input_without_relation_for_update<'a>(
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_defined_input_type(opt_type, input_name).to_string(),
-                    validators: None,
+                    validators,
                     visible: None,
                     default_value: None,
                     is_secret: false,
@@ -250,13 +256,14 @@ pub fn create_input_without_relation_for_update<'a>(
 
         // TODO: Abstract this behind an `ID` utility;
         if name.ne("id") {
+
             input_fields.insert(
                 name.clone().to_string(),
                 MetaInputValue {
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_input_type(&ctx.types, opt_type).to_string(),
-                    validators: None,
+                    validators,
                     visible: None,
                     default_value: None,
                     is_secret: false,

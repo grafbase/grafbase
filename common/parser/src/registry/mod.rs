@@ -2,6 +2,7 @@
 //!
 //! -> Split each of the creation and add tests with SDL
 //!
+use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT};
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
@@ -12,6 +13,7 @@ use dynaql::registry::{
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
+use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::Operations;
 use dynaql_parser::types::ObjectType;
 
@@ -489,4 +491,35 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str) {
         transforms: None,
         required_operation: Some(Operations::DELETE),
     });
+}
+
+fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
+    field
+        .directives
+        .iter()
+        .find(|directive| directive.node.name.node == LENGTH_DIRECTIVE)
+        .map(|directive| {
+            (
+                directive.node.get_argument(MIN_ARGUMENT),
+                directive.node.get_argument(MAX_ARGUMENT),
+            )
+        })
+        .map(|(min, max)| {
+            DynValidator::length(
+                min.and_then(|arg| {
+                    if let dynaql_value::ConstValue::Number(ref min) = arg.node {
+                        min.as_u64().and_then(|min| min.try_into().ok())
+                    } else {
+                        None
+                    }
+                }),
+                max.and_then(|arg| {
+                    if let dynaql_value::ConstValue::Number(ref max) = arg.node {
+                        max.as_u64().and_then(|min| min.try_into().ok())
+                    } else {
+                        None
+                    }
+                }),
+            )
+        })
 }

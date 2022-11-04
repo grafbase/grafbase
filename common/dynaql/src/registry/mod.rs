@@ -133,7 +133,6 @@ pub struct MetaInputValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
-    #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub validators: Option<Vec<DynValidator>>,
     pub is_secret: bool,
