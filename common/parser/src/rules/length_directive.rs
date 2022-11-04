@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::visitor::{Visitor, VisitorContext};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
@@ -39,70 +41,75 @@ impl<'a> Visitor<'a> for LengthDirective {
                 );
             }
 
-            let arguments: Vec<_> = directive
+            // Extract and group args
+            let arguments: HashMap<_, _> = directive
                 .node
                 .arguments
                 .iter()
-                .map(|(key, value)| (key.node.as_str(), value))
+                .into_group_map_by(move |(key, _)| key.node.as_str().to_string())
+                .into_iter()
+                .map(move |(key, values)| {
+                    (
+                        key,
+                        values.into_iter().map(|val| val.1.node.clone()).collect::<Vec<_>>(),
+                    )
+                })
                 .collect();
 
-            let allowed_args = [MIN_ARGUMENT, MAX_ARGUMENT];
+            if arguments.is_empty() {
+                ctx.report_error(
+                    vec![directive.pos],
+                    format!("The @length directive expects at least one of the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
+                );
+            }
 
-            let argument_names: Vec<_> = arguments
-                .iter()
-                .map(|(key, _)| key)
-                .sorted()
-                .dedup_with_count()
-                .collect();
-            let parsed_args = match &argument_names[..] {
-                // One of each arg
-                arg_names @ (&[(1, &MAX_ARGUMENT), (1, &MIN_ARGUMENT)] | [(1, &MIN_ARGUMENT | &MAX_ARGUMENT)] ) => {
-                    Some(arg_names.iter().map(|(_,  arg_name)|{
-                        (arg_name, arguments.iter().find(|(key, _)| &key == arg_name).map(|(_, value)| &value.node))
-                    }).collect::<Vec<_>>())
-                },
-                &[] => {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!("The @length directive expects at least one of the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
-                    );
-                    None
-                }
-                &[(_, &MAX_ARGUMENT), (_, &MIN_ARGUMENT)] => {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!("The @length directive expects the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments only once each"),
-                    );
-                    None
-                },
-                s => {
-                    for (_, key) in s {
-                        if !allowed_args.contains(key) {
-                            ctx.report_error(
-                                vec![directive.pos],
-                                format!("Unexpected argument {key}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
-                            );
-                        }
-                    }
-                    None
-                }
-            }.map(|parsed_args| {
-                parsed_args.into_iter().filter_map(|(key, value)|{
-                    if let Some(ConstValue::Number(ref min)) = value {
-                        min.as_u64().map(u64::try_from)
-                    } else {
-                        None
-                    }.or_else (|| {
+            let mut deduplicated_arguments: HashMap<_, _> = arguments
+                .into_iter()
+                .map(|(key, mut values)| {
+                    if values.len() > 1 {
                         ctx.report_error(
                             vec![directive.pos],
-                            format!("The @length directive's {key} argument must be a positive number")
+                            "The @length directive expects the `key` argument only once".to_string(),
                         );
-                        None
+                    }
+                    (key, values.pop())
+                })
+                .collect();
+
+            let min_value = deduplicated_arguments.remove(MIN_ARGUMENT);
+            let max_value = deduplicated_arguments.remove(MAX_ARGUMENT);
+
+            for (key, _) in deduplicated_arguments {
+                ctx.report_error(
+                    vec![directive.pos],
+                    format!("Unexpected argument {key}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
+                );
+            }
+
+            // Parse the successfully extracted args
+            use tuple::TupleElements;
+            let parsed_args = ((MIN_ARGUMENT, min_value), (MAX_ARGUMENT, max_value))
+                .into_elements()
+                .map(|(key, value)| {
+                    value.and_then(|value| {
+                        if let Some(ConstValue::Number(ref min)) = value.as_ref() {
+                            min.as_u64().map(u64::try_from)
+                        } else {
+                            None
+                        }
+                        .or_else(|| {
+                            ctx.report_error(
+                                vec![directive.pos],
+                                format!("The @length directive's {key} argument must be a positive number"),
+                            );
+                            None
+                        })
                     })
-                }).collect::<Result<Vec<_>, _>>()
-            });
+                })
+                .collect::<Option<Result<Vec<_>, _>>>();
+
             match parsed_args.as_ref().map(|inner| inner.as_deref()) {
-                Some(Ok(&[max, min])) => {
+                Some(Ok(&[min, max])) => {
                     if max <= min {
                         ctx.report_error(
                             vec![directive.pos],
@@ -206,10 +213,16 @@ mod tests {
     #[case(r#"
             type Product @model {
                 id: ID!
+                name: String! @length(min:10, max: 1)
+            }
+            "#, 1,
+            &["The `max` must be greater than the `min`"])]
+    #[case(r#"
+            type Product @model {
+                id: ID!
                 name: String! @length(min: 10, max: 100)
             }
             "#, 0, &[])]
-
     #[case(r#"
             type Product @model {
                 id: ID!
@@ -223,21 +236,20 @@ mod tests {
             }
             "#, 0, &[ ])]
 
-    fn test_parse_result(
-        #[case] schema: &str,
-        #[case] error_count: usize,
-        #[case] error_messages: &[&str],
-    ) {
+    fn test_parse_result(#[case] schema: &str, #[case] error_count: usize, #[case] error_messages: &[&str]) {
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut LengthDirective, &mut ctx, &schema);
 
         assert_eq!(ctx.errors.len(), error_count);
+
+        assert_eq!(
+            ctx.errors.len(),
+            error_messages.len(),
+            "Did you forget an error_message example case?"
+        );
         for (error, expected) in ctx.errors.iter().zip(error_messages) {
-            assert_eq!(
-                &&error.message,
-                expected
-            )
+            assert_eq!(&&error.message, expected);
         }
     }
 }
