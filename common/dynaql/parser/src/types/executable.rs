@@ -73,13 +73,7 @@ impl<'a> std::iter::FusedIterator for OperationsIter<'a> {}
 impl<'a> ExactSizeIterator for OperationsIter<'a> {
     fn len(&self) -> usize {
         match &self.0 {
-            OperationsIterInner::Single(opt) => {
-                if opt.is_some() {
-                    1
-                } else {
-                    0
-                }
-            }
+            OperationsIterInner::Single(opt) => opt.is_some().into(),
             OperationsIterInner::Multiple(iter) => iter.len(),
         }
     }
