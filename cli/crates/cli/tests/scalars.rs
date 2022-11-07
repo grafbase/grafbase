@@ -5,7 +5,7 @@ use utils::consts::{SCALARS_MUTATION, SCALARS_QUERY, SCALARS_SCHEMA};
 use utils::environment::Environment;
 
 #[test]
-fn dev() {
+fn scalars() {
     let mut env = Environment::init(4011);
 
     env.grafbase_init();

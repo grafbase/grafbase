@@ -84,7 +84,10 @@ const TodoList = (props: TodoListFragment) => {
         </div>
       </div>
       <div className="space-y-4">
-        {todos?.map((todo) => !!todo && <TodoItem key={todo.id} {...todo} />)}
+        {todos?.edges?.map(
+          (edge) =>
+            !!edge?.node && <TodoItem key={edge?.node.id} {...edge?.node} />
+        )}
       </div>
       <TodoItemCreate todoListId={id} />
     </div>

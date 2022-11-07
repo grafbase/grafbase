@@ -1,5 +1,5 @@
 mutation DeleteAuthor($id: ID!) {
-  authorDelete(id: $id) {
+  authorDelete(by: { id: $id }) {
     deletedId
   }
 }

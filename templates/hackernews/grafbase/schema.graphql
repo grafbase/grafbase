@@ -12,12 +12,13 @@ type Post @model {
   title: String!
   url: URL!
   votes: [Vote]
+  comments: [Comment]
 }
 
 type Comment @model {
   id: ID!
   author: User!
-  post: User!
+  post: Post!
   content: String!
 }
 

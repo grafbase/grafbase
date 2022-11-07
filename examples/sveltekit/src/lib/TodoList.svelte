@@ -66,7 +66,7 @@
     title={todoList.title}
     style={`border-color: ${getColor(todoList.id)}`}
   >
-    <h2 class="font-bold text-xl truncate">
+    <h2 class="text-xl font-bold truncate">
       <input
         bind:this={input}
         on:keyup={({ target: { value } }) => debounce(value)}
@@ -77,7 +77,7 @@
     <div class="relative z-20">
       <Menu options={menuOptions}>
         <svg
-          class="w-5 h-5 text-gray-600 hover:text-blue-600 transition"
+          class="w-5 h-5 text-gray-600 transition hover:text-blue-600"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -93,9 +93,11 @@
     </div>
   </div>
   <div class="space-y-4">
-    {#if todoList.todos.length}
-      {#each todoList.todos as todo}
-        <Todo {todo} />
+    {#if todoList?.todos?.edges?.length}
+      {#each todoList.todos.edges as edge}
+        {#if edge?.node}
+          <Todo todo={edge?.node} />
+        {/if}
       {/each}
     {/if}
     <TodoNew todoListId={todoList.id} />

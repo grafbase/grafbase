@@ -1,15 +1,19 @@
-fragment TodoList on TodoList {
-  id
-  title
-  todos {
-    ...Todo
-  }
-}
-
 fragment Todo on Todo {
   id
   title
   complete
+}
+
+fragment TodoList on TodoList {
+  id
+  title
+  todos(first: 100) {
+    edges {
+      node {
+        ...Todo
+      }
+    }
+  }
 }
 
 query TodoLists {
@@ -41,13 +45,13 @@ mutation TodoCreate($title: String!, $todoListId: ID!) {
 }
 
 mutation TodoListDelete($id: ID!) {
-  todoListDelete(id: $id) {
+  todoListDelete(by: { id: $id }) {
     deletedId
   }
 }
 
 mutation TodoListUpdate($id: ID!, $title: String) {
-  todoListUpdate(id: $id, input: { title: $title }) {
+  todoListUpdate(by: { id: $id }, input: { title: $title }) {
     todoList {
       ...TodoList
     }
@@ -55,13 +59,13 @@ mutation TodoListUpdate($id: ID!, $title: String) {
 }
 
 mutation TodoDelete($id: ID!) {
-  todoDelete(id: $id) {
+  todoDelete(by: { id: $id }) {
     deletedId
   }
 }
 
 mutation TodoUpdate($id: ID!, $title: String, $complete: Boolean) {
-  todoUpdate(id: $id, input: { title: $title, complete: $complete }) {
+  todoUpdate(by: { id: $id }, input: { title: $title, complete: $complete }) {
     todo {
       ...Todo
     }

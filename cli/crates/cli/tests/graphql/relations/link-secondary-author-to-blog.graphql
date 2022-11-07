@@ -1,5 +1,5 @@
 mutation LinkAuthorToBlog($id: ID!, $authorId: ID!) {
-  blogUpdate(id: $id, input: { secondaryAuthors: [{ link: $authorId }] }) {
+  blogUpdate(by: { id: $id }, input: { secondaryAuthors: [{ link: $authorId }] }) {
     blog {
       id
     }
