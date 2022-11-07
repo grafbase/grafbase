@@ -50,11 +50,19 @@ impl DynValidate<&Value> for LengthValidator {
             InBounds => (),
             TooLong => ctx.report_error(
                 vec![pos],
-                "{count} is too long, must be shorter than {max}".to_string(),
+                format!(
+                    "{count} is too long, must be shorter than {}",
+                    self.max
+                        .expect("max must have been some for this case to be hit")
+                ),
             ),
             TooShort => ctx.report_error(
                 vec![pos],
-                "{count} is too short, must be at least {min} long".to_string(),
+                format!(
+                    "{count} is too short, must be at least {} long",
+                    self.min
+                        .expect("min must have been some for this case to be hit")
+                ),
             ),
         }
     }
