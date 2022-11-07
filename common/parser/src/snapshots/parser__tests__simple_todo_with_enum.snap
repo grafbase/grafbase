@@ -81,6 +81,7 @@ expression: reg_string
         "fields": {
           "lastname": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -107,6 +108,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -133,6 +135,7 @@ expression: reg_string
           },
           "pseudo": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -159,6 +162,7 @@ expression: reg_string
           },
           "truc": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -289,6 +293,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -329,6 +334,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -377,6 +383,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -429,6 +436,7 @@ expression: reg_string
         "fields": {
           "endCursor": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -460,6 +468,7 @@ expression: reg_string
           },
           "hasNextPage": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -491,6 +500,7 @@ expression: reg_string
           },
           "hasPreviousPage": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -522,6 +532,7 @@ expression: reg_string
           },
           "startCursor": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -571,6 +582,7 @@ expression: reg_string
         "fields": {
           "__schema": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -599,6 +611,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -662,6 +675,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -730,6 +744,7 @@ expression: reg_string
         "fields": {
           "authors": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -764,6 +779,7 @@ expression: reg_string
           },
           "content": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -798,6 +814,7 @@ expression: reg_string
           },
           "createdAt": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -832,6 +849,7 @@ expression: reg_string
           },
           "id": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -866,6 +884,7 @@ expression: reg_string
           },
           "ty": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -900,6 +919,7 @@ expression: reg_string
           },
           "updatedAt": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -970,6 +990,7 @@ expression: reg_string
         "fields": {
           "edges": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -989,6 +1010,7 @@ expression: reg_string
           },
           "pageInfo": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1060,6 +1082,7 @@ expression: reg_string
         "fields": {
           "todo": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1111,6 +1134,7 @@ expression: reg_string
         "fields": {
           "deletedId": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1155,6 +1179,7 @@ expression: reg_string
         "fields": {
           "cursor": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1189,6 +1214,7 @@ expression: reg_string
           },
           "node": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1279,6 +1305,7 @@ expression: reg_string
         "fields": {
           "todo": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1330,6 +1357,7 @@ expression: reg_string
         "fields": {
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1392,6 +1420,7 @@ expression: reg_string
         "fields": {
           "args": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1411,6 +1440,7 @@ expression: reg_string
           },
           "description": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1430,6 +1460,7 @@ expression: reg_string
           },
           "isRepeatable": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1449,6 +1480,7 @@ expression: reg_string
           },
           "locations": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1468,6 +1500,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1609,6 +1642,7 @@ expression: reg_string
         "fields": {
           "deprecationReason": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1628,6 +1662,7 @@ expression: reg_string
           },
           "description": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1647,6 +1682,7 @@ expression: reg_string
           },
           "isDeprecated": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1666,6 +1702,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1703,6 +1740,7 @@ expression: reg_string
         "fields": {
           "args": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1722,6 +1760,7 @@ expression: reg_string
           },
           "deprecationReason": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1741,6 +1780,7 @@ expression: reg_string
           },
           "description": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1760,6 +1800,7 @@ expression: reg_string
           },
           "isDeprecated": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1779,6 +1820,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1798,6 +1840,7 @@ expression: reg_string
           },
           "type": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1835,6 +1878,7 @@ expression: reg_string
         "fields": {
           "defaultValue": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1854,6 +1898,7 @@ expression: reg_string
           },
           "description": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1873,6 +1918,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1892,6 +1938,7 @@ expression: reg_string
           },
           "type": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1929,6 +1976,7 @@ expression: reg_string
         "fields": {
           "directives": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1948,6 +1996,7 @@ expression: reg_string
           },
           "mutationType": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1967,6 +2016,7 @@ expression: reg_string
           },
           "queryType": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -1986,6 +2036,7 @@ expression: reg_string
           },
           "subscriptionType": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2005,6 +2056,7 @@ expression: reg_string
           },
           "types": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2042,6 +2094,7 @@ expression: reg_string
         "fields": {
           "description": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2070,6 +2123,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2098,6 +2152,7 @@ expression: reg_string
                 "validators": null
               }
             },
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2117,6 +2172,7 @@ expression: reg_string
           },
           "inputFields": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2136,6 +2192,7 @@ expression: reg_string
           },
           "interfaces": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2155,6 +2212,7 @@ expression: reg_string
           },
           "isOneOf": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2174,6 +2232,7 @@ expression: reg_string
           },
           "kind": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2193,6 +2252,7 @@ expression: reg_string
           },
           "name": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2212,6 +2272,7 @@ expression: reg_string
           },
           "ofType": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2231,6 +2292,7 @@ expression: reg_string
           },
           "possibleTypes": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true
@@ -2250,6 +2312,7 @@ expression: reg_string
           },
           "specifiedByURL": {
             "args": {},
+            "auth": null,
             "cache_control": {
               "max_age": 0,
               "public": true

@@ -181,6 +181,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     resolve: None,
                     transforms: None,
                     required_operation: None,
+                    auth: None,
                 });
             });
         }
@@ -401,6 +402,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                         resolve: None,
                         transforms: None,
                         required_operation: None,
+                        auth: None,
                         constraints: vec![],
                     })
                 }

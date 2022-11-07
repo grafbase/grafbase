@@ -286,6 +286,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 resolve: ::std::option::Option::None,
                 transforms: ::std::option::Option::None,
                 required_operation: None,
+                auth: None,
             });
         });
 

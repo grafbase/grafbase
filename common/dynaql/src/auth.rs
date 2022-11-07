@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
@@ -36,6 +36,23 @@ impl Default for AuthConfig {
 
             oidc_providers: vec![],
         }
+    }
+}
+
+impl AuthConfig {
+    pub fn api_key_ops(&self) -> Operations {
+        self.allowed_anonymous_ops
+    }
+
+    pub fn oidc_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
+        // Add ops for each group contained in ID token
+        // Minimum ops are that of any signed-in user, if present
+        let groups = self.allowed_group_ops.clone().into_keys().collect();
+        groups_from_token
+            .intersection(&groups)
+            .fold(self.allowed_private_ops, |ops, group| {
+                ops.union(self.allowed_group_ops[group])
+            })
     }
 }
 

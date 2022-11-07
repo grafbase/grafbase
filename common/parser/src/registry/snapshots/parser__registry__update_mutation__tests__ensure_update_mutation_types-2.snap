@@ -52,6 +52,7 @@ expression: mutations
       }
     },
     "transforms": null,
-    "required_operation": 8
+    "required_operation": 8,
+    "auth": null
   }
 ]

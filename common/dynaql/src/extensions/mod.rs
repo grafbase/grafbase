@@ -127,6 +127,9 @@ pub struct ResolveInfo<'a> {
 
     /// Required permission to access the field
     pub required_operation: Option<crate::Operations>,
+
+    /// Auth rules for field/type access
+    pub auth: Option<&'a crate::AuthConfig>,
 }
 
 type RequestFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);

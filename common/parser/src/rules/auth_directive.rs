@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::dynamic_string::DynamicString;
+use crate::rules::model_directive::MODEL_DIRECTIVE;
 
 use super::visitor::{Visitor, VisitorContext};
 
-use dynaql::ServerError;
+use dynaql::{Positioned, ServerError};
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
@@ -44,18 +45,9 @@ impl Default for Operations {
     }
 }
 
-impl Operations {
-    fn values(&self) -> &HashSet<Operation> {
-        &self.0
-    }
-
-    fn any(&self) -> bool {
-        !self.0.is_empty()
-    }
-}
-
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 enum Operation {
     Create,
     Read,
@@ -68,7 +60,7 @@ enum Operation {
 impl From<Operations> for dynaql::Operations {
     fn from(ops: Operations) -> Self {
         let mut res = Self::empty();
-        for op in ops.values() {
+        for op in ops.0 {
             res |= match op {
                 Operation::Create => Self::CREATE,
                 Operation::Read => Self::READ,
@@ -86,6 +78,7 @@ impl From<Operations> for dynaql::Operations {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
+#[non_exhaustive]
 enum AuthProvider {
     #[serde(rename_all = "camelCase")]
     Oidc {
@@ -104,6 +97,7 @@ fn default_groups_claim() -> String {
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "allow")]
 #[serde(deny_unknown_fields)]
+#[non_exhaustive]
 enum AuthRule {
     /// Public data access via API keys
     // Ex: { allow: anonymous }
@@ -137,7 +131,6 @@ enum AuthRule {
     /// Owner-based data access via OIDC
     // Ex: { allow: owner }
     //     { allow: owner, operations: [create, read] }
-    // TODO: support configuration of ownerField and identityClaim
     #[serde(rename_all = "camelCase")]
     Owner {
         #[serde(default)]
@@ -145,11 +138,25 @@ enum AuthRule {
     },
 }
 
+impl AuthDirective {
+    pub fn parse(
+        ctx: &mut VisitorContext<'_>,
+        directives: &[Positioned<ConstDirective>],
+        is_global: bool,
+    ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
+        if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
+            Auth::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
+        } else {
+            Ok(None)
+        }
+    }
+}
+
 impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
     fn directives(&self) -> String {
-        "directive @auth on SCHEMA".to_string()
+        format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT")
     }
 
     fn enter_schema(
@@ -157,26 +164,46 @@ impl<'a> Visitor<'a> for AuthDirective {
         ctx: &mut VisitorContext<'a>,
         schema_definition: &'a dynaql::Positioned<dynaql_parser::types::SchemaDefinition>,
     ) {
-        if let Some(directive) = schema_definition
-            .node
-            .directives
-            .iter()
-            .find(|d| d.node.name.node == AUTH_DIRECTIVE)
-        {
-            match Auth::from_value(ctx, &directive.node) {
-                Ok(auth) => {
-                    ctx.registry.get_mut().auth = auth.into();
-                }
-                Err(err) => {
-                    ctx.report_error(vec![directive.pos], err.message);
-                }
+        match Self::parse(ctx, &schema_definition.node.directives, true) {
+            Ok(Some(auth)) => {
+                ctx.registry.get_mut().auth = auth;
             }
+            Err(err) => {
+                ctx.report_error(err.locations, err.message);
+            }
+            _ => {}
+        }
+    }
+
+    // Visit types to check that the auth directive is used correctly. Actual
+    // processing happens in the model directive.
+    fn enter_type_definition(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+    ) {
+        if let (Some(auth_directive), false) = (
+            type_definition
+                .node
+                .directives
+                .iter()
+                .find(|d| d.node.name.node == AUTH_DIRECTIVE),
+            type_definition
+                .node
+                .directives
+                .iter()
+                .any(|d| d.node.name.node == MODEL_DIRECTIVE),
+        ) {
+            ctx.report_error(
+                vec![auth_directive.pos],
+                format!("The @{AUTH_DIRECTIVE} directive can only be used on @{MODEL_DIRECTIVE} types"),
+            );
         }
     }
 }
 
 impl Auth {
-    fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective) -> Result<Self, ServerError> {
+    pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective, is_global: bool) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
         let providers = match value.get_argument("providers") {
@@ -190,6 +217,11 @@ impl Auth {
             },
             None => Vec::new(),
         };
+
+        // XXX: introduce a separate type for non-global directives if we need more custom behavior
+        if !is_global && !providers.is_empty() {
+            return Err(ServerError::new("auth providers can only be configured globally", pos));
+        }
 
         let rules = match value.get_argument("rules") {
             Some(arg) => match &arg.node {
@@ -206,7 +238,7 @@ impl Auth {
         let allowed_private_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Private { operations, .. } => Some(operations.values().clone()),
+                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
                 _ => None,
             })
             .flatten()
@@ -238,32 +270,11 @@ impl Auth {
         let allowed_owner_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
+                AuthRule::Owner { operations, .. } => Some(operations.0.clone()),
                 _ => None,
             })
             .flatten()
             .collect();
-
-        if providers.is_empty() {
-            if allowed_private_ops.any() {
-                return Err(ServerError::new(
-                    "auth rule `private` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-            if !allowed_group_ops.is_empty() {
-                return Err(ServerError::new(
-                    "auth rule `groups` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-            if allowed_owner_ops.any() {
-                return Err(ServerError::new(
-                    "auth rule `owner` requires provider of type `oidc` to be configured",
-                    pos,
-                ));
-            }
-        }
 
         Ok(Auth {
             allowed_private_ops,
@@ -362,6 +373,7 @@ mod tests {
     use std::collections::HashMap;
 
     use super::*;
+    use crate::rules::model_directive::ModelDirective;
     use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
@@ -377,6 +389,7 @@ mod tests {
                 let schema = parse_schema($schema).unwrap();
                 let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
+                visit(&mut ModelDirective, &mut ctx, &schema);
 
                 assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
                 assert_eq!(ctx.registry.borrow().auth, $expect);
@@ -395,8 +408,9 @@ mod tests {
                 let schema = parse_schema($schema).unwrap();
                 let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
                 visit(&mut AuthDirective, &mut ctx, &schema);
+                visit(&mut ModelDirective, &mut ctx, &schema);
 
-                assert_eq!(ctx.errors.len(), 1);
+                assert_eq!(ctx.errors.len(), 1, "errors: {:?}", ctx.errors);
                 assert_eq!(ctx.errors.get(0).unwrap().message, $err);
             }
         };
@@ -714,5 +728,25 @@ mod tests {
         }
         "#,
         "auth provider: missing field `issuer`"
+    );
+
+    parse_fail!(
+        type_auth_without_model,
+        r#"
+        type Todo @auth(rules: []) {
+          id: ID!
+        }
+        "#,
+        "The @auth directive can only be used on @model types"
+    );
+
+    parse_fail!(
+        type_auth_with_provider,
+        r#"
+        type Todo @model @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ]) {
+          id: ID!
+        }
+        "#,
+        "auth providers can only be configured globally"
     );
 }
