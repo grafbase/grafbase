@@ -4,7 +4,7 @@ use indexmap::map::IndexMap;
 
 use crate::model::{__Schema, __Type};
 use crate::parser::types::Field;
-use crate::resolver_utils::{resolve_container, ContainerType};
+use crate::resolver_utils::{ContainerType};
 use crate::{
     registry, Any, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, ServerError,
     ServerResult, SimpleObject, Value,
@@ -190,7 +190,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
 
     async fn resolve(
         &self,
-        ctx: &ContextSelectionSet<'_>,
+        _ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
     ) -> ServerResult<Value> {
         todo!("node_step");

@@ -32,7 +32,7 @@ use graph_entities::ResponseNodeId;
 use crate::parser::types::ExecutableDocument;
 use crate::{
     Data, DataContext, Error, QueryPathNode, Request, Response, Result, SchemaEnv, ServerError,
-    ServerResult, ValidationResult, Value, Variables,
+    ServerResult, ValidationResult, Variables,
 };
 
 /// Context for extension

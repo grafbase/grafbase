@@ -1,6 +1,6 @@
 use futures_util::FutureExt;
 use graph_entities::{
-    NodeID, QueryResponseNode, RelationOrigin, ResponseContainer, ResponseNodeId,
+    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId,
     ResponseNodeRelation, ResponsePrimitive,
 };
 use std::future::Future;
@@ -215,10 +215,10 @@ async fn resolve_container_inner<'a>(
             if let Some(relation) = relations.get(&name) {
                 container.insert(
                     ResponseNodeRelation::relation(
-                        name.into(),
-                        relation.name.clone().into(),
-                        relation.relation.0.clone().map(|x| x.into()),
-                        relation.relation.1.clone().into(),
+                        name,
+                        relation.name.clone(),
+                        relation.relation.0.clone(),
+                        relation.relation.1.clone(),
                     ),
                     value,
                 );
@@ -246,10 +246,10 @@ async fn resolve_container_inner<'a>(
             if let Some(relation) = relations.get(&name) {
                 container.insert(
                     ResponseNodeRelation::relation(
-                        name.into(),
-                        relation.name.clone().into(),
-                        relation.relation.0.clone().map(Into::into),
-                        relation.relation.1.clone().into(),
+                        name,
+                        relation.name.clone(),
+                        relation.relation.0.clone(),
+                        relation.relation.1.clone(),
                     ),
                     value,
                 );

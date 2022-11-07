@@ -4,7 +4,7 @@ use std::fmt::{self, Write};
 use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
 use http::HeaderValue;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::{CacheControl, Result, ServerError, Value};
 
@@ -52,7 +52,7 @@ impl Response {
             String::new()
         };
 
-        format!("{{\"data\":{}{errors}{extensions}}}", self.data.to_string())
+        format!("{{\"data\":{}{errors}{extensions}}}", self.data)
     }
 
     /// Create a new successful response with the data.
@@ -184,7 +184,7 @@ impl BatchResponse {
             Self::Batch(multiple) => {
                 write!(f, "[")?;
                 let len = multiple.len();
-                for (i, one) in multiple.into_iter().enumerate() {
+                for (i, one) in multiple.iter().enumerate() {
                     write!(f, "{}", one.to_response_string())?;
                     if i != (len - 1) {
                         write!(f, ",")?;
@@ -225,7 +225,7 @@ mod tests {
 
         let resp = BatchResponse::Single(resp);
         let mut output = String::new();
-        resp.to_json(&mut output);
+        resp.to_json(&mut output).unwrap();
 
         assert_eq!(output, r#"{"data":true}"#);
     }
@@ -246,7 +246,7 @@ mod tests {
 
         let resp = BatchResponse::Batch(vec![resp1, resp2]);
         let mut output = String::new();
-        resp.to_json(&mut output);
+        resp.to_json(&mut output).unwrap();
         assert_eq!(output, r#"[{"data":true},{"data":"1"}]"#);
     }
 }

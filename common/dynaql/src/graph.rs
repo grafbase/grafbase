@@ -29,10 +29,10 @@ pub async fn selection_set_into_node<'a>(
                 let relation = name.to_string();
                 let rel = if let Some(rel) = relations.get(name.as_str()) {
                     ResponseNodeRelation::relation(
-                        relation.into(),
-                        rel.name.clone().into(),
-                        rel.relation.0.clone().map(Into::into),
-                        rel.relation.1.clone().into(),
+                        relation,
+                        rel.name.clone(),
+                        rel.relation.0.clone(),
+                        rel.relation.1.clone(),
                     )
                 } else {
                     ResponseNodeRelation::NotARelation {
@@ -53,6 +53,7 @@ pub async fn selection_set_into_node<'a>(
     ctx.response_graph.write().await.new_node_unchecked(node)
 }
 
+// TODO: Function is not proper, but own't really matter in the usage, still should be fixed later.
 #[async_recursion::async_recursion]
 pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> ResponseNodeId {
     let node = match value {
@@ -66,21 +67,13 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
-            let relations = ctx.relations_edges();
+            let _relations = ctx.relations_edges();
             for (name, value) in value {
                 let id = field_into_node(value, ctx).await;
                 let relation = name.to_string();
-                let rel = if relations.contains(&relation) {
-                    // ResponseNodeRelation::Relation(relation.into())
-                    ResponseNodeRelation::NotARelation {
-                        field: relation.into(),
-                        response_key: None,
-                    }
-                } else {
-                    ResponseNodeRelation::NotARelation {
-                        field: relation.into(),
-                        response_key: None,
-                    }
+                let rel = ResponseNodeRelation::NotARelation {
+                    field: relation.into(),
+                    response_key: None,
                 };
                 container.insert(rel, id);
             }

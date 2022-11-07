@@ -3,7 +3,7 @@ use graph_entities::ResponseNodeId;
 use crate::extensions::ResolveFut;
 use crate::parser::types::Directive;
 use crate::registry::Registry;
-use crate::{Context, ContextDirective, ServerResult, Value};
+use crate::{Context, ContextDirective, ServerResult};
 
 #[doc(hidden)]
 pub trait CustomDirectiveFactory: Send + Sync + 'static {

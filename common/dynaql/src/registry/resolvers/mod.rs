@@ -17,7 +17,7 @@ use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
-use graph_entities::NodeID;
+
 use std::sync::Arc;
 use ulid_rs::Ulid;
 

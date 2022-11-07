@@ -6,7 +6,7 @@ use std::sync::Arc;
 use async_lock::RwLock;
 use cached::UnboundCache;
 use futures_util::stream::{self, Stream, StreamExt};
-use graph_entities::{QueryResponse, QueryResponseNode, ResponseContainer};
+use graph_entities::{QueryResponse};
 use indexmap::map::IndexMap;
 
 use crate::context::{Data, QueryEnvInner};
