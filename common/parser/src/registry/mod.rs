@@ -390,7 +390,7 @@ pub fn add_list_query_paginated<'a>(
         edges: Vec::new(),
         relation: Some(MetaRelation::base_collection_relation(
             format!("{}Collection", to_lower_camelcase(type_name)),
-            &Type::new(&type_name).expect("Shouldn't fail"),
+            &Type::new(type_name).expect("Shouldn't fail"),
         )),
         resolve: Some(Resolver {
             id: Some(format!("{}_resolver", type_name.to_lowercase())),
