@@ -1,6 +1,7 @@
 use dynaql_value::Value;
 use std::cmp::Ordering;
 
+use crate::registry::MetaInputValue;
 use crate::validation::visitor::VisitorContext;
 
 use super::DynValidate;
@@ -39,22 +40,38 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, pos: Pos, value: &Value) {
+    fn validate<'a>(
+        &self,
+        ctx: &mut VisitorContext<'a>,
+        meta: &'a MetaInputValue,
+        pos: Pos,
+        value: &Value,
+    ) {
         use LengthTestResult::*;
         let count = match value {
             Value::List(values) => values.len(),
             Value::String(string) => string.chars().count(),
             _ => return,
         };
+        let name = meta.name.as_str();
         match check_bounds(count, self.min, self.max) {
             InBounds => (),
             TooLong => ctx.report_error(
                 vec![pos],
-                "{count} is too long, must be shorter than {max}".to_string(),
+                format!(
+                    "Invalid value for argument \"{name}\", length {count} is too long, must be less than {}",
+                    self.max
+                        .expect("max must have been some for this case to be hit")
+                ),
             ),
             TooShort => ctx.report_error(
                 vec![pos],
-                "{count} is too short, must be at least {min} long".to_string(),
+
+                format!(
+                    "Invalid value for argument \"{name}\", length {count} is too short, must be more than {}",
+                    self.min
+                        .expect("min must have been some for this case to be hit")
+                ),
             ),
         }
     }
@@ -62,9 +79,10 @@ impl DynValidate<&Value> for LengthValidator {
 
 #[test]
 fn test_length_validator() {
-    use super::DynValidator;
+    use super::{DynValidator, MetaInputValue};
     use crate::parser::parse_query;
     use crate::{EmptyMutation, EmptySubscription, Object, Schema};
+    use insta::assert_snapshot;
 
     struct Query;
 
@@ -83,20 +101,45 @@ fn test_length_validator() {
 
     let doc = parse_query(query).unwrap();
 
+    let meta = MetaInputValue {
+        name: "test".to_string(),
+        description: None,
+        ty: "String".to_string(),
+        default_value: None,
+        validators: None,
+        visible: None,
+        is_secret: false,
+    };
+
     let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(0), None);
     custom_validator.validate(
         &mut ctx,
+        &meta,
         Pos::from((0, 0)),
         &Value::String("test".to_string()),
     );
     assert!(ctx.errors.is_empty());
 
+    let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(0), Some(1));
     custom_validator.validate(
         &mut ctx,
+        &meta,
         Pos::from((0, 0)),
         &Value::String("test".to_string()),
     );
-    assert_eq!(ctx.errors.len(), 1)
+    assert_eq!(ctx.errors.len(), 1);
+    assert_snapshot!(ctx.errors[0].message);
+
+    let mut ctx = VisitorContext::new(&registry, &doc, None);
+    let custom_validator = DynValidator::length(Some(10), Some(15));
+    custom_validator.validate(
+        &mut ctx,
+        &meta,
+        Pos::from((0, 0)),
+        &Value::String("test".to_string()),
+    );
+    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
+    assert_snapshot!(ctx.errors[0].message);
 }

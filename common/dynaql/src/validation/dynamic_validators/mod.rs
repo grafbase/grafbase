@@ -1,5 +1,6 @@
 use dynaql_value::Value;
 
+use crate::registry::MetaInputValue;
 use crate::validation::visitor::VisitorContext;
 use crate::Pos;
 
@@ -8,7 +9,13 @@ mod length;
 use length::LengthValidator;
 
 pub(crate) trait DynValidate<T> {
-    fn validate<'a>(&self, _ctx: &mut VisitorContext<'a>, pos: Pos, other: T);
+    fn validate<'a>(
+        &self,
+        _ctx: &mut VisitorContext<'a>,
+        meta: &'a MetaInputValue,
+        pos: Pos,
+        other: T,
+    );
 }
 
 // Wrap Validators up in an enum to avoid having to box the context data
@@ -34,7 +41,13 @@ impl DynValidator {
 }
 
 impl DynValidate<&Value> for DynValidator {
-    fn validate<'a>(&self, ctx: &mut VisitorContext<'a>, pos: Pos, value: &Value) {
-        self.inner().validate(ctx, pos, value)
+    fn validate<'a>(
+        &self,
+        ctx: &mut VisitorContext<'a>,
+        meta: &'a MetaInputValue,
+        pos: Pos,
+        value: &Value,
+    ) {
+        self.inner().validate(ctx, meta, pos, value)
     }
 }
