@@ -13,18 +13,23 @@ use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::enum_type::EnumType;
+use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::relations::relations_rules;
 use rules::unique_directive::UniqueDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 pub use dynaql::registry::Registry;
+pub use migration_detection::{required_migrations, RequiredMigration};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 
 mod dynamic_string;
+mod migration_detection;
 mod registry;
 mod rules;
+#[cfg(test)]
+mod tests;
 mod utils;
 
 quick_error! {
@@ -64,6 +69,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(EnumType)
         .with(ScalarHydratation)
         .with(DefaultDirective)
+        .with(LengthDirective)
         .with(relations_rules())
         .with(CheckAllDirectivesAreKnown::default());
 
@@ -83,216 +89,4 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
 
     let reg = ctx.finish();
     Ok(reg)
-}
-
-#[cfg(test)]
-mod tests {
-    use dynaql::Schema;
-    use serde_json as _;
-
-    #[test]
-    fn test_simple_product() {
-        let result = super::to_registry(
-            r#"
-            type Product @model {
-                id: ID!
-                name: String!
-                """
-                The product's price in $
-                """
-                price: Int!
-            }
-            "#,
-        )
-        .unwrap();
-
-        let reg_string = serde_json::to_value(&result).unwrap();
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_json_snapshot!(reg_string);
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn test_simple_todo() {
-        let result = super::to_registry(
-            r#"
-            type Todo @model {
-              id: ID!
-              content: String!
-              author: Author
-            }
-
-            type Author {
-              name: String!
-              lastname: String!
-              pseudo: String
-              truc: Truc!
-            }
-
-            type Truc {
-              name: String!
-            }
-            "#,
-        )
-        .unwrap();
-
-        let reg_string = serde_json::to_value(&result).unwrap();
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_json_snapshot!(reg_string);
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn test_simple_todo_from_template() {
-        let result = super::to_registry(
-            r#"
-            type TodoList @model {
-              id: ID!
-              title: String!
-              todos: [Todo]
-            }
-
-            type Todo @model {
-              id: ID!
-              title: String!
-              complete: Boolean
-            }
-            "#,
-        )
-        .unwrap();
-
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn test_simple_todo_with_vec() {
-        let result = super::to_registry(
-            r#"
-            type Todo @model {
-              id: ID!
-              content: String!
-              authors: [Author]
-            }
-
-            type Author {
-              name: String!
-              lastname: String!
-              pseudo: String
-              truc: Truc!
-            }
-
-            type Truc {
-              name: String!
-            }
-            "#,
-        )
-        .unwrap();
-
-        let reg_string = serde_json::to_value(&result).unwrap();
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_json_snapshot!(reg_string);
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn test_simple_todo_with_enum() {
-        let result = super::to_registry(
-            r#"
-            """
-            A TodoType
-            """
-            enum TodoType {
-              TODO1
-
-              """
-              A Type 2 for TODO
-              """
-              TODO2
-            }
-
-            type Todo @model {
-              id: ID!
-              content: String!
-              authors: [Author]
-              ty: TodoType!
-            }
-
-            type Author {
-              name: String!
-              lastname: String!
-              pseudo: String
-              truc: Truc!
-            }
-
-            type Truc {
-              name: String!
-            }
-            "#,
-        )
-        .unwrap();
-
-        let reg_string = serde_json::to_value(&result).unwrap();
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_json_snapshot!(reg_string);
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn test_simple_post_with_relation() {
-        let result = super::to_registry(
-            r#"
-            enum Country {
-              FRANCE
-              NOT_FRANCE
-            }
-
-            type Blog @model {
-              id: ID!
-              posts: [Post] 
-              owner: Author!
-            }
-
-            type Post @model {
-              id: ID!
-              content: String!
-              authors: [Author] @relation(name: "published")
-            }
-
-            type Author @model {
-              id: ID!
-              name: String!
-              lastname: String!
-              country: Country!
-              posts: [Post] @relation(name: "published")
-            }
-            "#,
-        )
-        .unwrap();
-
-        let reg_string = serde_json::to_value(&result).unwrap();
-        let sdl = Schema::new(result).sdl();
-
-        insta::assert_json_snapshot!(reg_string);
-        insta::assert_snapshot!(sdl);
-    }
-
-    #[test]
-    fn should_ensure_lowercase() {
-        let result = super::to_registry(
-            r#"
-            type Blog @model {
-              id: ID!
-              truc_break: String! @unique
-            }
-            "#,
-        );
-
-        assert!(result.is_err(), "Should error here");
-    }
 }

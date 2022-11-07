@@ -10,6 +10,8 @@ use crate::parser::types::{
 use crate::registry::{self, MetaInputValue, MetaType, MetaTypeName};
 use crate::{InputType, Name, Pos, Positioned, ServerError, ServerResult, Variables};
 
+use super::dynamic_validators::DynValidate;
+
 #[doc(hidden)]
 pub struct VisitorContext<'a> {
     pub(crate) registry: &'a registry::Registry,
@@ -753,6 +755,14 @@ fn visit_input_value<'a, V: Visitor<'a>>(
         }
         _ => {}
     }
+
+    if let Some(meta) = meta {
+        if let Some(validators) = meta.validators.as_ref() {
+            for validator in validators {
+                validator.validate(ctx, meta, pos, value)
+            }
+        }
+    };
 
     v.exit_input_value(ctx, pos, &expected_ty, value, meta);
 }

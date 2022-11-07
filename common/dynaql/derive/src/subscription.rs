@@ -182,6 +182,7 @@ pub fn generate(
                         description: #desc,
                         ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                         default_value: #schema_default,
+                        validators: None,
                         visible: #visible,
                         is_secret: #secret,
                     });
@@ -420,7 +421,7 @@ pub fn generate(
 
     if create_stream.is_empty() {
         return Err(Error::new_spanned(
-            &self_ty,
+            self_ty,
             "A GraphQL Object type must define one or more fields.",
         )
         .into());

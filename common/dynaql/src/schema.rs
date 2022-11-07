@@ -134,14 +134,14 @@ impl SchemaBuilder {
     /// Override the name of the specified input type.
     #[must_use]
     pub fn override_input_type_description<T: InputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&*T::type_name(), desc);
+        self.registry.set_description(&T::type_name(), desc);
         self
     }
 
     /// Override the name of the specified output type.
     #[must_use]
     pub fn override_output_type_description<T: OutputType>(mut self, desc: &'static str) -> Self {
-        self.registry.set_description(&*T::type_name(), desc);
+        self.registry.set_description(&T::type_name(), desc);
         self
     }
 
@@ -301,6 +301,7 @@ impl Schema {
                     description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -325,6 +326,7 @@ impl Schema {
                     description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -391,6 +393,7 @@ impl Schema {
                     description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -415,6 +418,7 @@ impl Schema {
                     description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });

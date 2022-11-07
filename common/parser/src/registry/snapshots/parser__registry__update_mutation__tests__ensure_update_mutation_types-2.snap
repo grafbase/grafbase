@@ -12,6 +12,7 @@ expression: mutations
         "description": null,
         "ty": "AuthorByInput!",
         "default_value": null,
+        "validators": null,
         "is_secret": false
       },
       "input": {
@@ -19,6 +20,7 @@ expression: mutations
         "description": null,
         "ty": "AuthorUpdateInput!",
         "default_value": null,
+        "validators": null,
         "is_secret": false
       }
     },

@@ -24,10 +24,12 @@ use crate::parser::types::{
     BaseType as ParsedBaseType, Field, Type as ParsedType, VariableDefinition,
 };
 use crate::resolver_utils::{resolve_container, resolve_list};
+use crate::validation::dynamic_validators::DynValidator;
 use crate::{
     model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext, ID,
 };
+
 pub use cache_control::CacheControl;
 
 use self::relations::MetaRelation;
@@ -131,6 +133,8 @@ pub struct MetaInputValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
+    #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
+    pub validators: Option<Vec<DynValidator>>,
     pub is_secret: bool,
 }
 
@@ -1163,7 +1167,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1171,7 +1175,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1182,7 +1186,7 @@ impl Registry {
         &mut self,
         mut f: F,
     ) -> String {
-        self.create_type(&mut f, &*T::type_name(), std::any::type_name::<T>());
+        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
@@ -1208,7 +1212,7 @@ impl Registry {
                 self.types.insert(
                     name.to_string(),
                     MetaType::Object {
-                        name: "".to_string(),
+                        name: String::new(),
                         description: None,
                         fields: Default::default(),
                         cache_control: Default::default(),
@@ -1380,6 +1384,7 @@ impl Registry {
                                     description: None,
                                     ty: "[_Any!]!".to_string(),
                                     default_value: None,
+                                    validators: None,
                                     visible: None,
                                     is_secret: false,
                                 },

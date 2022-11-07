@@ -269,6 +269,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     description: None,
                                     ty: "ID".to_string(),
                                     default_value: None,
+                                    validators: None,
                                     visible: None,
                                     is_secret: false
                                 }
@@ -281,6 +282,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         description: None,
                                         ty: field.node.ty.to_string().trim_end_matches('!').to_string(),
                                         default_value: None,
+                                        validators: None,
                                         visible: None,
                                         is_secret: false
                                     }
@@ -302,8 +304,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                             MetaInputValue {
                                 name: "by".to_owned(),
                                 ty: format!("{}ByInput!", type_name),
-                                visible: None,
                                 description: Some(format!("The field and value by which to query the {}", type_name)),
+                                validators: None,
+                                visible: None,
                                 is_secret: false,
                                 default_value: None,
                             },

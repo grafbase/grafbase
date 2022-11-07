@@ -86,6 +86,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                     description: #desc,
                     ty: <::std::option::Option<#ty> as #crate_name::InputType>::create_type_info(registry),
                     default_value: ::std::option::Option::None,
+                    validators: None,
                     visible: #visible,
                     is_secret: #secret,
                 });

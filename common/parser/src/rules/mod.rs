@@ -8,6 +8,7 @@ pub mod check_types_underscore;
 pub mod default_directive;
 pub mod default_directive_types;
 pub mod enum_type;
+pub mod length_directive;
 pub mod model_directive;
 pub mod one_of_directive;
 pub mod relations;

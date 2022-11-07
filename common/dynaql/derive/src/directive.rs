@@ -87,6 +87,7 @@ pub fn generate(
                 description: #desc,
                 ty: <#arg_ty as #crate_name::InputType>::create_type_info(registry),
                 default_value: #schema_default,
+                validators: None,
                 visible: #visible,
                 is_secret: #secret,
             });

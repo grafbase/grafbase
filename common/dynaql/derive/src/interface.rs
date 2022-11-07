@@ -119,7 +119,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
 
     if interface_args.fields.is_empty() {
         return Err(Error::new_spanned(
-            &ident,
+            ident,
             "A GraphQL Interface type must define one or more fields.",
         )
         .into());
@@ -152,7 +152,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         };
         let ty = match syn::parse_str::<syn::Type>(&ty.value()) {
             Ok(ty) => ty,
-            Err(_) => return Err(Error::new_spanned(&ty, "Expect type").into()),
+            Err(_) => return Err(Error::new_spanned(ty, "Expect type").into()),
         };
         let mut calls = Vec::new();
         let mut use_params = Vec::new();
@@ -191,7 +191,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 .rename(name, RenameTarget::Argument);
             let ty = match syn::parse_str::<syn::Type>(&ty.value()) {
                 Ok(ty) => ty,
-                Err(_) => return Err(Error::new_spanned(&ty, "Expect type").into()),
+                Err(_) => return Err(Error::new_spanned(ty, "Expect type").into()),
             };
             decl_params.push(quote! { #ident: #ty });
             use_params.push(quote! { #ident });
@@ -226,6 +226,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                     description: #desc,
                     ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                     default_value: #schema_default,
+                    validators: None,
                     visible: #visible,
                     is_secret: #secret,
                 });

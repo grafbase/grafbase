@@ -18,7 +18,8 @@ expression: reg_string
           "description": "Included when true.",
           "is_secret": false,
           "name": "if",
-          "ty": "Boolean!"
+          "ty": "Boolean!",
+          "validators": null
         }
       },
       "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
@@ -46,7 +47,8 @@ expression: reg_string
           "description": "Skipped when true.",
           "is_secret": false,
           "name": "if",
-          "ty": "Boolean!"
+          "ty": "Boolean!",
+          "validators": null
         }
       },
       "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
@@ -119,7 +121,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "ProductCreateInput!"
+                "ty": "ProductCreateInput!",
+                "validators": null
               }
             },
             "auth": null,
@@ -159,7 +162,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!"
+                "ty": "ProductByInput!",
+                "validators": null
               }
             },
             "auth": null,
@@ -199,14 +203,16 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!"
+                "ty": "ProductByInput!",
+                "validators": null
               },
               "input": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "ProductUpdateInput!"
+                "ty": "ProductUpdateInput!",
+                "validators": null
               }
             },
             "auth": null,
@@ -598,7 +604,8 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "id",
-            "ty": "ID"
+            "ty": "ID",
+            "validators": null
           }
         },
         "name": "ProductByInput",
@@ -673,14 +680,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "name",
-            "ty": "String!"
+            "ty": "String!",
+            "validators": null
           },
           "price": {
             "default_value": null,
             "description": "The product's price in $",
             "is_secret": false,
             "name": "price",
-            "ty": "Int!"
+            "ty": "Int!",
+            "validators": null
           }
         },
         "name": "ProductCreateInput",
@@ -867,14 +876,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "name",
-            "ty": "String"
+            "ty": "String",
+            "validators": null
           },
           "price": {
             "default_value": null,
             "description": "The product's price in $",
             "is_secret": false,
             "name": "price",
-            "ty": "Int"
+            "ty": "Int",
+            "validators": null
           }
         },
         "name": "ProductUpdateInput",
@@ -971,7 +982,8 @@ expression: reg_string
                 "description": "The field and value by which to query the Product",
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!"
+                "ty": "ProductByInput!",
+                "validators": null
               }
             },
             "auth": null,
@@ -1010,28 +1022,32 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "after",
-                "ty": "String"
+                "ty": "String",
+                "validators": null
               },
               "before": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "before",
-                "ty": "String"
+                "ty": "String",
+                "validators": null
               },
               "first": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "first",
-                "ty": "Int"
+                "ty": "Int",
+                "validators": null
               },
               "last": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "last",
-                "ty": "Int"
+                "ty": "Int",
+                "validators": null
               }
             },
             "auth": null,
@@ -1802,7 +1818,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
-                "ty": "Boolean!"
+                "ty": "Boolean!",
+                "validators": null
               }
             },
             "auth": null,
@@ -1830,7 +1847,8 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "includeDeprecated",
-                "ty": "Boolean!"
+                "ty": "Boolean!",
+                "validators": null
               }
             },
             "auth": null,

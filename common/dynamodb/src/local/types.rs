@@ -714,8 +714,8 @@ fn fold_values(query: String, mut values: HashMap<&str, SqlValue>) -> Vec<String
 #[test]
 fn test_serde_roundtrip_record() {
     let rec = Record {
-        pk: "".to_owned(),
-        sk: "".to_owned(),
+        pk: String::new(),
+        sk: String::new(),
         gsi1sk: None,
         gsi1pk: None,
         gsi2pk: None,
