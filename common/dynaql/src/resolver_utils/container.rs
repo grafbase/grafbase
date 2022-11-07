@@ -1,7 +1,7 @@
 use futures_util::FutureExt;
 use graph_entities::{
-    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId,
-    ResponseNodeRelation, ResponsePrimitive,
+    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
+    ResponsePrimitive,
 };
 use std::future::Future;
 use std::pin::Pin;

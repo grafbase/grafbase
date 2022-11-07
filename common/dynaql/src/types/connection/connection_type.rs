@@ -6,7 +6,7 @@ use indexmap::map::IndexMap;
 use crate::connection::edge::Edge;
 use crate::connection::page_info::PageInfo;
 use crate::parser::types::Field;
-use crate::resolver_utils::{ContainerType};
+use crate::resolver_utils::ContainerType;
 use crate::types::connection::{CursorType, EmptyFields};
 use crate::{
     registry, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, Result,

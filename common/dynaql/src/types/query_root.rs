@@ -4,7 +4,7 @@ use indexmap::map::IndexMap;
 
 use crate::model::{__Schema, __Type};
 use crate::parser::types::Field;
-use crate::resolver_utils::{ContainerType};
+use crate::resolver_utils::ContainerType;
 use crate::{
     registry, Any, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, ServerError,
     ServerResult, SimpleObject, Value,

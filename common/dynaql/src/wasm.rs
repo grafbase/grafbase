@@ -1,6 +1,4 @@
-use crate::{Response};
-
-
+use crate::Response;
 
 use worker::ResponseBody;
 

@@ -2,7 +2,7 @@
 
 use async_lock::RwLock as AsynRwLock;
 
-use graph_entities::{QueryResponse};
+use graph_entities::QueryResponse;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
@@ -11,7 +11,6 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, RwLock};
-
 
 use cached::UnboundCache;
 use derivative::Derivative;
