@@ -75,6 +75,7 @@ fn create_input_relation<'a>(
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: to_defined_input_type(field.node.ty.clone().node, input_name).to_string(),
+                            validators: None,
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -91,6 +92,7 @@ fn create_input_relation<'a>(
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
+                            validators: None,
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -138,6 +140,7 @@ fn create_input_relation<'a>(
                         name: "create".to_string(),
                         description: None,
                         ty: input_name.clone(),
+                        validators: None,
                         visible: None,
                         default_value: None,
                         is_secret: false,
@@ -150,6 +153,7 @@ fn create_input_relation<'a>(
                         name: "link".to_string(),
                         description: None,
                         ty: "ID".to_string(),
+                        validators: None,
                         visible: None,
                         default_value: None,
                         is_secret: false,
@@ -204,6 +208,8 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
         // If it's a modelized node, we want to generate
         let types = ctx.types.clone(); // TODO: We should change a little the way it works, this clone can be avoided, not really expensive but should still be reworked.
 
+        let validators = super::get_length_validator(&field.node).map(|val| vec![val]);
+
         let actual_field_type = is_modelized_node(&types, &field.node.ty.node);
         if let Some(ty_to) = actual_field_type {
             // Should trigger the creation of the sub input
@@ -216,6 +222,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_defined_input_type(field.node.ty.clone().node, input_name).to_string(),
+                    validators,
                     visible: None,
                     default_value: None,
                     is_secret: false,
@@ -241,6 +248,7 @@ pub fn create_input_without_relation<'a>(ctx: &mut VisitorContext<'a>, ty: &Type
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
                     ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
+                    validators,
                     visible: None,
                     default_value,
                     is_secret: false,
@@ -417,6 +425,7 @@ pub fn add_create_mutation<'a>(
                     description: None,
                     ty: format!("{}!", &create_input_name),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 },

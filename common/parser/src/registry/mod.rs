@@ -2,6 +2,7 @@
 //!
 //! -> Split each of the creation and add tests with SDL
 //!
+use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMENT};
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
@@ -12,8 +13,9 @@ use dynaql::registry::{
     resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
     variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
+use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::Operations;
-use dynaql_parser::types::ObjectType;
+use dynaql_parser::types::{FieldDefinition, ObjectType};
 
 mod create_mutation;
 mod relations;
@@ -43,6 +45,7 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
                             name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
                             ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
+                            validators: None,
                             visible: None,
                             default_value: None,
                             is_secret: false,
@@ -458,6 +461,7 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str) {
                     description: None,
                     ty: format!("{}ByInput!", type_name),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 },
@@ -487,4 +491,24 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str) {
         transforms: None,
         required_operation: Some(Operations::DELETE),
     });
+}
+
+fn get_length_validator(field: &FieldDefinition) -> Option<DynValidator> {
+    use tuple::Map;
+    field
+        .directives
+        .iter()
+        .find(|directive| directive.node.name.node == LENGTH_DIRECTIVE)
+        .map(|directive| {
+            let (min_value, max_value) = (MIN_ARGUMENT, MAX_ARGUMENT).map(|argument_name| {
+                directive.node.get_argument(argument_name).and_then(|argument| {
+                    if let dynaql_value::ConstValue::Number(ref min) = argument.node {
+                        min.as_u64().and_then(|min| min.try_into().ok())
+                    } else {
+                        None
+                    }
+                })
+            });
+            DynValidator::length(min_value, max_value)
+        })
 }

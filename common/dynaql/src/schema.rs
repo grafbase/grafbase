@@ -301,6 +301,7 @@ impl Schema {
                     description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -325,6 +326,7 @@ impl Schema {
                     description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -391,6 +393,7 @@ impl Schema {
                     description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });
@@ -415,6 +418,7 @@ impl Schema {
                     description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
                     default_value: None,
+                    validators: None,
                     visible: None,
                     is_secret: false,
                 });

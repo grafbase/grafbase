@@ -158,6 +158,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                                     description: None,
                                     ty: "String!".to_string(),
                                     default_value: None,
+                                    validators: None,
                                     visible: None,
                                     is_secret: false,
                                 },

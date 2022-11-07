@@ -226,6 +226,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                     description: #desc,
                     ty: <#ty as #crate_name::InputType>::create_type_info(registry),
                     default_value: #schema_default,
+                    validators: None,
                     visible: #visible,
                     is_secret: #secret,
                 });

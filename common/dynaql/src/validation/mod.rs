@@ -2,6 +2,7 @@
 #[macro_use]
 mod test_harness;
 
+pub mod dynamic_validators;
 mod rules;
 mod suggestion;
 pub mod utils;
