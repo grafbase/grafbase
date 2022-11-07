@@ -756,11 +756,13 @@ fn visit_input_value<'a, V: Visitor<'a>>(
         _ => {}
     }
 
-    if let Some(validators) = meta.and_then(|meta| meta.validators.as_ref()) {
-        for validator in validators {
-            validator.validate(ctx, pos, value)
+    if let Some(meta) = meta {
+        if let Some(validators) = meta.validators.as_ref() {
+            for validator in validators {
+                validator.validate(ctx, meta, pos, value)
+            }
         }
-    }
+    };
 
     v.exit_input_value(ctx, pos, &expected_ty, value, meta);
 }
