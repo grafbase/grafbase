@@ -181,3 +181,6 @@ jobs:
     with:
       draft: false
       tag: ${{ github.ref_name }}
+    secrets:
+      CRATES_PAT: ${{ secrets.CRATES_PAT }}
+      NPM_PAT: ${{ secrets.NPM_PAT }}

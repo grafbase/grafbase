@@ -9,6 +9,11 @@ on:
       tag:
         type: string
         required: true
+    secrets:
+      CRATES_PAT:
+        required: true
+      NPM_PAT:
+        required: true
 
 jobs:
   release:
@@ -66,16 +71,34 @@ jobs:
       - name: Publish cargo
         shell: bash
         working-directory: cli/crates
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_PAT }}
         run: |
-          (cd common && cargo publish --allow-dirty)
-          (cd server && cargo publish --allow-dirty)
-          (cd backend && cargo publish --allow-dirty)
-          (cd cli && cargo publish --allow-dirty)
+          set -e
+          set -o pipefail
+          
+          retryable() {
+            for i in {1..5}; do
+              $1 && break || echo 'Retrying in 5...'
+              sleep 5
+            done
+          
+            if [ "$i" -ge 5 ]; then
+              echo "Failed to run $1"
+              exit 1
+            fi
+          }
+          
+          (cd common && retryable 'cargo publish --allow-dirty --dry-run')
+          (cd server && retryable 'cargo publish --allow-dirty --dry-run')
+          (cd backend && retryable 'cargo publish --allow-dirty --dry-run')
+          (cd cli && retryable 'cargo publish --allow-dirty --dry-run')
 
       - name: Publish npm
         shell: bash
         working-directory: cli/npm
         run: |
+          npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_PAT }}
           (cd aarch64-apple-darwin && npm publish)
           (cd x86_64-apple-darwin && npm publish)
           (cd x86_64-pc-windows-msvc && npm publish)
