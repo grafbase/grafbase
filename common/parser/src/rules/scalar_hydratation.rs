@@ -67,11 +67,11 @@ mod tests {
     #[test]
     fn should_error_when_defining_a_invalid_scalar() {
         let schema = r#"
-            scalar Date
+            scalar DateInvalid
 
             type Product @model {
                 id: ID!
-                test: Date!
+                test: DateInvalid!
             }
             "#;
 
@@ -84,7 +84,7 @@ mod tests {
         assert_eq!(ctx.errors.len(), 1, "should have one error");
         assert_eq!(
             ctx.errors.get(0).unwrap().message,
-            "\"Date\" is not a proper scalar",
+            "\"DateInvalid\" is not a proper scalar",
             "should match"
         );
     }
