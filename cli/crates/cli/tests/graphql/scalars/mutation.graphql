@@ -7,6 +7,8 @@ mutation {
       email: "hello@grafbase.com"
       json: { a: "hello", b: 2, c: { a: 11, b: 22 } }
       phone: "+33612121212"
+      datetime: "2016-01-01T13:10:20Z"
+      date: "2007-12-03"
     }
   ) {
     scalars {
@@ -17,6 +19,8 @@ mutation {
       email
       json
       phone
+      datetime
+      date
     }
   }
 }
