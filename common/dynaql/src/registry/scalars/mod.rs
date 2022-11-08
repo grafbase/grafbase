@@ -14,6 +14,8 @@ mod int;
 pub use int::IntScalar;
 mod datetime;
 pub use datetime::DateTimeScalar;
+mod date;
+pub use date::DateScalar;
 mod email;
 pub use email::EmailScalar;
 mod json;
@@ -263,6 +265,7 @@ pub type PossibleScalar = merge_scalar!(
     FloatScalar,
     EmailScalar,
     DateTimeScalar,
+    DateScalar,
     JSONScalar,
     IPAddressScalar,
     URLScalar,
