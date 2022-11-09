@@ -214,7 +214,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
             let create_dir_result = if parent_exists {
                 Ok(())
             } else {
-                fs::create_dir_all(&parent)
+                fs::create_dir_all(parent)
             };
 
             // must be Some(file) since we're iterating over existing paths
@@ -282,7 +282,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     let output = {
         let mut node_command = Command::new("node")
-            .args(&[
+            .args([
                 &parser_path.to_str().ok_or(ServerError::CachePath)?,
                 &environment
                     .project_grafbase_schema_path
