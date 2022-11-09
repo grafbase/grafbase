@@ -368,8 +368,10 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 // this allows for simultainious start of up to 100 CLIs
 fn get_bridge_port() -> Result<u16, ServerError> {
     // must be 0-99, will fit in u16
+    #[allow(clippy::cast_possible_truncation)]
     let segment = (process::id() % 100) as u16;
     // since the size is `max - min` in a u16 range, will fit in u16
+    #[allow(clippy::cast_possible_truncation)]
     let size = EPHEMERAL_PORT_RANGE.len() as u16;
     let offset = size / 100 * segment;
     let start = EPHEMERAL_PORT_RANGE.min().expect("must exist");
