@@ -1,4 +1,5 @@
-use dynaql_value::Value;
+use dynaql_value::{ConstValue, Value};
+
 use std::cmp::Ordering;
 
 use crate::registry::MetaInputValue;
@@ -48,7 +49,14 @@ impl DynValidate<&Value> for LengthValidator {
         value: &Value,
     ) {
         use LengthTestResult::*;
-        let count = match value {
+
+        let var_value = match value {
+            Value::Variable(var_name) => ctx
+                .variables
+                .and_then(|variables| variables.get(var_name).cloned().map(ConstValue::into_value)),
+            _ => None,
+        };
+        let count = match var_value.as_ref().unwrap_or(value) {
             Value::List(values) => values.len(),
             Value::String(string) => string.chars().count(),
             _ => return,
