@@ -150,4 +150,16 @@ fn test_length_validator() {
     );
     assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
     assert_snapshot!(ctx.errors[0].message);
+
+    let vars = crate::Variables::from_json(serde_json::json!({"test":"test"}));
+    let mut ctx = VisitorContext::new(&registry, &doc, Some(&vars));
+    let custom_validator = DynValidator::length(Some(10), Some(15));
+    custom_validator.validate(
+        &mut ctx,
+        &meta,
+        Pos::from((0, 0)),
+        &Value::Variable(dynaql_value::Name::new("test")),
+    );
+    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
+    assert_snapshot!(ctx.errors[0].message);
 }
