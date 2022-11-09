@@ -9,6 +9,8 @@ query {
         email
         json
         phone
+        date
+        datetime
       }
     }
   }

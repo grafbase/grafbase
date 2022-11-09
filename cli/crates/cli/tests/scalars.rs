@@ -26,5 +26,10 @@ fn scalars() {
 
     let first_entity_id: String = dot_get!(first_entity, "id");
 
+    let date: String = dot_get!(first_entity, "date");
+    let datetime: String = dot_get!(first_entity, "datetime");
+
     assert!(first_entity_id.starts_with("scalars_"));
+    assert_eq!(datetime, "2016-01-01T13:10:20Z");
+    assert_eq!(date, "2007-12-03");
 }
