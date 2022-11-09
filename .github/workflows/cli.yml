@@ -181,3 +181,6 @@ jobs:
     with:
       draft: false
       tag: ${{ github.ref_name }}
+    secrets:
+      CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
+      NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}

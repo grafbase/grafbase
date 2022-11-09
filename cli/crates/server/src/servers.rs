@@ -9,8 +9,8 @@ use crate::{bridge, errors::ServerError};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
-use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
+use std::{env, process};
 use std::{
     fs,
     process::Stdio,
@@ -50,10 +50,7 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
 
         create_project_dot_grafbase_directory()?;
 
-        // the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
-        // making the port choice and availability transprent to the user
-        let bridge_port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
-            .ok_or(ServerError::AvailablePort)?;
+        let bridge_port = get_bridge_port()?;
 
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
@@ -362,4 +359,25 @@ async fn validate_dependencies() -> Result<(), ServerError> {
     validate_node_version().await?;
 
     Ok(())
+}
+
+// the bridge runs on an available port within the ephemeral port range which is also supplied to the worker,
+// making the port choice and availability transprent to the user.
+// to avoid issues when starting multiple CLIs simultainiously,
+// we segment the ephemeral port range into 100 segments and select a segment based on the last two digits of the process ID.
+// this allows for simultainious start of up to 100 CLIs
+fn get_bridge_port() -> Result<u16, ServerError> {
+    // must be 0-99, will fit in u16
+    #[allow(clippy::cast_possible_truncation)]
+    let segment = (process::id() % 100) as u16;
+    // since the size is `max - min` in a u16 range, will fit in u16
+    #[allow(clippy::cast_possible_truncation)]
+    let size = EPHEMERAL_PORT_RANGE.len() as u16;
+    let offset = size / 100 * segment;
+    let start = EPHEMERAL_PORT_RANGE.min().expect("must exist");
+    // allows us to loop back to the start of the range, giving any offset the same amount of potential ports
+    let range = EPHEMERAL_PORT_RANGE.map(|port| (port + offset) % size + start);
+
+    // TODO: loop back and limit iteration to get an even range for each
+    find_available_port_in_range(range, LocalAddressType::Localhost).ok_or(ServerError::AvailablePort)
 }
