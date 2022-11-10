@@ -32,6 +32,10 @@ pub const UNIQUE_UPDATE_BY_NAME_MUTATION: &str = include_str!("../graphql/unique
 pub const UNIQUE_UPDATE_UNIQUE_BY_NAME_MUTATION: &str =
     include_str!("../graphql/unique/update-unique-by-name-mutation.graphql");
 
+pub const LENGTH_SCHEMA: &str = include_str!("../graphql/length/schema.graphql");
+pub const LENGTH_CREATE_MUTATION: &str = include_str!("../graphql/length/create-mutation.graphql");
+pub const LENGTH_UPDATE_MUTATION: &str = include_str!("../graphql/length/update-mutation.graphql");
+
 pub const CONCURRENCY_SCHEMA: &str = include_str!("../graphql/concurrency/schema.graphql");
 pub const CONCURRENCY_MUTATION: &str = include_str!("../graphql/concurrency/mutation.graphql");
 pub const CONCURRENCY_QUERY: &str = include_str!("../graphql/concurrency/query.graphql");
