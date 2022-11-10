@@ -41,10 +41,10 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate<'a, 'b>(
+    fn validate<'a>(
         &self,
         ctx: &mut VisitorContext<'a>,
-        meta: &'b MetaInputValue,
+        meta: &MetaInputValue,
         pos: Pos,
         value: &Value,
     ) {

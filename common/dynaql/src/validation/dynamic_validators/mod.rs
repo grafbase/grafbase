@@ -9,10 +9,10 @@ mod length;
 use length::LengthValidator;
 
 pub(crate) trait DynValidate<T> {
-    fn validate<'a, 'b>(
+    fn validate<'a>(
         &self,
         _ctx: &mut VisitorContext<'a>,
-        meta: &'b MetaInputValue,
+        meta: &MetaInputValue,
         pos: Pos,
         other: T,
     );
@@ -41,10 +41,10 @@ impl DynValidator {
 }
 
 impl DynValidate<&Value> for DynValidator {
-    fn validate<'a, 'b>(
+    fn validate<'a>(
         &self,
         ctx: &mut VisitorContext<'a>,
-        meta: &'b MetaInputValue,
+        meta: &MetaInputValue,
         pos: Pos,
         value: &Value,
     ) {

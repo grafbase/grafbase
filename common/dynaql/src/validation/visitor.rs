@@ -280,22 +280,22 @@ pub(crate) trait Visitor<'a> {
     ) {
     }
 
-    fn enter_input_value<'b>(
+    fn enter_input_value(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &'a Value,
-        _meta: Option<&'b MetaInputValue>,
+        _meta: Option<&MetaInputValue>,
     ) {
     }
-    fn exit_input_value<'b>(
+    fn exit_input_value(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &Value,
-        _meta: Option<&'b MetaInputValue>,
+        _meta: Option<&MetaInputValue>,
     ) {
     }
 }
@@ -519,13 +519,13 @@ where
         self.1.exit_inline_fragment(ctx, inline_fragment);
     }
 
-    fn enter_input_value<'b>(
+    fn enter_input_value(
         &mut self,
         ctx: &mut VisitorContext<'a>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &'a Value,
-        meta: Option<&'b MetaInputValue>,
+        meta: Option<&MetaInputValue>,
     ) {
         self.0
             .enter_input_value(ctx, pos, expected_type, value, meta);
@@ -533,13 +533,13 @@ where
             .enter_input_value(ctx, pos, expected_type, value, meta);
     }
 
-    fn exit_input_value<'b>(
+    fn exit_input_value(
         &mut self,
         ctx: &mut VisitorContext<'a>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &Value,
-        meta: Option<&'b MetaInputValue>,
+        meta: Option<&MetaInputValue>,
     ) {
         self.0
             .exit_input_value(ctx, pos, expected_type, value, meta);
@@ -700,13 +700,13 @@ fn visit_field<'a, V: Visitor<'a>>(
     v.exit_field(ctx, field);
 }
 
-fn visit_input_value<'a, 'b, 'c, 'd, V: Visitor<'a>>(
+fn visit_input_value<'a, V: Visitor<'a>>(
     v: &mut V,
     ctx: &mut VisitorContext<'a>,
     pos: Pos,
     expected_ty: Option<MetaTypeName<'a>>,
     value: &'a Value,
-    meta: Option<&'b MetaInputValue>,
+    meta: Option<&MetaInputValue>,
 ) {
     v.enter_input_value(ctx, pos, &expected_ty, value, meta);
 
@@ -913,7 +913,7 @@ pub(crate) mod test {
         pos: Pos,
         expected_ty: Option<MetaTypeName<'a>>,
         value: &'a Value,
-        meta: Option<&'a MetaInputValue>,
+        meta: Option<&MetaInputValue>,
     ) {
         super::visit_input_value(v, ctx, pos, expected_ty, value, meta)
     }
