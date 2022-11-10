@@ -6,7 +6,7 @@ import useViewer from 'hooks/use-viewer'
 
 const ITEM_COMMENT_DELETE_MUTATION = gql`
   mutation ItemCommentDelete($id: ID!) {
-    commentDelete(id: $id) {
+    commentDelete(by: { id: $id }) {
       deletedId
     }
   }
@@ -45,24 +45,24 @@ const ItemComment = (
   }
 
   return (
-    <div className="border w-full">
-      <div className="sm:flex justify-between items-center bg-gray-50 pr-4">
+    <div className="w-full border">
+      <div className="items-center justify-between pr-4 sm:flex bg-gray-50">
         <div className="flex items-center space-x-4">
-          <Img src={imageUrl} alt={name} className="h-10 w-10" />
+          <Img src={imageUrl} alt={name} className="w-10 h-10" />
           <span className="text-base">{name}</span>
         </div>
-        <div className="p-2 sm:p-0 flex items-center space-x-4">
+        <div className="flex items-center p-2 space-x-4 sm:p-0">
           {isSignedInUserComment && (
             <div className="text-sm border whitespace-nowrap">
               <button
                 onClick={onDelete}
-                className="text-gray-700 hover:bg-gray-200 px-2"
+                className="px-2 text-gray-700 hover:bg-gray-200"
               >
                 Delete
               </button>
             </div>
           )}
-          <time className="text-gray-600 text-xs">
+          <time className="text-xs text-gray-600">
             {!!createdAt &&
               formatDistanceToNow(Date.parse(createdAt), { addSuffix: true })}
           </time>
