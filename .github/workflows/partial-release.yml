@@ -56,15 +56,20 @@ jobs:
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
           cp x86_64-pc-windows-msvc/grafbase.exe github/grafbase-x86_64-pc-windows-msvc.exe
           cp x86_64-unknown-linux-musl/grafbase github/grafbase-x86_64-unknown-linux-musl
-          
+
           chmod +x aarch64-apple-darwin/grafbase
           chmod +x x86_64-apple-darwin/grafbase
           chmod +x x86_64-unknown-linux-musl/grafbase
 
+      - name: Install cargo-binstall and cargo-about
+        shell: bash
+        run: |
+          curl -LsSf https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+          cargo binstall --no-symlinks --no-confirm cargo-about
+
       - name: Generate licenses
         shell: bash
         run: |
-          cargo install --locked cargo-about
           (cd cli && cargo about generate -o "licenses.html" about.hbs)
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
