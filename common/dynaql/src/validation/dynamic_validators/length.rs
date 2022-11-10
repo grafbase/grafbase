@@ -41,10 +41,10 @@ fn check_bounds<T: PartialOrd>(item: T, lower: Option<T>, upper: Option<T>) -> L
 }
 
 impl DynValidate<&Value> for LengthValidator {
-    fn validate<'a>(
+    fn validate<'a, 'b>(
         &self,
         ctx: &mut VisitorContext<'a>,
-        meta: &'a MetaInputValue,
+        meta: &'b MetaInputValue,
         pos: Pos,
         value: &Value,
     ) {
@@ -74,7 +74,6 @@ impl DynValidate<&Value> for LengthValidator {
             ),
             TooShort => ctx.report_error(
                 vec![pos],
-
                 format!(
                     "Invalid value for argument \"{name}\", length {count} is too short, must be more than {}",
                     self.min
@@ -89,6 +88,8 @@ impl DynValidate<&Value> for LengthValidator {
 fn test_length_validator() {
     use super::{DynValidator, MetaInputValue};
     use crate::parser::parse_query;
+    use crate::registry::MetaTypeName;
+    use crate::validation::{visitor::test::visit_input_value, VisitorNil};
     use crate::{EmptyMutation, EmptySubscription, Object, Schema};
     use insta::assert_snapshot;
 
@@ -159,6 +160,31 @@ fn test_length_validator() {
         &meta,
         Pos::from((0, 0)),
         &Value::Variable(dynaql_value::Name::new("test")),
+    );
+    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
+    assert_snapshot!(ctx.errors[0].message);
+
+    // Test nested validation via the visitor
+    let custom_validator = DynValidator::length(Some(10), Some(15));
+    let meta = MetaInputValue {
+        name: "test".to_string(),
+        description: None,
+        ty: "[String]".to_string(),
+        default_value: None,
+        validators: Some(vec![custom_validator]),
+        visible: None,
+        is_secret: false,
+    };
+    let mut visitor = VisitorNil;
+    let mut ctx = VisitorContext::new(&registry, &doc, None);
+    let value = Value::List(vec![Value::String("test".to_string())]);
+    visit_input_value(
+        &mut visitor,
+        &mut ctx,
+        Pos::from((0, 0)),
+        Some(MetaTypeName::List("String")),
+        &value,
+        Some(&meta),
     );
     assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
     assert_snapshot!(ctx.errors[0].message);

@@ -115,13 +115,13 @@ impl<'a> Visitor<'a> for VariableInAllowedPosition<'a> {
         }
     }
 
-    fn enter_input_value(
+    fn enter_input_value<'b>(
         &mut self,
         _ctx: &mut VisitorContext<'a>,
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &'a Value,
-        _meta: Option<&'a MetaInputValue>,
+        _meta: Option<&'b MetaInputValue>,
     ) {
         if let Value::Variable(name) = value {
             if let Some(expected_type) = expected_type {
