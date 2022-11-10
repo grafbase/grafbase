@@ -715,9 +715,20 @@ fn visit_input_value<'a, V: Visitor<'a>>(
             if let Some(expected_ty) = expected_ty {
                 let elem_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::List(expected_ty) = elem_ty {
+                    let (name, description) = ctx
+                        .registry
+                        .types
+                        .get(MetaTypeName::concrete_typename(expected_ty))
+                        .map(|meta_type| {
+                            (
+                                meta_type.name().to_string(),
+                                meta_type.description().map(String::from),
+                            )
+                        })
+                        .unwrap_or_default();
                     let inner_meta = meta.map(|meta| MetaInputValue {
-                        name: meta.name.clone(),
-                        description: meta.description.clone(),
+                        name,
+                        description,
                         ty: expected_ty.to_string(),
                         default_value: None,
                         visible: meta.visible,

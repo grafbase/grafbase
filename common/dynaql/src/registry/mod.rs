@@ -982,6 +982,18 @@ impl MetaType {
     }
 
     #[inline]
+    pub fn description(&self) -> Option<&str> {
+        match self {
+            MetaType::Scalar { description, .. } => description.as_deref(),
+            MetaType::Object { description, .. } => description.as_deref(),
+            MetaType::Interface { description, .. } => description.as_deref(),
+            MetaType::Union { description, .. } => description.as_deref(),
+            MetaType::Enum { description, .. } => description.as_deref(),
+            MetaType::InputObject { description, .. } => description.as_deref(),
+        }
+    }
+
+    #[inline]
     pub fn is_composite(&self) -> bool {
         matches!(
             self,
