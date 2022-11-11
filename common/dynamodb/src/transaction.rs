@@ -90,13 +90,10 @@ async fn transaction_by_pk(
                 let reasons = transaction_cancelled_reasons(msg.to_owned());
                 if let Some(reasons) = reasons {
                     for (index, reason) in reasons.iter().enumerate() {
-                        match reason {
-                            TransactionCanceledReason::ConditionalCheckFailed => {
-                                if let Some(condition) = input.transact_items[index].condition_check.clone() {
-                                    log::warn!(ctx.trace_id, "Condition failed: {condition:#?}");
-                                }
+                        if let TransactionCanceledReason::ConditionalCheckFailed = reason {
+                            if let Some(condition) = input.transact_items[index].condition_check.clone() {
+                                log::warn!(ctx.trace_id, "Condition failed: {condition:#?}");
                             }
-                            _ => {}
                         }
                     }
                 }
