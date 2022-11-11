@@ -1,8 +1,9 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::DynamoDBContext;
+use crate::{DynamoDBContext, DynamoDBError};
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
+use itertools::Itertools;
 use log::debug;
 use quick_error::quick_error;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
@@ -84,8 +85,21 @@ async fn transaction_by_pk(
             {
                 log::warn!(
                     ctx.trace_id,
-                    "Error writing items in transaction due to ConditionalCheckFailed: {err:?}",
+                    "Error writing items in transaction due to ConditionalCheckFailed: {err:?}"
                 );
+                let reasons = transaction_cancelled_reasons(msg.to_owned());
+                if let Some(reasons) = reasons {
+                    for (index, reason) in reasons.iter().enumerate() {
+                        match reason {
+                            TransactionCanceledReason::ConditionalCheckFailed => {
+                                if let Some(condition) = input.transact_items[index].condition_check.clone() {
+                                    log::warn!(ctx.trace_id, "Condition failed: {condition:#?}");
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
             }
             _ => {
                 log::error!(ctx.trace_id, "Error writing items in transaction: {err:?}");
@@ -96,6 +110,30 @@ async fn transaction_by_pk(
 
     debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
     Ok(result_hashmap)
+}
+
+enum TransactionCanceledReason {
+    ConditionalCheckFailed,
+    Unknown,
+    None,
+}
+
+fn transaction_cancelled_reasons(message: String) -> Option<Vec<TransactionCanceledReason>> {
+    message
+        .strip_prefix("Transaction cancelled, please refer cancellation reasons for specific reasons ")
+        // Left with e.g. `[ConditionalCheckFailed, ConditionalCheckFailed]`.
+        .and_then(|reasons_string| reasons_string.strip_prefix('['))
+        .and_then(|reasons_string| reasons_string.strip_suffix(']'))
+        .map(|reasons_string| {
+            reasons_string
+                .split(", ")
+                .map(|reason| match reason {
+                    "ConditionalCheckFailed" => TransactionCanceledReason::ConditionalCheckFailed,
+                    "None" => TransactionCanceledReason::None,
+                    _ => TransactionCanceledReason::Unknown,
+                })
+                .collect_vec()
+        })
 }
 
 pub struct TransactionLoader {
