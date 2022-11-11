@@ -10,7 +10,9 @@ use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
 
 use serde::{Deserialize, Serialize};
-use serde_with::rust::sets_duplicate_value_is_error;
+
+mod operations;
+use operations::Operations;
 
 const AUTH_DIRECTIVE: &str = "auth";
 const DEFAULT_GROUPS_CLAIM: &str = "groups";
@@ -26,52 +28,6 @@ struct Auth {
     allowed_owner_ops: Operations,
 
     providers: Vec<AuthProvider>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Operations(#[serde(with = "sets_duplicate_value_is_error")] HashSet<Operation>);
-
-impl std::iter::FromIterator<Operation> for Operations {
-    fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
-        Operations(iter.into_iter().collect())
-    }
-}
-
-impl Default for Operations {
-    fn default() -> Self {
-        [Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
-            .into_iter()
-            .collect()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
-#[serde(rename_all = "camelCase")]
-#[non_exhaustive]
-enum Operation {
-    Create,
-    Read,
-    Get,  // More granual read access
-    List, // More granual read access
-    Update,
-    Delete,
-}
-
-impl From<Operations> for dynaql::Operations {
-    fn from(ops: Operations) -> Self {
-        let mut res = Self::empty();
-        for op in ops.0 {
-            res |= match op {
-                Operation::Create => Self::CREATE,
-                Operation::Read => Self::READ,
-                Operation::Get => Self::GET,
-                Operation::List => Self::LIST,
-                Operation::Update => Self::UPDATE,
-                Operation::Delete => Self::DELETE,
-            };
-        }
-        res
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -238,7 +194,7 @@ impl Auth {
         let allowed_private_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
+                AuthRule::Private { operations, .. } => Some(operations.values().clone()),
                 _ => None,
             })
             .flatten()
@@ -270,7 +226,7 @@ impl Auth {
         let allowed_owner_ops: Operations = rules
             .iter()
             .filter_map(|rule| match rule {
-                AuthRule::Owner { operations, .. } => Some(operations.0.clone()),
+                AuthRule::Owner { operations, .. } => Some(operations.values().clone()),
                 _ => None,
             })
             .flatten()
