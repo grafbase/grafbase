@@ -87,16 +87,17 @@ async fn transaction_by_pk(
                     ctx.trace_id,
                     "Error writing items in transaction due to ConditionalCheckFailed: {err:?}"
                 );
-                let reasons = transaction_cancelled_reasons(msg.clone());
-                if let Some(reasons) = reasons {
-                    for (index, reason) in reasons.iter().enumerate() {
-                        if let TransactionCanceledReason::ConditionalCheckFailed = reason {
-                            if let Some(condition) = input.transact_items[index].condition_check.clone() {
-                                log::warn!(ctx.trace_id, "Condition failed: {condition:#?}");
-                            }
-                        }
-                    }
-                }
+                // let reasons = transaction_cancelled_reasons(msg.clone());
+                // if let Some(reasons) = reasons {
+                //     for (index, reason) in reasons.iter().enumerate() {
+                //         if let TransactionCanceledReason::ConditionalCheckFailed = reason {
+                input.transact_items.iter().for_each(|item| {
+                    log::warn!(ctx.trace_id, "Condition: {:#?}", item.condition_check);
+                });
+
+                //}
+                //     }
+                // }
             }
             _ => {
                 log::error!(ctx.trace_id, "Error writing items in transaction: {err:?}");
