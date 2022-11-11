@@ -4,12 +4,12 @@ use dynaql_parser::types::ConstDirective;
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use crate::{Visitor, VisitorContext};
 
-mod auth;
+mod config;
 mod operations;
 mod providers;
 mod rules;
 
-use auth::Auth;
+use config::AuthConfig;
 
 const AUTH_DIRECTIVE: &str = "auth";
 
@@ -22,7 +22,7 @@ impl AuthDirective {
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
-            Auth::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
+            AuthConfig::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
         } else {
             Ok(None)
         }

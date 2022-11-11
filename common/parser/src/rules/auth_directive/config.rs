@@ -8,7 +8,7 @@ use super::{operations::Operations, providers::AuthProvider, rules::AuthRule};
 use crate::VisitorContext;
 
 #[derive(Debug)]
-pub struct Auth {
+pub struct AuthConfig {
     allowed_private_ops: Operations,
 
     allowed_group_ops: HashMap<String, Operations>,
@@ -18,7 +18,7 @@ pub struct Auth {
     providers: Vec<AuthProvider>,
 }
 
-impl Auth {
+impl AuthConfig {
     pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective, is_global: bool) -> Result<Self, ServerError> {
         let pos = Some(value.name.pos);
 
@@ -92,7 +92,7 @@ impl Auth {
             .flatten()
             .collect();
 
-        Ok(Auth {
+        Ok(AuthConfig {
             allowed_private_ops,
             allowed_group_ops,
             allowed_owner_ops,
@@ -101,8 +101,8 @@ impl Auth {
     }
 }
 
-impl From<Auth> for dynaql::AuthConfig {
-    fn from(auth: Auth) -> Self {
+impl From<AuthConfig> for dynaql::AuthConfig {
+    fn from(auth: AuthConfig) -> Self {
         Self {
             allowed_private_ops: auth.allowed_private_ops.into(),
 
