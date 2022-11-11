@@ -92,7 +92,7 @@ async fn transaction_by_pk(
                 //     for (index, reason) in reasons.iter().enumerate() {
                 //         if let TransactionCanceledReason::ConditionalCheckFailed = reason {
                 input.transact_items.iter().for_each(|item| {
-                    log::warn!(ctx.trace_id, "Condition: {:#?}", item.condition_check);
+                    log::warn!(ctx.trace_id, "Condition: {:#?}", item);
                 });
 
                 //}
