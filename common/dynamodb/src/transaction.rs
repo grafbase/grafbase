@@ -1,6 +1,6 @@
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, DynamoDBError};
+use crate::DynamoDBContext;
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
@@ -87,7 +87,7 @@ async fn transaction_by_pk(
                     ctx.trace_id,
                     "Error writing items in transaction due to ConditionalCheckFailed: {err:?}"
                 );
-                let reasons = transaction_cancelled_reasons(msg.to_owned());
+                let reasons = transaction_cancelled_reasons(msg.clone());
                 if let Some(reasons) = reasons {
                     for (index, reason) in reasons.iter().enumerate() {
                         if let TransactionCanceledReason::ConditionalCheckFailed = reason {
