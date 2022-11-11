@@ -5,9 +5,8 @@ use serde::{Deserialize, Serialize};
 use dynaql::ServerError;
 use dynaql_value::ConstValue;
 
-use crate::VisitorContext;
-
 use super::Operations;
+use crate::VisitorContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
