@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use dynaql::ServerError;
 use dynaql_value::ConstValue;
 
-use super::Operations;
+use super::operations::Operations;
 use crate::VisitorContext;
 
 #[derive(Debug, Serialize, Deserialize)]
