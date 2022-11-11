@@ -183,55 +183,6 @@ mod tests {
     );
 
     parse_test!(
-        issuer_url_from_variable,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
-        dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::all(),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
-            ..Default::default()
-        }
-    );
-
-    parse_fail!(
-        issuer_url_from_nonexistent_variable,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::new(),
-        "undefined variable `ISSUER_URL`"
-    );
-
-    parse_fail!(
-        issuer_url_from_invalid_template_key,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::new(),
-        "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
-    );
-
-    parse_test!(
         private_rule_with_ops,
         r#"
         schema @auth(
@@ -460,5 +411,54 @@ mod tests {
         }
         "#,
         "auth providers can only be configured globally"
+    );
+
+    parse_test!(
+        issuer_url_from_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
+        dynaql::AuthConfig {
+            allowed_private_ops: dynaql::Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_fail!(
+        issuer_url_from_nonexistent_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "undefined variable `ISSUER_URL`"
+    );
+
+    parse_fail!(
+        issuer_url_from_invalid_template_key,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
 }
