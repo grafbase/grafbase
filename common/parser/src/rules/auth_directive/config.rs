@@ -117,8 +117,8 @@ impl From<AuthConfig> for dynaql::AuthConfig {
             oidc_providers: auth
                 .providers
                 .iter()
-                .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer, groups_claim } => dynaql::OidcProvider {
+                .filter_map(|provider| match provider {
+                    AuthProvider::Oidc { issuer, groups_claim } => Some(dynaql::OidcProvider {
                         issuer: issuer
                             .as_fully_evaluated_str()
                             .expect(
@@ -128,7 +128,33 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                             .parse()
                             .unwrap(),
                         groups_claim: groups_claim.clone(),
-                    },
+                    }),
+                    _ => None,
+                })
+                .collect(),
+
+            jwt_providers: auth
+                .providers
+                .iter()
+                .filter_map(|provider| match provider {
+                    AuthProvider::Jwt {
+                        issuer,
+                        groups_claim,
+                        secret,
+                    } => Some(dynaql::JwtProvider {
+                        issuer: issuer
+                            .as_fully_evaluated_str()
+                            .expect("env vars have been expanded")
+                            .parse()
+                            .unwrap(),
+                        groups_claim: groups_claim.clone(),
+                        secret: secret
+                            .as_fully_evaluated_str()
+                            .expect("env vars have been expanded")
+                            .parse()
+                            .unwrap(),
+                    }),
+                    _ => None,
                 })
                 .collect(),
 

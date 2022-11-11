@@ -467,6 +467,29 @@ mod tests {
           query: Query
         }
         "#,
-        "auth provider: relative URL without a base"
+        "OIDC provider: relative URL without a base"
+    );
+
+    parse_test!(
+        jwt_provider,
+        r#"
+        schema @auth(
+          providers: [ { type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::from([
+            ("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),
+            ("JWT_SECRET".to_string(), "s3cr3t".to_string())
+        ]),
+        dynaql::AuthConfig {
+            jwt_providers: vec![dynaql::JwtProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                secret: "s3cr3t".to_string(),
+            }],
+            ..Default::default()
+        }
     );
 }

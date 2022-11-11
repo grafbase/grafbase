@@ -15,12 +15,21 @@ pub struct AuthConfig {
     pub allowed_owner_ops: Operations,
 
     pub oidc_providers: Vec<OidcProvider>,
+
+    pub jwt_providers: Vec<JwtProvider>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
     pub groups_claim: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct JwtProvider {
+    pub issuer: url::Url,
+    pub groups_claim: String,
+    pub secret: String,
 }
 
 impl Default for AuthConfig {
@@ -35,6 +44,8 @@ impl Default for AuthConfig {
             allowed_owner_ops: Operations::empty(),
 
             oidc_providers: vec![],
+
+            jwt_providers: vec![],
         }
     }
 }
