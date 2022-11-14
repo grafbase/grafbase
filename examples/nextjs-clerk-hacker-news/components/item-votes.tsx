@@ -26,7 +26,7 @@ const ITEM_VOTE_MUTATION = gql`
 
 const ITEM_VOTE_UPDATE_MUTATION = gql`
   mutation ItemVoteUpdate($id: ID!, $vote: Boolean!) {
-    voteUpdate(id: $id, input: { positive: $vote }) {
+    voteUpdate(by: { id: $id }, input: { positive: $vote }) {
       vote {
         __typename
       }
@@ -121,7 +121,7 @@ const ItemVotes = (props: {
           <path d="m18 15-6-6-6 6"></path>
         </svg>
       </button>
-      <div className="flex flex-1 items-center justify-center p-2 bg-black text-white font-bold text-lg border-y border-black">
+      <div className="flex items-center justify-center flex-1 p-2 text-lg font-bold text-white bg-black border-black border-y">
         {aggregate || 0}
       </div>
       <button

@@ -17,7 +17,7 @@ const USER_CREATE_MUTATION = gql`
 
 const USER_UPDATE_MUTATION = gql`
   mutation UserUpdateLogin($id: ID!, $imageUrl: String!) {
-    userUpdate(id: $id, input: { imageUrl: $imageUrl }) {
+    userUpdate(by: { id: $id }, input: { imageUrl: $imageUrl }) {
       __typename
     }
   }
@@ -88,7 +88,7 @@ const CallbackLoginPage = () => {
         <title>Loading Session | Grafnews</title>
       </Head>
       <div className="flex items-center justify-center min-h-screen">
-        <div className="border border-black pt-6 pb-4 px-6 bg-gray-50 border-b-4">
+        <div className="px-6 pt-6 pb-4 border border-b-4 border-black bg-gray-50">
           <LogoAnimated />
         </div>
       </div>

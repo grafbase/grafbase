@@ -60,7 +60,7 @@ const ITEM_QUERY = gql`
 
 const ITEM_DELETE_MUTATION = gql`
   mutation ItemOneDelete($id: ID!) {
-    itemDelete(id: $id) {
+    itemDelete(by: { id: $id }) {
       deletedId
     }
   }
@@ -96,7 +96,7 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
 
   if (error) {
     return (
-      <div className="bg-red-500 min-h-24 w-full flex flex-col space-y-6 items-center justify-center py-6">
+      <div className="flex flex-col items-center justify-center w-full py-6 space-y-6 bg-red-500 min-h-24">
         <div className="text-lg text-white">
           Something went wrong in the API.
         </div>
@@ -123,20 +123,20 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
         <div className="flex flex-col border border-black">
           <ItemVotes itemId={id} votes={votes} />
         </div>
-        <div className="pl-4 flex-1">
+        <div className="flex-1 pl-4">
           <h1 className="text-5xl font-bold">{title}</h1>
           <div className="mt-4">
-            <div className="bg-gray-100 p-4 text-xl  text-gray-800">
+            <div className="p-4 text-xl text-gray-800 bg-gray-100">
               <a href={url} target="_blank" rel="noreferrer">
                 {url}
               </a>
             </div>
           </div>
-          <div className="flex justify-end space-x-2 items-center mt-4">
+          <div className="flex items-center justify-end mt-4 space-x-2">
             {isSessionUserItem && (
               <button
                 onClick={onDelete}
-                className="text-gray-700 hover:bg-red-200 px-2 border"
+                className="px-2 text-gray-700 border hover:bg-red-200"
               >
                 Delete
               </button>
@@ -160,7 +160,7 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
           <ItemAddComment itemId={id} />
         </SignedIn>
         <div>
-          <h2 className="mt-6 text-lg mb-5">
+          <h2 className="mt-6 mb-5 text-lg">
             {comments?.edges?.length
               ? `Comments (${comments?.edges?.length})`
               : 'No comments yet'}
@@ -183,7 +183,7 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
                       }
                     })
                   }
-                  className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+                  className="px-2 py-1 text-lg font-semibold text-gray-700 border border-gray-300 w-fu hover:bg-gray-50"
                 >
                   Load More {loading ? '...' : ''}
                 </button>
@@ -193,7 +193,7 @@ const ItemIdPage = (props: { data: ItemOneQuery }) => {
               <div className="text-center">
                 <Link
                   href="/login"
-                  className="border border-gray-300 text-lg w-fu px-2 py-1 font-semibold text-gray-700 hover:bg-gray-50"
+                  className="px-2 py-1 text-lg font-semibold text-gray-700 border border-gray-300 w-fu hover:bg-gray-50"
                 >
                   Sign In to load More
                 </Link>
