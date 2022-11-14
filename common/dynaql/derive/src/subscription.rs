@@ -376,6 +376,7 @@ pub fn generate(
                                     alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                                     required_operation: None,
                                     auth: None,
+                                    input_values: Vec::new() // Not needed
                                 };
 
                                 let resolve_fut = async {
