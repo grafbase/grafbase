@@ -1,12 +1,8 @@
-mod error;
-
-pub use error::VerificationError;
-
 use std::collections::HashSet;
 
 use json_dotpath::DotPaths;
 use jwt_compact::{
-    alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey},
+    alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key, Rsa, RsaPublicKey, StrongAlg, StrongKey},
     jwk::JsonWebKey,
     prelude::*,
     TimeOptions,
@@ -14,6 +10,9 @@ use jwt_compact::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 use worker::kv::KvError;
+
+mod error;
+pub use error::VerificationError;
 
 const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
 
@@ -63,6 +62,7 @@ pub struct Client {
     pub ignore_iss_claim: bool, // used for testing
     pub groups_claim: Option<String>,
     pub jwks_cache: Option<worker::kv::KvStore>,
+    pub signing_key: Option<String>, // TODO: protect me
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -79,74 +79,30 @@ impl Client {
     ) -> Result<VerifiedToken, VerificationError> {
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
-        // We support the same signing algorithms as AppSync
-        // https://docs.aws.amazon.com/appsync/latest/devguide/security-authz.html#openid-connect-authorization
-        let rsa = match token.algorithm() {
-            "RS256" => Rsa::rs256(),
-            "RS384" => Rsa::rs384(),
-            "RS512" => Rsa::rs512(),
-            _ => return Err(VerificationError::UnsupportedAlgorithm),
-        };
-
-        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
-
-        // Use JWK from cache if available
-        let cached_jwk = self
-            .get_jwk_from_cache(kid)
-            .await
-            .map_err(VerificationError::CacheError)?;
-
-        let jwk = if let Some(cached_jwk) = cached_jwk {
-            log::debug!(self.trace_id, "Found JWK {kid} in cache");
-            cached_jwk
-        } else {
-            // Get JWKS endpoint from OIDC config
-            let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
-            let oidc_config: OidcConfig = self
-                .http_client
-                .get(discovery_url)
-                .recv_json()
-                .await
-                .map_err(VerificationError::HttpRequest)?;
-
-            log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
-
-            // XXX: we might relax this requirement and ignore issuer altogether
-            if oidc_config.issuer != issuer {
-                return Err(VerificationError::InvalidIssuerUrl);
+        let token = match token.algorithm() {
+            "RS256" => self.verify_rsa(&token, &issuer, Rsa::rs256()).await,
+            "RS384" => self.verify_rsa(&token, &issuer, Rsa::rs384()).await,
+            "RS512" => self.verify_rsa(&token, &issuer, Rsa::rs512()).await,
+            "HS256" => {
+                let key = Hs256Key::from(self.signing_key.as_ref().unwrap().as_bytes());
+                Hs256
+                    .validate_integrity::<CustomClaims>(&token, &key)
+                    .map_err(VerificationError::Integrity)
             }
-
-            // Get JWKS
-            let jwks: JsonWebKeySet<'_> = self
-                .http_client
-                .get(oidc_config.jwks_uri)
-                .recv_json()
-                .await
-                .map_err(VerificationError::HttpRequest)?;
-
-            // Find JWK to verify JWT
-            let jwk = jwks
-                .keys
-                .into_iter()
-                .find(|key| &key.id == kid)
-                .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
-
-            // Add JWK to cache
-            log::debug!(self.trace_id, "Adding JWK {kid} to cache");
-            self.add_jwk_to_cache(&jwk)
-                .await
-                .map_err(VerificationError::CacheError)?;
-
-            jwk
-        };
-
-        // Verify JWT signature
-        let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
-        let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
-        let rsa = StrongAlg(rsa);
-        let token = rsa
-            .validate_integrity::<CustomClaims>(&token, &pub_key)
-            .map_err(VerificationError::Integrity)?;
+            "HS384" => {
+                let key = Hs384Key::from(self.signing_key.as_ref().unwrap().as_bytes());
+                Hs384
+                    .validate_integrity::<CustomClaims>(&token, &key)
+                    .map_err(VerificationError::Integrity)
+            }
+            "HS512" => {
+                let key = Hs512Key::from(self.signing_key.as_ref().unwrap().as_bytes());
+                Hs512
+                    .validate_integrity::<CustomClaims>(&token, &key)
+                    .map_err(VerificationError::Integrity)
+            }
+            _ => Err(VerificationError::UnsupportedAlgorithm),
+        }?;
 
         // Verify claims
         let claims = token.claims();
@@ -193,6 +149,75 @@ impl Client {
             identity: claims.custom.subject.clone(),
             groups,
         })
+    }
+
+    async fn verify_rsa(
+        &self,
+        token: &UntrustedToken<'_>,
+        issuer: &Url,
+        rsa: Rsa,
+    ) -> Result<Token<CustomClaims>, VerificationError> {
+        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+
+        // Use JWK from cache if available
+        let cached_jwk = self
+            .get_jwk_from_cache(kid)
+            .await
+            .map_err(VerificationError::CacheError)?;
+
+        let jwk = if let Some(cached_jwk) = cached_jwk {
+            log::debug!(self.trace_id, "Found JWK {kid} in cache");
+            cached_jwk
+        } else {
+            // Get JWKS endpoint from OIDC config
+            let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+            let oidc_config: OidcConfig = self
+                .http_client
+                .get(discovery_url)
+                .recv_json()
+                .await
+                .map_err(VerificationError::HttpRequest)?;
+
+            log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
+
+            // XXX: we might relax this requirement and ignore issuer altogether
+            if oidc_config.issuer != *issuer {
+                return Err(VerificationError::InvalidIssuerUrl);
+            }
+
+            // Get JWKS
+            let jwks: JsonWebKeySet<'_> = self
+                .http_client
+                .get(oidc_config.jwks_uri)
+                .recv_json()
+                .await
+                .map_err(VerificationError::HttpRequest)?;
+
+            // Find JWK to verify JWT
+            let jwk = jwks
+                .keys
+                .into_iter()
+                .find(|key| &key.id == kid)
+                .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
+
+            // Add JWK to cache
+            log::debug!(self.trace_id, "Adding JWK {kid} to cache");
+            self.add_jwk_to_cache(&jwk)
+                .await
+                .map_err(VerificationError::CacheError)?;
+
+            jwk
+        };
+
+        // Verify JWT signature
+        let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
+        let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
+        let rsa = StrongAlg(rsa);
+        let token = rsa
+            .validate_integrity::<CustomClaims>(token, &pub_key)
+            .map_err(VerificationError::Integrity)?;
+
+        Ok(token)
     }
 
     async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
