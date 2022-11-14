@@ -74,6 +74,8 @@ const Home = (props: { data: ItemsListQuery }) => {
           <div>
             <a
               href="https://grafbase.com/register"
+              target="_blank"
+              rel="noreferrer"
               className="border border-white px-3 py-2 text-xl text-white whitespace-nowrap"
             >
               Try it
