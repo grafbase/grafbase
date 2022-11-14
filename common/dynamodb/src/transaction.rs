@@ -49,14 +49,12 @@ impl PartialEq for TxItem {
 
 impl Eq for TxItem {}
 
-quick_error! {
-    #[derive(Debug, Clone)]
-    pub enum TransactionError {
-        UnknownError {
-            display("An issue happened while applying the transaction.")
-        }
-    }
-
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum TransactionError {
+    #[error("An issue happened while applying the transaction.")]
+    UnknownError,
+    #[error(r#"new: The value {value} is already taken on field "{field}""#)]
+    UniqueCondition { value: String, field: String },
 }
 
 /// The result is not accessible, the Hashmap will be empty
@@ -95,22 +93,34 @@ async fn transaction_by_pk(
                     ctx.trace_id,
                     "Error writing items in transaction due to ConditionalCheckFailed: {err:?}"
                 );
-                let reasons = transaction_cancelled_reasons(msg.clone());
-                if let Some(reasons) = reasons {
-                    for (index, reason) in reasons.iter().enumerate() {
-                        if let TransactionCanceledReason::ConditionalCheckFailed = reason {
-                            if let TxItemMetadata::Unique { ref value, ref field } = tx[index].metadata {
-                                log::warn!(ctx.trace_id, "Unique issue: value: {value}, field: {field}",)
-                            }
-                        }
-                    }
-                }
             }
             _ => {
                 log::error!(ctx.trace_id, "Error writing items in transaction: {err:?}");
             }
         })
-        .map_err(|_| TransactionError::UnknownError)
+        .map_err(|err| {
+            if let rusoto_core::RusotoError::Service(rusoto_dynamodb::TransactWriteItemsError::TransactionCanceled(
+                msg,
+            )) = err
+            {
+                if msg.contains("ConditionalCheckFailed") {
+                    let reasons = transaction_cancelled_reasons(msg.clone());
+                    if let Some(reasons) = reasons {
+                        for (index, reason) in reasons.iter().enumerate() {
+                            if let TransactionCanceledReason::ConditionalCheckFailed = reason {
+                                if let TxItemMetadata::Unique { ref value, ref field } = tx[index].metadata {
+                                    return TransactionError::UniqueCondition {
+                                        value: value.clone(),
+                                        field: field.clone(),
+                                    };
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            TransactionError::UnknownError
+        })
         .await?;
 
     debug!(ctx.trace_id, "TransactionWriteOuput {:?}", item_collections);
