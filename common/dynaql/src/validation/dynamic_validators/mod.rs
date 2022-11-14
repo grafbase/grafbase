@@ -12,7 +12,7 @@ pub(crate) trait DynValidate<T> {
     fn validate<'a>(
         &self,
         _ctx: &mut VisitorContext<'a>,
-        meta: &'a MetaInputValue,
+        meta: &MetaInputValue,
         pos: Pos,
         other: T,
     );
@@ -44,7 +44,7 @@ impl DynValidate<&Value> for DynValidator {
     fn validate<'a>(
         &self,
         ctx: &mut VisitorContext<'a>,
-        meta: &'a MetaInputValue,
+        meta: &MetaInputValue,
         pos: Pos,
         value: &Value,
     ) {

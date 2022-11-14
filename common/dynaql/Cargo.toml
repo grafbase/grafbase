@@ -34,7 +34,7 @@ dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
-async-lock = "2.5"
+async-lock = "2.6"
 async-stream = "0.3"
 async-trait = "0.1"
 cached = { version = "0.40" }
@@ -77,8 +77,8 @@ ulid-rs = { path = "../ulid-rs" }
 
 # Feature optional dependencies
 bson = { version = "2", optional = true, features = ["chrono-0_4"] }
-chrono-tz = { version = "0.7", optional = true }
-hashbrown = { version = "0.12", optional = true }
+chrono-tz = { version = "0.8", optional = true }
+hashbrown = { version = "0.13", optional = true }
 iso8601-duration = { version = "0.1", optional = true }
 log = { version = "0.4", optional = true }
 secrecy = { version = "0.8", optional = true }
@@ -87,7 +87,7 @@ tracing-futures = { version = "0.2", optional = true, features = [
     "std-future",
     "futures-03",
 ] }
-opentelemetry = { version = "0.18", optional = true, default-features = false, features = [
+opentelemetry = { version = "0.17", optional = true, default-features = false, features = [
     "trace",
 ] }
 uuid = { version = "1", optional = true, features = ["v4", "serde"] }

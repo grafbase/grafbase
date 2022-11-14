@@ -1,142 +1,19 @@
-use std::collections::{HashMap, HashSet};
-
-use crate::dynamic_string::DynamicString;
-use crate::rules::model_directive::MODEL_DIRECTIVE;
-
-use super::visitor::{Visitor, VisitorContext};
-
 use dynaql::{Positioned, ServerError};
 use dynaql_parser::types::ConstDirective;
-use dynaql_value::ConstValue;
 
-use serde::{Deserialize, Serialize};
-use serde_with::rust::sets_duplicate_value_is_error;
+use crate::rules::model_directive::MODEL_DIRECTIVE;
+use crate::{Visitor, VisitorContext};
+
+mod config;
+mod operations;
+mod providers;
+mod rules;
+
+use config::AuthConfig;
 
 const AUTH_DIRECTIVE: &str = "auth";
-const DEFAULT_GROUPS_CLAIM: &str = "groups";
 
 pub struct AuthDirective;
-
-#[derive(Debug)]
-struct Auth {
-    allowed_private_ops: Operations,
-
-    allowed_group_ops: HashMap<String, Operations>,
-
-    allowed_owner_ops: Operations,
-
-    providers: Vec<AuthProvider>,
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
-struct Operations(#[serde(with = "sets_duplicate_value_is_error")] HashSet<Operation>);
-
-impl std::iter::FromIterator<Operation> for Operations {
-    fn from_iter<I: IntoIterator<Item = Operation>>(iter: I) -> Self {
-        Operations(iter.into_iter().collect())
-    }
-}
-
-impl Default for Operations {
-    fn default() -> Self {
-        [Operation::Create, Operation::Read, Operation::Update, Operation::Delete]
-            .into_iter()
-            .collect()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Copy, Clone)]
-#[serde(rename_all = "camelCase")]
-#[non_exhaustive]
-enum Operation {
-    Create,
-    Read,
-    Get,  // More granual read access
-    List, // More granual read access
-    Update,
-    Delete,
-}
-
-impl From<Operations> for dynaql::Operations {
-    fn from(ops: Operations) -> Self {
-        let mut res = Self::empty();
-        for op in ops.0 {
-            res |= match op {
-                Operation::Create => Self::CREATE,
-                Operation::Read => Self::READ,
-                Operation::Get => Self::GET,
-                Operation::List => Self::LIST,
-                Operation::Update => Self::UPDATE,
-                Operation::Delete => Self::DELETE,
-            };
-        }
-        res
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-#[serde(deny_unknown_fields)]
-#[non_exhaustive]
-enum AuthProvider {
-    #[serde(rename_all = "camelCase")]
-    Oidc {
-        issuer: DynamicString,
-
-        #[serde(default = "default_groups_claim")]
-        groups_claim: String,
-    },
-}
-
-fn default_groups_claim() -> String {
-    DEFAULT_GROUPS_CLAIM.to_string()
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "allow")]
-#[serde(deny_unknown_fields)]
-#[non_exhaustive]
-enum AuthRule {
-    /// Public data access via API keys
-    // Ex: { allow: anonymous }
-    #[serde(alias = "public")]
-    #[serde(rename_all = "camelCase")]
-    Anonymous {
-        // Note: we don't support operations as our playground needs full access
-    },
-
-    /// Signed-in user data access via OIDC
-    // Ex: { allow: private }
-    //     { allow: private, operations: [create, read] }
-    #[serde(rename_all = "camelCase")]
-    Private {
-        #[serde(default)]
-        operations: Operations,
-    },
-
-    /// User group-based data access via OIDC
-    // Ex: { allow: groups, groups: ["admin"] }
-    //     { allow: groups, groups: ["admin"], operations: [update, delete] }
-    #[serde(rename_all = "camelCase")]
-    Groups {
-        #[serde(with = "::serde_with::rust::sets_duplicate_value_is_error")]
-        groups: HashSet<String>,
-
-        #[serde(default)]
-        operations: Operations,
-    },
-
-    /// Owner-based data access via OIDC
-    // Ex: { allow: owner }
-    //     { allow: owner, operations: [create, read] }
-    #[serde(rename_all = "camelCase")]
-    Owner {
-        #[serde(default)]
-        operations: Operations,
-    },
-}
 
 impl AuthDirective {
     pub fn parse(
@@ -145,7 +22,7 @@ impl AuthDirective {
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
-            Auth::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
+            AuthConfig::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
         } else {
             Ok(None)
         }
@@ -202,172 +79,6 @@ impl<'a> Visitor<'a> for AuthDirective {
     }
 }
 
-impl Auth {
-    pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstDirective, is_global: bool) -> Result<Self, ServerError> {
-        let pos = Some(value.name.pos);
-
-        let providers = match value.get_argument("providers") {
-            Some(arg) => match &arg.node {
-                ConstValue::List(value) if !value.is_empty() => value
-                    .iter()
-                    .map(|value| AuthProvider::from_value(ctx, value))
-                    .collect::<Result<_, _>>()
-                    .map_err(|err| ServerError::new(err.message, pos))?,
-                _ => return Err(ServerError::new("auth providers must be a non-empty list", pos)),
-            },
-            None => Vec::new(),
-        };
-
-        // XXX: introduce a separate type for non-global directives if we need more custom behavior
-        if !is_global && !providers.is_empty() {
-            return Err(ServerError::new("auth providers can only be configured globally", pos));
-        }
-
-        let rules = match value.get_argument("rules") {
-            Some(arg) => match &arg.node {
-                ConstValue::List(value) if !value.is_empty() => value
-                    .iter()
-                    .map(|value| AuthRule::from_value(ctx, value))
-                    .collect::<Result<_, _>>()
-                    .map_err(|err| ServerError::new(err.message, pos))?,
-                _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
-            },
-            None => Vec::new(),
-        };
-
-        let allowed_private_ops: Operations = rules
-            .iter()
-            .filter_map(|rule| match rule {
-                AuthRule::Private { operations, .. } => Some(operations.0.clone()),
-                _ => None,
-            })
-            .flatten()
-            .collect();
-
-        let allowed_group_ops = rules
-            .iter()
-            .filter_map(|rule| match rule {
-                AuthRule::Groups { groups, operations } => Some((groups, operations)),
-                _ => None,
-            })
-            .try_fold(HashMap::new(), |mut res, (groups, operations)| {
-                if groups.is_empty() {
-                    return Err(ServerError::new("groups must be a non-empty list", pos));
-                }
-                for group in groups {
-                    // FIXME: replace with ::try_insert() when it's stable
-                    if res.contains_key(group) {
-                        return Err(ServerError::new(
-                            format!("group {group:?} cannot be used in more than one auth rule"),
-                            pos,
-                        ));
-                    }
-                    res.insert(group.clone(), operations.clone());
-                }
-                Ok(res)
-            })?;
-
-        let allowed_owner_ops: Operations = rules
-            .iter()
-            .filter_map(|rule| match rule {
-                AuthRule::Owner { operations, .. } => Some(operations.0.clone()),
-                _ => None,
-            })
-            .flatten()
-            .collect();
-
-        Ok(Auth {
-            allowed_private_ops,
-            allowed_group_ops,
-            allowed_owner_ops,
-            providers,
-        })
-    }
-}
-
-impl AuthProvider {
-    fn from_value(ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
-        // We convert the value to JSON to leverage serde for deserialization
-        let value = match value {
-            ConstValue::Object(_) => value
-                .clone()
-                .into_json()
-                .map_err(|err| ServerError::new(err.to_string(), None))?,
-            _ => return Err(ServerError::new("auth provider must be an object", None)),
-        };
-
-        let mut provider: AuthProvider =
-            serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
-
-        let &mut AuthProvider::Oidc { ref mut issuer, .. } = &mut provider;
-        ctx.partially_evaluate_literal(issuer)?;
-        if let Err(err) = issuer
-            .as_fully_evaluated_str()
-            .map(|s| s.parse::<url::Url>())
-            .transpose()
-        {
-            // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
-            return Err(ServerError::new(format!("auth provider: {err}"), None));
-        }
-
-        Ok(provider)
-    }
-}
-
-impl AuthRule {
-    fn from_value(_ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
-        // We convert the value to JSON to leverage serde for deserialization
-        let value = match value {
-            ConstValue::Object(_) => value
-                .clone()
-                .into_json()
-                .map_err(|err| ServerError::new(err.to_string(), None))?,
-            _ => return Err(ServerError::new("auth rule must be an object", None)),
-        };
-
-        let rule: AuthRule =
-            serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth rule: {err}"), None))?;
-
-        Ok(rule)
-    }
-}
-
-impl From<Auth> for dynaql::AuthConfig {
-    fn from(auth: Auth) -> Self {
-        Self {
-            allowed_private_ops: auth.allowed_private_ops.into(),
-
-            allowed_group_ops: auth
-                .allowed_group_ops
-                .into_iter()
-                .map(|(group, ops)| (group, ops.into()))
-                .collect(),
-
-            allowed_owner_ops: auth.allowed_owner_ops.into(),
-
-            oidc_providers: auth
-                .providers
-                .iter()
-                .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer, groups_claim } => dynaql::OidcProvider {
-                        issuer: issuer
-                            .as_fully_evaluated_str()
-                            .expect(
-                                "environment variables have been expanded by now \
-                                and we don't support any other types of variables",
-                            )
-                            .parse()
-                            .unwrap(),
-                        groups_claim: groups_claim.clone(),
-                    },
-                })
-                .collect(),
-
-            ..Default::default()
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashMap;
@@ -377,6 +88,7 @@ mod tests {
     use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
     use pretty_assertions::assert_eq;
+    use providers::DEFAULT_GROUPS_CLAIM;
 
     macro_rules! parse_test {
         ($fn_name:ident, $schema:literal, $expect:expr) => {
@@ -468,55 +180,6 @@ mod tests {
             }],
             ..Default::default()
         }
-    );
-
-    parse_test!(
-        issuer_url_from_variable,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
-        dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::all(),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
-            ..Default::default()
-        }
-    );
-
-    parse_fail!(
-        issuer_url_from_nonexistent_variable,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::new(),
-        "undefined variable `ISSUER_URL`"
-    );
-
-    parse_fail!(
-        issuer_url_from_invalid_template_key,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
-        ){
-          query: Query
-        }
-        "#,
-        HashMap::new(),
-        "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
 
     parse_test!(
@@ -748,5 +411,54 @@ mod tests {
         }
         "#,
         "auth providers can only be configured globally"
+    );
+
+    parse_test!(
+        issuer_url_from_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
+        dynaql::AuthConfig {
+            allowed_private_ops: dynaql::Operations::all(),
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_fail!(
+        issuer_url_from_nonexistent_variable,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "undefined variable `ISSUER_URL`"
+    );
+
+    parse_fail!(
+        issuer_url_from_invalid_template_key,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
+          rules: [ { allow: private } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
 }

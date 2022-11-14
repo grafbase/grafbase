@@ -286,7 +286,7 @@ pub(crate) trait Visitor<'a> {
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &'a Value,
-        _meta: Option<&'a MetaInputValue>,
+        _meta: Option<&MetaInputValue>,
     ) {
     }
     fn exit_input_value(
@@ -295,7 +295,7 @@ pub(crate) trait Visitor<'a> {
         _pos: Pos,
         _expected_type: &Option<MetaTypeName<'a>>,
         _value: &Value,
-        _meta: Option<&'a MetaInputValue>,
+        _meta: Option<&MetaInputValue>,
     ) {
     }
 }
@@ -525,7 +525,7 @@ where
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &'a Value,
-        meta: Option<&'a MetaInputValue>,
+        meta: Option<&MetaInputValue>,
     ) {
         self.0
             .enter_input_value(ctx, pos, expected_type, value, meta);
@@ -539,7 +539,7 @@ where
         pos: Pos,
         expected_type: &Option<MetaTypeName<'a>>,
         value: &Value,
-        meta: Option<&'a MetaInputValue>,
+        meta: Option<&MetaInputValue>,
     ) {
         self.0
             .exit_input_value(ctx, pos, expected_type, value, meta);
@@ -706,7 +706,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
     pos: Pos,
     expected_ty: Option<MetaTypeName<'a>>,
     value: &'a Value,
-    meta: Option<&'a MetaInputValue>,
+    meta: Option<&MetaInputValue>,
 ) {
     v.enter_input_value(ctx, pos, &expected_ty, value, meta);
 
@@ -715,6 +715,26 @@ fn visit_input_value<'a, V: Visitor<'a>>(
             if let Some(expected_ty) = expected_ty {
                 let elem_ty = expected_ty.unwrap_non_null();
                 if let MetaTypeName::List(expected_ty) = elem_ty {
+                    let (name, description) = ctx
+                        .registry
+                        .types
+                        .get(MetaTypeName::concrete_typename(expected_ty))
+                        .map(|meta_type| {
+                            (
+                                meta_type.name().to_string(),
+                                meta_type.description().map(String::from),
+                            )
+                        })
+                        .unwrap_or_default();
+                    let inner_meta = meta.map(|meta| MetaInputValue {
+                        name,
+                        description,
+                        ty: expected_ty.to_string(),
+                        default_value: None,
+                        visible: meta.visible,
+                        validators: None,
+                        is_secret: meta.is_secret,
+                    });
                     for value in values.iter() {
                         visit_input_value(
                             v,
@@ -722,7 +742,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                             pos,
                             Some(MetaTypeName::create(expected_ty)),
                             value,
-                            meta,
+                            inner_meta.as_ref(),
                         );
                     }
                 }
@@ -891,5 +911,21 @@ impl From<RuleError> for ServerError {
             path: Vec::new(),
             extensions: None,
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use super::{MetaInputValue, MetaTypeName, Pos, Value, Visitor, VisitorContext};
+
+    pub(crate) fn visit_input_value<'a, V: Visitor<'a>>(
+        v: &mut V,
+        ctx: &mut VisitorContext<'a>,
+        pos: Pos,
+        expected_ty: Option<MetaTypeName<'a>>,
+        value: &'a Value,
+        meta: Option<&MetaInputValue>,
+    ) {
+        super::visit_input_value(v, ctx, pos, expected_ty, value, meta)
     }
 }
