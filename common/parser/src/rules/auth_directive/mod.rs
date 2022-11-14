@@ -461,4 +461,16 @@ mod tests {
         HashMap::new(),
         "auth provider: right now only variables scoped with 'env.' are supported: `ISSUER_URL`"
     );
+
+    parse_fail!(
+        issuer_url_empty,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "" } ]
+        ){
+          query: Query
+        }
+        "#,
+        "auth provider: relative URL without a base"
+    );
 }

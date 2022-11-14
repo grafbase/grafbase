@@ -87,6 +87,7 @@ impl DynamicString {
     pub fn as_fully_evaluated_str(&self) -> Option<&str> {
         match self.0.as_slice() {
             [DynamicStringSegment::Literal(literal)] => Some(literal.as_str()),
+            [] => Some(""),
             _ => None,
         }
     }
