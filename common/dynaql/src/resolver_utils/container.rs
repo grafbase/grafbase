@@ -1,3 +1,4 @@
+use dynaql_parser::Positioned;
 use futures_util::FutureExt;
 use graph_entities::{
     NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
@@ -410,6 +411,7 @@ impl<'a> FieldsGraph<'a> {
                                     required_operation: meta_field
                                         .and_then(|f| f.required_operation),
                                     auth: meta_field.and_then(|f| f.auth.as_ref()),
+                                    input_values: Vec::new(), // For static element, isn't needed.
                                 };
 
                                 let resolve_fut = registry.resolve_field(&ctx_field, root);
@@ -580,6 +582,14 @@ impl<'a> Fields<'a> {
                             let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
                             let field_name = ctx_field.item.node.response_key().node.clone();
                             let extensions = &ctx.query_env.extensions;
+                            let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
+                                .item
+                                .node
+                                .arguments
+                                .clone()
+                                .into_iter()
+                                .map(|(key, val)| (key, ctx_field.resolve_input_value(val).ok()))
+                                .collect();
 
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
@@ -623,6 +633,7 @@ impl<'a> Fields<'a> {
                                     required_operation: meta_field
                                         .and_then(|f| f.required_operation),
                                     auth: meta_field.and_then(|f| f.auth.as_ref()),
+                                    input_values: args_values,
                                 };
 
                                 let resolve_fut = async {
