@@ -16,6 +16,8 @@
 //!
 //! TODO: Should have either: an ID or a PK
 
+use std::collections::HashMap;
+
 use super::auth_directive::AuthDirective;
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
@@ -103,13 +105,26 @@ impl<'a> Visitor<'a> for ModelDirective {
             if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
             then {
-                let auth = match AuthDirective::parse(ctx, &type_definition.node.directives, false) {
+                let model_auth = match AuthDirective::parse(ctx, &type_definition.node.directives, false) {
                     Ok(auth) => auth,
                     Err(err) => {
                         ctx.report_error(err.locations, err.message);
                         None
                     }
                 };
+                // Do this here since ctx can't be borrowed mutably twice inside ctx.registry.get_mut() below
+                let field_auth = object.fields.iter().fold(HashMap::new(), |mut map, field| {
+                    let name = field.node.name.node.to_string();
+                    let auth = match AuthDirective::parse(ctx, &field.node.directives, false) {
+                            Ok(auth) => auth,
+                            Err(err) => {
+                                ctx.report_error(err.locations, err.message);
+                                None
+                            }
+                    }.or_else(|| model_auth.clone()); // Fall back to model auth if field auth is not defined
+                    map.insert(name, auth);
+                    map
+                });
 
                if !object.fields.iter().any(|x| is_id_type_and_non_nullable(&x.node)) {
                     let name_ty = &type_definition.node.name.node;
@@ -181,7 +196,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             };
 
                             fields.insert(name.clone(), MetaField {
-                                name,
+                                name: name.clone(),
                                 description: field.node.description.clone().map(|x| x.node),
                                 args: if relation_array {
                                     pagination_arguments()
@@ -211,11 +226,11 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 relation,
                                 transformer,
                                 required_operation: None,
-                                auth: auth.clone(),
+                                auth: field_auth.get(&name).expect("must be set").clone(),
                             });
                         };
-                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at", auth.as_ref());
-                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at", auth.as_ref());
+                        insert_metadata_field(&mut fields, &type_name, "updatedAt", Some("when the model was updated".to_owned()), "DateTime!", "__updated_at", model_auth.as_ref());
+                        insert_metadata_field(&mut fields, &type_name, "createdAt", Some("when the model was created".to_owned()), "DateTime!", "__created_at", model_auth.as_ref());
 
                         fields
                     },
@@ -336,14 +351,14 @@ impl<'a> Visitor<'a> for ModelDirective {
                     }),
                     transformer: None,
                     required_operation: Some(Operations::GET),
-                    auth: auth.clone(),
+                    auth: model_auth.clone(),
                 });
 
-                add_create_mutation(ctx, &type_definition.node, object, &type_name, auth.as_ref());
-                add_update_mutation(ctx, &type_definition.node, object, &type_name, auth.as_ref());
+                add_create_mutation(ctx, &type_definition.node, object, &type_name, model_auth.as_ref());
+                add_update_mutation(ctx, &type_definition.node, object, &type_name, model_auth.as_ref());
 
-                add_list_query_paginated(ctx, &type_name, connection_edges, auth.as_ref());
-                add_remove_mutation(ctx, &type_name, auth.as_ref());
+                add_list_query_paginated(ctx, &type_name, connection_edges, model_auth.as_ref());
+                add_remove_mutation(ctx, &type_name, model_auth.as_ref());
             }
         }
     }
@@ -393,10 +408,11 @@ mod tests {
     }
 
     #[test]
-    fn should_handle_auth() {
+    fn should_handle_model_auth() {
         let schema = r#"
             type Todo @model @auth(rules: [ { allow: private } ]) {
                 id: ID!
+                title: String
             }
             "#;
 
@@ -406,6 +422,11 @@ mod tests {
         visit(&mut ModelDirective, &mut ctx, &schema);
 
         assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
+
+        let expected_model_auth = AuthConfig {
+            allowed_private_ops: Operations::all(),
+            ..Default::default()
+        };
 
         let tests = vec![
             ("TodoCreatePayload", "todo", Some(Operations::CREATE)),
@@ -420,6 +441,7 @@ mod tests {
             ("TodoEdge", "node", Some(Operations::LIST)),
             ("TodoEdge", "cursor", Some(Operations::LIST)),
             ("Todo", "id", None),
+            ("Todo", "title", None),
             ("Todo", "createdAt", None),
             ("Todo", "updatedAt", None),
         ];
@@ -428,15 +450,86 @@ mod tests {
 
         for t in tests {
             let field = types[t.0].field_by_name(t.1).unwrap();
-            assert_eq!(
-                field.auth.as_ref(),
-                Some(&AuthConfig {
-                    allowed_private_ops: Operations::all(),
-                    ..Default::default()
-                }),
-                "{t:?}",
-            );
+            assert_eq!(field.auth.as_ref(), Some(&expected_model_auth), "{t:?}",);
             assert_eq!(field.required_operation, t.2, "{t:?}");
+        }
+    }
+
+    #[test]
+    fn should_handle_field_auth() {
+        let schema = r#"
+            type Todo @model {
+                id: ID!
+                title: String @auth(rules: [{ allow: owner }])
+            }
+            "#;
+
+        let variables = HashMap::new();
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
+
+        let expected_field_auth = AuthConfig {
+            allowed_owner_ops: Operations::all(),
+            ..Default::default()
+        };
+
+        let tests = vec![
+            ("Todo", "id", None, None),
+            ("Todo", "title", Some(&expected_field_auth), None),
+            ("Todo", "createdAt", None, None),
+            ("Todo", "updatedAt", None, None),
+        ];
+
+        let types = &ctx.registry.borrow().types;
+
+        for t in tests {
+            let field = types[t.0].field_by_name(t.1).unwrap();
+            assert_eq!(field.auth.as_ref(), t.2, "{t:?}",);
+            assert_eq!(field.required_operation, t.3, "{t:?}");
+        }
+    }
+
+    #[test]
+    fn should_handle_model_and_field_auth() {
+        let schema = r#"
+            type Todo @model @auth(rules: [ { allow: private } ]) {
+                id: ID!
+                title: String @auth(rules: [{ allow: owner }])
+            }
+            "#;
+
+        let variables = HashMap::new();
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new_with_variables(&schema, &variables);
+        visit(&mut ModelDirective, &mut ctx, &schema);
+
+        assert!(ctx.errors.is_empty(), "errors: {:?}", ctx.errors);
+
+        let expected_model_auth = AuthConfig {
+            allowed_private_ops: Operations::all(),
+            ..Default::default()
+        };
+        let expected_field_auth = AuthConfig {
+            allowed_owner_ops: Operations::all(),
+            ..Default::default()
+        };
+
+        let tests = vec![
+            ("Todo", "id", Some(&expected_model_auth), None),
+            ("Todo", "title", Some(&expected_field_auth), None),
+            ("Todo", "createdAt", Some(&expected_model_auth), None),
+            ("Todo", "updatedAt", Some(&expected_model_auth), None),
+        ];
+
+        let types = &ctx.registry.borrow().types;
+
+        for t in tests {
+            let field = types[t.0].field_by_name(t.1).unwrap();
+            assert_eq!(field.auth.as_ref(), t.2, "{t:?}",);
+            assert_eq!(field.required_operation, t.3, "{t:?}");
         }
     }
 }

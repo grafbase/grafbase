@@ -6,7 +6,6 @@ use dynaql::ServerError;
 use dynaql_value::ConstValue;
 
 use super::operations::Operations;
-use crate::VisitorContext;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,7 +53,7 @@ pub enum AuthRule {
 }
 
 impl AuthRule {
-    pub fn from_value(_ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
+    pub fn from_value(value: &ConstValue) -> Result<Self, ServerError> {
         // We convert the value to JSON to leverage serde for deserialization
         let value = match value {
             ConstValue::Object(_) => value
