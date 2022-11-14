@@ -103,8 +103,7 @@ async fn transaction_by_pk(
             )) = err
             {
                 if msg.contains("ConditionalCheckFailed") {
-                    let reasons = transaction_cancelled_reasons(msg);
-                    if let Some(reasons) = reasons {
+                    if let Some(reasons) = transaction_cancelled_reasons(msg) {
                         for (index, reason) in reasons.iter().enumerate() {
                             if let TransactionCanceledReason::ConditionalCheckFailed = reason {
                                 if let TxItemMetadata::Unique { ref value, ref field } = tx[index].metadata {
