@@ -103,7 +103,7 @@ async fn transaction_by_pk(
             )) = err
             {
                 if msg.contains("ConditionalCheckFailed") {
-                    let reasons = transaction_cancelled_reasons(msg.clone());
+                    let reasons = transaction_cancelled_reasons(msg);
                     if let Some(reasons) = reasons {
                         for (index, reason) in reasons.iter().enumerate() {
                             if let TransactionCanceledReason::ConditionalCheckFailed = reason {
