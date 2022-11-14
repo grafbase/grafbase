@@ -418,14 +418,12 @@ mod tests {
         r#"
         schema @auth(
           providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
         ){
           query: Query
         }
         "#,
         HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
         dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::all(),
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
@@ -439,7 +437,6 @@ mod tests {
         r#"
         schema @auth(
           providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
         ){
           query: Query
         }
@@ -453,7 +450,6 @@ mod tests {
         r#"
         schema @auth(
           providers: [ { type: oidc, issuer: "{{ ISSUER_URL }}" } ]
-          rules: [ { allow: private } ]
         ){
           query: Query
         }
