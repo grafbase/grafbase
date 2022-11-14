@@ -20,7 +20,7 @@ use rules::unique_directive::UniqueDirective;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 pub use dynaql::registry::Registry;
-pub use migration_detection::RequiredMigration;
+pub use migration_detection::{required_migrations, RequiredMigration};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 

@@ -8,7 +8,16 @@ pub enum RequiredMigration {
     FieldMadeNonOptional { path: String },
 }
 
-#[allow(dead_code)] // FIXME: To be removed.
+impl std::fmt::Display for RequiredMigration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RequiredMigration::FieldMadeNonOptional { path } => {
+                write!(f, "field {path} cannot be made non-optional without a default value")
+            }
+        }
+    }
+}
+
 pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigration> {
     // FIXME: Simplify when https://github.com/rust-lang/rfcs/issues/1893 is accomplished.
     let from_type_names: BTreeSet<_> = from.types.keys().map(String::as_str).collect();
