@@ -5,7 +5,6 @@ use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
 use itertools::Itertools;
 use log::debug;
-use quick_error::quick_error;
 use rusoto_dynamodb::{DynamoDb, TransactWriteItem, TransactWriteItemsInput};
 use std::collections::HashMap;
 use std::hash::Hash;
@@ -53,7 +52,7 @@ impl Eq for TxItem {}
 pub enum TransactionError {
     #[error("An issue happened while applying the transaction.")]
     UnknownError,
-    #[error(r#"new: The value {value} is already taken on field "{field}""#)]
+    #[error(r#"The value {value} is already taken on field "{field}""#)]
     UniqueCondition { value: String, field: String },
 }
 
