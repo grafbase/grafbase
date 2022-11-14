@@ -424,7 +424,7 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT, 0), Utc);
+            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_IAT, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -450,8 +450,12 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NULL_GROUPS_IAT, 0), Utc);
+            let clock_fn = || {
+                DateTime::<Utc>::from_utc(
+                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_NULL_GROUPS_IAT, 0).unwrap(),
+                    Utc,
+                )
+            };
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -477,7 +481,12 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_GROUPS_IAT, 0), Utc);
+            let clock_fn = || {
+                DateTime::<Utc>::from_utc(
+                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_GROUPS_IAT, 0).unwrap(),
+                    Utc,
+                )
+            };
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -504,7 +513,8 @@ mod tests {
         let client = {
             let leeway = Duration::seconds(5);
             // now == nbf which is 10s before the issue date.
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_IAT - 10, 0), Utc);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_IAT - 10, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -527,7 +537,8 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_FROM_AUTH0_IAT, 0), Utc);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_FROM_AUTH0_IAT, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
@@ -554,8 +565,12 @@ mod tests {
 
         let client = {
             let leeway = Duration::seconds(5);
-            let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp(TOKEN_WITH_NESTED_GROUPS_IAT, 0), Utc);
+            let clock_fn = || {
+                DateTime::<Utc>::from_utc(
+                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_NESTED_GROUPS_IAT, 0).unwrap(),
+                    Utc,
+                )
+            };
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 ignore_iss_claim: true,
