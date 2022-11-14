@@ -9,6 +9,7 @@ use super::{
 use crate::constant::{self, PK, SK};
 use crate::model::constraint::db::ConstraintID;
 use crate::model::node::NodeID;
+use crate::transaction::TxItemMetadata;
 use crate::TxItem;
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 use chrono::{SecondsFormat, Utc};
@@ -56,6 +57,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: TransactWriteItem {
                     put: Some(Put {
                         table_name: ctx.dynamodb_table_name.clone(),
@@ -138,6 +140,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: update_transaction,
             });
 
@@ -180,6 +183,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: TransactWriteItem {
                     delete: Some(delete_transaction),
                     ..Default::default()
@@ -278,6 +282,7 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: update_transaction,
             };
 
@@ -321,6 +326,7 @@ impl ExecuteChangesOnDatabase for DeleteAllRelationsInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: TransactWriteItem {
                     delete: Some(delete_transaction),
                     ..Default::default()
@@ -383,6 +389,7 @@ impl ExecuteChangesOnDatabase for DeleteMultipleRelationsInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: update_transaction,
             };
 
@@ -459,6 +466,7 @@ impl ExecuteChangesOnDatabase for UpdateRelationInternalInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: update_transaction,
             };
 
@@ -502,6 +510,7 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: TransactWriteItem {
                     delete: Some(delete_transaction),
                     ..Default::default()
@@ -549,6 +558,10 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 pk: id.to_string(),
                 sk: id.to_string(),
                 relation_name: None,
+                metadata: TxItemMetadata::Unique {
+                    value: id.value().to_string(),
+                    field: id.field().to_string(),
+                },
                 transaction: TransactWriteItem {
                     // We can do a Put here because we only have the Unique constraint, as soon
                     // as we have other cnstraints sharing the same row in db, we'll need to
@@ -636,6 +649,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
                 pk,
                 sk,
                 relation_name: None,
+                metadata: TxItemMetadata::None,
                 transaction: update_transaction,
             });
 

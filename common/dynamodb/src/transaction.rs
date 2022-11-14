@@ -14,10 +14,17 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 #[derive(Clone, Debug)]
+pub enum TxItemMetadata {
+    Unique { value: String, field: String },
+    None,
+}
+
+#[derive(Clone, Debug)]
 pub struct TxItem {
     pub pk: String,
     pub sk: String,
     pub relation_name: Option<String>,
+    pub metadata: TxItemMetadata,
     pub transaction: TransactWriteItem,
 }
 
@@ -63,6 +70,7 @@ async fn transaction_by_pk(
         return_consumed_capacity: None,
         return_item_collection_metrics: None,
         transact_items: tx
+            .clone()
             .into_iter()
             .map(|x| {
                 result_hashmap.insert(x.clone(), AttributeValue::default());
@@ -87,17 +95,16 @@ async fn transaction_by_pk(
                     ctx.trace_id,
                     "Error writing items in transaction due to ConditionalCheckFailed: {err:?}"
                 );
-                // let reasons = transaction_cancelled_reasons(msg.clone());
-                // if let Some(reasons) = reasons {
-                //     for (index, reason) in reasons.iter().enumerate() {
-                //         if let TransactionCanceledReason::ConditionalCheckFailed = reason {
-                input.transact_items.iter().for_each(|item| {
-                    log::warn!(ctx.trace_id, "Condition: {:#?}", item);
-                });
-
-                //}
-                //     }
-                // }
+                let reasons = transaction_cancelled_reasons(msg.clone());
+                if let Some(reasons) = reasons {
+                    for (index, reason) in reasons.iter().enumerate() {
+                        if let TransactionCanceledReason::ConditionalCheckFailed = reason {
+                            if let TxItemMetadata::Unique { ref value, ref field } = tx[index].metadata {
+                                log::warn!(ctx.trace_id, "Unique issue: value: {value}, field: {field}",)
+                            }
+                        }
+                    }
+                }
             }
             _ => {
                 log::error!(ctx.trace_id, "Error writing items in transaction: {err:?}");
