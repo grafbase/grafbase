@@ -535,4 +535,54 @@ mod tests {
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
         }
     );
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "HS512",
+        "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV"  # Confirmed bug, Clerk shouldn't include this
+      },
+      "payload": {
+        "exp": 1668508114,
+        "groups": [
+          "admin",
+          "backend"
+        ],
+        "iat": 1668507514,
+        "iss": "https://clerk.grafbase-vercel.dev",
+        "jti": "30350be995fb0329849f",
+        "nbf": 1668507509,
+        "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
+      }
+    }
+    */
+    #[tokio::test]
+    async fn token_signed_with_secret() {
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_668_507_514, 0).unwrap(), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                groups_claim: Some("groups".to_string()),
+                signing_key: Some("topsecret".to_string()),
+                ..Default::default()
+            }
+        };
+
+        assert_eq!(
+            client
+                .verify_token(
+                    "eyJhbGciOiJIUzUxMiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2Njg1MDgxMTQsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NTA3NTE0LCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiIzMDM1MGJlOTk1ZmIwMzI5ODQ5ZiIsIm5iZiI6MTY2ODUwNzUwOSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.2MTRBJ8tVjxd8bXMVOkXaN6m1xODwCgUpCqIxmis6UTCGYXeDQJ38v97mTmtT0OYxVZUGliJ5WI-a1yfgegONQ",
+                    Url::parse("https://clerk.grafbase-vercel.dev").unwrap()
+                )
+                .await
+                .unwrap(),
+            VerifiedToken {
+                identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
+                groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
+            }
+        );
+    }
 }
