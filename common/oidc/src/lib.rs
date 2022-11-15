@@ -224,7 +224,6 @@ impl Client {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assert_matches::assert_matches;
     use chrono::{DateTime, Duration, NaiveDateTime, Utc};
     use serde_json::json;
     use wiremock::matchers::{method, path};
@@ -416,175 +415,113 @@ mod tests {
             .await;
     }
 
-    #[tokio::test]
-    async fn test_verify_token() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-        set_up_mock_server(&issuer, &server).await;
+    macro_rules! verify_test {
+        ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $expect:expr) => {
+            #[tokio::test]
+            async fn $fn_name() {
+                let server = MockServer::start().await;
+                let issuer: Url = server.uri().parse().unwrap();
+                set_up_mock_server(&issuer, &server).await;
 
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_IAT, 0).unwrap(), Utc);
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                ..Default::default()
+                let client = {
+                    let leeway = Duration::seconds(5);
+                    let clock_fn =
+                        || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
+                    Client {
+                        time_opts: TimeOptions::new(leeway, clock_fn),
+                        ignore_iss_claim: true,
+                        groups_claim: $groups_claim,
+                        ..Default::default()
+                    }
+                };
+
+                assert_eq!(client.verify_token($token, issuer).await.unwrap(), $expect);
             }
         };
-
-        assert_eq!(
-            client.verify_token(TOKEN, issuer).await.unwrap(),
-            VerifiedToken {
-                identity: TOKEN_SUB.to_string(),
-                groups: HashSet::new(),
-            }
-        );
     }
 
-    #[tokio::test]
-    async fn test_verify_token_with_null_groups() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
+    macro_rules! verify_fail {
+        ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $err:literal) => {
+            #[tokio::test]
+            async fn $fn_name() {
+                let server = MockServer::start().await;
+                let issuer: Url = server.uri().parse().unwrap();
+                set_up_mock_server(&issuer, &server).await;
 
-        set_up_mock_server(&issuer, &server).await;
+                let client = {
+                    let leeway = Duration::seconds(5);
+                    let clock_fn =
+                        || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
+                    Client {
+                        time_opts: TimeOptions::new(leeway, clock_fn),
+                        ignore_iss_claim: true,
+                        groups_claim: $groups_claim,
+                        ..Default::default()
+                    }
+                };
 
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn = || {
-                DateTime::<Utc>::from_utc(
-                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_NULL_GROUPS_IAT, 0).unwrap(),
-                    Utc,
-                )
-            };
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                groups_claim: Some("groups".to_string()),
-                ..Default::default()
+                assert_eq!(
+                    client.verify_token($token, issuer).await.unwrap_err().to_string(),
+                    $err
+                );
             }
         };
-
-        assert_eq!(
-            client.verify_token(TOKEN_WITH_NULL_GROUPS, issuer).await.unwrap(),
-            VerifiedToken {
-                identity: TOKEN_SUB.to_string(),
-                groups: HashSet::new(),
-            }
-        );
     }
 
-    #[tokio::test]
-    async fn test_verify_token_with_groups() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-        set_up_mock_server(&issuer, &server).await;
+    verify_test!(
+        basic_token,
+        TOKEN,
+        TOKEN_IAT,
+        None,
+        VerifiedToken {
+            identity: TOKEN_SUB.to_string(),
+            groups: HashSet::new(),
+        }
+    );
 
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn = || {
-                DateTime::<Utc>::from_utc(
-                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_GROUPS_IAT, 0).unwrap(),
-                    Utc,
-                )
-            };
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                groups_claim: Some("groups".to_string()),
-                ..Default::default()
-            }
-        };
+    verify_test!(
+        token_with_null_groups,
+        TOKEN_WITH_NULL_GROUPS,
+        TOKEN_WITH_NULL_GROUPS_IAT,
+        Some("groups".to_string()),
+        VerifiedToken {
+            identity: TOKEN_SUB.to_string(),
+            groups: HashSet::new(),
+        }
+    );
 
-        assert_eq!(
-            client.verify_token(TOKEN_WITH_GROUPS, issuer).await.unwrap(),
-            VerifiedToken {
-                identity: TOKEN_SUB.to_string(),
-                groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
-            }
-        );
-    }
+    verify_test!(
+        token_with_groups,
+        TOKEN_WITH_GROUPS,
+        TOKEN_WITH_GROUPS_IAT,
+        Some("groups".to_string()),
+        VerifiedToken {
+            identity: TOKEN_SUB.to_string(),
+            groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
+        }
+    );
 
-    #[tokio::test]
-    async fn test_verify_token_from_future() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-        set_up_mock_server(&issuer, &server).await;
+    verify_test!(
+        token_from_auth0,
+        TOKEN_FROM_AUTH0,
+        TOKEN_FROM_AUTH0_IAT,
+        Some("https://grafbase\\.com/jwt/claims/groups".to_string()),
+        VerifiedToken {
+            identity: TOKEN_FROM_AUTH0_SUB.to_string(),
+            groups: vec!["admin".to_string()].into_iter().collect(),
+        }
+    );
 
-        let client = {
-            let leeway = Duration::seconds(5);
-            // now == nbf which is 10s before the issue date.
-            let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_IAT - 10, 0).unwrap(), Utc);
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                ..Default::default()
-            }
-        };
+    verify_test!(
+        token_with_nested_groups,
+        TOKEN_WITH_NESTED_GROUPS,
+        TOKEN_WITH_NESTED_GROUPS_IAT,
+        Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles".to_string()),
+        VerifiedToken {
+            identity: TOKEN_WITH_NESTED_GROUPS_SUB.to_string(),
+            groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
+        }
+    );
 
-        assert_matches!(
-            client.verify_token(TOKEN, issuer).await,
-            Err(VerificationError::InvalidIssueTime)
-        );
-    }
-
-    #[tokio::test]
-    async fn test_verify_token_from_auth0() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-
-        set_up_mock_server(&issuer, &server).await;
-
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(TOKEN_FROM_AUTH0_IAT, 0).unwrap(), Utc);
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                groups_claim: Some("https://grafbase\\.com/jwt/claims/groups".to_string()),
-                ..Default::default()
-            }
-        };
-
-        assert_eq!(
-            client.verify_token(TOKEN_FROM_AUTH0, issuer).await.unwrap(),
-            VerifiedToken {
-                identity: TOKEN_FROM_AUTH0_SUB.to_string(),
-                groups: vec!["admin".to_string()].into_iter().collect(),
-            }
-        );
-    }
-
-    #[tokio::test]
-    async fn test_verify_token_with_nested_groups() {
-        let server = MockServer::start().await;
-        let issuer: Url = server.uri().parse().unwrap();
-
-        set_up_mock_server(&issuer, &server).await;
-
-        let client = {
-            let leeway = Duration::seconds(5);
-            let clock_fn = || {
-                DateTime::<Utc>::from_utc(
-                    NaiveDateTime::from_timestamp_opt(TOKEN_WITH_NESTED_GROUPS_IAT, 0).unwrap(),
-                    Utc,
-                )
-            };
-            Client {
-                time_opts: TimeOptions::new(leeway, clock_fn),
-                ignore_iss_claim: true,
-                groups_claim: Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles".to_string()),
-                ..Default::default()
-            }
-        };
-
-        assert_eq!(
-            client.verify_token(TOKEN_WITH_NESTED_GROUPS, issuer).await.unwrap(),
-            VerifiedToken {
-                identity: TOKEN_WITH_NESTED_GROUPS_SUB.to_string(),
-                groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
-            }
-        );
-    }
+    verify_fail!(token_from_future, TOKEN, TOKEN_IAT - 10, None, "invalid issue time");
 }
