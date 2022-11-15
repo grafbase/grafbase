@@ -1,8 +1,11 @@
 node_modules
 dist
 
+.solid
 .cache
 .env
 .vercel
 .output
 .DS_Store
+
+.grafbase

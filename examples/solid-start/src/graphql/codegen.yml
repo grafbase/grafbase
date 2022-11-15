@@ -1,7 +1,7 @@
 schema:
-  - ${GRAFBASE_API_URL}:
+  - ${VITE_GRAFBASE_API_URL}:
       headers:
-        x-api-key: ${GRAFBASE_API_KEY}
+        x-api-key: ${VITE_GRAFBASE_API_KEY}
 documents: ./src/graphql/document.graphql
 generates:
   ./src/graphql/schema.ts:

@@ -1,3 +1,8 @@
 import { GraphQLClient } from 'graphql-request'
 
-export const grafbase = new GraphQLClient('http://127.0.0.1:4000/graphql')
+const endpoint = import.meta.env.VITE_GRAFBASE_API_URL
+const apiKey = import.meta.env.VITE_GRAFBASE_API_KEY
+
+export const grafbase = new GraphQLClient(endpoint, {
+  headers: { 'x-api-key': apiKey }
+})
