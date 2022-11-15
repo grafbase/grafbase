@@ -6,4 +6,12 @@ import PencilIcon from './pencil-icon'
 import TrashIcon from './trash-icon'
 import SpinnerIcon from './spinner-icon'
 
-export { GrafbaseLogo, SunIcon, MoonIcon, DotsVerticalIcon, PencilIcon, TrashIcon, SpinnerIcon }
+export {
+  GrafbaseLogo,
+  SunIcon,
+  MoonIcon,
+  DotsVerticalIcon,
+  PencilIcon,
+  TrashIcon,
+  SpinnerIcon
+}

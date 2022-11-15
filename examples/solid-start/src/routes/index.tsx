@@ -19,8 +19,10 @@ const App = () => {
 
   return (
     <Layout>
-      <div class='flex gap-6'>
-        <For each={todoLists()}>{(list) => !!list?.node && <TodoList {...list.node} />}</For>
+      <div class="flex gap-6">
+        <For each={todoLists()}>
+          {(list) => !!list?.node && <TodoList {...list.node} />}
+        </For>
         <TodoListCreate />
       </div>
     </Layout>

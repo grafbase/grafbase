@@ -35,7 +35,9 @@ mutation TodoListCreate($title: String!) {
 }
 
 mutation TodoCreate($title: String!, $todoListId: ID!) {
-  todoCreate(input: { title: $title, complete: false, list: { link: $todoListId } }) {
+  todoCreate(
+    input: { title: $title, complete: false, list: { link: $todoListId } }
+  ) {
     todo {
       ...Todo
     }

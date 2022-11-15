@@ -1,4 +1,14 @@
-const colors = ['#9747FF', '#FFAA47', '#be123c', '#b45309', '#a21caf', '#4d7c0f', '#6d28d9', '#0f766e', '#1d4ed8']
+const colors = [
+  '#9747FF',
+  '#FFAA47',
+  '#be123c',
+  '#b45309',
+  '#a21caf',
+  '#4d7c0f',
+  '#6d28d9',
+  '#0f766e',
+  '#1d4ed8'
+]
 
 let assignedColors: Record<string, string> = {}
 
@@ -7,7 +17,8 @@ const getColor = (id: string) => {
     return assignedColors[id]
   }
 
-  assignedColors[id] = colors[Object.keys(assignedColors).length % colors.length]
+  assignedColors[id] =
+    colors[Object.keys(assignedColors).length % colors.length]
 
   return assignedColors[id]
 }
