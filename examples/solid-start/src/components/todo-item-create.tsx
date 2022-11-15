@@ -3,7 +3,7 @@ import { Mutation, TodoCreateDocument } from '~/graphql/schema'
 import { grafbase } from '~/utils/grafbase'
 
 const TodoItemCreate = ({ todoListId }: { todoListId: string }) => {
-  const [{ pending }, { Form }] = createServerAction$(
+  const [creatingTodo, createTodo] = createServerAction$(
     async (form: FormData) => {
       const vars = Object.fromEntries(form)
       await grafbase.request<Mutation>(TodoCreateDocument, vars)
@@ -14,14 +14,14 @@ const TodoItemCreate = ({ todoListId }: { todoListId: string }) => {
   let inputRef: HTMLInputElement
 
   return (
-    <Form
+    <createTodo.Form
       onSubmit={(e) => {
         if (!inputRef.value.trim()) e.preventDefault()
         setTimeout(() => (inputRef.value = ''))
       }}
       class="p-3 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-800"
     >
-      <fieldset disabled={pending} class="flex space-x-2">
+      <fieldset disabled={creatingTodo.pending} class="flex space-x-2">
         <input type="hidden" name="todoListId" value={todoListId} hidden />
         <input
           ref={inputRef}
@@ -33,13 +33,13 @@ const TodoItemCreate = ({ todoListId }: { todoListId: string }) => {
         />
         <button
           type="submit"
-          disabled={pending}
+          disabled={creatingTodo.pending}
           class="px-2 py-1 text-sm text-white bg-blue-800 rounded-md whitespace-nowrap disabled:bg-blue-400 min-w-[80px]"
         >
-          {pending ? 'Adding...' : 'Add Todo'}
+          {creatingTodo.pending ? 'Adding...' : 'Add Todo'}
         </button>
       </fieldset>
-    </Form>
+    </createTodo.Form>
   )
 }
 

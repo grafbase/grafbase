@@ -1,7 +1,8 @@
-import { For } from 'solid-js'
+import { For, Show } from 'solid-js'
 import { createServerAction$, redirect } from 'solid-start/server'
 import { Dropdown, DropdownItem } from '~/components/dropdown'
 import { DotsVerticalIcon, PencilIcon, TrashIcon } from '~/components/icons'
+import Spinner from '~/components/spinner'
 import TodoItem from '~/components/todo-item'
 import TodoItemCreate from '~/components/todo-item-create'
 import {
@@ -63,37 +64,39 @@ const TodoList = (props: TodoListFragment) => {
           </h2>
         </updateTodoList.Form>
         <div class="relative z-20">
-          <Dropdown
-            trigger={
-              <DotsVerticalIcon class="w-5 h-5 text-gray-400 transition hover:text-red-400" />
-            }
-          >
-            <DropdownItem>
-              <div class="group px-2 py-2 rounded-md hover:bg-emerald-200 hover:dark:bg-emerald-700">
-                <button
-                  onClick={() => setTimeout(() => inputRef.focus())}
-                  class="flex items-center w-full text-sm"
-                >
-                  <PencilIcon class="w-5 h-5 mr-3" aria-hidden="true" />
-                  Rename
-                </button>
-              </div>
-            </DropdownItem>
-            <DropdownItem>
-              <deleteTodoList.Form class="group px-2 py-2 rounded-md hover:bg-emerald-200 hover:dark:bg-emerald-700">
-                <input type="hidden" name="id" value={props.id} hidden />
-                <button
-                  type="submit"
-                  aria-label="Delete todo list"
-                  disabled={deletingTodoList.pending}
-                  class="flex items-center w-full text-sm"
-                >
-                  <TrashIcon class="w-5 h-5 mr-3" aria-hidden="true" />
-                  Delete
-                </button>
-              </deleteTodoList.Form>
-            </DropdownItem>
-          </Dropdown>
+          <Show when={!deletingTodoList.pending} fallback={<Spinner />}>
+            <Dropdown
+              trigger={
+                <DotsVerticalIcon class="w-5 h-5 text-gray-400 transition hover:text-red-400" />
+              }
+            >
+              <DropdownItem>
+                <div class="group px-2 py-2 rounded-md hover:bg-emerald-200 hover:dark:bg-emerald-700">
+                  <button
+                    onClick={() => setTimeout(() => inputRef.focus())}
+                    class="flex items-center w-full text-sm"
+                  >
+                    <PencilIcon class="w-5 h-5 mr-3" aria-hidden="true" />
+                    Rename
+                  </button>
+                </div>
+              </DropdownItem>
+              <DropdownItem>
+                <deleteTodoList.Form class="group px-2 py-2 rounded-md hover:bg-emerald-200 hover:dark:bg-emerald-700">
+                  <input type="hidden" name="id" value={props.id} hidden />
+                  <button
+                    type="submit"
+                    aria-label="Delete todo list"
+                    disabled={deletingTodoList.pending}
+                    class="flex items-center w-full text-sm"
+                  >
+                    <TrashIcon class="w-5 h-5 mr-3" aria-hidden="true" />
+                    Delete
+                  </button>
+                </deleteTodoList.Form>
+              </DropdownItem>
+            </Dropdown>
+          </Show>
         </div>
       </div>
       <div class="space-y-4">

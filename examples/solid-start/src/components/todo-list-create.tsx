@@ -3,7 +3,7 @@ import { Mutation, TodoListCreateDocument } from '~/graphql/schema'
 import { grafbase } from '~/utils/grafbase'
 
 const TodoListCreate = () => {
-  const [{ pending }, { Form }] = createServerAction$(
+  const [creatingTodoList, createTodoList] = createServerAction$(
     async (form: FormData) => {
       const vars = Object.fromEntries(form)
       await grafbase.request<Mutation>(TodoListCreateDocument, vars)
@@ -14,7 +14,7 @@ const TodoListCreate = () => {
   let inputRef: HTMLInputElement
 
   return (
-    <Form
+    <createTodoList.Form
       onSubmit={(e) => {
         if (!inputRef.value.trim()) e.preventDefault()
         setTimeout(() => (inputRef.value = ''))
@@ -24,7 +24,7 @@ const TodoListCreate = () => {
       <h2 class="text-xl font-bold text-gray-900 dark:text-gray-300">
         New List
       </h2>
-      <fieldset disabled={pending} class="flex space-x-2">
+      <fieldset disabled={creatingTodoList.pending} class="flex space-x-2">
         <input
           ref={inputRef}
           required
@@ -35,13 +35,13 @@ const TodoListCreate = () => {
         />
         <button
           type="submit"
-          disabled={pending}
+          disabled={creatingTodoList.pending}
           class="px-5 py-1 text-sm text-white bg-purple-600 rounded-md disabled:bg-purple-500 min-w-[110px]"
         >
-          {pending ? 'Creating...' : 'Create'}
+          {creatingTodoList.pending ? 'Creating...' : 'Create'}
         </button>
       </fieldset>
-    </Form>
+    </createTodoList.Form>
   )
 }
 

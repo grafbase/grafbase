@@ -1,5 +1,7 @@
+import { Show } from 'solid-js'
 import { createServerAction$, redirect } from 'solid-start/server'
 import { TrashIcon } from '~/components/icons'
+import Spinner from '~/components/spinner'
 import {
   Mutation,
   TodoDeleteDocument,
@@ -89,17 +91,19 @@ const TodoItem = (props: Props) => {
               />
             </fieldset>
           </updateTodo.Form>
-          <deleteTodo.Form>
-            <input type="hidden" name="id" value={props.id} hidden />
-            <button
-              type="submit"
-              aria-label="Delete todo"
-              disabled={deletingTodo.pending}
-              class="text-gray-400 transition hover:text-red-400"
-            >
-              <TrashIcon class="w-4 h-4" />
-            </button>
-          </deleteTodo.Form>
+          <Show when={!deletingTodo.pending} fallback={<Spinner />}>
+            <deleteTodo.Form>
+              <input type="hidden" name="id" value={props.id} hidden />
+              <button
+                type="submit"
+                aria-label="Delete todo"
+                disabled={deletingTodo.pending}
+                class="text-gray-400 transition hover:text-red-400"
+              >
+                <TrashIcon class="w-4 h-4" />
+              </button>
+            </deleteTodo.Form>
+          </Show>
         </div>
         <div class="flex justify-between mt-2 text-sm">
           <div
