@@ -47,7 +47,7 @@ impl std::str::FromStr for DynamicString {
             overall_match.end()
         });
 
-        if last_end != string.len() {
+        if last_end != string.len() || string.is_empty() {
             segments.push(DynamicStringSegment::Literal(string[last_end..].to_string()));
         }
 
@@ -87,7 +87,6 @@ impl DynamicString {
     pub fn as_fully_evaluated_str(&self) -> Option<&str> {
         match self.0.as_slice() {
             [DynamicStringSegment::Literal(literal)] => Some(literal.as_str()),
-            [] => Some(""),
             _ => None,
         }
     }
