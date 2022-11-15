@@ -229,126 +229,6 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    /* TOKEN decoded:
-    {
-      "header": {
-        "typ": "JWT",
-        "alg": "RS256",
-        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
-      },
-      "payload": {
-        "azp": "https://grafbase.dev",
-        "exp": 1656946485,
-        "iat": 1656946425,
-        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
-        "nbf": 1656946415,
-        "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
-        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
-      }
-    }
-    */
-    const TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
-    const TOKEN_IAT: i64 = 1_656_946_425;
-    const TOKEN_SUB: &str = "user_25sYSVDXCrWW58OusREXyl4zp30";
-
-    /* TOKEN_WITH_GROUPS decoded:
-    {
-      "header": {
-        "typ": "JWT",
-        "alg": "RS256",
-        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
-      },
-      "payload": {
-        "exp": 1658142514,
-        "groups": [
-          "admin",
-          "moderator"
-        ],
-        "iat": 1658141914,
-        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
-        "jti": "ec0ffff724347261740b",
-        "nbf": 1658141909,
-        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
-      }
-    }
-    */
-    const TOKEN_WITH_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA";
-    const TOKEN_WITH_GROUPS_IAT: i64 = 1_658_141_914;
-
-    /* TOKEN_WITH_NULL_GROUPS decoded:
-    {
-      "header": {
-        "typ": "JWT",
-        "alg": "RS256",
-        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
-      },
-      "payload": {
-        "exp": 1660041574,
-        "groups": null,
-        "iat": 1660040974,
-        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
-        "jti": "1c976f3586fe343c146b",
-        "nbf": 1660040969,
-        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
-      }
-    }
-    */
-    const TOKEN_WITH_NULL_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg";
-    const TOKEN_WITH_NULL_GROUPS_IAT: i64 = 1_660_040_974;
-
-    /* TOKEN_FROM_AUTH0 decoded:
-    {
-      "header": {
-        "typ": "JWT",
-        "alg": "RS256",
-        "kid": "-PStdICfaqAFdUnDSq63E"
-      },
-      "payload": {
-        "aud": "https://grafbase.com",
-        "azp": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P",
-        "exp": 1665047074,
-        "gty": "client-credentials",
-        "https://grafbase.com/jwt/claims/groups": [
-          "admin"
-        ],
-        "iat": 1664960674,
-        "iss": "https://gb-oidc.eu.auth0.com/",
-        "sub": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients"
-      }
-    }
-    */
-    const TOKEN_FROM_AUTH0: &str = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJodHRwczovL2dyYWZiYXNlLmNvbS9qd3QvY2xhaW1zL2dyb3VwcyI6WyJhZG1pbiJdLCJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2NDk2MDY3NCwiZXhwIjoxNjY1MDQ3MDc0LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.HI8mxp_05-GpXHewW7_noFkUcwm0vkTf_gdmfCxh8SlNGFEZycgT_l235nfZleQ4GfsTaP0yLvpvBn5pMdHRcUnAlImvALOXAFfnYFbvwjZP0vhqfz7-vNtMdoUlOyyaxWd0idVimVPJDHmZc0lWYuUks69BdEUXyJm19XzhPodi3HtLqiF7zPOflmiOAsZjSMc5jkqVO8qv39j9WpfStr0XO97n4vGOPoA1RPenYighbethBH6tWOph2Lp7gx1HUByHQwu5GlLeDKJO-n-dAV3xAUcVKtIh_u5Yd6gofC1HTdUjWjzjrpv9SpzrqDcmzaY1WPKi-7Il17TjgXT4kA";
-    const TOKEN_FROM_AUTH0_IAT: i64 = 1_664_960_674;
-    const TOKEN_FROM_AUTH0_SUB: &str = "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients";
-
-    /* TOKEN_WITH_NESTED_GROUPS decoded:
-    {
-      "header": {
-        "typ": "JWT",
-        "alg": "RS256",
-        "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV"
-      },
-      "payload": {
-        "exp": 1666715083,
-        "https://grafbase.com/jwt/claims": {
-          "x-grafbase-allowed-roles": [
-            "editor",
-            "user",
-            "mod"
-          ]
-        },
-        "iat": 1666714483,
-        "iss": "https://clerk.grafbase-vercel.dev",
-        "jti": "918f9036d1b5aa2a159a",
-        "nbf": 1666714478,
-        "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
-      }
-    }
-    */
-    const TOKEN_WITH_NESTED_GROUPS: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjY3MTUwODMsImh0dHBzOi8vZ3JhZmJhc2UuY29tL2p3dC9jbGFpbXMiOnsieC1ncmFmYmFzZS1hbGxvd2VkLXJvbGVzIjpbImVkaXRvciIsInVzZXIiLCJtb2QiXX0sImlhdCI6MTY2NjcxNDQ4MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5ncmFmYmFzZS12ZXJjZWwuZGV2IiwianRpIjoiOTE4ZjkwMzZkMWI1YWEyYTE1OWEiLCJuYmYiOjE2NjY3MTQ0NzgsInN1YiI6InVzZXJfMkU0c1Jqb2tuMnIxNFJMd2hFdmpWc0hnQ21HIn0.jA1pmbIBn_Vkos5-irFyFhwyq4OvxnkMcs8y_joWGmGnabS9I2YM5QBP-l7ZuFY9G8b5Up_Jzr0C1IsoIr0P3fM6yGdwe8MXEvZyKRXDbScq0sUvsMJTn2FJrUL0NgE-2fOVh-H0CNqDx2c584mYDgeMGXg2po_JAhszmqqLYC8KyypF2Y_j6jtyW6kiE_nbdRLINz-lEP3Wvmy60qeZHwDX4CzcME_y7avM10vTpqSoojuaoEKdCQh7tEKIpgCI0CdDx31B_bKaHPJ3nDw8fTZQ5HxK4YXkRPIdxMjG3Dby4EKuvvegZQDoASE4gUyPJ0qBgeOXUNdf5Vk6DJX9sQ";
-    const TOKEN_WITH_NESTED_GROUPS_IAT: i64 = 1_666_714_483;
-    const TOKEN_WITH_NESTED_GROUPS_SUB: &str = "user_2E4sRjokn2r14RLwhEvjVsHgCmG";
-
     async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         const JWKS_PATH: &str = "/.well-known/jwks.json";
         let jwks_uri = issuer.join(JWKS_PATH).unwrap();
@@ -468,6 +348,28 @@ mod tests {
         };
     }
 
+    /* TOKEN decoded:
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "azp": "https://grafbase.dev",
+        "exp": 1656946485,
+        "iat": 1656946425,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "nbf": 1656946415,
+        "sid": "sess_2BCiGPhgXZgAV00KfPrD3KSAHCO",
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+    */
+    const TOKEN: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwczovL2dyYWZiYXNlLmRldiIsImV4cCI6MTY1Njk0NjQ4NSwiaWF0IjoxNjU2OTQ2NDI1LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJuYmYiOjE2NTY5NDY0MTUsInNpZCI6InNlc3NfMkJDaUdQaGdYWmdBVjAwS2ZQckQzS1NBSENPIiwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.CJBJD5zQIvM21YK9gSYiTjerJEyTGtwIPkG2sqicLT_GuWl7IYWGj4XPoJYLt1jYex16F5ChYapMhfYrIQq--P_0kj6DJhZ3sYrKwohRy-PFt_JJX7bsxoQG_3CdPAAPZO9WxeQnxfTYVJkAfKH2ZNGY1qvntDVZNDYEhrQIu5RKicJb0hv9gSgZSy1Q3l11mFiCS0PBiRk1QnS1xjS8aihq-Q0eQ_rWDXcoMfLbFpjLQ1LMgBDi5ihDRlCW9xouxVvW3qHWmpDW69hu2PwOIzSDByPGBsAcjwJACtZo8k2KkMkqNF1NGuhsSUZIFuNGJdtE4OVcv1VP2FIcyNqhsA";
+    const TOKEN_IAT: i64 = 1_656_946_425;
+    const TOKEN_SUB: &str = "user_25sYSVDXCrWW58OusREXyl4zp30";
+
     verify_test!(
         basic_token,
         TOKEN,
@@ -479,21 +381,33 @@ mod tests {
         }
     );
 
-    verify_test!(
-        token_with_null_groups,
-        TOKEN_WITH_NULL_GROUPS,
-        TOKEN_WITH_NULL_GROUPS_IAT,
-        Some("groups".to_string()),
-        VerifiedToken {
-            identity: TOKEN_SUB.to_string(),
-            groups: HashSet::new(),
-        }
-    );
+    verify_fail!(token_from_future, TOKEN, TOKEN_IAT - 10, None, "invalid issue time");
 
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "exp": 1658142514,
+        "groups": [
+          "admin",
+          "moderator"
+        ],
+        "iat": 1658141914,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "jti": "ec0ffff724347261740b",
+        "nbf": 1658141909,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+    */
     verify_test!(
         token_with_groups,
-        TOKEN_WITH_GROUPS,
-        TOKEN_WITH_GROUPS_IAT,
+        "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA",
+        1_658_141_914,
         Some("groups".to_string()),
         VerifiedToken {
             identity: TOKEN_SUB.to_string(),
@@ -501,27 +415,99 @@ mod tests {
         }
     );
 
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ"
+      },
+      "payload": {
+        "exp": 1660041574,
+        "groups": null,
+        "iat": 1660040974,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "jti": "1c976f3586fe343c146b",
+        "nbf": 1660040969,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30"
+      }
+    }
+    */
+    verify_test!(
+        token_with_null_groups,
+        "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg",
+        1_660_040_974,
+        Some("groups".to_string()),
+        VerifiedToken {
+            identity: TOKEN_SUB.to_string(),
+            groups: HashSet::new(),
+        }
+    );
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "-PStdICfaqAFdUnDSq63E"
+      },
+      "payload": {
+        "aud": "https://grafbase.com",
+        "azp": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P",
+        "exp": 1665047074,
+        "gty": "client-credentials",
+        "https://grafbase.com/jwt/claims/groups": [
+          "admin"
+        ],
+        "iat": 1664960674,
+        "iss": "https://gb-oidc.eu.auth0.com/",
+        "sub": "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients"
+      }
+    }
+    */
     verify_test!(
         token_from_auth0,
-        TOKEN_FROM_AUTH0,
-        TOKEN_FROM_AUTH0_IAT,
+        "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJodHRwczovL2dyYWZiYXNlLmNvbS9qd3QvY2xhaW1zL2dyb3VwcyI6WyJhZG1pbiJdLCJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2NDk2MDY3NCwiZXhwIjoxNjY1MDQ3MDc0LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.HI8mxp_05-GpXHewW7_noFkUcwm0vkTf_gdmfCxh8SlNGFEZycgT_l235nfZleQ4GfsTaP0yLvpvBn5pMdHRcUnAlImvALOXAFfnYFbvwjZP0vhqfz7-vNtMdoUlOyyaxWd0idVimVPJDHmZc0lWYuUks69BdEUXyJm19XzhPodi3HtLqiF7zPOflmiOAsZjSMc5jkqVO8qv39j9WpfStr0XO97n4vGOPoA1RPenYighbethBH6tWOph2Lp7gx1HUByHQwu5GlLeDKJO-n-dAV3xAUcVKtIh_u5Yd6gofC1HTdUjWjzjrpv9SpzrqDcmzaY1WPKi-7Il17TjgXT4kA",
+        1_664_960_674,
         Some("https://grafbase\\.com/jwt/claims/groups".to_string()),
         VerifiedToken {
-            identity: TOKEN_FROM_AUTH0_SUB.to_string(),
+            identity: "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string(),
             groups: vec!["admin".to_string()].into_iter().collect(),
         }
     );
 
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "RS256",
+        "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV"
+      },
+      "payload": {
+        "exp": 1666715083,
+        "https://grafbase.com/jwt/claims": {
+          "x-grafbase-allowed-roles": [
+            "editor",
+            "user",
+            "mod"
+          ]
+        },
+        "iat": 1666714483,
+        "iss": "https://clerk.grafbase-vercel.dev",
+        "jti": "918f9036d1b5aa2a159a",
+        "nbf": 1666714478,
+        "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
+      }
+    }
+    */
     verify_test!(
         token_with_nested_groups,
-        TOKEN_WITH_NESTED_GROUPS,
-        TOKEN_WITH_NESTED_GROUPS_IAT,
+        "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjY3MTUwODMsImh0dHBzOi8vZ3JhZmJhc2UuY29tL2p3dC9jbGFpbXMiOnsieC1ncmFmYmFzZS1hbGxvd2VkLXJvbGVzIjpbImVkaXRvciIsInVzZXIiLCJtb2QiXX0sImlhdCI6MTY2NjcxNDQ4MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5ncmFmYmFzZS12ZXJjZWwuZGV2IiwianRpIjoiOTE4ZjkwMzZkMWI1YWEyYTE1OWEiLCJuYmYiOjE2NjY3MTQ0NzgsInN1YiI6InVzZXJfMkU0c1Jqb2tuMnIxNFJMd2hFdmpWc0hnQ21HIn0.jA1pmbIBn_Vkos5-irFyFhwyq4OvxnkMcs8y_joWGmGnabS9I2YM5QBP-l7ZuFY9G8b5Up_Jzr0C1IsoIr0P3fM6yGdwe8MXEvZyKRXDbScq0sUvsMJTn2FJrUL0NgE-2fOVh-H0CNqDx2c584mYDgeMGXg2po_JAhszmqqLYC8KyypF2Y_j6jtyW6kiE_nbdRLINz-lEP3Wvmy60qeZHwDX4CzcME_y7avM10vTpqSoojuaoEKdCQh7tEKIpgCI0CdDx31B_bKaHPJ3nDw8fTZQ5HxK4YXkRPIdxMjG3Dby4EKuvvegZQDoASE4gUyPJ0qBgeOXUNdf5Vk6DJX9sQ",
+        1_666_714_483,
         Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles".to_string()),
         VerifiedToken {
-            identity: TOKEN_WITH_NESTED_GROUPS_SUB.to_string(),
+            identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
         }
     );
-
-    verify_fail!(token_from_future, TOKEN, TOKEN_IAT - 10, None, "invalid issue time");
 }
