@@ -15,7 +15,7 @@
 5. Open `.env` in your code editor, and provide your Grafbase API endpoint and API key
 6. Run `npm install`, or `yarn install` to install dependencies
 7. Run `npm run graphql`, or `yarn graphql` to generate types from Schema
-8. Run `vercel dev` and visit http://localhost:3000
+8. Run `npm run dev`, or `yarn dev` and visit http://localhost:3000
 
 ## Learn More About Grafbase
 
