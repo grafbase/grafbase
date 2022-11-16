@@ -50,12 +50,12 @@ struct CustomClaims {
 }
 
 #[derive(Default)]
-pub struct Client {
-    pub trace_id: String,
+pub struct Client<'a> {
+    pub trace_id: &'a str,
     pub http_client: surf::Client,
     pub time_opts: TimeOptions, // used for testing
     pub ignore_iss_claim: bool, // used for testing
-    pub groups_claim: Option<String>,
+    pub groups_claim: Option<&'a str>,
     pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
@@ -65,13 +65,13 @@ pub struct VerifiedToken {
     pub groups: HashSet<String>,
 }
 
-impl Client {
+impl<'a> Client<'a> {
     /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
     /// using OIDC discovery to retrieve the public key.
     pub async fn verify_rs_token<S: AsRef<str> + Send>(
         &self,
         token: S,
-        issuer: Url,
+        issuer: &'a Url,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey};
 
@@ -108,7 +108,7 @@ impl Client {
             log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
 
             // XXX: we might relax this requirement and ignore issuer altogether
-            if oidc_config.issuer != issuer {
+            if oidc_config.issuer != *issuer {
                 return Err(VerificationError::InvalidIssuerUrl);
             }
 
@@ -152,7 +152,7 @@ impl Client {
     pub async fn verify_hs_token<S: AsRef<str> + Send>(
         &self,
         token: S,
-        issuer: Url,
+        issuer: &'a Url,
         signing_key: &[u8],
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
@@ -175,9 +175,13 @@ impl Client {
         self.verify_claims(token.claims(), issuer)
     }
 
-    fn verify_claims(&self, claims: &Claims<CustomClaims>, issuer: Url) -> Result<VerifiedToken, VerificationError> {
+    fn verify_claims(
+        &self,
+        claims: &'a Claims<CustomClaims>,
+        issuer: &'a Url,
+    ) -> Result<VerifiedToken, VerificationError> {
         // Check "iss" claim
-        if !self.ignore_iss_claim && claims.custom.issuer != issuer {
+        if !self.ignore_iss_claim && claims.custom.issuer != *issuer {
             return Err(VerificationError::InvalidIssuerUrl);
         }
 
@@ -209,7 +213,7 @@ impl Client {
                     .custom
                     .extra
                     .dot_get_or_default::<HashSet<String>>(claim)
-                    .map_err(|_| VerificationError::InvalidGroups(claim.to_string()))
+                    .map_err(|_| VerificationError::InvalidGroups((*claim).to_string()))
             })
             .transpose()?
             .unwrap_or_default();
@@ -340,7 +344,7 @@ mod tests {
                     }
                 };
 
-                assert_eq!(client.verify_rs_token($token, issuer).await.unwrap(), $expect);
+                assert_eq!(client.verify_rs_token($token, &issuer).await.unwrap(), $expect);
             }
         };
     }
@@ -367,7 +371,7 @@ mod tests {
 
                 assert_eq!(
                     client
-                        .verify_rs_token($token, issuer)
+                        .verify_rs_token($token, &issuer)
                         .await
                         .unwrap_err()
                         .to_string(),
@@ -437,7 +441,7 @@ mod tests {
         token_with_groups,
         "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NTgxNDI1MTQsImdyb3VwcyI6WyJhZG1pbiIsIm1vZGVyYXRvciJdLCJpYXQiOjE2NTgxNDE5MTQsImlzcyI6Imh0dHBzOi8vY2xlcmsuYjc0djAuNXk2aGoubGNsLmRldiIsImp0aSI6ImVjMGZmZmY3MjQzNDcyNjE3NDBiIiwibmJmIjoxNjU4MTQxOTA5LCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCJ9.tnmYybDBENzLyGiSG4HFJQbTgOkx2MC4JyaywRksG-kDKLBnhfbJMwRULadzgAkQOFcmFJYsIYagK1VQ05HA4awy-Fq5WDSWyUWgde0SZTj12Fw6lKtlZp5FN8yRQI2h4l_zUMhG1Q0ZxPpzsxnAM5Y3TLVBmyxQeq5X8VdFbg24Ra5nFLXhTb3hTqCr6gmXQQ3kClseFgIWt-p57rv_7TSrnUe7dbSpNlqgcL1v3IquIlfGlIcS-G5jkkgKYwzclr3tYW3Eog0Vgm-HuCf-mvNCkZur3XA1SCaxJIoP0fNZK5DVsKfvSq574W1tzEV29DPN1i1j5CYmMU-sV-CmIA",
         1_658_141_914,
-        Some("groups".to_string()),
+        Some("groups"),
         VerifiedToken {
             identity: TOKEN_SUB.to_string(),
             groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
@@ -466,7 +470,7 @@ mod tests {
         token_with_null_groups,
         "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg",
         1_660_040_974,
-        Some("groups".to_string()),
+        Some("groups"),
         VerifiedToken {
             identity: TOKEN_SUB.to_string(),
             groups: HashSet::new(),
@@ -498,7 +502,7 @@ mod tests {
         token_from_auth0,
         "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ii1QU3RkSUNmYXFBRmRVbkRTcTYzRSJ9.eyJodHRwczovL2dyYWZiYXNlLmNvbS9qd3QvY2xhaW1zL2dyb3VwcyI6WyJhZG1pbiJdLCJpc3MiOiJodHRwczovL2diLW9pZGMuZXUuYXV0aDAuY29tLyIsInN1YiI6IlN2WHIxeVVpdnhYMDhBampqZ3h4NDYyakpZOXdxUDFQQGNsaWVudHMiLCJhdWQiOiJodHRwczovL2dyYWZiYXNlLmNvbSIsImlhdCI6MTY2NDk2MDY3NCwiZXhwIjoxNjY1MDQ3MDc0LCJhenAiOiJTdlhyMXlVaXZ4WDA4QWpqamd4eDQ2MmpKWTl3cVAxUCIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.HI8mxp_05-GpXHewW7_noFkUcwm0vkTf_gdmfCxh8SlNGFEZycgT_l235nfZleQ4GfsTaP0yLvpvBn5pMdHRcUnAlImvALOXAFfnYFbvwjZP0vhqfz7-vNtMdoUlOyyaxWd0idVimVPJDHmZc0lWYuUks69BdEUXyJm19XzhPodi3HtLqiF7zPOflmiOAsZjSMc5jkqVO8qv39j9WpfStr0XO97n4vGOPoA1RPenYighbethBH6tWOph2Lp7gx1HUByHQwu5GlLeDKJO-n-dAV3xAUcVKtIh_u5Yd6gofC1HTdUjWjzjrpv9SpzrqDcmzaY1WPKi-7Il17TjgXT4kA",
         1_664_960_674,
-        Some("https://grafbase\\.com/jwt/claims/groups".to_string()),
+        Some("https://grafbase\\.com/jwt/claims/groups"),
         VerifiedToken {
             identity: "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string(),
             groups: vec!["admin".to_string()].into_iter().collect(),
@@ -533,7 +537,7 @@ mod tests {
         token_with_nested_groups,
         "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjY3MTUwODMsImh0dHBzOi8vZ3JhZmJhc2UuY29tL2p3dC9jbGFpbXMiOnsieC1ncmFmYmFzZS1hbGxvd2VkLXJvbGVzIjpbImVkaXRvciIsInVzZXIiLCJtb2QiXX0sImlhdCI6MTY2NjcxNDQ4MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5ncmFmYmFzZS12ZXJjZWwuZGV2IiwianRpIjoiOTE4ZjkwMzZkMWI1YWEyYTE1OWEiLCJuYmYiOjE2NjY3MTQ0NzgsInN1YiI6InVzZXJfMkU0c1Jqb2tuMnIxNFJMd2hFdmpWc0hnQ21HIn0.jA1pmbIBn_Vkos5-irFyFhwyq4OvxnkMcs8y_joWGmGnabS9I2YM5QBP-l7ZuFY9G8b5Up_Jzr0C1IsoIr0P3fM6yGdwe8MXEvZyKRXDbScq0sUvsMJTn2FJrUL0NgE-2fOVh-H0CNqDx2c584mYDgeMGXg2po_JAhszmqqLYC8KyypF2Y_j6jtyW6kiE_nbdRLINz-lEP3Wvmy60qeZHwDX4CzcME_y7avM10vTpqSoojuaoEKdCQh7tEKIpgCI0CdDx31B_bKaHPJ3nDw8fTZQ5HxK4YXkRPIdxMjG3Dby4EKuvvegZQDoASE4gUyPJ0qBgeOXUNdf5Vk6DJX9sQ",
         1_666_714_483,
-        Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles".to_string()),
+        Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles"),
         VerifiedToken {
             identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
@@ -569,7 +573,7 @@ mod tests {
                 || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_668_507_514, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
-                groups_claim: Some("groups".to_string()),
+                groups_claim: Some("groups"),
                 ..Default::default()
             }
         };
@@ -579,7 +583,7 @@ mod tests {
 
         assert_eq!(
             client
-                .verify_hs_token(token, issuer.clone(), "topsecret".as_bytes())
+                .verify_hs_token(token, &issuer, "topsecret".as_bytes())
                 .await
                 .unwrap(),
             VerifiedToken {
@@ -589,7 +593,7 @@ mod tests {
         );
 
         assert_eq!(
-            client.verify_rs_token(token, issuer).await.unwrap_err().to_string(),
+            client.verify_rs_token(token, &issuer).await.unwrap_err().to_string(),
             "unsupported algorithm: HS512"
         );
     }
