@@ -18,8 +18,8 @@ quick_error! {
         InvalidGroups(claim: String) {
             display("invalid groups claim {claim:?}")
         }
-        UnsupportedAlgorithm {
-            display("only RS256, RS384, and RS512 are supported")
+        UnsupportedAlgorithm(algo: String) {
+            display("unsupported algorithm: {algo}")
         }
         InvalidToken {
             display("invalid OIDC token")
