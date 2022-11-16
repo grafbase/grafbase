@@ -29,4 +29,4 @@ To learn more about Solid, take a look at the following resources:
 
 ### Run on CodeSandbox
 
-[![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/nuxt)
+[![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/solid-start)
