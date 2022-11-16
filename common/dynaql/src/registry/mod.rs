@@ -19,7 +19,7 @@ use std::sync::Arc;
 use ulid_rs::Ulid;
 
 use crate::auth::{AuthConfig, Operations};
-use crate::graph::{field_into_node, selection_set_into_node};
+use crate::graph::selection_set_into_node;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{

@@ -142,9 +142,6 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         .get(type_name.as_ref())
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
                     let ty = ctx_field.schema_env.registry.types.get(type_name.as_ref());
-                    let required_operation = ty
-                        .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()))
-                        .and_then(|f| f.required_operation);
 
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
