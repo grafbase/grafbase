@@ -574,19 +574,23 @@ mod tests {
             }
         };
 
+        let token = "eyJhbGciOiJIUzUxMiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2Njg1MDgxMTQsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NTA3NTE0LCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiIzMDM1MGJlOTk1ZmIwMzI5ODQ5ZiIsIm5iZiI6MTY2ODUwNzUwOSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.2MTRBJ8tVjxd8bXMVOkXaN6m1xODwCgUpCqIxmis6UTCGYXeDQJ38v97mTmtT0OYxVZUGliJ5WI-a1yfgegONQ";
+        let issuer = Url::parse("https://clerk.grafbase-vercel.dev").unwrap();
+
         assert_eq!(
             client
-                .verify_hs_token(
-                    "eyJhbGciOiJIUzUxMiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2Njg1MDgxMTQsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NTA3NTE0LCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiIzMDM1MGJlOTk1ZmIwMzI5ODQ5ZiIsIm5iZiI6MTY2ODUwNzUwOSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.2MTRBJ8tVjxd8bXMVOkXaN6m1xODwCgUpCqIxmis6UTCGYXeDQJ38v97mTmtT0OYxVZUGliJ5WI-a1yfgegONQ",
-                    Url::parse("https://clerk.grafbase-vercel.dev").unwrap(),
-                    "topsecret".as_bytes(),
-                )
+                .verify_hs_token(token, issuer.clone(), "topsecret".as_bytes())
                 .await
                 .unwrap(),
             VerifiedToken {
                 identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
                 groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
             }
+        );
+
+        assert_eq!(
+            client.verify_rs_token(token, issuer).await.unwrap_err().to_string(),
+            "unsupported algorithm: HS512"
         );
     }
 }
