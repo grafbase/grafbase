@@ -24,6 +24,12 @@ impl AuthConfig {
 
         let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
+                ConstValue::List(value) if value.len() > 1 => {
+                    return Err(ServerError::new(
+                        "only one auth provider can be configured right now",
+                        pos,
+                    ))
+                }
                 ConstValue::List(value) if !value.is_empty() => value
                     .iter()
                     .map(|value| AuthProvider::from_value(ctx, value))

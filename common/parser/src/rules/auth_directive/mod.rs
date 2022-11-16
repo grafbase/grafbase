@@ -492,4 +492,16 @@ mod tests {
             ..Default::default()
         }
     );
+
+    parse_fail!(
+        multiple_providers,
+        r#"
+        schema @auth(
+          providers: [ { type: foo }, { type: bar } ]
+        ){
+          query: Query
+        }
+        "#,
+        "only one auth provider can be configured right now"
+    );
 }
