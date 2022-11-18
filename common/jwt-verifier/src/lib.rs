@@ -548,19 +548,18 @@ mod tests {
     {
       "header": {
         "typ": "JWT",
-        "alg": "HS512",
-        "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV"  # Confirmed bug, Clerk shouldn't include this
+        "alg": "HS512"
       },
       "payload": {
-        "exp": 1668508114,
+        "exp": 1668768890,
         "groups": [
           "admin",
           "backend"
         ],
-        "iat": 1668507514,
+        "iat": 1668768290,
         "iss": "https://clerk.grafbase-vercel.dev",
-        "jti": "30350be995fb0329849f",
-        "nbf": 1668507509,
+        "jti": "e8465ffa20ff2824e0f0",
+        "nbf": 1668768285,
         "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
       }
     }
@@ -570,7 +569,7 @@ mod tests {
         let client = {
             let leeway = Duration::seconds(5);
             let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_668_507_514, 0).unwrap(), Utc);
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_668_768_290, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 groups_claim: Some("groups"),
@@ -578,7 +577,7 @@ mod tests {
             }
         };
 
-        let token = "eyJhbGciOiJIUzUxMiIsImtpZCI6Imluc18yRE5wbDVFQ0FwQ1NSYVNDT3V3Y1lsaXJ4QVYiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2Njg1MDgxMTQsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NTA3NTE0LCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiIzMDM1MGJlOTk1ZmIwMzI5ODQ5ZiIsIm5iZiI6MTY2ODUwNzUwOSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.2MTRBJ8tVjxd8bXMVOkXaN6m1xODwCgUpCqIxmis6UTCGYXeDQJ38v97mTmtT0OYxVZUGliJ5WI-a1yfgegONQ";
+        let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Njg3Njg4OTAsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NzY4MjkwLCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiJlODQ2NWZmYTIwZmYyODI0ZTBmMCIsIm5iZiI6MTY2ODc2ODI4NSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.naGM79JZY-vmrQPA1kOVfuTk-w11c5wmaR2KCiYF3lrw-y5ZTOeSThfFzYzgn-l9bTkWL6mjrJejEB5bhmuOxw";
         let issuer = Url::parse("https://clerk.grafbase-vercel.dev").unwrap();
 
         assert_eq!(
