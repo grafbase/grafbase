@@ -723,7 +723,7 @@ impl<'a, T> ContextBase<'a, T> {
             })
     }
 
-    fn resolve_input_value(&self, value: Positioned<InputValue>) -> ServerResult<Value> {
+    pub fn resolve_input_value(&self, value: Positioned<InputValue>) -> ServerResult<Value> {
         let pos = value.pos;
         value
             .node

@@ -26,6 +26,9 @@ use std::any::{Any, TypeId};
 use std::future::Future;
 use std::sync::Arc;
 
+use crate::Value;
+use dynaql_parser::Positioned;
+use dynaql_value::Name;
 use futures_util::stream::BoxStream;
 use graph_entities::ResponseNodeId;
 
@@ -131,6 +134,9 @@ pub struct ResolveInfo<'a> {
 
     /// Auth rules for field/type access
     pub auth: Option<&'a crate::AuthConfig>,
+
+    /// Arguments for the resolved value, if they exist, resolved.
+    pub input_values: Vec<(Positioned<Name>, Option<Value>)>,
 }
 
 type RequestFut<'a> = &'a mut (dyn Future<Output = Response> + Send + Unpin);

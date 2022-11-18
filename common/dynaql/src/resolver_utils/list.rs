@@ -1,11 +1,11 @@
-use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
-
 use crate::extensions::ResolveInfo;
 use crate::graph::selection_set_into_node;
 use crate::parser::types::Field;
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
 use crate::{ContextSelectionSet, OutputType, Positioned, ServerError, ServerResult, Value};
+use dynaql_value::Name;
+use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
 
 /// Resolve an list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(
@@ -35,6 +35,15 @@ pub async fn resolve_list<'a>(
 
                     let parent_type = format!("[{}]", type_name);
                     let return_type = format!("{}!", type_name);
+                    let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
+                        .item
+                        .node
+                        .arguments
+                        .clone()
+                        .into_iter()
+                        .map(|(key, val)| (key, ctx_field.resolve_input_value(val).ok()))
+                        .collect();
+
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
                         parent_type: &parent_type,
@@ -43,6 +52,7 @@ pub async fn resolve_list<'a>(
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                         required_operation: meta_field.and_then(|f| f.required_operation),
                         auth: meta_field.and_then(|f| f.auth.as_ref()),
+                        input_values: args_values,
                     };
 
                     let resolve_fut = async {
@@ -151,6 +161,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         alias: field.node.alias.as_ref().map(|alias| alias.node.as_str()),
                         required_operation: meta_field.and_then(|f| f.required_operation),
                         auth: meta_field.and_then(|f| f.auth.as_ref()),
+                        input_values: Vec::new(), // Isn't needed for static resolve
                     };
                     let resolve_fut = async {
                         let a = selection_set_into_node(
