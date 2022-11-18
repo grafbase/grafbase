@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use zeroize::Zeroize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
@@ -22,13 +23,18 @@ pub struct AuthConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+
     pub groups_claim: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize)]
+#[zeroize(drop)]
 pub struct JwtProvider {
+    #[zeroize(skip)]
     pub issuer: url::Url,
+
     pub groups_claim: String,
+
     pub secret: String,
 }
 

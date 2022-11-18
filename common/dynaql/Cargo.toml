@@ -103,6 +103,7 @@ time = { version = "0.3", optional = true, features = [
 futures-timer = { version = "3", optional = true }
 futures-channel = { version = "0.3", optional = true }
 worker = { version = "0.0.11", optional = true }
+zeroize = { version = "1", features = ["zeroize_derive"] }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
