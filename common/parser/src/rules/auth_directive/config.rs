@@ -157,8 +157,7 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                         secret: secret
                             .as_fully_evaluated_str()
                             .expect("env vars have been expanded")
-                            .parse()
-                            .unwrap(),
+                            .to_string(),
                     }),
                     _ => None,
                 })
