@@ -138,7 +138,7 @@ impl<'a> VisitorContext<'a> {
                                 resolve: None,
                                 edges: Vec::new(),
                                 relation: None,
-                                transforms: None,
+                                transformer: None,
                                 required_operation: None,
                                 auth: None,
                             },

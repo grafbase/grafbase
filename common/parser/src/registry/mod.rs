@@ -105,7 +105,7 @@ pub fn add_list_query_paginated<'a>(
                         edges: Vec::new(),
                         relation: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -132,9 +132,12 @@ pub fn add_list_query_paginated<'a>(
                                 key: type_name.to_string(),
                             }),
                         }),
-                        transforms: Some(vec![Transformer::DynamoSelect {
-                            property: "__pk".to_string(),
-                        }]),
+                        transformer: Some(Transformer::Pipeline(vec![
+                            Transformer::DynamoSelect {
+                                property: "__pk".to_string(),
+                            },
+                            Transformer::ConvertPkToCursor,
+                        ])),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -190,10 +193,9 @@ pub fn add_list_query_paginated<'a>(
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        transforms: Some(vec![Transformer::JSONSelect {
+                        transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
-                            functions: vec![],
-                        }]),
+                        }),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -218,10 +220,9 @@ pub fn add_list_query_paginated<'a>(
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        transforms: Some(vec![Transformer::JSONSelect {
+                        transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
-                            functions: vec![],
-                        }]),
+                        }),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -246,10 +247,9 @@ pub fn add_list_query_paginated<'a>(
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        transforms: Some(vec![Transformer::JSONSelect {
+                        transformer: Some(Transformer::JSONSelect {
                             property: "start_cursor".to_string(),
-                            functions: vec![],
-                        }]),
+                        }),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -274,10 +274,9 @@ pub fn add_list_query_paginated<'a>(
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        transforms: Some(vec![Transformer::JSONSelect {
+                        transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
-                            functions: vec![],
-                        }]),
+                        }),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -327,7 +326,7 @@ pub fn add_list_query_paginated<'a>(
                         edges: Vec::new(),
                         relation: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -349,7 +348,7 @@ pub fn add_list_query_paginated<'a>(
                         edges: connection_edges.clone(),
                         relation: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -404,7 +403,7 @@ pub fn add_list_query_paginated<'a>(
                 nested: None,
             }),
         }),
-        transforms: None,
+        transformer: None,
         required_operation: Some(Operations::LIST),
         auth: auth.cloned(),
     });
@@ -441,10 +440,9 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
                         edges: Vec::new(),
                         relation: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::JSONSelect {
+                        transformer: Some(Transformer::JSONSelect {
                             property: "id".to_string(),
-                            functions: vec![],
-                        }]),
+                        }),
                         required_operation: Some(Operations::DELETE),
                         auth: auth.cloned(),
                     },
@@ -507,7 +505,7 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
                 by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),
-        transforms: None,
+        transformer: None,
         required_operation: Some(Operations::DELETE),
         auth: auth.cloned(),
     });

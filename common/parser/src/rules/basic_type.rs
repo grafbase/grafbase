@@ -50,10 +50,9 @@ impl<'a> Visitor<'a> for BasicType {
                                 resolve: None,
                                 edges: Vec::new(),
                                 relation: None,
-                                transforms: Some(vec![Transformer::JSONSelect {
-                                    property: name,
-                                    functions: Vec::new(),
-                                }]),
+                                transformer: Some(Transformer::JSONSelect {
+                                    property: name
+                                }),
                                 required_operation: None,
                                 auth: None,
                             });

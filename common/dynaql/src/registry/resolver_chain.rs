@@ -32,10 +32,7 @@
 //!
 //! A memoization is applied on the resolve function.
 
-use crate::registry::{
-    resolvers::Resolver,
-    transformers::{Transformer, TransformerTrait},
-};
+use crate::registry::{resolvers::Resolver, transformers::Transformer};
 use crate::Result;
 use crate::{Context, Error, QueryPathSegment};
 use cached::Cached;
@@ -88,8 +85,8 @@ pub struct ResolverChainNode<'a> {
     /// There is no resolvers on QueryPathSegment::Index for instance.
     pub resolver: Option<&'a Resolver>,
 
-    /// The current transformers applied to the current resolver, if it exists.
-    pub transformers: Option<&'a Vec<Transformer>>,
+    /// The current transformer applied to the current resolver, if it exists.
+    pub transformer: Option<&'a Transformer>,
 
     /// The current variables on this node
     pub variables: Option<Vec<(&'a str, &'a MetaInputValue)>>,
@@ -211,7 +208,7 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
                 .await?;
         }
 
-        if let Some(transformers) = self.transformers {
+        if let Some(transformers) = self.transformer {
             // TODO: Ensure it doesn't fail by changing the way the data is modelized withing
             // resolver, we shouldn't have dynamic typing here.
             //

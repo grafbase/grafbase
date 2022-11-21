@@ -391,7 +391,7 @@ pub fn add_create_mutation<'a>(
                                 sk: VariableResolveDefinition::LocalData("id".to_string()),
                             }),
                         }),
-                        transforms: None,
+                        transformer: None,
                         required_operation: Some(Operations::CREATE),
                         auth: auth.cloned(),
                     },
@@ -454,7 +454,7 @@ pub fn add_create_mutation<'a>(
                 ty: type_name,
             }),
         }),
-        transforms: None,
+        transformer: None,
         required_operation: Some(Operations::CREATE),
         auth: auth.cloned(),
     });

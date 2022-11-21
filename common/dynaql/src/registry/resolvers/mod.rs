@@ -17,6 +17,7 @@ use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
+use graph_entities::cursor::PaginationCursor;
 
 use std::sync::Arc;
 use ulid_rs::Ulid;
@@ -110,8 +111,8 @@ impl ResolvedPaginationDirection {
 #[derive(Debug, Hash, Clone)]
 pub struct ResolvedPaginationInfo {
     pub direction: ResolvedPaginationDirection,
-    pub end_cursor: Option<String>,
-    pub start_cursor: Option<String>,
+    pub end_cursor: Option<PaginationCursor>,
+    pub start_cursor: Option<PaginationCursor>,
     pub more_data: bool,
 }
 
@@ -125,12 +126,12 @@ impl ResolvedPaginationInfo {
         }
     }
 
-    pub fn with_start(mut self, start_cursor: Option<String>) -> Self {
+    pub fn with_start(mut self, start_cursor: Option<PaginationCursor>) -> Self {
         self.start_cursor = start_cursor;
         self
     }
 
-    pub fn with_end(mut self, end_cursor: Option<String>) -> Self {
+    pub fn with_end(mut self, end_cursor: Option<PaginationCursor>) -> Self {
         self.end_cursor = end_cursor;
         self
     }

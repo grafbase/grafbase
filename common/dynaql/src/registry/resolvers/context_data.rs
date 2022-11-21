@@ -3,7 +3,7 @@
 use super::dynamo_querying::DynamoResolver;
 use super::{ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 use crate::registry::resolvers::ResolverContext;
-use crate::registry::transformers::{Transformer, TransformerTrait};
+use crate::registry::transformers::Transformer;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
 use std::hash::Hash;

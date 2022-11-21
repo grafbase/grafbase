@@ -485,7 +485,7 @@ pub fn generate(
                         edges: Vec::new(),
                         relation: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: None,
                         auth: None,
                     });
