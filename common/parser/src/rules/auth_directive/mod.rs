@@ -487,7 +487,7 @@ mod tests {
             jwt_providers: vec![dynaql::JwtProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-                secret: "s3cr3t".to_string(),
+                secret: secrecy::SecretString::new("s3cr3t".to_string()),
             }],
             ..Default::default()
         }

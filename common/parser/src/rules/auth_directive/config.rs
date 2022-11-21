@@ -154,10 +154,12 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                             .parse()
                             .unwrap(),
                         groups_claim: groups_claim.clone(),
-                        secret: secret
-                            .as_fully_evaluated_str()
-                            .expect("env vars have been expanded")
-                            .to_string(),
+                        secret: secrecy::SecretString::new(
+                            secret
+                                .as_fully_evaluated_str()
+                                .expect("env vars have been expanded")
+                                .to_string(),
+                        ),
                     }),
                     _ => None,
                 })

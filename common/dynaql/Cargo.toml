@@ -83,7 +83,7 @@ chrono-tz = { version = "0.8", optional = true }
 hashbrown = { version = "0.13", optional = true }
 iso8601-duration = { version = "0.1", optional = true }
 log = { version = "0.4", optional = true }
-secrecy = { version = "0.8", optional = true }
+secrecy = { version = "0.8", features = ["serde"] }
 tracinglib = { version = "0.1", optional = true, package = "tracing" }
 tracing-futures = { version = "0.2", optional = true, features = [
     "std-future",
@@ -103,7 +103,6 @@ time = { version = "0.3", optional = true, features = [
 futures-timer = { version = "3", optional = true }
 futures-channel = { version = "0.3", optional = true }
 worker = { version = "0.0.11", optional = true }
-zeroize = { version = "1", features = ["zeroize_derive"] }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }

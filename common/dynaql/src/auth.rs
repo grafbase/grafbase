@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
-use zeroize::Zeroize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
@@ -27,16 +27,34 @@ pub struct OidcProvider {
     pub groups_claim: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Zeroize)]
-#[zeroize(drop)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtProvider {
-    #[zeroize(skip)]
     pub issuer: url::Url,
 
     pub groups_claim: String,
 
-    pub secret: String,
+    #[serde(serialize_with = "serialize_secret_string")]
+    pub secret: SecretString,
 }
+
+fn serialize_secret_string<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use secrecy::ExposeSecret;
+    serializer.serialize_str(secret.expose_secret())
+}
+
+impl PartialEq for JwtProvider {
+    fn eq(&self, other: &Self) -> bool {
+        use secrecy::ExposeSecret;
+        self.issuer == other.issuer
+            && self.groups_claim == other.groups_claim
+            && self.secret.expose_secret() == other.secret.expose_secret()
+    }
+}
+
+impl Eq for JwtProvider {}
 
 impl Default for AuthConfig {
     fn default() -> Self {
