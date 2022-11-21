@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use json_dotpath::DotPaths;
 use jwt_compact::{jwk::JsonWebKey, prelude::*, TimeOptions};
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use worker::kv::KvError;
@@ -153,21 +154,23 @@ impl<'a> Client<'a> {
         &self,
         token: S,
         issuer: &'a Url,
-        signing_key: &[u8],
+        signing_key: SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
+        use secrecy::ExposeSecret;
 
+        let key = signing_key.expose_secret().as_bytes();
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
         let token = match token.algorithm() {
             "HS256" => Hs256
-                .validate_integrity::<CustomClaims>(&token, &Hs256Key::from(signing_key))
+                .validate_integrity::<CustomClaims>(&token, &Hs256Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS384" => Hs384
-                .validate_integrity::<CustomClaims>(&token, &Hs384Key::from(signing_key))
+                .validate_integrity::<CustomClaims>(&token, &Hs384Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS512" => Hs512
-                .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(signing_key))
+                .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(key))
                 .map_err(VerificationError::Integrity),
             other => return Err(VerificationError::UnsupportedAlgorithm(other.to_string())),
         }?;
@@ -582,7 +585,7 @@ mod tests {
 
         assert_eq!(
             client
-                .verify_hs_token(token, &issuer, "topsecret".as_bytes())
+                .verify_hs_token(token, &issuer, SecretString::new("topsecret".to_string()))
                 .await
                 .unwrap(),
             VerifiedToken {
