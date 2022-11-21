@@ -69,7 +69,7 @@ pub struct VerifiedToken {
 impl<'a> Client<'a> {
     /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
     /// using OIDC discovery to retrieve the public key.
-    pub async fn verify_rs_token<S: AsRef<str> + Send>(
+    pub async fn verify_rs_token<S: AsRef<str>>(
         &self,
         token: S,
         issuer: &'a Url,
@@ -150,11 +150,11 @@ impl<'a> Client<'a> {
 
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
     /// using the provided key.
-    pub async fn verify_hs_token<S: AsRef<str> + Send>(
+    pub fn verify_hs_token<S: AsRef<str>>(
         &self,
         token: S,
         issuer: &'a Url,
-        signing_key: SecretString,
+        signing_key: &'a SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
         use secrecy::ExposeSecret;
@@ -585,8 +585,7 @@ mod tests {
 
         assert_eq!(
             client
-                .verify_hs_token(token, &issuer, SecretString::new("topsecret".to_string()))
-                .await
+                .verify_hs_token(token, &issuer, &SecretString::new("topsecret".to_string()))
                 .unwrap(),
             VerifiedToken {
                 identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
