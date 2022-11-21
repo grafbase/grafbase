@@ -24,6 +24,12 @@ impl AuthConfig {
 
         let providers = match value.get_argument("providers") {
             Some(arg) => match &arg.node {
+                ConstValue::List(value) if value.len() > 1 => {
+                    return Err(ServerError::new(
+                        "only one auth provider can be configured right now",
+                        pos,
+                    ))
+                }
                 ConstValue::List(value) if !value.is_empty() => value
                     .iter()
                     .map(|value| AuthProvider::from_value(ctx, value))
@@ -117,8 +123,8 @@ impl From<AuthConfig> for dynaql::AuthConfig {
             oidc_providers: auth
                 .providers
                 .iter()
-                .map(|provider| match provider {
-                    AuthProvider::Oidc { issuer, groups_claim } => dynaql::OidcProvider {
+                .filter_map(|provider| match provider {
+                    AuthProvider::Oidc { issuer, groups_claim } => Some(dynaql::OidcProvider {
                         issuer: issuer
                             .as_fully_evaluated_str()
                             .expect(
@@ -128,7 +134,34 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                             .parse()
                             .unwrap(),
                         groups_claim: groups_claim.clone(),
-                    },
+                    }),
+                    _ => None,
+                })
+                .collect(),
+
+            jwt_providers: auth
+                .providers
+                .iter()
+                .filter_map(|provider| match provider {
+                    AuthProvider::Jwt {
+                        issuer,
+                        groups_claim,
+                        secret,
+                    } => Some(dynaql::JwtProvider {
+                        issuer: issuer
+                            .as_fully_evaluated_str()
+                            .expect("env vars have been expanded")
+                            .parse()
+                            .unwrap(),
+                        groups_claim: groups_claim.clone(),
+                        secret: secrecy::SecretString::new(
+                            secret
+                                .as_fully_evaluated_str()
+                                .expect("env vars have been expanded")
+                                .to_string(),
+                        ),
+                    }),
+                    _ => None,
                 })
                 .collect(),
 

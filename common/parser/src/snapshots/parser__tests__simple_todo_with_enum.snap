@@ -9,6 +9,7 @@ expression: reg_string
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
+    "jwt_providers": [],
     "oidc_providers": []
   },
   "directives": {

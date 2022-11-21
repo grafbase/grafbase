@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 
+use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -15,13 +16,45 @@ pub struct AuthConfig {
     pub allowed_owner_ops: Operations,
 
     pub oidc_providers: Vec<OidcProvider>,
+
+    pub jwt_providers: Vec<JwtProvider>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OidcProvider {
     pub issuer: url::Url,
+
     pub groups_claim: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JwtProvider {
+    pub issuer: url::Url,
+
+    pub groups_claim: String,
+
+    #[serde(serialize_with = "serialize_secret_string")]
+    pub secret: SecretString,
+}
+
+fn serialize_secret_string<S>(secret: &SecretString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use secrecy::ExposeSecret;
+    serializer.serialize_str(secret.expose_secret())
+}
+
+impl PartialEq for JwtProvider {
+    fn eq(&self, other: &Self) -> bool {
+        use secrecy::ExposeSecret;
+        self.issuer == other.issuer
+            && self.groups_claim == other.groups_claim
+            && self.secret.expose_secret() == other.secret.expose_secret()
+    }
+}
+
+impl Eq for JwtProvider {}
 
 impl Default for AuthConfig {
     fn default() -> Self {
@@ -35,6 +68,8 @@ impl Default for AuthConfig {
             allowed_owner_ops: Operations::empty(),
 
             oidc_providers: vec![],
+
+            jwt_providers: vec![],
         }
     }
 }
@@ -44,7 +79,7 @@ impl AuthConfig {
         self.allowed_anonymous_ops
     }
 
-    pub fn oidc_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
+    pub fn token_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
         let groups = self.allowed_group_ops.clone().into_keys().collect();

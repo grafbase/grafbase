@@ -21,6 +21,16 @@ pub enum AuthProvider {
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
     },
+
+    #[serde(rename_all = "camelCase")]
+    Jwt {
+        issuer: DynamicString,
+
+        #[serde(default = "default_groups_claim")]
+        groups_claim: String,
+
+        secret: DynamicString,
+    },
 }
 
 fn default_groups_claim() -> String {
@@ -41,15 +51,34 @@ impl AuthProvider {
         let mut provider: AuthProvider =
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
 
-        let &mut AuthProvider::Oidc { ref mut issuer, .. } = &mut provider;
-        ctx.partially_evaluate_literal(issuer)?;
-        if let Err(err) = issuer
-            .as_fully_evaluated_str()
-            .map(|s| s.parse::<url::Url>())
-            .transpose()
-        {
-            // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
-            return Err(ServerError::new(format!("auth provider: {err}"), None));
+        match provider {
+            AuthProvider::Oidc { ref mut issuer, .. } => {
+                ctx.partially_evaluate_literal(issuer)?;
+                if let Err(err) = issuer
+                    .as_fully_evaluated_str()
+                    .map(|s| s.parse::<url::Url>())
+                    .transpose()
+                {
+                    // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
+                    return Err(ServerError::new(format!("OIDC provider: {err}"), None));
+                }
+            }
+            AuthProvider::Jwt {
+                ref mut issuer,
+                ref mut secret,
+                ..
+            } => {
+                ctx.partially_evaluate_literal(issuer)?;
+                if let Err(err) = issuer
+                    .as_fully_evaluated_str()
+                    .map(|s| s.parse::<url::Url>())
+                    .transpose()
+                {
+                    return Err(ServerError::new(format!("JWT provider: {err}"), None));
+                }
+
+                ctx.partially_evaluate_literal(secret)?;
+            }
         }
 
         Ok(provider)

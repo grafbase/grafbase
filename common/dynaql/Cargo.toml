@@ -83,7 +83,7 @@ chrono-tz = { version = "0.8", optional = true }
 hashbrown = { version = "0.13", optional = true }
 iso8601-duration = { version = "0.1", optional = true }
 log = { version = "0.4", optional = true }
-secrecy = { version = "0.8", optional = true }
+secrecy = { version = "0.8", features = ["serde"] }
 tracinglib = { version = "0.1", optional = true, package = "tracing" }
 tracing-futures = { version = "0.2", optional = true, features = [
     "std-future",
