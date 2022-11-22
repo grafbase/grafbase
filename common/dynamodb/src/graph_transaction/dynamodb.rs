@@ -89,6 +89,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 id,
                 mut user_defined_item,
                 ty,
+                increments,
             } = self;
 
             let id = NodeID::new_owned(ty, id);
@@ -116,7 +117,8 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let mut exp_values = HashMap::with_capacity(len);
             let mut exp_att_names =
                 HashMap::from([("#pk".to_string(), PK.to_string()), ("#sk".to_string(), SK.to_string())]);
-            let update_expression = Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names);
+            let update_expression =
+                Self::to_update_expression(user_defined_item, increments, &mut exp_values, &mut exp_att_names);
             let key = dynomite::attr_map! {
                 constant::PK => pk.clone(),
                 constant::SK => sk.clone(),
@@ -601,6 +603,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             let UpdateUniqueConstraint {
                 target,
                 mut user_defined_item,
+                increments,
             } = self;
 
             let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
@@ -629,7 +632,8 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             let mut exp_att_names =
                 HashMap::from([("#pk".to_string(), PK.to_string()), ("#sk".to_string(), SK.to_string())]);
 
-            let update_expression = Self::to_update_expression(user_defined_item, &mut exp_values, &mut exp_att_names);
+            let update_expression =
+                Self::to_update_expression(user_defined_item, increments, &mut exp_values, &mut exp_att_names);
 
             let update_transaction: TransactWriteItem = TransactWriteItem {
                 update: Some(Update {

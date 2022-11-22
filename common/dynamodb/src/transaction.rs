@@ -52,6 +52,8 @@ impl Eq for TxItem {}
 pub enum TransactionError {
     #[error("An issue happened while applying the transaction.")]
     UnknownError,
+    #[error("Unique numeric values cannot be incremented or decremented")]
+    UniqueNumericAtomic,
     #[error(r#"The value {value} is already taken on field "{field}""#)]
     UniqueCondition { value: String, field: String },
 }

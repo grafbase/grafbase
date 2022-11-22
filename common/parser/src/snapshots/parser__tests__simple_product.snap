@@ -1,5 +1,5 @@
 ---
-source: common/parser/src/tests.rs
+source: common/parser/src/lib.rs
 expression: reg_string
 ---
 {
@@ -112,6 +112,40 @@ expression: reg_string
         "description": "The `Int` scalar type represents non-fractional whole numeric values.",
         "name": "Int",
         "specified_by_url": null
+      }
+    },
+    "IntOperationsInput": {
+      "InputObject": {
+        "description": "Possible operations for an Int field",
+        "input_fields": {
+          "decrement": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "decrement",
+            "ty": "Int",
+            "validators": null
+          },
+          "increment": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "increment",
+            "ty": "Int",
+            "validators": null
+          },
+          "set": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "set",
+            "ty": "Int",
+            "validators": null
+          }
+        },
+        "name": "IntOperationsInput",
+        "oneof": true,
+        "rust_typename": "IntOperationsInput"
       }
     },
     "Mutation": {
@@ -872,7 +906,7 @@ expression: reg_string
             "description": "The product's price in $",
             "is_secret": false,
             "name": "price",
-            "ty": "Int",
+            "ty": "IntOperationsInput",
             "validators": null
           }
         },

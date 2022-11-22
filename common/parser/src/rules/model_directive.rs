@@ -21,9 +21,10 @@ use std::collections::HashMap;
 use super::auth_directive::AuthDirective;
 use super::relations::generate_metarelation;
 use super::visitor::{Visitor, VisitorContext};
-use crate::registry::add_list_query_paginated;
-use crate::registry::add_remove_mutation;
-use crate::registry::{add_create_mutation, add_update_mutation};
+use crate::registry::{
+    add_create_mutation, add_list_query_paginated, add_remove_mutation, add_update_mutation,
+    create_numerical_operations, NumericFieldKind,
+};
 use crate::utils::is_modelized_node;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
@@ -46,6 +47,8 @@ pub struct ModelDirective;
 
 pub const MODEL_DIRECTIVE: &str = "model";
 pub const UNIQUE_DIRECTIVE: &str = "unique";
+pub const INT_TYPES: &[&str] = &["Int", "Int!"];
+pub const FLOAT_TYPES: &[&str] = &["Float", "Float!"];
 
 fn insert_metadata_field(
     fields: &mut IndexMap<String, MetaField>,
@@ -353,6 +356,14 @@ impl<'a> Visitor<'a> for ModelDirective {
                     required_operation: Some(Operations::GET),
                     auth: model_auth.clone(),
                 });
+
+                if object.fields.iter().any(|field| INT_TYPES.contains(&field.node.ty.node.to_string().as_str())) {
+                    create_numerical_operations(ctx, NumericFieldKind::Int);
+                }
+
+                if object.fields.iter().any(|field| FLOAT_TYPES.contains(&field.node.ty.node.to_string().as_str())) {
+                    create_numerical_operations(ctx, NumericFieldKind::Float);
+                }
 
                 add_create_mutation(ctx, &type_definition.node, object, &type_name, model_auth.as_ref());
                 add_update_mutation(ctx, &type_definition.node, object, &type_name, model_auth.as_ref());

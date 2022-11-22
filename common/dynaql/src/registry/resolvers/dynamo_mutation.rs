@@ -2,7 +2,7 @@ use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
 use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
-use crate::registry::MetaType;
+use crate::registry::{ConstraintType, MetaType};
 use crate::{Context, Error, ServerError, Value};
 use chrono::{SecondsFormat, Utc};
 use dynamodb::constant::INVERTED_INDEX_PK;
@@ -15,7 +15,7 @@ use futures_util::{FutureExt, StreamExt, TryFutureExt};
 use graph_entities::{ConstraintID, NodeID};
 use indexmap::IndexMap;
 use std::borrow::Borrow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::hash::Hash;
 use std::ops::Add;
@@ -414,6 +414,8 @@ async fn relation_remove<'a>(
 type InputIterRef<'a> = Vec<(&'a Name, &'a Value)>;
 type InputIter = Vec<(Name, Value)>;
 
+pub const NUMERICAL_TYPES: &[&str] = &["Int", "Int!", "Float", "Float!"];
+
 /// Update a node
 ///
 /// An update means:
@@ -429,19 +431,80 @@ fn node_update<'a>(
     input: IndexMap<Name, Value>,
     id: String,
     by_id: Option<String>,
-) -> RecursiveCreation<'a> {
+) -> Result<RecursiveCreation<'a>, TransactionError> {
     let relations = node_ty.relations();
 
     let id_cloned = id.clone();
     let (_, basic): (InputIterRef<'_>, InputIterRef<'_>) = input
         .iter()
         .partition(|(name, _)| relations.contains_key(name.as_str()));
-    let should_update_updated_at = !basic.is_empty();
+
+    let numerical_field_names = node_ty
+        .fields()
+        .map(|fields| {
+            fields
+                .iter()
+                .filter(|(_, field)| NUMERICAL_TYPES.contains(&field.ty.as_str()))
+                .map(|(name, _)| name)
+                .collect::<HashSet<_>>()
+        })
+        .unwrap_or_default();
+
+    let numerical_operations = basic
+        .iter()
+        .filter(|field| numerical_field_names.contains(&field.0.to_string()))
+        .map(|update| {
+            (
+                update.0.to_string(),
+                update.1.clone().into_json().expect("must parse"),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let (_, basic_without_increments): (InputIterRef<'_>, InputIterRef<'_>) = basic
+        .iter()
+        .partition(|(name, _)| numerical_field_names.contains(&name.to_string()));
+
     // We compute the attribute which will be updated.
-    let update_attr: InputIter = basic
+    let mut update_attr: InputIter = basic_without_increments
         .into_iter()
         .map(|(name, val)| (name.clone(), val.clone()))
         .collect();
+
+    let mut increments = HashMap::new();
+
+    let constraints = ctx
+        .schema_env
+        .registry
+        .types
+        .get(node_ty.name())
+        .expect("must exist")
+        .constraints();
+
+    for (field, operation) in numerical_operations {
+        if let Some(set) = operation.get("set") {
+            update_attr.push((
+                Name::new(field),
+                dynaql_value::ConstValue::from_json(set.clone()).expect("must parse"),
+            ));
+        } else if constraints.iter().any(|constraint| {
+            constraint.field == field && constraint.r#type == ConstraintType::Unique
+        }) {
+            return Err(TransactionError::UniqueNumericAtomic);
+        } else if let Some(increment) = operation.get("increment") {
+            let value = increment.as_f64().expect("must parse");
+            if value != 0f64 {
+                increments.insert(field.to_string(), value.into_attr());
+            }
+        } else if let Some(decrement) = operation.get("decrement") {
+            let value = decrement.as_f64().expect("must parse");
+            if value != 0f64 {
+                increments.insert(field.to_string(), (0f64 - value).into_attr());
+            }
+        }
+    }
+
+    let should_update_updated_at = !update_attr.is_empty() || !increments.is_empty();
 
     // We create an updated version of the selected entity
     let selection_updated_future: SelectionType = Box::pin(async move {
@@ -547,6 +610,7 @@ fn node_update<'a>(
                 from.ty().to_string(),
                 from.id().to_string(),
                 selection,
+                increments,
                 by_id,
             );
 
@@ -570,10 +634,10 @@ fn node_update<'a>(
     });
     let selected_shared = selected.shared();
 
-    RecursiveCreation {
+    Ok(RecursiveCreation {
         selection: selected_shared,
         transaction: transactions,
-    }
+    })
 }
 
 /// Get inputs list
@@ -1026,7 +1090,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         input,
                         value.to_string(),
                         None,
-                    );
+                    )?;
 
                     let _ = update.selection.await?;
 
@@ -1075,7 +1139,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         input,
                         id.to_string(),
                         Some(pk),
-                    );
+                    )?;
 
                     let _ = update.selection.await?;
 

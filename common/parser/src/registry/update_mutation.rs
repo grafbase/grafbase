@@ -256,12 +256,18 @@ pub fn create_input_without_relation_for_update<'a>(
 
         // TODO: Abstract this behind an `ID` utility;
         if name.ne("id") {
+            let type_string = opt_type.to_string();
+            let input_type = if type_string == "Int" || type_string == "Float" {
+                format!("{type_string}OperationsInput")
+            } else {
+                to_input_type(&ctx.types, opt_type).to_string()
+            };
             input_fields.insert(
                 name.clone().to_string(),
                 MetaInputValue {
                     name: name.to_string(),
                     description: field.node.description.clone().map(|x| x.node),
-                    ty: to_input_type(&ctx.types, opt_type).to_string(),
+                    ty: input_type,
                     validators,
                     visible: None,
                     default_value: None,
@@ -283,6 +289,93 @@ pub fn create_input_without_relation_for_update<'a>(
         },
         &update_input_name,
         &update_input_name,
+    );
+}
+
+pub enum NumericFieldKind {
+    Int,
+    Float,
+}
+
+impl NumericFieldKind {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Int => "Int",
+            Self::Float => "Float",
+        }
+    }
+
+    // purposely kept separate to prevent misuse
+    fn to_type_name(&self) -> String {
+        match self {
+            Self::Int => "Int".to_string(),
+            Self::Float => "Float".to_string(),
+        }
+    }
+}
+
+pub fn create_numerical_operations(ctx: &mut VisitorContext<'_>, numerical_field_kind: NumericFieldKind) {
+    let operations = format!("{}OperationsInput", numerical_field_kind.as_str());
+
+    if ctx.registry.get_mut().types.contains_key(&operations) {
+        return;
+    }
+
+    ctx.registry.get_mut().create_type(
+        &mut |_| MetaType::InputObject {
+            name: operations.clone(),
+            description: Some(format!(
+                "Possible operations for {} {} field",
+                match numerical_field_kind {
+                    NumericFieldKind::Int => "an",
+                    NumericFieldKind::Float => "a",
+                },
+                numerical_field_kind.as_str()
+            )),
+            oneof: true,
+            input_fields: IndexMap::from([
+                (
+                    "set".to_string(),
+                    MetaInputValue {
+                        name: "set".to_string(),
+                        description: None,
+                        ty: numerical_field_kind.to_type_name(),
+                        validators: None,
+                        visible: None,
+                        default_value: None,
+                        is_secret: false,
+                    },
+                ),
+                (
+                    "increment".to_string(),
+                    MetaInputValue {
+                        name: "increment".to_string(),
+                        description: None,
+                        ty: numerical_field_kind.to_type_name(),
+                        validators: None,
+                        visible: None,
+                        default_value: None,
+                        is_secret: false,
+                    },
+                ),
+                (
+                    "decrement".to_string(),
+                    MetaInputValue {
+                        name: "decrement".to_string(),
+                        description: None,
+                        ty: numerical_field_kind.to_type_name(),
+                        validators: None,
+                        visible: None,
+                        default_value: None,
+                        is_secret: false,
+                    },
+                ),
+            ]),
+            visible: None,
+            rust_typename: operations.clone(),
+        },
+        &operations,
+        &operations,
     );
 }
 

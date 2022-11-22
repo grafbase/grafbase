@@ -18,6 +18,14 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
+"""
+Possible operations for an Int field
+"""
+input IntOperationsInput {
+	set: Int
+	increment: Int
+	decrement: Int
+}
 type Mutation {
 	"""
 	Create a Product
@@ -92,7 +100,7 @@ input ProductUpdateInput {
 	"""
 	The product's price in $
 	"""
-	price: Int
+	price: IntOperationsInput
 }
 type ProductUpdatePayload {
 	product: Product

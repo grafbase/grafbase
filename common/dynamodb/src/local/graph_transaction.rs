@@ -15,7 +15,7 @@ use dynomite::{Attribute, AttributeValue};
 use graph_entities::{ConstraintID, NodeID};
 use itertools::Itertools;
 use maplit::hashmap;
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 
 impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
     fn to_transaction<'a>(
@@ -88,6 +88,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
                 id,
                 user_defined_item,
                 ty,
+                increments,
             } = self;
 
             let id = NodeID::new_owned(ty, id);
@@ -115,11 +116,19 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             let updated_at = now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            let (query, values) = Sql::Update.compile(hashmap! {
+            let (increment_fields, increment_values): (Vec<_>, Vec<_>) = increments.iter().unzip();
+
+            let increment_values = increment_values
+                .iter()
+                .map(|increment_value| increment_value.n.clone().expect("must exist"))
+                .collect::<VecDeque<_>>();
+
+            let (query, values) = Sql::Update(increment_fields).compile(hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
                 "document" => SqlValue::String(document),
                 "updated_at" => SqlValue::String(updated_at),
+                "increments" => SqlValue::VecDeque(increment_values)
             });
 
             Ok((query, values, None))
@@ -139,6 +148,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             let UpdateUniqueConstraint {
                 target,
                 user_defined_item,
+                increments,
                 ..
             } = self;
 
@@ -162,11 +172,19 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
             let updated_at = utc_now;
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            let (query, values) = Sql::Update.compile(hashmap! {
+            let (increment_fields, increment_values): (Vec<_>, Vec<_>) = increments.iter().unzip();
+
+            let increment_values = increment_values
+                .iter()
+                .map(|increment_value| increment_value.n.clone().expect("must exist"))
+                .collect::<VecDeque<_>>();
+
+            let (query, values) = Sql::Update(increment_fields).compile(hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
                 "document" => SqlValue::String(document),
                 "updated_at" => SqlValue::String(updated_at),
+                "increments" => SqlValue::VecDeque(increment_values)
             });
 
             Ok((query, values, None))

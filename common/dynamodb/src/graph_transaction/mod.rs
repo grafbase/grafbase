@@ -68,6 +68,8 @@ pub struct UpdateNodeInput {
     ty: String,
     #[derivative(Debug = "ignore")]
     user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    increments: HashMap<String, AttributeValue>,
     by_id: Option<String>,
 }
 
@@ -178,12 +180,14 @@ impl PossibleChanges {
         ty: String,
         id: String,
         user_defined_item: HashMap<String, AttributeValue>,
+        increments: HashMap<String, AttributeValue>,
         by_id: Option<String>,
     ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
             ty,
             user_defined_item,
+            increments,
             by_id,
         })
     }
@@ -324,6 +328,7 @@ impl GetIds for UpdateNodeInput {
                                 UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
                                     target: pk,
                                     user_defined_item: self.user_defined_item.clone(),
+                                    increments: self.increments.clone(),
                                 }),
                             )),
                         );
@@ -373,6 +378,7 @@ impl GetIds for UpdateNodeInput {
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
                             user_defined_item: self.user_defined_item.clone(),
+                            increments: self.increments.clone(),
                         })),
                     );
                 }
@@ -412,6 +418,7 @@ impl GetIds for UpdateNodeInput {
                                                 .and_then(|x| x.s)
                                                 .unwrap(),
                                             user_defined_item: self.user_defined_item.clone(),
+                                            increments: self.increments.clone(),
                                         }),
                                     )),
                                 );
@@ -466,6 +473,7 @@ impl GetIds for UpdateNodeInput {
                                 id: from_id,
                                 ty: from_ty,
                                 user_defined_item: self.user_defined_item.clone(),
+                                increments: self.increments.clone(),
                             })),
                         );
                     }
@@ -780,67 +788,138 @@ pub struct UpdateNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore")]
+    pub increments: HashMap<String, AttributeValue>,
 }
 
 impl UpdateNodeInternalInput {
     pub fn to_update_expression(
         values: HashMap<String, AttributeValue>,
+        increments: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
     ) -> String {
+        let values: HashMap<&String, &AttributeValue> = values
+            .iter()
+            // avoids cases where existing numerical fields
+            // are added to updates
+            .filter(|value| !increments.contains_key(value.0))
+            .collect();
+
         let update_expression = values
             .into_iter()
             .filter(|(name, _)| !name.starts_with("__"))
             .chain(std::iter::once((
-                constant::UPDATED_AT.to_string(),
-                AttributeValue {
+                &constant::UPDATED_AT.to_string(),
+                &AttributeValue {
                     s: Some(Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)),
                     ..Default::default()
                 },
             )))
-            .unique_by(|(name, _)| name.to_string())
+            .unique_by(|(name, _)| (*name).to_string())
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
                 let result = format!("{}={}", sanitized_name, idx);
+                exp_values.insert(idx, value.clone());
+                exp_names.insert(sanitized_name, name.as_str().to_string());
+                result
+            })
+            .join(",");
+
+        let increment_expression = increments
+            .into_iter()
+            .map(|(name, value)| {
+                let idx = format!(":{}", name.as_str());
+                let sanitized_name = format!("#{}", name.as_str());
+                let result = format!("{} {}", sanitized_name, idx);
                 exp_values.insert(idx, value);
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
             })
             .join(",");
 
-        format!("set {update_expression}")
+        let update_expression = if update_expression.is_empty() {
+            String::new()
+        } else {
+            format!("set {update_expression}")
+        };
+
+        let increment_expression = if increment_expression.is_empty() {
+            String::new()
+        } else {
+            format!("add {increment_expression}")
+        };
+
+        // since we insert all fields for updates at the moment
+        // (including unchanged fields), both update_expression and
+        // increment_expression cannot be empty at the same time
+        format!("{update_expression} {increment_expression}")
     }
 }
 
 impl UpdateUniqueConstraint {
     pub fn to_update_expression(
         values: HashMap<String, AttributeValue>,
+        increments: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
     ) -> String {
+        let values: HashMap<&String, &AttributeValue> = values
+            .iter()
+            // avoids cases where existing numerical fields
+            // are added to updates
+            .filter(|value| !increments.contains_key(value.0))
+            .collect();
+
         let update_expression = values
             .into_iter()
             .filter(|(name, _)| !name.starts_with("__"))
             .chain(std::iter::once((
-                constant::UPDATED_AT.to_string(),
-                AttributeValue {
+                &constant::UPDATED_AT.to_string(),
+                &AttributeValue {
                     s: Some(Utc::now().to_string()),
                     ..Default::default()
                 },
             )))
-            .unique_by(|(name, _)| name.to_string())
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
                 let result = format!("{}={}", sanitized_name, idx);
+                exp_values.insert(idx, value.clone());
+                exp_names.insert(sanitized_name, name.as_str().to_string());
+                result
+            })
+            .join(",");
+
+        let increment_expression = increments
+            .into_iter()
+            .map(|(name, value)| {
+                let idx = format!(":{}", name.as_str());
+                let sanitized_name = format!("#{}", name.as_str());
+                let result = format!("{} {}", sanitized_name, idx);
                 exp_values.insert(idx, value);
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
             })
             .join(",");
 
-        format!("set {update_expression}")
+        let update_expression = if update_expression.is_empty() {
+            String::new()
+        } else {
+            format!("set {update_expression}")
+        };
+
+        let increment_expression = if increment_expression.is_empty() {
+            String::new()
+        } else {
+            format!("add {increment_expression}")
+        };
+
+        // since we insert all fields for updates at the moment
+        // (including unchanged fields), both update_expression and
+        // increment_expression cannot be empty at the same time
+        format!("{update_expression} {increment_expression}")
     }
 }
 
@@ -1020,6 +1099,8 @@ pub struct UpdateUniqueConstraint {
     pub(crate) target: String,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    #[derivative(Debug = "ignore", PartialEq = "ignore")]
+    pub increments: HashMap<String, AttributeValue>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1094,6 +1175,11 @@ impl Add<Self> for UpdateNodeInternalInput {
             user_defined_item: {
                 let mut update_into_insert = rhs.user_defined_item;
                 update_into_insert.extend(self.user_defined_item);
+                update_into_insert
+            },
+            increments: {
+                let mut update_into_insert = rhs.increments;
+                update_into_insert.extend(self.increments);
                 update_into_insert
             },
         }

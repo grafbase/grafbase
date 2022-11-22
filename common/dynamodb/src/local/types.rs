@@ -220,8 +220,8 @@ pub enum Sql<'a> {
     Insert(&'a Row),
     /// values: to_add[], Row.values,
     InsertRelation(&'a Row, usize),
-    /// values: document, updated_at, pk, sk
-    Update,
+    /// values: document, updated_at, pk, sk, increments
+    Update(Vec<&'a String>),
     /// values: pk, sk, to_remove[], to_add[], document, updated_at
     UpdateWithRelations(usize, usize),
     /// values: pk, sk, to_remove[], document, updated_at
@@ -319,16 +319,28 @@ impl<'a> Sql<'a> {
                 )
             }
 
-            Self::Update => {
+            Self::Update(increment_fields) => {
+                let document_update = if increment_fields.is_empty() {
+                    "json_patch(document, ?document)".to_string()
+                } else {
+                    increment_fields.iter().fold(String::new(), |accumulator, current| {
+                        if accumulator.is_empty() {
+                            format!("json_set(json_patch(document, ?document), '$.{current}.N', cast(coalesce(json_extract(document, '$.{current}.N'), 0) + cast(?increments as NUMERIC) as TEXT))")
+                        } else {
+                            format!("json_set({accumulator}, '$.{current}.N', cast(coalesce(json_extract(document, '$.{current}.N'), 0) + cast(?increments as NUMERIC) as TEXT))")
+                        }
+                    })
+                };
                 format!(
                     indoc::indoc! {"
                     UPDATE {table}
                     SET 
-                        document=json_patch(document, ?document),
+                        document={document_update},
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
                 "},
-                    table = Self::TABLE
+                    table = Self::TABLE,
+                    document_update = document_update
                 )
             }
             Self::UpdateWithRelations(to_remove_count, to_add_count) => {
