@@ -1,0 +1,273 @@
+@import 'graphiql/graphiql.min.css';
+
+.graphiql-container,
+.CodeMirror-info,
+.CodeMirror-lint-tooltip,
+reach-portal {
+  --grafbase-accent: 146, 36%, 45%;
+  --grafbase-secondary: 208, 80%, 43%;
+  --grafbase-secondaryHover: 208, 77%, 52%;
+  --grafbase-success: 158, 40%, 51%;
+  --grafbase-warning: 40, 62%, 47%;
+  --grafbase-error: 0, 48%, 51%;
+  --grafbase-text1: 0, 0%, 11%;
+  --grafbase-text3: 0, 0%, 49%;
+  --grafbase-bg1: 0, 0%, 100%;
+  --grafbase-bg3: 0, 0%, 92%;
+  --grafbase-code-blue: 208, 80%, 43%;
+  --grafbase-code-grey: 0, 0%, 62%;
+  --grafbase-code-green: 151, 56%, 44%;
+  --grafbase-code-yellow: 36, 45%, 59%;
+  --grafbase-code-purple: 266, 60%, 54%;
+  --grafbase-code-blueLight: 208, 79%, 57%;
+
+  /* Colors */
+  --color-primary: var(--grafbase-accent);
+  --color-secondary: var(--grafbase-secondary);
+  --color-tertiary: var(--grafbase-success);
+  --color-info: var(--grafbase-secondaryHover);
+  --color-success: var(--grafbase-success);
+  --color-warning: var(--grafbase-warning);
+  --color-error: var(--grafbase-error);
+  --color-neutral: var(--grafbase-text1);
+  --color-base: var(--grafbase-bg1);
+
+  /* Color alpha values */
+  --alpha-secondary: 0.76;
+  --alpha-tertiary: 0.5;
+  --alpha-background-heavy: 0.15;
+  --alpha-background-medium: 0.1;
+  --alpha-background-light: 0.07;
+
+  /* Font */
+  --font-family: 'Roboto', sans-serif;
+  --font-family-mono: 'Fira Code', monospace;
+  --font-size-hint: calc(12rem / 16);
+  --font-size-inline-code: calc(13rem / 16);
+  --font-size-body: calc(15rem / 16);
+  --font-size-h4: calc(18rem / 16);
+  --font-size-h3: calc(22rem / 16);
+  --font-size-h2: calc(29rem / 16);
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --line-height: 1.5;
+
+  /* Spacing */
+  --px-2: 2px;
+  --px-4: 4px;
+  --px-6: 6px;
+  --px-8: 8px;
+  --px-10: 10px;
+  --px-12: 12px;
+  --px-16: 16px;
+  --px-20: 20px;
+  --px-24: 24px;
+
+  /* Border radius */
+  --border-radius-2: 2px;
+  --border-radius-4: 4px;
+  --border-radius-8: 8px;
+  --border-radius-12: 12px;
+  --border-radius-round: 9999px;
+
+  /* Popover styles (tooltip, dialog, etc) */
+  --popover-box-shadow: 0px 6px 20px rgba(59, 76, 106, 0.13), 0px 1.34018px 4.46726px rgba(59, 76, 106, 0.0774939),
+    0px 0.399006px 1.33002px rgba(59, 76, 106, 0.0525061);
+  --popover-border: none;
+
+  /* Layout */
+  --sidebar-width: 44px;
+  --toolbar-width: 40px;
+  --session-header-height: 51px;
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not(.graphiql-light) .graphiql-container,
+  body:not(.graphiql-light) .CodeMirror-info,
+  body:not(.graphiql-light) .CodeMirror-lint-tooltip,
+  body:not(.graphiql-light) reach-portal {
+    --grafbase-accent: 146, 36%, 45%;
+    --grafbase-secondary: 208, 80%, 43%;
+    --grafbase-secondaryHover: 208, 77%, 52%;
+    --grafbase-success: 158, 40%, 51%;
+    --grafbase-warning: 39, 66%, 52%;
+    --grafbase-error: 0, 48%, 51%;
+    --grafbase-text1: 0, 0%, 100%;
+    --grafbase-text3: 0, 0%, 64%;
+    --grafbase-bg1: 228, 10%, 10%;
+    --grafbase-bg3: 220, 3%, 22%;
+    --grafbase-code-blue: 208, 34%, 63%;
+    --grafbase-code-grey: 0, 0%, 53%;
+    --grafbase-code-green: 150, 39%, 52%;
+    --grafbase-code-yellow: 36, 45%, 59%;
+    --grafbase-code-purple: 297, 28%, 62%;
+    --grafbase-code-blueLight: 208, 63%, 60%;
+
+    --color-primary: var(--grafbase-accent);
+    --color-secondary: var(--grafbase-secondary);
+    --color-tertiary: var(--grafbase-success);
+    --color-info: var(--grafbase-secondaryHover);
+    --color-success: var(--grafbase-success);
+    --color-warning: var(--grafbase-warning);
+    --color-error: var(--grafbase-error);
+    --color-neutral: var(--grafbase-text1);
+    --color-base: var(--grafbase-bg1);
+
+    --popover-box-shadow: none;
+    --popover-border: 1px solid hsl(var(--color-neutral));
+  }
+}
+
+body.graphiql-dark .graphiql-container,
+body.graphiql-dark .CodeMirror-info,
+body.graphiql-dark .CodeMirror-lint-tooltip,
+body.graphiql-dark reach-portal {
+  --grafbase-accent: 146, 36%, 45%;
+  --grafbase-secondary: 208, 80%, 43%;
+  --grafbase-secondaryHover: 208, 77%, 52%;
+  --grafbase-success: 158, 40%, 51%;
+  --grafbase-warning: 39, 66%, 52%;
+  --grafbase-error: 0, 48%, 51%;
+  --grafbase-text1: 0, 0%, 100%;
+  --grafbase-text3: 0, 0%, 64%;
+  --grafbase-bg1: 228, 10%, 10%;
+  --grafbase-bg3: 220, 3%, 22%;
+  --grafbase-code-blue: 208, 34%, 63%;
+  --grafbase-code-grey: 0, 0%, 53%;
+  --grafbase-code-green: 150, 39%, 52%;
+  --grafbase-code-yellow: 36, 45%, 59%;
+  --grafbase-code-purple: 297, 28%, 62%;
+  --grafbase-code-blueLight: 208, 63%, 60%;
+
+  --color-primary: var(--grafbase-accent);
+  --color-secondary: var(--grafbase-secondary);
+  --color-tertiary: var(--grafbase-success);
+  --color-info: var(--grafbase-secondaryHover);
+  --color-success: var(--grafbase-success);
+  --color-warning: var(--grafbase-warning);
+  --color-error: var(--grafbase-error);
+  --color-neutral: var(--grafbase-text1);
+  --color-base: var(--grafbase-bg1);
+
+  --popover-box-shadow: none;
+  --popover-border: 1px solid hsl(var(--color-neutral));
+}
+
+.graphiql-container,
+.CodeMirror-info,
+.CodeMirror-lint-tooltip,
+reach-portal {
+  &,
+  &:is(button) {
+    color: hsla(var(--color-neutral), 1);
+    font-family: var(--font-family);
+    font-size: var(--font-size-body);
+    font-weight: var(----font-weight-regular);
+    line-height: var(--line-height);
+  }
+
+  & input {
+    color: hsla(var(--color-neutral), 1);
+    font-family: var(--font-family);
+    font-size: var(--font-size-caption);
+
+    &::placeholder {
+      color: hsla(var(--color-neutral), var(--alpha-secondary));
+    }
+  }
+
+  & a {
+    color: hsl(var(--color-primary));
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  :is(.graphiql-un-styled, button.graphiql-un-styled) {
+    &:active {
+      background-color: hsla(var(--color-base), 0);
+    }
+    &:focus {
+      outline: none;
+    }
+  }
+
+  button.graphiql-execute-button {
+    // Hide the original execute button: we use custom one to handle live queries
+    &:first-child {
+      display: none;
+    }
+    &:focus {
+      outline: none;
+    }
+  }
+
+  /* Capitalize the Tab title */
+  button.graphiql-tab-button {
+    text-transform: capitalize;
+  }
+
+  /* Scrollbar Styles */
+  .CodeMirror-vscrollbar,
+  .CodeMirror-hscrollbar,
+  .graphiql-plugin {
+    // Firefox
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--grafbase-bg3), 1) hsla(var(--grafbase-bg1), 1);
+
+    // Chrome, Safari, Edge, Opera
+    &:-webkit-scrollbar {
+      width: 6;
+      height: 6;
+    }
+    &::-webkit-scrollbar-track {
+      border-radius: --border-radius-round;
+      background-color: hsla(var(--grafbase-bg1), 0);
+    }
+    &::-webkit-scrollbar-thumb {
+      border-radius: --border-radius-round;
+      background-color: hsla(var(--grafbase-bg3), 1);
+
+      &:hover {
+        background-color: hsla(var(--grafbase-text3), 1);
+      }
+    }
+  }
+
+  // Syntax highlighting
+  .CodeMirror {
+    .cm-keyword,
+    .cm-def {
+      color: hsl(var(--grafbase-code-blue));
+    }
+    .cm-ws,
+    .cm-comment,
+    .cm-punctuation {
+      color: hsl(var(--grafbase-code-grey));
+    }
+    .cm-property {
+      color: hsl(var(--grafbase-code-green));
+    }
+    .cm-attribute {
+      color: hsl(var(--grafbase-code-yellow));
+    }
+    .cm-variable,
+    .cm-number,
+    .cm-string,
+    .cm-string-2,
+    .cm-builtin {
+      color: hsl(var(--grafbase-code-purple));
+    }
+    .cm-meta {
+      color: hsl(var(--grafbase-code-blueLight));
+      font-weight: 'bold';
+    }
+    .cm-qualifier {
+      color: '#1c92a9';
+    }
+    .cm-atom {
+      color: '#ca9800';
+    }
+  }
+}

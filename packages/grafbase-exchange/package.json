@@ -1,0 +1,26 @@
+{
+  "name": "@grafbase/urql-exchange",
+  "version": "0.0.0",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "license": "MIT",
+  "scripts": {
+    "lint": "eslint *.ts*"
+  },
+  "dependencies": {
+    "@n1ru4l/graphql-live-query": "^0.10.0",
+    "@n1ru4l/graphql-live-query-patch-json-patch": "^0.7.0",
+    "@n1ru4l/push-pull-async-iterable-iterator": "^3.2.0",
+    "@repeaterjs/repeater": "^3.0.4",
+    "@urql/core": "^3.0.5",
+    "graphql": "^16.6.0",
+    "reconnecting-eventsource": "^1.6.2",
+    "wonka": "^6.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.32.0",
+    "eslint-config-custom": "workspace:*",
+    "tsconfig": "workspace:*",
+    "typescript": "^4.5.2"
+  }
+}
