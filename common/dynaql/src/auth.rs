@@ -89,6 +89,13 @@ impl AuthConfig {
                 ops.union(self.allowed_group_ops[group])
             })
     }
+
+    pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
+        match groups_from_token {
+            Some(groups) => self.token_ops(groups),
+            None => self.api_key_ops(),
+        }
+    }
 }
 
 bitflags::bitflags! {
