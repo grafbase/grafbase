@@ -15,4 +15,4 @@ categories = ["network-programming", "asynchronous"]
 dynaql-value = { path = "../value", version = "3" }
 pest = "2"
 pest_derive = "2"
-serde = { version = "1", features = ["derive"] }
+serde = { workspace = true }
