@@ -10,8 +10,8 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/89ec29d-2022-11-09'
-  PROD_ASSETS: assets.grafbase.com
+  ASSETS_VERSION: 'cli-0.13.0/ba7495d-2022-11-23'
+  PROD_ASSETS: assets.grafbase.dev
   CARGO_TERM_COLOR: 'always'
 
 concurrency:
