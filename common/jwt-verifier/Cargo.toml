@@ -12,8 +12,8 @@ jwt-compact = { version = "0.6", default-features = false, features = [
 ] }
 quick-error = "2"
 secrecy = "0.8"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }
 url = "2"
 worker = "0.0.12"
 
@@ -29,6 +29,6 @@ surf = { version = "2", default-features = false, features = [
 
 [dev-dependencies]
 chrono = "0.4"
-serde_json = "1"
+serde_json = { workspace = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 wiremock = "0.5"
