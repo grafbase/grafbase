@@ -8,12 +8,13 @@ This example uses the next-gen web framework Fresh &mdash; [learn more](https://
 
 ## Getting Started
 
-1. Run `npx degit grafbase/grafbase/examples/fresh grafbase-with-fresh` to clone this example
-2. Change directory into the new folder `cd grafbase-with-fresh`
-3. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
-4. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
-5. Run `npx grafbase@latest dev` in your terminal
-6. Populate the backend with some `Post` entries using a GraphQL mutation:
+1. Make sure you have [Deno installed](https://deno.land) and ready to go first.
+2. Run `npx degit grafbase/grafbase/examples/fresh grafbase-with-fresh` to clone this example
+3. Change directory into the new folder `cd grafbase-with-fresh`
+4. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
+5. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
+6. Run `npx grafbase@latest dev` in your terminal
+7. Populate the backend with some `Post` entries using a GraphQL mutation:
 
 ```graphql
 mutation {
