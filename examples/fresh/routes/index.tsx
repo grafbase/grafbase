@@ -1,14 +1,33 @@
 import { Handlers, PageProps } from '$fresh/server.ts'
+import { grafbaseClient } from '@/utils/grafbase'
 
-const GetAllPostsQuery = /* GraphQL */ `
-  query GetAllPosts($first: Int!) {
-    postCollection(first: $first) {
+type Message = {
+  id: string
+  author: string
+  message: string
+  createdAt: string
+}
+
+const GetAllMessagesQuery = /* GraphQL */ `
+  query GetAllMessages($first: Int!) {
+    messageCollection(first: $first) {
       edges {
         node {
           id
-          title
-          slug
+          author
+          message
+          createdAt
         }
+      }
+    }
+  }
+`
+
+const AddNewMessageMutation = /* GraphQL */ `
+  mutation AddNewMessage($author: String!, $message: String!) {
+    messageCreate(input: { author: $author, message: $message }) {
+      message {
+        id
       }
     }
   }
@@ -16,18 +35,11 @@ const GetAllPostsQuery = /* GraphQL */ `
 
 export const handler: Handlers = {
   async GET(_, ctx) {
-    const response = await fetch(Deno.env.get('GRAFBASE_API_URL'), {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': Deno.env.get('GRAFBASE_API_KEY')
-      },
-      body: JSON.stringify({
-        query: GetAllPostsQuery,
-        variables: {
-          first: 100
-        }
-      })
+    const response = await grafbaseClient({
+      query: GetAllMessagesQuery,
+      variables: {
+        first: 100
+      }
     })
 
     if (!response.ok) {
@@ -37,17 +49,69 @@ export const handler: Handlers = {
     const { data } = await response.json()
 
     return ctx.render(data)
+  },
+  async POST(req, ctx) {
+    const formData = await req.formData()
+    const json = Object.fromEntries(formData)
+
+    await grafbaseClient({
+      query: AddNewMessageMutation,
+      variables: {
+        author: json.author,
+        message: json.message
+      }
+    })
+
+    const response = await grafbaseClient({
+      query: GetAllMessagesQuery,
+      variables: {
+        first: 100
+      }
+    })
+
+    const { data } = await response.json()
+
+    return ctx.render(data)
   }
 }
 
-export default function Home({ data }: PageProps) {
+export default function IndexPage({
+  data
+}: PageProps<{ messageCollection: { edges: { node: Message }[] } }>) {
   return (
     <>
-      <h1>Posts from Grafbase</h1>
+      <h1>Grafbook</h1>
+      <form method="POST">
+        <fieldset>
+          <legend>New message</legend>
+          <input id="author" name="author" placeholder="Name" />
+          <br />
+          <textarea
+            id="message"
+            name="message"
+            placeholder="Write a message..."
+            rows={5}
+          ></textarea>
+          <br />
+          <button type="submit">Submit</button>
+        </fieldset>
+      </form>
       <ul>
-        {data?.postCollection?.edges?.map(({ node }) => (
+        {data?.messageCollection?.edges?.map(({ node }) => (
           <li key={node.id}>
-            <a href={`/posts/${node.slug}`}>{node.title}</a>
+            <p>
+              <strong>
+                <a href={`/messages/${node.id}`}>{node.author}</a>
+                <br />
+                <small>
+                  {new Intl.DateTimeFormat('en-GB', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                  }).format(Date.parse(node.createdAt))}
+                </small>
+              </strong>
+            </p>
+            <p>{node.message}</p>
           </li>
         ))}
       </ul>
