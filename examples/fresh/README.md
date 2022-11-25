@@ -14,12 +14,14 @@ This example uses the next-gen web framework Fresh &mdash; [learn more](https://
 4. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
 5. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
 6. Run `npx grafbase@latest dev` in your terminal
-7. Populate the backend with some `Post` entries using a GraphQL mutation:
+7. Populate the backend with some `Message` entries using a GraphQL mutation:
 
 ```graphql
 mutation {
-  postCreate(input: { title: "Hello Fresh", slug: "hello-fresh" }) {
-    post {
+  messageCreate(
+    input: { author: "Grafbase Admin", message: "Grafbase is awesome!" }
+  ) {
+    message {
       id
     }
   }
