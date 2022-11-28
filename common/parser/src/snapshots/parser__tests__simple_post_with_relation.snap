@@ -1,6 +1,5 @@
 ---
-source: common/parser/src/lib.rs
-assertion_line: 281
+source: common/parser/src/tests.rs
 expression: reg_string
 ---
 {
@@ -116,13 +115,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "country"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "country"
               }
-            ],
+            },
             "ty": "Country!"
           },
           "createdAt": {
@@ -151,13 +148,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__created_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           },
           "id": {
@@ -186,13 +181,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__sk"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
               }
-            ],
+            },
             "ty": "ID!"
           },
           "lastname": {
@@ -221,13 +214,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "lastname"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "lastname"
               }
-            ],
+            },
             "ty": "String!"
           },
           "name": {
@@ -256,13 +247,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "name"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "name"
               }
-            ],
+            },
             "ty": "String!"
           },
           "posts": {
@@ -336,7 +325,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostConnection"
           },
           "updatedAt": {
@@ -365,13 +354,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__updated_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           }
         },
@@ -429,7 +416,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[AuthorEdge]"
           },
           "pageInfo": {
@@ -449,7 +436,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -543,7 +530,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Author"
           }
         },
@@ -581,14 +568,11 @@ expression: reg_string
             "required_operation": 16,
             "requires": null,
             "resolve": null,
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "id"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
-            ],
+            },
             "ty": "ID!"
           }
         },
@@ -635,13 +619,16 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__pk"
-                }
-              }
-            ],
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__pk"
+                  }
+                },
+                "ConvertPkToCursor"
+              ]
+            },
             "ty": "String!"
           },
           "node": {
@@ -661,7 +648,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Author!"
           }
         },
@@ -833,7 +820,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Author"
           }
         },
@@ -880,13 +867,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__created_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           },
           "id": {
@@ -915,13 +900,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__sk"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
               }
-            ],
+            },
             "ty": "ID!"
           },
           "owner": {
@@ -961,7 +944,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Author!"
           },
           "posts": {
@@ -1035,7 +1018,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostConnection"
           },
           "updatedAt": {
@@ -1064,13 +1047,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__updated_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           }
         },
@@ -1317,7 +1298,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[BlogEdge]"
           },
           "pageInfo": {
@@ -1337,7 +1318,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -1415,7 +1396,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Blog"
           }
         },
@@ -1453,14 +1434,11 @@ expression: reg_string
             "required_operation": 16,
             "requires": null,
             "resolve": null,
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "id"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
-            ],
+            },
             "ty": "ID!"
           }
         },
@@ -1507,13 +1485,16 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__pk"
-                }
-              }
-            ],
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__pk"
+                  }
+                },
+                "ConvertPkToCursor"
+              ]
+            },
             "ty": "String!"
           },
           "node": {
@@ -1533,7 +1514,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Blog!"
           }
         },
@@ -1611,7 +1592,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Blog"
           }
         },
@@ -1724,7 +1705,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "AuthorCreatePayload"
           },
           "authorDelete": {
@@ -1765,7 +1746,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "AuthorDeletePayload"
           },
           "authorUpdate": {
@@ -1817,7 +1798,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "AuthorUpdatePayload"
           },
           "blogCreate": {
@@ -1858,7 +1839,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "BlogCreatePayload"
           },
           "blogDelete": {
@@ -1899,7 +1880,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "BlogDeletePayload"
           },
           "blogUpdate": {
@@ -1951,7 +1932,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "BlogUpdatePayload"
           },
           "postCreate": {
@@ -1992,7 +1973,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostCreatePayload"
           },
           "postDelete": {
@@ -2033,7 +2014,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostDeletePayload"
           },
           "postUpdate": {
@@ -2085,7 +2066,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostUpdatePayload"
           }
         },
@@ -2128,14 +2109,11 @@ expression: reg_string
                 "ContextDataResolver": "PaginationData"
               }
             },
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "end_cursor"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "end_cursor"
               }
-            ],
+            },
             "ty": "String"
           },
           "hasNextPage": {
@@ -2160,14 +2138,11 @@ expression: reg_string
                 "ContextDataResolver": "PaginationData"
               }
             },
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "has_next_page"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_next_page"
               }
-            ],
+            },
             "ty": "Boolean!"
           },
           "hasPreviousPage": {
@@ -2192,14 +2167,11 @@ expression: reg_string
                 "ContextDataResolver": "PaginationData"
               }
             },
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "has_previous_page"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_previous_page"
               }
-            ],
+            },
             "ty": "Boolean!"
           },
           "startCursor": {
@@ -2224,14 +2196,11 @@ expression: reg_string
                 "ContextDataResolver": "PaginationData"
               }
             },
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "start_cursor"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "start_cursor"
               }
-            ],
+            },
             "ty": "String"
           }
         },
@@ -2323,7 +2292,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "AuthorConnection"
           },
           "content": {
@@ -2352,13 +2321,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "content"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "content"
               }
-            ],
+            },
             "ty": "String!"
           },
           "createdAt": {
@@ -2387,13 +2354,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__created_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           },
           "id": {
@@ -2422,13 +2387,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__sk"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
               }
-            ],
+            },
             "ty": "ID!"
           },
           "updatedAt": {
@@ -2457,13 +2420,11 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__updated_at"
-                }
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
               }
-            ],
+            },
             "ty": "DateTime!"
           }
         },
@@ -2521,7 +2482,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[PostEdge]"
           },
           "pageInfo": {
@@ -2541,7 +2502,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -2619,7 +2580,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Post"
           }
         },
@@ -2657,14 +2618,11 @@ expression: reg_string
             "required_operation": 16,
             "requires": null,
             "resolve": null,
-            "transforms": [
-              {
-                "JSONSelect": {
-                  "functions": [],
-                  "property": "id"
-                }
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
-            ],
+            },
             "ty": "ID!"
           }
         },
@@ -2711,13 +2669,16 @@ expression: reg_string
                 }
               }
             },
-            "transforms": [
-              {
-                "DynamoSelect": {
-                  "property": "__pk"
-                }
-              }
-            ],
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__pk"
+                  }
+                },
+                "ConvertPkToCursor"
+              ]
+            },
             "ty": "String!"
           },
           "node": {
@@ -2737,7 +2698,7 @@ expression: reg_string
             "required_operation": 4,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Post!"
           }
         },
@@ -2909,7 +2870,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Post"
           }
         },
@@ -2947,7 +2908,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Schema!"
           },
           "author": {
@@ -2987,7 +2948,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Author"
           },
           "authorCollection": {
@@ -3072,7 +3033,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "AuthorConnection"
           },
           "blog": {
@@ -3112,7 +3073,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Blog"
           },
           "blogCollection": {
@@ -3197,7 +3158,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "BlogConnection"
           },
           "post": {
@@ -3237,7 +3198,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "Post"
           },
           "postCollection": {
@@ -3322,7 +3283,7 @@ expression: reg_string
                 }
               }
             },
-            "transforms": null,
+            "transformer": null,
             "ty": "PostConnection"
           }
         },
@@ -3367,7 +3328,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "description": {
@@ -3387,7 +3348,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "isRepeatable": {
@@ -3407,7 +3368,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "locations": {
@@ -3427,7 +3388,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__DirectiveLocation!]!"
           },
           "name": {
@@ -3447,7 +3408,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -3589,7 +3550,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3609,7 +3570,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -3629,7 +3590,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -3649,7 +3610,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -3687,7 +3648,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "deprecationReason": {
@@ -3707,7 +3668,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3727,7 +3688,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -3747,7 +3708,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -3767,7 +3728,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -3787,7 +3748,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -3825,7 +3786,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3845,7 +3806,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "name": {
@@ -3865,7 +3826,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -3885,7 +3846,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -3923,7 +3884,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__Directive!]!"
           },
           "mutationType": {
@@ -3943,7 +3904,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "queryType": {
@@ -3963,7 +3924,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type!"
           },
           "subscriptionType": {
@@ -3983,7 +3944,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "types": {
@@ -4003,7 +3964,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__Type!]!"
           }
         },
@@ -4041,7 +4002,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "enumValues": {
@@ -4070,7 +4031,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__EnumValue!]"
           },
           "fields": {
@@ -4099,7 +4060,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__Field!]"
           },
           "inputFields": {
@@ -4119,7 +4080,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__InputValue!]"
           },
           "interfaces": {
@@ -4139,7 +4100,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "isOneOf": {
@@ -4159,7 +4120,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "Boolean"
           },
           "kind": {
@@ -4179,7 +4140,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__TypeKind!"
           },
           "name": {
@@ -4199,7 +4160,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           },
           "ofType": {
@@ -4219,7 +4180,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "possibleTypes": {
@@ -4239,7 +4200,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "specifiedByURL": {
@@ -4259,7 +4220,7 @@ expression: reg_string
             "required_operation": null,
             "requires": null,
             "resolve": null,
-            "transforms": null,
+            "transformer": null,
             "ty": "String"
           }
         },

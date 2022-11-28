@@ -75,9 +75,9 @@ fn insert_metadata_field(
                 }),
             }),
             edges: Vec::new(),
-            transforms: Some(vec![Transformer::DynamoSelect {
+            transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
-            }]),
+            }),
             relation: None,
             required_operation: None,
             auth: auth.cloned(),
@@ -138,16 +138,16 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 is_modelized_node(&ctx.types, &target_ty).is_some()
                             }).unwrap_or_default();
 
-                            let transforms = if is_edge {
+                            let transformer = if is_edge {
                                 None
                             } else {
-                                Some(vec![Transformer::DynamoSelect {
+                                Some(Transformer::DynamoSelect {
                                     property: if name == "id" {
                                         "__sk".to_string()
                                     } else {
                                         name.clone()
                                     },
-                                }])
+                                })
                             };
 
                             let is_expecting_array = is_array_basic_type(&field.node.ty.to_string());
@@ -209,7 +209,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     Vec::new()
                                 },
                                 relation,
-                                transforms,
+                                transformer,
                                 required_operation: None,
                                 auth: auth.clone(),
                             });
@@ -334,7 +334,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             by: VariableResolveDefinition::InputTypeName("by".to_owned()),
                         })
                     }),
-                    transforms: None,
+                    transformer: None,
                     required_operation: Some(Operations::GET),
                     auth: auth.clone(),
                 });

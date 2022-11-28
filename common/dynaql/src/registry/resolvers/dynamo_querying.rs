@@ -7,6 +7,7 @@ use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
 };
+use graph_entities::cursor::PaginationCursor;
 use graph_entities::ConstraintID;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -203,11 +204,11 @@ impl ResolverTrait for DynamoResolver {
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                     Some(PAGINATION_LIMIT),
                 )?;
-                let after = after.expect_opt_string(
+                let after = after.expect_opt_cursor(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                 )?;
-                let before = before.expect_opt_string(
+                let before = before.expect_opt_cursor(
                     ctx,
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                 )?;
@@ -233,8 +234,20 @@ impl ResolverTrait for DynamoResolver {
                 })?;
 
                 pagination = pagination
-                    .with_start(result.values.iter().next().map(|(pk, _)| pk.clone()))
-                    .with_end(result.values.iter().last().map(|(pk, _)| pk.clone()))
+                    .with_start(
+                        result
+                            .values
+                            .iter()
+                            .next()
+                            .map(|(pk, _)| PaginationCursor { pk: pk.to_string() }),
+                    )
+                    .with_end(
+                        result
+                            .values
+                            .iter()
+                            .last()
+                            .map(|(pk, _)| PaginationCursor { pk: pk.to_string() }),
+                    )
                     .with_more_data(result.last_evaluated_key.is_some());
 
                 let result: Vec<serde_json::Value> = result

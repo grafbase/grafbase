@@ -265,9 +265,8 @@ pub struct MetaField {
     /// relation: (String, String)
     pub relation: Option<MetaRelation>,
     pub resolve: Option<Resolver>,
-    /// Ordered transformations to be applied after a Resolver has been called.
-    /// They are applied Serially and merged at the end.
-    pub transforms: Option<Vec<Transformer>>,
+    /// Transformer to be applied after a Resolver has been called.
+    pub transformer: Option<Transformer>,
     pub required_operation: Option<Operations>,
     pub auth: Option<AuthConfig>,
 }
@@ -286,7 +285,7 @@ impl Hash for MetaField {
         self.edges.hash(state);
         self.relation.hash(state);
         self.resolve.hash(state);
-        self.transforms.hash(state);
+        self.transformer.hash(state);
     }
 }
 
@@ -304,7 +303,7 @@ impl PartialEq for MetaField {
             && self.edges.eq(&other.edges)
             && self.relation.eq(&other.relation)
             && self.resolve.eq(&other.resolve)
-            && self.transforms.eq(&other.transforms)
+            && self.transformer.eq(&other.transformer)
     }
 }
 
@@ -1435,7 +1434,7 @@ impl Registry {
                         relation: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1473,7 +1472,7 @@ impl Registry {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: None,
+                        transformer: None,
                         required_operation: None,
                         auth: None,
                     },
@@ -1509,7 +1508,7 @@ impl Registry {
                             edges: Vec::new(),
                             relation: None,
                             resolve: None,
-                            transforms: None,
+                            transformer: None,
                             required_operation: None,
                             auth: None,
                         },

@@ -49,7 +49,7 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(vec![Transformer::DynamoSelect {
                             property: "pk".to_string(),
                         }]),
                         required_operation: None,
@@ -71,9 +71,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "slug".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -93,9 +93,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "name".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -138,9 +138,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "pk".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -160,9 +160,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "clerk_user_id".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -182,9 +182,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "name".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -204,9 +204,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "email".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -226,9 +226,9 @@ async fn main() {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
-                        transforms: Some(vec![Transformer::DynamoSelect {
+                        transformer: Some(Transformer::DynamoSelect {
                             property: "avatar".to_string(),
-                        }]),
+                        }),
                         required_operation: None,
                         auth: None,
                     },
@@ -275,7 +275,7 @@ async fn main() {
                             visible: None,
                             compute_complexity: None,
                             resolve: None,
-                            transforms: None,
+                            transformer: None,
                             required_operation: None,
                             auth: None,
                         },
@@ -322,7 +322,7 @@ async fn main() {
                                     ),
                                 }),
                             }),
-                            transforms: None,
+                            transformer: None,
                             required_operation: None,
                             auth: None,
                         },
@@ -369,7 +369,7 @@ async fn main() {
                                     ),
                                 }),
                             }),
-                            transforms: None,
+                            transformer: None,
                             required_operation: None,
                             auth: None,
                         },
