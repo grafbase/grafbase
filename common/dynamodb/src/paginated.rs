@@ -20,12 +20,14 @@ use tracing::{info_span, Instrument};
 /// The last elements are the most anciens.
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub enum PaginatedCursor {
+    // after
     Forward {
         exclusive_last_key: Option<String>,
         first: usize,
         // (relation_name, parent_pk)
         nested: Option<(String, String)>,
     },
+    // before
     Backward {
         exclusive_first_key: Option<String>,
         last: usize,
@@ -87,13 +89,6 @@ impl PaginatedCursor {
                 nested,
             }),
             (None, _, None, _) => Err(CursorCreation::Direction),
-        }
-    }
-
-    const fn scan_index_forward(&self) -> bool {
-        match self {
-            PaginatedCursor::Forward { .. } => false,
-            PaginatedCursor::Backward { .. } => true,
         }
     }
 
@@ -271,8 +266,9 @@ where
 
         let pagination_string = cursor.pagination_string();
         let key_condition_expression = match (&pagination_string, &cursor) {
-            (Some(_), PaginatedCursor::Forward { .. }) => Some("#pk = :pk AND #sk < :pkorder".to_string()),
-            (Some(_), PaginatedCursor::Backward { .. }) => Some("#pk = :pk AND #sk > :pkorder".to_string()),
+            // Ordering is defined to be oldest to newest
+            (Some(_), PaginatedCursor::Forward { .. }) => Some("#pk = :pk AND #sk > :pkorder".to_string()),
+            (Some(_), PaginatedCursor::Backward { .. }) => Some("#pk = :pk AND #sk < :pkorder".to_string()),
             _ => Some("#pk = :pk".to_string()),
         };
 
@@ -292,7 +288,9 @@ where
             },
             expression_attribute_values: Some(exp),
             expression_attribute_names: Some(exp_att_name),
-            scan_index_forward: Some(cursor.scan_index_forward()),
+            // Items are stored with their ID (~ULID) as the DynamoDB sort_key,
+            // so we just need them to be in scan order.
+            scan_index_forward: Some(true),
             ..Default::default()
         };
 

@@ -477,23 +477,24 @@ impl<'a> Sql<'a> {
 
                 if *has_key {
                     format!(
-                        indoc::indoc! {"
+                        indoc::indoc! {r##"
                             WITH page AS (
                                 {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
-                                ORDER BY pk DESC LIMIT ?query_limit
+                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
+                                ORDER BY sk LIMIT ?query_limit
                             )
                             
-                            SELECT * FROM page
+                            SELECT sk AS "__#key", * FROM page
                             UNION ALL
-                            SELECT {table}.* FROM 
-                                {table}, 
+                            SELECT {table}.pk as "__#key", {table}.*
+                            FROM
+                                {table},
                                 json_each({table}.relation_names)
                             WHERE
-                                ({table}.pk) IN (SELECT pk FROM page)
+                                ({table}.pk) IN (SELECT sk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
-                        "},
+                            ORDER BY "__#key"
+                        "##},
                         pk_query = pk_query,
                         select = select,
                         nested_search = nested_search,
@@ -502,23 +503,24 @@ impl<'a> Sql<'a> {
                     )
                 } else {
                     format!(
-                        indoc::indoc! {"
+                        indoc::indoc! {r##"
                             WITH page AS (
                                 {select}
                                 WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY pk DESC LIMIT ?query_limit
+                                ORDER BY sk LIMIT ?query_limit
                             )
                             
-                            SELECT * FROM page
+                            SELECT sk AS "__#key", * FROM page
                             UNION ALL
-                            SELECT {table}.* FROM 
-                                {table}, 
+                            SELECT {table}.pk as "__#key", {table}.*
+                            FROM
+                                {table},
                                 json_each({table}.relation_names)
                             WHERE
-                                ({table}.pk) IN (SELECT pk FROM page)
+                                ({table}.pk) IN (SELECT sk FROM page)
                                 AND ({edges})
-                            ORDER BY pk DESC
-                        "},
+                            ORDER BY "__#key"
+                        "##},
                         pk_query = pk_query,
                         select = select,
                         nested_search = nested_search,
@@ -545,23 +547,24 @@ impl<'a> Sql<'a> {
 
                 if *has_key {
                     format!(
-                        indoc::indoc! {"
+                        indoc::indoc! {r##"
                             WITH page AS (
                                 {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
-                                ORDER BY pk LIMIT ?query_limit
+                                WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
+                                ORDER BY sk DESC LIMIT ?query_limit
                             )
                             
-                            SELECT * FROM page
+                            SELECT sk AS "__#key", * FROM page
                             UNION ALL
-                            SELECT {table}.* FROM 
-                                {table}, 
+                            SELECT {table}.pk as "__#key", {table}.*
+                            FROM
+                                {table},
                                 json_each({table}.relation_names)
                             WHERE
-                                ({table}.pk) IN (SELECT pk FROM page)
+                                ({table}.pk) IN (SELECT sk FROM page)
                                 AND ({edges})
-                            ORDER BY pk
-                        "},
+                            ORDER BY "__#key"
+                        "##},
                         pk_query = pk_query,
                         select = select,
                         nested_search = nested_search,
@@ -570,23 +573,24 @@ impl<'a> Sql<'a> {
                     )
                 } else {
                     format!(
-                        indoc::indoc! {"
+                        indoc::indoc! {r##"
                             WITH page AS (
                                 {select}
                                 WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY pk LIMIT ?query_limit
+                                ORDER BY sk DESC LIMIT ?query_limit
                             )
                             
-                            SELECT * FROM page
+                            SELECT sk AS "__#key", * FROM page
                             UNION ALL
-                            SELECT {table}.* FROM 
-                                {table}, 
+                            SELECT {table}.pk as "__#key", {table}.*
+                            FROM
+                                {table},
                                 json_each({table}.relation_names)
                             WHERE
-                                ({table}.pk) IN (SELECT pk FROM page)
+                                ({table}.pk) IN (SELECT sk FROM page)
                                 AND ({edges})
-                            ORDER BY pk
-                        "},
+                            ORDER BY "__#key"
+                        "##},
                         pk_query = pk_query,
                         table = Self::TABLE,
                         edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
@@ -614,8 +618,8 @@ impl<'a> Sql<'a> {
                     format!(
                         indoc::indoc! {"
                                 {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
-                                ORDER BY sk DESC LIMIT ?query_limit
+                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
+                                ORDER BY sk LIMIT ?query_limit
                             "},
                         pk_query = pk_query,
                         select = select,
@@ -626,7 +630,7 @@ impl<'a> Sql<'a> {
                         indoc::indoc! {"
                                 {select}
                                 WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY sk DESC LIMIT ?query_limit
+                                ORDER BY sk LIMIT ?query_limit
                             "},
                         pk_query = pk_query,
                         select = select,
@@ -652,9 +656,12 @@ impl<'a> Sql<'a> {
                 if *has_key {
                     format!(
                         indoc::indoc! {"
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
+                                SELECT *
+                                FROM (
+                                    {select}
+                                    WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
+                                    ORDER BY sk DESC LIMIT ?query_limit
+                                ) ORDER BY sk
                             "},
                         pk_query = pk_query,
                         select = select,
@@ -663,9 +670,12 @@ impl<'a> Sql<'a> {
                 } else {
                     format!(
                         indoc::indoc! {"
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
+                                SELECT *
+                                FROM (
+                                    {select}
+                                    WHERE entity_type=?entity_type AND {pk_query} {nested_search}
+                                    ORDER BY sk DESC LIMIT ?query_limit
+                                ) ORDER BY sk
                             "},
                         pk_query = pk_query,
                         select = select,
