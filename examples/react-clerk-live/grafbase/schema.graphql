@@ -1,0 +1,13 @@
+schema
+  @auth(
+    providers: [{ type: oidc, issuer: "https://{{ env.CLERK_ISSUER_URL }}" }]
+    rules: [{ allow: private }]
+  ) {
+  query: Query
+}
+
+type Message @model {
+  id: ID!
+  author: String!
+  message: String!
+}
