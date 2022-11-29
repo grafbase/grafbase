@@ -19,7 +19,7 @@ const authExchange = coreAuthExchange<string>({
       ...operation.context,
       fetchOptions: {
         headers: {
-          Authorization: `Bearer ${authState}`
+          authorization: `Bearer ${authState}`
         }
       }
     })

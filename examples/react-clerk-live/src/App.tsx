@@ -63,6 +63,7 @@ function App() {
           e.preventDefault()
           if (author && message) {
             addNewMessage({ author, message })
+            setMessage('')
           }
         }}
       >

@@ -8,5 +8,6 @@
 1. Open `.env` in your code editor, and provide your Grafbase API endpoint and [Clerk frontend and backend API keys](https://dashboard.clerk.dev/last-active?path=api-keys)
 1. Run `cp grafbase/.env.example grafbase/.env` to copy the example `.env.example` file to `.env` in the `grafbase` folder
 1. Run `npm install`, or `yarn install` to install dependencies
+1. Deploy your repo to GitHub and connect Grafbase to it
 1. Run `npm run dev`, or `yarn dev` (in a new terminal)
 1. Visit [http://localhost:5173](http://localhost:5173)
