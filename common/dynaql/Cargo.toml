@@ -43,8 +43,8 @@ derivative = "2"
 dynomite = "0.10"
 fnv = "1"
 futures-util = { version = "0.3", default-features = false, features = [
-    "io",
-    "sink",
+  "io",
+  "sink",
 ] }
 graph-entities = { path = "../graph_entities" }
 ipnet = "2.6"
@@ -66,8 +66,8 @@ mime = "0.3"
 num-traits = "0.2"
 fast_chemail = "0.9"
 chrono = { version = "0.4", default-features = false, features = [
-    "clock",
-    "std",
+  "clock",
+  "std",
 ] }
 url = { version = "2" }
 bitflags = "1"
@@ -86,19 +86,19 @@ log = { version = "0.4", optional = true }
 secrecy = { version = "0.8", features = ["serde"] }
 tracinglib = { version = "0.1", optional = true, package = "tracing" }
 tracing-futures = { version = "0.2", optional = true, features = [
-    "std-future",
-    "futures-03",
+  "std-future",
+  "futures-03",
 ] }
 opentelemetry = { version = "0.17", optional = true, default-features = false, features = [
-    "trace",
+  "trace",
 ] }
 uuid = { version = "1", optional = true, features = ["v4", "serde"] }
 rust_decimal = { version = "1", optional = true }
 smol_str = { version = "0.1", optional = true }
 time = { version = "0.3", optional = true, features = [
-    "parsing",
-    "formatting",
-    "macros",
+  "parsing",
+  "formatting",
+  "macros",
 ] }
 futures-timer = { version = "3", optional = true }
 futures-channel = { version = "0.3", optional = true }

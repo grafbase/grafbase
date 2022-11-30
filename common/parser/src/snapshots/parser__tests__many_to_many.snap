@@ -79,162 +79,6 @@ expression: reg_string
   "query_type": "Query",
   "subscription_type": null,
   "types": {
-    "Author": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "lastname": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "lastname",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "lastname"
-              }
-            },
-            "ty": "String!"
-          },
-          "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "name"
-              }
-            },
-            "ty": "String!"
-          },
-          "pseudo": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "pseudo",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "pseudo"
-              }
-            },
-            "ty": "String"
-          },
-          "truc": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "truc",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "truc"
-              }
-            },
-            "ty": "Truc!"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Author",
-        "rust_typename": "Author"
-      }
-    },
-    "AuthorInput": {
-      "InputObject": {
-        "description": "Author input type.",
-        "input_fields": {
-          "lastname": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "lastname",
-            "ty": "String!",
-            "validators": null
-          },
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "pseudo": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "pseudo",
-            "ty": "String",
-            "validators": null
-          },
-          "truc": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "truc",
-            "ty": "TrucInput!",
-            "validators": null
-          }
-        },
-        "name": "AuthorInput",
-        "oneof": false,
-        "rust_typename": "Author"
-      }
-    },
     "Boolean": {
       "Scalar": {
         "description": "The `Boolean` scalar type represents `true` or `false`.",
@@ -280,14 +124,14 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "todoCreate": {
+          "organizationCreate": {
             "args": {
               "input": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "TodoCreateInput!",
+                "ty": "OrganizationCreateInput!",
                 "validators": null
               }
             },
@@ -297,38 +141,38 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Create a Todo",
+            "description": "Create a Organization",
             "edges": [],
             "external": false,
-            "name": "todoCreate",
+            "name": "organizationCreate",
             "provides": null,
             "relation": null,
             "required_operation": 1,
             "requires": null,
             "resolve": {
-              "id": "todo_create_resolver",
+              "id": "organization_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "CreateNode": {
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Todo"
+                    "ty": "Organization"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "TodoCreatePayload"
+            "ty": "OrganizationCreatePayload"
           },
-          "todoDelete": {
+          "organizationDelete": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!",
+                "ty": "OrganizationByInput!",
                 "validators": null
               }
             },
@@ -338,38 +182,38 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Todo by ID or unique field",
+            "description": "Delete a Organization by ID or unique field",
             "edges": [],
             "external": false,
-            "name": "todoDelete",
+            "name": "organizationDelete",
             "provides": null,
             "relation": null,
             "required_operation": 16,
             "requires": null,
             "resolve": {
-              "id": "todo_delete_resolver",
+              "id": "organization_delete_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
                     "by": {
                       "InputTypeName": "by"
                     },
-                    "ty": "Todo"
+                    "ty": "Organization"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "TodoDeletePayload"
+            "ty": "OrganizationDeletePayload"
           },
-          "todoUpdate": {
+          "organizationUpdate": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!",
+                "ty": "OrganizationByInput!",
                 "validators": null
               },
               "input": {
@@ -377,7 +221,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "TodoUpdateInput!",
+                "ty": "OrganizationUpdateInput!",
                 "validators": null
               }
             },
@@ -387,16 +231,16 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Update a Todo",
+            "description": "Update a Organization",
             "edges": [],
             "external": false,
-            "name": "todoUpdate",
+            "name": "organizationUpdate",
             "provides": null,
             "relation": null,
             "required_operation": 8,
             "requires": null,
             "resolve": {
-              "id": "todo_create_resolver",
+              "id": "organization_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
@@ -406,13 +250,147 @@ expression: reg_string
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Todo"
+                    "ty": "Organization"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "TodoUpdatePayload"
+            "ty": "OrganizationUpdatePayload"
+          },
+          "userCreate": {
+            "args": {
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "UserCreateInput!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Create a User",
+            "edges": [],
+            "external": false,
+            "name": "userCreate",
+            "provides": null,
+            "relation": null,
+            "required_operation": 1,
+            "requires": null,
+            "resolve": {
+              "id": "user_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "UserCreatePayload"
+          },
+          "userDelete": {
+            "args": {
+              "by": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "by",
+                "ty": "UserByInput!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Delete a User by ID or unique field",
+            "edges": [],
+            "external": false,
+            "name": "userDelete",
+            "provides": null,
+            "relation": null,
+            "required_operation": 16,
+            "requires": null,
+            "resolve": {
+              "id": "user_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "UserDeletePayload"
+          },
+          "userUpdate": {
+            "args": {
+              "by": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "by",
+                "ty": "UserByInput!",
+                "validators": null
+              },
+              "input": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "input",
+                "ty": "UserUpdateInput!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Update a User",
+            "edges": [],
+            "external": false,
+            "name": "userUpdate",
+            "provides": null,
+            "relation": null,
+            "required_operation": 8,
+            "requires": null,
+            "resolve": {
+              "id": "user_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "User"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "UserUpdatePayload"
           }
         },
         "is_node": false,
@@ -420,6 +398,668 @@ expression: reg_string
         "keys": null,
         "name": "Mutation",
         "rust_typename": "Mutation"
+      }
+    },
+    "Organization": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "createdAt": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "when the model was created",
+            "edges": [],
+            "external": false,
+            "name": "createdAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Organization"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
+            },
+            "ty": "DateTime!"
+          },
+          "id": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Unique identifier",
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Organization"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
+            },
+            "ty": "ID!"
+          },
+          "name": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Organization"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "name"
+              }
+            },
+            "ty": "String!"
+          },
+          "updatedAt": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "when the model was updated",
+            "edges": [],
+            "external": false,
+            "name": "updatedAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Organization"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
+            },
+            "ty": "DateTime!"
+          },
+          "users": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String",
+                "validators": null
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String",
+                "validators": null
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int",
+                "validators": null
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "User"
+            ],
+            "external": false,
+            "name": "users",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "ManyToMany",
+              "name": "OrganizationRelateUser",
+              "relation": [
+                "Organization",
+                "User"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "organization_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "User",
+                    "key": "Organization",
+                    "relation_name": "OrganizationRelateUser"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "UserConnection"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Organization",
+        "rust_typename": "Organization"
+      }
+    },
+    "OrganizationByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "OrganizationByInput",
+        "oneof": true,
+        "rust_typename": "OrganizationByInput"
+      }
+    },
+    "OrganizationConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "User"
+            ],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "[OrganizationEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "OrganizationConnection",
+        "rust_typename": "OrganizationConnection"
+      }
+    },
+    "OrganizationCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Organization",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "users": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "users",
+            "ty": "[OrganizationOrganizationRelateUserUserCreateRelationInput!]",
+            "validators": null
+          }
+        },
+        "name": "OrganizationCreateInput",
+        "oneof": false,
+        "rust_typename": "OrganizationCreateInput"
+      }
+    },
+    "OrganizationCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "organization": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "organization",
+            "provides": null,
+            "relation": null,
+            "required_operation": 1,
+            "requires": null,
+            "resolve": {
+              "id": "organization_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Organization"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "OrganizationCreatePayload",
+        "rust_typename": "OrganizationCreatePayload"
+      }
+    },
+    "OrganizationDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "required_operation": 16,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
+              }
+            },
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "OrganizationDeletePayload",
+        "rust_typename": "OrganizationDeletePayload"
+      }
+    },
+    "OrganizationEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Organization"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__pk"
+                  }
+                },
+                "ConvertPkToCursor"
+              ]
+            },
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "Organization!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "OrganizationEdge",
+        "rust_typename": "OrganizationEdge"
+      }
+    },
+    "OrganizationOrganizationRelateUserUserCreateInput": {
+      "InputObject": {
+        "description": "Input to create a User for the OrganizationRelateUser relation of Organization",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "organizations": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "organizations",
+            "ty": "[UserOrganizationRelateUserOrganizationCreateRelationInput!]",
+            "validators": null
+          }
+        },
+        "name": "OrganizationOrganizationRelateUserUserCreateInput",
+        "oneof": false,
+        "rust_typename": "OrganizationOrganizationRelateUserUserCreateInput"
+      }
+    },
+    "OrganizationOrganizationRelateUserUserCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a User for the OrganizationRelateUser relation of Organization",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "OrganizationOrganizationRelateUserUserCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "OrganizationOrganizationRelateUserUserCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "OrganizationOrganizationRelateUserUserCreateRelationInput"
+      }
+    },
+    "OrganizationOrganizationRelateUserUserUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a User for the OrganizationRelateUser relation of Organization",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "OrganizationOrganizationRelateUserUserCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "OrganizationOrganizationRelateUserUserUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "OrganizationOrganizationRelateUserUserUpdateRelationInput"
+      }
+    },
+    "OrganizationUpdateInput": {
+      "InputObject": {
+        "description": "Input to update a Organization",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String",
+            "validators": null
+          },
+          "users": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "users",
+            "ty": "[OrganizationOrganizationRelateUserUserUpdateRelationInput!]",
+            "validators": null
+          }
+        },
+        "name": "OrganizationUpdateInput",
+        "oneof": false,
+        "rust_typename": "OrganizationUpdateInput"
+      }
+    },
+    "OrganizationUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "organization": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "organization",
+            "provides": null,
+            "relation": null,
+            "required_operation": 8,
+            "requires": null,
+            "resolve": {
+              "id": "organization_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Organization"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "OrganizationUpdatePayload",
+        "rust_typename": "OrganizationUpdatePayload"
       }
     },
     "PageInfo": {
@@ -586,14 +1226,14 @@ expression: reg_string
             "transformer": null,
             "ty": "__Schema!"
           },
-          "todo": {
+          "organization": {
             "args": {
               "by": {
                 "default_value": null,
-                "description": "The field and value by which to query the Todo",
+                "description": "The field and value by which to query the Organization",
                 "is_secret": false,
                 "name": "by",
-                "ty": "TodoByInput!",
+                "ty": "OrganizationByInput!",
                 "validators": null
               }
             },
@@ -603,16 +1243,16 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Query a single Todo by an ID or a unique field",
+            "description": "Query a single Organization by an ID or a unique field",
             "edges": [],
             "external": false,
-            "name": "todo",
+            "name": "organization",
             "provides": null,
             "relation": null,
             "required_operation": 2,
             "requires": null,
             "resolve": {
-              "id": "todo_resolver",
+              "id": "organization_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryBy": {
@@ -624,9 +1264,9 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Todo"
+            "ty": "Organization"
           },
-          "todoCollection": {
+          "organizationCollection": {
             "args": {
               "after": {
                 "default_value": null,
@@ -667,24 +1307,24 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Paginated query to fetch the whole list of `Todo`.",
+            "description": "Paginated query to fetch the whole list of `Organization`.",
             "edges": [],
             "external": false,
-            "name": "todoCollection",
+            "name": "organizationCollection",
             "provides": null,
             "relation": {
               "birectional": false,
               "kind": "OneToMany",
-              "name": "todoCollection",
+              "name": "organizationCollection",
               "relation": [
                 null,
-                "Todo"
+                "Organization"
               ]
             },
             "required_operation": 4,
             "requires": null,
             "resolve": {
-              "id": "todo_resolver",
+              "id": "organization_resolver",
               "type": {
                 "DynamoResolver": {
                   "ListResultByTypePaginated": {
@@ -702,14 +1342,139 @@ expression: reg_string
                     },
                     "nested": null,
                     "type": {
-                      "DebugString": "Todo"
+                      "DebugString": "Organization"
                     }
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "TodoConnection"
+            "ty": "OrganizationConnection"
+          },
+          "user": {
+            "args": {
+              "by": {
+                "default_value": null,
+                "description": "The field and value by which to query the User",
+                "is_secret": false,
+                "name": "by",
+                "ty": "UserByInput!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Query a single User by an ID or a unique field",
+            "edges": [],
+            "external": false,
+            "name": "user",
+            "provides": null,
+            "relation": null,
+            "required_operation": 2,
+            "requires": null,
+            "resolve": {
+              "id": "user_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "User"
+          },
+          "userCollection": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String",
+                "validators": null
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String",
+                "validators": null
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int",
+                "validators": null
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Paginated query to fetch the whole list of `User`.",
+            "edges": [],
+            "external": false,
+            "name": "userCollection",
+            "provides": null,
+            "relation": {
+              "birectional": false,
+              "kind": "OneToMany",
+              "name": "userCollection",
+              "relation": [
+                null,
+                "User"
+              ]
+            },
+            "required_operation": 4,
+            "requires": null,
+            "resolve": {
+              "id": "user_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "nested": null,
+                    "type": {
+                      "DebugString": "User"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "UserConnection"
           }
         },
         "is_node": false,
@@ -726,7 +1491,7 @@ expression: reg_string
         "specified_by_url": null
       }
     },
-    "Todo": {
+    "User": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -736,72 +1501,6 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "author": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "author",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "author"
-              }
-            },
-            "ty": "Author"
-          },
-          "content": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "content",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "content"
-              }
-            },
-            "ty": "String!"
-          },
           "createdAt": {
             "args": {},
             "auth": null,
@@ -823,7 +1522,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Todo"
+                    "key": "User"
                   }
                 }
               }
@@ -856,7 +1555,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Todo"
+                    "key": "User"
                   }
                 }
               }
@@ -867,6 +1566,113 @@ expression: reg_string
               }
             },
             "ty": "ID!"
+          },
+          "name": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "User"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "name"
+              }
+            },
+            "ty": "String!"
+          },
+          "organizations": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String",
+                "validators": null
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String",
+                "validators": null
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int",
+                "validators": null
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Organization"
+            ],
+            "external": false,
+            "name": "organizations",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "ManyToMany",
+              "name": "OrganizationRelateUser",
+              "relation": [
+                "User",
+                "Organization"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "user_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "Organization",
+                    "key": "User",
+                    "relation_name": "OrganizationRelateUser"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "OrganizationConnection"
           },
           "updatedAt": {
             "args": {},
@@ -889,7 +1695,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Todo"
+                    "key": "User"
                   }
                 }
               }
@@ -905,11 +1711,11 @@ expression: reg_string
         "is_node": true,
         "is_subscription": false,
         "keys": null,
-        "name": "Todo",
-        "rust_typename": "Todo"
+        "name": "User",
+        "rust_typename": "User"
       }
     },
-    "TodoByInput": {
+    "UserByInput": {
       "InputObject": {
         "description": null,
         "input_fields": {
@@ -922,12 +1728,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "TodoByInput",
+        "name": "UserByInput",
         "oneof": true,
-        "rust_typename": "TodoByInput"
+        "rust_typename": "UserByInput"
       }
     },
-    "TodoConnection": {
+    "UserConnection": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -946,7 +1752,9 @@ expression: reg_string
             },
             "deprecation": "NoDeprecated",
             "description": null,
-            "edges": [],
+            "edges": [
+              "Organization"
+            ],
             "external": false,
             "name": "edges",
             "provides": null,
@@ -955,7 +1763,7 @@ expression: reg_string
             "requires": null,
             "resolve": null,
             "transformer": null,
-            "ty": "[TodoEdge]"
+            "ty": "[UserEdge]"
           },
           "pageInfo": {
             "args": {},
@@ -981,37 +1789,37 @@ expression: reg_string
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "TodoConnection",
-        "rust_typename": "TodoConnection"
+        "name": "UserConnection",
+        "rust_typename": "UserConnection"
       }
     },
-    "TodoCreateInput": {
+    "UserCreateInput": {
       "InputObject": {
-        "description": "Input to create a Todo",
+        "description": "Input to create a User",
         "input_fields": {
-          "author": {
+          "name": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "author",
-            "ty": "AuthorInput",
+            "name": "name",
+            "ty": "String!",
             "validators": null
           },
-          "content": {
+          "organizations": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "content",
-            "ty": "String!",
+            "name": "organizations",
+            "ty": "[UserOrganizationRelateUserOrganizationCreateRelationInput!]",
             "validators": null
           }
         },
-        "name": "TodoCreateInput",
+        "name": "UserCreateInput",
         "oneof": false,
-        "rust_typename": "TodoCreateInput"
+        "rust_typename": "UserCreateInput"
       }
     },
-    "TodoCreatePayload": {
+    "UserCreatePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1021,7 +1829,7 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "todo": {
+          "user": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -1032,13 +1840,13 @@ expression: reg_string
             "description": null,
             "edges": [],
             "external": false,
-            "name": "todo",
+            "name": "user",
             "provides": null,
             "relation": null,
             "required_operation": 1,
             "requires": null,
             "resolve": {
-              "id": "todo_resolver",
+              "id": "user_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryPKSK": {
@@ -1053,17 +1861,17 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Todo"
+            "ty": "User"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "TodoCreatePayload",
-        "rust_typename": "TodoCreatePayload"
+        "name": "UserCreatePayload",
+        "rust_typename": "UserCreatePayload"
       }
     },
-    "TodoDeletePayload": {
+    "UserDeletePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1101,11 +1909,11 @@ expression: reg_string
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "TodoDeletePayload",
-        "rust_typename": "TodoDeletePayload"
+        "name": "UserDeletePayload",
+        "rust_typename": "UserDeletePayload"
       }
     },
-    "TodoEdge": {
+    "UserEdge": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1136,7 +1944,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Todo"
+                    "key": "User"
                   }
                 }
               }
@@ -1171,43 +1979,129 @@ expression: reg_string
             "requires": null,
             "resolve": null,
             "transformer": null,
-            "ty": "Todo!"
+            "ty": "User!"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "TodoEdge",
-        "rust_typename": "TodoEdge"
+        "name": "UserEdge",
+        "rust_typename": "UserEdge"
       }
     },
-    "TodoUpdateInput": {
+    "UserOrganizationRelateUserOrganizationCreateInput": {
       "InputObject": {
-        "description": "Input to update a Todo",
+        "description": "Input to create a Organization for the OrganizationRelateUser relation of User",
         "input_fields": {
-          "author": {
+          "name": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "author",
-            "ty": "AuthorInput",
+            "name": "name",
+            "ty": "String!",
             "validators": null
           },
-          "content": {
+          "users": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "content",
-            "ty": "String",
+            "name": "users",
+            "ty": "[OrganizationOrganizationRelateUserUserCreateRelationInput!]",
             "validators": null
           }
         },
-        "name": "TodoUpdateInput",
+        "name": "UserOrganizationRelateUserOrganizationCreateInput",
         "oneof": false,
-        "rust_typename": "TodoUpdateInput"
+        "rust_typename": "UserOrganizationRelateUserOrganizationCreateInput"
       }
     },
-    "TodoUpdatePayload": {
+    "UserOrganizationRelateUserOrganizationCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Organization for the OrganizationRelateUser relation of User",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "UserOrganizationRelateUserOrganizationCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "UserOrganizationRelateUserOrganizationCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "UserOrganizationRelateUserOrganizationCreateRelationInput"
+      }
+    },
+    "UserOrganizationRelateUserOrganizationUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Organization for the OrganizationRelateUser relation of User",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "UserOrganizationRelateUserOrganizationCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "UserOrganizationRelateUserOrganizationUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "UserOrganizationRelateUserOrganizationUpdateRelationInput"
+      }
+    },
+    "UserUpdateInput": {
+      "InputObject": {
+        "description": "Input to update a User",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String",
+            "validators": null
+          },
+          "organizations": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "organizations",
+            "ty": "[UserOrganizationRelateUserOrganizationUpdateRelationInput!]",
+            "validators": null
+          }
+        },
+        "name": "UserUpdateInput",
+        "oneof": false,
+        "rust_typename": "UserUpdateInput"
+      }
+    },
+    "UserUpdatePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1217,7 +2111,7 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "todo": {
+          "user": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -1228,13 +2122,13 @@ expression: reg_string
             "description": null,
             "edges": [],
             "external": false,
-            "name": "todo",
+            "name": "user",
             "provides": null,
             "relation": null,
             "required_operation": 8,
             "requires": null,
             "resolve": {
-              "id": "todo_resolver",
+              "id": "user_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryPKSK": {
@@ -1249,74 +2143,14 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Todo"
+            "ty": "User"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "TodoUpdatePayload",
-        "rust_typename": "TodoUpdatePayload"
-      }
-    },
-    "Truc": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "name"
-              }
-            },
-            "ty": "String!"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Truc",
-        "rust_typename": "Truc"
-      }
-    },
-    "TrucInput": {
-      "InputObject": {
-        "description": "Truc input type.",
-        "input_fields": {
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          }
-        },
-        "name": "TrucInput",
-        "oneof": false,
-        "rust_typename": "Truc"
+        "name": "UserUpdatePayload",
+        "rust_typename": "UserUpdatePayload"
       }
     },
     "__Directive": {

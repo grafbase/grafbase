@@ -1,13 +1,16 @@
 ---
-source: common/parser/src/lib.rs
+source: common/parser/src/tests.rs
 expression: sdl
 ---
 type Author {
-	id: ID!
 	name: String!
 	lastname: String!
 	country: Country!
 	posts(after: String, before: String, first: Int, last: Int): PostConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -28,7 +31,7 @@ type AuthorConnection {
 	edges: [AuthorEdge]
 }
 """
-Input to create a new Author
+Input to create a Author
 """
 input AuthorCreateInput {
 	name: String!
@@ -47,20 +50,21 @@ type AuthorEdge {
 	cursor: String!
 }
 """
-Input to create a new AuthorPublishedPost
+Input to create a Post for the published relation of Author
 """
 input AuthorPublishedPostCreateInput {
 	content: String!
+	authors: [PostPublishedAuthorCreateRelationInput]
 }
 """
-Input to create a new AuthorPublishedPost relation
+Input to link to or create a Post for the published relation of Author
 """
 input AuthorPublishedPostCreateRelationInput {
 	create: AuthorPublishedPostCreateInput
 	link: ID
 }
 """
-Input to update a AuthorPublishedPost relation
+Input to link/unlink to or create a Post for the published relation of Author
 """
 input AuthorPublishedPostUpdateRelationInput {
 	create: AuthorPublishedPostCreateInput
@@ -68,7 +72,7 @@ input AuthorPublishedPostUpdateRelationInput {
 	unlink: ID
 }
 """
-Input to create a new Author
+Input to update a Author
 """
 input AuthorUpdateInput {
 	name: String
@@ -80,9 +84,12 @@ type AuthorUpdatePayload {
 	author: Author
 }
 type Blog {
-	id: ID!
 	posts(after: String, before: String, first: Int, last: Int): PostConnection
 	owner: Author!
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -93,23 +100,23 @@ type Blog {
 	createdAt: DateTime!
 }
 """
-Input to create a new BlogAuthorRelateBlogAuthor
+Input to create a Author for the AuthorRelateBlog relation of Blog
 """
 input BlogAuthorRelateBlogAuthorCreateInput {
 	name: String!
 	lastname: String!
 	country: Country!
-	posts: [AuthorPublishedPostCreateInput]
+	posts: [AuthorPublishedPostCreateRelationInput]
 }
 """
-Input to create a new BlogAuthorRelateBlogAuthor relation
+Input to link to or create a Author for the AuthorRelateBlog relation of Blog
 """
 input BlogAuthorRelateBlogAuthorCreateRelationInput {
 	create: BlogAuthorRelateBlogAuthorCreateInput
 	link: ID
 }
 """
-Input to update a BlogAuthorRelateBlogAuthor relation
+Input to link/unlink to or create a Author for the AuthorRelateBlog relation of Blog
 """
 input BlogAuthorRelateBlogAuthorUpdateRelationInput {
 	create: BlogAuthorRelateBlogAuthorCreateInput
@@ -117,21 +124,21 @@ input BlogAuthorRelateBlogAuthorUpdateRelationInput {
 	unlink: ID
 }
 """
-Input to create a new BlogBlogRelatePostPost
+Input to create a Post for the BlogRelatePost relation of Blog
 """
 input BlogBlogRelatePostPostCreateInput {
 	content: String!
-	authors: [PostPublishedAuthorCreateInput]
+	authors: [PostPublishedAuthorCreateRelationInput]
 }
 """
-Input to create a new BlogBlogRelatePostPost relation
+Input to link to or create a Post for the BlogRelatePost relation of Blog
 """
 input BlogBlogRelatePostPostCreateRelationInput {
 	create: BlogBlogRelatePostPostCreateInput
 	link: ID
 }
 """
-Input to update a BlogBlogRelatePostPost relation
+Input to link/unlink to or create a Post for the BlogRelatePost relation of Blog
 """
 input BlogBlogRelatePostPostUpdateRelationInput {
 	create: BlogBlogRelatePostPostCreateInput
@@ -149,7 +156,7 @@ type BlogConnection {
 	edges: [BlogEdge]
 }
 """
-Input to create a new Blog
+Input to create a Blog
 """
 input BlogCreateInput {
 	posts: [BlogBlogRelatePostPostCreateRelationInput]
@@ -166,7 +173,7 @@ type BlogEdge {
 	cursor: String!
 }
 """
-Input to create a new Blog
+Input to update a Blog
 """
 input BlogUpdateInput {
 	posts: [BlogBlogRelatePostPostUpdateRelationInput]
@@ -240,9 +247,12 @@ type PageInfo {
 	endCursor: String
 }
 type Post {
-	id: ID!
 	content: String!
 	authors(after: String, before: String, first: Int, last: Int): AuthorConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -263,7 +273,7 @@ type PostConnection {
 	edges: [PostEdge]
 }
 """
-Input to create a new Post
+Input to create a Post
 """
 input PostCreateInput {
 	content: String!
@@ -280,22 +290,23 @@ type PostEdge {
 	cursor: String!
 }
 """
-Input to create a new PostPublishedAuthor
+Input to create a Author for the published relation of Post
 """
 input PostPublishedAuthorCreateInput {
 	name: String!
 	lastname: String!
 	country: Country!
+	posts: [AuthorPublishedPostCreateRelationInput]
 }
 """
-Input to create a new PostPublishedAuthor relation
+Input to link to or create a Author for the published relation of Post
 """
 input PostPublishedAuthorCreateRelationInput {
 	create: PostPublishedAuthorCreateInput
 	link: ID
 }
 """
-Input to update a PostPublishedAuthor relation
+Input to link/unlink to or create a Author for the published relation of Post
 """
 input PostPublishedAuthorUpdateRelationInput {
 	create: PostPublishedAuthorCreateInput
@@ -303,7 +314,7 @@ input PostPublishedAuthorUpdateRelationInput {
 	unlink: ID
 }
 """
-Input to create a new Post
+Input to update a Post
 """
 input PostUpdateInput {
 	content: String

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use]
+extern crate assert_matches;
+
 use std::collections::HashMap;
 
 use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
@@ -6,17 +10,19 @@ use quick_error::quick_error;
 use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
 use rules::check_field_lowercase::CheckFieldCamelCase;
-use rules::check_field_not_reserved::CheckModelizedFieldReserved;
 use rules::check_known_directives::CheckAllDirectivesAreKnown;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
+use rules::directive::Directives;
 use rules::enum_type::EnumType;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
-use rules::relations::relations_rules;
+use rules::one_of_directive::OneOfDirective;
+use rules::relations::{relations_rules, RelationEngine};
 use rules::unique_directive::UniqueDirective;
+use rules::unique_fields::UniqueObjectFields;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 pub use dynaql::registry::Registry;
@@ -47,6 +53,17 @@ quick_error! {
     }
 }
 
+impl Error {
+    #[cfg(test)]
+    fn validation_errors(self) -> Option<Vec<RuleError>> {
+        if let Error::Validation(err) = self {
+            Some(err)
+        } else {
+            None
+        }
+    }
+}
+
 /// Transform the input schema into a Registry
 pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     to_registry_with_variables(input, &HashMap::new())
@@ -57,9 +74,17 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     input: S,
     variables: &HashMap<String, String>,
 ) -> Result<Registry, Error> {
+    let directives = Directives::new()
+        .with(AuthDirective)
+        .with(DefaultDirective)
+        .with(LengthDirective)
+        .with(ModelDirective)
+        .with(OneOfDirective)
+        .with(RelationEngine)
+        .with(UniqueDirective);
+
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
-        .with(CheckModelizedFieldReserved)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
         .with(UniqueDirective)
@@ -68,15 +93,22 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(BasicType)
         .with(EnumType)
         .with(ScalarHydratation)
-        .with(DefaultDirective)
         .with(LengthDirective)
-        .with(relations_rules())
+        .with(UniqueObjectFields)
         .with(CheckAllDirectivesAreKnown::default());
 
-    let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), input.as_ref());
+    let schema = format!(
+        "{}\n{}\n{}",
+        PossibleScalar::sdl(),
+        directives.to_definition(),
+        input.as_ref()
+    );
     let schema = parse_schema(schema)?;
 
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
+    // Building all relations first are it requires to parse the whole schema (for ManyToMany). This allows later
+    // rules to rely on RelationEngine::get to have correct information on relations.
+    visit(&mut relations_rules(), &mut ctx, &schema);
     visit(&mut rules, &mut ctx, &schema);
 
     // FIXME: Get rid of the ugly double pass.

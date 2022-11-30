@@ -1,4 +1,7 @@
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    directive::Directive,
+    visitor::{Visitor, VisitorContext},
+};
 use dynaql::{
     indexmap::IndexMap,
     registry::{MetaDirective, MetaInputValue, MetaType, __DirectiveLocation},
@@ -11,14 +14,16 @@ pub struct OneOfDirective;
 
 pub const ONE_OF_DIRECTIVE: &str = "oneOf";
 
-impl<'a> Visitor<'a> for OneOfDirective {
-    fn directives(&self) -> String {
+impl Directive for OneOfDirective {
+    fn definition(&self) -> String {
         r#"
         directive @oneOf on INPUT_OBJECT
         "#
         .to_string()
     }
+}
 
+impl<'a> Visitor<'a> for OneOfDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,

@@ -22,8 +22,7 @@ pub enum RelationCombinationError {
 }
 
 impl MetaRelationKind {
-    #[allow(dead_code)]
-    const fn inverse(&self) -> Self {
+    pub fn inverse(&self) -> Self {
         match &self {
             Self::ManyToMany => Self::ManyToMany,
             Self::OneToMany => Self::ManyToOne,

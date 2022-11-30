@@ -1,4 +1,7 @@
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    directive::Directive,
+    visitor::{Visitor, VisitorContext},
+};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 
@@ -6,14 +9,16 @@ const UNIQUE_DIRECTIVE: &str = "unique";
 
 pub struct UniqueDirective;
 
-impl<'a> Visitor<'a> for UniqueDirective {
-    fn directives(&self) -> String {
+impl Directive for UniqueDirective {
+    fn definition(&self) -> String {
         r#"
         directive @unique on FIELD_DEFINITION
         "#
         .to_string()
     }
+}
 
+impl<'a> Visitor<'a> for UniqueDirective {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,

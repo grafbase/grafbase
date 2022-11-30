@@ -843,7 +843,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": null,
+            "description": "Unique identifier",
             "edges": [],
             "external": false,
             "name": "id",
@@ -1020,7 +1020,7 @@ expression: reg_string
     },
     "TodoCreateInput": {
       "InputObject": {
-        "description": "Input to create a new Todo",
+        "description": "Input to create a Todo",
         "input_fields": {
           "authors": {
             "default_value": null,
@@ -1049,7 +1049,7 @@ expression: reg_string
         },
         "name": "TodoCreateInput",
         "oneof": false,
-        "rust_typename": "Todo"
+        "rust_typename": "TodoCreateInput"
       }
     },
     "TodoCreatePayload": {
@@ -1243,7 +1243,7 @@ expression: reg_string
     },
     "TodoUpdateInput": {
       "InputObject": {
-        "description": "Input to create a new Todo",
+        "description": "Input to update a Todo",
         "input_fields": {
           "authors": {
             "default_value": null,
@@ -1272,7 +1272,7 @@ expression: reg_string
         },
         "name": "TodoUpdateInput",
         "oneof": false,
-        "rust_typename": "Todo"
+        "rust_typename": "TodoUpdateInput"
       }
     },
     "TodoUpdatePayload": {

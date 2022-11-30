@@ -89,8 +89,41 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "country": {
-            "args": {},
+          "commented": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String",
+                "validators": null
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String",
+                "validators": null
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int",
+                "validators": null
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int",
+                "validators": null
+              }
+            },
             "auth": null,
             "cache_control": {
               "max_age": 0,
@@ -98,29 +131,37 @@ expression: reg_string
             },
             "deprecation": "NoDeprecated",
             "description": null,
-            "edges": [],
+            "edges": [
+              "Comment"
+            ],
             "external": false,
-            "name": "country",
+            "name": "commented",
             "provides": null,
-            "relation": null,
+            "relation": {
+              "birectional": true,
+              "kind": "OneToMany",
+              "name": "commented",
+              "relation": [
+                "Author",
+                "Comment"
+              ]
+            },
             "required_operation": null,
             "requires": null,
             "resolve": {
-              "id": null,
+              "id": "author_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Author"
+                  "EdgeArray": {
+                    "expected_ty": "Comment",
+                    "key": "Author",
+                    "relation_name": "commented"
                   }
                 }
               }
             },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "country"
-              }
-            },
-            "ty": "Country!"
+            "transformer": null,
+            "ty": "CommentConnection"
           },
           "createdAt": {
             "args": {},
@@ -221,40 +262,7 @@ expression: reg_string
             },
             "ty": "String!"
           },
-          "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Author"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "name"
-              }
-            },
-            "ty": "String!"
-          },
-          "posts": {
+          "published": {
             "args": {
               "after": {
                 "default_value": null,
@@ -300,11 +308,11 @@ expression: reg_string
               "Post"
             ],
             "external": false,
-            "name": "posts",
+            "name": "published",
             "provides": null,
             "relation": {
               "birectional": true,
-              "kind": "ManyToMany",
+              "kind": "OneToMany",
               "name": "published",
               "relation": [
                 "Author",
@@ -387,6 +395,100 @@ expression: reg_string
         "rust_typename": "AuthorByInput"
       }
     },
+    "AuthorCommentedCommentCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Comment for the commented relation of Author",
+        "input_fields": {
+          "comment": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "comment",
+            "ty": "String!",
+            "validators": null
+          },
+          "like": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "like",
+            "ty": "Int!",
+            "validators": null
+          },
+          "post": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "post",
+            "ty": "CommentCommentsPostCreateRelationInput",
+            "validators": null
+          }
+        },
+        "name": "AuthorCommentedCommentCreateInput",
+        "oneof": false,
+        "rust_typename": "AuthorCommentedCommentCreateInput"
+      }
+    },
+    "AuthorCommentedCommentCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Comment for the commented relation of Author",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorCommentedCommentCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "AuthorCommentedCommentCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "AuthorCommentedCommentCreateRelationInput"
+      }
+    },
+    "AuthorCommentedCommentUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Comment for the commented relation of Author",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorCommentedCommentCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "AuthorCommentedCommentUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "AuthorCommentedCommentUpdateRelationInput"
+      }
+    },
     "AuthorConnection": {
       "Object": {
         "cache_control": {
@@ -407,7 +509,8 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Post"
+              "Post",
+              "Comment"
             ],
             "external": false,
             "name": "edges",
@@ -451,12 +554,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Author",
         "input_fields": {
-          "country": {
+          "commented": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "country",
-            "ty": "Country!",
+            "name": "commented",
+            "ty": "[AuthorCommentedCommentCreateRelationInput]",
             "validators": null
           },
           "lastname": {
@@ -467,19 +570,11 @@ expression: reg_string
             "ty": "String!",
             "validators": null
           },
-          "name": {
+          "published": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
+            "name": "published",
             "ty": "[AuthorPublishedPostCreateRelationInput]",
             "validators": null
           }
@@ -663,12 +758,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Post for the published relation of Author",
         "input_fields": {
-          "authors": {
+          "comments": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorCreateRelationInput]",
+            "name": "comments",
+            "ty": "[PostCommentsCommentCreateRelationInput]",
             "validators": null
           },
           "content": {
@@ -749,12 +844,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to update a Author",
         "input_fields": {
-          "country": {
+          "commented": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "country",
-            "ty": "Country",
+            "name": "commented",
+            "ty": "[AuthorCommentedCommentUpdateRelationInput]",
             "validators": null
           },
           "lastname": {
@@ -765,19 +860,11 @@ expression: reg_string
             "ty": "String",
             "validators": null
           },
-          "name": {
+          "published": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "name",
-            "ty": "String",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
+            "name": "published",
             "ty": "[AuthorPublishedPostUpdateRelationInput]",
             "validators": null
           }
@@ -839,7 +926,14 @@ expression: reg_string
         "rust_typename": "AuthorUpdatePayload"
       }
     },
-    "Blog": {
+    "Boolean": {
+      "Scalar": {
+        "description": "The `Boolean` scalar type represents `true` or `false`.",
+        "name": "Boolean",
+        "specified_by_url": null
+      }
+    },
+    "Comment": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -849,6 +943,79 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
+          "author": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Author"
+            ],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "ManyToOne",
+              "name": "commented",
+              "relation": [
+                "Comment",
+                "Author"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "comment_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "SingleEdge": {
+                    "key": "Comment",
+                    "relation_name": "commented"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Author!"
+          },
+          "comment": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "comment",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Comment"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "comment"
+              }
+            },
+            "ty": "String!"
+          },
           "createdAt": {
             "args": {},
             "auth": null,
@@ -870,7 +1037,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Blog"
+                    "key": "Comment"
                   }
                 }
               }
@@ -903,7 +1070,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Blog"
+                    "key": "Comment"
                   }
                 }
               }
@@ -915,7 +1082,7 @@ expression: reg_string
             },
             "ty": "ID!"
           },
-          "owner": {
+          "like": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -924,72 +1091,32 @@ expression: reg_string
             },
             "deprecation": "NoDeprecated",
             "description": null,
-            "edges": [
-              "Author"
-            ],
+            "edges": [],
             "external": false,
-            "name": "owner",
+            "name": "like",
             "provides": null,
-            "relation": {
-              "birectional": false,
-              "kind": "OneToOne",
-              "name": "AuthorRelateBlog",
-              "relation": [
-                "Blog",
-                "Author"
-              ]
-            },
+            "relation": null,
             "required_operation": null,
             "requires": null,
             "resolve": {
-              "id": "blog_edge_resolver",
+              "id": null,
               "type": {
                 "ContextDataResolver": {
-                  "SingleEdge": {
-                    "key": "Blog",
-                    "relation_name": "AuthorRelateBlog"
+                  "LocalKey": {
+                    "key": "Comment"
                   }
                 }
               }
             },
-            "transformer": null,
-            "ty": "Author!"
-          },
-          "posts": {
-            "args": {
-              "after": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "after",
-                "ty": "String",
-                "validators": null
-              },
-              "before": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "before",
-                "ty": "String",
-                "validators": null
-              },
-              "first": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "first",
-                "ty": "Int",
-                "validators": null
-              },
-              "last": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "last",
-                "ty": "Int",
-                "validators": null
+            "transformer": {
+              "DynamoSelect": {
+                "property": "like"
               }
             },
+            "ty": "Int!"
+          },
+          "post": {
+            "args": {},
             "auth": null,
             "cache_control": {
               "max_age": 0,
@@ -1001,33 +1128,32 @@ expression: reg_string
               "Post"
             ],
             "external": false,
-            "name": "posts",
+            "name": "post",
             "provides": null,
             "relation": {
-              "birectional": false,
-              "kind": "OneToMany",
-              "name": "BlogRelatePost",
+              "birectional": true,
+              "kind": "ManyToOne",
+              "name": "comments",
               "relation": [
-                "Blog",
+                "Comment",
                 "Post"
               ]
             },
             "required_operation": null,
             "requires": null,
             "resolve": {
-              "id": "blog_edge_resolver",
+              "id": "comment_edge_resolver",
               "type": {
                 "ContextDataResolver": {
-                  "EdgeArray": {
-                    "expected_ty": "Post",
-                    "key": "Blog",
-                    "relation_name": "BlogRelatePost"
+                  "SingleEdge": {
+                    "key": "Comment",
+                    "relation_name": "comments"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "PostConnection"
+            "ty": "Post"
           },
           "updatedAt": {
             "args": {},
@@ -1050,7 +1176,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Blog"
+                    "key": "Comment"
                   }
                 }
               }
@@ -1066,199 +1192,11 @@ expression: reg_string
         "is_node": true,
         "is_subscription": false,
         "keys": null,
-        "name": "Blog",
-        "rust_typename": "Blog"
+        "name": "Comment",
+        "rust_typename": "Comment"
       }
     },
-    "BlogAuthorRelateBlogAuthorCreateInput": {
-      "InputObject": {
-        "description": "Input to create a Author for the AuthorRelateBlog relation of Blog",
-        "input_fields": {
-          "country": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "country",
-            "ty": "Country!",
-            "validators": null
-          },
-          "lastname": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "lastname",
-            "ty": "String!",
-            "validators": null
-          },
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[AuthorPublishedPostCreateRelationInput]",
-            "validators": null
-          }
-        },
-        "name": "BlogAuthorRelateBlogAuthorCreateInput",
-        "oneof": false,
-        "rust_typename": "BlogAuthorRelateBlogAuthorCreateInput"
-      }
-    },
-    "BlogAuthorRelateBlogAuthorCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to link to or create a Author for the AuthorRelateBlog relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogAuthorRelateBlogAuthorCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogAuthorRelateBlogAuthorCreateRelationInput",
-        "oneof": true,
-        "rust_typename": "BlogAuthorRelateBlogAuthorCreateRelationInput"
-      }
-    },
-    "BlogAuthorRelateBlogAuthorUpdateRelationInput": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Author for the AuthorRelateBlog relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogAuthorRelateBlogAuthorCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogAuthorRelateBlogAuthorUpdateRelationInput",
-        "oneof": true,
-        "rust_typename": "BlogAuthorRelateBlogAuthorUpdateRelationInput"
-      }
-    },
-    "BlogBlogRelatePostPostCreateInput": {
-      "InputObject": {
-        "description": "Input to create a Post for the BlogRelatePost relation of Blog",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorCreateRelationInput]",
-            "validators": null
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!",
-            "validators": null
-          }
-        },
-        "name": "BlogBlogRelatePostPostCreateInput",
-        "oneof": false,
-        "rust_typename": "BlogBlogRelatePostPostCreateInput"
-      }
-    },
-    "BlogBlogRelatePostPostCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to link to or create a Post for the BlogRelatePost relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogBlogRelatePostPostCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogBlogRelatePostPostCreateRelationInput",
-        "oneof": true,
-        "rust_typename": "BlogBlogRelatePostPostCreateRelationInput"
-      }
-    },
-    "BlogBlogRelatePostPostUpdateRelationInput": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Post for the BlogRelatePost relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogBlogRelatePostPostCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogBlogRelatePostPostUpdateRelationInput",
-        "oneof": true,
-        "rust_typename": "BlogBlogRelatePostPostUpdateRelationInput"
-      }
-    },
-    "BlogByInput": {
+    "CommentByInput": {
       "InputObject": {
         "description": null,
         "input_fields": {
@@ -1271,12 +1209,200 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "BlogByInput",
+        "name": "CommentByInput",
         "oneof": true,
-        "rust_typename": "BlogByInput"
+        "rust_typename": "CommentByInput"
       }
     },
-    "BlogConnection": {
+    "CommentCommentedAuthorCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Author for the commented relation of Comment",
+        "input_fields": {
+          "commented": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "commented",
+            "ty": "[AuthorCommentedCommentCreateRelationInput]",
+            "validators": null
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!",
+            "validators": null
+          },
+          "published": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "published",
+            "ty": "[AuthorPublishedPostCreateRelationInput]",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentedAuthorCreateInput",
+        "oneof": false,
+        "rust_typename": "CommentCommentedAuthorCreateInput"
+      }
+    },
+    "CommentCommentedAuthorCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Author for the commented relation of Comment",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "CommentCommentedAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentedAuthorCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "CommentCommentedAuthorCreateRelationInput"
+      }
+    },
+    "CommentCommentedAuthorUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Author for the commented relation of Comment",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "CommentCommentedAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentedAuthorUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "CommentCommentedAuthorUpdateRelationInput"
+      }
+    },
+    "CommentCommentsPostCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Post for the comments relation of Comment",
+        "input_fields": {
+          "author": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "author",
+            "ty": "PostPublishedAuthorCreateRelationInput",
+            "validators": null
+          },
+          "comments": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "comments",
+            "ty": "[PostCommentsCommentCreateRelationInput]",
+            "validators": null
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentsPostCreateInput",
+        "oneof": false,
+        "rust_typename": "CommentCommentsPostCreateInput"
+      }
+    },
+    "CommentCommentsPostCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Post for the comments relation of Comment",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "CommentCommentsPostCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentsPostCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "CommentCommentsPostCreateRelationInput"
+      }
+    },
+    "CommentCommentsPostUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Post for the comments relation of Comment",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "CommentCommentsPostCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "CommentCommentsPostUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "CommentCommentsPostUpdateRelationInput"
+      }
+    },
+    "CommentConnection": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1296,8 +1422,8 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Post",
-              "Author"
+              "Author",
+              "Post"
             ],
             "external": false,
             "name": "edges",
@@ -1307,7 +1433,7 @@ expression: reg_string
             "requires": null,
             "resolve": null,
             "transformer": null,
-            "ty": "[BlogEdge]"
+            "ty": "[CommentEdge]"
           },
           "pageInfo": {
             "args": {},
@@ -1333,37 +1459,53 @@ expression: reg_string
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "BlogConnection",
-        "rust_typename": "BlogConnection"
+        "name": "CommentConnection",
+        "rust_typename": "CommentConnection"
       }
     },
-    "BlogCreateInput": {
+    "CommentCreateInput": {
       "InputObject": {
-        "description": "Input to create a Blog",
+        "description": "Input to create a Comment",
         "input_fields": {
-          "owner": {
+          "author": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "owner",
-            "ty": "BlogAuthorRelateBlogAuthorCreateRelationInput!",
+            "name": "author",
+            "ty": "CommentCommentedAuthorCreateRelationInput!",
             "validators": null
           },
-          "posts": {
+          "comment": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "posts",
-            "ty": "[BlogBlogRelatePostPostCreateRelationInput]",
+            "name": "comment",
+            "ty": "String!",
+            "validators": null
+          },
+          "like": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "like",
+            "ty": "Int!",
+            "validators": null
+          },
+          "post": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "post",
+            "ty": "CommentCommentsPostCreateRelationInput",
             "validators": null
           }
         },
-        "name": "BlogCreateInput",
+        "name": "CommentCreateInput",
         "oneof": false,
-        "rust_typename": "BlogCreateInput"
+        "rust_typename": "CommentCreateInput"
       }
     },
-    "BlogCreatePayload": {
+    "CommentCreatePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1373,7 +1515,7 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "blog": {
+          "comment": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -1384,13 +1526,13 @@ expression: reg_string
             "description": null,
             "edges": [],
             "external": false,
-            "name": "blog",
+            "name": "comment",
             "provides": null,
             "relation": null,
             "required_operation": 1,
             "requires": null,
             "resolve": {
-              "id": "blog_resolver",
+              "id": "comment_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryPKSK": {
@@ -1405,17 +1547,17 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Blog"
+            "ty": "Comment"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "BlogCreatePayload",
-        "rust_typename": "BlogCreatePayload"
+        "name": "CommentCreatePayload",
+        "rust_typename": "CommentCreatePayload"
       }
     },
-    "BlogDeletePayload": {
+    "CommentDeletePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1453,11 +1595,11 @@ expression: reg_string
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "BlogDeletePayload",
-        "rust_typename": "BlogDeletePayload"
+        "name": "CommentDeletePayload",
+        "rust_typename": "CommentDeletePayload"
       }
     },
-    "BlogEdge": {
+    "CommentEdge": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1488,7 +1630,7 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "LocalKey": {
-                    "key": "Blog"
+                    "key": "Comment"
                   }
                 }
               }
@@ -1523,43 +1665,59 @@ expression: reg_string
             "requires": null,
             "resolve": null,
             "transformer": null,
-            "ty": "Blog!"
+            "ty": "Comment!"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "BlogEdge",
-        "rust_typename": "BlogEdge"
+        "name": "CommentEdge",
+        "rust_typename": "CommentEdge"
       }
     },
-    "BlogUpdateInput": {
+    "CommentUpdateInput": {
       "InputObject": {
-        "description": "Input to update a Blog",
+        "description": "Input to update a Comment",
         "input_fields": {
-          "owner": {
+          "author": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "owner",
-            "ty": "BlogAuthorRelateBlogAuthorUpdateRelationInput",
+            "name": "author",
+            "ty": "CommentCommentedAuthorUpdateRelationInput",
             "validators": null
           },
-          "posts": {
+          "comment": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "posts",
-            "ty": "[BlogBlogRelatePostPostUpdateRelationInput]",
+            "name": "comment",
+            "ty": "String",
+            "validators": null
+          },
+          "like": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "like",
+            "ty": "IntOperationsInput",
+            "validators": null
+          },
+          "post": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "post",
+            "ty": "CommentCommentsPostUpdateRelationInput",
             "validators": null
           }
         },
-        "name": "BlogUpdateInput",
+        "name": "CommentUpdateInput",
         "oneof": false,
-        "rust_typename": "BlogUpdateInput"
+        "rust_typename": "CommentUpdateInput"
       }
     },
-    "BlogUpdatePayload": {
+    "CommentUpdatePayload": {
       "Object": {
         "cache_control": {
           "max_age": 0,
@@ -1569,7 +1727,7 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "blog": {
+          "comment": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -1580,13 +1738,13 @@ expression: reg_string
             "description": null,
             "edges": [],
             "external": false,
-            "name": "blog",
+            "name": "comment",
             "provides": null,
             "relation": null,
             "required_operation": 8,
             "requires": null,
             "resolve": {
-              "id": "blog_resolver",
+              "id": "comment_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryPKSK": {
@@ -1601,40 +1759,14 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Blog"
+            "ty": "Comment"
           }
         },
         "is_node": false,
         "is_subscription": false,
         "keys": null,
-        "name": "BlogUpdatePayload",
-        "rust_typename": "BlogUpdatePayload"
-      }
-    },
-    "Boolean": {
-      "Scalar": {
-        "description": "The `Boolean` scalar type represents `true` or `false`.",
-        "name": "Boolean",
-        "specified_by_url": null
-      }
-    },
-    "Country": {
-      "Enum": {
-        "description": null,
-        "enum_values": {
-          "FRANCE": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "FRANCE"
-          },
-          "NOT_FRANCE": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "NOT_FRANCE"
-          }
-        },
-        "name": "Country",
-        "rust_typename": "Country"
+        "name": "CommentUpdatePayload",
+        "rust_typename": "CommentUpdatePayload"
       }
     },
     "DateTime": {
@@ -1663,6 +1795,40 @@ expression: reg_string
         "description": "The `Int` scalar type represents non-fractional whole numeric values.",
         "name": "Int",
         "specified_by_url": null
+      }
+    },
+    "IntOperationsInput": {
+      "InputObject": {
+        "description": "Possible operations for an Int field",
+        "input_fields": {
+          "decrement": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "decrement",
+            "ty": "Int",
+            "validators": null
+          },
+          "increment": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "increment",
+            "ty": "Int",
+            "validators": null
+          },
+          "set": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "set",
+            "ty": "Int",
+            "validators": null
+          }
+        },
+        "name": "IntOperationsInput",
+        "oneof": true,
+        "rust_typename": "IntOperationsInput"
       }
     },
     "Mutation": {
@@ -1809,14 +1975,14 @@ expression: reg_string
             "transformer": null,
             "ty": "AuthorUpdatePayload"
           },
-          "blogCreate": {
+          "commentCreate": {
             "args": {
               "input": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "BlogCreateInput!",
+                "ty": "CommentCreateInput!",
                 "validators": null
               }
             },
@@ -1826,38 +1992,38 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Create a Blog",
+            "description": "Create a Comment",
             "edges": [],
             "external": false,
-            "name": "blogCreate",
+            "name": "commentCreate",
             "provides": null,
             "relation": null,
             "required_operation": 1,
             "requires": null,
             "resolve": {
-              "id": "blog_create_resolver",
+              "id": "comment_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "CreateNode": {
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Blog"
+                    "ty": "Comment"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "BlogCreatePayload"
+            "ty": "CommentCreatePayload"
           },
-          "blogDelete": {
+          "commentDelete": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "BlogByInput!",
+                "ty": "CommentByInput!",
                 "validators": null
               }
             },
@@ -1867,38 +2033,38 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Blog by ID or unique field",
+            "description": "Delete a Comment by ID or unique field",
             "edges": [],
             "external": false,
-            "name": "blogDelete",
+            "name": "commentDelete",
             "provides": null,
             "relation": null,
             "required_operation": 16,
             "requires": null,
             "resolve": {
-              "id": "blog_delete_resolver",
+              "id": "comment_delete_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
                     "by": {
                       "InputTypeName": "by"
                     },
-                    "ty": "Blog"
+                    "ty": "Comment"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "BlogDeletePayload"
+            "ty": "CommentDeletePayload"
           },
-          "blogUpdate": {
+          "commentUpdate": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "BlogByInput!",
+                "ty": "CommentByInput!",
                 "validators": null
               },
               "input": {
@@ -1906,7 +2072,7 @@ expression: reg_string
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "BlogUpdateInput!",
+                "ty": "CommentUpdateInput!",
                 "validators": null
               }
             },
@@ -1916,16 +2082,16 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Update a Blog",
+            "description": "Update a Comment",
             "edges": [],
             "external": false,
-            "name": "blogUpdate",
+            "name": "commentUpdate",
             "provides": null,
             "relation": null,
             "required_operation": 8,
             "requires": null,
             "resolve": {
-              "id": "blog_create_resolver",
+              "id": "comment_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
@@ -1935,13 +2101,13 @@ expression: reg_string
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Blog"
+                    "ty": "Comment"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "BlogUpdatePayload"
+            "ty": "CommentUpdatePayload"
           },
           "postCreate": {
             "args": {
@@ -2229,7 +2395,47 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
-          "authors": {
+          "author": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Author"
+            ],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "ManyToOne",
+              "name": "published",
+              "relation": [
+                "Post",
+                "Author"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "SingleEdge": {
+                    "key": "Post",
+                    "relation_name": "published"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Author"
+          },
+          "comments": {
             "args": {
               "after": {
                 "default_value": null,
@@ -2272,18 +2478,18 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Author"
+              "Comment"
             ],
             "external": false,
-            "name": "authors",
+            "name": "comments",
             "provides": null,
             "relation": {
               "birectional": true,
-              "kind": "ManyToMany",
-              "name": "published",
+              "kind": "OneToMany",
+              "name": "comments",
               "relation": [
                 "Post",
-                "Author"
+                "Comment"
               ]
             },
             "required_operation": null,
@@ -2293,15 +2499,15 @@ expression: reg_string
               "type": {
                 "ContextDataResolver": {
                   "EdgeArray": {
-                    "expected_ty": "Author",
+                    "expected_ty": "Comment",
                     "key": "Post",
-                    "relation_name": "published"
+                    "relation_name": "comments"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "AuthorConnection"
+            "ty": "CommentConnection"
           },
           "content": {
             "args": {},
@@ -2461,6 +2667,100 @@ expression: reg_string
         "rust_typename": "PostByInput"
       }
     },
+    "PostCommentsCommentCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Comment for the comments relation of Post",
+        "input_fields": {
+          "author": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "author",
+            "ty": "CommentCommentedAuthorCreateRelationInput!",
+            "validators": null
+          },
+          "comment": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "comment",
+            "ty": "String!",
+            "validators": null
+          },
+          "like": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "like",
+            "ty": "Int!",
+            "validators": null
+          }
+        },
+        "name": "PostCommentsCommentCreateInput",
+        "oneof": false,
+        "rust_typename": "PostCommentsCommentCreateInput"
+      }
+    },
+    "PostCommentsCommentCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Comment for the comments relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostCommentsCommentCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostCommentsCommentCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostCommentsCommentCreateRelationInput"
+      }
+    },
+    "PostCommentsCommentUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Comment for the comments relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostCommentsCommentCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostCommentsCommentUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostCommentsCommentUpdateRelationInput"
+      }
+    },
     "PostConnection": {
       "Object": {
         "cache_control": {
@@ -2481,7 +2781,8 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Author"
+              "Author",
+              "Comment"
             ],
             "external": false,
             "name": "edges",
@@ -2525,12 +2826,20 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Post",
         "input_fields": {
-          "authors": {
+          "author": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorCreateRelationInput]",
+            "name": "author",
+            "ty": "PostPublishedAuthorCreateRelationInput",
+            "validators": null
+          },
+          "comments": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "comments",
+            "ty": "[PostCommentsCommentCreateRelationInput]",
             "validators": null
           },
           "content": {
@@ -2721,12 +3030,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Author for the published relation of Post",
         "input_fields": {
-          "country": {
+          "commented": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "country",
-            "ty": "Country!",
+            "name": "commented",
+            "ty": "[AuthorCommentedCommentCreateRelationInput]",
             "validators": null
           },
           "lastname": {
@@ -2737,19 +3046,11 @@ expression: reg_string
             "ty": "String!",
             "validators": null
           },
-          "name": {
+          "published": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
+            "name": "published",
             "ty": "[AuthorPublishedPostCreateRelationInput]",
             "validators": null
           }
@@ -2823,12 +3124,20 @@ expression: reg_string
       "InputObject": {
         "description": "Input to update a Post",
         "input_fields": {
-          "authors": {
+          "author": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "authors",
-            "ty": "[PostPublishedAuthorUpdateRelationInput]",
+            "name": "author",
+            "ty": "PostPublishedAuthorUpdateRelationInput",
+            "validators": null
+          },
+          "comments": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "comments",
+            "ty": "[PostCommentsCommentUpdateRelationInput]",
             "validators": null
           },
           "content": {
@@ -3052,14 +3361,14 @@ expression: reg_string
             "transformer": null,
             "ty": "AuthorConnection"
           },
-          "blog": {
+          "comment": {
             "args": {
               "by": {
                 "default_value": null,
-                "description": "The field and value by which to query the Blog",
+                "description": "The field and value by which to query the Comment",
                 "is_secret": false,
                 "name": "by",
-                "ty": "BlogByInput!",
+                "ty": "CommentByInput!",
                 "validators": null
               }
             },
@@ -3069,16 +3378,16 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Query a single Blog by an ID or a unique field",
+            "description": "Query a single Comment by an ID or a unique field",
             "edges": [],
             "external": false,
-            "name": "blog",
+            "name": "comment",
             "provides": null,
             "relation": null,
             "required_operation": 2,
             "requires": null,
             "resolve": {
-              "id": "blog_resolver",
+              "id": "comment_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryBy": {
@@ -3090,9 +3399,9 @@ expression: reg_string
               }
             },
             "transformer": null,
-            "ty": "Blog"
+            "ty": "Comment"
           },
-          "blogCollection": {
+          "commentCollection": {
             "args": {
               "after": {
                 "default_value": null,
@@ -3133,24 +3442,24 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Paginated query to fetch the whole list of `Blog`.",
+            "description": "Paginated query to fetch the whole list of `Comment`.",
             "edges": [],
             "external": false,
-            "name": "blogCollection",
+            "name": "commentCollection",
             "provides": null,
             "relation": {
               "birectional": false,
               "kind": "OneToMany",
-              "name": "blogCollection",
+              "name": "commentCollection",
               "relation": [
                 null,
-                "Blog"
+                "Comment"
               ]
             },
             "required_operation": 4,
             "requires": null,
             "resolve": {
-              "id": "blog_resolver",
+              "id": "comment_resolver",
               "type": {
                 "DynamoResolver": {
                   "ListResultByTypePaginated": {
@@ -3168,14 +3477,14 @@ expression: reg_string
                     },
                     "nested": null,
                     "type": {
-                      "DebugString": "Blog"
+                      "DebugString": "Comment"
                     }
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "BlogConnection"
+            "ty": "CommentConnection"
           },
           "post": {
             "args": {

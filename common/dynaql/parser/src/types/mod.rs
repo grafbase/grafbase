@@ -68,6 +68,34 @@ impl Type {
             nullable,
         })
     }
+
+    /// Create a required Type
+    pub fn required(base: BaseType) -> Self {
+        Type {
+            base,
+            nullable: false,
+        }
+    }
+
+    /// Create a nullable Type
+    pub fn nullable(base: BaseType) -> Self {
+        Type {
+            base,
+            nullable: true,
+        }
+    }
+
+    /// Create a new Type with its base overridden by the new base type.
+    #[must_use]
+    pub fn override_base(&self, base: BaseType) -> Self {
+        Self {
+            base: match &self.base {
+                BaseType::Named(_) => base,
+                BaseType::List(list) => BaseType::List(Box::new(list.override_base(base))),
+            },
+            nullable: self.nullable,
+        }
+    }
 }
 
 impl Display for Type {
@@ -88,6 +116,13 @@ pub enum BaseType {
     Named(Name),
     /// A list type, such as `[String]`.
     List(Box<Type>),
+}
+
+impl BaseType {
+    /// Create a new named BaseType
+    pub fn named(name: &str) -> BaseType {
+        BaseType::Named(Name::new(name))
+    }
 }
 
 impl BaseType {
