@@ -2,13 +2,12 @@ lockfileVersion: 5.4
 
 specifiers:
   '@apollo/client': ^3.7.1
-  '@clerk/clerk-react': ^4.5.3
-  '@clerk/types': ^3.18.0
   '@grafbase/apollo-link': ^1.0.1
   '@types/react': ^18.0.24
   '@types/react-dom': ^18.0.8
   '@vitejs/plugin-react': ^2.2.0
   graphql: ^16.6.0
+  jose: ^4.11.1
   react: ^18.2.0
   react-dom: ^18.2.0
   typescript: ^4.6.4
@@ -16,14 +15,13 @@ specifiers:
 
 dependencies:
   '@apollo/client': 3.7.1_gdcq4dv6opitr3wbfwyjmanyra
-  '@clerk/clerk-react': 4.5.3_biqbaboplfbrettd7655fr4n2y
   '@grafbase/apollo-link': 1.0.1_biqbaboplfbrettd7655fr4n2y
   graphql: 16.6.0
+  jose: 4.11.1
   react: 18.2.0
   react-dom: 18.2.0_react@18.2.0
 
 devDependencies:
-  '@clerk/types': 3.18.0
   '@types/react': 18.0.25
   '@types/react-dom': 18.0.9
   '@vitejs/plugin-react': 2.2.0_vite@3.2.4
@@ -335,47 +333,6 @@ packages:
       to-fast-properties: 2.0.0
     dev: true
 
-  /@clerk/clerk-react/4.5.3_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-Szq40SLasVcOIobTGtF+o0HNxIhw610tNKlu032vptjMK+wAxm+IqPzQLQx4qlDwcfPvd6JQqR57b+IM4CWjBg==}
-    engines: {node: '>=14'}
-    peerDependencies:
-      react: '>=16'
-    dependencies:
-      '@clerk/shared': 0.5.7_biqbaboplfbrettd7655fr4n2y
-      '@clerk/types': 3.18.0
-      react: 18.2.0
-      swr: 1.3.0_react@18.2.0
-      tslib: 2.4.1
-    transitivePeerDependencies:
-      - '@testing-library/dom'
-      - '@testing-library/jest-dom'
-      - '@testing-library/react'
-      - '@testing-library/user-event'
-      - react-dom
-      - react-test-renderer
-    dev: false
-
-  /@clerk/shared/0.5.7_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-BCtxHxOCKZFHasEtMe3VcMxudDDZdWMGH8II1CnbmbIE9pH6qGB5OAFmz7/TAadtmMsrsOMM5UwTS+CKvJwl4g==}
-    peerDependencies:
-      '@testing-library/dom': ^8.19.0
-      '@testing-library/jest-dom': ^5.16.5
-      '@testing-library/react': ^13.4.0
-      '@testing-library/user-event': ^14.4.3
-      react: 18.2.0
-      react-dom: 18.2.0
-      react-test-renderer: ^18.2.0
-    dependencies:
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-    dev: false
-
-  /@clerk/types/3.18.0:
-    resolution: {integrity: sha512-MCR/oZdOLsC0zArdtj753Ej8CR7IbU5n9BXAF3XqcnuP2gOHtT88Ehn1krGpABGvTt/jDVW2bD0C3sdVMLz3YA==}
-    engines: {node: '>=14'}
-    dependencies:
-      csstype: 3.1.1
-
   /@esbuild/android-arm/0.15.16:
     resolution: {integrity: sha512-nyB6CH++2mSgx3GbnrJsZSxzne5K0HMyNIWafDHqYy7IwxFc4fd/CgHVZXr8Eh+Q3KbIAcAe3vGyqIPhGblvMQ==}
     engines: {node: '>=12'}
@@ -601,6 +558,7 @@ packages:
 
   /csstype/3.1.1:
     resolution: {integrity: sha512-DJR/VvkAvSZW9bTouZue2sSxDwdTN92uHjqeKVm+0dAqdfNykRzQ95tay8aXMBAAPpUiq4Qcug2L7neoRh2Egw==}
+    dev: true
 
   /debug/4.3.4:
     resolution: {integrity: sha512-PRWFHuSU3eDtQJPvnNY7Jcket1j0t5OuOsFzPPzsekD52Zl8qUfFIPEiswXqIvHWGVHOgX+7G/vCNNhehwxfkQ==}
@@ -903,6 +861,10 @@ packages:
       has: 1.0.3
     dev: true
 
+  /jose/4.11.1:
+    resolution: {integrity: sha512-YRv4Tk/Wlug8qicwqFNFVEZSdbROCHRAC6qu/i0dyNKr5JQdoa2pIGoS04lLO/jXQX7Z9omoNewYIVIxqZBd9Q==}
+    dev: false
+
   /js-tokens/4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -1067,14 +1029,6 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
     dev: true
-
-  /swr/1.3.0_react@18.2.0:
-    resolution: {integrity: sha512-dkghQrOl2ORX9HYrMDtPa7LTVHJjCTeZoB1dqTbnnEDlSvN8JEKpYIYurDfvbQFUUS8Cg8PceFVZNkW0KNNYPw==}
-    peerDependencies:
-      react: ^16.11.0 || ^17.0.0 || ^18.0.0
-    dependencies:
-      react: 18.2.0
-    dev: false
 
   /symbol-observable/4.0.0:
     resolution: {integrity: sha512-b19dMThMV4HVFynSAM1++gBHAbk2Tc/osgLIBZMKsyqh34jb2e8Os7T6ZW/Bt3pJFdBTd2JwAnAAEQV7rSNvcQ==}

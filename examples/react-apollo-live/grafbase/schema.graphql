@@ -1,7 +1,17 @@
 schema
   @auth(
-    providers: [{ type: oidc, issuer: "{{ env.CLERK_ISSUER_URL }}" }]
-    rules: [{ allow: private }]
+    providers: [
+      {
+        type: jwt
+        issuer: "{{ env.ISSUER_URL }}"
+        secret: "{{ env.JWT_SECRET }}"
+      }
+    ]
+    rules: [
+      { allow: private, operations: [read] }
+      { allow: groups, groups: [moderator], operations: [update] }
+      { allow: groups, groups: [admin] }
+    ]
   ) {
   query: Query
 }
