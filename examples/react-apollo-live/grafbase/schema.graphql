@@ -1,6 +1,6 @@
 schema
   @auth(
-    providers: [{ type: oidc, issuer: "https://{{ env.CLERK_ISSUER_URL }}" }]
+    providers: [{ type: oidc, issuer: "{{ env.CLERK_ISSUER_URL }}" }]
     rules: [{ allow: private }]
   ) {
   query: Query
