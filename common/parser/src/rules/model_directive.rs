@@ -448,10 +448,14 @@ mod tests {
 
         let types = &ctx.registry.borrow().types;
 
-        for t in tests {
-            let field = types[t.0].field_by_name(t.1).unwrap();
-            assert_eq!(field.auth.as_ref(), Some(&expected_model_auth), "{t:?}",);
-            assert_eq!(field.required_operation, t.2, "{t:?}");
+        for (type_name, field_name, required_op) in tests {
+            let field = types[type_name].field_by_name(field_name).unwrap();
+            assert_eq!(
+                field.auth.as_ref(),
+                Some(&expected_model_auth),
+                "{type_name}.{field_name}"
+            );
+            assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");
         }
     }
 
@@ -485,10 +489,10 @@ mod tests {
 
         let types = &ctx.registry.borrow().types;
 
-        for t in tests {
-            let field = types[t.0].field_by_name(t.1).unwrap();
-            assert_eq!(field.auth.as_ref(), t.2, "{t:?}",);
-            assert_eq!(field.required_operation, t.3, "{t:?}");
+        for (type_name, field_name, auth, required_op) in tests {
+            let field = types[type_name].field_by_name(field_name).unwrap();
+            assert_eq!(field.auth.as_ref(), auth, "{type_name}.{field_name}");
+            assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");
         }
     }
 
@@ -526,10 +530,10 @@ mod tests {
 
         let types = &ctx.registry.borrow().types;
 
-        for t in tests {
-            let field = types[t.0].field_by_name(t.1).unwrap();
-            assert_eq!(field.auth.as_ref(), t.2, "{t:?}",);
-            assert_eq!(field.required_operation, t.3, "{t:?}");
+        for (type_name, field_name, auth, required_op) in tests {
+            let field = types[type_name].field_by_name(field_name).unwrap();
+            assert_eq!(field.auth.as_ref(), auth, "{type_name}.{field_name}");
+            assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");
         }
     }
 }
