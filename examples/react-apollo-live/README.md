@@ -1,4 +1,4 @@
-# Grafbook: Server sent events (SSE) x JWT ⨯ React
+# Grafbook: Server sent events (SSE) x Apollo ⨯ React
 
 ## Getting Started
 
