@@ -14,6 +14,7 @@ use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
+#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 // TODO: Should ensure Rosoto Errors impl clone
@@ -113,7 +114,8 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                 ..Default::default()
             };
             let future_get = || async move {
-                self.ctx
+                let req = self
+                    .ctx
                     .dynamodb_client
                     .clone()
                     .query_pages(input)
@@ -185,20 +187,21 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                             };
                             Ok((query_key, acc))
                         },
-                    )
-                    .instrument(info_span!("fetch query by type"))
-                    .await
+                    );
+                #[cfg(feature = "tracing")]
+                let req = req.instrument(info_span!("fetch query by type"));
+                req.await
             };
             concurrent_f.push(future_get());
         }
 
-        let b = futures_util::future::try_join_all(concurrent_f)
-            .instrument(info_span!("fetch query by type concurrent"))
-            .await
-            .map_err(|err| {
-                log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
-                QueryTypeLoaderError::QueryError
-            })?;
+        let b = futures_util::future::try_join_all(concurrent_f);
+        #[cfg(feature = "tracing")]
+        let b = b.instrument(info_span!("fetch query by type concurrent"));
+        let b = b.await.map_err(|err| {
+            log::error!(self.ctx.trace_id, "Error while querying: {:?}", err);
+            QueryTypeLoaderError::QueryError
+        })?;
 
         for (q, r) in b {
             h.insert(q, r);

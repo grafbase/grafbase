@@ -13,6 +13,7 @@ use quick_error::quick_error;
 use rusoto_core::RusotoError;
 use rusoto_dynamodb::{AttributeValue, DynamoDb, QueryError, QueryInput};
 use std::collections::HashMap;
+#[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
 /// A Cursor.
@@ -319,16 +320,18 @@ where
                 }
             };
             log::debug!(trace_id, "QueryPaginated Input {:?}", input);
-            let resp = self
+            let req = self
                 .query(QueryInput {
                     exclusive_start_key: exclusive_start_key.clone(),
                     ..input.clone()
                 })
                 .inspect_err(|err| {
                     log::error!(trace_id, "Query Paginated Error {:?}", err);
-                })
-                .instrument(info_span!("fetch paginated"))
-                .await?;
+                });
+            #[cfg(feature = "tracing")]
+            let req = req.instrument(info_span!("fetch paginated"));
+
+            let resp = req.await?;
 
             // For each items in the result, we'll group them by pk.
             // As soon as we have more than limit items, we return.
