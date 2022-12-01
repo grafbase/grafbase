@@ -29,13 +29,13 @@ const authExchange = coreAuthExchange<string>({
     return false
   },
   didAuthError: ({ error }) => {
-    return error.graphQLErrors.some((e) => e.extensions?.code === 'FORBIDDEN')
+    return error.graphQLErrors.some((e) => e.message.startsWith('Unauthorized'))
   },
   getAuth: async ({ authState, mutate }) => {
     if (typeof window === 'undefined') {
       return null
     }
-    return (await window.Clerk?.session?.getToken?.()) ?? null
+    return localStorage.getItem('token') ?? ''
   }
 })
 

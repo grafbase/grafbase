@@ -1,6 +1,6 @@
-import { useUser } from '@clerk/clerk-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, gql, useMutation } from 'urql'
+import { useAuth } from './auth'
 
 type Message = {
   id: string
@@ -35,22 +35,19 @@ const AddNewMessageMutation = gql`
 `
 
 function App() {
+  const { setRole } = useAuth()
   const [{ data, fetching, error }] = useQuery<{
     messageCollection: { edges: { node: Message }[] }
   }>({
     query: GetAllMessagesQuery,
     variables: { first: 100 }
   })
-  const [{}, addNewMessage] = useMutation(AddNewMessageMutation)
+  const [{ error: mutationError }, addNewMessage] = useMutation(
+    AddNewMessageMutation
+  )
 
-  const { user } = useUser()
   const [author, setAuthor] = useState('')
   const [message, setMessage] = useState('')
-  useEffect(() => {
-    if (user?.username) {
-      setAuthor(user.username)
-    }
-  }, [])
 
   if (fetching) return <p>Loading...</p>
   if (error) return <p>Error : {error.message}</p>
@@ -58,6 +55,15 @@ function App() {
   return (
     <>
       <h1>Grafbook</h1>
+      <div>
+        <button onClick={() => setRole('')}>Set role to public</button>{' '}
+        <button onClick={() => setRole('moderator')}>
+          Set role to moderator
+        </button>{' '}
+        <button onClick={() => setRole('admin')}>Set role to admin</button>
+      </div>
+      {!!mutationError && <pre>Error : {mutationError.message}</pre>}
+      <br />
       <form
         onSubmit={(e) => {
           e.preventDefault()
