@@ -1,5 +1,5 @@
 use dynaql::{Positioned, ServerError};
-use dynaql_parser::types::ConstDirective;
+use dynaql_parser::types::{ConstDirective, FieldDefinition, SchemaDefinition, TypeDefinition};
 
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use crate::{Visitor, VisitorContext};
@@ -17,7 +17,7 @@ pub struct AuthDirective;
 
 impl AuthDirective {
     pub fn parse(
-        ctx: &mut VisitorContext<'_>,
+        ctx: &VisitorContext<'_>,
         directives: &[Positioned<ConstDirective>],
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
@@ -33,13 +33,13 @@ impl<'a> Visitor<'a> for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
     fn directives(&self) -> String {
-        format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT")
+        format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT | FIELD_DEFINITION")
     }
 
     fn enter_schema(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        schema_definition: &'a dynaql::Positioned<dynaql_parser::types::SchemaDefinition>,
+        schema_definition: &'a dynaql::Positioned<SchemaDefinition>,
     ) {
         match Self::parse(ctx, &schema_definition.node.directives, true) {
             Ok(Some(auth)) => {
@@ -57,7 +57,7 @@ impl<'a> Visitor<'a> for AuthDirective {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
-        type_definition: &'a dynaql::Positioned<dynaql_parser::types::TypeDefinition>,
+        type_definition: &'a dynaql::Positioned<TypeDefinition>,
     ) {
         if let (Some(auth_directive), false) = (
             type_definition
@@ -73,7 +73,34 @@ impl<'a> Visitor<'a> for AuthDirective {
         ) {
             ctx.report_error(
                 vec![auth_directive.pos],
-                format!("The @{AUTH_DIRECTIVE} directive can only be used on @{MODEL_DIRECTIVE} types"),
+                format!("the @{AUTH_DIRECTIVE} directive can only be used on @{MODEL_DIRECTIVE} types"),
+            );
+        }
+    }
+
+    // Visit fields to check that the auth directive is used correctly. Actual
+    // processing happens in the model directive.
+    fn enter_field(
+        &mut self,
+        ctx: &mut VisitorContext<'a>,
+        field: &'a Positioned<FieldDefinition>,
+        parent_type: &'a Positioned<TypeDefinition>,
+    ) {
+        if let (Some(auth_directive), false) = (
+            field
+                .node
+                .directives
+                .iter()
+                .find(|d| d.node.name.node == AUTH_DIRECTIVE),
+            parent_type
+                .node
+                .directives
+                .iter()
+                .any(|d| d.node.name.node == MODEL_DIRECTIVE),
+        ) {
+            ctx.report_error(
+                vec![auth_directive.pos],
+                format!("the @{AUTH_DIRECTIVE} directive can only be used on fields of @{MODEL_DIRECTIVE} types"),
             );
         }
     }
@@ -400,7 +427,7 @@ mod tests {
           id: ID!
         }
         "#,
-        "The @auth directive can only be used on @model types"
+        "the @auth directive can only be used on @model types"
     );
 
     parse_fail!(
@@ -408,6 +435,28 @@ mod tests {
         r#"
         type Todo @model @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ]) {
           id: ID!
+        }
+        "#,
+        "auth providers can only be configured globally"
+    );
+
+    parse_fail!(
+        field_auth_without_model,
+        r#"
+        type Todo {
+          id: ID!
+          title: String @auth(rules: [])
+        }
+        "#,
+        "the @auth directive can only be used on fields of @model types"
+    );
+
+    parse_fail!(
+        field_auth_with_provider,
+        r#"
+        type Todo @model {
+          id: ID!
+          title: String @auth(providers: [ { type: oidc, issuer: "https://my.idp.com" } ])
         }
         "#,
         "auth providers can only be configured globally"

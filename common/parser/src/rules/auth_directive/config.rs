@@ -49,7 +49,7 @@ impl AuthConfig {
             Some(arg) => match &arg.node {
                 ConstValue::List(value) if !value.is_empty() => value
                     .iter()
-                    .map(|value| AuthRule::from_value(ctx, value))
+                    .map(AuthRule::from_value)
                     .collect::<Result<_, _>>()
                     .map_err(|err| ServerError::new(err.message, pos))?,
                 _ => return Err(ServerError::new("auth rules must be a non-empty list", pos)),
