@@ -36,7 +36,7 @@ thread_local! {
 pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {
     if config.contains(Config::WORKER) {
         match status {
-            LogSeverity::Debug => worker::console_debug!("{}", message),
+            LogSeverity::Debug => {} // Intentionally ignored.
             LogSeverity::Info => worker::console_log!("{}", message),
             LogSeverity::Warn => worker::console_warn!("{}", message),
             LogSeverity::Error => worker::console_error!("{}", message),
