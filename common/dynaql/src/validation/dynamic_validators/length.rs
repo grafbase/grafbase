@@ -67,7 +67,7 @@ impl DynValidate<&Value> for LengthValidator {
             TooLong => ctx.report_error(
                 vec![pos],
                 format!(
-                    "Invalid value for argument \"{name}\", length {count} is too long, must be less than {}",
+                    "Invalid value for argument \"{name}\", length {count} is too long, must be no larger than {}",
                     self.max
                         .expect("max must have been some for this case to be hit")
                 ),
@@ -75,7 +75,7 @@ impl DynValidate<&Value> for LengthValidator {
             TooShort => ctx.report_error(
                 vec![pos],
                 format!(
-                    "Invalid value for argument \"{name}\", length {count} is too short, must be more than {}",
+                    "Invalid value for argument \"{name}\", length {count} is too short, must be at least {}",
                     self.min
                         .expect("min must have been some for this case to be hit")
                 ),
@@ -188,4 +188,43 @@ fn test_length_validator() {
     );
     assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
     assert_snapshot!(ctx.errors[0].message);
+
+    // Test list length validation via the visitor
+    let custom_validator = DynValidator::length(None, Some(3));
+    let meta = MetaInputValue {
+        name: "test".to_string(),
+        description: None,
+        ty: "[String]".to_string(),
+        default_value: None,
+        validators: Some(vec![custom_validator]),
+        visible: None,
+        is_secret: false,
+    };
+    let mut visitor = VisitorNil;
+    let mut ctx = VisitorContext::new(&registry, &doc, None);
+    let value = Value::List(vec![Value::String("test1".to_string()),Value::String("test2".to_string()),Value::String("test3".to_string())]);
+    visit_input_value(
+        &mut visitor,
+        &mut ctx,
+        Pos::from((0, 0)),
+        Some(MetaTypeName::List("String")),
+        &value,
+        Some(&meta),
+    );
+    assert_eq!(ctx.errors.len(), 0, "{:#?}", ctx.errors);
+
+    let mut visitor = VisitorNil;
+    let mut ctx = VisitorContext::new(&registry, &doc, None);
+    let value = Value::List(vec![Value::String("test1".to_string()),Value::String("test2".to_string()),Value::String("test3".to_string()), Value::String("test4".to_string())]);
+    visit_input_value(
+        &mut visitor,
+        &mut ctx,
+        Pos::from((0, 0)),
+        Some(MetaTypeName::List("String")),
+        &value,
+        Some(&meta),
+    );
+    assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
+    assert_snapshot!(ctx.errors[0].message);
+
 }
