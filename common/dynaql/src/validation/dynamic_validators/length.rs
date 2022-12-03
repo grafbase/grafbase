@@ -202,7 +202,11 @@ fn test_length_validator() {
     };
     let mut visitor = VisitorNil;
     let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let value = Value::List(vec![Value::String("test1".to_string()),Value::String("test2".to_string()),Value::String("test3".to_string())]);
+    let value = Value::List(vec![
+        Value::String("test1".to_string()),
+        Value::String("test2".to_string()),
+        Value::String("test3".to_string()),
+    ]);
     visit_input_value(
         &mut visitor,
         &mut ctx,
@@ -215,7 +219,12 @@ fn test_length_validator() {
 
     let mut visitor = VisitorNil;
     let mut ctx = VisitorContext::new(&registry, &doc, None);
-    let value = Value::List(vec![Value::String("test1".to_string()),Value::String("test2".to_string()),Value::String("test3".to_string()), Value::String("test4".to_string())]);
+    let value = Value::List(vec![
+        Value::String("test1".to_string()),
+        Value::String("test2".to_string()),
+        Value::String("test3".to_string()),
+        Value::String("test4".to_string()),
+    ]);
     visit_input_value(
         &mut visitor,
         &mut ctx,
@@ -226,5 +235,4 @@ fn test_length_validator() {
     );
     assert_eq!(ctx.errors.len(), 1, "{:#?}", ctx.errors);
     assert_snapshot!(ctx.errors[0].message);
-
 }
