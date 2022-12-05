@@ -193,7 +193,6 @@ mod tests {
         private_rule,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: private } ]
         ){
           query: Query
@@ -201,10 +200,6 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: dynaql::Operations::all(),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -213,7 +208,6 @@ mod tests {
         private_rule_with_ops,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: private, operations: [create, delete] } ]
         ){
           query: Query
@@ -221,10 +215,6 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: dynaql::Operations::CREATE | dynaql::Operations::DELETE,
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -233,7 +223,6 @@ mod tests {
         private_rule_with_empty_ops,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: private, operations: [] } ]
         ){
           query: Query
@@ -241,10 +230,6 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_private_ops: dynaql::Operations::empty(),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -253,7 +238,6 @@ mod tests {
         groups_rule,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: groups, groups: ["admin", "moderator"] } ],
         ){
           query: Query
@@ -264,10 +248,6 @@ mod tests {
                 ("admin".to_string(), dynaql::Operations::all()),
                 ("moderator".to_string(), dynaql::Operations::all()),
             ]),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -276,7 +256,6 @@ mod tests {
         groups_rule_with_ops,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [
             { allow: groups, groups: ["admin"] }
             { allow: groups, groups: ["moderator", "editor"], operations: ["get", "list"] }
@@ -294,10 +273,6 @@ mod tests {
                 ),
                 ("editor".to_string(), dynaql::Operations::GET | dynaql::Operations::LIST)
             ]),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -354,7 +329,6 @@ mod tests {
         owner_rule,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: owner } ],
         ){
           query: Query
@@ -362,10 +336,6 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_owner_ops: dynaql::Operations::all(),
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
@@ -374,7 +344,6 @@ mod tests {
         owner_rule_with_ops,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
           rules: [ { allow: owner, operations: ["create"] } ],
         ){
           query: Query
@@ -382,16 +351,12 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_owner_ops: dynaql::Operations::CREATE,
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-            }],
             ..Default::default()
         }
     );
 
     parse_test!(
-        oidc_without_rule,
+        oidc_provider,
         r#"
         schema @auth(
           providers: [ { type: oidc, issuer: "https://my.idp.com" } ]
