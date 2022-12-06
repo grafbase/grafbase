@@ -115,7 +115,7 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, bridge_sender).await });
+    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await });
 
     trace!("waiting for bridge ready");
 
@@ -160,7 +160,7 @@ async fn spawn_servers(
     let miniflare_output_result = miniflare.wait_with_output();
 
     tokio::select! {
-        _ = bridge_handle => {}
+        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
         result = miniflare_output_result => {
             let output = result.map_err(ServerError::MiniflareCommandError)?;
 
