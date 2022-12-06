@@ -70,7 +70,7 @@ impl Modification {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EventRecord {
     pub aws_region: String,
@@ -82,7 +82,7 @@ pub struct EventRecord {
     pub table_name: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamRecord {
     #[serde(rename = "ApproximateCreationDateTime")]
