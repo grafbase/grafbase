@@ -25,7 +25,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "async-await",
 ] }
 graph-entities = { path = "../graph_entities" }
-indexmap = "2.0.0-pre"
+indexmap = "1"
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.8" }
