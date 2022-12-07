@@ -48,7 +48,7 @@ futures-util = { version = "0.3", default-features = false, features = [
 ] }
 graph-entities = { path = "../graph_entities" }
 ipnet = "2.5"
-indexmap = { git = "https://github.com/bluss/indexmap.git" }
+indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.10"
 pin-project-lite = "0.2"
 phonenumber = { git = "https://github.com/meh/rust-phonenumber", rev = "f936b0545fc8ad3ac195714de0c6ae8cd941723e" }
