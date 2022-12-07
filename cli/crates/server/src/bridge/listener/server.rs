@@ -7,8 +7,11 @@ use crate::{
 };
 use chrono::Utc;
 use common::environment::Environment;
-use sqlx::{Connection, SqliteConnection};
+use reqwest::Client;
+use sqlx::{query_as, Connection, SqliteConnection};
 use tokio::sync::broadcast::Sender;
+use tokio::time::sleep;
+use uuid::Uuid;
 
 async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
     let environment = Environment::get();
@@ -21,14 +24,14 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
 
     let mut connection = SqliteConnection::connect(&db_url).await?;
 
-    let client = reqwest::Client::new();
+    let client = Client::new();
 
     loop {
-        tokio::time::sleep(MODIFICATION_POLL_INTERVAL).await;
+        sleep(MODIFICATION_POLL_INTERVAL).await;
 
         let delete_and_return_modifications = format!("DELETE FROM {MODIFICATIONS_TABLE_NAME} RETURNING *");
 
-        let modifications = sqlx::query_as::<_, Modification>(&delete_and_return_modifications);
+        let modifications = query_as::<_, Modification>(&delete_and_return_modifications);
 
         let results = match modifications.fetch_all(&mut connection).await {
             Ok(results) => results,
@@ -54,7 +57,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                         // unused by the stream router
                         size_bytes: 0,
                     },
-                    event_id: uuid::Uuid::new_v4().to_string(),
+                    event_id: Uuid::new_v4().to_string(),
                     event_name: result.to_event_name().to_owned(),
                     event_source_arn: Some("records".to_owned()),
                 })
