@@ -79,6 +79,7 @@ pub struct EventRecord {
     #[serde(rename = "eventID")]
     pub event_id: String,
     pub event_name: String,
+    #[serde(default)]
     pub event_source_arn: Option<String>,
 }
 
