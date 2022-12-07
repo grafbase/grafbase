@@ -52,7 +52,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                     },
                     event_id: uuid::Uuid::new_v4().to_string(),
                     event_name: result.to_event_name().to_owned(),
-                    table_name: Some("records".to_owned()),
+                    event_source_arn: Some("records".to_owned()),
                 })
                 .collect::<Vec<_>>();
 
