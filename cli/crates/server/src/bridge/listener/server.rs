@@ -32,7 +32,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
 
         let results = match modifications.fetch_all(&mut connection).await {
             Ok(results) => results,
-            // retry on the next interval if the DB is busy
+            // retry on the next interval if the DB is busy (due to a trigger writing an update)
             Err(_) => {
                 // TODO: narrow this
                 continue;
