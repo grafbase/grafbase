@@ -495,6 +495,19 @@ mod tests {
     );
 
     parse_fail!(
+        issuer_url_from_template_key_with_whitespace,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "{{env.ISSUER_URL   }}" } ]
+        ){
+          query: Query
+        }
+        "#,
+        HashMap::new(),
+        "undefined variable `ISSUER_URL`"
+    );
+
+    parse_fail!(
         issuer_url_from_invalid_template_key,
         r#"
         schema @auth(

@@ -22,7 +22,7 @@ impl std::str::FromStr for DynamicString {
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
         lazy_static::lazy_static! {
-            static ref RE: Regex = Regex::new(r"\{\{\s+([[[:alnum:]]_.]+)\s+\}\}").unwrap();
+            static ref RE: Regex = Regex::new(r"\{\{\s*([[[:alnum:]]_.]+)\s*\}\}").unwrap();
         }
 
         let mut errors = vec![];
