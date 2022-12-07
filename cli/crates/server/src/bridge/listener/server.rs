@@ -46,7 +46,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                     change: StreamRecord {
                         // as we poll 10 times per second and this is rounded to seconds,
                         // using the current time is accurate enough.
-                        // using the record update time would be innacurate for deletions
+                        // using the record update time would be inaccurate for deletions
                         approximate_creation_date_time: Utc::now().timestamp_millis() / 1000,
                         keys: result.to_keys(),
                         new_image: result.document_new.clone().unwrap_or_default(),
