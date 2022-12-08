@@ -1,0 +1,36 @@
+//
+//  PostsAPI.swift
+//  Grafbase Swift
+//
+//  Created by Craig Tweedy on 05/12/2022.
+//
+
+import Foundation
+
+extension GraphQLOperation {
+    static var LIST_POSTS: Self {
+        GraphQLOperation(
+                    """
+                        {
+                            postCollection(first:10) {
+                                edges {
+                                  node {
+                                    id
+                                    title
+                                    body
+                                    comments(first: 10) {
+                                      edges {
+                                        node {
+                                          id
+                                          message
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                        }
+                    """
+        )
+    }
+}
