@@ -1,0 +1,411 @@
+---
+source: common/parser/src/tests.rs
+expression: sdl
+---
+type Author {
+	lastname: String!
+	published(after: String, before: String, first: Int, last: Int): PostConnection
+	commented(after: String, before: String, first: Int, last: Int): CommentConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input AuthorByInput {
+	id: ID
+}
+"""
+Input to create a Comment for the commented relation of Author
+"""
+input AuthorCommentedCommentCreateInput {
+	post: CommentCommentsPostCreateRelationInput
+	comment: String!
+	like: Int!
+}
+"""
+Input to link to or create a Comment for the commented relation of Author
+"""
+input AuthorCommentedCommentCreateRelationInput {
+	create: AuthorCommentedCommentCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Comment for the commented relation of Author
+"""
+input AuthorCommentedCommentUpdateRelationInput {
+	create: AuthorCommentedCommentCreateInput
+	link: ID
+	unlink: ID
+}
+type AuthorConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [AuthorEdge]
+}
+"""
+Input to create a Author
+"""
+input AuthorCreateInput {
+	lastname: String!
+	published: [AuthorPublishedPostCreateRelationInput]
+	commented: [AuthorCommentedCommentCreateRelationInput]
+}
+type AuthorCreatePayload {
+	author: Author
+}
+type AuthorDeletePayload {
+	deletedId: ID!
+}
+type AuthorEdge {
+	node: Author!
+	cursor: String!
+}
+"""
+Input to create a Post for the published relation of Author
+"""
+input AuthorPublishedPostCreateInput {
+	content: String!
+	comments: [PostCommentsCommentCreateRelationInput]
+}
+"""
+Input to link to or create a Post for the published relation of Author
+"""
+input AuthorPublishedPostCreateRelationInput {
+	create: AuthorPublishedPostCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Post for the published relation of Author
+"""
+input AuthorPublishedPostUpdateRelationInput {
+	create: AuthorPublishedPostCreateInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Author
+"""
+input AuthorUpdateInput {
+	lastname: String
+	published: [AuthorPublishedPostUpdateRelationInput]
+	commented: [AuthorCommentedCommentUpdateRelationInput]
+}
+type AuthorUpdatePayload {
+	author: Author
+}
+type Comment {
+	author: Author!
+	post: Post
+	comment: String!
+	like: Int!
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input CommentByInput {
+	id: ID
+}
+"""
+Input to create a Author for the commented relation of Comment
+"""
+input CommentCommentedAuthorCreateInput {
+	lastname: String!
+	published: [AuthorPublishedPostCreateRelationInput]
+	commented: [AuthorCommentedCommentCreateRelationInput]
+}
+"""
+Input to link to or create a Author for the commented relation of Comment
+"""
+input CommentCommentedAuthorCreateRelationInput {
+	create: CommentCommentedAuthorCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the commented relation of Comment
+"""
+input CommentCommentedAuthorUpdateRelationInput {
+	create: CommentCommentedAuthorCreateInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to create a Post for the comments relation of Comment
+"""
+input CommentCommentsPostCreateInput {
+	content: String!
+	author: PostPublishedAuthorCreateRelationInput
+	comments: [PostCommentsCommentCreateRelationInput]
+}
+"""
+Input to link to or create a Post for the comments relation of Comment
+"""
+input CommentCommentsPostCreateRelationInput {
+	create: CommentCommentsPostCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Post for the comments relation of Comment
+"""
+input CommentCommentsPostUpdateRelationInput {
+	create: CommentCommentsPostCreateInput
+	link: ID
+	unlink: ID
+}
+type CommentConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [CommentEdge]
+}
+"""
+Input to create a Comment
+"""
+input CommentCreateInput {
+	author: CommentCommentedAuthorCreateRelationInput!
+	post: CommentCommentsPostCreateRelationInput
+	comment: String!
+	like: Int!
+}
+type CommentCreatePayload {
+	comment: Comment
+}
+type CommentDeletePayload {
+	deletedId: ID!
+}
+type CommentEdge {
+	node: Comment!
+	cursor: String!
+}
+"""
+Input to update a Comment
+"""
+input CommentUpdateInput {
+	author: CommentCommentedAuthorUpdateRelationInput
+	post: CommentCommentsPostUpdateRelationInput
+	comment: String
+	like: IntOperationsInput
+}
+type CommentUpdatePayload {
+	comment: Comment
+}
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+"""
+Possible operations for an Int field
+"""
+input IntOperationsInput {
+	set: Int
+	increment: Int
+	decrement: Int
+}
+type Mutation {
+	"""
+	Create a Author
+	"""
+	authorCreate(input: AuthorCreateInput!): AuthorCreatePayload
+	"""
+	Update a Author
+	"""
+	authorUpdate(by: AuthorByInput!, input: AuthorUpdateInput!): AuthorUpdatePayload
+	"""
+	Delete a Author by ID or unique field
+	"""
+	authorDelete(by: AuthorByInput!): AuthorDeletePayload
+	"""
+	Create a Post
+	"""
+	postCreate(input: PostCreateInput!): PostCreatePayload
+	"""
+	Update a Post
+	"""
+	postUpdate(by: PostByInput!, input: PostUpdateInput!): PostUpdatePayload
+	"""
+	Delete a Post by ID or unique field
+	"""
+	postDelete(by: PostByInput!): PostDeletePayload
+	"""
+	Create a Comment
+	"""
+	commentCreate(input: CommentCreateInput!): CommentCreatePayload
+	"""
+	Update a Comment
+	"""
+	commentUpdate(by: CommentByInput!, input: CommentUpdateInput!): CommentUpdatePayload
+	"""
+	Delete a Comment by ID or unique field
+	"""
+	commentDelete(by: CommentByInput!): CommentDeletePayload
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Post {
+	content: String!
+	author: Author
+	comments(after: String, before: String, first: Int, last: Int): CommentConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input PostByInput {
+	id: ID
+}
+"""
+Input to create a Comment for the comments relation of Post
+"""
+input PostCommentsCommentCreateInput {
+	author: CommentCommentedAuthorCreateRelationInput!
+	comment: String!
+	like: Int!
+}
+"""
+Input to link to or create a Comment for the comments relation of Post
+"""
+input PostCommentsCommentCreateRelationInput {
+	create: PostCommentsCommentCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Comment for the comments relation of Post
+"""
+input PostCommentsCommentUpdateRelationInput {
+	create: PostCommentsCommentCreateInput
+	link: ID
+	unlink: ID
+}
+type PostConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [PostEdge]
+}
+"""
+Input to create a Post
+"""
+input PostCreateInput {
+	content: String!
+	author: PostPublishedAuthorCreateRelationInput
+	comments: [PostCommentsCommentCreateRelationInput]
+}
+type PostCreatePayload {
+	post: Post
+}
+type PostDeletePayload {
+	deletedId: ID!
+}
+type PostEdge {
+	node: Post!
+	cursor: String!
+}
+"""
+Input to create a Author for the published relation of Post
+"""
+input PostPublishedAuthorCreateInput {
+	lastname: String!
+	published: [AuthorPublishedPostCreateRelationInput]
+	commented: [AuthorCommentedCommentCreateRelationInput]
+}
+"""
+Input to link to or create a Author for the published relation of Post
+"""
+input PostPublishedAuthorCreateRelationInput {
+	create: PostPublishedAuthorCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the published relation of Post
+"""
+input PostPublishedAuthorUpdateRelationInput {
+	create: PostPublishedAuthorCreateInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Post
+"""
+input PostUpdateInput {
+	content: String
+	author: PostPublishedAuthorUpdateRelationInput
+	comments: [PostCommentsCommentUpdateRelationInput]
+}
+type PostUpdatePayload {
+	post: Post
+}
+type Query {
+	"""
+	Query a single Author by an ID or a unique field
+	"""
+	author(by: AuthorByInput!): Author
+	"""
+	Paginated query to fetch the whole list of `Author`.
+	"""
+	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
+	"""
+	Query a single Post by an ID or a unique field
+	"""
+	post(by: PostByInput!): Post
+	"""
+	Paginated query to fetch the whole list of `Post`.
+	"""
+	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
+	"""
+	Query a single Comment by an ID or a unique field
+	"""
+	comment(by: CommentByInput!): Comment
+	"""
+	Paginated query to fetch the whole list of `Comment`.
+	"""
+	commentCollection(after: String, before: String, first: Int, last: Int): CommentConnection
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

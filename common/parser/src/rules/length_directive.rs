@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    directive::Directive,
+    visitor::{Visitor, VisitorContext},
+};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 use dynaql_value::ConstValue;
@@ -12,14 +15,16 @@ pub const MAX_ARGUMENT: &str = "max";
 
 pub struct LengthDirective;
 
-impl<'a> Visitor<'a> for LengthDirective {
-    fn directives(&self) -> String {
+impl Directive for LengthDirective {
+    fn definition(&self) -> String {
         r#"
         directive @length(min: Int, max: Int) on FIELD_DEFINITION
         "#
         .to_string()
     }
+}
 
+impl<'a> Visitor<'a> for LengthDirective {
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,

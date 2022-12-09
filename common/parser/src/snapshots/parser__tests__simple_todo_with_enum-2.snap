@@ -1,5 +1,5 @@
 ---
-source: common/parser/src/lib.rs
+source: common/parser/src/tests.rs
 expression: sdl
 ---
 type Author {
@@ -64,10 +64,13 @@ type Query {
 	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }
 type Todo {
-	id: ID!
 	content: String!
 	authors: [Author]
 	ty: TodoType!
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -88,7 +91,7 @@ type TodoConnection {
 	edges: [TodoEdge]
 }
 """
-Input to create a new Todo
+Input to create a Todo
 """
 input TodoCreateInput {
 	content: String!
@@ -113,7 +116,7 @@ enum TodoType {
 	TODO2
 }
 """
-Input to create a new Todo
+Input to update a Todo
 """
 input TodoUpdateInput {
 	content: String

@@ -11,6 +11,8 @@ mod rules;
 
 use config::AuthConfig;
 
+use super::directive::Directive;
+
 const AUTH_DIRECTIVE: &str = "auth";
 
 pub struct AuthDirective;
@@ -29,13 +31,15 @@ impl AuthDirective {
     }
 }
 
-impl<'a> Visitor<'a> for AuthDirective {
+impl Directive for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
-    fn directives(&self) -> String {
+    fn definition(&self) -> String {
         format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT | FIELD_DEFINITION")
     }
+}
 
+impl<'a> Visitor<'a> for AuthDirective {
     fn enter_schema(
         &mut self,
         ctx: &mut VisitorContext<'a>,

@@ -1,4 +1,7 @@
-use super::visitor::{Visitor, VisitorContext};
+use super::{
+    model_directive::ModelDirective,
+    visitor::{Visitor, VisitorContext},
+};
 use dynaql::Positioned;
 use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 
@@ -21,7 +24,7 @@ impl<'a> Visitor<'a> for DefaultDirectiveTypes {
             .iter()
             .find(|d| d.node.name.node == super::default_directive::DEFAULT_DIRECTIVE)
         {
-            if crate::utils::is_modelized_node(&ctx.types, &field.node.ty.node).is_some() {
+            if ModelDirective::is_model(ctx, &field.node.ty.node) {
                 ctx.report_error(
                     vec![directive.pos],
                     "The @default directive is not accepted on fields referring to other models".to_string(),
@@ -225,7 +228,7 @@ mod tests {
             .with(crate::EnumType)
             .with(crate::ScalarHydratation);
 
-        let schema = format!("{}\n{}\n{}", PossibleScalar::sdl(), rules.directives(), schema);
+        let schema = format!("{}\n{}", PossibleScalar::sdl(), schema);
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
 

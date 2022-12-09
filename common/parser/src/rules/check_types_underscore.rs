@@ -14,10 +14,6 @@ use if_chain::if_chain;
 pub struct CheckBeginsWithDoubleUnderscore;
 
 impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
-    fn directives(&self) -> String {
-        String::new()
-    }
-
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,

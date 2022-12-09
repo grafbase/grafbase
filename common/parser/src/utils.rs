@@ -88,31 +88,6 @@ fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>
     }
 }
 
-fn is_modelized_node_base_type<'a>(
-    ctx: &'a HashMap<String, Cow<'a, Positioned<TypeDefinition>>>,
-    base_type: &'a BaseType,
-) -> Option<&'a Cow<'a, Positioned<TypeDefinition>>> {
-    match base_type {
-        BaseType::Named(name) => {
-            let ty = ctx.get(name.as_ref());
-            let type_def = ty.map(|x| &x.node.kind);
-            let is_modelized = ty
-                .map(|ty| {
-                    ty.node
-                        .directives
-                        .iter()
-                        .any(|directive| directive.node.name.node == MODEL_DIRECTIVE)
-                })
-                .unwrap_or(false);
-            match (type_def, is_modelized) {
-                (Some(TypeKind::Object(_)), true) => ty,
-                _ => None,
-            }
-        }
-        BaseType::List(list) => is_modelized_node_base_type(ctx, &list.base),
-    }
-}
-
 /// Get the base type string for a type.
 pub fn to_base_type_str(ty: &BaseType) -> String {
     match ty {
@@ -140,40 +115,6 @@ pub fn to_input_type(
     Type {
         base: to_input_base_type(ctx, base),
         nullable,
-    }
-}
-
-/// Transform a relation type to the associated an input type
-pub fn to_defined_input_type(Type { base, nullable }: Type, relation_type: String) -> Type {
-    Type {
-        base: to_defined_input_base_type(base, &relation_type),
-        nullable,
-    }
-}
-
-fn to_defined_input_base_type(base_type: BaseType, relation_type: &str) -> BaseType {
-    match base_type {
-        BaseType::Named(_name) => BaseType::Named(Name::new(relation_type)),
-        BaseType::List(list) => BaseType::List(Box::new(Type {
-            base: to_defined_input_base_type(list.base, relation_type),
-            nullable: list.nullable,
-        })),
-    }
-}
-
-/// Tell if the type is a Modelized Node.
-pub fn is_modelized_node<'a>(
-    ctx: &'a HashMap<String, Cow<'_, Positioned<TypeDefinition>>>,
-    Type { base, .. }: &'a Type,
-) -> Option<&'a Cow<'a, Positioned<TypeDefinition>>> {
-    is_modelized_node_base_type(ctx, base)
-}
-
-/// Check if the given type is a non-nullable ID type
-pub fn is_id_type_and_non_nullable(field: &FieldDefinition) -> bool {
-    match &field.ty.node.base {
-        BaseType::Named(name) => matches!(name.as_ref(), "ID"),
-        _ => false,
     }
 }
 

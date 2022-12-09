@@ -1,6 +1,6 @@
 //! Implement the Relation Engine
-use crate::rules::model_directive::MODEL_DIRECTIVE;
-use crate::utils::is_modelized_node;
+use crate::rules::directive::Directive;
+use crate::rules::model_directive::{ModelDirective, MODEL_DIRECTIVE};
 use crate::{Visitor, VisitorContext};
 use dynaql::indexmap::map::Entry;
 use dynaql::registry::relations::MetaRelation;
@@ -32,8 +32,33 @@ pub struct RelationEngine;
 
 pub const RELATION_DIRECTIVE: &str = "relation";
 
+impl RelationEngine {
+    /// Can only be safely used after the RelationEngine has parsed the schema.
+    pub fn get(
+        ctx: &VisitorContext<'_>,
+        type_definition: &TypeDefinition,
+        field: &FieldDefinition,
+    ) -> Option<MetaRelation> {
+        // partial relation because the full relation can only be generated through the full
+        // schema parsing. We're only using it as parts of it are correct like the relation name.
+        let partial_relation = generate_metarelation(type_definition, field);
+        ctx.relations.get(&partial_relation.name).cloned().map(|relation| {
+            if relation.relation == partial_relation.relation {
+                relation
+            } else {
+                MetaRelation {
+                    kind: relation.kind.inverse(),
+                    // Getting proper field order from the partial relation
+                    relation: partial_relation.relation,
+                    ..relation
+                }
+            }
+        })
+    }
+}
+
 /// Generate a `MetaRelation` if possible
-pub fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> MetaRelation {
+fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> MetaRelation {
     let type_name = ty.name.node.to_string();
     let name = field
         .directives
@@ -48,8 +73,8 @@ pub fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> Me
     MetaRelation::new(name, &Type::new(&type_name).expect("Shouldn't fail"), &field.ty.node)
 }
 
-impl<'a> Visitor<'a> for RelationEngine {
-    fn directives(&self) -> String {
+impl Directive for RelationEngine {
+    fn definition(&self) -> String {
         r#"
         directive @relation(
           """
@@ -60,7 +85,9 @@ impl<'a> Visitor<'a> for RelationEngine {
         "#
         .to_string()
     }
+}
 
+impl<'a> Visitor<'a> for RelationEngine {
     fn enter_type_definition(
         &mut self,
         ctx: &mut VisitorContext<'a>,
@@ -70,24 +97,26 @@ impl<'a> Visitor<'a> for RelationEngine {
         if_chain! {
             // We do check if it's a modelized node
             // TODO: Create an abstraction over it
-            let _ = directives.iter().find(|directive| directive.node.name.node == MODEL_DIRECTIVE);
+            if directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
             // We do check if it's a modelized node
             then {
                 // We iterate over fields that reprensent a relation to check than
                 let mut errors = Vec::new();
-                for (field, _) in object.fields.iter().filter_map(|field| is_modelized_node(&ctx.types, &field.node.ty.node).map(|ty| (field, ty))) {
-                    let relation = generate_metarelation(&type_definition.node, &field.node);
-                    match ctx.relations.entry(relation.name.clone()) {
-                        Entry::Vacant(vac) => {
-                            vac.insert(relation);
-                        }
-                        Entry::Occupied(mut oqp) => {
-                            if let Err(err) = oqp.get_mut().with(relation) {
-                                errors.push((field.pos, err));
+                for field in &object.fields {
+                    if ModelDirective::is_model(ctx, &field.node.ty.node) {
+                        let relation = generate_metarelation(&type_definition.node, &field.node);
+                        match ctx.relations.entry(relation.name.clone()) {
+                            Entry::Vacant(vac) => {
+                                vac.insert(relation);
                             }
-                        }
-                    };
+                            Entry::Occupied(mut oqp) => {
+                                if let Err(err) = oqp.get_mut().with(relation) {
+                                    errors.push((field.pos, err));
+                                }
+                            }
+                        };
+                    }
 
                 }
 

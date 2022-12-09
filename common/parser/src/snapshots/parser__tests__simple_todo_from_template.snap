@@ -1,5 +1,5 @@
 ---
-source: common/parser/src/lib.rs
+source: common/parser/src/tests.rs
 expression: sdl
 ---
 """
@@ -69,9 +69,12 @@ type Query {
 	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
 }
 type Todo {
-	id: ID!
 	title: String!
 	complete: Boolean
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -92,7 +95,7 @@ type TodoConnection {
 	edges: [TodoEdge]
 }
 """
-Input to create a new Todo
+Input to create a Todo
 """
 input TodoCreateInput {
 	title: String!
@@ -109,9 +112,12 @@ type TodoEdge {
 	cursor: String!
 }
 type TodoList {
-	id: ID!
 	title: String!
 	todos(after: String, before: String, first: Int, last: Int): TodoConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
 	"""
 	when the model was updated
 	"""
@@ -132,7 +138,7 @@ type TodoListConnection {
 	edges: [TodoListEdge]
 }
 """
-Input to create a new TodoList
+Input to create a TodoList
 """
 input TodoListCreateInput {
 	title: String!
@@ -149,21 +155,21 @@ type TodoListEdge {
 	cursor: String!
 }
 """
-Input to create a new TodoListTodoRelateTodoListTodo
+Input to create a Todo for the TodoRelateTodoList relation of TodoList
 """
 input TodoListTodoRelateTodoListTodoCreateInput {
 	title: String!
 	complete: Boolean
 }
 """
-Input to create a new TodoListTodoRelateTodoListTodo relation
+Input to link to or create a Todo for the TodoRelateTodoList relation of TodoList
 """
 input TodoListTodoRelateTodoListTodoCreateRelationInput {
 	create: TodoListTodoRelateTodoListTodoCreateInput
 	link: ID
 }
 """
-Input to update a TodoListTodoRelateTodoListTodo relation
+Input to link/unlink to or create a Todo for the TodoRelateTodoList relation of TodoList
 """
 input TodoListTodoRelateTodoListTodoUpdateRelationInput {
 	create: TodoListTodoRelateTodoListTodoCreateInput
@@ -171,7 +177,7 @@ input TodoListTodoRelateTodoListTodoUpdateRelationInput {
 	unlink: ID
 }
 """
-Input to create a new TodoList
+Input to update a TodoList
 """
 input TodoListUpdateInput {
 	title: String
@@ -181,7 +187,7 @@ type TodoListUpdatePayload {
 	todoList: TodoList
 }
 """
-Input to create a new Todo
+Input to update a Todo
 """
 input TodoUpdateInput {
 	title: String

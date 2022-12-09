@@ -132,10 +132,24 @@ mod tests {
     use super::CheckAllDirectivesAreKnown;
     use crate::rules::{
         self,
-        visitor::{visit, Visitor, VisitorContext},
+        auth_directive::AuthDirective,
+        directive::Directives,
+        model_directive::ModelDirective,
+        relations::RelationEngine,
+        unique_directive::UniqueDirective,
+        visitor::{visit, VisitorContext},
     };
+
     use dynaql_parser::parse_schema;
     use serde_json as _;
+
+    fn directives() -> Directives {
+        Directives::new()
+            .with(UniqueDirective)
+            .with(ModelDirective)
+            .with(AuthDirective)
+            .with(RelationEngine)
+    }
 
     #[test]
     fn should_error_on_unknown_directive_in_field_position() {
@@ -152,7 +166,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -179,7 +193,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -207,7 +221,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -235,7 +249,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -262,7 +276,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -290,7 +304,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -318,7 +332,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", rules.directives(), schema);
+        let schema = format!("{}\n{}", directives().to_definition(), schema);
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);

@@ -14,10 +14,6 @@ use if_chain::if_chain;
 pub struct CheckFieldCamelCase;
 
 impl<'a> Visitor<'a> for CheckFieldCamelCase {
-    fn directives(&self) -> String {
-        String::new()
-    }
-
     fn enter_field(
         &mut self,
         ctx: &mut VisitorContext<'a>,

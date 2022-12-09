@@ -1,0 +1,225 @@
+---
+source: common/parser/src/tests.rs
+expression: sdl
+---
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+type Mutation {
+	"""
+	Create a User
+	"""
+	userCreate(input: UserCreateInput!): UserCreatePayload
+	"""
+	Update a User
+	"""
+	userUpdate(by: UserByInput!, input: UserUpdateInput!): UserUpdatePayload
+	"""
+	Delete a User by ID or unique field
+	"""
+	userDelete(by: UserByInput!): UserDeletePayload
+	"""
+	Create a Organization
+	"""
+	organizationCreate(input: OrganizationCreateInput!): OrganizationCreatePayload
+	"""
+	Update a Organization
+	"""
+	organizationUpdate(by: OrganizationByInput!, input: OrganizationUpdateInput!): OrganizationUpdatePayload
+	"""
+	Delete a Organization by ID or unique field
+	"""
+	organizationDelete(by: OrganizationByInput!): OrganizationDeletePayload
+}
+type Organization {
+	name: String!
+	users(after: String, before: String, first: Int, last: Int): UserConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input OrganizationByInput {
+	id: ID
+}
+type OrganizationConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [OrganizationEdge]
+}
+"""
+Input to create a Organization
+"""
+input OrganizationCreateInput {
+	name: String!
+	users: [OrganizationOrganizationRelateUserUserCreateRelationInput!]
+}
+type OrganizationCreatePayload {
+	organization: Organization
+}
+type OrganizationDeletePayload {
+	deletedId: ID!
+}
+type OrganizationEdge {
+	node: Organization!
+	cursor: String!
+}
+"""
+Input to create a User for the OrganizationRelateUser relation of Organization
+"""
+input OrganizationOrganizationRelateUserUserCreateInput {
+	name: String!
+	organizations: [UserOrganizationRelateUserOrganizationCreateRelationInput!]
+}
+"""
+Input to link to or create a User for the OrganizationRelateUser relation of Organization
+"""
+input OrganizationOrganizationRelateUserUserCreateRelationInput {
+	create: OrganizationOrganizationRelateUserUserCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a User for the OrganizationRelateUser relation of Organization
+"""
+input OrganizationOrganizationRelateUserUserUpdateRelationInput {
+	create: OrganizationOrganizationRelateUserUserCreateInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a Organization
+"""
+input OrganizationUpdateInput {
+	name: String
+	users: [OrganizationOrganizationRelateUserUserUpdateRelationInput!]
+}
+type OrganizationUpdatePayload {
+	organization: Organization
+}
+type PageInfo {
+	hasPreviousPage: Boolean!
+	hasNextPage: Boolean!
+	startCursor: String
+	endCursor: String
+}
+type Query {
+	"""
+	Query a single User by an ID or a unique field
+	"""
+	user(by: UserByInput!): User
+	"""
+	Paginated query to fetch the whole list of `User`.
+	"""
+	userCollection(after: String, before: String, first: Int, last: Int): UserConnection
+	"""
+	Query a single Organization by an ID or a unique field
+	"""
+	organization(by: OrganizationByInput!): Organization
+	"""
+	Paginated query to fetch the whole list of `Organization`.
+	"""
+	organizationCollection(after: String, before: String, first: Int, last: Int): OrganizationConnection
+}
+type User {
+	name: String!
+	organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection
+	"""
+	Unique identifier
+	"""
+	id: ID!
+	"""
+	when the model was updated
+	"""
+	updatedAt: DateTime!
+	"""
+	when the model was created
+	"""
+	createdAt: DateTime!
+}
+input UserByInput {
+	id: ID
+}
+type UserConnection {
+	"""
+	Information to aid in pagination
+	"""
+	pageInfo: PageInfo!
+	edges: [UserEdge]
+}
+"""
+Input to create a User
+"""
+input UserCreateInput {
+	name: String!
+	organizations: [UserOrganizationRelateUserOrganizationCreateRelationInput!]
+}
+type UserCreatePayload {
+	user: User
+}
+type UserDeletePayload {
+	deletedId: ID!
+}
+type UserEdge {
+	node: User!
+	cursor: String!
+}
+"""
+Input to create a Organization for the OrganizationRelateUser relation of User
+"""
+input UserOrganizationRelateUserOrganizationCreateInput {
+	name: String!
+	users: [OrganizationOrganizationRelateUserUserCreateRelationInput!]
+}
+"""
+Input to link to or create a Organization for the OrganizationRelateUser relation of User
+"""
+input UserOrganizationRelateUserOrganizationCreateRelationInput {
+	create: UserOrganizationRelateUserOrganizationCreateInput
+	link: ID
+}
+"""
+Input to link/unlink to or create a Organization for the OrganizationRelateUser relation of User
+"""
+input UserOrganizationRelateUserOrganizationUpdateRelationInput {
+	create: UserOrganizationRelateUserOrganizationCreateInput
+	link: ID
+	unlink: ID
+}
+"""
+Input to update a User
+"""
+input UserUpdateInput {
+	name: String
+	organizations: [UserOrganizationRelateUserOrganizationUpdateRelationInput!]
+}
+type UserUpdatePayload {
+	user: User
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

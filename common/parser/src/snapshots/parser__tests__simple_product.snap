@@ -485,7 +485,7 @@ expression: reg_string
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": null,
+            "description": "Unique identifier",
             "edges": [],
             "external": false,
             "name": "id",
@@ -695,7 +695,7 @@ expression: reg_string
     },
     "ProductCreateInput": {
       "InputObject": {
-        "description": "Input to create a new Product",
+        "description": "Input to create a Product",
         "input_fields": {
           "name": {
             "default_value": null,
@@ -716,7 +716,7 @@ expression: reg_string
         },
         "name": "ProductCreateInput",
         "oneof": false,
-        "rust_typename": "Product"
+        "rust_typename": "ProductCreateInput"
       }
     },
     "ProductCreatePayload": {
@@ -891,7 +891,7 @@ expression: reg_string
     },
     "ProductUpdateInput": {
       "InputObject": {
-        "description": "Input to create a new Product",
+        "description": "Input to update a Product",
         "input_fields": {
           "name": {
             "default_value": null,
@@ -912,7 +912,7 @@ expression: reg_string
         },
         "name": "ProductUpdateInput",
         "oneof": false,
-        "rust_typename": "Product"
+        "rust_typename": "ProductUpdateInput"
       }
     },
     "ProductUpdatePayload": {

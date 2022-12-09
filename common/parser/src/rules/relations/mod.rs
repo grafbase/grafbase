@@ -1,7 +1,7 @@
 use super::visitor::{VisitorCons, VisitorNil};
 
 mod relations_engine;
-pub use relations_engine::generate_metarelation;
+pub use relations_engine::RelationEngine;
 
 pub const fn relations_rules() -> VisitorCons<relations_engine::RelationEngine, VisitorNil> {
     // TODO: Add Check to ensure the directive is not used outside of Modelized node.
