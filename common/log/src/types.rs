@@ -51,7 +51,7 @@ pub struct SentryConfig {
     pub dsn: String,
 }
 
-pub struct LogConfig {
+pub struct LogConfig<'a> {
     pub branch: Option<String>,
     pub datadog_api_key: Option<String>,
     pub environment: String,
@@ -60,7 +60,7 @@ pub struct LogConfig {
     pub service_name: Cow<'static, str>,
     pub source_type: &'static str,
     pub trace_id: String,
-    pub extra_tags: Vec<(&'static str, String)>,
+    pub extra_tags: Vec<(&'static str, Cow<'a, str>)>,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]

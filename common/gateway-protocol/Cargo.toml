@@ -1,0 +1,8 @@
+[package]
+name = "gateway-protocol"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dynaql = { path = "../dynaql" }
+serde = { version = "1", features = ["derive"] }

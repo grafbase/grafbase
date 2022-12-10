@@ -116,7 +116,7 @@ macro_rules! error {
     }
 }
 
-pub fn collect_logs_to_be_pushed(log_config: &LogConfig) -> Vec<LogEntry> {
+pub fn collect_logs_to_be_pushed(log_config: &LogConfig<'_>) -> Vec<LogEntry> {
     LOG_ENTRIES.with(|log_entries| {
         let mut borrowed = log_entries
             .try_borrow_mut()
@@ -132,7 +132,7 @@ pub fn collect_logs_to_be_pushed(log_config: &LogConfig) -> Vec<LogEntry> {
     })
 }
 
-pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
+pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntry]) -> Result<(), Error> {
     use std::borrow::Cow;
 
     #[derive(Debug, serde::Serialize)]
@@ -162,13 +162,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
     if let Some(branch) = log_config.branch.as_deref() {
         tags.insert("branch", Cow::Borrowed(branch));
     }
-    tags.extend(
-        log_config
-            .extra_tags
-            .iter()
-            .cloned()
-            .map(|(key, value)| (key, value.into())),
-    );
+    tags.extend(log_config.extra_tags.iter().cloned().map(|(key, value)| (key, value)));
 
     let entries: Vec<_> = entries
         .iter()
@@ -212,7 +206,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
 }
 
 #[cfg(feature = "sentry-cf-worker")]
-pub async fn push_logs_to_sentry(log_config: &LogConfig, entries: &[LogEntry]) -> Result<(), Error> {
+pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry]) -> Result<(), Error> {
     use sentry_cf_worker::{send_envelope, Envelope, Event, Level};
 
     let sentry_config = match log_config.sentry_config.as_ref() {
