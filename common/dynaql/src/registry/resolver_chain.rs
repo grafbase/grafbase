@@ -47,7 +47,7 @@ use std::sync::Arc;
 
 use serde::ser::{SerializeSeq, Serializer};
 use std::fmt::{self, Debug, Display, Formatter};
-use ulid_rs::Ulid;
+use ulid::Ulid;
 
 use super::{
     resolvers::{ResolvedValue, ResolverContext, ResolverTrait},

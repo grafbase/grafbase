@@ -38,44 +38,44 @@ async-lock = "2.6"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
+bitflags = "1"
+bytes = { version = "1", features = ["serde"] }
 cached = { version = "0.40" }
+chrono = { version = "0.4", default-features = false, features = [
+  "clock",
+  "std",
+] }
 derivative = "2"
 dynomite = "0.10"
+fast_chemail = "0.9"
 fnv = "1"
 futures-util = { version = "0.3", default-features = false, features = [
   "io",
   "sink",
 ] }
-graph-entities = { path = "../graph_entities" }
-ipnet = "2.7"
+http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
+ipnet = "2.7"
 itertools = "0.10"
-pin-project-lite = "0.2"
+mime = "0.3"
+multer = "2"
+num-traits = "0.2"
 phonenumber = { git = "https://github.com/meh/rust-phonenumber", rev = "f936b0545fc8ad3ac195714de0c6ae8cd941723e" }
+pin-project-lite = "0.2"
 regex = "1"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
-thiserror = "1"
 static_assertions = "1"
-http = "0.2"
-multer = "2"
 tempfile = "3"
-bytes = { version = "1", features = ["serde"] }
-mime = "0.3"
-num-traits = "0.2"
-fast_chemail = "0.9"
-chrono = { version = "0.4", default-features = false, features = [
-  "clock",
-  "std",
-] }
+thiserror = "1"
+ulid = "1"
 url = { version = "2" }
-bitflags = "1"
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
+graph-entities = { path = "../graph_entities" }
 logworker = { path = "../log", package = "log", optional = true }
-ulid-rs = { path = "../ulid-rs" }
 
 # Feature optional dependencies
 bson = { version = "2", optional = true, features = ["chrono-0_4"] }

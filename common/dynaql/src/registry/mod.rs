@@ -16,7 +16,7 @@ use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::Hash;
 use std::sync::Arc;
-use ulid_rs::Ulid;
+use ulid::Ulid;
 
 use crate::auth::{AuthConfig, Operations};
 use crate::graph::selection_set_into_node;
