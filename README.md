@@ -15,7 +15,7 @@
   <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
   <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
   <a href="https://grafbase.com/community"><strong>Community</strong></a> ·
-  <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a> ·
+  <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a>
 </p>
 <br/>
 
