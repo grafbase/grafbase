@@ -3,6 +3,7 @@ use strum_macros::EnumString;
 #[derive(Debug, PartialEq, EnumString)]
 pub enum TransactionCanceledReason {
     ConditionalCheckFailed,
+    TransactionConflict,
     None,
     #[strum(default)]
     Unknown(String),
