@@ -193,8 +193,6 @@ pub mod resolver_utils;
 pub mod types;
 #[doc(hidden)]
 pub mod validators;
-#[cfg(feature = "wasm_runtime")]
-pub mod wasm;
 
 pub mod graph;
 
