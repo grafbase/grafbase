@@ -15,6 +15,7 @@ chrono = { version = "0.4", default-features = false, features = [
     "std",
 ] }
 derivative = "2.2"
+dynamodb-utils = { path = "../dynamodb-utils" }
 dynomite = "0.10"
 fnv = "1"
 futures = "0.3"
