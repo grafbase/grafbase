@@ -47,7 +47,7 @@ futures-util = { version = "0.3", default-features = false, features = [
   "sink",
 ] }
 graph-entities = { path = "../graph_entities" }
-ipnet = "2.6"
+ipnet = "2.7"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.10"
 pin-project-lite = "0.2"
