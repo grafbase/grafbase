@@ -8,7 +8,7 @@ use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
 };
 use graph_entities::cursor::PaginationCursor;
-use graph_entities::ConstraintID;
+use graph_entities::{ConstraintID, NodeID};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;
@@ -478,11 +478,18 @@ impl ResolverTrait for DynamoResolver {
                 let by_id = key == "id";
 
                 let (pk, sk) = if by_id {
-                    let value: String =
-                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+                    let value = match NodeID::from_owned(
+                        dynaql_value::from_value(value.clone()).expect("cannot fail"),
+                    ) {
+                        Ok(val) => val,
+                        Err(_) => {
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
+                                .with_early_return());
+                        }
+                    };
 
-                    let pk = value.clone();
-                    let sk = value;
+                    let pk = value.to_string();
+                    let sk = value.to_string();
 
                     (pk, sk)
                 } else {
