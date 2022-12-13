@@ -1,0 +1,14 @@
+schema:
+  - ${GRAFBASE_API_URL}:
+      headers:
+        x-api-key: ${GRAFBASE_API_KEY}
+documents: ./app/graphql/document.graphql
+generates:
+  ./app/graphql/schema.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typed-document-node
+    hooks:
+      afterOneFileWrite:
+        - prettier --write
