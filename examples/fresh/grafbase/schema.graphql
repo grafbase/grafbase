@@ -1,0 +1,5 @@
+type Message @model {
+  id: ID!
+  author: String!
+  message: String!
+}

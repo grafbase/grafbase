@@ -1,0 +1,73 @@
+fragment TodoList on TodoList {
+  id
+  title
+  todos(first: 100) {
+    edges {
+      node {
+        ...Todo
+      }
+    }
+  }
+}
+
+fragment Todo on Todo {
+  id
+  title
+  complete
+}
+
+query TodoLists {
+  todoListCollection(first: 100) {
+    edges {
+      node {
+        ...TodoList
+      }
+    }
+  }
+}
+
+mutation TodoListCreate($title: String!) {
+  todoListCreate(input: { title: $title }) {
+    todoList {
+      ...TodoList
+    }
+  }
+}
+
+mutation TodoCreate($title: String!, $todoListId: ID!) {
+  todoCreate(
+    input: { title: $title, complete: false, list: { link: $todoListId } }
+  ) {
+    todo {
+      ...Todo
+    }
+  }
+}
+
+mutation TodoListDelete($id: ID!) {
+  todoListDelete(by: { id: $id }) {
+    deletedId
+  }
+}
+
+mutation TodoListUpdate($id: ID!, $title: String) {
+  todoListUpdate(by: { id: $id }, input: { title: $title }) {
+    todoList {
+      ...TodoList
+    }
+  }
+}
+
+mutation TodoDelete($id: ID!) {
+  todoDelete(by: { id: $id }) {
+    deletedId
+  }
+}
+
+mutation TodoUpdate($id: ID!, $title: String, $complete: Boolean) {
+  todoUpdate(by: { id: $id }, input: { title: $title, complete: $complete }) {
+    todo {
+      ...Todo
+    }
+  }
+}

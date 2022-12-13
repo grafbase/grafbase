@@ -1,0 +1,22 @@
+type User @model {
+  id: ID!
+  email: Email! @unique
+  name: String!
+  posts: [Post]
+}
+
+type Post @model {
+  id: ID!
+  slug: String! @unique
+  title: String!
+  content: String!
+  user: User!
+  comments: [Comment]
+}
+
+type Comment @model {
+  id: ID!
+  content: String!
+  user: User!
+  post: Post!
+}
