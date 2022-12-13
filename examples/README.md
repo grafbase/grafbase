@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://grafbase.com/docs/quickstart/get-started"><strong>Quickstart</strong></a> ·
-  <a href="https://grafbase.com/templates"><strong>Templates</strong></a> ·
+  <a href="/templates"><strong>Templates</strong></a> ·
   <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
   <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
   <a href="https://grafbase.com/community"><strong>Community</strong></a> ·
