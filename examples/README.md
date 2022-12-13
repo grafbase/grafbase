@@ -24,16 +24,16 @@
 
 See how easy it is to use Grafbase with the frontend frameworks you already know and love.
 
-| Example                                                   | Description                                                                                       |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [Fresh](/examples/fresh)                                  | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
-| [NextAuth.js Credentials](/examples/nextauth-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
-| [Next.js](/examples/nextjs)                               | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
-| [Next.js RSC](/examples/nextjs-rsc)                       | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.   |
-| [Nuxt](/examples/nuxt)                                    | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.          |
-| [Remix](/examples/remix)                                  | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.        |
-| [SolidStart](/examples/solidstart)                        | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.               |
-| [SvelteKit](/examples/sveltekit)                          | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.   |
+| Example                                                     | Description                                                                                       |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [Fresh](/examples/fresh)                                    | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
+| [NextAuth.js Credentials](/examples/nextauthjs-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
+| [Next.js](/examples/nextjs)                                 | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
+| [Next.js RSC](/examples/nextjs-rsc)                         | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.   |
+| [Nuxt](/examples/nuxt)                                      | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.          |
+| [Remix](/examples/remix)                                    | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.        |
+| [SolidStart](/examples/solidstart)                          | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.               |
+| [SvelteKit](/examples/sveltekit)                            | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.   |
 
 ## Features & Integrations
 
