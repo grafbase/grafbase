@@ -24,23 +24,23 @@
 
 See how easy it is to use Grafbase with the frontend frameworks you already know and love.
 
-| Example                                          | Description                                                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| [Fresh](/fresh)                                  | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
-| [NextAuth.js Credentials](/nextauth-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
-| [Next.js](/nextjs)                               | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
-| [Next.js RSC](/nextjs-rsc)                       | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.   |
-| [Nuxt](/nuxt)                                    | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.          |
-| [Remix](/remix)                                  | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.        |
-| [SolidStart](/solidstart)                        | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.               |
-| [SvelteKit](/sveltekit)                          | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.   |
+| Example                                                   | Description                                                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [Fresh](/examples/fresh)                                  | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
+| [NextAuth.js Credentials](/examples/nextauth-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
+| [Next.js](/examples/nextjs)                               | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
+| [Next.js RSC](/examples/nextjs-rsc)                       | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.   |
+| [Nuxt](/examples/nuxt)                                    | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.          |
+| [Remix](/examples/remix)                                  | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.        |
+| [SolidStart](/examples/solidstart)                        | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.               |
+| [SvelteKit](/examples/sveltekit)                          | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.   |
 
 ## Features & Integrations
 
 See how easy it is to use features of Grafbase by browsing the examples below.
 
-| Example                                           | Description                                                                                                                                                                              |
-| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Next.js + Clerk](/nextjs-clerk)                  | Use [Clerk](https://clerk.dev/integrations/grafbase) as your Identity Provider with Grafbase.                                                                                            |
-| [React Apollo + Live Queries](/react-apollo-live) | Use [GraphQL Live Queries](https://grafbase.com/docs/realtime/live-queries) with [React](https://reactjs.org), [Apollo Client](https://www.apollographql.com/docs/react/), and Grafbase. |
-| [React URQL + Live Queries](/react-urql-live)     | Use [GraphQL Live Queries](https://grafbase.com/docs/realtime/live-queries) with [React](https://reactjs.org/), [URQL](https://formidable.com/open-source/urql/), and Grafbase.          |
+| Example                                                    | Description                                                                                                                                                                              |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Next.js + Clerk](/examples/nextjs-clerk)                  | Use [Clerk](https://clerk.dev/integrations/grafbase) as your Identity Provider with Grafbase.                                                                                            |
+| [React Apollo + Live Queries](/examples/react-apollo-live) | Use [GraphQL Live Queries](https://grafbase.com/docs/realtime/live-queries) with [React](https://reactjs.org), [Apollo Client](https://www.apollographql.com/docs/react/), and Grafbase. |
+| [React URQL + Live Queries](/examples/react-urql-live)     | Use [GraphQL Live Queries](https://grafbase.com/docs/realtime/live-queries) with [React](https://reactjs.org/), [URQL](https://formidable.com/open-source/urql/), and Grafbase.          |
