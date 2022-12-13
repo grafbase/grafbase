@@ -6,16 +6,23 @@
 </p>
 
 <p align="center">
-  The data platform for developers.
+  GraphQL backends made easy.
 </p>
 
-## Grafbase
+<p align="center">
+  <a href="https://grafbase.com/docs/quickstart/get-started"><strong>Quickstart</strong></a> ·
+  <a href="/examples"><strong>Examples</strong></a> ·
+  <a href="https://grafbase.com/templates"><strong>Templates</strong></a> ·
+  <a href="https://grafbase.com/docs"><strong>Docs</strong></a> ·
+  <a href="https://grafbase.com/cli"><strong>CLI</strong></a> ·
+  <a href="https://grafbase.com/community"><strong>Community</strong></a> ·
+  <a href="https://grafbase.com/changelog"><strong>Changelog</strong></a>
+</p>
+
+<br/>
+
+## Welcome to Grafbase!
 
 Grafbase accelerates backend development with next-generation tooling.
 
 Deploy globally fast GraphQL APIs with a top-notch developer experience.
-
-- <a href="https://grafbase.com/docs"><strong>Documentation</strong></a>
-- <strong>[Templates](templates)</strong>
-- <strong>[CLI](cli)</strong>
-- <strong>[Examples](examples)</strong>
