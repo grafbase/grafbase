@@ -172,7 +172,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         None
                     }
                 }
-                .or_else(|| model_auth.clone()); // Fall back to model auth if field auth is not defined
+                .or_else(|| model_auth.clone()); // Fall back to model auth if field auth is not configured
                 map.insert(name, auth);
                 map
             });
