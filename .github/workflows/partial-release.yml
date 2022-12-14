@@ -1,9 +1,5 @@
 name: Release
 
-defaults:
-  run:
-    working-directory: cli
-
 on:
   workflow_call:
     inputs:

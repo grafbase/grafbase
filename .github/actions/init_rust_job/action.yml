@@ -1,10 +1,6 @@
 name: CLI rust job init
 description: Base steps for CLI jobs
 
-defaults:
-  run:
-    working-directory: cli
-
 inputs:
   cdn:
     description: CDN to use when fetching assets
