@@ -1,5 +1,9 @@
 name: Release
 
+defaults:
+  run:
+    working-directory: cli
+
 on:
   workflow_call:
     inputs:
@@ -82,19 +86,19 @@ jobs:
         run: |
           set -e
           set -o pipefail
-          
+
           retryable() {
             for i in {1..5}; do
               $1 && break || echo 'Retrying in 5...'
               sleep 5
             done
-          
+
             if [ "$i" -ge 5 ]; then
               echo "Failed to run $1"
               exit 1
             fi
           }
-          
+
           (cd common && retryable 'cargo publish --allow-dirty')
           (cd server && retryable 'cargo publish --allow-dirty')
           (cd backend && retryable 'cargo publish --allow-dirty')
