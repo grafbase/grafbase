@@ -25,7 +25,7 @@ impl Client {
         }
     }
 
-    pub fn with_header(mut self, key: &'static str, value: String) -> Self {
+    pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
         self.headers.insert(key, value.parse().unwrap());
         self
     }

@@ -44,14 +44,14 @@ fn jwt_provider() {
     assert!(errors.is_none(), "errors: {errors:#?}");
 
     // Reject invalid token
-    let client = client.with_header("Authorization", "Bearer invalid-token".to_string());
+    let client = client.with_header("Authorization", "Bearer invalid-token");
     let resp = client.gql::<Value>(json!({ "query": QUERY }).to_string());
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()), "error: {error:#?}");
 
     // Reject valid token with wrong group
     let token = generate_token("cli_user", &["some-group"]);
-    let client = client.with_header("Authorization", format!("Bearer {token}"));
+    let client = client.with_header("Authorization", &format!("Bearer {token}"));
     let resp = client.gql::<Value>(json!({ "query": QUERY }).to_string());
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(
@@ -62,7 +62,7 @@ fn jwt_provider() {
 
     // Accept valid token with correct group
     let token = generate_token("cli_user", &[GROUP]);
-    let client = client.with_header("Authorization", format!("Bearer {token}"));
+    let client = client.with_header("Authorization", &format!("Bearer {token}"));
     let resp = client.gql::<Value>(json!({ "query": QUERY }).to_string());
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
