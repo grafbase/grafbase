@@ -43,9 +43,11 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Deserialize)]
 pub struct SentryConfig {
+    #[serde(alias = "sentry_api_key")]
     pub api_key: String,
+    #[serde(alias = "sentry_dsn")]
     pub dsn: String,
 }
 
