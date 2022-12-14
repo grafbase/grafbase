@@ -34,7 +34,6 @@ cfg-if = "1"
 
 [dev-dependencies]
 chrono = "0.4.22"
-const_format = "0.2"
 duct = "0.13"
 jwt-compact = { version = "0.6", default-features = false, features = [
     "clock",
