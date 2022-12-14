@@ -104,7 +104,10 @@ impl Environment {
     pub fn set_variables(&mut self, variables: HashMap<String, String>) {
         let env_file = variables
             .into_iter()
-            .fold(String::new(), |_, (key, value)| format!(r#"{key}="{value}""#));
+            .map(|(key, value)| format!(r#"{key}="{value}""#))
+            .collect::<Vec<_>>()
+            .join("\n");
+
         std::fs::write(
             self.schema_path.parent().expect("must exist").join(DOT_ENV_FILE),
             env_file,
