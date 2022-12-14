@@ -1,0 +1,5 @@
+type Plant @model {
+  id: ID!
+  name: String! @unique
+  description: String!
+}
