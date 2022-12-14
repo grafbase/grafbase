@@ -49,7 +49,7 @@
         ];
 
         shellHook = ''
-          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/.cargo"
+          export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
           export PATH="$CARGO_INSTALL_ROOT/bin:$PATH"
         '';
       };

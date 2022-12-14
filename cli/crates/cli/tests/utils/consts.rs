@@ -41,7 +41,8 @@ pub const CONCURRENCY_MUTATION: &str = include_str!("../graphql/concurrency/muta
 pub const CONCURRENCY_QUERY: &str = include_str!("../graphql/concurrency/query.graphql");
 
 pub const PAGINATION_SCHEMA: &str = include_str!("../graphql/pagination/schema.graphql");
-pub const PAGINATION_MUTATION: &str = include_str!("../graphql/pagination/mutation.graphql");
+pub const PAGINATION_CREATE_TODO: &str = include_str!("../graphql/pagination/create-todo.graphql");
+pub const PAGINATION_CREATE_TODO_LIST: &str = include_str!("../graphql/pagination/create-todo-list.graphql");
 pub const PAGINATION_PAGINATE_TODOS: &str = include_str!("../graphql/pagination/paginate-todos.graphql");
 pub const PAGINATION_PAGINATE_TODO_LISTS: &str = include_str!("../graphql/pagination/paginate-todo-lists.graphql");
 

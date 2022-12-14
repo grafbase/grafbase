@@ -1,5 +1,5 @@
 mutation UpdateAuthor($id: ID!, $age: Int!) {
-  authorUpdate(by: { id: $id }, input: { age: $age }) {
+  authorUpdate(by: {id: $id}, input: {age: {set: $age}}) {
     author {
       id
       name

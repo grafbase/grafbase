@@ -38,8 +38,7 @@ fn relations() {
     );
 
     assert!(blog_id.starts_with("blog_"));
-    // latest first
-    assert_eq!(first_author_name, "5");
+    assert_eq!(first_author_name, "1");
     assert!(first_authors_blogs.is_empty());
 
     client.gql::<Value>(
