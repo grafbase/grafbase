@@ -19,7 +19,7 @@ use std::collections::HashMap;
 /// Describe the Transformer step used to transform a Value from the Resolver.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum Transformer {
-    ConvertPkToCursor,
+    ConvertSkToCursor,
     DynamoSelect {
         /// The key where this select
         property: String,
@@ -37,9 +37,9 @@ impl Transformer {
             Self::Pipeline(transformers) => {
                 transformers.iter().try_fold(value, |v, t| t.transform(v))
             }
-            Self::ConvertPkToCursor => {
-                let pk: String = serde_json::from_value(value)?;
-                Ok(serde_json::to_value(PaginationCursor { pk })?)
+            Self::ConvertSkToCursor => {
+                let sk: String = serde_json::from_value(value)?;
+                Ok(serde_json::to_value(PaginationCursor { sk })?)
             }
             Self::JSONSelect { property } => {
                 let result = value

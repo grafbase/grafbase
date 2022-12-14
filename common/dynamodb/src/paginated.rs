@@ -80,17 +80,21 @@ impl PaginatedCursor {
             (Some(_), _, _, Some(_)) => Err(CursorCreation::FirstAndBeforeSameTime),
             (_, Some(_), Some(_), _) => Err(CursorCreation::LastAndAfterSameTime),
             (Some(first), after, None, None) => Ok(Self::Forward {
-                exclusive_last_key: after.map(|cursor| cursor.pk),
+                exclusive_last_key: after.map(|cursor| cursor.sk),
                 first,
                 nested,
             }),
             (None, None, Some(last), before) => Ok(Self::Backward {
-                exclusive_first_key: before.map(|cursor| cursor.pk),
+                exclusive_first_key: before.map(|cursor| cursor.sk),
                 last,
                 nested,
             }),
             (None, _, None, _) => Err(CursorCreation::Direction),
         }
+    }
+
+    pub fn is_forward(&self) -> bool {
+        matches!(self, Self::Forward { .. })
     }
 
     fn pagination_string(&self) -> Option<String> {

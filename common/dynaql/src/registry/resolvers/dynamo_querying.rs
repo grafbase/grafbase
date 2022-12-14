@@ -239,14 +239,14 @@ impl ResolverTrait for DynamoResolver {
                             .values
                             .iter()
                             .next()
-                            .map(|(pk, _)| PaginationCursor { pk: pk.to_string() }),
+                            .map(|(pk, _)| PaginationCursor { sk: pk.to_string() }),
                     )
                     .with_end(
                         result
                             .values
                             .iter()
                             .last()
-                            .map(|(pk, _)| PaginationCursor { pk: pk.to_string() }),
+                            .map(|(pk, _)| PaginationCursor { sk: pk.to_string() }),
                     )
                     .with_more_data(result.last_evaluated_key.is_some());
 

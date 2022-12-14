@@ -1,5 +1,5 @@
 ---
-source: common/parser/src/lib.rs
+source: common/parser/src/tests.rs
 expression: reg_string
 ---
 {
@@ -853,10 +853,10 @@ expression: reg_string
               "Pipeline": [
                 {
                   "DynamoSelect": {
-                    "property": "__pk"
+                    "property": "__sk"
                   }
                 },
-                "ConvertPkToCursor"
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
