@@ -1,0 +1,11 @@
+{
+  "extends": "tsconfig/base.json",
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true, // needed for Next.js imports
+    "module": "ES2020",
+    "baseUrl": ".",
+    "outDir": "./dist"
+  },
+  "include": ["."],
+  "exclude": ["dist", "build", "node_modules"]
+}
