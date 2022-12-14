@@ -56,7 +56,7 @@ fn jwt_provider() {
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(
         error,
-        Some("Unauthorized to access Query.todoCollection (missing list operation)".to_string()),
+        Some("Unauthorized to call todoCollection (missing `list` operation)".to_string()),
         "error: {error:#?}"
     );
 
