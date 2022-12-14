@@ -1,10 +1,10 @@
 name: cli
 
-defaults:
-  run:
-    working-directory: cli
-
-on: [push, workflow_dispatch]
+on:
+  push:
+    paths:
+      - ./cli/**
+  workflow_dispatch:
 
 permissions:
   # Allow checks read
