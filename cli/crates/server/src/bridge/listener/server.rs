@@ -80,7 +80,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                 // TODO: consider if this should panic or show a specific error to the user
                 .expect("could not contact the stream router");
 
-            trace!("sent update to stream-router");
+            trace!("sent event to stream-router");
         }
     }
 }
