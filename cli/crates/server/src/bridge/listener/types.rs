@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 
+use crate::bridge::consts;
+
 #[allow(unused)]
 #[derive(sqlx::FromRow, Debug)]
 pub struct Modification {
@@ -45,22 +47,22 @@ impl Modification {
         match self.modification_type.as_ref() {
             "INSERT" | "UPDATE" => {
                 vec![
-                    ("pk".to_owned(), self.pk_new.clone()),
-                    ("sk".to_owned(), self.sk_new.clone()),
-                    ("gsi1pk".to_owned(), self.gsi1pk_new.clone()),
-                    ("gsi1sk".to_owned(), self.gsi1sk_new.clone()),
-                    ("gsi2pk".to_owned(), self.gsi2pk_new.clone()),
-                    ("gsi2sk".to_owned(), self.gsi2sk_new.clone()),
+                    (consts::DYNAMODB_PK.to_owned(), self.pk_new.clone()),
+                    (consts::DYNAMODB_SK.to_owned(), self.sk_new.clone()),
+                    (consts::DYNAMODB_TYPE_INDEX_PK.to_owned(), self.gsi1pk_new.clone()),
+                    (consts::DYNAMODB_TYPE_INDEX_SK.to_owned(), self.gsi1sk_new.clone()),
+                    (consts::DYNAMODB_INVERTED_INDEX_PK.to_owned(), self.gsi2pk_new.clone()),
+                    (consts::DYNAMODB_INVERTED_INDEX_SK.to_owned(), self.gsi2sk_new.clone()),
                 ]
             }
             "DELETE" => {
                 vec![
-                    ("pk".to_owned(), self.pk_old.clone()),
-                    ("sk".to_owned(), self.sk_old.clone()),
-                    ("gsi1pk".to_owned(), self.gsi1pk_old.clone()),
-                    ("gsi1sk".to_owned(), self.gsi1sk_old.clone()),
-                    ("gsi2pk".to_owned(), self.gsi2pk_old.clone()),
-                    ("gsi2sk".to_owned(), self.gsi2sk_old.clone()),
+                    (consts::DYNAMODB_PK.to_owned(), self.pk_old.clone()),
+                    (consts::DYNAMODB_SK.to_owned(), self.sk_old.clone()),
+                    (consts::DYNAMODB_TYPE_INDEX_PK.to_owned(), self.gsi1pk_old.clone()),
+                    (consts::DYNAMODB_TYPE_INDEX_SK.to_owned(), self.gsi1sk_old.clone()),
+                    (consts::DYNAMODB_INVERTED_INDEX_PK.to_owned(), self.gsi2pk_old.clone()),
+                    (consts::DYNAMODB_INVERTED_INDEX_SK.to_owned(), self.gsi2sk_old.clone()),
                 ]
             }
             _ => unreachable!(),
