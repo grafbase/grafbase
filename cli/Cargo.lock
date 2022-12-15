@@ -837,7 +837,6 @@ version = "0.13.0"
 dependencies = [
  "anyhow",
  "axum",
- "chrono",
  "dotenv",
  "exitcode",
  "futures",

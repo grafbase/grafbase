@@ -6,6 +6,7 @@ use serde_json::{json, Value};
 pub struct Modification {
     pub id: i64,
     pub modification_type: String,
+    pub approximate_creation_date_time: i64,
     pub pk_old: Option<String>,
     pub sk_old: Option<String>,
     pub gsi1pk_old: Option<String>,

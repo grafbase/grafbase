@@ -5,10 +5,9 @@ use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
 };
-use chrono::Utc;
 use common::environment::Environment;
 use reqwest::Client;
-use sqlx::{query_as, Connection, SqliteConnection};
+use sqlx::{query, query_as, Connection, SqliteConnection};
 use tokio::sync::broadcast::Sender;
 use tokio::time::sleep;
 use uuid::Uuid;
@@ -25,6 +24,15 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
     let mut connection = SqliteConnection::connect(&db_url).await?;
 
     let client = Client::new();
+
+    let clean_modifications_table = format!("DELETE FROM {MODIFICATIONS_TABLE_NAME}");
+
+    // clean the modifications table to prevent old events
+    // firing before miniflare has started
+    // (any existing modifications as there will be no listening live query)
+    trace!("cleaning modifications");
+
+    query(&clean_modifications_table).execute(&mut connection).await?;
 
     loop {
         sleep(MODIFICATION_POLL_INTERVAL).await;
@@ -50,7 +58,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                         // as we poll 10 times per second and this is rounded to seconds,
                         // using the current time is accurate enough.
                         // using the record update time would be inaccurate for deletions
-                        approximate_creation_date_time: Utc::now().timestamp_millis() / 1000,
+                        approximate_creation_date_time: result.approximate_creation_date_time,
                         keys: result.to_keys(),
                         new_image: result.document_new.clone().unwrap_or_default(),
                         old_image: result.document_old.clone().unwrap_or_default(),

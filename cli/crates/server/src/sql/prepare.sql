@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS records (
 CREATE TABLE IF NOT EXISTS modifications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     modification_type TEXT not NULL,
+    approximate_creation_date_time INTEGER not NULL,
     pk_old TEXT,
     sk_old TEXT,
     gsi1pk_old TEXT,
@@ -47,6 +48,7 @@ UPDATE
 INSERT INTO
     modifications (
         modification_type,
+        approximate_creation_date_time,
         pk_old,
         sk_old,
         gsi1pk_old,
@@ -73,6 +75,7 @@ INSERT INTO
 VALUES
     (
         'UPDATE',
+        unixepoch(),
         old.pk,
         old.sk,
         old.gsi1pk,
@@ -106,6 +109,7 @@ INSERT
 INSERT INTO
     modifications (
         modification_type,
+        approximate_creation_date_time,
         pk_old,
         sk_old,
         gsi1pk_old,
@@ -132,6 +136,7 @@ INSERT INTO
 VALUES
     (
         'INSERT',
+        unixepoch(),
         NULL,
         NULL,
         NULL,
@@ -164,6 +169,7 @@ AFTER
 INSERT INTO
     modifications(
         modification_type,
+        approximate_creation_date_time,
         pk_old,
         sk_old,
         gsi1pk_old,
@@ -190,6 +196,7 @@ INSERT INTO
 VALUES
     (
         'DELETE',
+        unixepoch(),
         old.pk,
         old.sk,
         old.gsi1pk,

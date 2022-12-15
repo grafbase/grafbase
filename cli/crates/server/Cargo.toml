@@ -12,7 +12,6 @@ include = ["/src", "/assets"]
 
 [dependencies]
 axum = "0.5"
-chrono = "0.4"
 common = { package = "grafbase-local-common", path = "../common", version = "0.13.0" }
 dotenv = "0.15"
 exitcode = "1"
