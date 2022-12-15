@@ -293,15 +293,12 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
     let mut map = IndexMap::new();
     let response = ctx.response_graph.read().await;
     for (name, value) in res {
-        let value = response
-            .get_node(&value)
-            .map(|x| x.to_json(&response))
-            .and_then(|x| serde_json::from_str::<Value>(&x).ok());
+        if let Some(node) = response.get_node(&value) {
+            let const_value = response.transform_node_to_const_value(node).map_err(|_| {
+                ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
+            })?;
 
-        // TODO: Maybe fix it
-
-        if let Some(value) = value {
-            insert_value(&mut map, name, value);
+            insert_value(&mut map, name, const_value);
         }
     }
     Ok(Value::Object(map))

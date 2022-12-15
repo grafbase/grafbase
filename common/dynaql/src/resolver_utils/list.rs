@@ -186,9 +186,12 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
         }
         let a = futures_util::future::try_join_all(futures).await?;
         let node = QueryResponseNode::List(ResponseList::with_children(a));
-        let result =
-            serde_json::from_str::<Value>(&node.to_json(&*ctx.response_graph.read().await))
-                .unwrap();
+        let response_graph = ctx.response_graph.read().await;
+        let result = response_graph
+            .transform_node_to_const_value(&node)
+            .map_err(|_| {
+                ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
+            })?;
         Ok(result)
     } else {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
