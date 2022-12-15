@@ -1,6 +1,9 @@
-use super::super::consts::{DB_FILE, MODIFICATION_POLL_INTERVAL};
+use super::super::consts::DB_FILE;
 use super::types::{EventRecord, Modification, StreamRecord};
-use crate::bridge::consts::{DB_URL_PREFIX, MODIFICATIONS_TABLE_NAME};
+use crate::bridge::consts::DB_URL_PREFIX;
+use crate::bridge::listener::consts::{
+    CLI_API_KEY, DEFAULT_AWS_REGION, MODIFICATIONS_TABLE_NAME, MODIFICATION_POLL_INTERVAL, RECORDS_TABLE_NAME,
+};
 use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
@@ -53,7 +56,7 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
             let dynamo_events = results
                 .iter()
                 .map(|result| EventRecord {
-                    aws_region: "us-east-1".to_owned(),
+                    aws_region: DEFAULT_AWS_REGION.to_owned(),
                     change: StreamRecord {
                         // as we poll 10 times per second and this is rounded to seconds,
                         // using the current time is accurate enough.
@@ -67,13 +70,13 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                     },
                     event_id: Uuid::new_v4().to_string(),
                     event_name: result.to_event_name().to_owned(),
-                    event_source_arn: Some("records".to_owned()),
+                    event_source_arn: Some(RECORDS_TABLE_NAME.to_owned()),
                 })
                 .collect::<Vec<_>>();
 
             client
                 .post(format!("http://127.0.0.1:{worker_port}/stream-router/main/dynamodb"))
-                .header("x-api-key", "CLI_API_KEY")
+                .header("x-api-key", CLI_API_KEY)
                 .json(&dynamo_events)
                 .send()
                 .await
