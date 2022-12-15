@@ -58,9 +58,6 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                 .map(|result| EventRecord {
                     aws_region: DEFAULT_AWS_REGION.to_owned(),
                     change: StreamRecord {
-                        // as we poll 10 times per second and this is rounded to seconds,
-                        // using the current time is accurate enough.
-                        // using the record update time would be inaccurate for deletions
                         approximate_creation_date_time: result.approximate_creation_date_time,
                         keys: result.to_keys(),
                         new_image: result.document_new.clone().unwrap_or_default(),
