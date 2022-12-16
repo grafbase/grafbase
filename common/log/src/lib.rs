@@ -178,7 +178,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig, entries: &[LogEntry]) 
                 tags.insert("line_number", Cow::Owned(entry.line_number.to_string()));
                 let string = tags
                     .iter()
-                    .map(|(lhs, rhs)| format!("{}:{}", lhs, rhs))
+                    .map(|(lhs, rhs)| format!("{lhs}:{rhs}"))
                     .collect::<Vec<_>>()
                     .join(",");
                 string

@@ -25,10 +25,10 @@ impl Registry {
             writeln!(sdl, "schema {{").ok();
             writeln!(sdl, "\tquery: {}", self.query_type).ok();
             if let Some(mutation_type) = self.mutation_type.as_deref() {
-                writeln!(sdl, "\tmutation: {}", mutation_type).ok();
+                writeln!(sdl, "\tmutation: {mutation_type}").ok();
             }
             if let Some(subscription_type) = self.subscription_type.as_deref() {
-                writeln!(sdl, "\tsubscription: {}", subscription_type).ok();
+                writeln!(sdl, "\tsubscription: {subscription_type}").ok();
             }
             writeln!(sdl, "}}").ok();
         }
@@ -74,10 +74,10 @@ impl Registry {
                     write!(sdl, " @external").ok();
                 }
                 if let Some(requires) = field.requires.as_deref() {
-                    write!(sdl, " @requires(fields: \"{}\")", requires).ok();
+                    write!(sdl, " @requires(fields: \"{requires}\")").ok();
                 }
                 if let Some(provides) = field.provides.as_deref() {
-                    write!(sdl, " @provides(fields: \"{}\")", provides).ok();
+                    write!(sdl, " @provides(fields: \"{provides}\")").ok();
                 }
             }
 
@@ -100,7 +100,7 @@ impl Registry {
                     if description.is_some() {
                         writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                     }
-                    writeln!(sdl, "scalar {}", name).ok();
+                    writeln!(sdl, "scalar {name}").ok();
                 }
             }
             MetaType::Object {
@@ -139,13 +139,13 @@ impl Registry {
                 if federation && *extends {
                     write!(sdl, "extend ").ok();
                 }
-                write!(sdl, "type {} ", name).ok();
+                write!(sdl, "type {name} ").ok();
                 self.write_implements(sdl, name);
 
                 if federation {
                     if let Some(keys) = keys {
                         for key in keys {
-                            write!(sdl, "@key(fields: \"{}\") ", key).ok();
+                            write!(sdl, "@key(fields: \"{key}\") ").ok();
                         }
                     }
                 }
@@ -168,11 +168,11 @@ impl Registry {
                 if federation && *extends {
                     write!(sdl, "extend ").ok();
                 }
-                write!(sdl, "interface {} ", name).ok();
+                write!(sdl, "interface {name} ").ok();
                 if federation {
                     if let Some(keys) = keys {
                         for key in keys {
-                            write!(sdl, "@key(fields: \"{}\") ", key).ok();
+                            write!(sdl, "@key(fields: \"{key}\") ").ok();
                         }
                     }
                 }
@@ -191,7 +191,7 @@ impl Registry {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
-                write!(sdl, "enum {} ", name).ok();
+                write!(sdl, "enum {name} ").ok();
                 writeln!(sdl, "{{").ok();
                 for value in enum_values.values() {
                     writeln!(sdl, "\t{}", value.name).ok();
@@ -209,7 +209,7 @@ impl Registry {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
-                write!(sdl, "input {} ", name).ok();
+                write!(sdl, "input {name} ").ok();
                 #[cfg(feature = "unstable_oneof")]
                 if *oneof {
                     write!(sdl, "@oneof ").ok();
@@ -217,7 +217,7 @@ impl Registry {
                 writeln!(sdl, "{{").ok();
                 for field in input_fields.values() {
                     if let Some(description) = field.description.as_deref() {
-                        writeln!(sdl, "\t\"\"\"\n\t{}\n\t\"\"\"", description).ok();
+                        writeln!(sdl, "\t\"\"\"\n\t{description}\n\t\"\"\"").ok();
                     }
                     writeln!(sdl, "\t{}", export_input_value(&field)).ok();
                 }
@@ -232,9 +232,9 @@ impl Registry {
                 if description.is_some() {
                     writeln!(sdl, "\"\"\"\n{}\n\"\"\"", description.as_deref().unwrap()).ok();
                 }
-                write!(sdl, "union {} =", name).ok();
+                write!(sdl, "union {name} =").ok();
                 for ty in possible_types {
-                    write!(sdl, " | {}", ty).ok();
+                    write!(sdl, " | {ty}").ok();
                 }
                 writeln!(sdl).ok();
             }
@@ -262,8 +262,8 @@ impl Registry {
 fn export_input_value(input_value: &MetaInputValue) -> String {
     if let Some(default_value) = &input_value.default_value {
         format!(
-            "{}: {} = {}",
-            input_value.name, input_value.ty, default_value
+            "{}: {} = {default_value}",
+            input_value.name, input_value.ty
         )
     } else {
         format!("{}: {}", input_value.name, input_value.ty)

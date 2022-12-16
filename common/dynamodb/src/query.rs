@@ -83,8 +83,8 @@ impl Loader<QueryKey> for QueryLoader {
                     .iter()
                     .enumerate()
                     .map(|(index, q)| {
-                        exp.insert(format!(":relation{}", index), q.clone().into_attr());
-                        format!(" contains(#relationname, :relation{})", index)
+                        exp.insert(format!(":relation{index}"), q.clone().into_attr());
+                        format!(" contains(#relationname, :relation{index})")
                     })
                     .join(" OR ");
 

@@ -29,7 +29,7 @@ impl<'a> Visitor<'a> for UniqueArgumentNames<'a> {
         if !self.names.insert(name.node.as_str()) {
             ctx.report_error(
                 vec![name.pos],
-                format!("There can only be one argument named \"{}\"", name),
+                format!("There can only be one argument named \"{name}\""),
             )
         }
     }

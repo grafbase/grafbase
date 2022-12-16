@@ -351,7 +351,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         .any(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)
                 })
                 .collect();
-            let one_of_type_name = format!("{}ByInput", type_name);
+            let one_of_type_name = format!("{type_name}ByInput");
             ctx.registry.get_mut().create_type(
                 &mut |_| MetaType::InputObject {
                     name: one_of_type_name.clone(),
@@ -401,15 +401,15 @@ impl<'a> Visitor<'a> for ModelDirective {
             ctx.queries.push(MetaField {
                 // "by" query
                 name: to_lower_camelcase(&type_name),
-                description: Some(format!("Query a single {} by an ID or a unique field", type_name)),
+                description: Some(format!("Query a single {type_name} by an ID or a unique field")),
                 args: {
                     let mut args = IndexMap::new();
                     args.insert(
                         "by".to_owned(),
                         MetaInputValue {
                             name: "by".to_owned(),
-                            ty: format!("{}!", one_of_type_name),
-                            description: Some(format!("The field and value by which to query the {}", type_name)),
+                            ty: format!("{one_of_type_name}!"),
+                            description: Some(format!("The field and value by which to query the {type_name}")),
                             validators: None,
                             visible: None,
                             is_secret: false,

@@ -15,7 +15,7 @@ impl Display for Variables {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str("{")?;
         for (i, (name, value)) in self.0.iter().enumerate() {
-            write!(f, "{}{}: {}", if i == 0 { "" } else { ", " }, name, value)?;
+            write!(f, "{}{name}: {value}", if i == 0 { "" } else { ", " })?;
         }
         f.write_str("}")
     }

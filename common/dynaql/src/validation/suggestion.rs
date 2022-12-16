@@ -48,7 +48,7 @@ where
         if i != 0 {
             suggestion.push_str(", ");
         }
-        write!(suggestion, "\"{}\"", s).unwrap();
+        write!(suggestion, "\"{s}\"").unwrap();
     }
 
     suggestion.push('?');

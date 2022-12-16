@@ -52,7 +52,7 @@ impl<'a> __Type<'a> {
                 visible_types,
                 detail: TypeDetail::Named(match registry.types.get(ty) {
                     Some(t) => t,
-                    None => panic!("Type '{}' not found!", ty),
+                    None => panic!("Type '{ty}' not found!"),
                 }),
             },
         }

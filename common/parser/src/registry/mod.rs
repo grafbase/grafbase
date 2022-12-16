@@ -36,7 +36,7 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
     ctx.registry.get_mut().create_type(
         &mut |_| MetaType::InputObject {
             name: input_type.clone(),
-            description: Some(format!("{} input type.", type_name)),
+            description: Some(format!("{type_name} input type.")),
             oneof: false,
             input_fields: {
                 let mut input_fields = IndexMap::new();
@@ -376,7 +376,7 @@ pub fn add_list_query_paginated<'a>(
 
     ctx.queries.push(MetaField {
         name: format!("{}Collection", to_lower_camelcase(type_name)),
-        description: Some(format!("Paginated query to fetch the whole list of `{}`.", type_name)),
+        description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
         args: pagination_arguments(),
         ty: connection,
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
@@ -471,7 +471,7 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
     // deleteMutation
     ctx.mutations.push(MetaField {
         name: format!("{}Delete", to_lower_camelcase(&type_name)),
-        description: Some(format!("Delete a {} by ID or unique field", type_name)),
+        description: Some(format!("Delete a {type_name} by ID or unique field")),
         args: {
             let mut args = IndexMap::new();
             args.insert(
@@ -479,7 +479,7 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
                 MetaInputValue {
                     name: "by".to_owned(),
                     description: None,
-                    ty: format!("{}ByInput!", type_name),
+                    ty: format!("{type_name}ByInput!"),
                     default_value: None,
                     validators: None,
                     visible: None,

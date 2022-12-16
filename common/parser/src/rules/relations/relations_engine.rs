@@ -123,7 +123,7 @@ impl<'a> Visitor<'a> for RelationEngine {
                 for (pos, err) in errors {
                     ctx.report_error(
                     vec![pos],
-                    format!("Relations issues: {}", err),
+                    format!("Relations issues: {err}"),
                 );
                 }
             }

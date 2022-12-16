@@ -28,7 +28,7 @@ impl Registry {
         for (name, operation_definition) in doc.operations.iter() {
             write!(&mut output, "{} ", operation_definition.node.ty)?;
             if let Some(name) = name {
-                write!(&mut output, "{}", name)?;
+                write!(&mut output, "{name}")?;
 
                 if !operation_definition.node.variable_definitions.is_empty() {
                     output.push('(');
@@ -123,15 +123,15 @@ impl Registry {
                         if idx > 0 {
                             output.push_str(", ");
                         }
-                        write!(output, "{}: ", key)?;
+                        write!(output, "{key}: ")?;
                         self.stringify_input_value(output, input_fields.get(key.as_str()), value)?;
                     }
                     output.push('}');
                 } else {
-                    write!(output, "{}", value)?;
+                    write!(output, "{value}")?;
                 }
             }
-            _ => write!(output, "{}", value)?,
+            _ => write!(output, "{value}")?,
         }
 
         Ok(())
@@ -166,7 +166,7 @@ impl Registry {
                             if idx > 0 {
                                 output.push_str(", ");
                             }
-                            write!(output, "{}: ", name)?;
+                            write!(output, "{name}: ")?;
                             let value = argument
                                 .node
                                 .clone()

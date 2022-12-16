@@ -106,14 +106,7 @@ impl ScalarType for NonZeroI64 {
                 let n = n
                     .as_i64()
                     .ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n < i64::MIN as i64 || n > i64::MAX as i64 || n == 0 {
-                    return Err(InputValueError::from(format!(
-                        "Only integers from {} to {} or non zero are accepted.",
-                        i64::MIN,
-                        i64::MAX
-                    )));
-                }
-                Ok(NonZeroI64::new(n as i64).unwrap())
+                Ok(NonZeroI64::new(n).unwrap())
             }
             _ => Err(InputValueError::expected_type(value)),
         }
@@ -124,7 +117,7 @@ impl ScalarType for NonZeroI64 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as i64))
+        Value::Number(Number::from(self.get()))
     }
 }
 
@@ -230,14 +223,7 @@ impl ScalarType for NonZeroU64 {
                 let n = n
                     .as_u64()
                     .ok_or_else(|| InputValueError::from("Invalid number"))?;
-                if n > u64::MAX as u64 || n == 0 {
-                    return Err(InputValueError::from(format!(
-                        "Only integers from {} to {} or non zero are accepted.",
-                        1,
-                        u64::MAX
-                    )));
-                }
-                Ok(NonZeroU64::new(n as u64).unwrap())
+                Ok(NonZeroU64::new(n).unwrap())
             }
             _ => Err(InputValueError::expected_type(value)),
         }
@@ -248,6 +234,6 @@ impl ScalarType for NonZeroU64 {
     }
 
     fn to_value(&self) -> Value {
-        Value::Number(Number::from(self.get() as u64))
+        Value::Number(Number::from(self.get()))
     }
 }

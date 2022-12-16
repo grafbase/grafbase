@@ -38,7 +38,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
     let create_merged_obj = {
         let mut obj = quote! { #crate_name::MergedObjectTail };
         for i in 0..types.len() {
-            let n = LitInt::new(&format!("{}", i), Span::call_site());
+            let n = LitInt::new(&format!("{i}"), Span::call_site());
             obj = quote! { #crate_name::MergedObject(&self.#n, #obj) };
         }
         quote! {

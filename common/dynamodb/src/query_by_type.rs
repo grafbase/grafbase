@@ -93,8 +93,8 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                     .iter()
                     .enumerate()
                     .map(|(index, q)| {
-                        exp.insert(format!(":relation{}", index), q.clone().into_attr());
-                        format!(" contains(#relationname, :relation{})", index)
+                        exp.insert(format!(":relation{index}"), q.clone().into_attr());
+                        format!(" contains(#relationname, :relation{index})")
                     })
                     .join(" OR ");
                 exp.insert(":type".to_string(), query_key.ty().clone().into_attr());

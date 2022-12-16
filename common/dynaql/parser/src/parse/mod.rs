@@ -151,7 +151,7 @@ fn parse_number(pair: Pair<Rule>, pc: &mut PositionCalculator) -> Result<Positio
     let pos = pc.step(&pair);
     Ok(Positioned::new(
         pair.as_str().parse().map_err(|err| Error::Syntax {
-            message: format!("invalid number: {}", err),
+            message: format!("invalid number: {err}"),
             start: pos,
             end: None,
         })?,

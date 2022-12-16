@@ -33,8 +33,8 @@ pub async fn resolve_list<'a>(
                         .get(type_name)
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
 
-                    let parent_type = format!("[{}]", type_name);
-                    let return_type = format!("{}!", type_name);
+                    let parent_type = format!("[{type_name}]");
+                    let return_type = format!("{type_name}!");
                     let args_values: Vec<(Positioned<Name>, Option<Value>)> = ctx_field
                         .item
                         .node
@@ -60,7 +60,7 @@ pub async fn resolve_list<'a>(
                             MetaType::Scalar { .. } | MetaType::Enum { .. } => {
                                 let result = Value::try_from(item).map_err(|err| {
                                     ctx_idx.set_error_path(ServerError::new(
-                                        format!("{:?}", err),
+                                        format!("{err:?}"),
                                         Some(field.pos),
                                     ))
                                 })?;
@@ -101,7 +101,7 @@ pub async fn resolve_list<'a>(
                     MetaType::Scalar { .. } | MetaType::Enum { .. } => {
                         let result = Value::try_from(item).map_err(|err| {
                             ctx_idx.set_error_path(ServerError::new(
-                                format!("{:?}", err),
+                                format!("{err:?}"),
                                 Some(field.pos),
                             ))
                         })?;

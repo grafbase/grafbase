@@ -120,14 +120,14 @@ impl Display for Error {
             Self::Syntax { message, .. } => f.write_str(message),
             Self::MissingQueryRoot { .. } => f.write_str("schema definition is missing query root"),
             Self::MultipleRoots { root, .. } => {
-                write!(f, "multiple {} roots in schema definition", root)
+                write!(f, "multiple {root} roots in schema definition")
             }
             Self::MultipleOperations { .. } => f.write_str("document contains multiple operations"),
             Self::OperationDuplicated { operation, .. } => {
-                write!(f, "operation {} is defined twice", operation)
+                write!(f, "operation {operation} is defined twice")
             }
             Self::FragmentDuplicated { fragment, .. } => {
-                write!(f, "fragment {} is defined twice", fragment)
+                write!(f, "fragment {fragment} is defined twice")
             }
             Self::MissingOperation => f.write_str("document does not contain an operation"),
         }

@@ -69,7 +69,7 @@ impl<'a> Visitor<'a> for NoUnusedVariables<'a> {
                         ),
                     );
                 } else {
-                    ctx.report_error(vec![*pos], format!(r#"Variable "${}" is not used"#, var));
+                    ctx.report_error(vec![*pos], format!(r#"Variable "${var}" is not used"#));
                 }
             }
         }

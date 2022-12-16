@@ -140,7 +140,7 @@ impl VariableResolveDefinition {
                         "Limit Error: the integer must be smaller than {}",
                         limit
                     ))),
-                    _ => Ok(Some(value as usize)),
+                    _ => Ok(Some(value)),
                 }),
             Some(Value::Null) | None => Ok(None),
             _ => Err(Error::new("Internal Error: failed to infer key")),
