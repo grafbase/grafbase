@@ -3,7 +3,7 @@ name: cli
 on:
   push:
     paths-ignore:
-      - cli
+      - 'cli/**'
 
 jobs:
   lint:

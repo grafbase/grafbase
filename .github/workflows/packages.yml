@@ -3,7 +3,7 @@ name: packages
 on:
   push:
     paths:
-      - packages
+      - 'packages/**'
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
