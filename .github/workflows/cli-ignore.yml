@@ -1,9 +1,5 @@
 name: cli
 
-defaults:
-  run:
-    working-directory: cli
-
 on:
   push:
     paths-ignore:

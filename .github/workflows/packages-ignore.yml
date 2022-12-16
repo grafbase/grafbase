@@ -1,9 +1,5 @@
 name: packages
 
-defaults:
-  run:
-    working-directory: packages
-
 on:
   push:
     paths-ignore:
