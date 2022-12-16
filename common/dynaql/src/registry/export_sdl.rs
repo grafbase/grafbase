@@ -261,10 +261,7 @@ impl Registry {
 
 fn export_input_value(input_value: &MetaInputValue) -> String {
     if let Some(default_value) = &input_value.default_value {
-        format!(
-            "{}: {} = {default_value}",
-            input_value.name, input_value.ty
-        )
+        format!("{}: {} = {default_value}", input_value.name, input_value.ty)
     } else {
         format!("{}: {}", input_value.name, input_value.ty)
     }
