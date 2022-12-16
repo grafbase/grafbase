@@ -44,7 +44,7 @@ struct CustomClaims {
     issuer: Url,
 
     #[serde(rename = "sub")]
-    subject: String,
+    subject: Option<String>,
 
     #[serde(flatten)]
     extra: serde_json::Value,
@@ -62,7 +62,7 @@ pub struct Client<'a> {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct VerifiedToken {
-    pub identity: String,
+    pub identity: Option<String>,
     pub groups: HashSet<String>,
 }
 
@@ -412,7 +412,7 @@ mod tests {
         TOKEN_IAT,
         None,
         VerifiedToken {
-            identity: TOKEN_SUB.to_string(),
+            identity: Some(TOKEN_SUB.to_string()),
             groups: HashSet::new(),
         }
     );
@@ -446,7 +446,7 @@ mod tests {
         1_658_141_914,
         Some("groups"),
         VerifiedToken {
-            identity: TOKEN_SUB.to_string(),
+            identity: Some(TOKEN_SUB.to_string()),
             groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
         }
     );
@@ -475,7 +475,7 @@ mod tests {
         1_660_040_974,
         Some("groups"),
         VerifiedToken {
-            identity: TOKEN_SUB.to_string(),
+            identity: Some(TOKEN_SUB.to_string()),
             groups: HashSet::new(),
         }
     );
@@ -507,7 +507,7 @@ mod tests {
         1_664_960_674,
         Some("https://grafbase\\.com/jwt/claims/groups"),
         VerifiedToken {
-            identity: "SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string(),
+            identity: Some("SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string()),
             groups: vec!["admin".to_string()].into_iter().collect(),
         }
     );
@@ -542,7 +542,7 @@ mod tests {
         1_666_714_483,
         Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles"),
         VerifiedToken {
-            identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
+            identity: Some("user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string()),
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
         }
     );
@@ -588,7 +588,7 @@ mod tests {
                 .verify_hs_token(token, &issuer, &SecretString::new("topsecret".to_string()))
                 .unwrap(),
             VerifiedToken {
-                identity: "user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string(),
+                identity: Some("user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string()),
                 groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
             }
         );
