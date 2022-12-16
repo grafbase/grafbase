@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
-    "lint": "eslint *.ts*"
+    "lint": "eslint src/*.ts*"
   },
   "peerDependencies": {
     "next": "^12 || ^13",

@@ -1,31 +1,29 @@
-name: cli
+name: packages
 
 defaults:
   run:
-    working-directory: cli
+    working-directory: packages
 
 on:
   push:
     paths-ignore:
-      - cli
+      - packages
 
 jobs:
   lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "Skipping CI"'
 
-  windows:
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "Skipping CI"'
 
-  linux:
-    runs-on: ubuntu-latest
-    steps:
-      - run: 'echo "Skipping CI"'
-
-  darwin:
+  release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - run: 'echo "Skipping CI"'
