@@ -23,8 +23,6 @@ jobs:
             packages:
               - 'packages/**'
 
-      - run: echo ${{needs.changes.outputs.packages}}
-
   lint:
     name: Lint
     needs: [changes]
