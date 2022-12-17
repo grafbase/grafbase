@@ -1,10 +1,6 @@
 name: cli
 
-on:
-  push:
-    paths:
-      - 'cli/**'
-  workflow_dispatch:
+on: [push, workflow_dispatch]
 
 permissions:
   # Allow checks read
@@ -22,7 +18,25 @@ concurrency:
   group: ${{ github.event.ref }}
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      cli: ${{ steps.filter.outputs.cli }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Path filter check
+        uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            cli:
+              - 'cli/**'
+
   lint:
+    needs: [changes]
+    if: ${{ needs.changes.outputs.cli == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
@@ -48,8 +62,9 @@ jobs:
           token: ${{ github.token }}
 
   windows:
-    runs-on: windows-latest
     needs: [lint]
+    if: ${{ needs.changes.outputs.cli == 'true' }}
+    runs-on: windows-latest
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -87,8 +102,9 @@ jobs:
             target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
-    runs-on: ubuntu-latest
     needs: [lint]
+    if: ${{ needs.changes.outputs.cli == 'true' }}
+    runs-on: ubuntu-latest
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -126,8 +142,9 @@ jobs:
             target/x86_64-unknown-linux-musl/release/grafbase
 
   darwin:
-    runs-on: macos-latest
     needs: [lint]
+    if: ${{ needs.changes.outputs.cli == 'true' }}
+    runs-on: macos-latest
     steps:
       - name: Get sources
         uses: actions/checkout@v3
