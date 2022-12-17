@@ -63,7 +63,6 @@ jobs:
 
   windows:
     needs: [lint]
-    if: ${{ needs.changes.outputs.cli == 'true' }}
     runs-on: windows-latest
     steps:
       - name: Get sources
@@ -103,7 +102,6 @@ jobs:
 
   linux:
     needs: [lint]
-    if: ${{ needs.changes.outputs.cli == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
@@ -143,7 +141,6 @@ jobs:
 
   darwin:
     needs: [lint]
-    if: ${{ needs.changes.outputs.cli == 'true' }}
     runs-on: macos-latest
     steps:
       - name: Get sources

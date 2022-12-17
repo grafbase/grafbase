@@ -23,6 +23,8 @@ jobs:
             packages:
               - 'packages/**'
 
+      - run: echo ${{needs.changes.outputs.packages}}
+
   lint:
     name: Lint
     needs: [changes]
@@ -67,7 +69,6 @@ jobs:
   build:
     name: Build
     needs: [lint]
-    if: ${{ needs.changes.outputs.packages == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -108,7 +109,6 @@ jobs:
   release:
     name: Release
     needs: [build]
-    if: ${{ needs.changes.outputs.packages == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
