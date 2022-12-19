@@ -44,7 +44,7 @@ fn main() {
 }
 
 fn try_main() -> Result<(), CliError> {
-    return Err(CliError::ServerPanic("".to_owned()));
+    return Err(CliError::ServerPanic(String::new()));
     let matches = build_cli().get_matches();
 
     let filter = EnvFilter::builder().parse_lossy(if let Ok(Some(true)) = matches.try_get_one("trace") {
