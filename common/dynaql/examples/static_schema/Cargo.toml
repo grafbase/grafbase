@@ -9,6 +9,6 @@ crate-type = ["cdylib", "rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-async-graphql = { version = "3" }
+async-graphql = { version = "5" }
 worker = "0.0.12"
 serde_json = { workspace = true }
