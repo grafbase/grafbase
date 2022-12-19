@@ -23,9 +23,6 @@ jobs:
     outputs:
       cli: ${{ steps.filter.outputs.cli }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
       - name: Path filter check
         uses: dorny/paths-filter@v2
         id: filter
