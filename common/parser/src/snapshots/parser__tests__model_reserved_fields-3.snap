@@ -778,10 +778,10 @@ expression: req_string_b
               "Pipeline": [
                 {
                   "DynamoSelect": {
-                    "property": "__pk"
+                    "property": "__sk"
                   }
                 },
-                "ConvertPkToCursor"
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"

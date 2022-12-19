@@ -9,6 +9,7 @@ use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMEN
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
+use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
@@ -137,9 +138,9 @@ pub fn add_list_query_paginated<'a>(
                         }),
                         transformer: Some(Transformer::Pipeline(vec![
                             Transformer::DynamoSelect {
-                                property: "__pk".to_string(),
+                                property: constant::SK.to_string(),
                             },
-                            Transformer::ConvertPkToCursor,
+                            Transformer::ConvertSkToCursor,
                         ])),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),

@@ -274,9 +274,11 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 .await
                 .map_err(|_| QueryTypePaginatedLoaderError::QueryError)?;
 
-                let result_count = query_results.len();
-
-                let (last_evaluated_key, excluded_item) = if user_limit > 0 && result_count > user_limit {
+                let more_available = user_limit > 0 && query_results.len() > user_limit;
+                // FIXME: last_evaluated_key is part of the API exposed by the DynamoDB functions,
+                // but it's an interface problem, pagination only needs to know whether there's
+                // more data available or not AFAIK.
+                let (last_evaluated_key, mut page_records) = if more_available {
                     // we currently use only pk/sk for pagination
                     // the last evaluated key is always the last item, regardless of direction
 
@@ -287,91 +289,101 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     })
                     .expect("must parse");
 
-                    let excluded_item = query_results.last().expect("must exist");
+                    // Ordering of the items is independent of cursor direction. So when going
+                    // forward the excess item is at the end. But going backwards it's at the
+                    // beginning.
+                    //                         after
+                    //                           ┌───────► first (forward)
+                    //                           │
+                    //              ─────────────┼───────────────► Record order
+                    //                           │
+                    // last (backward) ◄─────────┘
+                    //                         before
+                    let page_records = if query_key.cursor.is_forward() {
+                        query_results[..(query_results.len() - 1)].iter()
+                    } else {
+                        query_results[1..].iter()
+                    };
 
-                    (Some(last_evaluated_key), Some(excluded_item))
+                    (Some(last_evaluated_key), page_records)
                 } else {
-                    (None, None)
+                    (None, query_results.iter())
                 };
 
-                query_results
-                    .iter()
-                    // filter the exluded item and any relations
-                    .filter(|record| excluded_item.filter(|item| record.sk == item.sk).is_none())
-                    .try_fold(
-                        (
-                            query_key.clone(),
-                            QueryResult {
-                                values: IndexMap::with_capacity(100),
-                                last_evaluated_key,
-                            },
-                        ),
-                        |(query_key, mut accumulator), current| {
-                            let pk = ID::try_from(current.pk.clone()).expect("can't fail");
-                            let sk = ID::try_from(current.sk.clone()).expect("can't fail");
-                            let relation_names = current.relation_names.clone();
+                page_records.try_fold(
+                    (
+                        query_key.clone(),
+                        QueryResult {
+                            values: IndexMap::with_capacity(100),
+                            last_evaluated_key,
+                        },
+                    ),
+                    |(query_key, mut accumulator), current| {
+                        let pk = ID::try_from(current.pk.clone()).expect("can't fail");
+                        let sk = ID::try_from(current.sk.clone()).expect("can't fail");
+                        let relation_names = current.relation_names.clone();
 
-                            let is_top_level_nested = query_key
-                                .cursor
-                                .nested_parent_pk()
-                                .filter(|query_pk| query_pk == &pk.to_string())
-                                .is_some();
+                        let is_top_level_nested = query_key
+                            .cursor
+                            .nested_parent_pk()
+                            .filter(|query_pk| query_pk == &pk.to_string())
+                            .is_some();
 
-                            let key = if is_top_level_nested {
-                                sk.to_string()
-                            } else {
-                                pk.to_string()
-                            };
+                        let key = if is_top_level_nested {
+                            sk.to_string()
+                        } else {
+                            pk.to_string()
+                        };
 
-                            match accumulator.values.entry(key) {
-                                Entry::Vacant(vacant) => {
-                                    let mut value = QueryValue {
-                                        node: None,
-                                        edges: IndexMap::with_capacity(5),
-                                        constraints: Vec::new(),
-                                    };
-                                    match (pk, sk) {
-                                        (ID::NodeID(_), ID::NodeID(sk)) => {
-                                            if sk.ty() == *query_key.ty() {
-                                                value.node = Some(current.document.clone());
-                                            } else if let Some(edge) =
-                                                query_key.edges.iter().find(|edge| relation_names.contains(edge))
-                                            {
-                                                value.edges.insert(edge.clone(), vec![current.document.clone()]);
-                                            }
-                                        }
-                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                            value.constraints.push(current.document.clone());
-                                        }
-                                        _ => {}
-                                    }
-
-                                    vacant.insert(value);
-                                }
-                                Entry::Occupied(mut occupied) => match (pk, sk) {
+                        match accumulator.values.entry(key) {
+                            Entry::Vacant(vacant) => {
+                                let mut value = QueryValue {
+                                    node: None,
+                                    edges: IndexMap::with_capacity(5),
+                                    constraints: Vec::new(),
+                                };
+                                match (pk, sk) {
                                     (ID::NodeID(_), ID::NodeID(sk)) => {
                                         if sk.ty() == *query_key.ty() {
-                                            occupied.get_mut().node = Some(current.document.clone());
+                                            value.node = Some(current.document.clone());
                                         } else if let Some(edge) =
                                             query_key.edges.iter().find(|edge| relation_names.contains(edge))
                                         {
-                                            occupied
-                                                .get_mut()
-                                                .edges
-                                                .entry(edge.clone())
-                                                .or_default()
-                                                .push(current.document.clone());
+                                            value.edges.insert(edge.clone(), vec![current.document.clone()]);
                                         }
                                     }
                                     (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        occupied.get_mut().constraints.push(current.document.clone());
+                                        value.constraints.push(current.document.clone());
                                     }
                                     _ => {}
-                                },
+                                }
+
+                                vacant.insert(value);
                             }
-                            Ok::<_, QueryTypePaginatedLoaderError>((query_key, accumulator))
-                        },
-                    )
+                            Entry::Occupied(mut occupied) => match (pk, sk) {
+                                (ID::NodeID(_), ID::NodeID(sk)) => {
+                                    if sk.ty() == *query_key.ty() {
+                                        occupied.get_mut().node = Some(current.document.clone());
+                                    } else if let Some(edge) =
+                                        query_key.edges.iter().find(|edge| relation_names.contains(edge))
+                                    {
+                                        occupied
+                                            .get_mut()
+                                            .edges
+                                            .entry(edge.clone())
+                                            .or_default()
+                                            .push(current.document.clone());
+                                    }
+                                }
+                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                    occupied.get_mut().constraints.push(current.document.clone());
+                                }
+                                _ => {}
+                            },
+                        }
+                        Ok::<_, QueryTypePaginatedLoaderError>((query_key, accumulator))
+                    },
+                )
             };
 
             concurrent_futures.push(future_get());

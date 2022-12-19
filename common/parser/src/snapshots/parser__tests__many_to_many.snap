@@ -862,10 +862,10 @@ expression: reg_string
               "Pipeline": [
                 {
                   "DynamoSelect": {
-                    "property": "__pk"
+                    "property": "__sk"
                   }
                 },
-                "ConvertPkToCursor"
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
@@ -1953,10 +1953,10 @@ expression: reg_string
               "Pipeline": [
                 {
                   "DynamoSelect": {
-                    "property": "__pk"
+                    "property": "__sk"
                   }
                 },
-                "ConvertPkToCursor"
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
