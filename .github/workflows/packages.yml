@@ -9,6 +9,8 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
     outputs:
       packages: ${{ steps.filter.outputs.packages }}
     steps:
