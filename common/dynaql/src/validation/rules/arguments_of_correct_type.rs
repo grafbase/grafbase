@@ -69,7 +69,7 @@ impl<'a> Visitor<'a> for ArgumentsOfCorrectType<'a> {
             }) {
                 ctx.report_error(
                     vec![name.pos],
-                    format!("Invalid value for argument {}", reason),
+                    format!("Invalid value for argument {reason}"),
                 );
             }
         }

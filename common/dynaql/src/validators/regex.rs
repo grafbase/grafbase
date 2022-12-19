@@ -9,7 +9,7 @@ pub fn regex<T: AsRef<str> + InputType>(
     if Regex::new(regex).map(|re| re.is_match(value.as_ref())) == Ok(true) {
         Ok(())
     } else {
-        Err(format_args!("value doesn't match expected format '{}'", regex).into())
+        Err(format_args!("value doesn't match expected format '{regex}'").into())
     }
 }
 

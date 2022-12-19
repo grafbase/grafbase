@@ -68,7 +68,7 @@ fn check_duplicate_directive(ctx: &mut VisitorContext<'_>, directives: &[Positio
                 if exists.contains(name) {
                     ctx.report_error(
                         vec![directive.pos],
-                        format!("Duplicate directive \"{}\"", name),
+                        format!("Duplicate directive \"{name}\""),
                     );
                     continue;
                 }

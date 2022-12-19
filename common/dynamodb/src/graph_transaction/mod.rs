@@ -820,7 +820,7 @@ impl UpdateNodeInternalInput {
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
-                let result = format!("{}={}", sanitized_name, idx);
+                let result = format!("{sanitized_name}={idx}");
                 exp_values.insert(idx, value.clone());
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
@@ -832,7 +832,7 @@ impl UpdateNodeInternalInput {
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
-                let result = format!("{} {}", sanitized_name, idx);
+                let result = format!("{sanitized_name} {idx}");
                 exp_values.insert(idx, value);
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
@@ -885,7 +885,7 @@ impl UpdateUniqueConstraint {
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
-                let result = format!("{}={}", sanitized_name, idx);
+                let result = format!("{sanitized_name}={idx}");
                 exp_values.insert(idx, value.clone());
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
@@ -897,7 +897,7 @@ impl UpdateUniqueConstraint {
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
                 let sanitized_name = format!("#{}", name.as_str());
-                let result = format!("{} {}", sanitized_name, idx);
+                let result = format!("{sanitized_name} {idx}");
                 exp_values.insert(idx, value);
                 exp_names.insert(sanitized_name, name.as_str().to_string());
                 result
@@ -1010,7 +1010,7 @@ impl UpdateRelationInternalInput {
                 .map(|(name, value)| {
                     let idx = format!(":{}", name.as_str());
                     let sanitized_name = format!("#{}", name.as_str());
-                    let result = format!("{}={}", sanitized_name, idx);
+                    let result = format!("{sanitized_name}={idx}");
                     exp_values.insert(idx, value);
                     exp_names.insert(sanitized_name, name.as_str().to_string());
                     result

@@ -162,7 +162,7 @@ impl SchemaBuilder {
             || name == "include"
             || self.custom_directives.insert(name, instance).is_some()
         {
-            panic!("Directive `{}` already exists", name);
+            panic!("Directive `{name}` already exists");
         }
 
         self
@@ -554,7 +554,7 @@ impl Schema {
             }
             .ok_or_else(|| {
                 ServerError::new(
-                    format!(r#"Unknown operation named "{}""#, operation_name),
+                    format!(r#"Unknown operation named "{operation_name}""#),
                     None,
                 )
             })

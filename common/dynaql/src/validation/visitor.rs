@@ -126,7 +126,7 @@ impl<'a> VisitorContext<'a> {
                             .cloned()
                             .ok_or_else(|| {
                                 ServerError::new(
-                                    format!("Variable {} is not defined.", name),
+                                    format!("Variable {name} is not defined."),
                                     Some(pos),
                                 )
                             })

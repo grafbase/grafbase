@@ -53,7 +53,7 @@ pub fn graphiql_source(graphql_endpoint_url: &str, subscription_endpoint: Option
     .replace(
         "GRAPHQL_SUBSCRIPTION_URL",
         &match subscription_endpoint {
-            Some(url) => format!("'{}'", url),
+            Some(url) => format!("'{url}'"),
             None => "null".to_string(),
         },
     )

@@ -68,7 +68,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
                         ),
                     );
                 } else {
-                    ctx.report_error(vec![pos], format!(r#"Variable "${}" is not defined"#, var));
+                    ctx.report_error(vec![pos], format!(r#"Variable "${var}" is not defined"#));
                 }
             }
         }

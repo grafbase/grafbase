@@ -179,7 +179,7 @@ impl<T> InputValueError<T> {
     /// scalars to have a proper parsing and not just checking.
     #[must_use]
     pub fn ty_custom(ty: impl Display, msg: impl Display) -> Self {
-        Self::new(format!(r#"Failed to parse "{}": {}"#, ty, msg))
+        Self::new(format!(r#"Failed to parse "{ty}": {msg}"#))
     }
 }
 
@@ -204,7 +204,7 @@ impl<T: InputType> InputValueError<T> {
     /// operator.
     #[must_use]
     pub fn custom(msg: impl Display) -> Self {
-        Self::new(format!(r#"Failed to parse "{}": {}"#, T::type_name(), msg))
+        Self::new(format!(r#"Failed to parse "{}": {msg}"#, T::type_name()))
     }
 
     /// Propagate the error message to a different type.

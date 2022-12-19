@@ -212,7 +212,7 @@ impl<'a> Display for QueryPathNode<'a> {
 
             match segment {
                 QueryPathSegment::Index(idx) => write!(f, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(f, "{}", name),
+                QueryPathSegment::Name(name) => write!(f, "{name}"),
             }
         })
     }
@@ -231,7 +231,7 @@ impl<'a> QueryPathNode<'a> {
 
             match segment {
                 QueryPathSegment::Index(idx) => write!(&mut result, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(&mut result, "{}", name),
+                QueryPathSegment::Name(name) => write!(&mut result, "{name}"),
             }
         })
         .expect("Shouldn't fail");
@@ -718,9 +718,7 @@ impl<'a, T> ContextBase<'a, T> {
                     .or_else(|| def.node.default_value())
             })
             .cloned()
-            .ok_or_else(|| {
-                ServerError::new(format!("Variable {} is not defined.", name), Some(pos))
-            })
+            .ok_or_else(|| ServerError::new(format!("Variable {name} is not defined."), Some(pos)))
     }
 
     pub fn resolve_input_value(&self, value: Positioned<InputValue>) -> ServerResult<Value> {
@@ -778,9 +776,7 @@ impl<'a, T> ContextBase<'a, T> {
         };
 
         value
-            .ok_or_else(|| {
-                ServerError::new(format!("Failed to parse variable {}", name), Some(pos))
-            })
+            .ok_or_else(|| ServerError::new(format!("Failed to parse variable {name}"), Some(pos)))
             .map(|value| (pos, value))
     }
 }

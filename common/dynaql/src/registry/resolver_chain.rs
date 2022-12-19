@@ -246,7 +246,7 @@ impl<'a> Display for ResolverChainNode<'a> {
 
             match segment {
                 QueryPathSegment::Index(idx) => write!(f, "{}", *idx),
-                QueryPathSegment::Name(name) => write!(f, "{}", name),
+                QueryPathSegment::Name(name) => write!(f, "{name}"),
             }
         })
     }

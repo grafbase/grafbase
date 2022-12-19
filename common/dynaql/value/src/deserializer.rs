@@ -33,7 +33,7 @@ impl fmt::Display for DeserializerError {
     #[inline]
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            DeserializerError(msg) => write!(f, "{}", msg),
+            DeserializerError(msg) => write!(f, "{msg}"),
         }
     }
 }
@@ -181,7 +181,7 @@ impl<'de> de::Deserializer<'de> for ConstValue {
                 }
                 (variant, Some(value))
             }
-            ConstValue::String(variant) => (Name::new(&variant), None),
+            ConstValue::String(variant) => (Name::new(variant), None),
             ConstValue::Enum(variant) => (variant, None),
             other => {
                 return Err(DeserializerError::invalid_type(

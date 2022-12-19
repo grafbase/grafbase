@@ -55,9 +55,9 @@ pub enum MetaTypeName<'a> {
 impl<'a> std::fmt::Display for MetaTypeName<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            MetaTypeName::Named(name) => write!(f, "{}", name),
-            MetaTypeName::NonNull(name) => write!(f, "{}!", name),
-            MetaTypeName::List(name) => write!(f, "[{}]", name),
+            MetaTypeName::Named(name) => write!(f, "{name}"),
+            MetaTypeName::NonNull(name) => write!(f, "{name}!"),
+            MetaTypeName::List(name) => write!(f, "[{name}]"),
         }
     }
 }

@@ -14,7 +14,7 @@ where
     if !value.is_zero() && value % n == N::zero() {
         Ok(())
     } else {
-        Err(format!("the value must be a multiple of {}.", n).into())
+        Err(format!("the value must be a multiple of {n}.").into())
     }
 }
 

@@ -228,7 +228,7 @@ mod tests {
             .with(crate::EnumType)
             .with(crate::ScalarHydratation);
 
-        let schema = format!("{}\n{}", PossibleScalar::sdl(), schema);
+        let schema = format!("{}\n{schema}", PossibleScalar::sdl());
         let schema = parse_schema(schema).unwrap();
         let mut ctx = VisitorContext::new(&schema);
 

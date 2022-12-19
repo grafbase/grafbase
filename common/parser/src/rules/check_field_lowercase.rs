@@ -27,7 +27,7 @@ impl<'a> Visitor<'a> for CheckFieldCamelCase {
             then {
                 ctx.report_error(
                     vec![field.pos],
-                    format!("Field \"{name}\" is not in Camel lowercase, please use \"{sanitized_name}\" instead.", name = name, sanitized_name = sanitized_name),
+                    format!("Field \"{name}\" is not in Camel lowercase, please use \"{sanitized_name}\" instead."),
                 );
 
             }

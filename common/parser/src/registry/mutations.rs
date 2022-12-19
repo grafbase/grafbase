@@ -92,7 +92,7 @@ pub fn add_mutation_create<'a>(
 
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_create(model_type_definition),
-        description: Some(format!("Create a {}", type_name)),
+        description: Some(format!("Create a {type_name}")),
         args: indexmap! {
             INPUT_ARG_INPUT.to_owned() => MetaInputValue {
                     name: INPUT_ARG_INPUT.to_owned(),
@@ -196,12 +196,12 @@ pub fn add_mutation_update<'a>(
 
     ctx.mutations.push(MetaField {
         name: MetaNames::mutation_update(model_type_definition),
-        description: Some(format!("Update a {}", type_name)),
+        description: Some(format!("Update a {type_name}")),
         args: indexmap! {
             INPUT_ARG_BY.to_owned() => MetaInputValue {
                     name: INPUT_ARG_BY.to_owned(),
                     description: None,
-                    ty: format!("{}ByInput!", type_name),
+                    ty: format!("{type_name}ByInput!"),
                     default_value: None,
                     validators: None,
                     visible: None,
@@ -401,7 +401,7 @@ fn register_mutation_input_type(
                     );
                     mutation_kind
                         .maybe_parent_relation()
-                        .map(|parent_relation| format!("{} for the {}", description, parent_relation))
+                        .map(|parent_relation| format!("{description} for the {parent_relation}"))
                         .or(Some(description))
                 },
                 oneof: false,

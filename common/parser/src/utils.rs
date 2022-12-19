@@ -76,7 +76,7 @@ fn to_input_base_type(ctx: &HashMap<String, Cow<'_, Positioned<TypeDefinition>>>
                 .unwrap_or(false);
             match (type_def, is_modelized) {
                 (Some(TypeKind::Scalar | TypeKind::Enum(_)), _) => BaseType::Named(name),
-                (Some(TypeKind::Object(_)), false) => BaseType::Named(Name::new(format!("{}Input", name))),
+                (Some(TypeKind::Object(_)), false) => BaseType::Named(Name::new(format!("{name}Input"))),
                 (Some(TypeKind::Object(_)), true) => BaseType::Named(Name::new("ID")),
                 _ => BaseType::Named(Name::new("Error")),
             }

@@ -166,7 +166,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -193,7 +193,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -221,7 +221,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -249,7 +249,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -276,7 +276,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -304,7 +304,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);
@@ -332,7 +332,7 @@ mod tests {
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
             .with(CheckAllDirectivesAreKnown::default());
-        let schema = format!("{}\n{}", directives().to_definition(), schema);
+        let schema = format!("{}\n{schema}", directives().to_definition());
         let schema = parse_schema(schema).expect("");
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut rules, &mut ctx, &schema);

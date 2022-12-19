@@ -47,7 +47,7 @@ impl<'a> Visitor<'a> for NoUnusedFragments<'a> {
             if !reachable.contains(fragment_name) {
                 ctx.report_error(
                     vec![*pos],
-                    format!(r#"Fragment "{}" is never used"#, fragment_name),
+                    format!(r#"Fragment "{fragment_name}" is never used"#),
                 );
             }
         }

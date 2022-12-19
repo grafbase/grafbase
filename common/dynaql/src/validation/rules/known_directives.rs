@@ -69,8 +69,8 @@ impl<'a> Visitor<'a> for KnownDirectives {
                     ctx.report_error(
                         vec![directive.pos],
                         format!(
-                            "Directive \"{}\" may not be used on \"{:?}\"",
-                            directive.node.name.node, current_location
+                            "Directive \"{}\" may not be used on \"{current_location:?}\"",
+                            directive.node.name.node
                         ),
                     )
                 }

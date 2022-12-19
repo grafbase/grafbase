@@ -457,7 +457,7 @@ impl Default for Value {
 impl Display for Value {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Variable(name) => write!(f, "${}", name),
+            Self::Variable(name) => write!(f, "${name}"),
             Self::Number(num) => write!(f, "{}", *num),
             Self::String(val) => write_quoted(val, f),
             Self::Boolean(true) => f.write_str("true"),
@@ -539,11 +539,11 @@ fn write_object<K: Display, V: Display>(
     f.write_char('{')?;
     let mut iter = object.into_iter();
     if let Some((name, value)) = iter.next() {
-        write!(f, "{}: {}", name, value)?;
+        write!(f, "{name}: {value}")?;
     }
     for (name, value) in iter {
         f.write_char(',')?;
-        write!(f, "{}: {}", name, value)?;
+        write!(f, "{name}: {value}")?;
     }
     f.write_char('}')
 }

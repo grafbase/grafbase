@@ -139,7 +139,7 @@ impl Row {
         let values = keyed_values.map(|(column, value)| (column.as_str(), value)).collect();
 
         let columns = keys.join(",");
-        let placeholders = keys.iter().map(|key| format!("?{}", key)).collect::<Vec<_>>().join(",");
+        let placeholders = keys.iter().map(|key| format!("?{key}")).collect::<Vec<_>>().join(",");
 
         Self {
             columns,
@@ -184,7 +184,7 @@ impl<'a> ToString for BridgeUrl<'a> {
             Self::Mutation(port) => ("mutation", port),
         };
 
-        format!("{}://{}:{}/{}", BRIDGE_PROTOCOL, Ipv4Addr::LOCALHOST, port, endpoint)
+        format!("{BRIDGE_PROTOCOL}://{}:{port}/{endpoint}", Ipv4Addr::LOCALHOST)
     }
 }
 

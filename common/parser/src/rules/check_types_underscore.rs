@@ -27,7 +27,7 @@ impl<'a> Visitor<'a> for CheckBeginsWithDoubleUnderscore {
             then {
                 ctx.report_error(
                     vec![field.pos],
-                    format!("Field {name} shouldn't start with double underscore.", name = name),
+                    format!("Field {name} shouldn't start with double underscore."),
                 );
 
             }

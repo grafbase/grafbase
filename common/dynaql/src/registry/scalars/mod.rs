@@ -63,7 +63,7 @@ pub trait SDLDefinitionScalar<'a> {
         if let Some(name) = Self::name() {
             let mut sdl = String::new();
             if let Some(desc) = Self::description() {
-                writeln!(sdl, "\"\"\"\n{}\n\"\"\"", desc).ok();
+                writeln!(sdl, "\"\"\"\n{desc}\n\"\"\"").ok();
             }
             let directive = Self::specified_by()
                 .map(|directive| format!("@specifiedBy(url: \"{directive}\")"))

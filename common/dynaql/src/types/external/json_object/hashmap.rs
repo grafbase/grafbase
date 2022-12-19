@@ -47,9 +47,9 @@ where
                 .map(|(name, value)| {
                     Ok((
                         K::from_str(&name).map_err(|err| {
-                            InputValueError::<Self>::custom(format!("object key: {}", err))
+                            InputValueError::<Self>::custom(format!("object key: {err}"))
                         })?,
-                        from_value(value).map_err(|err| format!("object value: {}", err))?,
+                        from_value(value).map_err(|err| format!("object value: {err}"))?,
                     ))
                 })
                 .collect::<Result<_, _>>()

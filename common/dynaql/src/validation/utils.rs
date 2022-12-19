@@ -13,7 +13,7 @@ pub enum Scope<'a> {
 }
 
 fn valid_error(path_node: &QueryPathNode, msg: String) -> String {
-    format!("\"{}\", {}", path_node, msg)
+    format!("\"{path_node}\", {msg}")
 }
 
 pub fn referenced_variables(value: &Value) -> Vec<&str> {
@@ -47,7 +47,7 @@ pub fn is_valid_input_value(
         registry::MetaTypeName::NonNull(type_name) => match value {
             ConstValue::Null => Some(valid_error(
                 &path_node,
-                format!("expected type \"{}\"", type_name),
+                format!("expected type \"{type_name}\""),
             )),
             _ => is_valid_input_value(registry, type_name, value, path_node),
         },
@@ -82,7 +82,7 @@ pub fn is_valid_input_value(
                     } else {
                         Some(valid_error(
                             &path_node,
-                            format!("expected type \"{}\"", type_name),
+                            format!("expected type \"{type_name}\""),
                         ))
                     }
                 }
@@ -119,7 +119,7 @@ pub fn is_valid_input_value(
                     }
                     _ => Some(valid_error(
                         &path_node,
-                        format!("expected type \"{}\"", type_name),
+                        format!("expected type \"{type_name}\""),
                     )),
                 },
                 registry::MetaType::InputObject {
@@ -168,8 +168,8 @@ pub fn is_valid_input_value(
                                 return Some(valid_error(
                                     &path_node,
                                     format!(
-                                        "field \"{}\" of type \"{}\" is required but not provided",
-                                        field.name, object_name,
+                                        "field \"{}\" of type \"{object_name}\" is required but not provided",
+                                        field.name,
                                     ),
                                 ));
                             }
@@ -178,7 +178,7 @@ pub fn is_valid_input_value(
                         if let Some(name) = input_names.iter().next() {
                             return Some(valid_error(
                                 &path_node,
-                                format!("unknown field \"{}\" of type \"{}\"", name, object_name),
+                                format!("unknown field \"{name}\" of type \"{object_name}\""),
                             ));
                         }
 

@@ -32,8 +32,8 @@ impl<'a> Visitor<'a> for PossibleFragmentSpreads<'a> {
                         ctx.report_error(
                             vec![fragment_spread.pos],
                             format!(
-                                "Fragment \"{}\" cannot be spread here as objects of type \"{}\" can never be of type \"{}\"",
-                                fragment_spread.node.fragment_name.node, current_type.name(), fragment_type
+                                "Fragment \"{}\" cannot be spread here as objects of type \"{}\" can never be of type \"{fragment_type}\"",
+                                fragment_spread.node.fragment_name.node, current_type.name()
                             ),
                         );
                     }
