@@ -22,7 +22,7 @@ use std::ops::Add;
 use std::pin::Pin;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
-use ulid_rs::Ulid;
+use ulid::Ulid;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]

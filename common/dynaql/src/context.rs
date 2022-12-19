@@ -468,7 +468,7 @@ impl<'a, T> ContextBase<'a, T> {
                 executable_field: Some(field),
                 resolver: meta_field.and_then(|x| x.resolve.as_ref()),
                 transformer: meta_field.and_then(|x| x.transformer.as_ref()),
-                execution_id: ulid_rs::Ulid::new(),
+                execution_id: ulid::Ulid::new(),
                 selections,
                 variables: {
                     meta_field.map(|x| {
@@ -802,7 +802,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 ty: self.resolver_node.as_ref().and_then(|x| x.ty),
                 resolver: None,
                 transformer: None,
-                execution_id: ulid_rs::Ulid::new(),
+                execution_id: ulid::Ulid::new(),
                 selections,
                 variables: None,
             }),

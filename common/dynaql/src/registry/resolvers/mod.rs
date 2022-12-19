@@ -20,7 +20,7 @@ use dynaql_parser::types::SelectionSet;
 use graph_entities::cursor::PaginationCursor;
 
 use std::sync::Arc;
-use ulid_rs::Ulid;
+use ulid::Ulid;
 
 use super::{MetaField, MetaType};
 
