@@ -134,15 +134,17 @@ async fn spawn_servers(
         .args([
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
-            "./node_modules/miniflare/dist/src/cli.js",
+            "./packages/miniflare/dist/src/cli.js",
             "--host",
             "127.0.0.1",
             "--port",
             &worker_port.to_string(),
             "--no-update-check",
             "--no-cf-fetch",
+            "--do-persist",
+            "--debug",
             "--wrangler-config",
-            "wrangler.toml",
+            "../wrangler.toml",
             "--binding",
             &format!("BRIDGE_PORT={bridge_port}"),
             "--text-blob",
@@ -150,7 +152,7 @@ async fn spawn_servers(
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .current_dir(&environment.user_dot_grafbase_path)
+        .current_dir(&environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;

@@ -47,7 +47,8 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
         let results = match modifications.fetch_all(&mut connection).await {
             Ok(results) => results,
             // retry on the next interval if the DB is busy (due to a trigger writing an update)
-            Err(_) => {
+            Err(err) => {
+                trace!("Failed to retrieve latest modifications with error: {:?}", err);
                 // TODO: narrow this
                 continue;
             }
@@ -71,16 +72,20 @@ async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
                 })
                 .collect::<Vec<_>>();
 
-            client
-                .post(format!("http://127.0.0.1:{worker_port}/stream-router/main/dynamodb"))
+            let response = client
+                .post(format!(
+                    "http://127.0.0.1:{worker_port}/stream-router/main/dynamodb/{DEFAULT_AWS_REGION}"
+                ))
                 .header("x-api-key", CLI_API_KEY)
                 .json(&dynamo_events)
                 .send()
                 .await
                 // TODO: consider if this should panic or show a specific error to the user
                 .expect("could not contact the stream router");
-
-            trace!("sent event to stream-router");
+            trace!(
+                "Sent update to stream-router, responded with status: {}",
+                response.status()
+            );
         }
     }
 }
