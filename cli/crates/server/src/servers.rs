@@ -290,6 +290,10 @@ async fn run_schema_parser() -> Result<(), ServerError> {
                     .project_grafbase_schema_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
+                &environment
+                    .project_grafbase_registry_path
+                    .to_str()
+                    .ok_or(ServerError::ProjectPath)?,
             ])
             .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
