@@ -52,4 +52,7 @@ pub const SCALARS_QUERY: &str = include_str!("../graphql/scalars/query.graphql")
 
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
+pub const JWT_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/schema.graphql");
+pub const JWT_PROVIDER_QUERY: &str = include_str!("../graphql/auth/query.graphql");
+
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
