@@ -74,7 +74,7 @@ url = { version = "2" }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
-graph-entities = { path = "../graph_entities" }
+graph-entities = { path = "../graph-entities" }
 logworker = { path = "../log", package = "log", optional = true }
 
 # Feature optional dependencies

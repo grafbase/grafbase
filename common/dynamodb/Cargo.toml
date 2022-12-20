@@ -25,7 +25,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "std",
     "async-await",
 ] }
-graph-entities = { path = "../graph_entities" }
+graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
