@@ -5,6 +5,7 @@ query PaginateTodos($first: Int, $last: Int, $before: String, $after: String) {
       hasPreviousPage
     }
     edges {
+      cursor
       node {
         id
         title
