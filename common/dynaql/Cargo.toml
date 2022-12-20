@@ -40,7 +40,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 bitflags = "1"
 bytes = { version = "1", features = ["serde"] }
-cached = { version = "0.40" }
+cached = { version = "0.41" }
 chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
