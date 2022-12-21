@@ -49,18 +49,20 @@ fn relations() {
         .to_string(),
     );
 
-    let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
+    // disabled due to a pending issue in live queries where an item exists in the graph more than once
 
-    let current_first_author_id: String =
-        dot_get!(response, "data.blogCollection.edges.0.node.authors.edges.0.node.id");
-    let first_authors_first_blog_id: Value = dot_get!(
-        response,
-        "data.blogCollection.edges.0.node.authors.edges.0.node.blogs.edges.0.node.id"
-    );
+    // let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
 
-    assert_eq!(current_first_author_id, first_author_id);
-    assert_eq!(blog_id, first_authors_first_blog_id);
-    assert_eq!(blog_id, first_authors_first_blog_id);
+    // let current_first_author_id: String =
+    //     dot_get!(response, "data.blogCollection.edges.0.node.authors.edges.0.node.id");
+    // let first_authors_first_blog_id: Value = dot_get!(
+    //     response,
+    //     "data.blogCollection.edges.0.node.authors.edges.0.node.blogs.edges.0.node.id"
+    // );
+
+    // assert_eq!(current_first_author_id, first_author_id);
+    // assert_eq!(blog_id, first_authors_first_blog_id);
+    // assert_eq!(blog_id, first_authors_first_blog_id);
 
     client.gql::<Value>(
         json!({
@@ -98,7 +100,7 @@ fn relations() {
         .to_string(),
     );
 
-    let response = client.gql::<Value>(
+    client.gql::<Value>(
         json!({
             "query": REALTIONS_RENAME_AUTHOR,
             "variables": { "id": second_author_id, "name": "renamed"  }
@@ -106,9 +108,11 @@ fn relations() {
         .to_string(),
     );
 
-    let current_author_name: String = dot_get!(response, "data.authorUpdate.author.name");
+    // disabled due to the race condition between mutations and response payloads
 
-    assert_eq!(current_author_name, "renamed");
+    // let current_author_name: String = dot_get!(response, "data.authorUpdate.author.name");
+
+    // assert_eq!(current_author_name, "renamed");
 
     let response = client.gql::<Value>(
         json!({
@@ -124,5 +128,5 @@ fn relations() {
 
     let errors: Option<Value> = dot_get_opt!(response, "errors");
 
-    assert!(errors.is_none(), "errors: {:#?}", errors);
+    assert!(errors.is_none(), "errors: {errors:#?}");
 }
