@@ -42,15 +42,16 @@ runs:
     - name: Install rustup linux
       if: ${{ inputs.platform == 'linux' }}
       shell: bash
-      working-directory: cli
       run: |
         curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=stable --profile=minimal
+        curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+        sudo apt-get install pkg-config libssl-dev musl-tools
 
-    - name: Install rustup windows
+    - name: Install cargo-nextest windows
       if: ${{ inputs.platform == 'windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
-      with:
-        args: install rustup
+      shell: bash
+      run: |
+        curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
     - name: Install rustup macos
       if: ${{ inputs.platform == 'macos' }}
