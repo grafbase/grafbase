@@ -43,6 +43,20 @@ jobs:
           name: clippy
           token: ${{ github.token }}
 
+      - name: Individual package build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd crates
+          # The actual features used for each dependency depends on what is being built simultaneously.
+          # However, each package is published individually, so we're checking that all packages compile
+          # with only their defined features.
+          # See: https://github.com/rust-lang/cargo/issues/4463
+          (cd common && cargo check)
+          (cd server && cargo check)
+          (cd backend && cargo check)
+          (cd cli && cargo check)
+
   windows:
     runs-on: windows-latest
     needs: [lint]
