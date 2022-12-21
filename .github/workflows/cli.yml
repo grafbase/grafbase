@@ -55,11 +55,7 @@ jobs:
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Install cargo-nextest
-        run: |
-          curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-        shell: bash
+          platform: windows
 
       - name: Test
         uses: actions-rs/cargo@v1
@@ -94,10 +90,7 @@ jobs:
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Install cargo-nextest
-        run: |
-          curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+          platform: linux
 
       - name: Test
         uses: actions-rs/cargo@v1
@@ -109,7 +102,6 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: actions-rs/cargo@v1
         with:
-          use-cross: true
           command: build
           args: '--release --target x86_64-unknown-linux-musl'
 
@@ -133,10 +125,7 @@ jobs:
         with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-
-      - name: Install cargo-nextest
-        run: |
-          curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+          platform: macos
 
       - name: Test
         uses: actions-rs/cargo@v1
