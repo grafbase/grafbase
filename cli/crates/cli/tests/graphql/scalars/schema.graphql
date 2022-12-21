@@ -6,4 +6,6 @@ type Scalars @model {
   email: Email!
   json: JSON!
   phone: PhoneNumber!
+  date: Date!
+  datetime: DateTime!
 }

@@ -1,0 +1,5 @@
+type Author @model {
+  id: ID!
+  age: Int!
+  name: String! @length(min: 5, max: 10)
+}

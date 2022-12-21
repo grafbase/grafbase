@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use reqwest::header::HeaderMap;
 use serde_json::json;
 use std::{
     thread::sleep,
@@ -9,6 +10,7 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 
 pub struct Client {
     endpoint: String,
+    headers: HeaderMap,
     client: reqwest::blocking::Client,
     snapshot: Option<String>,
 }
@@ -17,9 +19,15 @@ impl Client {
     pub fn new(endpoint: String) -> Self {
         Self {
             endpoint,
+            headers: HeaderMap::new(),
             client: reqwest::blocking::Client::new(),
             snapshot: None,
         }
+    }
+
+    pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
+        self.headers.insert(key, value.parse().unwrap());
+        self
     }
 
     pub fn gql<T>(&self, body: String) -> T
@@ -29,6 +37,7 @@ impl Client {
         self.client
             .post(&self.endpoint)
             .body(body)
+            .headers(self.headers.clone())
             .send()
             .unwrap()
             .json::<T>()
@@ -39,6 +48,7 @@ impl Client {
         self.client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
+            .headers(self.headers.clone())
             .send()
             .unwrap()
             .text()
@@ -50,6 +60,7 @@ impl Client {
             .client
             .post(&self.endpoint)
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
+            .headers(self.headers.clone())
             .send()
         {
             if let Ok(text) = response.text() {
