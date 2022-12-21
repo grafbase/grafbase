@@ -43,10 +43,13 @@
         nativeBuildInputs = with pkgs; [
           # Rust
           rustToolChain
+          sccache
           openssl
           pkg-config
           nodejs
         ];
+
+        RUSTC_WRAPPER = "${pkgs.sccache.out}/bin/sccache";
 
         shellHook = ''
           export CARGO_INSTALL_ROOT="$(git rev-parse --show-toplevel)/cli/.cargo"
