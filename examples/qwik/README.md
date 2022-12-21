@@ -7,13 +7,12 @@ This example uses the [Qwik](https://qwik.builder.io/docs/getting-started) web f
 
 ## Getting Started
 
-1. Make sure you node.js v16 or higher and run `npm create qwik@latest`
-2. Run `npx degit grafbase/grafbase/examples/qwik` to clone this example
-3. Change directory into the new folder `cd qwik`
-4. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
-5. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
-6. Run `npx grafbase@latest dev` in your terminal
-7. Populate the backend with some `Message` entries using a GraphQL mutation:
+1. Run `npx degit grafbase/grafbase/examples/qwik grafbase-with-qwik` to clone this example
+2. Change directory into the new folder `cd grafbase-with-qwik`
+3. Run `cp .env.example .env`
+4. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
+5. Run `npx grafbase@latest dev` in your terminal
+6. Populate the backend with some `Message` entries using a GraphQL mutation:
 
 ```graphql
   mutation {
@@ -27,7 +26,7 @@ This example uses the [Qwik](https://qwik.builder.io/docs/getting-started) web f
   }
 ```
 
-6. In another terminal, run `npm start` and visit [`http://localhost:5173/`](http://localhost:5173/)
+7. In another terminal, run `npm start` and visit [`http://localhost:5173/`](http://localhost:5173/)
 
 ## Learn More About Grafbase
 
@@ -42,4 +41,4 @@ To learn more about Builder.io, take a look at the following resources:
 
 ### Run on Codesandbox
 
-- todo
+[![Develop with CodeSandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://githubbox.com/grafbase/grafbase/tree/main/examples/qwik)
