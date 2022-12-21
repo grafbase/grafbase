@@ -128,5 +128,5 @@ fn relations() {
 
     let errors: Option<Value> = dot_get_opt!(response, "errors");
 
-    assert!(errors.is_none(), "errors: {:#?}", errors);
+    assert!(errors.is_none(), "errors: {errors:#?}");
 }

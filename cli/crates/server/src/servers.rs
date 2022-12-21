@@ -247,7 +247,7 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
         fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
-        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
+        fs::write(project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
     }
 
     Ok(())
