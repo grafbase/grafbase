@@ -39,13 +39,12 @@ runs:
           ~/.cargo/
           target/
 
-    - name: Install rustup linux
+    - name: Install cargo-nextest & libs linux
       if: ${{ inputs.platform == 'linux' }}
       shell: bash
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=stable --profile=minimal
         curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-        sudo apt-get install pkg-config libssl-dev musl-tools
+        sudo apt-get install musl-tools
 
     - name: Install cargo-nextest windows
       if: ${{ inputs.platform == 'windows' }}
@@ -53,11 +52,11 @@ runs:
       run: |
         curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
-    - name: Install rustup macos
+    - name: Install cargo-nextest macos
       if: ${{ inputs.platform == 'macos' }}
       shell: bash
       run: |
-        brew install rustup
+        curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
 
     - name: rustup
       shell: bash
