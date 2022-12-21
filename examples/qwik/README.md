@@ -2,7 +2,6 @@
 
 [Join our Community](https://grafbase.com/community)
 
-
 This example uses the [Qwik](https://qwik.builder.io/docs/getting-started) web framework.
 
 ## Getting Started
@@ -11,22 +10,25 @@ This example uses the [Qwik](https://qwik.builder.io/docs/getting-started) web f
 2. Change directory into the new folder `cd grafbase-with-qwik`
 3. Run `cp .env.example .env`
 4. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
-5. Run `npx grafbase@latest dev` in your terminal
-6. Populate the backend with some `Message` entries using a GraphQL mutation:
+5. Run `npm install`, or `yarn install` to install dependencies
+6. Run `npx grafbase@latest dev` in your terminal
+7. Populate the backend with some `Message` entries using a GraphQL mutation:
 
 ```graphql
-  mutation {
-    plantCreate(input: { name: "pothos", description: "trailing marbled leaves" }) {
-      plant {
-        id
-        name
-        description
-      }
+mutation {
+  plantCreate(
+    input: { name: "pothos", description: "trailing marbled leaves" }
+  ) {
+    plant {
+      id
+      name
+      description
     }
   }
+}
 ```
 
-7. In another terminal, run `npm start` and visit [`http://localhost:5173/`](http://localhost:5173/)
+8. In another terminal, run `npm start` and visit [`http://localhost:5173/`](http://localhost:5173/)
 
 ## Learn More About Grafbase
 

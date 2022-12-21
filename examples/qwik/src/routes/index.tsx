@@ -1,5 +1,5 @@
-import { component$, useServerMount$, useSignal } from '@builder.io/qwik';
-import { grafbaseClient } from '~/utils/grafbase';
+import { component$, useServerMount$, useSignal } from '@builder.io/qwik'
+import { grafbaseClient } from '~/utils/grafbase'
 
 interface Plants {
   plantCollection: {
@@ -40,41 +40,70 @@ export const AddNewPlantMutation = `
 `
 
 export default component$(() => {
-  const newPlant = useSignal('');
-  const newPlantDescription = useSignal('');
-  const allPlants = useSignal<Plants>();
+  const newPlant = useSignal('')
+  const newPlantDescription = useSignal('')
+  const allPlants = useSignal<Plants>()
 
   useServerMount$(async () => {
-    const plants: Plants = await grafbaseClient({ query: GetAllPlantsQuery, variables: {first: 100}});
-    allPlants.value = plants;
+    const plants: Plants = await grafbaseClient({
+      query: GetAllPlantsQuery,
+      variables: { first: 100 }
+    })
+    allPlants.value = plants
   })
 
   return (
     <div>
       <h1>Plants</h1>
-      { allPlants.value?.plantCollection.edges.map(({node}) => (
+      {allPlants.value?.plantCollection.edges.map(({ node }) => (
         <>
-        <div>{node?.name} : {node?.description}</div>
+          <div>
+            {node?.name} : {node?.description}
+          </div>
         </>
       ))}
 
       <h2>New plant</h2>
 
-      <input id="name" name="name" placeholder="Name" value={newPlant.value} onInput$={ event =>
-      newPlant.value = (event.target as HTMLInputElement).value } />
+      <input
+        id="name"
+        name="name"
+        placeholder="Name"
+        value={newPlant.value}
+        onInput$={(event) =>
+          (newPlant.value = (event.target as HTMLInputElement).value)
+        }
+      />
       <br />
 
-      <input id="description" name="description" placeholder="Describe the plant" value={newPlantDescription.value} onInput$={ event =>
-      newPlantDescription.value = (event.target as HTMLInputElement).value } />
+      <input
+        id="description"
+        name="description"
+        placeholder="Describe the plant"
+        value={newPlantDescription.value}
+        onInput$={(event) =>
+          (newPlantDescription.value = (event.target as HTMLInputElement).value)
+        }
+      />
       <br />
-      
+
       <button
         onClick$={async () => {
-          await grafbaseClient({ query: AddNewPlantMutation, variables: { name: newPlant.value, description: newPlantDescription.value }})
-          allPlants.value = await grafbaseClient({ query: GetAllPlantsQuery, variables: {first: 100}});
+          await grafbaseClient({
+            query: AddNewPlantMutation,
+            variables: {
+              name: newPlant.value,
+              description: newPlantDescription.value
+            }
+          })
+          allPlants.value = await grafbaseClient({
+            query: GetAllPlantsQuery,
+            variables: { first: 100 }
+          })
         }}
-      > Add Plant
+      >
+        Add Plant
       </button>
     </div>
-  );
-});
+  )
+})
