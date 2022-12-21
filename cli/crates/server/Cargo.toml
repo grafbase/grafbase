@@ -11,7 +11,7 @@ repository = "https://github.com/grafbase/grafbase"
 include = ["/src", "/assets"]
 
 [dependencies]
-axum = "0.5"
+axum = "0.6"
 common = { package = "grafbase-local-common", path = "../common", version = "0.14.0" }
 dotenv = "0.15"
 exitcode = "1"

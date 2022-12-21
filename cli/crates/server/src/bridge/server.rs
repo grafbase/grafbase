@@ -5,8 +5,9 @@ use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
+use axum::extract::State;
+use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
-use axum::{Extension, Json};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
@@ -16,8 +17,8 @@ use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
+    State(pool): State<Arc<SqlitePool>>,
     Json(payload): Json<Operation>,
-    Extension(pool): Extension<Arc<SqlitePool>>,
 ) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
@@ -39,8 +40,8 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
+    State(pool): State<Arc<SqlitePool>>,
     Json(payload): Json<Mutation>,
-    Extension(pool): Extension<Arc<SqlitePool>>,
 ) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
@@ -103,7 +104,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
-        .layer(Extension(Arc::clone(&pool)))
+        .with_state(Arc::clone(&pool))
         .layer(TraceLayer::new_for_http());
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
