@@ -97,6 +97,10 @@ impl PaginatedCursor {
         matches!(self, Self::Forward { .. })
     }
 
+    pub fn is_backward(&self) -> bool {
+        matches!(self, Self::Backward { .. })
+    }
+
     fn pagination_string(&self) -> Option<String> {
         match self {
             PaginatedCursor::Forward { exclusive_last_key, .. } => exclusive_last_key.clone(),
@@ -293,9 +297,9 @@ where
             },
             expression_attribute_values: Some(exp),
             expression_attribute_names: Some(exp_att_name),
-            // Items are stored with their ID (~ULID) as the DynamoDB sort_key,
-            // so we just need them to be in scan order.
-            scan_index_forward: Some(true),
+            // Items are stored with their ID (~ULID) as the DynamoDB sort_key, so stored by
+            // createdAt.
+            scan_index_forward: Some(cursor.is_forward()),
             ..Default::default()
         };
 
@@ -452,6 +456,18 @@ where
             };
         }
 
+        // Ordering of the items is independent of cursor direction. So if scanned backwards
+        // we will have result in reverse order currently.
+        //                         after
+        //                           ┌───────► first (forward)
+        //                           │
+        //              ─────────────┼───────────────► Record order
+        //                           │
+        // last (backward) ◄─────────┘
+        //                         before
+        if cursor.is_backward() {
+            result.values.reverse();
+        }
         Ok(result)
     }
 }
