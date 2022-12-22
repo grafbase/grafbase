@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.14.0]
+## [0.14.1]
 
-[CHANGELOG](changelog/0.14.0.md)
+[CHANGELOG](changelog/0.14.1.md)
 
 ## [0.13.0]
 
