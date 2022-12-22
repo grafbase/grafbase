@@ -34,7 +34,7 @@ thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.3", features = ["trace"] }
 tracing = "0.1"
-uuid = "1.2.2"
+uuid = { version = "1.2.2", features = ["v4"] }
 version-compare = "0.1"
 which = "4"
 
