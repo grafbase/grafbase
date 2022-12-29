@@ -24,7 +24,6 @@ For instance, we could have a `Graph` like this
                                          └──────┘
 ```
 
-
 Which would be formatted in:
 
 ```json
