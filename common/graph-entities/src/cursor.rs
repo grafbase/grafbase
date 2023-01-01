@@ -26,11 +26,15 @@ impl Display for PaginationCursor {
 }
 
 impl PaginationCursor {
-    pub fn from_string(value: String) -> anyhow::Result<PaginationCursor> {
+    pub fn parse(value: Option<String>) -> anyhow::Result<Option<PaginationCursor>> {
         use base64::engine::fast_portable::{FastPortable, NO_PAD};
-        let utf8 = base64::decode_engine(value, &FastPortable::from(&base64::alphabet::URL_SAFE, NO_PAD))?;
-        let sk = String::from_utf8(utf8)?;
-        Ok(PaginationCursor { sk })
+        if let Some(value) = value {
+            let utf8 = base64::decode_engine(value, &FastPortable::from(&base64::alphabet::URL_SAFE, NO_PAD))?;
+            let sk = String::from_utf8(utf8)?;
+            Ok(Some(PaginationCursor { sk }))
+        } else {
+            Ok(None)
+        }
     }
 }
 
@@ -43,9 +47,10 @@ mod tests {
         let cursor = PaginationCursor {
             sk: String::from("My shiny new cursor"),
         };
-        let copy = PaginationCursor::from_string(cursor.to_string());
+        let copy = PaginationCursor::parse(Some(cursor.to_string()));
         assert!(copy.is_ok());
-        assert_eq!(copy.unwrap(), cursor);
+        assert_eq!(copy.unwrap(), Some(cursor));
+        assert_eq!(PaginationCursor::parse(None).unwrap(), None);
     }
 
     #[test]

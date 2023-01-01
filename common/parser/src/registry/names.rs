@@ -4,6 +4,11 @@ use dynaql_parser::types::TypeDefinition;
 
 use super::NumericFieldKind;
 
+pub const PAGINATION_INPUT_ARG_FIRST: &str = "first";
+pub const PAGINATION_INPUT_ARG_LAST: &str = "last";
+pub const PAGINATION_INPUT_ARG_BEFORE: &str = "before";
+pub const PAGINATION_INPUT_ARG_AFTER: &str = "after";
+
 pub const INPUT_ARG_BY: &str = "by";
 pub const INPUT_ARG_INPUT: &str = "input";
 

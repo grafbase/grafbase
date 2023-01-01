@@ -16,6 +16,12 @@ use std::collections::HashMap;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
+#[derive(PartialEq, Eq, Clone, Hash, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ParentRelationId {
+    pub relation_name: String,
+    pub parent_id: String,
+}
+
 /// A Cursor.
 /// The first elements are the most recents ones.
 /// The last elements are the most anciens.
@@ -25,15 +31,13 @@ pub enum PaginatedCursor {
     Forward {
         exclusive_last_key: Option<String>,
         first: usize,
-        // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        nested: Option<ParentRelationId>,
     },
     // before
     Backward {
         exclusive_first_key: Option<String>,
         last: usize,
-        // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        nested: Option<ParentRelationId>,
     },
 }
 
@@ -73,7 +77,7 @@ impl PaginatedCursor {
         after: Option<PaginationCursor>,
         before: Option<PaginationCursor>,
         // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        nested: Option<ParentRelationId>,
     ) -> Result<Self, CursorCreation> {
         match (first, after, last, before) {
             (Some(_), _, Some(_), _) => Err(CursorCreation::SameParameterSameTime),
@@ -112,15 +116,15 @@ impl PaginatedCursor {
 
     fn relation_name(&self) -> Option<String> {
         match self {
-            PaginatedCursor::Forward { nested, .. } => nested.clone().map(|nested| nested.0),
-            PaginatedCursor::Backward { nested, .. } => nested.clone().map(|nested| nested.0),
+            PaginatedCursor::Forward { nested, .. } => nested.clone().map(|nested| nested.relation_name),
+            PaginatedCursor::Backward { nested, .. } => nested.clone().map(|nested| nested.relation_name),
         }
     }
 
     pub fn nested_parent_pk(&self) -> Option<String> {
         match self {
             PaginatedCursor::Forward { nested, .. } | PaginatedCursor::Backward { nested, .. } => {
-                nested.clone().map(|nested| nested.1)
+                nested.clone().map(|nested| nested.parent_id)
             }
         }
     }

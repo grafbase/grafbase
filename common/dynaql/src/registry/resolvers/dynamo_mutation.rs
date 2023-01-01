@@ -1,20 +1,20 @@
-use super::{ResolvedValue, ResolverContext, ResolverTrait};
+use super::{ResolvedValue, Resolver};
+use crate::dynamic::DynamicFieldContext;
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
 use crate::registry::variables::id::ObfuscatedID;
-use crate::registry::variables::VariableResolveDefinition;
+
 use crate::registry::{ConstraintType, MetaType};
-use crate::{Context, Error, ServerError, Value};
+use crate::{Context, Error, ServerError};
 use chrono::{SecondsFormat, Utc};
 use dynamodb::constant::INVERTED_INDEX_PK;
 use dynamodb::graph_transaction::PossibleChanges;
 use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
-use dynaql_value::Name;
+
 use dynomite::{Attribute, AttributeValue};
 use futures_util::future::Shared;
 use futures_util::{FutureExt, StreamExt, TryFutureExt};
 use graph_entities::{ConstraintID, NodeID};
-use indexmap::IndexMap;
-use std::borrow::Borrow;
+
 use std::collections::{HashMap, HashSet};
 use std::future::Future;
 use std::hash::Hash;
@@ -26,7 +26,7 @@ use ulid::Ulid;
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum DynamoMutationResolver {
+pub enum MutationResolver {
     /// Create a new Node
     ///
     /// We do create a new node and store the generated ID into the ResolverContext to allow a
@@ -50,8 +50,8 @@ pub enum DynamoMutationResolver {
     ///   "id": "<generated_id>"
     /// }
     /// ```
-    CreateNode {
-        input: VariableResolveDefinition,
+    Create {
+        input: Resolver,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: String,
@@ -111,8 +111,8 @@ pub enum DynamoMutationResolver {
     ///   "id": "<deleted_id>"
     /// }
     /// ```
-    DeleteNode {
-        by: VariableResolveDefinition,
+    Delete {
+        by: Resolver,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: String,
@@ -122,16 +122,16 @@ pub enum DynamoMutationResolver {
     /// To update a Node, we need to fetch every duplicate of this node which will
     /// exists linked to other nodes.
     ///
-    /// Trigger the update for those basic fields accross every node & duplicate.
+    /// Trigger the update for those basic fields across every node & duplicate.
     ///
     /// ```json
     /// {
     ///   "id": "<updated_id>"
     /// }
     /// ```
-    UpdateNode {
-        by: VariableResolveDefinition,
-        input: VariableResolveDefinition,
+    Update {
+        by: Resolver,
+        input: Resolver,
         /// Type defined for GraphQL side, it's used to be able to know if we manipulate a Node
         /// and if this Node got Edges. This type must the the Type visible on the GraphQL Schema.
         ty: String,
@@ -164,7 +164,8 @@ type SelectionType<'a> = Pin<
     >,
 >;
 
-type TransactionType<'a> = Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>>;
+type TransactionType<'a> =
+    Pin<Box<dyn Future<Output = Result<ResolvedValue<'a>, Error>> + Send + 'a>>;
 
 /// The purpose of this struct is to divide result based on transaction or selection.
 /// And these results will be based on a projection of what would exist if we executed
@@ -241,7 +242,7 @@ fn node_create<'a>(
     node_ty: &'a MetaType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
-    input: IndexMap<Name, Value>,
+    input: serde_json::Map<String, serde_json::Value>,
 ) -> RecursiveCreation<'a> {
     let current_execution_id = {
         let mut execution_id = Some(execution_id);
@@ -265,11 +266,7 @@ fn node_create<'a>(
         .into_iter()
         .filter(|(key, _)| !relations_to_be_created.contains_key(key.as_str()))
         .fold(HashMap::new(), |mut acc, (key, val)| {
-            let key = key.to_string();
-            acc.insert(
-                key,
-                value_to_attribute(val.into_json().expect("can't fail")),
-            );
+            acc.insert(key, value_to_attribute(val));
             acc
         });
 
@@ -346,9 +343,9 @@ fn node_create<'a>(
                 .await
                 .map_err(Error::new_with_source)?;
 
-            Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+            Ok(ResolvedValue::owned(serde_json::json!({
                 "id": serde_json::Value::String(id.to_string()),
-            }))))
+            })))
         });
 
     transactions.extend(vec![create_future]);
@@ -370,7 +367,7 @@ async fn relation_remove<'a>(
     from: SharedSelectionType<'a>,
     to: String,
     relation_name: &'a str,
-) -> Result<ResolvedValue, Error> {
+) -> Result<ResolvedValue<'a>, Error> {
     let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
     let transaction_loader = &batchers.transaction_new;
     let values = from.await.map_err(Error::new_with_source)?;
@@ -408,11 +405,8 @@ async fn relation_remove<'a>(
         .await
         .map_err(Error::new_with_source)?;
 
-    Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+    Ok(ResolvedValue::null())
 }
-
-type InputIterRef<'a> = Vec<(&'a Name, &'a Value)>;
-type InputIter = Vec<(Name, Value)>;
 
 pub const NUMERICAL_TYPES: &[&str] = &["Int", "Int!", "Float", "Float!"];
 
@@ -428,18 +422,14 @@ fn node_update<'a>(
     node_ty: &'a MetaType,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
-    input: IndexMap<Name, Value>,
+    input: serde_json::Map<String, serde_json::Value>,
     id: String,
     by_id: Option<String>,
 ) -> Result<RecursiveCreation<'a>, TransactionError> {
     let relations = node_ty.relations();
-
     let id_cloned = id.clone();
-    let (_, basic): (InputIterRef<'_>, InputIterRef<'_>) = input
-        .iter()
-        .partition(|(name, _)| relations.contains_key(name.as_str()));
 
-    let numerical_field_names = node_ty
+    let numerical_field_names: HashSet<&String> = node_ty
         .fields()
         .map(|fields| {
             fields
@@ -450,26 +440,10 @@ fn node_update<'a>(
         })
         .unwrap_or_default();
 
-    let numerical_operations = basic
+    let (numerical_operations, mut update_attr): (Vec<_>, Vec<_>) = input
         .iter()
-        .filter(|field| numerical_field_names.contains(&field.0.to_string()))
-        .map(|update| {
-            (
-                update.0.to_string(),
-                update.1.clone().into_json().expect("must parse"),
-            )
-        })
-        .collect::<Vec<_>>();
-
-    let (_, basic_without_increments): (InputIterRef<'_>, InputIterRef<'_>) = basic
-        .iter()
-        .partition(|(name, _)| numerical_field_names.contains(&name.to_string()));
-
-    // We compute the attribute which will be updated.
-    let mut update_attr: InputIter = basic_without_increments
-        .into_iter()
-        .map(|(name, val)| (name.clone(), val.clone()))
-        .collect();
+        .filter(|(name, _)| !relations.contains_key(name.as_str()))
+        .partition(|(name, _)| numerical_field_names.contains(name));
 
     let mut increments = HashMap::new();
 
@@ -482,13 +456,10 @@ fn node_update<'a>(
         .constraints();
 
     for (field, operation) in numerical_operations {
-        if let Some(set) = operation.get("set") {
-            update_attr.push((
-                Name::new(field),
-                dynaql_value::ConstValue::from_json(set.clone()).expect("must parse"),
-            ));
+        if let Some(value) = operation.get("set") {
+            update_attr.push((field, value));
         } else if constraints.iter().any(|constraint| {
-            constraint.field == field && constraint.r#type == ConstraintType::Unique
+            constraint.field == *field && constraint.r#type == ConstraintType::Unique
         }) {
             return Err(TransactionError::UniqueNumericAtomic);
         } else if let Some(increment) = operation.get("increment") {
@@ -503,6 +474,12 @@ fn node_update<'a>(
             }
         }
     }
+    // Creating a copy of the input values because we currently return an owned data.
+    // So we cannot reference input anymore at the end.
+    let update_attr: Vec<(String, serde_json::Value)> = update_attr
+        .into_iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
 
     let should_update_updated_at = !update_attr.is_empty() || !increments.is_empty();
 
@@ -519,15 +496,7 @@ fn node_update<'a>(
                     .into_iter()
                     .map(|(id, mut entity)| {
                         for (att_name, att_val) in &update_attr {
-                            entity.insert(
-                                att_name.to_string(),
-                                value_to_attribute(
-                                    att_val
-                                        .clone()
-                                        .into_json()
-                                        .expect("Shouldn't fail as this is valid json"),
-                                ),
-                            );
+                            entity.insert(att_name.clone(), value_to_attribute(att_val.clone()));
                         }
                         if should_update_updated_at {
                             entity.insert(
@@ -619,7 +588,7 @@ fn node_update<'a>(
                 .await
                 .map_err(Error::new_with_source)?;
 
-            Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+            Ok(ResolvedValue::null())
         });
 
     transactions.extend(vec![update_future]);
@@ -640,18 +609,6 @@ fn node_update<'a>(
     })
 }
 
-/// Get inputs list
-fn inputs(parent_input: &Value) -> Option<Vec<&IndexMap<Name, Value>>> {
-    match parent_input {
-        Value::Object(obj) => Some(vec![obj]),
-        Value::List(list) => {
-            let input_list = list.iter().map(inputs).flatten().flatten().collect();
-            Some(input_list)
-        }
-        _ => None,
-    }
-}
-
 /// Create a relation node only if needed
 async fn create_relation_node<'a>(
     ctx: &'a Context<'a>,
@@ -659,7 +616,7 @@ async fn create_relation_node<'a>(
     parent_value: SharedSelectionType<'a>,
     selected_value: SharedSelectionType<'a>,
     relation_name: &'a str,
-) -> Result<ResolvedValue, Error> {
+) -> Result<ResolvedValue<'a>, Error> {
     let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
     let transaction_batcher = &batchers.transaction_new;
 
@@ -706,9 +663,9 @@ async fn create_relation_node<'a>(
                 .await
                 .map_err(Error::new_with_source)?;
 
-            Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
+            Ok(ResolvedValue::null())
         }
-        _ => Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))),
+        _ => Ok(ResolvedValue::null()),
     }
 }
 
@@ -718,15 +675,15 @@ fn internal_node_linking<'a>(
     child_ty: &'a MetaType,
     parent_value: SharedSelectionType<'a>,
     relation_name: &'a str,
-    linking_input: &Value,
+    linking_input: &serde_json::Value,
 ) -> RecursiveCreation<'a> {
     // For linking, it's either, Id, Array of Id, or Null
     let field_value = match linking_input {
-        Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
-        Value::List(list) => Some(
+        serde_json::Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+        serde_json::Value::Array(list) => Some(
             list.iter()
                 .map(|value| match value {
-                    Value::String(inner) => (inner.clone(), inner.clone()),
+                    serde_json::Value::String(inner) => (inner.clone(), inner.clone()),
                     _ => panic!(),
                 })
                 .collect(),
@@ -771,15 +728,15 @@ fn internal_node_unlinking<'a>(
     ctx: &'a Context<'a>,
     parent_value: SharedSelectionType<'a>,
     relation_name: &'a str,
-    unlinking_input: &Value,
+    unlinking_input: &serde_json::Value,
 ) -> RecursiveCreation<'a> {
     // For unlinking, it's either, Id, Array of Id, or Null
     let field_value = match unlinking_input {
-        Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
-        Value::List(list) => Some(
+        serde_json::Value::String(inner) => Some(vec![(inner.clone(), inner.clone())]),
+        serde_json::Value::Array(list) => Some(
             list.iter()
                 .map(|value| match value {
-                    Value::String(inner) => (inner.clone(), inner.clone()),
+                    serde_json::Value::String(inner) => (inner.clone(), inner.clone()),
                     _ => panic!(),
                 })
                 .collect(),
@@ -863,7 +820,7 @@ fn relation_handle<'a>(
     parent_value: SharedSelectionType<'a>,
     relation_field: &'a str,
     relation_name: &'a str,
-    input: &IndexMap<Name, Value>,
+    input: &serde_json::Map<String, serde_json::Value>,
     execution_id: Ulid,
     increment: Arc<AtomicUsize>,
 ) -> Vec<RecursiveCreation<'a>> {
@@ -883,8 +840,11 @@ fn relation_handle<'a>(
 
     // We need to tell if it's a `create` or a `link`
     // So we get the child input first
-    let child_input = match input.get(&Name::new(relation_field)).and_then(inputs) {
-        Some(val) => val,
+    let child_input: Vec<&serde_json::Value> = match input.get(relation_field) {
+        Some(v) => match v {
+            serde_json::Value::Array(arr) => arr.iter().collect(),
+            _ => vec![v],
+        },
         _ => {
             return Vec::new();
         }
@@ -899,7 +859,7 @@ fn relation_handle<'a>(
         let parent_value = parent_value.clone();
 
         let result_local = match (create, link, unlink) {
-            (Some(Value::Object(creation_input)), None, None) => {
+            (Some(serde_json::Value::Object(creation_input)), None, None) => {
                 let mut result = node_create(
                     ctx,
                     child_ty,
@@ -969,14 +929,13 @@ fn relation_handle<'a>(
     result
 }
 
-#[async_trait::async_trait]
-impl ResolverTrait for DynamoMutationResolver {
-    async fn resolve(
+impl MutationResolver {
+    pub async fn resolve<'ctx>(
         &self,
-        ctx: &Context<'_>,
-        resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
-    ) -> Result<ResolvedValue, Error> {
+        ctx_field: &DynamicFieldContext<'ctx>,
+        maybe_parent_value: Option<&ResolvedValue<'ctx>>,
+    ) -> Result<ResolvedValue<'ctx>, Error> {
+        let ctx = &ctx_field.base;
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
 
         match self {
@@ -987,107 +946,44 @@ impl ResolverTrait for DynamoMutationResolver {
             // Why?
             //
             // Because it's how we store the data.
-            DynamoMutationResolver::CreateNode { input, ty } => {
+            MutationResolver::Create { input, ty } => {
                 let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
                     Error::new("Internal Error: Failed process the associated schema.")
                 })?;
 
-                let ctx_create_input_ty = ctx
-                    .registry()
-                    .types
-                    .get(&format!("{ty}CreateInput"))
-                    .ok_or_else(|| {
-                        Error::new("Internal Error: Failed process the associated schema.")
-                    })?;
+                let id = Ulid::new();
+                let input = input.resolve_object(ctx_field, maybe_parent_value).await?;
 
-                let create_input_fields = match ctx_create_input_ty {
-                    MetaType::InputObject { input_fields, .. } => input_fields,
-                    _ => {
-                        return Err(Error::new(
-                            "Internal Error: `*CreateInput` type is not an input object",
-                        ))
-                    }
-                };
-
-                let id = resolver_ctx.execution_id.to_string();
-                let autogenerated_id = NodeID::new(&ty, &id);
-
-                let input = match input
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
-                    .expect("can't fail")
-                {
-                    Value::Object(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
-
-                // Extend with default values for the fields missing in the input.
-                // Values from `input` take precedence.
-                let input = create_input_fields
-                    .iter()
-                    .filter_map(|(name, field)| {
-                        field
-                            .default_value
-                            .as_ref()
-                            .map(|default_value| (Name::new(name.as_str()), default_value.clone()))
-                    })
-                    .chain(input)
-                    .collect();
-
-                let creation = node_create(
-                    ctx,
-                    ctx_ty,
-                    *resolver_ctx.execution_id,
-                    Arc::new(AtomicUsize::new(0)),
-                    input,
-                );
+                let creation = node_create(ctx, ctx_ty, id, Arc::new(AtomicUsize::new(0)), input);
                 let _ = creation.selection.await?;
                 let _ = futures_util::future::try_join_all(creation.transaction).await?;
 
-                Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                let autogenerated_id = NodeID::new_owned(ty.to_string(), id.to_string());
+                Ok(ResolvedValue::owned(serde_json::json!({
                     "id": serde_json::Value::String(autogenerated_id.to_string()),
-                }))))
+                })))
             }
-            DynamoMutationResolver::UpdateNode { by, input, ty } => {
+            MutationResolver::Update { by, input, ty } => {
                 let loader = &batchers.loader;
-
                 let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
                     Error::new("Internal Error: Failed process the associated schema.")
                 })?;
+                let (by_key, by_value) = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
 
-                let by = match by
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
-                    .expect("can't fail")
-                {
-                    Value::Object(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
+                if by_key == "id" {
+                    let value: String = by_value.as_str().expect("cannot fail").to_string();
 
-                let (key, value) = by.first().expect("must exist");
-
-                let key = key.to_string();
-
-                let by_id = key == "id";
-
-                if by_id {
-                    let value: String =
-                        dynaql_value::from_value(value.clone()).expect("cannot fail");
-
-                    ObfuscatedID::expect(&value.to_string(), &ty)
+                    ObfuscatedID::expect(&value, &ty)
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                    let input = input
-                        .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                    let fields = input.resolve_object(ctx_field, maybe_parent_value).await?;
 
                     let update = node_update(
                         ctx,
                         ctx_ty,
-                        *resolver_ctx.execution_id,
+                        Ulid::new(),
                         Arc::new(AtomicUsize::new(0)),
-                        input,
+                        fields,
                         value.to_string(),
                         None,
                     )?;
@@ -1101,23 +997,18 @@ impl ResolverTrait for DynamoMutationResolver {
                         result?;
                     }
 
-                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                    Ok(ResolvedValue::owned(serde_json::json!({
                         "id": serde_json::Value::String(value.to_string()),
-                    }))))
+                    })))
                 } else {
-                    let pk = ConstraintID::from_owned(
-                        ty.to_string(),
-                        key.clone(),
-                        value.clone().into_json().expect("cannot fail"),
-                    )
-                    .to_string();
+                    let pk = ConstraintID::from_owned(ty.to_string(), by_key, by_value).to_string();
                     let sk = pk.clone();
 
                     let original_pk = match loader.load_one((pk.clone(), sk)).await {
                         Ok(Some(item)) => item.get(INVERTED_INDEX_PK).expect("must exist").clone(),
                         _ => {
-                            ctx.add_error(Error::new("An issue occured while updating this entity. Reason: The requested entity does not exist.").into_server_error(ctx.item.pos));
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
+                            ctx.add_error(Error::new("An issue occurred while updating this entity. Reason: The requested entity does not exist.").into_server_error(ctx.item.pos));
+                            return Ok(ResolvedValue::null());
                         }
                     };
 
@@ -1128,15 +1019,14 @@ impl ResolverTrait for DynamoMutationResolver {
                     ObfuscatedID::expect(&id.to_string(), &ty)
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
 
-                    let input = input
-                        .expect_obj(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
+                    let fields = input.resolve_object(ctx_field, maybe_parent_value).await?;
 
                     let update = node_update(
                         ctx,
                         ctx_ty,
-                        *resolver_ctx.execution_id,
+                        Ulid::new(),
                         Arc::new(AtomicUsize::new(0)),
-                        input,
+                        fields,
                         id.to_string(),
                         Some(pk),
                     )?;
@@ -1150,34 +1040,19 @@ impl ResolverTrait for DynamoMutationResolver {
                         result?;
                     }
 
-                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                    Ok(ResolvedValue::owned(serde_json::json!({
                         "id": serde_json::Value::String(id.to_string()),
-                    }))))
+                    })))
                 }
             }
-            DynamoMutationResolver::DeleteNode { by, ty } => {
+            MutationResolver::Delete { by, ty } => {
                 let new_transaction = &batchers.transaction_new;
                 let loader = &batchers.loader;
+                let (by_key, by_value) = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
 
-                let by = match by
-                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
-                    .expect("can't fail")
-                {
-                    Value::Object(inner) => inner,
-                    _ => {
-                        return Err(Error::new("Internal Error: failed to infer key"));
-                    }
-                };
-
-                let (key, value) = by.first().expect("must exist");
-
-                let key = key.to_string();
-
-                let by_id = key == "id";
-
-                if by_id {
+                if by_key == "id" {
                     let id_to_be_deleted: String =
-                        dynaql_value::from_value(value.clone()).expect("cannot fail");
+                        by_value.as_str().expect("cannot fail").to_string();
 
                     let opaque_id = ObfuscatedID::expect(&id_to_be_deleted, &ty)
                         .map_err(|err| err.into_server_error(ctx.item.pos))?;
@@ -1189,23 +1064,18 @@ impl ResolverTrait for DynamoMutationResolver {
                         .load_one(PossibleChanges::delete_node(ty.clone(), id.clone(), None))
                         .await?;
 
-                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                    Ok(ResolvedValue::owned(serde_json::json!({
                         "id": serde_json::Value::String(id_to_be_deleted),
-                    }))))
+                    })))
                 } else {
-                    let pk = ConstraintID::from_owned(
-                        ty.to_string(),
-                        key.clone(),
-                        value.clone().into_json().expect("cannot fail"),
-                    )
-                    .to_string();
+                    let pk = ConstraintID::from_owned(ty.to_string(), by_key, by_value).to_string();
                     let sk = pk.clone();
 
                     let original_pk = match loader.load_one((pk.clone(), sk)).await {
                         Ok(Some(item)) => item.get(INVERTED_INDEX_PK).expect("must exist").clone(),
                         _ => {
                             ctx.add_error(Error::new("An issue occured while deleting this entity. Reason: The requested entity does not exist.").into_server_error(ctx.item.pos));
-                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)));
+                            return Ok(ResolvedValue::null());
                         }
                     };
 
@@ -1224,9 +1094,9 @@ impl ResolverTrait for DynamoMutationResolver {
                         ))
                         .await?;
 
-                    Ok(ResolvedValue::new(Arc::new(serde_json::json!({
+                    Ok(ResolvedValue::owned(serde_json::json!({
                         "id": serde_json::Value::String(id.to_string()),
-                    }))))
+                    })))
                 }
             }
         }

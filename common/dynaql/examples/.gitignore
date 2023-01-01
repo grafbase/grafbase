@@ -1,8 +1,0 @@
-/target
-node_modules
-.idea
-.DS_Store
-Cargo.lock
-memory:
-memory:*
-

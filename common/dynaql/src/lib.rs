@@ -204,7 +204,7 @@ pub use async_stream;
 #[doc(hidden)]
 pub use async_trait;
 #[doc(hidden)]
-pub use context::ContextSelectionSet;
+pub mod dynamic;
 #[doc(hidden)]
 pub use futures_util;
 #[doc(hidden)]

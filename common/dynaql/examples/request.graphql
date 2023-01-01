@@ -1,6 +1,0 @@
-query {
-  productById(id: 1) {
-    __typename
-    id
-  }
-}
