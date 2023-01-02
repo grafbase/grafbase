@@ -24,7 +24,10 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
           </script>
           <script defer="defer" src="{{ASSETS_URL}}/main.js"></script>
           <link href="{{ASSETS_URL}}/main.css" rel="stylesheet" />
-          <!-- <link href="{{ASSETS_URL}}/graphiql.css" rel="stylesheet" /> -->
+          <link
+            href="https://cdn.jsdelivr.net/npm/@grafbase/graphiql@2.0.2/dist/index.css"
+            rel="stylesheet"
+          />
         </head>
         <body>
           <noscript>You need to enable JavaScript to run the Grafbase playground</noscript>
