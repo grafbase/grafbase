@@ -29,7 +29,7 @@ graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
-lru = { version = "0.8" }
+lru = { version = "0.9" }
 quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
