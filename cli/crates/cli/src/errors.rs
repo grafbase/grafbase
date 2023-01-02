@@ -79,6 +79,7 @@ impl CliError {
             Self::BackendError(BackendError::StartDownloadRepoArchive(_, _)) => Some("this may be caused by connection issues".to_owned()),
             Self::BackendError(BackendError::DownloadRepoArchive(_)) => Some("this may be caused by an incorrect URL or trying to use a private repository as a template".to_owned()),
             Self::BackendError(BackendError::NoFilesExtracted) => Some("this is likely to be caused by an incorrect path or one not containing a grafbase directory".to_owned()),
+            Self::BackendError(BackendError::UnsupportedTemplateURL(_)) => Some("try using a GitHub URL of the following structure: 'https://github.com/org/repo/tree/branch'".to_owned()),
             _ => None,
         }
     }
