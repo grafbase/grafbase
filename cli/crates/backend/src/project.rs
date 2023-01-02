@@ -119,7 +119,7 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
     let (_, repo_without_org) = repo.split_once('/').expect("must have a slash");
 
     // not using the common environment since it's not initialized here
-    // if the OS does not have a cache path or it is not utf-8, we don't cache the download
+    // if the OS does not have a cache path or it is not UTF-8, we don't cache the download
     let cache_directory = dirs::cache_dir().and_then(|path| path.join("grafbase").to_str().map(ToOwned::to_owned));
 
     let mut client_builder = ClientBuilder::new(Client::new());
