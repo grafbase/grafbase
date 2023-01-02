@@ -2,5 +2,4 @@ type Author @model {
   id: ID!
   age: Int!
   name: String! @unique
-  age: Int!
 }
