@@ -11,7 +11,8 @@ use std::env;
 use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
@@ -118,6 +119,23 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
 
     let (_, repo_without_org) = repo.split_once('/').expect("must have a slash");
 
+    let extraction_dir = PathBuf::from_str(&format!("{repo_without_org}-{branch}")).expect("must succeed");
+
+    let extraction_result = stream_github_archive(repo, path, branch, extraction_dir.as_path()).await;
+
+    if extraction_dir.exists() {
+        fs::remove_dir_all(extraction_dir).map_err(BackendError::CleanExtractedFiles)?;
+    }
+
+    extraction_result
+}
+
+async fn stream_github_archive<'a>(
+    repo: &'a str,
+    path: Option<PathBuf>,
+    branch: &'a str,
+    extraction_dir: &'a Path,
+) -> Result<(), BackendError> {
     // not using the common environment since it's not initialized here
     // if the OS does not have a cache path or it is not UTF-8, we don't cache the download
     let cache_directory = dirs::cache_dir().and_then(|path| path.join("grafbase").to_str().map(ToOwned::to_owned));
@@ -154,7 +172,7 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
 
     let mut template_path = PathBuf::new();
 
-    template_path.push(&format!("{repo_without_org}-{branch}"));
+    template_path.push(extraction_dir);
 
     if let Some(path) = path {
         template_path.push(path);
@@ -164,7 +182,9 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
 
     let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
 
-    while let Some(mut entry) = entries.next().await.and_then(Result::ok) {
+    while let Some(entry) = entries.next().await {
+        let mut entry = entry.map_err(BackendError::ExtractArchiveEntry)?;
+
         if entry
             .path()
             .ok()
@@ -181,9 +201,6 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
     }
 
     fs::rename(template_path, "grafbase").map_err(BackendError::MoveExtractedFiles)?;
-
-    // FIXME: do this regardless of success
-    fs::remove_dir_all(format!("{repo_without_org}-{branch}")).map_err(BackendError::CleanExtractedFiles)?;
 
     Ok(())
 }
