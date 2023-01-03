@@ -9,14 +9,15 @@ use crate::rules::length_directive::{LENGTH_DIRECTIVE, MAX_ARGUMENT, MIN_ARGUMEN
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{pagination_arguments, to_input_type, to_lower_camelcase};
 use case::CaseExt;
-use dynamodb::constant;
+use dynamodb::{constant, ParentRelationId};
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::transformers::Transformer;
+use dynaql::registry::resolvers::{
+    PAGINATION_END_CURSOR, PAGINATION_HAS_NEXT_PAGE, PAGINATION_HAS_PREVIOUS_PAGE, PAGINATION_START_CURSOR,
+};
 use dynaql::registry::{
-    resolvers::context_data::ContextDataResolver, resolvers::dynamo_mutation::DynamoMutationResolver,
-    resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver, resolvers::ResolverType,
-    variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
+    resolvers::context_data::ParentDataResolver, resolvers::dynamo_mutation::MutationResolver,
+    resolvers::dynamo_querying::QueryResolver, resolvers::Resolver, MetaField, MetaInputValue, MetaType,
 };
 use dynaql::validation::dynamic_validators::DynValidator;
 use dynaql::{AuthConfig, Operations};
@@ -27,6 +28,10 @@ pub mod names;
 mod relations;
 
 pub use mutations::{add_mutation_create, add_mutation_update, NumericFieldKind};
+
+use self::names::{
+    PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
+};
 
 /// Create an input type for a non_primitive Type.
 pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &ObjectType, type_name: &str) -> String {
@@ -108,8 +113,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: Some(Resolver::parent_object()),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -130,18 +134,11 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                key: type_name.to_string(),
-                            }),
-                        }),
-                        transformer: Some(Transformer::Pipeline(vec![
-                            Transformer::DynamoSelect {
-                                property: constant::SK.to_string(),
-                            },
-                            Transformer::ConvertSkToCursor,
-                        ])),
+                        resolver: Some(
+                            Resolver::field(type_name)
+                                .and_then(Resolver::dynamo_attr(constant::SK))
+                                .and_then(Resolver::parent(ParentDataResolver::ConvertSkToCursor)),
+                        ),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -193,13 +190,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "has_previous_page".to_string(),
-                        }),
+                        resolver: Some(Resolver::field(PAGINATION_HAS_PREVIOUS_PAGE)),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -220,13 +211,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "has_next_page".to_string(),
-                        }),
+                        resolver: Some(Resolver::field(PAGINATION_HAS_NEXT_PAGE)),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -247,13 +232,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "start_cursor".to_string(),
-                        }),
+                        resolver: Some(Resolver::field(PAGINATION_START_CURSOR)),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -274,13 +253,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: Some(Resolver {
-                            id: None,
-                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
-                        }),
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "end_cursor".to_string(),
-                        }),
+                        resolver: Some(Resolver::field(PAGINATION_END_CURSOR)),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -329,8 +302,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: Some(Resolver::parent(ParentDataResolver::PageInfo)),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -351,8 +323,7 @@ pub fn add_list_query_paginated<'a>(
                         compute_complexity: None,
                         edges: connection_edges.clone(),
                         relation: None,
-                        resolve: None,
-                        transformer: None,
+                        resolver: Some(Resolver::parent_object()),
                         required_operation: Some(Operations::LIST),
                         auth: auth.cloned(),
                     },
@@ -395,19 +366,14 @@ pub fn add_list_query_paginated<'a>(
             format!("{}Collection", to_lower_camelcase(type_name)),
             &Type::new(type_name).expect("Shouldn't fail"),
         )),
-        resolve: Some(Resolver {
-            id: Some(format!("{}_resolver", type_name.to_lowercase())),
-            // Multiple entities
-            r#type: ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
-                r#type: VariableResolveDefinition::DebugString(type_name.to_string()),
-                first: VariableResolveDefinition::InputTypeName("first".to_string()),
-                after: VariableResolveDefinition::InputTypeName("after".to_string()),
-                before: VariableResolveDefinition::InputTypeName("before".to_string()),
-                last: VariableResolveDefinition::InputTypeName("last".to_string()),
-                nested: None,
-            }),
-        }),
-        transformer: None,
+        resolver: Some(Resolver::query(QueryResolver::PaginatedByType {
+            r#type: Resolver::constant(type_name),
+            first: Resolver::input(PAGINATION_INPUT_ARG_FIRST),
+            after: Resolver::input(PAGINATION_INPUT_ARG_AFTER),
+            before: Resolver::input(PAGINATION_INPUT_ARG_BEFORE),
+            last: Resolver::input(PAGINATION_INPUT_ARG_LAST),
+            maybe_parent_relation: Resolver::constant::<Option<ParentRelationId>>(None),
+        })),
         required_operation: Some(Operations::LIST),
         auth: auth.cloned(),
     });
@@ -443,10 +409,7 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolve: None,
-                        transformer: Some(Transformer::JSONSelect {
-                            property: "id".to_string(),
-                        }),
+                        resolver: Some(Resolver::field("id")),
                         required_operation: Some(Operations::DELETE),
                         auth: auth.cloned(),
                     },
@@ -502,14 +465,10 @@ pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, au
         edges: Vec::new(),
         relation: None,
         compute_complexity: None,
-        resolve: Some(Resolver {
-            id: Some(format!("{}_delete_resolver", type_name.to_lowercase())),
-            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::DeleteNode {
-                ty: type_name,
-                by: VariableResolveDefinition::InputTypeName("by".to_owned()),
-            }),
-        }),
-        transformer: None,
+        resolver: Some(Resolver::mutation(MutationResolver::Delete {
+            ty: type_name,
+            by: Resolver::input("by"),
+        })),
         required_operation: Some(Operations::DELETE),
         auth: auth.cloned(),
     });

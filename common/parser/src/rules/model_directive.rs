@@ -17,16 +17,15 @@
 //! TODO: Should have either: an ID or a PK
 
 use case::CaseExt;
+use dynamodb::constant;
 use if_chain::if_chain;
 
 use dynaql::indexmap::IndexMap;
-use dynaql::registry::resolvers::context_data::ContextDataResolver;
-use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
+use dynaql::registry::resolvers::context_data::ParentDataResolver;
+use dynaql::registry::resolvers::dynamo_querying::QueryResolver;
+use dynaql::registry::resolvers::Resolver;
 use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
 use dynaql::registry::{is_array_basic_type, MetaType};
-use dynaql::registry::{
-    resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
-};
 use dynaql::registry::{Constraint, MetaField};
 use dynaql::registry::{ConstraintType, MetaInputValue};
 use dynaql::{AuthConfig, Operations, Positioned};
@@ -36,7 +35,10 @@ use std::collections::HashMap;
 
 use crate::registry::add_list_query_paginated;
 use crate::registry::add_remove_mutation;
-use crate::registry::names::MetaNames;
+use crate::registry::names::{
+    MetaNames, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST,
+    PAGINATION_INPUT_ARG_LAST,
+};
 use crate::registry::{add_mutation_create, add_mutation_update};
 use crate::utils::pagination_arguments;
 use crate::utils::to_base_type_str;
@@ -106,16 +108,8 @@ fn insert_metadata_field(
             provides: None,
             visible: None,
             compute_complexity: None,
-            resolve: Some(Resolver {
-                id: None,
-                r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                    key: type_name.to_string(),
-                }),
-            }),
+            resolver: Some(Resolver::field(type_name).and_then(Resolver::dynamo_attr(dynamo_property_name))),
             edges: Vec::new(),
-            transformer: Some(Transformer::DynamoSelect {
-                property: dynamo_property_name.to_owned(),
-            }),
             relation: None,
             required_operation: None,
             auth: auth.cloned(),
@@ -197,38 +191,35 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 continue;
                             }
 
-                            let relation = RelationEngine::get(ctx, &type_definition.node, &field.node);
-                            let transformer = if relation.is_some() {
-                                None
-                            } else {
-                                Some(Transformer::DynamoSelect { property: name.clone() })
-                            };
+                            let maybe_relation = RelationEngine::get(ctx, &type_definition.node, &field.node);
 
                             let is_expecting_array = is_array_basic_type(&field.node.ty.to_string());
-                            let relation_array = relation.is_some() && is_expecting_array;
-                            let resolve = relation
+                            let relation_array = maybe_relation.is_some() && is_expecting_array;
+                            let resolve = maybe_relation
                                 .as_ref()
-                                .map(|r| Resolver {
-                                    id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
-                                    r#type: ResolverType::ContextDataResolver(if relation_array {
-                                        ContextDataResolver::EdgeArray {
-                                            key: type_name.clone(),
-                                            relation_name: r.name.clone(),
-                                            expected_ty: to_base_type_str(&field.node.ty.node.base),
-                                        }
+                                .map(|relation| {
+                                    let parent_relation_resolver =
+                                        Resolver::parent(ParentDataResolver::ParentRelationId {
+                                            relation_name: relation.name.clone(),
+                                            parent_id: Resolver::field(&type_name)
+                                                .and_then(Resolver::dynamo_attr(constant::SK)),
+                                        });
+                                    if is_expecting_array {
+                                        Resolver::query(QueryResolver::PaginatedByType {
+                                            r#type: Resolver::constant(to_base_type_str(&field.node.ty.node.base)),
+                                            first: Resolver::input(PAGINATION_INPUT_ARG_FIRST),
+                                            after: Resolver::input(PAGINATION_INPUT_ARG_AFTER),
+                                            before: Resolver::input(PAGINATION_INPUT_ARG_BEFORE),
+                                            last: Resolver::input(PAGINATION_INPUT_ARG_LAST),
+                                            maybe_parent_relation: parent_relation_resolver,
+                                        })
                                     } else {
-                                        ContextDataResolver::SingleEdge {
-                                            key: type_name.clone(),
-                                            relation_name: r.name.clone(),
-                                        }
-                                    }),
+                                        Resolver::query(QueryResolver::SingleRelation {
+                                            parent_relation: parent_relation_resolver,
+                                        })
+                                    }
                                 })
-                                .unwrap_or_else(|| Resolver {
-                                    id: None,
-                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                        key: type_name.to_string(),
-                                    }),
-                                });
+                                .unwrap_or_else(|| Resolver::field(&type_name).and_then(Resolver::dynamo_attr(&name)));
 
                             fields.insert(
                                 name.clone(),
@@ -252,8 +243,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     provides: None,
                                     visible: None,
                                     compute_complexity: None,
-                                    resolve: Some(resolve),
-                                    edges: relation
+                                    resolver: Some(resolve),
+                                    edges: maybe_relation
                                         .as_ref()
                                         .map(|_| {
                                             let edge_type = to_base_type_str(&field.node.ty.node.base);
@@ -261,8 +252,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             vec![edge_type]
                                         })
                                         .unwrap_or_default(),
-                                    relation,
-                                    transformer,
+                                    relation: maybe_relation,
                                     required_operation: None,
                                     auth: field_auth.get(&name).expect("must be set").clone(),
                                 },
@@ -431,15 +421,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 compute_complexity: None,
                 edges: Vec::new(),
                 relation: None,
-                resolve: Some(Resolver {
-                    id: Some(format!("{}_resolver", type_name.to_lowercase())),
-                    // TODO: Should be defined as a ResolveNode
-                    // Single entity
-                    r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
-                        by: VariableResolveDefinition::InputTypeName("by".to_owned()),
-                    }),
-                }),
-                transformer: None,
+                resolver: Some(Resolver::query(QueryResolver::By {
+                    by: Resolver::input("by"),
+                })),
                 required_operation: Some(Operations::GET),
                 auth: model_auth.clone(),
             });

@@ -105,10 +105,9 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "lastname"
+            "resolver": {
+              "ParentData": {
+                "Field": "lastname"
               }
             },
             "ty": "String!"
@@ -129,10 +128,9 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "name"
+            "resolver": {
+              "ParentData": {
+                "Field": "name"
               }
             },
             "ty": "String!"
@@ -153,10 +151,9 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "pseudo"
+            "resolver": {
+              "ParentData": {
+                "Field": "pseudo"
               }
             },
             "ty": "String"
@@ -177,10 +174,9 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "truc"
+            "resolver": {
+              "ParentData": {
+                "Field": "truc"
               }
             },
             "ty": "Truc!"
@@ -305,20 +301,16 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolve": {
-              "id": "todo_create_resolver",
-              "type": {
-                "DynamoMutationResolver": {
-                  "CreateNode": {
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Todo"
-                  }
+            "resolver": {
+              "Mutation": {
+                "Create": {
+                  "input": {
+                    "InputValue": "input"
+                  },
+                  "ty": "Todo"
                 }
               }
             },
-            "transformer": null,
             "ty": "TodoCreatePayload"
           },
           "todoDelete": {
@@ -346,20 +338,16 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolve": {
-              "id": "todo_delete_resolver",
-              "type": {
-                "DynamoMutationResolver": {
-                  "DeleteNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "ty": "Todo"
-                  }
+            "resolver": {
+              "Mutation": {
+                "Delete": {
+                  "by": {
+                    "InputValue": "by"
+                  },
+                  "ty": "Todo"
                 }
               }
             },
-            "transformer": null,
             "ty": "TodoDeletePayload"
           },
           "todoUpdate": {
@@ -395,23 +383,19 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolve": {
-              "id": "todo_create_resolver",
-              "type": {
-                "DynamoMutationResolver": {
-                  "UpdateNode": {
-                    "by": {
-                      "InputTypeName": "by"
-                    },
-                    "input": {
-                      "InputTypeName": "input"
-                    },
-                    "ty": "Todo"
-                  }
+            "resolver": {
+              "Mutation": {
+                "Update": {
+                  "by": {
+                    "InputValue": "by"
+                  },
+                  "input": {
+                    "InputValue": "input"
+                  },
+                  "ty": "Todo"
                 }
               }
             },
-            "transformer": null,
             "ty": "TodoUpdatePayload"
           }
         },
@@ -448,15 +432,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
-              "JSONSelect": {
-                "property": "end_cursor"
+            "resolver": {
+              "ParentData": {
+                "Field": "end_cursor"
               }
             },
             "ty": "String"
@@ -477,15 +455,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
-              "JSONSelect": {
-                "property": "has_next_page"
+            "resolver": {
+              "ParentData": {
+                "Field": "has_next_page"
               }
             },
             "ty": "Boolean!"
@@ -506,15 +478,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
-              "JSONSelect": {
-                "property": "has_previous_page"
+            "resolver": {
+              "ParentData": {
+                "Field": "has_previous_page"
               }
             },
             "ty": "Boolean!"
@@ -535,15 +501,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
-              "JSONSelect": {
-                "property": "start_cursor"
+            "resolver": {
+              "ParentData": {
+                "Field": "start_cursor"
               }
             },
             "ty": "String"
@@ -582,8 +542,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Schema!"
           },
           "todo": {
@@ -611,19 +570,15 @@ expression: reg_string
             "relation": null,
             "required_operation": 2,
             "requires": null,
-            "resolve": {
-              "id": "todo_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "QueryBy": {
-                    "by": {
-                      "InputTypeName": "by"
-                    }
+            "resolver": {
+              "Query": {
+                "By": {
+                  "by": {
+                    "InputValue": "by"
                   }
                 }
               }
             },
-            "transformer": null,
             "ty": "Todo"
           },
           "todoCollection": {
@@ -683,32 +638,30 @@ expression: reg_string
             },
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": "todo_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "ListResultByTypePaginated": {
-                    "after": {
-                      "InputTypeName": "after"
-                    },
-                    "before": {
-                      "InputTypeName": "before"
-                    },
-                    "first": {
-                      "InputTypeName": "first"
-                    },
-                    "last": {
-                      "InputTypeName": "last"
-                    },
-                    "nested": null,
-                    "type": {
-                      "DebugString": "Todo"
-                    }
+            "resolver": {
+              "Query": {
+                "PaginatedByType": {
+                  "after": {
+                    "InputValue": "after"
+                  },
+                  "before": {
+                    "InputValue": "before"
+                  },
+                  "first": {
+                    "InputValue": "first"
+                  },
+                  "last": {
+                    "InputValue": "last"
+                  },
+                  "maybe_parent_relation": {
+                    "Constant": null
+                  },
+                  "type": {
+                    "Constant": "Todo"
                   }
                 }
               }
             },
-            "transformer": null,
             "ty": "TodoConnection"
           }
         },
@@ -752,20 +705,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "authors"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "authors"
-              }
+              ]
             },
             "ty": "[Author]"
           },
@@ -785,20 +737,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "content"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "content"
-              }
+              ]
             },
             "ty": "String!"
           },
@@ -818,20 +769,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "__created_at"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__created_at"
-              }
+              ]
             },
             "ty": "DateTime!"
           },
@@ -851,20 +801,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "__sk"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__sk"
-              }
+              ]
             },
             "ty": "ID!"
           },
@@ -884,20 +833,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "ty"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "ty"
-              }
+              ]
             },
             "ty": "TodoType!"
           },
@@ -917,20 +865,19 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
+            "resolver": {
+              "Composition": [
+                {
+                  "ParentData": {
+                    "Field": "Todo"
+                  }
+                },
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "__updated_at"
                   }
                 }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__updated_at"
-              }
+              ]
             },
             "ty": "DateTime!"
           }
@@ -986,8 +933,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": {
+              "ParentData": "Clone"
+            },
             "ty": "[TodoEdge]"
           },
           "pageInfo": {
@@ -1006,8 +954,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": {
+              "ParentData": "PageInfo"
+            },
             "ty": "PageInfo!"
           }
         },
@@ -1078,22 +1027,17 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolve": {
-              "id": "todo_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "sk": {
-                      "LocalData": "id"
+            "resolver": {
+              "Query": {
+                "ById": {
+                  "id": {
+                    "ParentData": {
+                      "Field": "id"
                     }
                   }
                 }
               }
             },
-            "transformer": null,
             "ty": "Todo"
           }
         },
@@ -1130,10 +1074,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "id"
+            "resolver": {
+              "ParentData": {
+                "Field": "id"
               }
             },
             "ty": "ID!"
@@ -1172,24 +1115,21 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Todo"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "Pipeline": [
+            "resolver": {
+              "Composition": [
                 {
-                  "DynamoSelect": {
-                    "property": "__sk"
+                  "ParentData": {
+                    "Field": "Todo"
                   }
                 },
-                "ConvertSkToCursor"
+                {
+                  "ParentData": {
+                    "DynamoAttribute": "__sk"
+                  }
+                },
+                {
+                  "ParentData": "ConvertSkToCursor"
+                }
               ]
             },
             "ty": "String!"
@@ -1210,8 +1150,9 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": {
+              "ParentData": "Clone"
+            },
             "ty": "Todo!"
           }
         },
@@ -1301,22 +1242,17 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolve": {
-              "id": "todo_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "sk": {
-                      "LocalData": "id"
+            "resolver": {
+              "Query": {
+                "ById": {
+                  "id": {
+                    "ParentData": {
+                      "Field": "id"
                     }
                   }
                 }
               }
             },
-            "transformer": null,
             "ty": "Todo"
           }
         },
@@ -1353,10 +1289,9 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "name"
+            "resolver": {
+              "ParentData": {
+                "Field": "name"
               }
             },
             "ty": "String!"
@@ -1413,8 +1348,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__InputValue!]!"
           },
           "description": {
@@ -1433,8 +1367,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "isRepeatable": {
@@ -1453,8 +1386,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "Boolean!"
           },
           "locations": {
@@ -1473,8 +1405,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__DirectiveLocation!]!"
           },
           "name": {
@@ -1493,8 +1424,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String!"
           }
         },
@@ -1635,8 +1565,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "description": {
@@ -1655,8 +1584,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -1675,8 +1603,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -1695,8 +1622,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String!"
           }
         },
@@ -1733,8 +1659,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__InputValue!]!"
           },
           "deprecationReason": {
@@ -1753,8 +1678,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "description": {
@@ -1773,8 +1697,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -1793,8 +1716,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -1813,8 +1735,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String!"
           },
           "type": {
@@ -1833,8 +1754,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type!"
           }
         },
@@ -1871,8 +1791,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "description": {
@@ -1891,8 +1810,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "name": {
@@ -1911,8 +1829,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String!"
           },
           "type": {
@@ -1931,8 +1848,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type!"
           }
         },
@@ -1969,8 +1885,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__Directive!]!"
           },
           "mutationType": {
@@ -1989,8 +1904,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type"
           },
           "queryType": {
@@ -2009,8 +1923,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type!"
           },
           "subscriptionType": {
@@ -2029,8 +1942,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type"
           },
           "types": {
@@ -2049,8 +1961,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__Type!]!"
           }
         },
@@ -2087,8 +1998,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "enumValues": {
@@ -2116,8 +2026,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__EnumValue!]"
           },
           "fields": {
@@ -2145,8 +2054,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__Field!]"
           },
           "inputFields": {
@@ -2165,8 +2073,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__InputValue!]"
           },
           "interfaces": {
@@ -2185,8 +2092,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__Type!]"
           },
           "isOneOf": {
@@ -2205,8 +2111,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "Boolean"
           },
           "kind": {
@@ -2225,8 +2130,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__TypeKind!"
           },
           "name": {
@@ -2245,8 +2149,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           },
           "ofType": {
@@ -2265,8 +2168,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "__Type"
           },
           "possibleTypes": {
@@ -2285,8 +2187,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "[__Type!]"
           },
           "specifiedByURL": {
@@ -2305,8 +2206,7 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolve": null,
-            "transformer": null,
+            "resolver": null,
             "ty": "String"
           }
         },

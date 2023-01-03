@@ -1,3 +1,6 @@
+use crate::registry::names::{
+    PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
+};
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use case::CaseExt;
 use dynaql::{indexmap::IndexMap, registry::MetaInputValue};
@@ -125,9 +128,9 @@ pub fn to_lower_camelcase<S: AsRef<str>>(field: S) -> String {
 pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
     IndexMap::from([
         (
-            "after".to_owned(),
+            PAGINATION_INPUT_ARG_AFTER.to_owned(),
             MetaInputValue {
-                name: "after".to_owned(),
+                name: PAGINATION_INPUT_ARG_AFTER.to_owned(),
                 description: None,
                 ty: "String".to_string(),
                 default_value: None,
@@ -137,9 +140,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            "before".to_owned(),
+            PAGINATION_INPUT_ARG_BEFORE.to_owned(),
             MetaInputValue {
-                name: "before".to_owned(),
+                name: PAGINATION_INPUT_ARG_BEFORE.to_owned(),
                 description: None,
                 ty: "String".to_string(),
                 default_value: None,
@@ -149,9 +152,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            "first".to_owned(),
+            PAGINATION_INPUT_ARG_FIRST.to_owned(),
             MetaInputValue {
-                name: "first".to_owned(),
+                name: PAGINATION_INPUT_ARG_FIRST.to_owned(),
                 description: None,
                 ty: "Int".to_string(),
                 default_value: None,
@@ -161,9 +164,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            "last".to_owned(),
+            PAGINATION_INPUT_ARG_LAST.to_owned(),
             MetaInputValue {
-                name: "last".to_owned(),
+                name: PAGINATION_INPUT_ARG_LAST.to_owned(),
                 description: None,
                 ty: "Int".to_string(),
                 default_value: None,
