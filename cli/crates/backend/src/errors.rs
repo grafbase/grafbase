@@ -51,7 +51,7 @@ pub enum BackendError {
     #[error("'{0}' is not a supported template URL")]
     UnsupportedTemplateURL(String),
 
-    /// returned if a repo tar could not be downloaded (on a non 200 status)
+    /// returned if a repo tar could not be downloaded (on a non 200-299 status)
     #[error("could not download the archive for '{0}'\ncaused by: {1}")]
     StartDownloadRepoArchive(String, reqwest_middleware::Error),
 

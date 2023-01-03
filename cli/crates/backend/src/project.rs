@@ -22,6 +22,8 @@ use url::Url;
 ///
 /// # Errors
 ///
+/// ## General
+///
 /// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
 ///
 /// - returns [`BackendError::ProjectDirectoryExists`] if a named is passed and a directory with the same name already exists in the current directory
@@ -32,11 +34,13 @@ use url::Url;
 ///
 /// - returns [`BackendError::WriteSchema`] if the schema file cannot be written
 ///
+/// ## Templates
+///
 /// - returns [`BackendError::UnsupportedTemplateURL`] if a template URL is not supported
 ///
 /// - returns [`BackendError::StartDownloadRepoArchive`] if a template URL is not supported (if the request could not be made)
 ///
-/// - returns [`BackendError::DownloadRepoArchive`] if a repo tar could not be downloaded (on a non 200 status)
+/// - returns [`BackendError::DownloadRepoArchive`] if a repo tar could not be downloaded (on a non 200-299 status)
 ///
 /// - returns [`BackendError::StoreRepoArchive`] if a repo tar could not be stored
 ///
