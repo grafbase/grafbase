@@ -1,3 +1,4 @@
+[target.'cfg(all())']
 rustflags = [
     "-Dclippy::all",
     "-Dclippy::pedantic",
