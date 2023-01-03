@@ -5,6 +5,8 @@ use std::sync::Arc;
 
 use async_lock::RwLock;
 use cached::UnboundCache;
+
+use dynamodb::CurrentDateTime;
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::QueryResponse;
 use indexmap::map::IndexMap;
@@ -592,6 +594,7 @@ impl Schema {
             http_headers: Default::default(),
             disable_introspection: request.disable_introspection,
             errors: Default::default(),
+            current_datetime: CurrentDateTime::new(),
         };
         Ok((QueryEnv::new(env), validation_result.cache_control))
     }

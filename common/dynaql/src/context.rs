@@ -2,6 +2,7 @@
 
 use async_lock::RwLock as AsynRwLock;
 
+use dynamodb::CurrentDateTime;
 use graph_entities::QueryResponse;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
@@ -363,6 +364,9 @@ pub struct QueryEnvInner {
     pub http_headers: Mutex<HeaderMap>,
     pub disable_introspection: bool,
     pub errors: Mutex<Vec<ServerError>>,
+    /// Defines the current timestamp to be used whenever Utc::now() is used to have consistent
+    /// datetimes (createdAt/updatedAt typically) across objects
+    pub current_datetime: CurrentDateTime,
 }
 
 #[doc(hidden)]

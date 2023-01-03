@@ -3,10 +3,10 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
-use crate::{constant, QueryKey};
+use crate::{constant, CurrentDateTime, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
-use chrono::{SecondsFormat, Utc};
+
 use derivative::Derivative;
 use dynomite::AttributeValue;
 use futures::Future;
@@ -45,6 +45,7 @@ pub struct InsertNodeInput {
     user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
     constraints: Vec<ConstraintDefinition>,
+    current_datetime: CurrentDateTime,
 }
 
 impl PartialEq for InsertNodeInput {
@@ -71,6 +72,7 @@ pub struct UpdateNodeInput {
     #[derivative(Debug = "ignore")]
     increments: HashMap<String, AttributeValue>,
     by_id: Option<String>,
+    current_datetime: CurrentDateTime,
 }
 
 impl PartialEq for UpdateNodeInput {
@@ -107,6 +109,7 @@ pub struct LinkNodeNoCacheInput {
     to_id: String,
     to_ty: String,
     relation_name: String,
+    current_datetime: CurrentDateTime,
 }
 
 #[derive(Derivative, Clone)]
@@ -117,8 +120,10 @@ pub struct LinkNodeCachedInput {
     to_id: String,
     to_ty: String,
     relation_name: String,
+    // May contain reserved fields, typically if the node existed already
     #[derivative(Debug = "ignore")]
-    user_defined_item: HashMap<String, AttributeValue>,
+    fields: HashMap<String, AttributeValue>,
+    current_datetime: CurrentDateTime,
 }
 
 impl PartialEq for LinkNodeCachedInput {
@@ -147,6 +152,7 @@ pub struct UnlinkNodeInput {
     to_id: String,
     to_ty: String,
     relation_name: String,
+    current_datetime: CurrentDateTime,
 }
 
 /// Public interface
@@ -167,12 +173,14 @@ impl PossibleChanges {
         id: String,
         user_defined_item: HashMap<String, AttributeValue>,
         constraints: Vec<ConstraintDefinition>,
+        current_datetime: CurrentDateTime,
     ) -> Self {
         Self::InsertNode(InsertNodeInput {
             id,
             ty,
             user_defined_item,
             constraints,
+            current_datetime,
         })
     }
 
@@ -182,6 +190,7 @@ impl PossibleChanges {
         user_defined_item: HashMap<String, AttributeValue>,
         increments: HashMap<String, AttributeValue>,
         by_id: Option<String>,
+        current_datetime: CurrentDateTime,
     ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
             id,
@@ -189,6 +198,7 @@ impl PossibleChanges {
             user_defined_item,
             increments,
             by_id,
+            current_datetime,
         })
     }
 
@@ -202,7 +212,9 @@ impl PossibleChanges {
         to_ty: String,
         to_id: String,
         relation_name: String,
-        user_defined_item: HashMap<String, AttributeValue>,
+        // May contain reserved fields, typically if the node existed already
+        fields: HashMap<String, AttributeValue>,
+        current_datetime: CurrentDateTime,
     ) -> Self {
         Self::LinkRelation(LinkNodeInput::Cache(LinkNodeCachedInput {
             from_id,
@@ -210,7 +222,8 @@ impl PossibleChanges {
             to_id,
             to_ty,
             relation_name,
-            user_defined_item,
+            fields,
+            current_datetime,
         }))
     }
 
@@ -220,6 +233,7 @@ impl PossibleChanges {
         to_ty: String,
         to_id: String,
         relation_name: String,
+        current_datetime: CurrentDateTime,
     ) -> Self {
         Self::UnlinkRelation(UnlinkNodeInput {
             from_id,
@@ -227,6 +241,7 @@ impl PossibleChanges {
             to_id,
             to_ty,
             relation_name,
+            current_datetime,
         })
     }
 }
@@ -263,6 +278,7 @@ impl GetIds for InsertNodeInput {
                     (contraint_id.to_string(), contraint_id.to_string()),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                         InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                            current_datetime: self.current_datetime.clone(),
                             target: pk.clone(),
                             user_defined_item: self.user_defined_item.clone(),
                         }),
@@ -274,6 +290,7 @@ impl GetIds for InsertNodeInput {
         result.insert(
             (pk.clone(), pk),
             InternalChanges::Node(InternalNodeChanges::Insert(InsertNodeInternalInput {
+                current_datetime: self.current_datetime.clone(),
                 id: self.id,
                 ty: self.ty,
                 user_defined_item: self.user_defined_item,
@@ -326,6 +343,7 @@ impl GetIds for UpdateNodeInput {
                             (constraint_id.to_string(), constraint_id.to_string()),
                             InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
                                 UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                    current_datetime: self.current_datetime.clone(),
                                     target: pk,
                                     user_defined_item: self.user_defined_item.clone(),
                                     increments: self.increments.clone(),
@@ -349,6 +367,7 @@ impl GetIds for UpdateNodeInput {
                             (new_id.to_string(), new_id.to_string()),
                             InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                                 InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                    current_datetime: self.current_datetime.clone(),
                                     target: pk,
                                     user_defined_item: self.user_defined_item.clone(),
                                 }),
@@ -375,6 +394,7 @@ impl GetIds for UpdateNodeInput {
                     result.insert(
                         (from.to_string(), sk),
                         InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                            current_datetime: self.current_datetime.clone(),
                             id: from_id.to_string(),
                             ty: from_ty.to_string(),
                             user_defined_item: self.user_defined_item.clone(),
@@ -413,6 +433,7 @@ impl GetIds for UpdateNodeInput {
                                     (constraint_id.to_string(), constraint_id.to_string()),
                                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
                                         UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                            current_datetime: self.current_datetime.clone(),
                                             target: constraint
                                                 .remove(constant::INVERTED_INDEX_PK)
                                                 .and_then(|x| x.s)
@@ -439,6 +460,7 @@ impl GetIds for UpdateNodeInput {
                                     (new_id.to_string(), new_id.to_string()),
                                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                                         InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                            current_datetime: self.current_datetime.clone(),
                                             target: constraint
                                                 .remove(constant::INVERTED_INDEX_PK)
                                                 .and_then(|x| x.s)
@@ -470,6 +492,7 @@ impl GetIds for UpdateNodeInput {
                         result.insert(
                             (from.to_string(), sk),
                             InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                                current_datetime: self.current_datetime.clone(),
                                 id: from_id,
                                 ty: from_ty,
                                 user_defined_item: self.user_defined_item.clone(),
@@ -615,12 +638,13 @@ impl GetIds for LinkNodeCachedInput {
             Ok(HashMap::from([(
                 (pk, sk),
                 InternalChanges::Relation(InternalRelationChanges::Insert(InsertRelationInternalInput {
+                    current_datetime: self.current_datetime,
                     from_id: self.from_id,
                     from_ty: self.from_ty,
                     to_id: self.to_id,
                     to_ty: self.to_ty,
                     relation_names: vec![self.relation_name],
-                    fields: self.user_defined_item,
+                    fields: self.fields,
                 })),
             )]))
         })
@@ -643,6 +667,7 @@ impl GetIds for LinkNodeNoCacheInput {
             Ok(HashMap::from([(
                 (pk, sk),
                 InternalChanges::Relation(InternalRelationChanges::Insert(InsertRelationInternalInput {
+                    current_datetime: self.current_datetime,
                     from_id: self.from_id,
                     from_ty: self.from_ty,
                     to_id: self.to_id,
@@ -699,6 +724,7 @@ impl GetIds for UnlinkNodeInput {
                             (pk, sk),
                             InternalChanges::Relation(InternalRelationChanges::Delete(
                                 DeleteRelationInternalInput::Multiple(DeleteMultipleRelationsInternalInput {
+                                    current_datetime: self.current_datetime,
                                     from_id: self.from_id,
                                     from_ty: self.from_ty,
                                     to_id: self.to_id,
@@ -779,6 +805,7 @@ pub struct InsertNodeInternalInput {
     pub ty: String,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 #[derive(Derivative, PartialEq, Clone)]
@@ -790,10 +817,12 @@ pub struct UpdateNodeInternalInput {
     pub user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
     pub increments: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 impl UpdateNodeInternalInput {
     pub fn to_update_expression(
+        current_datetime: CurrentDateTime,
         values: HashMap<String, AttributeValue>,
         increments: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
@@ -811,10 +840,7 @@ impl UpdateNodeInternalInput {
             .filter(|(name, _)| !name.starts_with("__"))
             .chain(std::iter::once((
                 &constant::UPDATED_AT.to_string(),
-                &AttributeValue {
-                    s: Some(Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)),
-                    ..Default::default()
-                },
+                &current_datetime.into_attr(),
             )))
             .unique_by(|(name, _)| (*name).to_string())
             .map(|(name, value)| {
@@ -860,6 +886,7 @@ impl UpdateNodeInternalInput {
 
 impl UpdateUniqueConstraint {
     pub fn to_update_expression(
+        current_datetime: CurrentDateTime,
         values: HashMap<String, AttributeValue>,
         increments: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
@@ -877,10 +904,7 @@ impl UpdateUniqueConstraint {
             .filter(|(name, _)| !name.starts_with("__"))
             .chain(std::iter::once((
                 &constant::UPDATED_AT.to_string(),
-                &AttributeValue {
-                    s: Some(Utc::now().to_string()),
-                    ..Default::default()
-                },
+                &current_datetime.into_attr(),
             )))
             .map(|(name, value)| {
                 let idx = format!(":{}", name.as_str());
@@ -937,9 +961,9 @@ pub struct InsertRelationInternalInput {
     pub to_id: String,
     pub to_ty: String,
     pub relation_names: Vec<String>,
-    /// Those fields are not user_defined_item, privates are here too.
     #[derivative(Debug = "ignore")]
     pub fields: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -966,6 +990,7 @@ pub struct DeleteMultipleRelationsInternalInput {
     pub to_id: String,
     pub to_ty: String,
     pub relation_names: Vec<String>,
+    pub current_datetime: CurrentDateTime,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -984,10 +1009,12 @@ pub struct UpdateRelationInternalInput {
     pub relation_names: Vec<UpdateRelation>,
     #[derivative(Debug = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 impl UpdateRelationInternalInput {
     pub fn to_update_expression(
+        current_datetime: CurrentDateTime,
         values: HashMap<String, AttributeValue>,
         exp_values: &mut HashMap<String, AttributeValue>,
         exp_names: &mut HashMap<String, String>,
@@ -1001,10 +1028,7 @@ impl UpdateRelationInternalInput {
                 .filter(|(name, _)| should_insert_private_fields || !name.starts_with("__"))
                 .chain(std::iter::once((
                     constant::UPDATED_AT.to_string(),
-                    AttributeValue {
-                        s: Some(Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)),
-                        ..Default::default()
-                    },
+                    current_datetime.into_attr(),
                 )))
                 .unique_by(|(name, _)| name.to_string())
                 .map(|(name, value)| {
@@ -1091,6 +1115,7 @@ pub struct InsertUniqueConstraint {
     pub(crate) target: String,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 #[derive(Debug, Clone, Derivative, PartialEq)]
@@ -1101,6 +1126,7 @@ pub struct UpdateUniqueConstraint {
     pub user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub increments: HashMap<String, AttributeValue>,
+    pub current_datetime: CurrentDateTime,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -1147,6 +1173,7 @@ impl Add<InsertNodeInternalInput> for UpdateNodeInternalInput {
 
     fn add(self, rhs: InsertNodeInternalInput) -> Self::Output {
         Self::Output {
+            current_datetime: self.current_datetime,
             id: self.id,
             ty: self.ty,
             user_defined_item: {
@@ -1170,6 +1197,7 @@ impl Add<Self> for UpdateNodeInternalInput {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
+            current_datetime: self.current_datetime,
             id: self.id,
             ty: self.ty,
             user_defined_item: {
@@ -1207,10 +1235,6 @@ impl Add<Self> for InsertRelationInternalInput {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            from_id: rhs.from_id,
-            from_ty: rhs.from_ty,
-            to_id: rhs.to_id,
-            to_ty: rhs.to_ty,
             relation_names: {
                 // TODO: shouldn't be empty
                 let mut update_into_insert = rhs.relation_names;
@@ -1222,6 +1246,7 @@ impl Add<Self> for InsertRelationInternalInput {
                 update_into_insert.extend(self.fields);
                 update_into_insert
             },
+            ..rhs
         }
     }
 }
@@ -1231,10 +1256,6 @@ impl Add<InsertRelationInternalInput> for UpdateRelationInternalInput {
 
     fn add(self, rhs: InsertRelationInternalInput) -> Self::Output {
         Self::Output {
-            from_id: rhs.from_id,
-            from_ty: rhs.from_ty,
-            to_id: rhs.to_id,
-            to_ty: rhs.to_ty,
             relation_names: {
                 // TODO: shouldn't be empty
                 let (a, b): (Vec<String>, Vec<String>) =
@@ -1253,6 +1274,7 @@ impl Add<InsertRelationInternalInput> for UpdateRelationInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
+            ..rhs
         }
     }
 }
@@ -1270,10 +1292,6 @@ impl Add<Self> for UpdateRelationInternalInput {
 
     fn add(self, rhs: Self) -> Self::Output {
         Self::Output {
-            from_id: rhs.from_id,
-            from_ty: rhs.from_ty,
-            to_id: rhs.to_id,
-            to_ty: rhs.to_ty,
             relation_names: {
                 // TODO: shouldn't be empty
                 let mut update_into_insert = rhs.relation_names;
@@ -1285,6 +1303,7 @@ impl Add<Self> for UpdateRelationInternalInput {
                 update_into_insert.extend(self.user_defined_item);
                 update_into_insert
             },
+            ..rhs
         }
     }
 }
@@ -1294,10 +1313,6 @@ impl Add<DeleteMultipleRelationsInternalInput> for UpdateRelationInternalInput {
 
     fn add(self, rhs: DeleteMultipleRelationsInternalInput) -> Self::Output {
         Self::Output {
-            from_id: self.from_id,
-            from_ty: self.from_ty,
-            to_id: self.to_id,
-            to_ty: self.to_ty,
             relation_names: {
                 // TODO: shouldn't be empty
                 let mut update_into_insert = self.relation_names;
@@ -1305,6 +1320,7 @@ impl Add<DeleteMultipleRelationsInternalInput> for UpdateRelationInternalInput {
                 update_into_insert.into_iter().unique().collect()
             },
             user_defined_item: self.user_defined_item,
+            ..self
         }
     }
 }
@@ -1322,10 +1338,6 @@ impl Add<DeleteAllRelationsInternalInput> for UpdateRelationInternalInput {
 
     fn add(self, rhs: DeleteAllRelationsInternalInput) -> Self::Output {
         Self::Output {
-            from_id: self.from_id,
-            from_ty: self.from_ty,
-            to_id: self.to_id,
-            to_ty: self.to_ty,
             relation_names: {
                 // TODO: shouldn't be empty
                 let mut update_into_insert = self.relation_names;
@@ -1338,6 +1350,7 @@ impl Add<DeleteAllRelationsInternalInput> for UpdateRelationInternalInput {
                 update_into_insert.into_iter().unique().collect()
             },
             user_defined_item: self.user_defined_item,
+            ..self
         }
     }
 }
@@ -1356,15 +1369,12 @@ impl Add<Self> for DeleteRelationInternalInput {
     fn add(self, rhs: Self) -> Self::Output {
         match (self, rhs) {
             (Self::Multiple(a), Self::Multiple(b)) => Self::Multiple(DeleteMultipleRelationsInternalInput {
-                from_ty: a.from_ty,
-                from_id: a.from_id,
-                to_ty: a.to_ty,
-                to_id: a.to_id,
                 relation_names: {
                     let mut update_into_insert = a.relation_names;
                     update_into_insert.extend(b.relation_names);
                     update_into_insert.into_iter().unique().collect()
                 },
+                ..a
             }),
             (Self::Multiple(_), Self::All(a)) | (Self::All(a), Self::Multiple(_) | Self::All(_)) => Self::All(a),
         }

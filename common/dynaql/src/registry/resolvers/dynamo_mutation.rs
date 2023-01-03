@@ -4,7 +4,7 @@ use crate::registry::variables::id::ObfuscatedID;
 use crate::registry::variables::VariableResolveDefinition;
 use crate::registry::{ConstraintType, MetaType};
 use crate::{Context, Error, ServerError, Value};
-use chrono::{SecondsFormat, Utc};
+
 use dynamodb::constant::INVERTED_INDEX_PK;
 use dynamodb::graph_transaction::PossibleChanges;
 use dynamodb::{BatchGetItemLoaderError, DynamoDBBatchersData, QueryKey, TransactionError};
@@ -339,6 +339,7 @@ fn node_create<'a>(
                     .cloned()
                     .map(From::from)
                     .collect(),
+                ctx.query_env.current_datetime.clone(),
             );
 
             transaction_loader
@@ -390,6 +391,7 @@ async fn relation_remove<'a>(
             to.ty().to_string(),
             to.id().to_string(),
             relation_name.to_string(),
+            ctx.query_env.current_datetime.clone(),
         );
         let to_to_from = PossibleChanges::unlink_node(
             to.ty().to_string(),
@@ -397,6 +399,7 @@ async fn relation_remove<'a>(
             from.ty().to_string(),
             from.id().to_string(),
             relation_name.to_string(),
+            ctx.query_env.current_datetime.clone(),
         );
 
         transactions.push(from_to_to);
@@ -504,8 +507,6 @@ fn node_update<'a>(
         }
     }
 
-    let should_update_updated_at = !update_attr.is_empty() || !increments.is_empty();
-
     // We create an updated version of the selected entity
     let selection_updated_future: SelectionType = Box::pin(async move {
         let batchers = ctx.data_unchecked::<Arc<DynamoDBBatchersData>>();
@@ -527,14 +528,6 @@ fn node_update<'a>(
                                         .into_json()
                                         .expect("Shouldn't fail as this is valid json"),
                                 ),
-                            );
-                        }
-                        if should_update_updated_at {
-                            entity.insert(
-                                "updated_at".to_string(),
-                                Utc::now()
-                                    .to_rfc3339_opts(SecondsFormat::Millis, true)
-                                    .into_attr(),
                             );
                         }
                         (id, entity)
@@ -612,6 +605,7 @@ fn node_update<'a>(
                 selection,
                 increments,
                 by_id,
+                ctx.query_env.current_datetime.clone(),
             );
 
             transaction_batcher
@@ -696,6 +690,7 @@ async fn create_relation_node<'a>(
                         from_ty.id().to_string(),
                         relation.name.clone(),
                         parent_value.clone(),
+                        ctx.query_env.current_datetime.clone(),
                     );
                     Ok(transaction)
                 })

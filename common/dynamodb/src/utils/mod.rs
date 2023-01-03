@@ -2,6 +2,8 @@ use dynomite::AttributeValue;
 use std::collections::HashMap;
 use std::str::FromStr;
 
+pub mod current_datetime;
+
 pub fn value_to_attribute(value: serde_json::Value) -> AttributeValue {
     match value {
         serde_json::Value::Null => AttributeValue {
