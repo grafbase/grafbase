@@ -135,6 +135,12 @@ pub struct ResolvedValue<'a> {
     pub pagination: Option<ResolvedPaginationInfo>,
 }
 
+#[derive(Debug, Clone)]
+pub struct ResolvedOneOf {
+    name: String,
+    value: serde_json::Value,
+}
+
 impl<'a> ResolvedValue<'a> {
     pub fn null() -> Self {
         Self::owned(serde_json::Value::Null)
@@ -246,21 +252,18 @@ impl Resolver {
         &self,
         ctx_field: &DynamicFieldContext<'ctx>,
         maybe_parent_value: Option<&ResolvedValue<'ctx>>,
-    ) -> ServerResult<(String, serde_json::Value)> {
-        self.resolve_object(ctx_field, maybe_parent_value)
-            .await?
-            .into_iter()
-            // We don't need to check whether multiple fields are specified or not.
-            .next()
-            .map(Ok)
-            .unwrap_or_else(|| {
-                // Shouldn't happen, resolver_input() should already have raised an error at this point.
-                // FIXME: Add validation test and replace this part with unreachable!()
-                Err(ServerError::new(
-                    "Invalid empty @oneof object",
-                    Some(ctx_field.item.pos),
-                ))
-            })
+    ) -> ServerResult<ResolvedOneOf> {
+        let fields = self.resolve_object(ctx_field, maybe_parent_value).await?;
+        let field_count = fields.len();
+        let mut fields = fields.into_iter();
+
+        match fields.next() {
+            Some((name, value)) if fields.next().is_none() => Ok(ResolvedOneOf { name, value }),
+            _ => Err(ServerError::new(
+                format!("Expected a @oneof object with exactly 1 field, not {field_count}"),
+                Some(ctx_field.item.pos),
+            )),
+        }
     }
 
     pub async fn resolve_object<'ctx>(
@@ -349,7 +352,7 @@ pub enum Resolver {
     Composition(Vec<Resolver>),
 }
 
-// A bit hacky, not sure if there's a better approach...
+// TODO: To be removed once https://github.com/serde-rs/json/issues/747 is fixed
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Eq)]
 pub struct HashableJsonValue(serde_json::Value);
 

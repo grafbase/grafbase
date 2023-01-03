@@ -109,8 +109,6 @@ async fn resolve_primitive<'ctx>(
             if ctx_field.meta.is_required() {
                 Err(err)
             } else {
-                // FIXME: Inconsistent with array & object error management, do we want to keep
-                // it?
                 ctx_field.add_error(err);
                 Ok(serde_json::Value::Null)
             }
@@ -131,6 +129,7 @@ async fn resolve_object<'ctx>(
     ctx_field: &DynamicFieldContext<'ctx>,
     meta_field_resolver_result: ServerResult<ResolvedValue<'ctx>>,
 ) -> ServerResult<ResponseNodeId> {
+    // FIXME: Should behave in the same way as for fields, see GB-2786
     let resolved_value = meta_field_resolver_result?;
     if resolved_value.value.is_null() {
         if ctx_field.meta.is_required() {
@@ -172,9 +171,10 @@ async fn resolve_array<'ctx>(
     ctx_field: &DynamicFieldContext<'ctx>,
     meta_field_resolver_result: ServerResult<ResolvedValue<'ctx>>,
 ) -> ServerResult<ResponseNodeId> {
+    // FIXME: Should behave in the same way as for fields, see GB-2786
     let resolved_list = meta_field_resolver_result?.value;
     let list_ref = match resolved_list.as_ref() {
-        // FIXME: Inconsistent with object/primitive, is it really what we want?
+        // FIXME: Should certainly return a NULL for optional fields, tracking issue: GB-2790
         serde_json::Value::Null => Cow::Owned(Vec::new()),
         serde_json::Value::Array(ref arr) => Cow::Borrowed(arr),
         _ => {

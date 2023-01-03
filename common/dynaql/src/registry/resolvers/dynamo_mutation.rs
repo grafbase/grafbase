@@ -1,4 +1,4 @@
-use super::{ResolvedValue, Resolver};
+use super::{ResolvedOneOf, ResolvedValue, Resolver};
 use crate::dynamic::DynamicFieldContext;
 use crate::registry::utils::{type_to_base_type, value_to_attribute};
 use crate::registry::variables::id::ObfuscatedID;
@@ -968,7 +968,10 @@ impl MutationResolver {
                 let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
                     Error::new("Internal Error: Failed process the associated schema.")
                 })?;
-                let (by_key, by_value) = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
+                let ResolvedOneOf {
+                    name: by_key,
+                    value: by_value,
+                } = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
 
                 if by_key == "id" {
                     let value: String = by_value.as_str().expect("cannot fail").to_string();
@@ -1048,7 +1051,10 @@ impl MutationResolver {
             MutationResolver::Delete { by, ty } => {
                 let new_transaction = &batchers.transaction_new;
                 let loader = &batchers.loader;
-                let (by_key, by_value) = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
+                let ResolvedOneOf {
+                    name: by_key,
+                    value: by_value,
+                } = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
 
                 if by_key == "id" {
                     let id_to_be_deleted: String =

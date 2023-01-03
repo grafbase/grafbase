@@ -1,4 +1,6 @@
-use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver};
+use super::{
+    ResolvedOneOf, ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver,
+};
 
 use crate::dynamic::DynamicFieldContext;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
@@ -440,7 +442,10 @@ impl QueryResolver {
                 Ok(ResolvedValue::owned(serde_json::Value::Object(result)))
             }
             QueryResolver::By { by } => {
-                let (by_key, by_value) = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
+                let ResolvedOneOf {
+                    name: by_key,
+                    value: by_value,
+                } = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
                 let is_by_id = by_key == "id";
 
                 let (pk, sk) = if is_by_id {
