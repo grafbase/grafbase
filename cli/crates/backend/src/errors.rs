@@ -47,11 +47,11 @@ pub enum BackendError {
     #[error("could not delete the grafbase directory\ncaused by: {0}")]
     DeleteGrafbaseDirectory(io::Error),
 
-    /// returned if a template URL is not supported
+    /// returned if a template URL is not supported (if the request could not be made)
     #[error("'{0}' is not a supported template URL")]
     UnsupportedTemplateURL(String),
 
-    /// returned if a repo tar could not be downloaded
+    /// returned if a repo tar could not be downloaded (on a non 200 status)
     #[error("could not download the archive for '{0}'\ncaused by: {1}")]
     StartDownloadRepoArchive(String, reqwest_middleware::Error),
 

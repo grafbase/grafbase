@@ -31,6 +31,24 @@ use url::Url;
 /// - returns [`BackendError::CreateGrafbaseDirectory`] if the grafbase directory cannot be created
 ///
 /// - returns [`BackendError::WriteSchema`] if the schema file cannot be written
+///
+/// - returns [`BackendError::UnsupportedTemplateURL`] if a template URL is not supported
+///
+/// - returns [`BackendError::StartDownloadRepoArchive`] if a template URL is not supported (if the request could not be made)
+///
+/// - returns [`BackendError::DownloadRepoArchive`] if a repo tar could not be downloaded (on a non 200 status)
+///
+/// - returns [`BackendError::StoreRepoArchive`] if a repo tar could not be stored
+///
+/// - returns [`BackendError::NoFilesExtracted`] if no files were extracted from the repo archive
+///
+/// - returns [`BackendError::MoveExtractedFiles`] if the extracted files from the template repository could not be moved
+///
+/// - returns [`BackendError::ReadArchiveEntries`] if the entries of the template repository archive could not be read
+///
+/// - returns [`BackendError::ExtractArchiveEntry`] if one of the entries of the template repository archive could not be extracted
+///
+/// - returns [`BackendError::CleanExtractedFiles`] if the files extracted from the template repository archive could not be cleaned
 pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY);
