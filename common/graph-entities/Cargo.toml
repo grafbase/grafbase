@@ -6,7 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-anyhow = "1"
+anyhow = { workspace = true }
 base64 = "0.20"
 derivative = "2"
 dynaql-value = { path = "../dynaql/value", version = "3" }
