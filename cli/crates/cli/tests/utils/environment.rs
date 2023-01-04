@@ -65,20 +65,22 @@ impl Environment {
     }
 
     pub fn grafbase_init(&self) {
-        cmd!(cargo_bin("grafbase"), "init")
+        cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
+    }
+
+    pub fn grafbase_init_template_output<'a>(&self, template: &'a str) -> Output {
+        cmd!(cargo_bin("grafbase"), "init", "--template", template)
             .dir(&self.directory)
-            .start()
+            .stderr_capture()
+            .unchecked()
+            .run()
             .unwrap()
-            .wait()
-            .unwrap();
     }
 
     pub fn grafbase_init_template<'a>(&self, template: &'a str) {
         cmd!(cargo_bin("grafbase"), "init", "--template", template)
             .dir(&self.directory)
-            .start()
-            .unwrap()
-            .wait()
+            .run()
             .unwrap();
     }
 
@@ -129,12 +131,7 @@ impl Environment {
     }
 
     pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "reset")
-            .dir(&self.directory)
-            .start()
-            .unwrap()
-            .wait()
-            .unwrap();
+        cmd!(cargo_bin("grafbase"), "reset").dir(&self.directory).run().unwrap();
     }
 
     pub fn grafbase_dev_watch(&mut self) {

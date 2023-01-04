@@ -24,4 +24,20 @@ fn dev() {
 
     assert!(env.directory.join("grafbase").exists());
     assert!(env.directory.join("grafbase").join("schema.graphql").exists());
+
+    env.remove_grafbase_dir();
+
+    let output = env.grafbase_init_template_output("https://example.com/grafbase/grafbase/tree/main/templates/blog");
+
+    assert!(!output.stderr.is_empty());
+    assert!(std::str::from_utf8(&output.stderr)
+        .unwrap()
+        .contains("is not a supported template URL"));
+
+    let output = env.grafbase_init_template_output("https://github.com/grafbase/grafbase/tree/main/templates");
+
+    assert!(!output.stderr.is_empty());
+    assert!(std::str::from_utf8(&output.stderr)
+        .unwrap()
+        .contains("no files were extracted from the template repository"))
 }
