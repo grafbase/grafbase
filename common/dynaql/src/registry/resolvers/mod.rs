@@ -9,31 +9,89 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use std::borrow::Cow;
-
-use crate::{dynamic::DynamicFieldContext, ServerError, ServerResult};
-
-use context_data::ParentDataResolver;
-
-use dynamo_mutation::MutationResolver;
-use dynamo_querying::QueryResolver;
+use self::debug::DebugResolver;
+use crate::{Context, Error};
+use context_data::ContextDataResolver;
+use derivative::Derivative;
+use dynamo_mutation::DynamoMutationResolver;
+use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
+use dynaql_parser::types::SelectionSet;
+use graph_entities::cursor::PaginationCursor;
 
-use std::hash::Hash;
+use std::sync::Arc;
+use ulid::Ulid;
 
-use graph_entities::{cursor::PaginationCursor, NodeID};
-use serde::{de::DeserializeOwned, Serialize};
-
-use super::MetaType;
+use super::{MetaField, MetaType};
 
 pub mod context_data;
+pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
 
-pub const PAGINATION_HAS_NEXT_PAGE: &str = "has_next_page";
-pub const PAGINATION_HAS_PREVIOUS_PAGE: &str = "has_previous_page";
-pub const PAGINATION_START_CURSOR: &str = "start_cursor";
-pub const PAGINATION_END_CURSOR: &str = "end_cursor";
+/// Resolver declarative struct to assign a Resolver for a Field.
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub struct Resolver {
+    /// Unique id to identify Resolver.
+    pub id: Option<String>,
+    pub r#type: ResolverType,
+}
+
+/// Resolver Context
+///
+/// Each time a Resolver is accessed to be resolved, a context for the resolving
+/// strategy is created.
+///
+/// This context contain safe access data to be used inside `ResolverTrait`.
+/// This give you access to the `resolver_id` which define the resolver, the
+/// `execution_id` which is linked to the actual execution, a unique ID is
+/// created each time the resolver is called.
+pub struct ResolverContext<'a> {
+    /// Every declared resolver can have an ID, these ID can be used for
+    /// memoization.
+    pub resolver_id: Option<&'a str>,
+    /// When a resolver is executed, it gains a Resolver unique ID for his
+    /// execution, this ID is used for internal cache strategy
+    pub execution_id: &'a Ulid,
+    /// The current Type being resolved if we know it. It's the type linked to the resolver.
+    pub ty: Option<&'a MetaType>,
+    /// The current SelectionSet.
+    pub selections: Option<&'a SelectionSet>,
+    /// The current field being resolved if we know it.
+    pub field: Option<&'a MetaField>,
+}
+
+impl<'a> ResolverContext<'a> {
+    pub fn new(id: &'a Ulid) -> Self {
+        Self {
+            resolver_id: None,
+            execution_id: id,
+            ty: None,
+            selections: None,
+            field: None,
+        }
+    }
+
+    pub fn with_resolver_id(mut self, id: Option<&'a str>) -> Self {
+        self.resolver_id = id;
+        self
+    }
+
+    pub fn with_ty(mut self, ty: Option<&'a MetaType>) -> Self {
+        self.ty = ty;
+        self
+    }
+
+    pub fn with_field(mut self, field: Option<&'a MetaField>) -> Self {
+        self.field = field;
+        self
+    }
+
+    pub fn with_selection_set(mut self, selections: Option<&'a SelectionSet>) -> Self {
+        self.selections = selections;
+        self
+    }
+}
 
 #[derive(Debug, Hash, Clone)]
 pub enum ResolvedPaginationDirection {
@@ -95,30 +153,11 @@ impl ResolvedPaginationInfo {
         );
 
         serde_json::json!({
-            PAGINATION_HAS_NEXT_PAGE: has_next_page,
-            PAGINATION_HAS_PREVIOUS_PAGE: has_previous_page,
-            PAGINATION_START_CURSOR: self.start_cursor,
-            PAGINATION_END_CURSOR: self.end_cursor,
+            "has_next_page": has_next_page,
+            "has_previous_page": has_previous_page,
+            "start_cursor": self.start_cursor,
+            "end_cursor": self.end_cursor,
         })
-    }
-}
-
-#[derive(Debug)]
-pub struct ResolvedContainer<'a> {
-    pub maybe_node_id: Option<NodeID<'a>>,
-    pub value: ResolvedValue<'a>,
-}
-
-impl<'a> ResolvedContainer<'a> {
-    pub fn new(base_type: &MetaType, value: ResolvedValue<'a>) -> Self {
-        ResolvedContainer {
-            // FIXME: It relies implicitly on DynamoDB format, see node_id() and is executed even
-            // for containers for which an doesn't exist yet like '<x>Collection' fields.
-            maybe_node_id: value
-                .node_id(base_type.name())
-                .and_then(|id| NodeID::from_owned(id).ok()),
-            value,
-        }
     }
 }
 
@@ -127,43 +166,25 @@ impl<'a> ResolvedContainer<'a> {
 /// example Pagination Details.
 ///
 /// Cheap to Clone
-#[derive(Debug, Clone)]
-pub struct ResolvedValue<'a> {
+#[derive(Debug, Derivative, Clone)]
+#[derivative(Hash)]
+pub struct ResolvedValue {
     /// Data Resolved by the current Resolver
-    pub value: Cow<'a, serde_json::Value>,
+    #[derivative(Hash = "ignore")]
+    pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
     pub pagination: Option<ResolvedPaginationInfo>,
+    /// Resolvers can set this value when resolving so the engine will know it's
+    /// not usefull to continue iterating over the ResolverChain.
+    pub early_return_null: bool,
 }
 
-#[derive(Debug, Clone)]
-pub struct ResolvedOneOf {
-    name: String,
-    value: serde_json::Value,
-}
-
-impl<'a> ResolvedValue<'a> {
-    pub fn null() -> Self {
-        Self::owned(serde_json::Value::Null)
-    }
-
-    pub fn new(value: Cow<'a, serde_json::Value>) -> Self {
-        ResolvedValue {
-            value,
+impl ResolvedValue {
+    pub fn new(value: Arc<serde_json::Value>) -> Self {
+        Self {
+            data_resolved: value,
             pagination: None,
-        }
-    }
-
-    pub fn borrowed(value: &'a serde_json::Value) -> Self {
-        ResolvedValue {
-            value: Cow::Borrowed(value),
-            pagination: None,
-        }
-    }
-
-    pub fn owned(value: serde_json::Value) -> Self {
-        ResolvedValue {
-            value: Cow::Owned(value),
-            pagination: None,
+            early_return_null: false,
         }
     }
 
@@ -172,8 +193,11 @@ impl<'a> ResolvedValue<'a> {
         self
     }
 
-    /// FIXME: This currently relies on the internal structure of DynamoDB response
-    ///
+    pub fn with_early_return(mut self) -> Self {
+        self.early_return_null = true;
+        self
+    }
+
     /// We can check from the schema definition if it's a node, if it is, we need to
     /// have a way to get it
     /// temp: Little hack here, we know that `ResolvedValue` are bound to have a format
@@ -192,7 +216,7 @@ impl<'a> ResolvedValue<'a> {
     /// This have to be removed when we rework registry & dynaql to have a proper query
     /// planning.
     pub fn node_id<S: AsRef<str>>(&self, entity: S) -> Option<String> {
-        self.value.get(entity.as_ref()).and_then(|x| {
+        self.data_resolved.get(entity.as_ref()).and_then(|x| {
             x.get("__sk")
                 .and_then(|x| {
                     if let serde_json::Value::Object(value) = x {
@@ -211,179 +235,66 @@ impl<'a> ResolvedValue<'a> {
                 })
         })
     }
+
+    pub fn is_early_returned(&self) -> bool {
+        self.early_return_null
+    }
 }
 
-impl Resolver {
-    pub fn field(key: &str) -> Self {
-        Self::parent(ParentDataResolver::Field(key.to_string()))
-    }
-
-    pub fn parent_object() -> Self {
-        Self::parent(ParentDataResolver::Clone)
-    }
-
-    pub fn dynamo_attr(key: &str) -> Self {
-        Self::parent(ParentDataResolver::DynamoAttribute(key.to_string()))
-    }
-
-    pub fn constant<T: Serialize>(value: T) -> Self {
-        Self::Constant(HashableJsonValue(
-            serde_json::to_value(value).expect("Constant arguments must be serializable"),
-        ))
-    }
-
-    pub fn input(name: &str) -> Self {
-        Self::InputValue(name.to_string())
-    }
-
-    pub fn parent(r: ParentDataResolver) -> Self {
-        Self::ParentData(Box::new(r))
-    }
-
-    pub fn query(r: QueryResolver) -> Self {
-        Self::Query(Box::new(r))
-    }
-
-    pub fn mutation(r: MutationResolver) -> Self {
-        Self::Mutation(Box::new(r))
-    }
-
-    pub async fn resolve_oneof<'ctx>(
+#[async_trait::async_trait]
+pub trait ResolverTrait: Sync {
+    async fn resolve(
         &self,
-        ctx_field: &DynamicFieldContext<'ctx>,
-        maybe_parent_value: Option<&ResolvedValue<'ctx>>,
-    ) -> ServerResult<ResolvedOneOf> {
-        let fields = self.resolve_object(ctx_field, maybe_parent_value).await?;
-        let field_count = fields.len();
-        let mut fields = fields.into_iter();
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error>;
+}
 
-        match fields.next() {
-            Some((name, value)) if fields.next().is_none() => Ok(ResolvedOneOf { name, value }),
-            _ => Err(ServerError::new(
-                format!("Expected a @oneof object with exactly 1 field, not {field_count}"),
-                Some(ctx_field.item.pos),
-            )),
-        }
-    }
-
-    pub async fn resolve_object<'ctx>(
+#[async_trait::async_trait]
+impl ResolverTrait for Resolver {
+    /// The `[ResolverTrait]` should be a core element of the resolver chain.
+    /// When you cross the ResolverChain, every Resolver Result is passed on the Children
+    /// By Reference.
+    ///
+    /// WE MUST ENSURE EVERY VALUES ACCEDED BY THE RESOLVER COULD BE GETTED.
+    /// Why? To ensure security.
+    ///
+    /// We resolver can only access the TRANSFORMED result from his resolver ancestor.
+    async fn resolve(
         &self,
-        ctx_field: &DynamicFieldContext<'ctx>,
-        maybe_parent_value: Option<&ResolvedValue<'ctx>>,
-    ) -> ServerResult<serde_json::Map<String, serde_json::Value>> {
-        match self
-            .resolve_dynamic(ctx_field, maybe_parent_value)
-            .await?
-            .value
-            .into_owned()
-        {
-            serde_json::Value::Object(m) => Ok(m),
-            _ => Err(ServerError::new(
-                "Expected an object",
-                Some(ctx_field.item.pos),
-            )),
-        }
-    }
-
-    pub async fn resolve<T: DeserializeOwned>(
-        &self,
-        ctx_field: &DynamicFieldContext<'_>,
-        maybe_parent_value: Option<&ResolvedValue<'_>>,
-    ) -> ServerResult<T> {
-        let resolve = self.resolve_dynamic(ctx_field, maybe_parent_value).await?;
-        serde_json::from_value(resolve.value.into_owned())
-            .map_err(|err| ServerError::new(err.to_string(), Some(ctx_field.item.pos)))
-    }
-
-    #[async_recursion::async_recursion]
-    pub async fn resolve_dynamic<'ctx>(
-        &self,
-        ctx_field: &DynamicFieldContext<'ctx>,
-        maybe_parent_value: Option<&'async_recursion ResolvedValue<'ctx>>,
-    ) -> ServerResult<ResolvedValue<'ctx>> {
-        match self {
-            Self::Query(dynamodb) => dynamodb
-                .resolve(ctx_field, maybe_parent_value)
-                .await
-                .map_err(|err| err.into_server_error(ctx_field.item.pos)),
-            Self::Mutation(dynamodb) => dynamodb
-                .resolve(ctx_field, maybe_parent_value)
-                .await
-                .map_err(|err| err.into_server_error(ctx_field.item.pos)),
-            Self::ParentData(parent) => parent
-                .resolve(ctx_field, maybe_parent_value)
-                .await
-                .map_err(|err| err.into_server_error(ctx_field.item.pos)),
-            Self::Constant(value) => Ok(ResolvedValue::owned(value.0.clone())),
-            Self::InputValue(name) => ctx_field
-                .param_value_dynamic(name)
-                .map(ResolvedValue::owned),
-            Self::Composition(resolvers) => {
-                let [head, tail @ ..] = &resolvers[..] else {
-                    unreachable!("Composition of resolvers always have at least one element")
-                };
-                let mut current = head.resolve_dynamic(ctx_field, maybe_parent_value).await?;
-                for resolver in tail {
-                    current = resolver.resolve_dynamic(ctx_field, Some(&current)).await?;
-                }
-                Ok(current)
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
+        match &self.r#type {
+            ResolverType::DebugResolver(debug) => {
+                debug.resolve(ctx, resolver_ctx, last_resolver_value).await
+            }
+            ResolverType::DynamoResolver(dynamodb) => {
+                dynamodb
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
+            }
+            ResolverType::DynamoMutationResolver(dynamodb) => {
+                dynamodb
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
+            }
+            ResolverType::ContextDataResolver(ctx_data) => {
+                ctx_data
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
             }
         }
     }
-
-    pub fn and_then(self, resolver: Resolver) -> Self {
-        let mut resolvers = match self {
-            Self::Composition(resolvers) => resolvers,
-            _ => vec![self],
-        };
-        resolvers.push(resolver);
-        Self::Composition(resolvers)
-    }
 }
 
+#[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum Resolver {
-    // Boxing the actual resolvers to allow them to rely on other Resolvers.
-    Query(Box<QueryResolver>),
-    Mutation(Box<MutationResolver>),
-    ParentData(Box<ParentDataResolver>),
-    Constant(HashableJsonValue),
-    InputValue(String),
-    Composition(Vec<Resolver>),
-}
-
-// TODO: To be removed once https://github.com/serde-rs/json/issues/747 is fixed
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Eq)]
-pub struct HashableJsonValue(serde_json::Value);
-
-impl Hash for HashableJsonValue {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        serde_json_hash(&self.0, state)
-    }
-}
-
-impl PartialEq for HashableJsonValue {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
-    }
-}
-
-fn serde_json_hash<H: std::hash::Hasher>(value: &serde_json::Value, state: &mut H) {
-    match value {
-        serde_json::Value::Null => false.hash(state),
-        serde_json::Value::Bool(b) => b.hash(state),
-        serde_json::Value::Number(n) => n.hash(state),
-        serde_json::Value::String(s) => s.hash(state),
-        serde_json::Value::Array(a) => {
-            for v in a {
-                serde_json_hash(v, state);
-            }
-        }
-        serde_json::Value::Object(m) => {
-            for (k, v) in m {
-                k.hash(state);
-                serde_json_hash(v, state);
-            }
-        }
-    }
+pub enum ResolverType {
+    DynamoResolver(DynamoResolver),
+    DynamoMutationResolver(DynamoMutationResolver),
+    ContextDataResolver(ContextDataResolver),
+    DebugResolver(DebugResolver),
 }

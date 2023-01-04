@@ -63,7 +63,7 @@ mod transaction;
 mod runtime;
 
 pub use graph_transaction::{get_loader_transaction_new, NewTransactionLoader, PossibleChanges};
-pub use paginated::{PaginatedCursor, ParentRelationId, QueryValue};
+pub use paginated::{PaginatedCursor, QueryValue};
 
 pub use transaction::{TransactionError, TxItem};
 

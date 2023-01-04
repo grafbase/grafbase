@@ -307,7 +307,8 @@ pub fn generate(
                     edges: Vec::new(),
                     relation: None,
                     compute_complexity: #complexity,
-                    resolver: ::std::option::Option::None,
+                    resolve: ::std::option::Option::None,
+                    transformer: ::std::option::Option::None,
                     required_operation: None,
                     auth: None,
                 });
@@ -360,6 +361,7 @@ pub fn generate(
                                     parent: ::std::option::Option::None,
                                     segment: #crate_name::QueryPathSegment::Name(&field_name),
                                 }),
+                                None,
                                 &field.node.selection_set,
                             );
 
@@ -384,7 +386,8 @@ pub fn generate(
                                             .map(::std::option::Option::Some)
                                             .map_err(|err| ctx_selection_set.set_error_path(err)).unwrap()
                                             .unwrap_or_default(),
-                                            &ctx_selection_set.to_dynamic(schema_env.registry.types.get(&type_name).unwrap())
+                                            &ctx_selection_set,
+                                            schema_env.registry.types.get(&type_name).unwrap(),
                                         )
                                         .await;
                                     Ok(Some(a))

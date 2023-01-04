@@ -81,6 +81,7 @@ pub trait DynamicParse {
     /// When a value is given, depending on the scalar we can transform this value into something
     /// else before doing any transformation or saving it inside the database, it's called `Input
     /// coercion`.
+    /// TODO: We need to change a little the parsing workflow to allow this kind of coercion.
     fn parse(value: ConstValue) -> InputValueResult<serde_json::Value>;
 
     /// Checks for a valid scalar value.
@@ -148,10 +149,7 @@ impl DynamicScalar for PossibleScalarNil {
     ) -> InputValueResult<serde_json::Value> {
         Err(InputValueError::ty_custom(
             expected_ty.as_ref(),
-            format!(
-                "Internal error: Unknown scalar type '{}'.",
-                expected_ty.as_ref()
-            ),
+            "Internal error while parsing this scalar.",
         ))
     }
 
