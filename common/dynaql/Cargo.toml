@@ -68,7 +68,7 @@ serde_json = { workspace = true }
 serde_with = { workspace = true }
 static_assertions = "1"
 tempfile = "3"
-thiserror = "1"
+thiserror = { workspace = true }
 ulid = "1"
 url = { version = "2" }
 

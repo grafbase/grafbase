@@ -15,7 +15,7 @@ indexmap = "1"
 internment = { version = "0.7", features = ["serde", "arc"] }
 serde_json = { workspace = true }
 serde = { workspace = true }
-thiserror = "1"
+thiserror = { workspace = true }
 ulid = "1"
 
 [dev-dependencies]

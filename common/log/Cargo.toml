@@ -14,7 +14,7 @@ maplit = "1"
 sentry-cf-worker = { path = "../sentry-cf-worker", optional = true }
 serde = { workspace = true }
 strum = { version = "0.24", features = ["derive"] }
-thiserror = "1"
+thiserror = { workspace = true }
 wasm-timer = "0.2"
 worker = { version = "0.0.12", optional = true }
 
