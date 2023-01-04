@@ -77,7 +77,7 @@ impl Environment {
             .unwrap()
     }
 
-    pub fn grafbase_init_template_output<'a>(&self, template: &'a str) -> Output {
+    pub fn grafbase_init_template_output(&self, template: &str) -> Output {
         cmd!(cargo_bin("grafbase"), "init", "--template", template)
             .dir(&self.directory)
             .stderr_capture()
@@ -86,7 +86,7 @@ impl Environment {
             .unwrap()
     }
 
-    pub fn grafbase_init_template<'a>(&self, template: &'a str) {
+    pub fn grafbase_init_template(&self, template: &str) {
         cmd!(cargo_bin("grafbase"), "init", "--template", template)
             .dir(&self.directory)
             .run()
@@ -94,7 +94,7 @@ impl Environment {
     }
 
     pub fn remove_grafbase_dir(&self) {
-        fs::remove_dir_all(self.directory.join("grafbase")).unwrap()
+        fs::remove_dir_all(self.directory.join("grafbase")).unwrap();
     }
 
     pub fn grafbase_dev(&mut self) {

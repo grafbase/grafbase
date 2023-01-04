@@ -52,5 +52,5 @@ fn dev() {
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr)
         .unwrap()
-        .contains("no files were extracted from the template repository"))
+        .contains("no files were extracted from the template repository"));
 }
