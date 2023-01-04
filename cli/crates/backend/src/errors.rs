@@ -47,9 +47,13 @@ pub enum BackendError {
     #[error("could not delete the grafbase directory\ncaused by: {0}")]
     DeleteGrafbaseDirectory(io::Error),
 
-    /// returned if a template URL is not supported (if the request could not be made)
+    /// returned if a template URL is not supported
     #[error("'{0}' is not a supported template URL")]
     UnsupportedTemplateURL(String),
+
+    /// returned if a template name is unknown or contains unsupported characters
+    #[error("'{0}' is not a supported template")]
+    UnsupportedTemplate(String),
 
     /// returned if a repo tar could not be downloaded (on a non 200-299 status)
     #[error("could not download the archive for '{0}'\ncaused by: {1}")]
@@ -95,6 +99,7 @@ impl ToExitCode for BackendError {
             | Self::DeleteDotGrafbaseDirectory(_)
             | Self::DeleteGrafbaseDirectory(_)
             | Self::UnsupportedTemplateURL(_)
+            | Self::UnsupportedTemplate(_)
             | Self::StartDownloadRepoArchive(_, _)
             | Self::DownloadRepoArchive(_)
             | Self::StoreRepoArchive(_, _)

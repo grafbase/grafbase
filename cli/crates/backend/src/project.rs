@@ -38,6 +38,8 @@ use url::Url;
 ///
 /// - returns [`BackendError::UnsupportedTemplateURL`] if a template URL is not supported
 ///
+/// - returns [`BackendError::UnsupportedTemplate`] if a template name is not supported or contains unsupported characters
+///
 /// - returns [`BackendError::StartDownloadRepoArchive`] if a template URL is not supported (if the request could not be made)
 ///
 /// - returns [`BackendError::DownloadRepoArchive`] if a repo tar could not be downloaded (on a non 200-299 status)
@@ -66,7 +68,13 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
                 Some("github.com") => handle_github_repo_url(&repo_url),
                 _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
             },
-            Err(_) => download_github_template(&TemplateInfo::Grafbase { path: template }),
+            Err(_) => {
+                if template.contains("/") {
+                    return Err(BackendError::UnsupportedTemplate(template.to_owned()));
+                }
+
+                download_github_template(&TemplateInfo::Grafbase { path: template })
+            }
         }
     } else {
         fs::create_dir_all(&grafbase_path).map_err(BackendError::CreateGrafbaseDirectory)?;
