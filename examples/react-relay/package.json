@@ -1,0 +1,46 @@
+{
+  "name": "react-relay",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-relay": "^14.1.0",
+    "react-router-dom": "^6.6.1",
+    "react-scripts": "5.0.1",
+    "relay-runtime": "^14.1.0"
+  },
+  "scripts": {
+    "start": "npm run relay && react-scripts start",
+    "build": "npm run relay && react-scripts build",
+    "eject": "react-scripts eject",
+    "relay": "relay-compiler"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "babel-plugin-relay": "^14.1.0",
+    "graphql": "^16.6.0",
+    "relay-compiler": "^14.1.0"
+  },
+  "relay": {
+    "src": "./src/",
+    "schema": "./schema.graphql",
+    "language": "javascript"
+  }
+}
