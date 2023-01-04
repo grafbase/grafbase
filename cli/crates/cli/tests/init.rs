@@ -3,7 +3,7 @@ mod utils;
 use utils::environment::Environment;
 
 #[test]
-fn dev() {
+fn init() {
     let env = Environment::init(4016);
 
     env.grafbase_init();
