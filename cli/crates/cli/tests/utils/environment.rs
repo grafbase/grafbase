@@ -13,7 +13,7 @@ use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
-    directory: PathBuf,
+    pub directory: PathBuf,
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
@@ -71,6 +71,19 @@ impl Environment {
             .unwrap()
             .wait()
             .unwrap();
+    }
+
+    pub fn grafbase_init_template<'a>(&self, template: &'a str) {
+        cmd!(cargo_bin("grafbase"), "init", "--template", template)
+            .dir(&self.directory)
+            .start()
+            .unwrap()
+            .wait()
+            .unwrap();
+    }
+
+    pub fn remove_grafbase_dir(&self) {
+        fs::remove_dir_all(self.directory.join("grafbase")).unwrap()
     }
 
     pub fn grafbase_dev(&mut self) {
