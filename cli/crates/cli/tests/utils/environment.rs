@@ -68,6 +68,15 @@ impl Environment {
         cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
     }
 
+    pub fn grafbase_init_output(&self) -> Output {
+        cmd!(cargo_bin("grafbase"), "init")
+            .dir(&self.directory)
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
+    }
+
     pub fn grafbase_init_template_output<'a>(&self, template: &'a str) -> Output {
         cmd!(cargo_bin("grafbase"), "init", "--template", template)
             .dir(&self.directory)
