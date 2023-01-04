@@ -68,11 +68,9 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
                 Some("github.com") => handle_github_repo_url(&repo_url),
                 _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
             }
+        } else if template.contains('/') {
+            return Err(BackendError::UnsupportedTemplate(template.to_owned()));
         } else {
-            if template.contains('/') {
-                return Err(BackendError::UnsupportedTemplate(template.to_owned()));
-            }
-
             download_github_template(&TemplateInfo::Grafbase { path: template })
         }
     } else {
