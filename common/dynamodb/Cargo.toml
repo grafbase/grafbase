@@ -5,14 +5,14 @@ edition = "2021"
 
 [dependencies]
 again = { version = "0.1", default-features = false, features = [
-    "wasm-bindgen",
-    "log",
+  "wasm-bindgen",
+  "log",
 ] }
 async-trait = "0.1"
 aws-region-nearby = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = [
-    "clock",
-    "std",
+  "clock",
+  "std",
 ] }
 derivative = "2.2"
 dynamodb-utils = { path = "../dynamodb-utils" }
@@ -22,8 +22,8 @@ futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", default-features = false, features = [
-    "std",
-    "async-await",
+  "std",
+  "async-await",
 ] }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
@@ -34,6 +34,7 @@ quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
 serde_json = { workspace = true }
+serde = { workspace = true }
 thiserror = "1"
 
 tracing = { version = "0.1", optional = true }
@@ -49,29 +50,28 @@ indoc = { version = "1", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
-serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = [
-    "macros",
-    "rt-multi-thread",
-    "sync",
-    "time",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, optional = true, features = [
-    "wasm-client",
+  "wasm-client",
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 surf = { version = "2", default-features = false, optional = true, features = [
-    "h1-client-rustls",
+  "h1-client-rustls",
 ] }
 
 [features]
 default = ["wasm_runtime"]
-local = ["indoc", "maplit", "once_cell", "regex", "serde", "surf"]
+local = ["indoc", "maplit", "once_cell", "regex", "surf"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]

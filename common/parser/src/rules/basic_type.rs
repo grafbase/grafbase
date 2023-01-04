@@ -7,7 +7,7 @@ use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
 use dynaql::indexmap::IndexMap;
-use dynaql::registry::transformers::Transformer;
+use dynaql::registry::resolvers::Resolver;
 use dynaql::registry::{MetaField, MetaType};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
@@ -47,12 +47,9 @@ impl<'a> Visitor<'a> for BasicType {
                                 provides: None,
                                 visible: None,
                                 compute_complexity: None,
-                                resolve: None,
+                                resolver: Some(Resolver::field(&name)),
                                 edges: Vec::new(),
                                 relation: None,
-                                transformer: Some(Transformer::JSONSelect {
-                                    property: name
-                                }),
                                 required_operation: None,
                                 auth: None,
                             });

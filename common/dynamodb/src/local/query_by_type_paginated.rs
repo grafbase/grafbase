@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
+use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor, ParentRelationId};
 
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
@@ -214,7 +214,11 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     if let Some(exclusive_last_key) = exclusive_last_key.clone() {
                         value_map.insert("sk", SqlValue::String(exclusive_last_key));
                     }
-                    if let Some((relation_name, pk)) = nested {
+                    if let Some(ParentRelationId {
+                        relation_name,
+                        parent_id: pk,
+                    }) = nested
+                    {
                         value_map.insert("pk", SqlValue::String(pk.to_string()));
                         value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
                     }
@@ -243,7 +247,11 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     if let Some(exclusive_last_key) = exclusive_first_key.clone() {
                         value_map.insert("sk", SqlValue::String(exclusive_last_key));
                     }
-                    if let Some((relation_name, pk)) = nested {
+                    if let Some(ParentRelationId {
+                        relation_name,
+                        parent_id: pk,
+                    }) = nested
+                    {
                         value_map.insert("pk", SqlValue::String(pk.to_string()));
                         value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
                     }
