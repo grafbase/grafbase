@@ -58,11 +58,9 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY);
     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA);
 
-    if schema_path.exists() {
-        Err(BackendError::AlreadyAProject(schema_path))
+    if grafbase_path.exists() {
+        Err(BackendError::AlreadyAProject(grafbase_path))
     } else {
-        fs::create_dir_all(&grafbase_path).map_err(BackendError::CreateGrafbaseDirectory)?;
-
         let write_result = if let Some(template) = template {
             match Url::parse(template) {
                 Ok(repo_url) => match repo_url.host_str() {
@@ -72,10 +70,11 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
                 Err(_) => download_github_template(&TemplateInfo::Grafbase { path: template }),
             }
         } else {
+            fs::create_dir_all(&grafbase_path).map_err(BackendError::CreateGrafbaseDirectory)?;
             fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema)
         };
 
-        if write_result.is_err() {
+        if write_result.is_err() && grafbase_path.exists() {
             fs::remove_dir_all(&grafbase_path).map_err(BackendError::DeleteGrafbaseDirectory)?;
         }
 
@@ -146,7 +145,9 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
     let extraction_result = stream_github_archive(repo, path, branch, extraction_dir.as_path()).await;
 
     if extraction_dir.exists() {
-        fs::remove_dir_all(extraction_dir).map_err(BackendError::CleanExtractedFiles)?;
+        tokio::fs::remove_dir_all(extraction_dir)
+            .await
+            .map_err(BackendError::CleanExtractedFiles)?;
     }
 
     extraction_result
@@ -222,7 +223,9 @@ async fn stream_github_archive<'a>(
         return Err(BackendError::NoFilesExtracted);
     }
 
-    fs::rename(template_path, "grafbase").map_err(BackendError::MoveExtractedFiles)?;
+    tokio::fs::rename(template_path, "grafbase")
+        .await
+        .map_err(BackendError::MoveExtractedFiles)?;
 
     Ok(())
 }
