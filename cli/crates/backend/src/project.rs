@@ -63,18 +63,17 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
     if grafbase_path.exists() {
         Err(BackendError::AlreadyAProject(grafbase_path))
     } else if let Some(template) = template {
-        match Url::parse(template) {
-            Ok(repo_url) => match repo_url.host_str() {
+        if let Ok(repo_url) = Url::parse(template) {
+            match repo_url.host_str() {
                 Some("github.com") => handle_github_repo_url(&repo_url),
                 _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
-            },
-            Err(_) => {
-                if template.contains("/") {
-                    return Err(BackendError::UnsupportedTemplate(template.to_owned()));
-                }
-
-                download_github_template(&TemplateInfo::Grafbase { path: template })
             }
+        } else {
+            if template.contains('/') {
+                return Err(BackendError::UnsupportedTemplate(template.to_owned()));
+            }
+
+            download_github_template(&TemplateInfo::Grafbase { path: template })
         }
     } else {
         fs::create_dir_all(&grafbase_path).map_err(BackendError::CreateGrafbaseDirectory)?;
