@@ -14,7 +14,7 @@ quick-error = "2"
 secrecy = "0.8"
 serde = { workspace = true }
 serde_json = { workspace = true }
-url = "2"
+url = { workspace = true }
 worker = "0.0.12"
 
 log = { path = "../log" }
