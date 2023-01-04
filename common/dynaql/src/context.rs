@@ -4,14 +4,15 @@ use async_lock::RwLock as AsynRwLock;
 
 use graph_entities::QueryResponse;
 use std::any::{Any, TypeId};
-
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Deref;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 
+use cached::UnboundCache;
 use derivative::Derivative;
 use dynaql_value::{Value as InputValue, Variables};
 use fnv::FnvHashMap;
@@ -20,15 +21,15 @@ use http::HeaderValue;
 use serde::ser::{SerializeSeq, Serializer};
 use serde::Serialize;
 
-use crate::dynamic::DynamicSelectionSetContext;
 use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
 use crate::registry::relations::MetaRelation;
-
-use crate::registry::MetaType;
+use crate::registry::resolver_chain::ResolverChainNode;
+use crate::registry::resolvers::ResolvedValue;
 use crate::registry::Registry;
+use crate::registry::{get_basic_type, MetaInputValue, MetaType};
 use crate::schema::SchemaEnv;
 use crate::{
     Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
@@ -89,17 +90,20 @@ impl Debug for Data {
     }
 }
 
+/// Context for `SelectionSet`
+pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
+
 /// When inside a Connection, we get the subfields asked by alias which are a relation
 /// (response_key, relation)
 pub fn relations_edges<'a>(
-    ctx: &DynamicSelectionSetContext<'a>,
+    ctx: &ContextSelectionSet<'a>,
+    root: &'a MetaType,
 ) -> HashMap<String, &'a MetaRelation> {
-    let root = ctx.root_type;
     let mut result = HashMap::new();
     for selection in &ctx.item.node.items {
         match &selection.node {
             Selection::Field(field) => {
-                let ctx_field = ctx.with_field(field);
+                let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                 // We do take the name and not the alias
                 let field_name = ctx_field.item.node.name.node.as_str();
                 let field_response_key = ctx_field.item.node.response_key().node.as_str();
@@ -146,7 +150,7 @@ pub fn relations_edges<'a>(
                             .map_or(false, |interfaces| interfaces.contains(condition))
                 });
                 if applies_concrete_object {
-                    let tailed = relations_edges(&ctx.dynamic_with_selection_set(selection_set));
+                    let tailed = relations_edges(&ctx.with_selection_set(selection_set), root);
                     result.extend(tailed);
                 } else if type_condition.map_or(true, |condition| root.name() == condition) {
                     // The fragment applies to an interface type.
@@ -160,9 +164,6 @@ pub fn relations_edges<'a>(
 
 /// Context object for resolve field
 pub type Context<'a> = ContextBase<'a, &'a Positioned<Field>>;
-
-/// Context for `SelectionSet`
-pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
 
 /// Context object for execute directive.
 pub type ContextDirective<'a> = ContextBase<'a, &'a Positioned<Directive>>;
@@ -319,6 +320,8 @@ impl<'a> Iterator for Parents<'a> {
 
 impl<'a> std::iter::FusedIterator for Parents<'a> {}
 
+type ResolverCacheType = Arc<AsynRwLock<UnboundCache<u64, Result<ResolvedValue, Error>>>>;
+
 /// Query context.
 ///
 /// **This type is not stable and should not be used directly.**
@@ -327,6 +330,8 @@ impl<'a> std::iter::FusedIterator for Parents<'a> {}
 pub struct ContextBase<'a, T> {
     /// The current path node being resolved.
     pub path_node: Option<QueryPathNode<'a>>,
+    /// The current resolver path being resolved.
+    pub resolver_node: Option<ResolverChainNode<'a>>,
     #[doc(hidden)]
     pub item: T,
     #[doc(hidden)]
@@ -335,6 +340,12 @@ pub struct ContextBase<'a, T> {
     #[doc(hidden)]
     #[derivative(Debug = "ignore")]
     pub query_env: &'a QueryEnv,
+    #[doc(hidden)]
+    #[derivative(Debug = "ignore")]
+    pub resolvers_cache: ResolverCacheType,
+    #[doc(hidden)]
+    /// Every Resolvers are able to store a Value inside this cache
+    pub resolvers_data: Arc<RwLock<FnvHashMap<String, Box<dyn Any + Sync + Send>>>>,
     #[doc(hidden)]
     pub response_graph: Arc<AsynRwLock<QueryResponse>>,
 }
@@ -377,14 +388,39 @@ impl QueryEnv {
         &'a self,
         schema_env: &'a SchemaEnv,
         path_node: Option<QueryPathNode<'a>>,
+        resolver_node: Option<ResolverChainNode<'a>>,
         item: T,
     ) -> ContextBase<'a, T> {
         ContextBase {
             path_node,
+            resolver_node,
             item,
             schema_env,
             query_env: self,
+            resolvers_cache: Arc::new(AsynRwLock::new(UnboundCache::with_capacity(32))),
+            resolvers_data: Default::default(),
             response_graph: Arc::new(AsynRwLock::new(QueryResponse::default())),
+        }
+    }
+}
+
+/// We suppose each time it's a [`crate::Value`] but it could happens it's not.
+/// See specialized behavior of internal cache on documentation.
+pub fn resolver_data_get_opt_ref<'a, D: Any + Send + Sync>(
+    store: &'a FnvHashMap<String, Box<dyn Any + Sync + Send>>,
+    key: &'a str,
+) -> Option<&'a D> {
+    store.get(key).and_then(|d| d.downcast_ref::<D>())
+}
+
+impl<'a, T> ContextBase<'a, T> {
+    /// Only insert a value if a value wasn't there before.
+    pub fn resolver_data_insert<D: Any + Send + Sync>(&'a self, key: String, data: D) {
+        match self.resolvers_data.write().expect("to handle").entry(key) {
+            Entry::Vacant(vac) => {
+                vac.insert(Box::new(data));
+            }
+            Entry::Occupied(_) => {}
         }
     }
 }
@@ -405,15 +441,49 @@ impl<'a, T> DataContext<'a> for ContextBase<'a, T> {
 
 impl<'a, T> ContextBase<'a, T> {
     /// We add a new field with the Context with the proper execution_id generated.
-    pub fn with_field(&'a self, field: &'a Positioned<Field>) -> Context<'a> {
+    pub fn with_field(
+        &'a self,
+        field: &'a Positioned<Field>,
+        ty: Option<&'a MetaType>,
+        selections: Option<&'a SelectionSet>,
+    ) -> ContextBase<'a, &'a Positioned<Field>> {
+        let registry = &self.schema_env.registry;
+
+        let meta_field = ty.and_then(|ty| ty.field_by_name(&field.node.name.node));
+
+        let meta = meta_field
+            .map(|x| get_basic_type(x.ty.as_str()))
+            .and_then(|x| registry.types.get(x));
+
         ContextBase {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
                 segment: QueryPathSegment::Name(&field.node.response_key().node),
             }),
+            resolver_node: Some(ResolverChainNode {
+                parent: self.resolver_node.as_ref(),
+                segment: QueryPathSegment::Name(&field.node.response_key().node),
+                ty: meta,
+                field: meta_field,
+                executable_field: Some(field),
+                resolver: meta_field.and_then(|x| x.resolve.as_ref()),
+                transformer: meta_field.and_then(|x| x.transformer.as_ref()),
+                execution_id: ulid::Ulid::new(),
+                selections,
+                variables: {
+                    meta_field.map(|x| {
+                        x.args
+                            .values()
+                            .map(|y| (x.name.as_ref(), y))
+                            .collect::<Vec<(&str, &MetaInputValue)>>()
+                    })
+                },
+            }),
             item: field,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }
     }
@@ -425,9 +495,12 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: self.path_node,
+            resolver_node: self.resolver_node.clone(),
             item: selection_set,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }
     }
@@ -682,31 +755,62 @@ impl<'a, T> ContextBase<'a, T> {
             .map(|value| (pos, value))
             .map_err(|e| e.into_server_error(pos))
     }
+
+    #[doc(hidden)]
+    /// Get a param value with unchecked type check to allow dynamic mapping.
+    fn get_param_value_unchecked(
+        &self,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
+        name: &str,
+        default: Option<fn() -> Value>,
+    ) -> ServerResult<(Pos, Value)> {
+        let value = arguments
+            .iter()
+            .find(|(n, _)| n.node.as_str() == name)
+            .map(|(_, value)| value)
+            .cloned();
+
+        let (pos, value) = match value {
+            Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
+            None => (Pos::default(), default.map(|f| f())),
+        };
+
+        value
+            .ok_or_else(|| ServerError::new(format!("Failed to parse variable {name}"), Some(pos)))
+            .map(|value| (pos, value))
+    }
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
-    pub fn to_dynamic<'s>(&'s self, root: &'a MetaType) -> DynamicSelectionSetContext<'s>
-    where
-        'a: 's,
-    {
-        DynamicSelectionSetContext {
-            maybe_parent_field: None,
-            base: self.clone(),
-            root_type: root,
-        }
-    }
-
     #[doc(hidden)]
     #[must_use]
-    pub fn with_index(&'a self, idx: usize) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
+    pub fn with_index(
+        &'a self,
+        idx: usize,
+        selections: Option<&'a SelectionSet>,
+    ) -> ContextBase<'a, &'a Positioned<SelectionSet>> {
         ContextBase {
             path_node: Some(QueryPathNode {
                 parent: self.path_node.as_ref(),
                 segment: QueryPathSegment::Index(idx),
             }),
+            resolver_node: Some(ResolverChainNode {
+                parent: self.resolver_node.as_ref(),
+                segment: QueryPathSegment::Index(idx),
+                field: self.resolver_node.as_ref().and_then(|x| x.field),
+                executable_field: self.resolver_node.as_ref().and_then(|x| x.executable_field),
+                ty: self.resolver_node.as_ref().and_then(|x| x.ty),
+                resolver: None,
+                transformer: None,
+                execution_id: ulid::Ulid::new(),
+                selections,
+                variables: None,
+            }),
             item: self.item,
             schema_env: self.schema_env,
             query_env: self.query_env,
+            resolvers_cache: self.resolvers_cache.clone(),
+            resolvers_data: self.resolvers_data.clone(),
             response_graph: self.response_graph.clone(),
         }
     }
@@ -717,7 +821,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
     }
 }
 
-impl<'a> Context<'a> {
+impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     /// Get the registry
     pub fn registry(&'a self) -> &'a Registry {
         &self.schema_env.registry
@@ -730,6 +834,27 @@ impl<'a> Context<'a> {
         default: Option<fn() -> T>,
     ) -> ServerResult<(Pos, T)> {
         self.get_param_value(&self.item.node.arguments, name, default)
+    }
+
+    #[doc(hidden)]
+    pub fn param_value_dynamic<'b: 'a, T: InputType>(
+        &self,
+        name: &'b str,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
+        default: Option<fn() -> T>,
+    ) -> ServerResult<(Pos, Value)> {
+        self.get_param_value(arguments, name, default)
+            .map(|(pos, x)| (pos, InputType::to_value(&x)))
+    }
+
+    #[doc(hidden)]
+    pub fn param_value_dynamic_unchecked<'b: 'a>(
+        &self,
+        name: &'b str,
+        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
+        default: Option<fn() -> Value>,
+    ) -> ServerResult<(Pos, Value)> {
+        self.get_param_value_unchecked(arguments, name, default)
     }
 
     /// When inside a Connection, we get the subfields asked

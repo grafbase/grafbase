@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use async_lock::RwLock;
-
+use cached::UnboundCache;
 use futures_util::stream::{self, Stream, StreamExt};
 use graph_entities::QueryResponse;
 use indexmap::map::IndexMap;
@@ -600,19 +600,21 @@ impl Schema {
         // execute
         let ctx = ContextBase {
             path_node: None,
+            resolver_node: None,
             item: &env.operation.node.selection_set,
             schema_env: &self.env,
             query_env: &env,
+            resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
+            resolvers_data: Default::default(),
             response_graph: Arc::new(RwLock::new(QueryResponse::default())),
         };
 
         let query = ctx.registry().query_root();
 
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_container(&ctx.to_dynamic(query), None).await,
+            OperationType::Query => resolve_container(&ctx, query, None).await,
             OperationType::Mutation => {
-                resolve_container_serial(&ctx.to_dynamic(ctx.registry().mutation_root()), None)
-                    .await
+                resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await
             }
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
@@ -709,6 +711,7 @@ impl Schema {
 
                 let ctx = env.create_context(
                     &schema.env,
+                    None,
                     None,
                     &env.operation.node.selection_set,
                 );

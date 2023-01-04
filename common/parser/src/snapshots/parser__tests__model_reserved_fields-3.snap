@@ -149,16 +149,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Create": {
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Product"
+            "resolve": {
+              "id": "product_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "ProductCreatePayload"
           },
           "productDelete": {
@@ -186,16 +190,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Delete": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "ty": "Product"
+            "resolve": {
+              "id": "product_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "ty": "Product"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "ProductDeletePayload"
           },
           "productUpdate": {
@@ -231,19 +239,23 @@ expression: req_string_b
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Update": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Product"
+            "resolve": {
+              "id": "product_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Product"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "ProductUpdatePayload"
           }
         },
@@ -280,9 +292,15 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "end_cursor"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "end_cursor"
               }
             },
             "ty": "String"
@@ -303,9 +321,15 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "has_next_page"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_next_page"
               }
             },
             "ty": "Boolean!"
@@ -326,9 +350,15 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "has_previous_page"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_previous_page"
               }
             },
             "ty": "Boolean!"
@@ -349,9 +379,15 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "start_cursor"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "start_cursor"
               }
             },
             "ty": "String"
@@ -390,19 +426,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Product"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__created_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
             },
             "ty": "DateTime!"
           },
@@ -422,19 +459,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Product"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
             },
             "ty": "ID!"
           },
@@ -454,19 +492,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Product"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "title"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "title"
+              }
             },
             "ty": "String"
           },
@@ -486,19 +525,20 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Product"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__updated_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
             },
             "ty": "DateTime!"
           }
@@ -554,9 +594,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "[ProductEdge]"
           },
           "pageInfo": {
@@ -575,9 +614,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "PageInfo"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -632,17 +670,22 @@ expression: req_string_b
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "product_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Product"
           }
         },
@@ -679,9 +722,10 @@ expression: req_string_b
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "id"
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
             },
             "ty": "ID!"
@@ -720,21 +764,24 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Product"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Product"
                   }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
-                  }
-                },
-                {
-                  "ParentData": "ConvertSkToCursor"
                 }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__sk"
+                  }
+                },
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
@@ -755,9 +802,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "Product!"
           }
         },
@@ -812,17 +858,22 @@ expression: req_string_b
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "product_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Product"
           }
         },
@@ -859,7 +910,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Schema!"
           },
           "product": {
@@ -887,15 +939,19 @@ expression: req_string_b
             "relation": null,
             "required_operation": 2,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "By": {
-                  "by": {
-                    "InputValue": "by"
+            "resolve": {
+              "id": "product_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Product"
           },
           "productCollection": {
@@ -955,30 +1011,32 @@ expression: req_string_b
             },
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "Constant": null
-                  },
-                  "type": {
-                    "Constant": "Product"
+            "resolve": {
+              "id": "product_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "nested": null,
+                    "type": {
+                      "DebugString": "Product"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "ProductConnection"
           }
         },
@@ -1022,7 +1080,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "description": {
@@ -1041,7 +1100,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isRepeatable": {
@@ -1060,7 +1120,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "locations": {
@@ -1079,7 +1140,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__DirectiveLocation!]!"
           },
           "name": {
@@ -1098,7 +1160,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -1239,7 +1302,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -1258,7 +1322,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -1277,7 +1342,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -1296,7 +1362,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -1333,7 +1400,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "deprecationReason": {
@@ -1352,7 +1420,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -1371,7 +1440,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -1390,7 +1460,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -1409,7 +1480,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -1428,7 +1500,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -1465,7 +1538,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -1484,7 +1558,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "name": {
@@ -1503,7 +1578,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -1522,7 +1598,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -1559,7 +1636,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Directive!]!"
           },
           "mutationType": {
@@ -1578,7 +1656,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "queryType": {
@@ -1597,7 +1676,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           },
           "subscriptionType": {
@@ -1616,7 +1696,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "types": {
@@ -1635,7 +1716,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]!"
           }
         },
@@ -1672,7 +1754,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "enumValues": {
@@ -1700,7 +1783,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__EnumValue!]"
           },
           "fields": {
@@ -1728,7 +1812,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Field!]"
           },
           "inputFields": {
@@ -1747,7 +1832,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]"
           },
           "interfaces": {
@@ -1766,7 +1852,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "isOneOf": {
@@ -1785,7 +1872,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean"
           },
           "kind": {
@@ -1804,7 +1892,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__TypeKind!"
           },
           "name": {
@@ -1823,7 +1912,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "ofType": {
@@ -1842,7 +1932,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "possibleTypes": {
@@ -1861,7 +1952,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "specifiedByURL": {
@@ -1880,7 +1972,8 @@ expression: req_string_b
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           }
         },

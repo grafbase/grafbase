@@ -105,19 +105,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "country"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "country"
+              }
             },
             "ty": "Country!"
           },
@@ -137,19 +138,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__created_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
             },
             "ty": "DateTime!"
           },
@@ -169,19 +171,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
             },
             "ty": "ID!"
           },
@@ -201,19 +204,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "lastname"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "lastname"
+              }
             },
             "ty": "String!"
           },
@@ -233,19 +237,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "name"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "name"
+              }
             },
             "ty": "String!"
           },
@@ -308,48 +313,19 @@ expression: reg_string
             },
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "ParentData": {
-                      "ParentRelationId": {
-                        "parent_id": {
-                          "Composition": [
-                            {
-                              "ParentData": {
-                                "Field": "Author"
-                              }
-                            },
-                            {
-                              "ParentData": {
-                                "DynamoAttribute": "__sk"
-                              }
-                            }
-                          ]
-                        },
-                        "relation_name": "published"
-                      }
-                    }
-                  },
-                  "type": {
-                    "Constant": "Post"
+            "resolve": {
+              "id": "author_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "Post",
+                    "key": "Author",
+                    "relation_name": "published"
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostConnection"
           },
           "updatedAt": {
@@ -368,19 +344,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__updated_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
             },
             "ty": "DateTime!"
           }
@@ -438,9 +415,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "[AuthorEdge]"
           },
           "pageInfo": {
@@ -459,9 +435,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "PageInfo"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -540,17 +515,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Author"
           }
         },
@@ -587,9 +567,10 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "id"
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
             },
             "ty": "ID!"
@@ -628,21 +609,24 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Author"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Author"
                   }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
-                  }
-                },
-                {
-                  "ParentData": "ConvertSkToCursor"
                 }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__sk"
+                  }
+                },
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
@@ -663,9 +647,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "Author!"
           }
         },
@@ -830,17 +813,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Author"
           }
         },
@@ -877,19 +865,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Blog"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__created_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
             },
             "ty": "DateTime!"
           },
@@ -909,19 +898,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Blog"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
             },
             "ty": "ID!"
           },
@@ -951,33 +941,18 @@ expression: reg_string
             },
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "SingleRelation": {
-                  "parent_relation": {
-                    "ParentData": {
-                      "ParentRelationId": {
-                        "parent_id": {
-                          "Composition": [
-                            {
-                              "ParentData": {
-                                "Field": "Blog"
-                              }
-                            },
-                            {
-                              "ParentData": {
-                                "DynamoAttribute": "__sk"
-                              }
-                            }
-                          ]
-                        },
-                        "relation_name": "AuthorRelateBlog"
-                      }
-                    }
+            "resolve": {
+              "id": "blog_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "SingleEdge": {
+                    "key": "Blog",
+                    "relation_name": "AuthorRelateBlog"
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Author!"
           },
           "posts": {
@@ -1039,48 +1014,19 @@ expression: reg_string
             },
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "ParentData": {
-                      "ParentRelationId": {
-                        "parent_id": {
-                          "Composition": [
-                            {
-                              "ParentData": {
-                                "Field": "Blog"
-                              }
-                            },
-                            {
-                              "ParentData": {
-                                "DynamoAttribute": "__sk"
-                              }
-                            }
-                          ]
-                        },
-                        "relation_name": "BlogRelatePost"
-                      }
-                    }
-                  },
-                  "type": {
-                    "Constant": "Post"
+            "resolve": {
+              "id": "blog_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "Post",
+                    "key": "Blog",
+                    "relation_name": "BlogRelatePost"
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostConnection"
           },
           "updatedAt": {
@@ -1099,19 +1045,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Blog"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__updated_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
             },
             "ty": "DateTime!"
           }
@@ -1358,9 +1305,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "[BlogEdge]"
           },
           "pageInfo": {
@@ -1379,9 +1325,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "PageInfo"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -1444,17 +1389,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Blog"
           }
         },
@@ -1491,9 +1441,10 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "id"
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
             },
             "ty": "ID!"
@@ -1532,21 +1483,24 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Blog"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Blog"
                   }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
-                  }
-                },
-                {
-                  "ParentData": "ConvertSkToCursor"
                 }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__sk"
+                  }
+                },
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
@@ -1567,9 +1521,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "Blog!"
           }
         },
@@ -1632,17 +1585,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Blog"
           }
         },
@@ -1742,16 +1700,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Create": {
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Author"
+            "resolve": {
+              "id": "author_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Author"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "AuthorCreatePayload"
           },
           "authorDelete": {
@@ -1779,16 +1741,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Delete": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "ty": "Author"
+            "resolve": {
+              "id": "author_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "ty": "Author"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "AuthorDeletePayload"
           },
           "authorUpdate": {
@@ -1824,19 +1790,23 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Update": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Author"
+            "resolve": {
+              "id": "author_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Author"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "AuthorUpdatePayload"
           },
           "blogCreate": {
@@ -1864,16 +1834,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Create": {
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Blog"
+            "resolve": {
+              "id": "blog_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Blog"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "BlogCreatePayload"
           },
           "blogDelete": {
@@ -1901,16 +1875,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Delete": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "ty": "Blog"
+            "resolve": {
+              "id": "blog_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "ty": "Blog"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "BlogDeletePayload"
           },
           "blogUpdate": {
@@ -1946,19 +1924,23 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Update": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Blog"
+            "resolve": {
+              "id": "blog_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Blog"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "BlogUpdatePayload"
           },
           "postCreate": {
@@ -1986,16 +1968,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Create": {
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Post"
+            "resolve": {
+              "id": "post_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "CreateNode": {
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Post"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostCreatePayload"
           },
           "postDelete": {
@@ -2023,16 +2009,20 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Delete": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "ty": "Post"
+            "resolve": {
+              "id": "post_delete_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "DeleteNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "ty": "Post"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostDeletePayload"
           },
           "postUpdate": {
@@ -2068,19 +2058,23 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Mutation": {
-                "Update": {
-                  "by": {
-                    "InputValue": "by"
-                  },
-                  "input": {
-                    "InputValue": "input"
-                  },
-                  "ty": "Post"
+            "resolve": {
+              "id": "post_create_resolver",
+              "type": {
+                "DynamoMutationResolver": {
+                  "UpdateNode": {
+                    "by": {
+                      "InputTypeName": "by"
+                    },
+                    "input": {
+                      "InputTypeName": "input"
+                    },
+                    "ty": "Post"
+                  }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostUpdatePayload"
           }
         },
@@ -2117,9 +2111,15 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "end_cursor"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "end_cursor"
               }
             },
             "ty": "String"
@@ -2140,9 +2140,15 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "has_next_page"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_next_page"
               }
             },
             "ty": "Boolean!"
@@ -2163,9 +2169,15 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "has_previous_page"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "has_previous_page"
               }
             },
             "ty": "Boolean!"
@@ -2186,9 +2198,15 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "start_cursor"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": "PaginationData"
+              }
+            },
+            "transformer": {
+              "JSONSelect": {
+                "property": "start_cursor"
               }
             },
             "ty": "String"
@@ -2270,48 +2288,19 @@ expression: reg_string
             },
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "ParentData": {
-                      "ParentRelationId": {
-                        "parent_id": {
-                          "Composition": [
-                            {
-                              "ParentData": {
-                                "Field": "Post"
-                              }
-                            },
-                            {
-                              "ParentData": {
-                                "DynamoAttribute": "__sk"
-                              }
-                            }
-                          ]
-                        },
-                        "relation_name": "published"
-                      }
-                    }
-                  },
-                  "type": {
-                    "Constant": "Author"
+            "resolve": {
+              "id": "post_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "Author",
+                    "key": "Post",
+                    "relation_name": "published"
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "AuthorConnection"
           },
           "content": {
@@ -2330,19 +2319,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Post"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "content"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "content"
+              }
             },
             "ty": "String!"
           },
@@ -2362,19 +2352,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Post"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__created_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
             },
             "ty": "DateTime!"
           },
@@ -2394,19 +2385,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Post"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
             },
             "ty": "ID!"
           },
@@ -2426,19 +2418,20 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Post"
-                  }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__updated_at"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
                   }
                 }
-              ]
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
             },
             "ty": "DateTime!"
           }
@@ -2496,9 +2489,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "[PostEdge]"
           },
           "pageInfo": {
@@ -2517,9 +2509,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "PageInfo"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "PageInfo!"
           }
         },
@@ -2582,17 +2573,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 1,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Post"
           }
         },
@@ -2629,9 +2625,10 @@ expression: reg_string
             "relation": null,
             "required_operation": 16,
             "requires": null,
-            "resolver": {
-              "ParentData": {
-                "Field": "id"
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
               }
             },
             "ty": "ID!"
@@ -2670,21 +2667,24 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Composition": [
-                {
-                  "ParentData": {
-                    "Field": "Post"
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Post"
                   }
-                },
-                {
-                  "ParentData": {
-                    "DynamoAttribute": "__sk"
-                  }
-                },
-                {
-                  "ParentData": "ConvertSkToCursor"
                 }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__sk"
+                  }
+                },
+                "ConvertSkToCursor"
               ]
             },
             "ty": "String!"
@@ -2705,9 +2705,8 @@ expression: reg_string
             "relation": null,
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "ParentData": "Clone"
-            },
+            "resolve": null,
+            "transformer": null,
             "ty": "Post!"
           }
         },
@@ -2872,17 +2871,22 @@ expression: reg_string
             "relation": null,
             "required_operation": 8,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "ById": {
-                  "id": {
-                    "ParentData": {
-                      "Field": "id"
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "sk": {
+                      "LocalData": "id"
                     }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Post"
           }
         },
@@ -2919,7 +2923,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Schema!"
           },
           "author": {
@@ -2947,15 +2952,19 @@ expression: reg_string
             "relation": null,
             "required_operation": 2,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "By": {
-                  "by": {
-                    "InputValue": "by"
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Author"
           },
           "authorCollection": {
@@ -3015,30 +3024,32 @@ expression: reg_string
             },
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "Constant": null
-                  },
-                  "type": {
-                    "Constant": "Author"
+            "resolve": {
+              "id": "author_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "nested": null,
+                    "type": {
+                      "DebugString": "Author"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "AuthorConnection"
           },
           "blog": {
@@ -3066,15 +3077,19 @@ expression: reg_string
             "relation": null,
             "required_operation": 2,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "By": {
-                  "by": {
-                    "InputValue": "by"
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Blog"
           },
           "blogCollection": {
@@ -3134,30 +3149,32 @@ expression: reg_string
             },
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "Constant": null
-                  },
-                  "type": {
-                    "Constant": "Blog"
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "nested": null,
+                    "type": {
+                      "DebugString": "Blog"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "BlogConnection"
           },
           "post": {
@@ -3185,15 +3202,19 @@ expression: reg_string
             "relation": null,
             "required_operation": 2,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "By": {
-                  "by": {
-                    "InputValue": "by"
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryBy": {
+                    "by": {
+                      "InputTypeName": "by"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "Post"
           },
           "postCollection": {
@@ -3253,30 +3274,32 @@ expression: reg_string
             },
             "required_operation": 4,
             "requires": null,
-            "resolver": {
-              "Query": {
-                "PaginatedByType": {
-                  "after": {
-                    "InputValue": "after"
-                  },
-                  "before": {
-                    "InputValue": "before"
-                  },
-                  "first": {
-                    "InputValue": "first"
-                  },
-                  "last": {
-                    "InputValue": "last"
-                  },
-                  "maybe_parent_relation": {
-                    "Constant": null
-                  },
-                  "type": {
-                    "Constant": "Post"
+            "resolve": {
+              "id": "post_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "ListResultByTypePaginated": {
+                    "after": {
+                      "InputTypeName": "after"
+                    },
+                    "before": {
+                      "InputTypeName": "before"
+                    },
+                    "first": {
+                      "InputTypeName": "first"
+                    },
+                    "last": {
+                      "InputTypeName": "last"
+                    },
+                    "nested": null,
+                    "type": {
+                      "DebugString": "Post"
+                    }
                   }
                 }
               }
             },
+            "transformer": null,
             "ty": "PostConnection"
           }
         },
@@ -3320,7 +3343,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "description": {
@@ -3339,7 +3363,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isRepeatable": {
@@ -3358,7 +3383,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "locations": {
@@ -3377,7 +3403,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__DirectiveLocation!]!"
           },
           "name": {
@@ -3396,7 +3423,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -3537,7 +3565,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3556,7 +3585,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -3575,7 +3605,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -3594,7 +3625,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           }
         },
@@ -3631,7 +3663,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]!"
           },
           "deprecationReason": {
@@ -3650,7 +3683,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3669,7 +3703,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "isDeprecated": {
@@ -3688,7 +3723,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean!"
           },
           "name": {
@@ -3707,7 +3743,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -3726,7 +3763,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -3763,7 +3801,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "description": {
@@ -3782,7 +3821,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "name": {
@@ -3801,7 +3841,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String!"
           },
           "type": {
@@ -3820,7 +3861,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           }
         },
@@ -3857,7 +3899,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Directive!]!"
           },
           "mutationType": {
@@ -3876,7 +3919,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "queryType": {
@@ -3895,7 +3939,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type!"
           },
           "subscriptionType": {
@@ -3914,7 +3959,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "types": {
@@ -3933,7 +3979,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]!"
           }
         },
@@ -3970,7 +4017,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "enumValues": {
@@ -3998,7 +4046,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__EnumValue!]"
           },
           "fields": {
@@ -4026,7 +4075,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Field!]"
           },
           "inputFields": {
@@ -4045,7 +4095,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__InputValue!]"
           },
           "interfaces": {
@@ -4064,7 +4115,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "isOneOf": {
@@ -4083,7 +4135,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "Boolean"
           },
           "kind": {
@@ -4102,7 +4155,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__TypeKind!"
           },
           "name": {
@@ -4121,7 +4175,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           },
           "ofType": {
@@ -4140,7 +4195,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "__Type"
           },
           "possibleTypes": {
@@ -4159,7 +4215,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "[__Type!]"
           },
           "specifiedByURL": {
@@ -4178,7 +4235,8 @@ expression: reg_string
             "relation": null,
             "required_operation": null,
             "requires": null,
-            "resolver": null,
+            "resolve": null,
+            "transformer": null,
             "ty": "String"
           }
         },

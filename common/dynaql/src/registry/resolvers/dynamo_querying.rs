@@ -1,31 +1,26 @@
-use super::{
-    ResolvedOneOf, ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, Resolver,
-};
+use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 
-use crate::dynamic::DynamicFieldContext;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
-use crate::{Error, ServerError, ServerResult};
+use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
+use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
-    DynamoDBBatchersData, PaginatedCursor, ParentRelationId, QueryKey, QuerySingleRelationKey,
-    QueryTypePaginatedKey,
+    DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
 };
 use graph_entities::cursor::PaginationCursor;
 use graph_entities::{ConstraintID, NodeID};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;
-
+use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::hash::Hash;
 
 use std::sync::Arc;
 
-const PAGINATION_LIMIT: i64 = 100;
-
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
-pub enum QueryResolver {
+pub enum DynamoResolver {
     /// A Query based on the PK and the SK
     ///
     /// We query dynamodb with PK and SK, we also query the edges based on the type infered.
@@ -52,7 +47,10 @@ pub enum QueryResolver {
     ///
     /// The purpose of this resolver is only to resolve the n-1 level in an optimized way and to
     /// pass the results.
-    ById { id: Resolver },
+    QueryPKSK {
+        pk: VariableResolveDefinition,
+        sk: VariableResolveDefinition,
+    },
     /// A Paginated Query based on the type of the entity.
     ///
     /// We query the reverted index by type to get a node and his edges.
@@ -82,13 +80,15 @@ pub enum QueryResolver {
     ///   }]
     /// }
     /// ```
-    PaginatedByType {
-        r#type: Resolver,
-        first: Resolver,
-        last: Resolver,
-        after: Resolver,
-        before: Resolver,
-        maybe_parent_relation: Resolver,
+    ListResultByTypePaginated {
+        r#type: VariableResolveDefinition,
+        first: VariableResolveDefinition,
+        last: VariableResolveDefinition,
+        after: VariableResolveDefinition,
+        before: VariableResolveDefinition,
+        // (relation_name, parent_pk)
+        // TODO: turn this into a struct
+        nested: Option<(String, String)>,
     },
     /// A Query based on the PK and the relation name.
     ///
@@ -109,7 +109,10 @@ pub enum QueryResolver {
     ///
     /// Even if the relation is unique, we'll return a Vec, it's the purpose of the EdgeResolver
     /// to determine if the schema is coherent and to fallback an error if it's not.
-    SingleRelation { parent_relation: Resolver },
+    QuerySingleRelation {
+        parent_pk: String,
+        relation_name: String,
+    },
     /// A Query based on any unique field (id or a field marked with @unique)
     ///
     /// # Returns
@@ -133,31 +136,18 @@ pub enum QueryResolver {
     ///   }
     /// }
     /// ```
-    By { by: Resolver },
+    QueryBy { by: VariableResolveDefinition },
 }
 
-fn validate_pagination_limit(value: Option<i64>) -> ServerResult<Option<usize>> {
-    if let Some(v) = value {
-        if (1..=PAGINATION_LIMIT).contains(&v) {
-            Ok(Some(v as usize))
-        } else {
-            Err(ServerError::new(
-                format!("Pagination limit must be in [1, {PAGINATION_LIMIT}]"),
-                None,
-            ))
-        }
-    } else {
-        Ok(None)
-    }
-}
-
-impl QueryResolver {
-    pub async fn resolve<'ctx>(
+#[async_trait::async_trait]
+impl ResolverTrait for DynamoResolver {
+    async fn resolve(
         &self,
-        ctx_field: &DynamicFieldContext<'ctx>,
-        maybe_parent_value: Option<&ResolvedValue<'ctx>>,
-    ) -> Result<ResolvedValue<'ctx>, Error> {
-        let ctx = &ctx_field.base;
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
+        const PAGINATION_LIMIT: usize = 100;
 
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
@@ -165,34 +155,22 @@ impl QueryResolver {
         let query_loader_fat_paginated = &batchers.paginated_query_fat;
         let query_loader_single_relation = &batchers.query_single_relation;
 
-        let ctx_ty = ctx_field.base_type;
+        let ctx_ty = resolver_ctx
+            .ty
+            .ok_or_else(|| Error::new("Internal Error: Failed process the associated schema."))?;
         let current_ty = ctx_ty.name();
 
         match self {
-            QueryResolver::PaginatedByType {
+            DynamoResolver::ListResultByTypePaginated {
                 r#type,
                 before,
                 after,
                 last,
                 first,
-                maybe_parent_relation,
+                nested,
             } => {
-                let r#type: String = r#type.resolve(ctx_field, maybe_parent_value).await?;
-                let first: Option<usize> = first
-                    .resolve(ctx_field, maybe_parent_value)
-                    .await
-                    .and_then(validate_pagination_limit)?;
-                let last: Option<usize> = last
-                    .resolve(ctx_field, maybe_parent_value)
-                    .await
-                    .and_then(validate_pagination_limit)?;
-                let before =
-                    PaginationCursor::parse(before.resolve(ctx_field, maybe_parent_value).await?)?;
-                let after =
-                    PaginationCursor::parse(after.resolve(ctx_field, maybe_parent_value).await?)?;
-                let maybe_parent_relation: Option<ParentRelationId> = maybe_parent_relation
-                    .resolve(ctx_field, maybe_parent_value)
-                    .await?;
+                let pk = r#type
+                    .expect_string(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?;
 
                 // TODO: optimize single edges for the top level
                 // TODO: put selected relations
@@ -221,21 +199,34 @@ impl QueryResolver {
                     .unique()
                     .collect();
 
+                let first = first.expect_opt_int(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                    Some(PAGINATION_LIMIT),
+                )?;
+                let after = after.expect_opt_cursor(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                )?;
+                let before = before.expect_opt_cursor(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                )?;
+                let last = last.expect_opt_int(
+                    ctx,
+                    last_resolver_value.map(|x| x.data_resolved.borrow()),
+                    Some(PAGINATION_LIMIT),
+                )?;
                 let len = edges.len();
 
-                let cursor = PaginatedCursor::from_graphql(
-                    first,
-                    last,
-                    after,
-                    before,
-                    maybe_parent_relation,
-                )?;
+                let cursor =
+                    PaginatedCursor::from_graphql(first, last, after, before, nested.clone())?;
                 let mut pagination = ResolvedPaginationInfo::new(
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
                 );
 
                 let result = query_loader_fat_paginated
-                    .load_one(QueryTypePaginatedKey::new(r#type.clone(), edges, cursor))
+                    .load_one(QueryTypePaginatedKey::new(pk.clone(), edges, cursor))
                     .await?;
 
                 let result = result.ok_or_else(|| {
@@ -290,10 +281,10 @@ impl QueryResolver {
 
                         match serde_json::to_value(&query_value.node) {
                             Ok(value) => {
-                                value_result.insert(r#type.clone(), value);
+                                value_result.insert(pk.clone(), value);
                             }
                             Err(err) => {
-                                value_result.insert(r#type.clone(), serde_json::Value::Null);
+                                value_result.insert(pk.clone(), serde_json::Value::Null);
                                 ctx.add_error(
                                     Error::new_with_source(err).into_server_error(ctx.item.pos),
                                 );
@@ -304,12 +295,31 @@ impl QueryResolver {
                     })
                     .collect();
 
-                Ok(ResolvedValue::owned(serde_json::Value::Array(result))
-                    .with_pagination(pagination))
+                Ok(
+                    ResolvedValue::new(Arc::new(serde_json::Value::Array(result)))
+                        .with_pagination(pagination),
+                )
             }
-            QueryResolver::ById { id } => {
-                let pk: String = id.resolve(ctx_field, maybe_parent_value).await?;
-                let sk = pk.clone();
+            DynamoResolver::QueryPKSK { pk, sk } => {
+                let pk = match pk
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .expect("can't fail")
+                {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
+
+                let sk = match sk
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .expect("can't fail")
+                {
+                    Value::String(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
 
                 let selected: HashSet<&str> = ctx
                     .field()
@@ -330,14 +340,15 @@ impl QueryResolver {
                         Some(dyna) => {
                             let value = serde_json::to_value(dyna)
                                 .map_err(|err| Error::new(err.to_string()))?;
-                            return Ok(ResolvedValue::owned(serde_json::json!({
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                                 current_ty: value,
-                            })));
+                            }))));
                         }
                         // If we do not have any value inside our fetch, it's not an
                         // error, it's only we didn't found the value.
                         None => {
-                            return Ok(ResolvedValue::null());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
+                                .with_early_return());
                         }
                     }
                 }
@@ -379,7 +390,9 @@ impl QueryResolver {
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(ResolvedValue::null());
+                    return Ok(
+                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
+                    );
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -398,16 +411,18 @@ impl QueryResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::owned(serde_json::Value::Object(result)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
+                    result,
+                ))))
             }
-            QueryResolver::SingleRelation { parent_relation } => {
-                let parent_relation: ParentRelationId = parent_relation
-                    .resolve(ctx_field, maybe_parent_value)
-                    .await?;
+            DynamoResolver::QuerySingleRelation {
+                parent_pk,
+                relation_name,
+            } => {
                 let query_result = query_loader_single_relation
                     .load_one(QuerySingleRelationKey::new(
-                        parent_relation.parent_id,
-                        parent_relation.relation_name,
+                        parent_pk.to_string(),
+                        relation_name.to_string(),
                     ))
                     .await?
                     .map(|x| x.values)
@@ -420,7 +435,9 @@ impl QueryResolver {
                 // If we do not have any value inside our fetch, it's not an
                 // error, it's only we didn't found the value.
                 if len == 0 {
-                    return Ok(ResolvedValue::null());
+                    return Ok(
+                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
+                    );
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -439,22 +456,35 @@ impl QueryResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::owned(serde_json::Value::Object(result)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
+                    result,
+                ))))
             }
-            QueryResolver::By { by } => {
-                let ResolvedOneOf {
-                    name: by_key,
-                    value: by_value,
-                } = by.resolve_oneof(ctx_field, maybe_parent_value).await?;
-                let is_by_id = by_key == "id";
+            DynamoResolver::QueryBy { by } => {
+                let by = match by
+                    .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
+                    .expect("can't fail")
+                {
+                    Value::Object(inner) => inner,
+                    _ => {
+                        return Err(Error::new("Internal Error: failed to infer key"));
+                    }
+                };
 
-                let (pk, sk) = if is_by_id {
+                let (key, value) = by.first().expect("must exist");
+
+                let key = key.to_string();
+
+                let by_id = key == "id";
+
+                let (pk, sk) = if by_id {
                     let value = match NodeID::from_owned(
-                        by_value.as_str().expect("cannot fail").to_string(),
+                        dynaql_value::from_value(value.clone()).expect("cannot fail"),
                     ) {
                         Ok(val) => val,
                         Err(_) => {
-                            return Ok(ResolvedValue::null());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
+                                .with_early_return());
                         }
                     };
 
@@ -463,8 +493,12 @@ impl QueryResolver {
 
                     (pk, sk)
                 } else {
-                    let pk = ConstraintID::from_owned(current_ty.to_string(), by_key, by_value)
-                        .to_string();
+                    let pk = ConstraintID::from_owned(
+                        current_ty.to_string(),
+                        key.clone(),
+                        value.clone().into_json().expect("cannot fail"),
+                    )
+                    .to_string();
                     let sk = pk.clone();
                     (pk, sk)
                 };
@@ -472,10 +506,10 @@ impl QueryResolver {
                 // TODO: optimize single edges for the top level
                 let relations_selected: IndexMap<&str, &MetaRelation> = ctx_ty.relations();
                 let relations_len = relations_selected.len();
-                if relations_len == 0 || !is_by_id {
+                if relations_len == 0 || !by_id {
                     match loader_item.load_one((pk.clone(), sk)).await? {
                         Some(mut dyna) => {
-                            if !is_by_id {
+                            if !by_id {
                                 // Populate the original SK to get the correct ID
                                 // TODO: consider a declarative way to do this
                                 dyna.insert(
@@ -487,13 +521,14 @@ impl QueryResolver {
                             let value = serde_json::to_value(dyna)
                                 .map_err(|err| Error::new(err.to_string()))?;
 
-                            return Ok(ResolvedValue::owned(serde_json::json!({
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::json!({
                                 current_ty: value,
-                            })));
+                            }))));
                         }
                         // Return early if no value was found
                         None => {
-                            return Ok(ResolvedValue::null());
+                            return Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null))
+                                .with_early_return());
                         }
                     }
                 }
@@ -538,7 +573,9 @@ impl QueryResolver {
 
                 // Return early if no value was found
                 if len == 0 {
-                    return Ok(ResolvedValue::null());
+                    return Ok(
+                        ResolvedValue::new(Arc::new(serde_json::Value::Null)).with_early_return()
+                    );
                 }
 
                 let result: Map<String, serde_json::Value> =
@@ -557,7 +594,9 @@ impl QueryResolver {
                             acc
                         });
 
-                Ok(ResolvedValue::owned(serde_json::Value::Object(result)))
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Object(
+                    result,
+                ))))
             }
         }
     }

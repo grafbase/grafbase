@@ -5,8 +5,9 @@ use dynaql::indexmap::{indexmap, IndexMap};
 use dynaql::registry::relations::MetaRelationKind;
 use dynaql::registry::Registry;
 use dynaql::registry::{
-    resolvers::dynamo_mutation::MutationResolver, resolvers::dynamo_querying::QueryResolver, resolvers::Resolver,
-    MetaField, MetaInputValue, MetaType,
+    resolvers::dynamo_mutation::DynamoMutationResolver, resolvers::dynamo_querying::DynamoResolver,
+    resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
+    MetaType,
 };
 
 use dynaql::{AuthConfig, Operations};
@@ -116,10 +117,14 @@ pub fn add_mutation_create<'a>(
         edges: Vec::new(),
         relation: None,
         compute_complexity: None,
-        resolver: Some(Resolver::mutation(MutationResolver::Create {
-            input: Resolver::input(INPUT_ARG_INPUT),
-            ty: type_name,
-        })),
+        resolve: Some(Resolver {
+            id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
+            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::CreateNode {
+                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+                ty: type_name,
+            }),
+        }),
+        transformer: None,
         required_operation: Some(Operations::CREATE),
         auth: model_auth.cloned(),
     });
@@ -225,11 +230,15 @@ pub fn add_mutation_update<'a>(
         edges: Vec::new(),
         relation: None,
         compute_complexity: None,
-        resolver: Some(Resolver::mutation(MutationResolver::Update {
-            by: Resolver::input(INPUT_ARG_BY),
-            input: Resolver::input(INPUT_ARG_INPUT),
-            ty: type_name,
-        })),
+        resolve: Some(Resolver {
+            id: Some(format!("{}_create_resolver", type_name.to_lowercase())),
+            r#type: ResolverType::DynamoMutationResolver(DynamoMutationResolver::UpdateNode {
+                by: VariableResolveDefinition::InputTypeName(INPUT_ARG_BY.to_owned()),
+                input: VariableResolveDefinition::InputTypeName(INPUT_ARG_INPUT.to_owned()),
+                ty: type_name,
+            }),
+        }),
+        transformer: None,
         required_operation: Some(Operations::UPDATE),
         auth: model_auth.cloned(),
     });
@@ -523,7 +532,7 @@ fn register_mutation_payload_type<'a>(
             description: None,
             fields: {
                 let model_type_name = model_type_definition.name.node.to_string();
-                let name = to_lower_camelcase(model_type_name);
+                let name = to_lower_camelcase(&model_type_name);
                 indexmap! {
                     name.clone() =>  MetaField {
                         name,
@@ -539,9 +548,15 @@ fn register_mutation_payload_type<'a>(
                         compute_complexity: None,
                         edges: Vec::new(),
                         relation: None,
-                        resolver: Some(Resolver::query(QueryResolver::ById {
-                            id: Resolver::field("id"),
-                        })),
+                        resolve: Some(Resolver {
+                            id: Some(format!("{}_resolver", model_type_name.to_lowercase())),
+                            // Single entity
+                            r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
+                                pk: VariableResolveDefinition::LocalData("id".to_string()),
+                                sk: VariableResolveDefinition::LocalData("id".to_string()),
+                            }),
+                        }),
+                        transformer: None,
                         required_operation: Some(if mutation_kind.is_update() { Operations::UPDATE } else {Operations::CREATE}),
                         auth: model_auth.cloned(),
                     },

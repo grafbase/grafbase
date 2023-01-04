@@ -25,7 +25,7 @@ impl<'a> SDLDefinitionScalar<'a> for IntScalar {
 impl DynamicParse for IntScalar {
     fn is_valid(value: &ConstValue) -> bool {
         match value {
-            ConstValue::Number(v) => v.is_i64(),
+            ConstValue::Number(v) => !v.is_f64(),
             _ => false,
         }
     }

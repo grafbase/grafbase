@@ -484,7 +484,8 @@ pub fn generate(
                         compute_complexity: #complexity,
                         edges: Vec::new(),
                         relation: None,
-                        resolver: None,
+                        resolve: None,
+                        transformer: None,
                         required_operation: None,
                         auth: None,
                     });

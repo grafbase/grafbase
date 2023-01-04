@@ -1,6 +1,3 @@
-use crate::registry::names::{
-    PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
-};
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use case::CaseExt;
 use dynaql::{indexmap::IndexMap, registry::MetaInputValue};
@@ -128,9 +125,9 @@ pub fn to_lower_camelcase<S: AsRef<str>>(field: S) -> String {
 pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
     IndexMap::from([
         (
-            PAGINATION_INPUT_ARG_AFTER.to_owned(),
+            "after".to_owned(),
             MetaInputValue {
-                name: PAGINATION_INPUT_ARG_AFTER.to_owned(),
+                name: "after".to_owned(),
                 description: None,
                 ty: "String".to_string(),
                 default_value: None,
@@ -140,9 +137,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            PAGINATION_INPUT_ARG_BEFORE.to_owned(),
+            "before".to_owned(),
             MetaInputValue {
-                name: PAGINATION_INPUT_ARG_BEFORE.to_owned(),
+                name: "before".to_owned(),
                 description: None,
                 ty: "String".to_string(),
                 default_value: None,
@@ -152,9 +149,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            PAGINATION_INPUT_ARG_FIRST.to_owned(),
+            "first".to_owned(),
             MetaInputValue {
-                name: PAGINATION_INPUT_ARG_FIRST.to_owned(),
+                name: "first".to_owned(),
                 description: None,
                 ty: "Int".to_string(),
                 default_value: None,
@@ -164,9 +161,9 @@ pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
             },
         ),
         (
-            PAGINATION_INPUT_ARG_LAST.to_owned(),
+            "last".to_owned(),
             MetaInputValue {
-                name: PAGINATION_INPUT_ARG_LAST.to_owned(),
+                name: "last".to_owned(),
                 description: None,
                 ty: "Int".to_string(),
                 default_value: None,
