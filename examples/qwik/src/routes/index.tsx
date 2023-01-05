@@ -22,7 +22,7 @@ export const GetAllMessagesQuery = /* GraphQL */ `
   }
 `
 
-export default component$(() => {
+export default component$(async () => {
   const messages = useSignal<Message[]>([])
 
   const {

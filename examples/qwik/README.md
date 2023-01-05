@@ -16,13 +16,11 @@ This example uses the [Qwik](https://qwik.builder.io/docs/getting-started) web f
 
 ```graphql
 mutation {
-  plantCreate(
-    input: { name: "pothos", description: "trailing marbled leaves" }
+  messageCreate(
+    input: { author: "Grafbase Admin", message: "Grafbase is awesome!" }
   ) {
-    plant {
+    message {
       id
-      name
-      description
     }
   }
 }
