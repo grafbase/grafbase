@@ -9,7 +9,6 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
-use dynaql_parser::Pos;
 use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
@@ -29,7 +28,7 @@ use crate::resolver_utils::{resolve_container, resolve_list};
 use crate::validation::dynamic_validators::DynValidator;
 use crate::{
     model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
-    SubscriptionType, Value, VisitorContext, ID,
+    SubscriptionType, Value, VisitorContext,
 };
 
 pub use cache_control::CacheControl;
@@ -141,34 +140,6 @@ pub struct MetaInputValue {
 }
 
 impl Eq for MetaInputValue {}
-
-impl MetaInputValue {
-    /// We should be able to link every variables listed in the registry with the actual request.
-    pub fn transform_to_variables_resolved<'a>(
-        &'a self,
-        ctx: &'a Context<'a>,
-    ) -> ServerResult<(Pos, Value)> {
-        let arguments = ctx
-            .resolver_node
-            .as_ref()
-            .map(|f| f.get_arguments().collect::<Vec<_>>())
-            .unwrap_or_default();
-
-        let arguments = arguments.as_slice();
-
-        let variable = match self.ty.as_ref() {
-            "ID" => ctx.param_value_dynamic::<Option<ID>>(&self.name, arguments, None),
-            "ID!" => ctx.param_value_dynamic::<ID>(&self.name, arguments, None),
-            "String" => ctx.param_value_dynamic::<Option<String>>(&self.name, &arguments, None),
-            "String!" => ctx.param_value_dynamic::<String>(&self.name, &arguments, None),
-            "Int" => ctx.param_value_dynamic::<Option<i64>>(&self.name, &arguments, None),
-            "Int!" => ctx.param_value_dynamic::<i64>(&self.name, &arguments, None),
-            _ => ctx.param_value_dynamic_unchecked(&self.name, &arguments, None),
-        };
-
-        variable
-    }
-}
 
 type ComputeComplexityFn = fn(
     &VisitorContext<'_>,
