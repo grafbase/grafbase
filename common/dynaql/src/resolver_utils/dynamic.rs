@@ -1,6 +1,7 @@
 use dynaql_value::{ConstValue, Name};
 use indexmap::IndexMap;
 
+use crate::registry::scalars::{DynamicScalar, PossibleScalar};
 use crate::registry::{MetaInputValue, MetaType, MetaTypeName, Registry};
 
 use crate::{Context, Error, ServerResult};
@@ -94,7 +95,13 @@ fn resolve_input_inner(
                             Err(input_error("Expected an Object", path))
                         }
                     }
-                    MetaType::Enum { .. } | MetaType::Scalar { .. } => Ok(value),
+                    MetaType::Enum { .. } => Ok(value),
+                    // TODO: this conversion ConstValue -> serde_json -> ConstValue is sad...
+                    // we need an intermediate representation between the database & dynaql
+                    MetaType::Scalar { .. } => Ok(ConstValue::from_json(
+                        PossibleScalar::parse(type_name, value)
+                            .map_err(|err| Error::new(err.message()))?,
+                    )?),
                     _ => Err(input_error(
                         &format!("Internal Error: Unsupported input type {type_name}"),
                         path,

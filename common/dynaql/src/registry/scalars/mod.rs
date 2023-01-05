@@ -158,10 +158,13 @@ impl DynamicScalar for PossibleScalarNil {
     }
 
     fn to_value<S: AsRef<str>>(
-        _expected_ty: S,
+        expected_ty: S,
         _value: serde_json::Value,
     ) -> Result<ConstValue, Error> {
-        Ok(ConstValue::Null)
+        Err(Error::new(format!(
+            "Internal error: unknown type '{}'",
+            expected_ty.as_ref()
+        )))
     }
 }
 

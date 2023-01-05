@@ -35,6 +35,7 @@ pub use cache_control::CacheControl;
 
 use self::relations::MetaRelation;
 use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
+use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
@@ -391,9 +392,30 @@ impl MetaField {
                         }
                     }
                 }?;
-
-                let result = Value::from_json(result)
-                    .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?;
+                let meta_type = ctx_obj
+                    .resolver_node
+                    .and_then(|resolver_node| resolver_node.ty)
+                    .ok_or_else(|| {
+                        ServerError::new("Internal Error: expected a field", Some(ctx.item.pos))
+                    })?;
+                let result = match meta_type {
+                    MetaType::Scalar { .. } => match result {
+                        serde_json::Value::Null => Value::Null,
+                        _ => PossibleScalar::to_value(
+                            &self.ty.strip_suffix('!').unwrap_or(&self.ty),
+                            result,
+                        )
+                        .map_err(|err| err.into_server_error(ctx.item.pos))?,
+                    },
+                    MetaType::Enum { .. } => Value::from_json(result)
+                        .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?,
+                    _ => {
+                        return Err(ServerError::new(
+                            "Internal error: expected an enum or scalar type for a primitive",
+                            Some(ctx.item.pos),
+                        ))
+                    }
+                };
 
                 Ok(ctx
                     .response_graph
