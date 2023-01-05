@@ -5,14 +5,14 @@ edition = "2021"
 
 [dependencies]
 again = { version = "0.1", default-features = false, features = [
-    "wasm-bindgen",
-    "log",
+  "wasm-bindgen",
+  "log",
 ] }
 async-trait = "0.1"
 aws-region-nearby = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = [
-    "clock",
-    "std",
+  "clock",
+  "std",
 ] }
 derivative = "2.2"
 dynamodb-utils = { path = "../dynamodb-utils" }
@@ -22,8 +22,8 @@ futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
 futures-util = { version = "0.3", default-features = false, features = [
-    "std",
-    "async-await",
+  "std",
+  "async-await",
 ] }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
@@ -53,20 +53,20 @@ serde = { workspace = true, optional = true }
 
 [dev-dependencies]
 tokio = { version = "1", features = [
-    "macros",
-    "rt-multi-thread",
-    "sync",
-    "time",
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
 ] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 surf = { version = "2", default-features = false, optional = true, features = [
-    "wasm-client",
+  "wasm-client",
 ] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 surf = { version = "2", default-features = false, optional = true, features = [
-    "h1-client-rustls",
+  "h1-client-rustls",
 ] }
 
 [features]
