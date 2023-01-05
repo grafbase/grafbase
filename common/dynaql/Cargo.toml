@@ -68,13 +68,13 @@ serde_json = { workspace = true }
 serde_with = { workspace = true }
 static_assertions = "1"
 tempfile = "3"
-thiserror = "1"
+thiserror = { workspace = true }
 ulid = "1"
 url = { version = "2" }
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
-graph-entities = { path = "../graph_entities" }
+graph-entities = { path = "../graph-entities" }
 logworker = { path = "../log", package = "log", optional = true }
 
 # Feature optional dependencies
@@ -105,7 +105,7 @@ futures-channel = { version = "0.3", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
-lru = { version = "0.8", optional = true }
+lru = { version = "0.9", optional = true }
 sha2 = { version = "0.10", optional = true }
 serde_cbor = { workspace = true, optional = true }
 zxcvbn = { version = "2", optional = true }
