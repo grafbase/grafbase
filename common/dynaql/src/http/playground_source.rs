@@ -21,8 +21,8 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
           <script>
             window.GRAPHQL_URL = "{{GRAPHQL_URL}}";
           </script>
-          <script defer="defer" src="{{ASSETS_URL}}/main.js"></script>
-          <link href="{{ASSETS_URL}}/main.css" rel="stylesheet" />
+          <script defer="defer" src="{{ASSET_URL}}/main.js"></script>
+          <link href="{{ASSET_URL}}/main.css" rel="stylesheet" />
           <link
             href="https://cdn.jsdelivr.net/npm/@grafbase/graphiql@2.0.2/dist/index.css"
             rel="stylesheet"
@@ -36,7 +36,7 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     "##
     .replace("{{GRAPHQL_URL}}", config.endpoint)
     .replace(
-        "{{ASSETS_URL}}",
+        "{{ASSET_URL}}",
         "https://assets.grafbase.com/playground",
     )
 }
