@@ -31,6 +31,7 @@ use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::ResolvedValue;
 use crate::registry::Registry;
 use crate::registry::{get_basic_type, MetaInputValue, MetaType};
+use crate::resolver_utils::resolve_input;
 use crate::schema::SchemaEnv;
 use crate::{
     Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
@@ -759,30 +760,6 @@ impl<'a, T> ContextBase<'a, T> {
             .map(|value| (pos, value))
             .map_err(|e| e.into_server_error(pos))
     }
-
-    #[doc(hidden)]
-    /// Get a param value with unchecked type check to allow dynamic mapping.
-    fn get_param_value_unchecked(
-        &self,
-        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
-        name: &str,
-        default: Option<fn() -> Value>,
-    ) -> ServerResult<(Pos, Value)> {
-        let value = arguments
-            .iter()
-            .find(|(n, _)| n.node.as_str() == name)
-            .map(|(_, value)| value)
-            .cloned();
-
-        let (pos, value) = match value {
-            Some(value) => (value.pos, Some(self.resolve_input_value(value)?)),
-            None => (Pos::default(), default.map(|f| f())),
-        };
-
-        value
-            .ok_or_else(|| ServerError::new(format!("Failed to parse variable {name}"), Some(pos)))
-            .map(|value| (pos, value))
-    }
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
@@ -840,25 +817,38 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         self.get_param_value(&self.item.node.arguments, name, default)
     }
 
-    #[doc(hidden)]
-    pub fn param_value_dynamic<'b: 'a, T: InputType>(
-        &self,
-        name: &'b str,
-        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
-        default: Option<fn() -> T>,
-    ) -> ServerResult<(Pos, Value)> {
-        self.get_param_value(arguments, name, default)
-            .map(|(pos, x)| (pos, InputType::to_value(&x)))
-    }
+    pub fn param_value_dynamic(&self, name: &str) -> ServerResult<Value> {
+        let meta = self
+            .resolver_node
+            .as_ref()
+            .and_then(|r| r.field)
+            .ok_or_else(|| {
+                ServerError::new(
+                    "Context does not have any field associated.",
+                    Some(self.item.pos),
+                )
+            })?;
+        if let Some(meta_input_value) = meta.args.get(name) {
+            let maybe_value = self
+                .item
+                .node
+                .arguments
+                .iter()
+                .find(|(n, _)| n.node.as_str() == name)
+                .map(|(_, value)| value)
+                .cloned();
 
-    #[doc(hidden)]
-    pub fn param_value_dynamic_unchecked<'b: 'a>(
-        &self,
-        name: &'b str,
-        arguments: &[(Positioned<Name>, Positioned<InputValue>)],
-        default: Option<fn() -> Value>,
-    ) -> ServerResult<(Pos, Value)> {
-        self.get_param_value_unchecked(arguments, name, default)
+            let const_value = match maybe_value {
+                Some(value) => self.resolve_input_value(value)?,
+                None => Value::Null,
+            };
+            resolve_input(self, meta_input_value, const_value)
+        } else {
+            Err(ServerError::new(
+                "Internal Error: Unknown argument '{name}'",
+                Some(self.item.pos),
+            ))
+        }
     }
 
     /// When inside a Connection, we get the subfields asked

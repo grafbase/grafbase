@@ -41,13 +41,7 @@ impl VariableResolveDefinition {
         last_resolver_value: Option<&'a serde_json::Value>,
     ) -> Result<Option<Value>, ServerError> {
         match self {
-            Self::InputTypeName(name) => Ok(ctx
-                .resolver_node
-                .as_ref()
-                .and_then(|resolver| resolver.get_variable_by_name(name))
-                .map(|x| x.transform_to_variables_resolved(ctx))
-                .transpose()?
-                .map(|(_, x)| x)),
+            Self::InputTypeName(name) => ctx.param_value_dynamic(name).map(Some),
             #[allow(deprecated)]
             Self::ResolverData(key) => Ok(resolver_data_get_opt_ref::<Value>(
                 &ctx.resolvers_data.read().expect("handle"),
