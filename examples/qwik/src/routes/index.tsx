@@ -1,61 +1,51 @@
-import { component$, useServerMount$, useSignal } from '@builder.io/qwik'
-import { grafbaseClient } from '~/utils/grafbase'
+import { component$, useSignal } from '@builder.io/qwik'
 
-interface Plants {
-  plantCollection: {
-    edges: Plant[]
-  }
-}
-
-interface Plant {
+type Message = {
   id: string
-  name: string
-  description: string
+  author: string
+  message: string
+  createdAt: string
 }
 
-export const GetAllPlantsQuery = `
-  query GetAllPlants($first: Int!) {
-    plantCollection(first: $first) {
+export const GetAllMessagesQuery = /* GraphQL */ `
+  query GetAllMessages($first: Int!) @live {
+    messageCollection(first: $first) {
       edges {
         node {
           id
-          name
-          description
+          author
+          message
+          createdAt
         }
       }
     }
   }
 `
 
-export const AddNewPlantMutation = `
-  mutation AddNewPlant($name: String!, $description: String!) {
-    plantCreate(input: { name: $name, description: $description }) {
-      plant {
-        id
-        name
-        description
-      }
-    }
-  }
-`
-
 export default component$(() => {
-  const newPlant = useSignal('')
-  const newPlantDescription = useSignal('')
-  const allPlants = useSignal<Plants>()
+  const messages = useSignal<Message[]>([])
 
-  useServerMount$(async () => {
-    const plants: Plants = await grafbaseClient({
-      query: GetAllPlantsQuery,
-      variables: { first: 100 }
+  const {
+    data: { messageCollection }
+  }: {
+    data: { messageCollection: { edges: { node: Message }[] } }
+  } = await fetch(import.meta.env.VITE_GRAFBASE_API_URL as string, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      query: GetAllMessagesQuery,
+      variables: {
+        first: 100
+      }
     })
-    allPlants.value = plants
-  })
+  }).then((res) => res.json())
 
   return (
     <div>
-      <h1>Plants</h1>
-      {allPlants.value?.plantCollection.edges.map(({ node }) => (
+      <h1>Messages</h1>
+      {messages.values?.map(({ node }) => (
         <>
           <div>
             {node?.name} : {node?.description}
@@ -63,47 +53,6 @@ export default component$(() => {
         </>
       ))}
 
-      <h2>New plant</h2>
-
-      <input
-        id="name"
-        name="name"
-        placeholder="Name"
-        value={newPlant.value}
-        onInput$={(event) =>
-          (newPlant.value = (event.target as HTMLInputElement).value)
-        }
-      />
-      <br />
-
-      <input
-        id="description"
-        name="description"
-        placeholder="Describe the plant"
-        value={newPlantDescription.value}
-        onInput$={(event) =>
-          (newPlantDescription.value = (event.target as HTMLInputElement).value)
-        }
-      />
-      <br />
-
-      <button
-        onClick$={async () => {
-          await grafbaseClient({
-            query: AddNewPlantMutation,
-            variables: {
-              name: newPlant.value,
-              description: newPlantDescription.value
-            }
-          })
-          allPlants.value = await grafbaseClient({
-            query: GetAllPlantsQuery,
-            variables: { first: 100 }
-          })
-        }}
-      >
-        Add Plant
-      </button>
     </div>
   )
 })
