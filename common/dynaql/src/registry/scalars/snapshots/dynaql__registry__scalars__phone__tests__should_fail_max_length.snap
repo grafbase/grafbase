@@ -1,5 +1,6 @@
 ---
 source: common/dynaql/src/registry/scalars/phone.rs
+assertion_line: 113
 expression: scalar
 ---
 Err(
