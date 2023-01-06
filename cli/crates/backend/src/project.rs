@@ -12,7 +12,6 @@ use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
@@ -71,7 +70,7 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
         } else if template.contains('/') {
             return Err(BackendError::UnsupportedTemplate(template.to_owned()));
         } else {
-            download_github_template(&TemplateInfo::Grafbase { path: template })
+            download_github_template(GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }))
         }
     } else {
         fs::create_dir_all(&grafbase_path).map_err(BackendError::CreateGrafbaseDirectory)?;
@@ -92,17 +91,20 @@ fn handle_github_repo_url(repo_url: &Url) -> Result<(), BackendError> {
         // TODO: allow URLs without 'tree/branch' by checking the default branch via the API
         .filter(|segments| segments.len() >= 4 && segments[2] == "tree")
     {
-        let repo = &segments[..=1].join("/");
+        let org = &segments[0];
 
-        let branch = segments[3];
+        let repo = &segments[1];
+
+        let branch = &segments[3];
 
         let path = segments.get(4..).map(|path| path.join("/"));
 
-        download_github_template(&TemplateInfo::External {
+        download_github_template(GitHubTemplate::External(ExternalGitHubTemplate {
+            org,
             repo,
-            path: path.as_deref(),
+            path,
             branch,
-        })
+        }))
     } else {
         Err(BackendError::UnsupportedTemplateURL(repo_url.to_string()))
     }
@@ -123,29 +125,62 @@ fn to_project_path(name: Option<&str>) -> Result<PathBuf, BackendError> {
     }
 }
 
-enum TemplateInfo<'a> {
-    Grafbase {
-        path: &'a str,
-    },
-    External {
-        repo: &'a str,
-        path: Option<&'a str>,
-        branch: &'a str,
-    },
+#[derive(Clone)]
+struct ExternalGitHubTemplate<'a> {
+    org: &'a str,
+    repo: &'a str,
+    path: Option<String>,
+    branch: &'a str,
+}
+
+struct GrafbaseGithubTemplate<'a> {
+    path: &'a str,
+}
+
+enum GitHubTemplate<'a> {
+    Grafbase(GrafbaseGithubTemplate<'a>),
+    External(ExternalGitHubTemplate<'a>),
+}
+
+// TODO: once we support non github templates this will need to be refactored
+impl<'a> GitHubTemplate<'a> {
+    pub fn into_external_github_template(self) -> ExternalGitHubTemplate<'a> {
+        match self {
+            Self::Grafbase(GrafbaseGithubTemplate { path }) => ExternalGitHubTemplate {
+                org: "grafbase",
+                repo: "grafbase",
+                path: Some(format!("templates/{path}")),
+                branch: "main",
+            },
+            Self::External(template @ ExternalGitHubTemplate { .. }) => template,
+        }
+    }
 }
 
 #[tokio::main]
-async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<(), BackendError> {
-    let (repo, path, branch) = match template_info {
-        TemplateInfo::Grafbase { path } => ("grafbase/grafbase", Some(PathBuf::from("templates").join(path)), "main"),
-        TemplateInfo::External { repo, path, branch } => (*repo, path.map(PathBuf::from), *branch),
-    };
+async fn download_github_template(template: GitHubTemplate<'_>) -> Result<(), BackendError> {
+    let ExternalGitHubTemplate {
+        org,
+        repo,
+        path,
+        branch,
+    } = template.into_external_github_template();
 
-    let (_, repo_without_org) = repo.split_once('/').expect("must have a slash");
+    let path = path.map(PathBuf::from);
 
-    let extraction_dir = PathBuf::from_str(&format!("{repo_without_org}-{branch}")).expect("must succeed");
+    let org_and_repo = format!("{org}/{repo}");
 
-    let extraction_result = stream_github_archive(repo, path, branch, extraction_dir.as_path()).await;
+    let extraction_dir = PathBuf::from(format!("{repo}-{branch}"));
+
+    let mut template_path: PathBuf = PathBuf::from(&extraction_dir);
+
+    if let Some(path) = path {
+        template_path.push(path);
+    }
+
+    template_path.push("grafbase");
+
+    let extraction_result = stream_github_archive(&org_and_repo, template_path, branch).await;
 
     if extraction_dir.exists() {
         tokio::fs::remove_dir_all(extraction_dir)
@@ -157,10 +192,9 @@ async fn download_github_template(template_info: &TemplateInfo<'_>) -> Result<()
 }
 
 async fn stream_github_archive<'a>(
-    repo: &'a str,
-    path: Option<PathBuf>,
+    org_and_repo: &'a str,
+    template_path: PathBuf,
     branch: &'a str,
-    extraction_dir: &'a Path,
 ) -> Result<(), BackendError> {
     // not using the common environment since it's not initialized here
     // if the OS does not have a cache path or it is not UTF-8, we don't cache the download
@@ -179,13 +213,13 @@ async fn stream_github_archive<'a>(
     let client = client_builder.build();
 
     let tar_gz_response = client
-        .get(format!("https://codeload.github.com/{repo}/tar.gz/{branch}"))
+        .get(format!("https://codeload.github.com/{org_and_repo}/tar.gz/{branch}"))
         .send()
         .await
-        .map_err(|error| BackendError::StartDownloadRepoArchive(repo.to_owned(), error))?;
+        .map_err(|error| BackendError::StartDownloadRepoArchive(org_and_repo.to_owned(), error))?;
 
     if !tar_gz_response.status().is_success() {
-        return Err(BackendError::DownloadRepoArchive(repo.to_owned()));
+        return Err(BackendError::DownloadRepoArchive(org_and_repo.to_owned()));
     }
 
     let tar_gz_stream = tar_gz_response
@@ -195,16 +229,6 @@ async fn stream_github_archive<'a>(
     let tar_gz_reader = StreamReader::new(tar_gz_stream);
     let tar = GzipDecoder::new(tar_gz_reader);
     let archive = Archive::new(tar.compat());
-
-    let mut template_path = PathBuf::new();
-
-    template_path.push(extraction_dir);
-
-    if let Some(path) = path {
-        template_path.push(path);
-    }
-
-    template_path.push("grafbase");
 
     let mut entries = archive.entries().map_err(|_| BackendError::ReadArchiveEntries)?;
 
@@ -226,7 +250,7 @@ async fn stream_github_archive<'a>(
         return Err(BackendError::NoFilesExtracted);
     }
 
-    tokio::fs::rename(template_path, "grafbase")
+    tokio::fs::rename(template_path, GRAFBASE_DIRECTORY)
         .await
         .map_err(BackendError::MoveExtractedFiles)?;
 
