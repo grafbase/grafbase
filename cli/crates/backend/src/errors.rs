@@ -71,6 +71,7 @@ pub enum BackendError {
     // may have unlikely false positives if the files were deleted or moved by an external process immediately after extraction.
     //
     // TODO: consider adding an indicator that a file was extracted rather than checking on disk
+    // TODO: consider splitting this into internal and external template errors for clarity
     // and change this error to something indicating that the extracted files were not found
     /// returned if no files matching the template path were extracted (excluding extraction errors)
     #[error("could not find the provided template within the template repository")]

@@ -247,7 +247,6 @@ async fn stream_github_archive<'a>(
         }
     }
 
-    // FIXME: an incorrect template name errors here rather than initially
     if !template_path.exists() {
         return Err(BackendError::TemplateNotFound);
     }
