@@ -37,8 +37,6 @@ use url::Url;
 ///
 /// - returns [`BackendError::UnsupportedTemplateURL`] if a template URL is not supported
 ///
-/// - returns [`BackendError::UnsupportedTemplate`] if a template name is not supported or contains unsupported characters
-///
 /// - returns [`BackendError::StartDownloadRepoArchive`] if a template URL is not supported (if the request could not be made)
 ///
 /// - returns [`BackendError::DownloadRepoArchive`] if a repo tar could not be downloaded (on a non 200-299 status)
