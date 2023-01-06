@@ -44,7 +44,7 @@ fn init() {
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr)
         .unwrap()
-        .contains("no files were extracted from the template repository"));
+        .contains("could not find the provided template within the template repository"));
 
     // FIXME: this error message will change once we check for existing templates before downloading
     let output = env.grafbase_init_template_output("not_a_template");
@@ -52,5 +52,5 @@ fn init() {
     assert!(!output.stderr.is_empty());
     assert!(std::str::from_utf8(&output.stderr)
         .unwrap()
-        .contains("no files were extracted from the template repository"));
+        .contains("could not find the provided template within the template repository"));
 }

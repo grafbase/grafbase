@@ -62,14 +62,18 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
     if grafbase_path.exists() {
         Err(BackendError::AlreadyAProject(grafbase_path))
     } else if let Some(template) = template {
-        if let Ok(repo_url) = Url::parse(template) {
-            match repo_url.host_str() {
-                Some("github.com") => handle_github_repo_url(&repo_url),
-                _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
+        // as directory names cannot contain slashes, and URLs with no scheme or path cannot
+        // be differentiated from a valid template name,
+        // anything with a slash is treated as a URL
+        if template.contains('/') {
+            if let Ok(repo_url) = Url::parse(template) {
+                match repo_url.host_str() {
+                    Some("github.com") => handle_github_repo_url(&repo_url),
+                    _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
+                }
+            } else {
+                return Err(BackendError::MalformedTemplateURL(template.to_owned()));
             }
-        // as directory names cannot contain slashes, names with slashes are considered malformed URLs
-        } else if template.contains('/') {
-            return Err(BackendError::UnsupportedTemplateURL(template.to_owned()));
         } else {
             download_github_template(GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }))
         }

@@ -51,6 +51,10 @@ pub enum BackendError {
     #[error("'{0}' is not a supported template URL")]
     UnsupportedTemplateURL(String),
 
+    /// returned if a template URL could not be parsed
+    #[error("'{0}' is not a valid URL")]
+    MalformedTemplateURL(String),
+
     /// returned if a repo tar could not be downloaded (on a non 200-299 status)
     #[error("could not download the archive for '{0}'\ncaused by: {1}")]
     StartDownloadRepoArchive(String, reqwest_middleware::Error),
@@ -100,6 +104,7 @@ impl ToExitCode for BackendError {
             | Self::DeleteDotGrafbaseDirectory(_)
             | Self::DeleteGrafbaseDirectory(_)
             | Self::UnsupportedTemplateURL(_)
+            | Self::MalformedTemplateURL(_)
             | Self::StartDownloadRepoArchive(_, _)
             | Self::DownloadRepoArchive(_)
             | Self::StoreRepoArchive(_, _)
