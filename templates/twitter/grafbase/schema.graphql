@@ -1,0 +1,18 @@
+type User @model {
+  name: String!
+  email: Email! @unique
+  image: String
+  likes: [Like]
+  tweets: [Tweet]
+}
+
+type Tweet @model {
+  text: String!
+  user: User!
+  likes: [Like]
+}
+
+type Like @model {
+  tweet: Tweet!
+  user: User!
+}
