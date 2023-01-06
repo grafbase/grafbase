@@ -63,6 +63,11 @@ pub enum BackendError {
     #[error("could not store the archive for '{0}'\ncaused by: {1}")]
     StoreRepoArchive(String, std::io::Error),
 
+    // since this is checked by looking for the extracted files on disk (extraction errors are checked beforehand),
+    // may have unlikely false positives if the files were deleted or moved by an external process immediately after extraction.
+    //
+    // TODO: consider adding an indicator that a file was extracted rather than checking on disk
+    // and change this error to something indicating that the extracted files were not found
     /// returned if no files matching the template path were extracted (excluding extraction errors)
     #[error("could not find the provided template within the template repository")]
     TemplateNotFound,
