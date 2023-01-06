@@ -808,6 +808,7 @@ dependencies = [
  "log",
  "once_cell",
  "os_type",
+ "regex",
  "reqwest",
  "serde",
  "serde_derive",
