@@ -67,8 +67,9 @@ pub fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendErr
                 Some("github.com") => handle_github_repo_url(&repo_url),
                 _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
             }
+        // as directory names cannot contain slashes, names with slashes are considered malformed URLs
         } else if template.contains('/') {
-            return Err(BackendError::UnsupportedTemplate(template.to_owned()));
+            return Err(BackendError::UnsupportedTemplateURL(template.to_owned()));
         } else {
             download_github_template(GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }))
         }
@@ -244,7 +245,7 @@ async fn stream_github_archive<'a>(
 
     // FIXME: an incorrect template name errors here rather than initially
     if !template_path.exists() {
-        return Err(BackendError::NoFilesExtracted);
+        return Err(BackendError::TemplateNotFound);
     }
 
     tokio::fs::rename(template_path, GRAFBASE_DIRECTORY)

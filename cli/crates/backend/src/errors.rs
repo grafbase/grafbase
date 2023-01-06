@@ -51,10 +51,6 @@ pub enum BackendError {
     #[error("'{0}' is not a supported template URL")]
     UnsupportedTemplateURL(String),
 
-    /// returned if a template name is unknown or contains unsupported characters
-    #[error("'{0}' is not a supported template")]
-    UnsupportedTemplate(String),
-
     /// returned if a repo tar could not be downloaded (on a non 200-299 status)
     #[error("could not download the archive for '{0}'\ncaused by: {1}")]
     StartDownloadRepoArchive(String, reqwest_middleware::Error),
@@ -67,9 +63,9 @@ pub enum BackendError {
     #[error("could not store the archive for '{0}'\ncaused by: {1}")]
     StoreRepoArchive(String, std::io::Error),
 
-    /// returned if no files were extracted from the repo archive
-    #[error("no files were extracted from the template repository")]
-    NoFilesExtracted,
+    /// returned if no files matching the template path were extracted (excluding extraction errors)
+    #[error("could not find the provided template within the template repository")]
+    TemplateNotFound,
 
     /// returned if the extracted files from the template repository could not be moved
     #[error("could not move the extracted files from the template repository\ncaused by: {0}")]
@@ -99,11 +95,10 @@ impl ToExitCode for BackendError {
             | Self::DeleteDotGrafbaseDirectory(_)
             | Self::DeleteGrafbaseDirectory(_)
             | Self::UnsupportedTemplateURL(_)
-            | Self::UnsupportedTemplate(_)
             | Self::StartDownloadRepoArchive(_, _)
             | Self::DownloadRepoArchive(_)
             | Self::StoreRepoArchive(_, _)
-            | Self::NoFilesExtracted
+            | Self::TemplateNotFound
             | Self::MoveExtractedFiles(_)
             | Self::ReadArchiveEntries
             | Self::ExtractArchiveEntry(_)
