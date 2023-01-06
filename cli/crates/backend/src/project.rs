@@ -45,7 +45,7 @@ use url::Url;
 ///
 /// - returns [`BackendError::StoreRepoArchive`] if a repo tar could not be stored
 ///
-/// - returns [`BackendError::NoFilesExtracted`] if no files were extracted from the repo archive
+/// - returns [`BackendError::TemplateNotFound`] if no files matching the template path were extracted (excluding extraction errors)
 ///
 /// - returns [`BackendError::MoveExtractedFiles`] if the extracted files from the template repository could not be moved
 ///
