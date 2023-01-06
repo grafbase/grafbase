@@ -11,7 +11,7 @@ use std::env;
 use std::fs;
 use std::io::{Error as IoError, ErrorKind as IoErrorKind};
 use std::iter::Iterator;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use tokio_stream::StreamExt;
 use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
