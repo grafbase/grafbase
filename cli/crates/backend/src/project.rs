@@ -142,7 +142,6 @@ enum GitHubTemplate<'a> {
     External(ExternalGitHubTemplate<'a>),
 }
 
-// TODO: once we support non github templates this will need to be refactored
 impl<'a> GitHubTemplate<'a> {
     pub fn into_external_github_template(self) -> ExternalGitHubTemplate<'a> {
         match self {
