@@ -165,8 +165,6 @@ async fn download_github_template(template: GitHubTemplate<'_>) -> Result<(), Ba
         branch,
     } = template.into_external_github_template();
 
-    let path = path.map(PathBuf::from);
-
     let org_and_repo = format!("{org}/{repo}");
 
     let extraction_dir = PathBuf::from(format!("{repo}-{branch}"));
