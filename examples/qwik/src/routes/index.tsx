@@ -23,7 +23,7 @@ export const GetAllMessagesQuery = /* GraphQL */ `
 `
 
 export default component$(async () => {
-  const messages = useSignal<Message[]>([])
+   const messages = useSignal<Message[]>([])
 
   const {
     data: { messageCollection }
@@ -33,6 +33,7 @@ export default component$(async () => {
     method: 'POST',
     headers: {
       'content-type': 'application/json'
+  
     },
     body: JSON.stringify({
       query: GetAllMessagesQuery,
@@ -45,14 +46,12 @@ export default component$(async () => {
   return (
     <div>
       <h1>Messages</h1>
-      {messages.values?.map(({ node }) => (
+      {/* {messages.values?.map(({ node }) => ( */}
         <>
           <div>
-            {node?.name} : {node?.description}
+            {/* {node?.name} : {node?.description} */}
           </div>
         </>
-      ))}
-
     </div>
   )
 })
