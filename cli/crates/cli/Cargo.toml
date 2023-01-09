@@ -38,7 +38,7 @@ chrono = "0.4"
 duct = "0.13"
 json_dotpath = "1"
 jwt-compact = { version = "0.6", default-features = false, features = [
-    "clock",
+  "clock",
 ] }
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 serde = { version = "1", features = ["derive"] }
@@ -46,6 +46,7 @@ serde_json = "1"
 sysinfo = "0.27"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
+regex = "1"
 
 [[bin]]
 name = "grafbase"
