@@ -26,7 +26,7 @@ See how easy it is to use Grafbase with the frontend frameworks you already know
 
 | Example                                                     | Description                                                                                       |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [Eleventy](/examples/eleventy)                              | Build static sites with data from GRafbase.                                                       |
+| [Eleventy](/examples/eleventy)                              | Build static sites using 11ty with data from Grafbase.                                            |
 | [Fresh](/examples/fresh)                                    | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
 | [NextAuth.js Credentials](/examples/nextauthjs-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
 | [Next.js](/examples/nextjs)                                 | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
