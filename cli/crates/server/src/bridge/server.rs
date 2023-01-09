@@ -1,11 +1,13 @@
-use super::consts::{CREATE_TABLE, DB_FILE, DB_URL_PREFIX};
+use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
 use super::types::{Mutation, Operation, Record};
 use crate::bridge::errors::ApiError;
+use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
 use crate::errors::ServerError;
 use crate::event::{wait_for_event, Event};
+use axum::extract::State;
+use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
-use axum::{Extension, Json};
 use common::environment::Environment;
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
@@ -15,8 +17,8 @@ use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
+    State(pool): State<Arc<SqlitePool>>,
     Json(payload): Json<Operation>,
-    Extension(pool): Extension<Arc<SqlitePool>>,
 ) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
@@ -38,8 +40,8 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
+    State(pool): State<Arc<SqlitePool>>,
     Json(payload): Json<Mutation>,
-    Extension(pool): Extension<Arc<SqlitePool>>,
 ) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
 
@@ -77,7 +79,7 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
-pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
+pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
@@ -95,14 +97,14 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
 
     let pool = SqlitePoolOptions::new().connect(&db_url).await?;
 
-    query(CREATE_TABLE).execute(&pool).await?;
+    query(PREPARE).execute(&pool).await?;
 
     let pool = Arc::new(pool);
 
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
-        .layer(Extension(Arc::clone(&pool)))
+        .with_state(Arc::clone(&pool))
         .layer(TraceLayer::new_for_http());
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
@@ -113,7 +115,10 @@ pub async fn start(port: u16, event_bus: Sender<Event>) -> Result<(), ServerErro
 
     event_bus.send(Event::BridgeReady).expect("cannot fail");
 
-    server.await?;
+    tokio::select! {
+        server_result = server => { server_result? }
+        listener_result = listener::start(worker_port, event_bus) => { listener_result? }
+    };
 
     pool.close().await;
 

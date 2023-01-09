@@ -1,0 +1,5 @@
+query {
+  todoCollection(first: 1) {
+    __typename
+  }
+}

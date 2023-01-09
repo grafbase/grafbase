@@ -13,7 +13,7 @@ use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
-    directory: PathBuf,
+    pub directory: PathBuf,
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
@@ -65,12 +65,36 @@ impl Environment {
     }
 
     pub fn grafbase_init(&self) {
+        cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
+    }
+
+    pub fn grafbase_init_output(&self) -> Output {
         cmd!(cargo_bin("grafbase"), "init")
             .dir(&self.directory)
-            .start()
+            .stderr_capture()
+            .unchecked()
+            .run()
             .unwrap()
-            .wait()
+    }
+
+    pub fn grafbase_init_template_output(&self, template: &str) -> Output {
+        cmd!(cargo_bin("grafbase"), "init", "--template", template)
+            .dir(&self.directory)
+            .stderr_capture()
+            .unchecked()
+            .run()
+            .unwrap()
+    }
+
+    pub fn grafbase_init_template(&self, template: &str) {
+        cmd!(cargo_bin("grafbase"), "init", "--template", template)
+            .dir(&self.directory)
+            .run()
             .unwrap();
+    }
+
+    pub fn remove_grafbase_dir(&self) {
+        fs::remove_dir_all(self.directory.join("grafbase")).unwrap();
     }
 
     pub fn grafbase_dev(&mut self) {
@@ -104,7 +128,10 @@ impl Environment {
     pub fn set_variables(&mut self, variables: HashMap<String, String>) {
         let env_file = variables
             .into_iter()
-            .fold(String::new(), |_, (key, value)| format!(r#"{key}="{value}""#));
+            .map(|(key, value)| format!(r#"{key}="{value}""#))
+            .collect::<Vec<_>>()
+            .join("\n");
+
         std::fs::write(
             self.schema_path.parent().expect("must exist").join(DOT_ENV_FILE),
             env_file,
@@ -113,12 +140,7 @@ impl Environment {
     }
 
     pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "reset")
-            .dir(&self.directory)
-            .start()
-            .unwrap()
-            .wait()
-            .unwrap();
+        cmd!(cargo_bin("grafbase"), "reset").dir(&self.directory).run().unwrap();
     }
 
     pub fn grafbase_dev_watch(&mut self) {
