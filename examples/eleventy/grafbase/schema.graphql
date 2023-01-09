@@ -1,5 +1,4 @@
 type Message @model {
-  id: ID!
   author: String!
   body: String!
 }
