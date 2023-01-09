@@ -115,7 +115,7 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, bridge_sender).await });
+    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await });
 
     trace!("waiting for bridge ready");
 
@@ -134,15 +134,17 @@ async fn spawn_servers(
         .args([
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
-            "./node_modules/miniflare/dist/src/cli.js",
+            "./packages/miniflare/dist/src/cli.js",
             "--host",
             "127.0.0.1",
             "--port",
             &worker_port.to_string(),
             "--no-update-check",
             "--no-cf-fetch",
+            "--do-persist",
+            "--debug",
             "--wrangler-config",
-            "wrangler.toml",
+            "../wrangler.toml",
             "--binding",
             &format!("BRIDGE_PORT={bridge_port}"),
             "--text-blob",
@@ -150,7 +152,7 @@ async fn spawn_servers(
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .current_dir(&environment.user_dot_grafbase_path)
+        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;
@@ -160,7 +162,7 @@ async fn spawn_servers(
     let miniflare_output_result = miniflare.wait_with_output();
 
     tokio::select! {
-        _ = bridge_handle => {}
+        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
         result = miniflare_output_result => {
             let output = result.map_err(ServerError::MiniflareCommandError)?;
 
@@ -245,7 +247,7 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
         fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
-        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
+        fs::write(project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
     }
 
     Ok(())
@@ -286,6 +288,10 @@ async fn run_schema_parser() -> Result<(), ServerError> {
                 &parser_path.to_str().ok_or(ServerError::CachePath)?,
                 &environment
                     .project_grafbase_schema_path
+                    .to_str()
+                    .ok_or(ServerError::ProjectPath)?,
+                &environment
+                    .project_grafbase_registry_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
             ])

@@ -1,5 +1,4 @@
 type Address @model {
-  id: ID!
   customer: Customer!
   company: String
   firstName: String!
@@ -12,7 +11,6 @@ type Address @model {
 }
 
 type Cart @model {
-  id: ID!
   customer: Customer
   order: Order
   lineItems: [LineItem]
@@ -23,7 +21,6 @@ type Cart @model {
 }
 
 type Customer @model {
-  id: ID!
   firstName: String!
   lastName: String!
   email: Email! @unique
@@ -32,7 +29,6 @@ type Customer @model {
 }
 
 type Order @model {
-  id: ID!
   cart: Cart
   lineItems: [LineItem]
   shippingTotal: Float!
@@ -42,14 +38,12 @@ type Order @model {
 }
 
 type LineItem @model {
-  id: ID!
   order: Order!
   variant: Variant!
   quantity: Int!
 }
 
 type Product @model {
-  id: ID!
   title: String!
   imageUrl: URL!
   description: String!
@@ -60,7 +54,6 @@ type Product @model {
 }
 
 type Variant @model {
-  id: ID!
   title: String!
   product: Product!
   sku: String!

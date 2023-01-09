@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-backend"
-version = "0.13.0"
+version = "0.14.1"
 edition = "2021"
 description = "The local backend for grafbase developer tools"
 license = "Apache-2.0"
@@ -10,8 +10,18 @@ readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
-common = { package = "grafbase-local-common", path = "../common", version = "0.13.0" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.13.0" }
+async-compression = { version = "0.3", features = ["gzip", "tokio"] }
+async-tar = "0.4"
+dirs = "4"
 exitcode = "1"
-indoc = "1"
+http-cache-reqwest = "0.5"
+reqwest = { version = "0.11", features = ["tokio-rustls", "stream"] }
+reqwest-middleware = "0.2"
 thiserror = "1"
+tokio = { version = "1", features = ["full"] }
+tokio-stream = { version = "0.1", features = ["tokio-util"] }
+tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
+url = "2"
+
+common = { package = "grafbase-local-common", path = "../common", version = "0.14.1" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.14.1" }
