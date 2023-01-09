@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 anyhow = { workspace = true }
-base64 = "0.20"
+base64 = "0.21"
 derivative = "2"
 dynaql-value = { path = "../dynaql/value", version = "3" }
 dynomite = "0.10"
