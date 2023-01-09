@@ -152,7 +152,7 @@ async fn spawn_servers(
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .current_dir(&environment.user_dot_grafbase_path.join("miniflare"))
+        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;

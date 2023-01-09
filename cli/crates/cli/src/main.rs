@@ -81,8 +81,8 @@ fn try_main() -> Result<(), CliError> {
         }
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);
-
-            init(name)
+            let template = matches.get_one::<String>("template").map(AsRef::as_ref);
+            init(name, template)
         }
         Some(("reset", _)) => reset(),
         _ => unreachable!(),
