@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "backend": "npx grafbase dev & yarn codegen",
+    "backend": "npx grafbase dev & npm run codegen",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

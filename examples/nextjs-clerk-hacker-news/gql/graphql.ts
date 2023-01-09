@@ -40,6 +40,7 @@ export type Comment = {
   content: Scalars['String'];
   /** when the model was created */
   createdAt: Scalars['DateTime'];
+  /** Unique identifier */
   id: Scalars['ID'];
   item: Item;
   /** when the model was updated */
@@ -50,42 +51,44 @@ export type CommentByInput = {
   id?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new CommentCommentRelateItemItem */
+/** Input to create a Item for the CommentRelateItem relation of Comment */
 export type CommentCommentRelateItemItemCreateInput = {
-  author: ItemItemRelateUserUserCreateInput;
+  author: ItemItemRelateUserUserCreateRelationInput;
+  comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateRelationInput>>>;
   title: Scalars['String'];
   url: Scalars['URL'];
-  votes?: InputMaybe<Array<InputMaybe<ItemItemRelateVoteVoteCreateInput>>>;
+  votes?: InputMaybe<Array<InputMaybe<ItemItemRelateVoteVoteCreateRelationInput>>>;
 };
 
-/** Input to create a new CommentCommentRelateItemItem relation */
+/** Input to link to or create a Item for the CommentRelateItem relation of Comment */
 export type CommentCommentRelateItemItemCreateRelationInput = {
   create?: InputMaybe<CommentCommentRelateItemItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a CommentCommentRelateItemItem relation */
+/** Input to link/unlink to or create a Item for the CommentRelateItem relation of Comment */
 export type CommentCommentRelateItemItemUpdateRelationInput = {
   create?: InputMaybe<CommentCommentRelateItemItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
   unlink?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new CommentCommentRelateUserUser */
+/** Input to create a User for the CommentRelateUser relation of Comment */
 export type CommentCommentRelateUserUserCreateInput = {
+  comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateRelationInput>>>;
   email: Scalars['Email'];
   imageUrl?: InputMaybe<Scalars['String']>;
-  items?: InputMaybe<Array<InputMaybe<UserItemRelateUserItemCreateInput>>>;
+  items?: InputMaybe<Array<InputMaybe<UserItemRelateUserItemCreateRelationInput>>>;
   name: Scalars['String'];
 };
 
-/** Input to create a new CommentCommentRelateUserUser relation */
+/** Input to link to or create a User for the CommentRelateUser relation of Comment */
 export type CommentCommentRelateUserUserCreateRelationInput = {
   create?: InputMaybe<CommentCommentRelateUserUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a CommentCommentRelateUserUser relation */
+/** Input to link/unlink to or create a User for the CommentRelateUser relation of Comment */
 export type CommentCommentRelateUserUserUpdateRelationInput = {
   create?: InputMaybe<CommentCommentRelateUserUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
@@ -99,7 +102,7 @@ export type CommentConnection = {
   pageInfo: PageInfo;
 };
 
-/** Input to create a new Comment */
+/** Input to create a Comment */
 export type CommentCreateInput = {
   author: CommentCommentRelateUserUserCreateRelationInput;
   content: Scalars['String'];
@@ -122,7 +125,7 @@ export type CommentEdge = {
   node: Comment;
 };
 
-/** Input to create a new Comment */
+/** Input to update a Comment */
 export type CommentUpdateInput = {
   author?: InputMaybe<CommentCommentRelateUserUserUpdateRelationInput>;
   content?: InputMaybe<Scalars['String']>;
@@ -140,6 +143,7 @@ export type Item = {
   comments?: Maybe<CommentConnection>;
   /** when the model was created */
   createdAt: Scalars['DateTime'];
+  /** Unique identifier */
   id: Scalars['ID'];
   title: Scalars['String'];
   /** when the model was updated */
@@ -168,19 +172,19 @@ export type ItemByInput = {
   id?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new ItemCommentRelateItemComment */
+/** Input to create a Comment for the CommentRelateItem relation of Item */
 export type ItemCommentRelateItemCommentCreateInput = {
-  author: CommentCommentRelateUserUserCreateInput;
+  author: CommentCommentRelateUserUserCreateRelationInput;
   content: Scalars['String'];
 };
 
-/** Input to create a new ItemCommentRelateItemComment relation */
+/** Input to link to or create a Comment for the CommentRelateItem relation of Item */
 export type ItemCommentRelateItemCommentCreateRelationInput = {
   create?: InputMaybe<ItemCommentRelateItemCommentCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a ItemCommentRelateItemComment relation */
+/** Input to link/unlink to or create a Comment for the CommentRelateItem relation of Item */
 export type ItemCommentRelateItemCommentUpdateRelationInput = {
   create?: InputMaybe<ItemCommentRelateItemCommentCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
@@ -194,7 +198,7 @@ export type ItemConnection = {
   pageInfo: PageInfo;
 };
 
-/** Input to create a new Item */
+/** Input to create a Item */
 export type ItemCreateInput = {
   author: ItemItemRelateUserUserCreateRelationInput;
   comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateRelationInput>>>;
@@ -219,47 +223,48 @@ export type ItemEdge = {
   node: Item;
 };
 
-/** Input to create a new ItemItemRelateUserUser */
+/** Input to create a User for the ItemRelateUser relation of Item */
 export type ItemItemRelateUserUserCreateInput = {
-  comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateInput>>>;
+  comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateRelationInput>>>;
   email: Scalars['Email'];
   imageUrl?: InputMaybe<Scalars['String']>;
+  items?: InputMaybe<Array<InputMaybe<UserItemRelateUserItemCreateRelationInput>>>;
   name: Scalars['String'];
 };
 
-/** Input to create a new ItemItemRelateUserUser relation */
+/** Input to link to or create a User for the ItemRelateUser relation of Item */
 export type ItemItemRelateUserUserCreateRelationInput = {
   create?: InputMaybe<ItemItemRelateUserUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a ItemItemRelateUserUser relation */
+/** Input to link/unlink to or create a User for the ItemRelateUser relation of Item */
 export type ItemItemRelateUserUserUpdateRelationInput = {
   create?: InputMaybe<ItemItemRelateUserUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
   unlink?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new ItemItemRelateVoteVote */
+/** Input to create a Vote for the ItemRelateVote relation of Item */
 export type ItemItemRelateVoteVoteCreateInput = {
   positive: Scalars['Boolean'];
-  user: VoteUserRelateVoteUserCreateInput;
+  user: VoteUserRelateVoteUserCreateRelationInput;
 };
 
-/** Input to create a new ItemItemRelateVoteVote relation */
+/** Input to link to or create a Vote for the ItemRelateVote relation of Item */
 export type ItemItemRelateVoteVoteCreateRelationInput = {
   create?: InputMaybe<ItemItemRelateVoteVoteCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a ItemItemRelateVoteVote relation */
+/** Input to link/unlink to or create a Vote for the ItemRelateVote relation of Item */
 export type ItemItemRelateVoteVoteUpdateRelationInput = {
   create?: InputMaybe<ItemItemRelateVoteVoteCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
   unlink?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new Item */
+/** Input to update a Item */
 export type ItemUpdateInput = {
   author?: InputMaybe<ItemItemRelateUserUserUpdateRelationInput>;
   comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentUpdateRelationInput>>>;
@@ -451,6 +456,7 @@ export type User = {
   /** when the model was created */
   createdAt: Scalars['DateTime'];
   email: Scalars['Email'];
+  /** Unique identifier */
   id: Scalars['ID'];
   imageUrl?: Maybe<Scalars['String']>;
   items?: Maybe<ItemConnection>;
@@ -480,19 +486,19 @@ export type UserByInput = {
   id?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new UserCommentRelateUserComment */
+/** Input to create a Comment for the CommentRelateUser relation of User */
 export type UserCommentRelateUserCommentCreateInput = {
   content: Scalars['String'];
-  item: CommentCommentRelateItemItemCreateInput;
+  item: CommentCommentRelateItemItemCreateRelationInput;
 };
 
-/** Input to create a new UserCommentRelateUserComment relation */
+/** Input to link to or create a Comment for the CommentRelateUser relation of User */
 export type UserCommentRelateUserCommentCreateRelationInput = {
   create?: InputMaybe<UserCommentRelateUserCommentCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a UserCommentRelateUserComment relation */
+/** Input to link/unlink to or create a Comment for the CommentRelateUser relation of User */
 export type UserCommentRelateUserCommentUpdateRelationInput = {
   create?: InputMaybe<UserCommentRelateUserCommentCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
@@ -506,7 +512,7 @@ export type UserConnection = {
   pageInfo: PageInfo;
 };
 
-/** Input to create a new User */
+/** Input to create a User */
 export type UserCreateInput = {
   comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateRelationInput>>>;
   email: Scalars['Email'];
@@ -531,28 +537,28 @@ export type UserEdge = {
   node: User;
 };
 
-/** Input to create a new UserItemRelateUserItem */
+/** Input to create a Item for the ItemRelateUser relation of User */
 export type UserItemRelateUserItemCreateInput = {
-  comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateInput>>>;
+  comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateRelationInput>>>;
   title: Scalars['String'];
   url: Scalars['URL'];
-  votes?: InputMaybe<Array<InputMaybe<ItemItemRelateVoteVoteCreateInput>>>;
+  votes?: InputMaybe<Array<InputMaybe<ItemItemRelateVoteVoteCreateRelationInput>>>;
 };
 
-/** Input to create a new UserItemRelateUserItem relation */
+/** Input to link to or create a Item for the ItemRelateUser relation of User */
 export type UserItemRelateUserItemCreateRelationInput = {
   create?: InputMaybe<UserItemRelateUserItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a UserItemRelateUserItem relation */
+/** Input to link/unlink to or create a Item for the ItemRelateUser relation of User */
 export type UserItemRelateUserItemUpdateRelationInput = {
   create?: InputMaybe<UserItemRelateUserItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
   unlink?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new User */
+/** Input to update a User */
 export type UserUpdateInput = {
   comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentUpdateRelationInput>>>;
   email?: InputMaybe<Scalars['Email']>;
@@ -570,6 +576,7 @@ export type Vote = {
   __typename?: 'Vote';
   /** when the model was created */
   createdAt: Scalars['DateTime'];
+  /** Unique identifier */
   id: Scalars['ID'];
   item: Item;
   positive: Scalars['Boolean'];
@@ -589,7 +596,7 @@ export type VoteConnection = {
   pageInfo: PageInfo;
 };
 
-/** Input to create a new Vote */
+/** Input to create a Vote */
 export type VoteCreateInput = {
   item: VoteItemRelateVoteItemCreateRelationInput;
   positive: Scalars['Boolean'];
@@ -612,28 +619,29 @@ export type VoteEdge = {
   node: Vote;
 };
 
-/** Input to create a new VoteItemRelateVoteItem */
+/** Input to create a Item for the ItemRelateVote relation of Vote */
 export type VoteItemRelateVoteItemCreateInput = {
-  author: ItemItemRelateUserUserCreateInput;
-  comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateInput>>>;
+  author: ItemItemRelateUserUserCreateRelationInput;
+  comments?: InputMaybe<Array<InputMaybe<ItemCommentRelateItemCommentCreateRelationInput>>>;
   title: Scalars['String'];
   url: Scalars['URL'];
+  votes?: InputMaybe<Array<InputMaybe<ItemItemRelateVoteVoteCreateRelationInput>>>;
 };
 
-/** Input to create a new VoteItemRelateVoteItem relation */
+/** Input to link to or create a Item for the ItemRelateVote relation of Vote */
 export type VoteItemRelateVoteItemCreateRelationInput = {
   create?: InputMaybe<VoteItemRelateVoteItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a VoteItemRelateVoteItem relation */
+/** Input to link/unlink to or create a Item for the ItemRelateVote relation of Vote */
 export type VoteItemRelateVoteItemUpdateRelationInput = {
   create?: InputMaybe<VoteItemRelateVoteItemCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
   unlink?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to create a new Vote */
+/** Input to update a Vote */
 export type VoteUpdateInput = {
   item?: InputMaybe<VoteItemRelateVoteItemUpdateRelationInput>;
   positive?: InputMaybe<Scalars['Boolean']>;
@@ -645,22 +653,22 @@ export type VoteUpdatePayload = {
   vote?: Maybe<Vote>;
 };
 
-/** Input to create a new VoteUserRelateVoteUser */
+/** Input to create a User for the UserRelateVote relation of Vote */
 export type VoteUserRelateVoteUserCreateInput = {
-  comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateInput>>>;
+  comments?: InputMaybe<Array<InputMaybe<UserCommentRelateUserCommentCreateRelationInput>>>;
   email: Scalars['Email'];
   imageUrl?: InputMaybe<Scalars['String']>;
-  items?: InputMaybe<Array<InputMaybe<UserItemRelateUserItemCreateInput>>>;
+  items?: InputMaybe<Array<InputMaybe<UserItemRelateUserItemCreateRelationInput>>>;
   name: Scalars['String'];
 };
 
-/** Input to create a new VoteUserRelateVoteUser relation */
+/** Input to link to or create a User for the UserRelateVote relation of Vote */
 export type VoteUserRelateVoteUserCreateRelationInput = {
   create?: InputMaybe<VoteUserRelateVoteUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
 };
 
-/** Input to update a VoteUserRelateVoteUser relation */
+/** Input to link/unlink to or create a User for the UserRelateVote relation of Vote */
 export type VoteUserRelateVoteUserUpdateRelationInput = {
   create?: InputMaybe<VoteUserRelateVoteUserCreateInput>;
   link?: InputMaybe<Scalars['ID']>;
@@ -729,7 +737,7 @@ export type ItemsListQueryVariables = Exact<{
 }>;
 
 
-export type ItemsListQuery = { __typename?: 'Query', itemCollection?: { __typename?: 'ItemConnection', pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean }, edges?: Array<{ __typename?: 'ItemEdge', node: { __typename?: 'Item', id: string, title: string, url: any, createdAt: any, comments?: { __typename?: 'CommentConnection', edges?: Array<{ __typename: 'CommentEdge' } | null> | null } | null, votes?: { __typename?: 'VoteConnection', edges?: Array<{ __typename?: 'VoteEdge', node: { __typename?: 'Vote', id: string, positive: boolean, user: { __typename?: 'User', id: string } } } | null> | null } | null, author: { __typename?: 'User', id: string, name: string, imageUrl?: string | null } } } | null> | null } | null };
+export type ItemsListQuery = { __typename?: 'Query', itemCollection?: { __typename?: 'ItemConnection', pageInfo: { __typename?: 'PageInfo', endCursor?: string | null, hasNextPage: boolean }, edges?: Array<{ __typename?: 'ItemEdge', node: { __typename?: 'Item', id: string, title: string, url: any, createdAt: any, comments?: { __typename?: 'CommentConnection', edges?: Array<{ __typename?: 'CommentEdge', node: { __typename: 'Comment' } } | null> | null } | null, votes?: { __typename?: 'VoteConnection', edges?: Array<{ __typename?: 'VoteEdge', node: { __typename?: 'Vote', id: string, positive: boolean, user: { __typename?: 'User', id: string } } } | null> | null } | null, author: { __typename?: 'User', id: string, name: string, imageUrl?: string | null } } } | null> | null } | null };
 
 export type ItemOneQueryVariables = Exact<{
   id: Scalars['ID'];
@@ -770,7 +778,7 @@ export const ItemVoteUpdateDocument = {"kind":"Document","definitions":[{"kind":
 export const ViewerDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"Viewer"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Email"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"user"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"email"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"3"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]}}]}}]} as unknown as DocumentNode<ViewerQuery, ViewerQueryVariables>;
 export const UserCreateLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UserCreateLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"name"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"email"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Email"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"imageUrl"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"name"},"value":{"kind":"Variable","name":{"kind":"Name","value":"name"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"email"},"value":{"kind":"Variable","name":{"kind":"Name","value":"email"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"imageUrl"},"value":{"kind":"Variable","name":{"kind":"Name","value":"imageUrl"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]} as unknown as DocumentNode<UserCreateLoginMutation, UserCreateLoginMutationVariables>;
 export const UserUpdateLoginDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UserUpdateLogin"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"imageUrl"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"userUpdate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}},{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"imageUrl"},"value":{"kind":"Variable","name":{"kind":"Name","value":"imageUrl"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]} as unknown as DocumentNode<UserUpdateLoginMutation, UserUpdateLoginMutationVariables>;
-export const ItemsListDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ItemsList"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"itemCollection"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"4"}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"comments"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"positive"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}}]}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]}}]} as unknown as DocumentNode<ItemsListQuery, ItemsListQueryVariables>;
+export const ItemsListDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ItemsList"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"after"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"itemCollection"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"4"}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"after"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"comments"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"positive"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}}]}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]}}]}}]} as unknown as DocumentNode<ItemsListQuery, ItemsListQueryVariables>;
 export const ItemOneDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ItemOne"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"afterComments"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"item"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"comments"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"6"}},{"kind":"Argument","name":{"kind":"Name","value":"after"},"value":{"kind":"Variable","name":{"kind":"Name","value":"afterComments"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"pageInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"endCursor"}},{"kind":"Field","name":{"kind":"Name","value":"hasNextPage"}}]}},{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"content"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"votes"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"first"},"value":{"kind":"IntValue","value":"100"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"edges"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"node"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"positive"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"imageUrl"}}]}},{"kind":"Field","name":{"kind":"Name","value":"url"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}}]} as unknown as DocumentNode<ItemOneQuery, ItemOneQueryVariables>;
 export const ItemOneDeleteDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"ItemOneDelete"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"id"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"itemDelete"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"by"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"id"}}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"deletedId"}}]}}]}}]} as unknown as DocumentNode<ItemOneDeleteMutation, ItemOneDeleteMutationVariables>;
 export const ItemDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"Item"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"title"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"url"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"URL"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"authorId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"itemCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"title"},"value":{"kind":"Variable","name":{"kind":"Name","value":"title"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"url"},"value":{"kind":"Variable","name":{"kind":"Name","value":"url"}}},{"kind":"ObjectField","name":{"kind":"Name","value":"author"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"link"},"value":{"kind":"Variable","name":{"kind":"Name","value":"authorId"}}}]}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"item"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<ItemMutation, ItemMutationVariables>;

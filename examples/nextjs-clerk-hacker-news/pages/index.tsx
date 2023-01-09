@@ -19,7 +19,9 @@ const ITEMS_LIST_QUERY = gql`
           title
           comments(first: 100) {
             edges {
-              __typename
+              node {
+                __typename
+              }
             }
           }
           votes(first: 100) {
@@ -48,6 +50,7 @@ const ITEMS_LIST_QUERY = gql`
 
 const Home = (props: { data: ItemsListQuery }) => {
   const { isSignedIn } = useAuth()
+
   const {
     data: clientData,
     loading,
