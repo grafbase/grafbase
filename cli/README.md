@@ -13,6 +13,8 @@
 
 Welcome to the Grafbase CLI!
 
+TESTING
+
 This is a cargo workspace with several crates relating to the Grafbase CLI and developer tooling
 
 The directories in the `crates` directory in the root of the repo are organized as follows:
