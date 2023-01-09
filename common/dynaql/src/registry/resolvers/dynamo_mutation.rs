@@ -613,6 +613,13 @@ fn node_update<'a>(
                 .await
                 .map_err(Error::new_with_source)?;
 
+            // Each of the data loaders use a different cache with a different key format. So it's
+            // at best quite hard to remove accurately the node we're updating. Furthermore the
+            // dataloader cache is only used within a request as we do not keep state between
+            // worker execution, so we're not deleting that much neither.
+            // TODO: Caching probably needs some rework to simplify the whole process.
+            batchers.clear();
+
             Ok(ResolvedValue::new(Arc::new(serde_json::Value::Null)))
         });
 

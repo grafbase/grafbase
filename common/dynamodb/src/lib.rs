@@ -259,6 +259,19 @@ pub struct DynamoDBBatchersData {
     pub query_single_relation: DataLoader<QuerySingleRelationLoader, LruCache>,
 }
 
+impl DynamoDBBatchersData {
+    pub fn clear(&self) {
+        self.transaction.clear();
+        self.loader.clear();
+        self.query.clear();
+        self.query_reversed.clear();
+        self.query_fat.clear();
+        self.paginated_query_fat.clear();
+        self.transaction_new.clear();
+        self.query_single_relation.clear();
+    }
+}
+
 #[cfg(not(feature = "local"))]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
