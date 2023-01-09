@@ -1,0 +1,7 @@
+mutation TodoUpdate($id: ID) {
+  todoListUpdate(by: {id: $id}, input: {title: "Updated Title"}) {
+    todoList {
+      title
+    }
+  }
+}

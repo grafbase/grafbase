@@ -3,17 +3,20 @@ mutation {
     input: {
       title: "My todo list"
       todos: [
-        { create: { title: "My first todo!", complete: true } }
-        { create: { title: "My second todo!", complete: false } }
+        {create: {title: "My first todo!", complete: true}}
+        {create: {title: "My second todo!", complete: false}}
       ]
     }
   ) {
     todoList {
+      id
       title
       todos(last: 100) {
         edges {
           node {
+            id
             title
+            complete
           }
         }
       }
