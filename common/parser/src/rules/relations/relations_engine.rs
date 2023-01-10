@@ -31,6 +31,7 @@ use if_chain::if_chain;
 pub struct RelationEngine;
 
 pub const RELATION_DIRECTIVE: &str = "relation";
+pub const NAME_ARGUMENT: &str = "name";
 
 impl RelationEngine {
     /// Can only be safely used after the RelationEngine has parsed the schema.
@@ -64,7 +65,7 @@ fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> MetaRe
         .directives
         .iter()
         .find(|directive| directive.node.name.node == RELATION_DIRECTIVE)
-        .and_then(|dir| dir.node.get_argument("name"))
+        .and_then(|dir| dir.node.get_argument(NAME_ARGUMENT))
         .and_then(|name| match &name.node {
             Value::String(inner) => Some(inner.clone()),
             _ => None,
