@@ -378,25 +378,6 @@ mod tests {
         }
     );
 
-    parse_test!(
-        oidc_provider_with_client_id,
-        r#"
-        schema @auth(
-          providers: [ { type: oidc, issuer: "https://my.idp.com", clientId: "some-id" } ]
-        ){
-          query: Query
-        }
-        "#,
-        dynaql::AuthConfig {
-            oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
-                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-                client_id: Some("some-id".to_string()),
-            }],
-            ..Default::default()
-        }
-    );
-
     parse_fail!(
         oidc_with_missing_field,
         r#"
@@ -452,20 +433,23 @@ mod tests {
     );
 
     parse_test!(
-        issuer_url_from_variable,
+        issuer_url_and_client_id_from_variables,
         r#"
         schema @auth(
-          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}" } ]
+          providers: [ { type: oidc, issuer: "{{ env.ISSUER_URL }}", clientId: "{{ env.CLIENT_ID }}" } ]
         ){
           query: Query
         }
         "#,
-        HashMap::from([("ISSUER_URL".to_string(), "https://my.idp.com".to_string())]),
+        HashMap::from([
+            ("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),
+            ("CLIENT_ID".to_string(), "some-id".to_string()),
+        ]),
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
-                client_id: None,
+                client_id: Some("some-id".to_string()),
             }],
             ..Default::default()
         }

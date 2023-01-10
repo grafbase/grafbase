@@ -7,6 +7,8 @@ use dynaql_value::ConstValue;
 use super::{operations::Operations, providers::AuthProvider, rules::AuthRule};
 use crate::VisitorContext;
 
+const ENV_VAR_ERROR: &str = "environment variables have been expanded by now";
+
 #[derive(Debug)]
 pub struct AuthConfig {
     allowed_private_ops: Operations,
@@ -129,16 +131,11 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                         groups_claim,
                         client_id,
                     } => Some(dynaql::OidcProvider {
-                        issuer: issuer
-                            .as_fully_evaluated_str()
-                            .expect(
-                                "environment variables have been expanded by now \
-                                and we don't support any other types of variables",
-                            )
-                            .parse()
-                            .unwrap(),
+                        issuer: issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap(),
                         groups_claim: groups_claim.clone(),
-                        client_id: client_id.clone(),
+                        client_id: client_id
+                            .as_ref()
+                            .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
                     }),
                     _ => None,
                 })
@@ -154,18 +151,13 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                         client_id,
                         secret,
                     } => Some(dynaql::JwtProvider {
-                        issuer: issuer
-                            .as_fully_evaluated_str()
-                            .expect("env vars have been expanded")
-                            .parse()
-                            .unwrap(),
+                        issuer: issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap(),
                         groups_claim: groups_claim.clone(),
-                        client_id: client_id.clone(),
+                        client_id: client_id
+                            .as_ref()
+                            .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
                         secret: secrecy::SecretString::new(
-                            secret
-                                .as_fully_evaluated_str()
-                                .expect("env vars have been expanded")
-                                .to_string(),
+                            secret.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string(),
                         ),
                     }),
                     _ => None,

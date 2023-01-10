@@ -21,7 +21,7 @@ pub enum AuthProvider {
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
 
-        client_id: Option<String>,
+        client_id: Option<DynamicString>,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -31,7 +31,7 @@ pub enum AuthProvider {
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
 
-        client_id: Option<String>,
+        client_id: Option<DynamicString>,
 
         secret: DynamicString,
     },
@@ -56,7 +56,11 @@ impl AuthProvider {
             serde_json::from_value(value).map_err(|err| ServerError::new(format!("auth provider: {err}"), None))?;
 
         match provider {
-            AuthProvider::Oidc { ref mut issuer, .. } => {
+            AuthProvider::Oidc {
+                ref mut issuer,
+                ref mut client_id,
+                ..
+            } => {
                 ctx.partially_evaluate_literal(issuer)?;
                 if let Err(err) = issuer
                     .as_fully_evaluated_str()
@@ -66,10 +70,15 @@ impl AuthProvider {
                     // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
                     return Err(ServerError::new(format!("OIDC provider: {err}"), None));
                 }
+
+                if let Some(client_id) = client_id {
+                    ctx.partially_evaluate_literal(client_id)?;
+                }
             }
             AuthProvider::Jwt {
                 ref mut issuer,
                 ref mut secret,
+                ref mut client_id,
                 ..
             } => {
                 ctx.partially_evaluate_literal(issuer)?;
@@ -79,6 +88,10 @@ impl AuthProvider {
                     .transpose()
                 {
                     return Err(ServerError::new(format!("JWT provider: {err}"), None));
+                }
+
+                if let Some(client_id) = client_id {
+                    ctx.partially_evaluate_literal(client_id)?;
                 }
 
                 ctx.partially_evaluate_literal(secret)?;
