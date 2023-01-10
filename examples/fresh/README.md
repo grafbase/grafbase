@@ -36,7 +36,7 @@ To learn more about Grafbase, take a look at the following resources:
 
 - [Grafbase](https://grafbase.com/) - learn about Grafbase features and API.
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about Deno and Fresh, take a look at the following resources:
 
 - [Fresh Documentation](https://fresh.deno.dev/) - learn about Fresh.
 - [Learn Deno](https://deno.land/) - learn more about Deno.
