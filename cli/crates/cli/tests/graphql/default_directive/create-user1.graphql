@@ -4,8 +4,8 @@ mutation {
       name: "User 1"
       email: "email@example.org"
       country: "Poland"
-      account: {create: {}}
-      documents: [{create: {name: "contract"}}]
+      account: { create: {} }
+      documents: [{ create: { name: "contract" } }]
     }
   ) {
     user {
