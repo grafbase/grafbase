@@ -51,6 +51,12 @@ use url::Url;
 /// - returns [`BackendError::ExtractArchiveEntry`] if one of the entries of the template repository archive could not be extracted
 ///
 /// - returns [`BackendError::CleanExtractedFiles`] if the files extracted from the template repository archive could not be cleaned
+///
+/// - returns [`BackendError::StartGetRepositoryInformation`] if the request to get the information for a repository could not be sent
+///
+/// - returns [`BackendError::GetRepositoryInformation`] if the request to get the information for a repository returned a non 200-299 status
+///
+/// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
 #[tokio::main]
 pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
