@@ -20,5 +20,5 @@ type Account @model {
 type Document @model {
   user: User
   name: String!
-  raw: JSON @default(value: {content: ""})
+  raw: JSON @default(value: { content: "" })
 }
