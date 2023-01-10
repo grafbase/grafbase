@@ -152,8 +152,8 @@ fn scalars() {
         // Verify conversion are properly applied or that some format are valid.
         TestCase {
             ty: "datetime",
-            input: json!("2016-01-01T13:10:20Z"),
-            expected: Ok(json!("2016-01-01T13:10:20.000Z")),
+            input: json!("2016-01-01T13:10:20+02:00"),
+            expected: Ok(json!("2016-01-01T11:10:20.000Z")),
         },
         TestCase {
             ty: "datetime",
