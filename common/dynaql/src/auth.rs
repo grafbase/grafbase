@@ -25,6 +25,8 @@ pub struct OidcProvider {
     pub issuer: url::Url,
 
     pub groups_claim: String,
+
+    pub client_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +34,8 @@ pub struct JwtProvider {
     pub issuer: url::Url,
 
     pub groups_claim: String,
+
+    pub client_id: Option<String>,
 
     #[serde(serialize_with = "serialize_secret_string")]
     pub secret: SecretString,

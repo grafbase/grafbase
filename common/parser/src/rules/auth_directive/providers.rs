@@ -20,6 +20,8 @@ pub enum AuthProvider {
 
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
+
+        client_id: Option<String>,
     },
 
     #[serde(rename_all = "camelCase")]
@@ -28,6 +30,8 @@ pub enum AuthProvider {
 
         #[serde(default = "default_groups_claim")]
         groups_claim: String,
+
+        client_id: Option<String>,
 
         secret: DynamicString,
     },

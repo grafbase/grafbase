@@ -372,6 +372,26 @@ mod tests {
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        oidc_provider_with_client_id,
+        r#"
+        schema @auth(
+          providers: [ { type: oidc, issuer: "https://my.idp.com", clientId: "some-id" } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::AuthConfig {
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: Some("some-id".to_string()),
             }],
             ..Default::default()
         }
@@ -445,6 +465,7 @@ mod tests {
             oidc_providers: vec![dynaql::OidcProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
             }],
             ..Default::default()
         }
@@ -518,6 +539,27 @@ mod tests {
             jwt_providers: vec![dynaql::JwtProvider {
                 issuer: url::Url::parse("https://my.idp.com").unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+                secret: secrecy::SecretString::new("s3cr3t".to_string()),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwt_provider_with_client_id,
+        r#"
+        schema @auth(
+          providers: [ { type: jwt, issuer: "https://my.idp.com", secret: "s3cr3t", clientId: "some-id" } ]
+        ){
+          query: Query
+        }
+        "#,
+        dynaql::AuthConfig {
+            jwt_providers: vec![dynaql::JwtProvider {
+                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: Some("some-id".to_string()),
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             }],
             ..Default::default()
