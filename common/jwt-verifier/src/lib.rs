@@ -213,6 +213,8 @@ impl<'a> Client<'a> {
         }?;
 
         // Check "aud" claim
+        // Can be either a single string or an array of strings according to
+        // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3
         if let Some(client_id) = self.client_id {
             match claims.custom.audience.as_ref() {
                 Some(Value::String(aud)) if aud == client_id => Ok(()),
