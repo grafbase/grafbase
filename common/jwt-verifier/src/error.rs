@@ -15,6 +15,9 @@ quick_error! {
         InvalidIssueTime {
             display("invalid issue time")
         }
+        InvalidAudience {
+            display("audience does not match client ID")
+        }
         InvalidGroups(claim: String) {
             display("invalid groups claim {claim:?}")
         }
