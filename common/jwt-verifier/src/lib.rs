@@ -4,6 +4,7 @@ use json_dotpath::DotPaths;
 use jwt_compact::{jwk::JsonWebKey, prelude::*, TimeOptions};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use url::Url;
 use worker::kv::KvError;
 
@@ -47,10 +48,10 @@ struct CustomClaims {
     subject: Option<String>,
 
     #[serde(rename = "aud")]
-    audience: Option<String>,
+    audience: Option<Value>,
 
     #[serde(flatten)]
-    extra: serde_json::Value,
+    extra: Value,
 }
 
 #[derive(Default)]
@@ -214,7 +215,8 @@ impl<'a> Client<'a> {
         // Check "aud" claim
         if let Some(client_id) = self.client_id {
             match claims.custom.audience.as_ref() {
-                Some(aud) if aud == client_id => Ok(()),
+                Some(Value::String(aud)) if aud == client_id => Ok(()),
+                Some(Value::Array(aud)) if aud.contains(&Value::from(client_id)) => Ok(()),
                 _ => Err(VerificationError::InvalidAudience),
             }?;
         }
@@ -589,16 +591,20 @@ mod tests {
         "alg": "HS512"
       },
       "payload": {
-        "exp": 1668768890,
+        "aud": [
+          "app1",
+          "app2"
+        ],
+        "exp": 1673369363,
         "groups": [
           "admin",
           "backend"
         ],
-        "iat": 1668768290,
-        "iss": "https://clerk.grafbase-vercel.dev",
-        "jti": "e8465ffa20ff2824e0f0",
-        "nbf": 1668768285,
-        "sub": "user_2E4sRjokn2r14RLwhEvjVsHgCmG"
+        "iat": 1673368763,
+        "iss": "https://clerk.b74v0.5y6hj.lcl.dev",
+        "jti": "0696be42be3fc3b2212d",
+        "nbf": 1673368758,
+        "sub": "user_2E7nWay3fFXh0MRgzBJZUx59UzP"
       }
     }
     */
@@ -607,29 +613,46 @@ mod tests {
         let client = {
             let leeway = Duration::seconds(5);
             let clock_fn =
-                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_668_768_290, 0).unwrap(), Utc);
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(), Utc);
             Client {
                 time_opts: TimeOptions::new(leeway, clock_fn),
                 groups_claim: Some("groups"),
+                client_id: Some("app2"),
                 ..Default::default()
             }
         };
 
-        let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2Njg3Njg4OTAsImdyb3VwcyI6WyJhZG1pbiIsImJhY2tlbmQiXSwiaWF0IjoxNjY4NzY4MjkwLCJpc3MiOiJodHRwczovL2NsZXJrLmdyYWZiYXNlLXZlcmNlbC5kZXYiLCJqdGkiOiJlODQ2NWZmYTIwZmYyODI0ZTBmMCIsIm5iZiI6MTY2ODc2ODI4NSwic3ViIjoidXNlcl8yRTRzUmpva24ycjE0Ukx3aEV2alZzSGdDbUcifQ.naGM79JZY-vmrQPA1kOVfuTk-w11c5wmaR2KCiYF3lrw-y5ZTOeSThfFzYzgn-l9bTkWL6mjrJejEB5bhmuOxw";
-        let issuer = Url::parse("https://clerk.grafbase-vercel.dev").unwrap();
+        let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXBwMSIsImFwcDIiXSwiZXhwIjoxNjczMzY5MzYzLCJncm91cHMiOlsiYWRtaW4iLCJiYWNrZW5kIl0sImlhdCI6MTY3MzM2ODc2MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5iNzR2MC41eTZoai5sY2wuZGV2IiwianRpIjoiMDY5NmJlNDJiZTNmYzNiMjIxMmQiLCJuYmYiOjE2NzMzNjg3NTgsInN1YiI6InVzZXJfMkU3bldheTNmRlhoME1SZ3pCSlpVeDU5VXpQIn0.x6eAgltLZqhUjT1Lr9sPLItiv0hJ4dvhuoIPMYZM4_eEB-hmmqIxxS5tdZddvDzh5jPAkwGjuynfM-WJ3Xgxcg";
+        let issuer = Url::parse("https://clerk.b74v0.5y6hj.lcl.dev").unwrap();
+        let secret = SecretString::new("topsecret".to_string());
 
         assert_eq!(
-            client
-                .verify_hs_token(token, &issuer, &SecretString::new("topsecret".to_string()))
-                .unwrap(),
+            client.verify_hs_token(token, &issuer, &secret).unwrap(),
             VerifiedToken {
-                identity: Some("user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string()),
+                identity: Some("user_2E7nWay3fFXh0MRgzBJZUx59UzP".to_string()),
                 groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
             }
         );
 
+        let new_client = Client {
+            client_id: Some("app3"),
+            ..client
+        };
+
         assert_eq!(
-            client.verify_rs_token(token, &issuer).await.unwrap_err().to_string(),
+            new_client
+                .verify_hs_token(token, &issuer, &secret)
+                .unwrap_err()
+                .to_string(),
+            "audience does not match client ID"
+        );
+
+        assert_eq!(
+            new_client
+                .verify_rs_token(token, &issuer)
+                .await
+                .unwrap_err()
+                .to_string(),
             "unsupported algorithm: HS512"
         );
     }
