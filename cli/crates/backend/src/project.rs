@@ -159,6 +159,7 @@ async fn get_default_branch(org: &str, repo: &str) -> Result<String, BackendErro
 
     let response = client
         .get(format!("https://api.github.com/repos/{org}/{repo}"))
+        // api.github.com requires a user agent header to be present
         .header("User-Agent", "Grafbase-CLI")
         .send()
         .await
