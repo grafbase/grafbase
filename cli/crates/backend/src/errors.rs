@@ -32,8 +32,12 @@ pub enum BackendError {
     ReadCurrentDirectory,
 
     /// returned if the grafbase directory cannot be created
-    #[error("could not create a Grafbase directory\ncaused by: {0}")]
+    #[error("could not create the 'grafbase' directory\ncaused by: {0}")]
     CreateGrafbaseDirectory(io::Error),
+
+    /// returned if the grafbase directory cannot be created
+    #[error("could not create the project directory\ncaused by: {0}")]
+    CreateProjectDirectory(io::Error),
 
     /// returned if a schema.graphql file cannot be created
     #[error("could not create a schema.graphql file\ncaused by: {0}")]
@@ -124,7 +128,8 @@ impl ToExitCode for BackendError {
             | Self::WriteSchema(_)
             | Self::CreateGrafbaseDirectory(_)
             | Self::ExtractArchiveEntry(_)
-            | Self::CleanExtractedFiles(_) => exitcode::IOERR,
+            | Self::CleanExtractedFiles(_)
+            | Self::CreateProjectDirectory(_) => exitcode::IOERR,
 
             Self::ServerError(inner) => inner.to_exit_code(),
         }

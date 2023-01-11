@@ -72,14 +72,18 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
         if template.contains('/') {
             if let Ok(repo_url) = Url::parse(template) {
                 match repo_url.host_str() {
-                    Some("github.com") => handle_github_repo_url(&repo_url).await,
+                    Some("github.com") => handle_github_repo_url(grafbase_path, &repo_url).await,
                     _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
                 }
             } else {
                 return Err(BackendError::MalformedTemplateURL(template.to_owned()));
             }
         } else {
-            download_github_template(GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template })).await
+            download_github_template(
+                grafbase_path,
+                GitHubTemplate::Grafbase(GrafbaseGithubTemplate { path: template }),
+            )
+            .await
         }
     } else {
         tokio::fs::create_dir_all(&grafbase_path)
@@ -97,7 +101,7 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
     }
 }
 
-async fn handle_github_repo_url(repo_url: &Url) -> Result<(), BackendError> {
+async fn handle_github_repo_url(grafbase_path: PathBuf, repo_url: &Url) -> Result<(), BackendError> {
     if let Some(mut segments) = repo_url.path_segments().map(Iterator::collect::<Vec<_>>) {
         // remove trailing slashes to prevent extra path parameters
         if segments.last() == Some(&"") {
@@ -117,12 +121,15 @@ async fn handle_github_repo_url(repo_url: &Url) -> Result<(), BackendError> {
 
                 let branch = get_default_branch(org, repo).await?;
 
-                download_github_template(GitHubTemplate::External(ExternalGitHubTemplate {
-                    org,
-                    repo,
-                    branch: &branch,
-                    path: None,
-                }))
+                download_github_template(
+                    grafbase_path,
+                    GitHubTemplate::External(ExternalGitHubTemplate {
+                        org,
+                        repo,
+                        branch: &branch,
+                        path: None,
+                    }),
+                )
                 .await
             }
             4.. if segments[2] == "tree" => {
@@ -134,12 +141,15 @@ async fn handle_github_repo_url(repo_url: &Url) -> Result<(), BackendError> {
 
                 let path = segments.get(4..).map(|path| path.join("/"));
 
-                download_github_template(GitHubTemplate::External(ExternalGitHubTemplate {
-                    org,
-                    repo,
-                    path,
-                    branch,
-                }))
+                download_github_template(
+                    grafbase_path,
+                    GitHubTemplate::External(ExternalGitHubTemplate {
+                        org,
+                        repo,
+                        path,
+                        branch,
+                    }),
+                )
                 .await
             }
             _ => Err(BackendError::UnsupportedTemplateURL(repo_url.to_string())),
@@ -223,7 +233,7 @@ impl<'a> GitHubTemplate<'a> {
     }
 }
 
-async fn download_github_template(template: GitHubTemplate<'_>) -> Result<(), BackendError> {
+async fn download_github_template(grafbase_path: PathBuf, template: GitHubTemplate<'_>) -> Result<(), BackendError> {
     let ExternalGitHubTemplate {
         org,
         repo,
@@ -243,7 +253,7 @@ async fn download_github_template(template: GitHubTemplate<'_>) -> Result<(), Ba
 
     template_path.push("grafbase");
 
-    let extraction_result = stream_github_archive(&org_and_repo, template_path, branch).await;
+    let extraction_result = stream_github_archive(grafbase_path, &org_and_repo, template_path, branch).await;
 
     if extraction_dir.exists() {
         tokio::fs::remove_dir_all(extraction_dir)
@@ -255,6 +265,7 @@ async fn download_github_template(template: GitHubTemplate<'_>) -> Result<(), Ba
 }
 
 async fn stream_github_archive<'a>(
+    grafbase_path: PathBuf,
     org_and_repo: &'a str,
     template_path: PathBuf,
     branch: &'a str,
@@ -312,11 +323,27 @@ async fn stream_github_archive<'a>(
         return Err(BackendError::TemplateNotFound);
     }
 
-    tokio::fs::rename(template_path, GRAFBASE_DIRECTORY)
-        .await
-        .map_err(BackendError::MoveExtractedFiles)?;
+    let project_folder = grafbase_path.parent().expect("must exist");
 
-    Ok(())
+    let named_project = !project_folder.exists();
+
+    if named_project {
+        tokio::fs::create_dir(project_folder)
+            .await
+            .map_err(BackendError::CreateProjectDirectory)?;
+    }
+
+    let rename_result = tokio::fs::rename(template_path, &grafbase_path)
+        .await
+        .map_err(BackendError::MoveExtractedFiles);
+
+    if rename_result.is_err() {
+        tokio::fs::remove_dir_all(project_folder)
+            .await
+            .map_err(BackendError::CleanExtractedFiles)?;
+    }
+
+    rename_result
 }
 
 /// resets the local data for the current project by removing the `.grafbase` directory
