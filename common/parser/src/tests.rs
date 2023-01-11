@@ -406,3 +406,19 @@ fn should_have_unique_fields() {
         "Field 'count' cannot be defined multiple times."
     );
 }
+
+#[test]
+fn should_validate_relation_name() {
+    assert_validation_error!(
+        r#"
+            type Todo @model {
+                secondaryAuthors: [Author] @relation(name: "second-author")
+            }
+
+            type Author @model {
+                id: ID!
+            }
+        "#,
+        "Relation names should only contain [_a-zA-Z0-9] but second-author does not"
+    );
+}

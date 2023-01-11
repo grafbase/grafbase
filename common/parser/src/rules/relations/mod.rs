@@ -1,14 +1,11 @@
 use super::visitor::{VisitorCons, VisitorNil};
 
-mod check_relation_name;
 mod relations_engine;
 pub use relations_engine::RelationEngine;
 
-use self::check_relation_name::CheckRelationName;
-
-pub const fn relations_rules() -> VisitorCons<RelationEngine, VisitorCons<CheckRelationName, VisitorNil>> {
+pub const fn relations_rules() -> VisitorCons<RelationEngine, VisitorNil> {
     // TODO: Add Check to ensure the directive is not used outside of Modelized node.
-    VisitorNil.with(CheckRelationName).with(RelationEngine)
+    VisitorNil.with(RelationEngine)
 }
 
 #[cfg(test)]

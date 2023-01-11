@@ -4,9 +4,10 @@ use crate::rules::model_directive::{ModelDirective, MODEL_DIRECTIVE};
 use crate::{Visitor, VisitorContext};
 use dynaql::indexmap::map::Entry;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::Value;
+use dynaql::{Positioned, Value};
 use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition, TypeKind};
 use if_chain::if_chain;
+use regex::Regex;
 
 /// Implement the Relation Engine
 ///
@@ -32,6 +33,12 @@ pub struct RelationEngine;
 
 pub const RELATION_DIRECTIVE: &str = "relation";
 pub const NAME_ARGUMENT: &str = "name";
+
+static NAME_CHARS: &str = r"[_a-zA-Z0-9]";
+
+lazy_static::lazy_static! {
+    static ref NAME_RE: Regex = Regex::new(&format!("^{NAME_CHARS}*$")).unwrap();
+}
 
 impl RelationEngine {
     /// Can only be safely used after the RelationEngine has parsed the schema.
@@ -61,17 +68,21 @@ impl RelationEngine {
 /// Generate a `MetaRelation` if possible
 fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> MetaRelation {
     let type_name = ty.name.node.to_string();
-    let name = field
-        .directives
-        .iter()
-        .find(|directive| directive.node.name.node == RELATION_DIRECTIVE)
-        .and_then(|dir| dir.node.get_argument(NAME_ARGUMENT))
-        .and_then(|name| match &name.node {
-            Value::String(inner) => Some(inner.clone()),
-            _ => None,
-        });
+    let name = relation_name(field).and_then(|name| match &name.node {
+        Value::String(inner) => Some(inner.clone()),
+        _ => None,
+    });
 
     MetaRelation::new(name, &Type::new(&type_name).expect("Shouldn't fail"), &field.ty.node)
+}
+
+fn relation_name(field: &FieldDefinition) -> Option<&Positioned<dynaql_value::ConstValue>> {
+    field
+        .directives
+        .iter()
+        .find(|directive| directive.node.name.node == RELATION_DIRECTIVE)?
+        .node
+        .get_argument(NAME_ARGUMENT)
 }
 
 impl Directive for RelationEngine {
@@ -107,6 +118,13 @@ impl<'a> Visitor<'a> for RelationEngine {
                 for field in &object.fields {
                     if ModelDirective::is_model(ctx, &field.node.ty.node) {
                         let relation = generate_metarelation(&type_definition.node, &field.node);
+                        if !NAME_RE.is_match(&relation.name) {
+                            let name = &relation.name;
+                            ctx.report_error(
+                                vec![relation_name(&field.node).unwrap().pos],
+                                format!("Relation names should only contain {NAME_CHARS} but {name} does not"),
+                            );
+                        }
                         match ctx.relations.entry(relation.name.clone()) {
                             Entry::Vacant(vac) => {
                                 vac.insert(relation);
