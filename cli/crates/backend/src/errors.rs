@@ -27,27 +27,27 @@ pub enum BackendError {
     #[error("{0} already exists")]
     ProjectDirectoryExists(PathBuf),
 
-    /// returned if the current directory path cannot be read
+    /// returned if the current directory path could not be read
     #[error("could not read the current path")]
     ReadCurrentDirectory,
 
-    /// returned if the grafbase directory cannot be created
+    /// returned if the grafbase directory could not be created
     #[error("could not create the 'grafbase' directory\ncaused by: {0}")]
     CreateGrafbaseDirectory(io::Error),
 
-    /// returned if the grafbase directory cannot be created
+    /// returned if the project directory could not be created
     #[error("could not create the project directory\ncaused by: {0}")]
     CreateProjectDirectory(io::Error),
 
-    /// returned if a schema.graphql file cannot be created
+    /// returned if a schema.graphql file could not be created
     #[error("could not create a schema.graphql file\ncaused by: {0}")]
     WriteSchema(io::Error),
 
-    /// returned if the dot grafbase directory cannot be deleted
+    /// returned if the dot grafbase directory could not be deleted
     #[error("could not delete the .grafbase directory\ncaused by: {0}")]
     DeleteDotGrafbaseDirectory(io::Error),
 
-    /// returned if the grafbase directory for the project cannot be deleted
+    /// returned if the grafbase directory for the project could not be deleted
     #[error("could not delete the grafbase directory\ncaused by: {0}")]
     DeleteGrafbaseDirectory(io::Error),
 

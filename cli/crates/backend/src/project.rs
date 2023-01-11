@@ -24,15 +24,17 @@ use url::Url;
 ///
 /// ## General
 ///
-/// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
+/// - returns [`BackendError::ReadCurrentDirectory`] if the current directory could not be read
 ///
 /// - returns [`BackendError::ProjectDirectoryExists`] if a named is passed and a directory with the same name already exists in the current directory
 ///
 /// - returns [`BackendError::AlreadyAProject`] if there's already a grafbase/schema.graphql in the target
 ///
-/// - returns [`BackendError::CreateGrafbaseDirectory`] if the grafbase directory cannot be created
+/// - returns [`BackendError::CreateGrafbaseDirectory`] if the grafbase directory could not be created
 ///
-/// - returns [`BackendError::WriteSchema`] if the schema file cannot be written
+/// - returns [`BackendError::CreateProjectDirectory`] if the project directory could not be created
+///
+/// - returns [`BackendError::WriteSchema`] if the schema file could not be written
 ///
 /// ## Templates
 ///
