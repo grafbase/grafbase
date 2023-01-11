@@ -75,4 +75,13 @@ fn init() {
     assert!(std::str::from_utf8(&output.stderr)
         .unwrap()
         .contains("could not find the provided template within the template repository"));
+
+    // the root of the repository doesn't contain a 'grafbase' folder
+
+    let output = env.grafbase_init_template_output(None, "https://github.com/grafbase/grafbase");
+
+    assert!(!output.stderr.is_empty());
+    assert!(std::str::from_utf8(&output.stderr)
+        .unwrap()
+        .contains("could not find the provided template within the template repository"));
 }
