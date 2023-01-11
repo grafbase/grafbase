@@ -15,8 +15,9 @@ async-tar = "0.4"
 dirs = "4"
 exitcode = "1"
 http-cache-reqwest = "0.5"
-reqwest = { version = "0.11", features = ["tokio-rustls", "stream"] }
+reqwest = { version = "0.11", features = ["tokio-rustls", "stream", "json"] }
 reqwest-middleware = "0.2"
+serde = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["tokio-util"] }
