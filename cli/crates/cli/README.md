@@ -48,4 +48,4 @@ Sets up the current or a new project for Grafbase
 
 #### Flags
 
-- `-t, --template <name>` - The name or URL of the template to use for the new project
+- `-t, --template <name>` - The name or GitHub URL of the template to use for the new project
