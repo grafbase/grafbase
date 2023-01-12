@@ -1084,7 +1084,7 @@ expression: reg_string
             "name": "productCollection",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "bidirectional": false,
               "kind": "OneToMany",
               "name": "productCollection",
               "relation": [

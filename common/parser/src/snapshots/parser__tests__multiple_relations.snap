@@ -138,7 +138,7 @@ expression: reg_string
             "name": "commented",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "OneToMany",
               "name": "commented",
               "relation": [
@@ -311,7 +311,7 @@ expression: reg_string
             "name": "published",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "OneToMany",
               "name": "published",
               "relation": [
@@ -959,7 +959,7 @@ expression: reg_string
             "name": "author",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "ManyToOne",
               "name": "commented",
               "relation": [
@@ -1131,7 +1131,7 @@ expression: reg_string
             "name": "post",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "ManyToOne",
               "name": "comments",
               "relation": [
@@ -2411,7 +2411,7 @@ expression: reg_string
             "name": "author",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "ManyToOne",
               "name": "published",
               "relation": [
@@ -2484,7 +2484,7 @@ expression: reg_string
             "name": "comments",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "bidirectional": true,
               "kind": "OneToMany",
               "name": "comments",
               "relation": [
@@ -3323,7 +3323,7 @@ expression: reg_string
             "name": "authorCollection",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "bidirectional": false,
               "kind": "OneToMany",
               "name": "authorCollection",
               "relation": [
@@ -3448,7 +3448,7 @@ expression: reg_string
             "name": "commentCollection",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "bidirectional": false,
               "kind": "OneToMany",
               "name": "commentCollection",
               "relation": [
@@ -3573,7 +3573,7 @@ expression: reg_string
             "name": "postCollection",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "bidirectional": false,
               "kind": "OneToMany",
               "name": "postCollection",
               "relation": [
