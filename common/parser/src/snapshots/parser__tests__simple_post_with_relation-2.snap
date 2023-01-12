@@ -6,8 +6,8 @@ type Author {
 	name: String!
 	lastname: String!
 	country: Country!
-	posts(after: String, before: String, first: Int, last: Int): PostConnection
-	blogsOwned(after: String, before: String, first: Int, last: Int): BlogConnection
+	posts(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): PostConnection
+	blogsOwned(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): BlogConnection
 	"""
 	Unique identifier
 	"""
@@ -50,6 +50,9 @@ type AuthorDeletePayload {
 type AuthorEdge {
 	node: Author!
 	cursor: String!
+}
+input AuthorOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to create a Author for the AuthorToBlog relation of Blog
@@ -111,7 +114,7 @@ type AuthorUpdatePayload {
 	author: Author
 }
 type Blog {
-	posts(after: String, before: String, first: Int, last: Int): PostConnection
+	posts(after: String, before: String, first: Int, last: Int, orderBy: BlogOrderByInput): PostConnection
 	owner: Author!
 	"""
 	Unique identifier
@@ -152,6 +155,9 @@ type BlogDeletePayload {
 type BlogEdge {
 	node: Blog!
 	cursor: String!
+}
+input BlogOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to create a Blog for the BlogToPost relation of Post
@@ -265,6 +271,10 @@ type Mutation {
 	"""
 	authorDelete(by: AuthorByInput!): AuthorDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type PageInfo {
 	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
@@ -274,7 +284,7 @@ type PageInfo {
 type Post {
 	blog: Blog
 	content: String!
-	authors(after: String, before: String, first: Int, last: Int): AuthorConnection
+	authors(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): AuthorConnection
 	"""
 	Unique identifier
 	"""
@@ -315,6 +325,9 @@ type PostDeletePayload {
 type PostEdge {
 	node: Post!
 	cursor: String!
+}
+input PostOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to update a Post
@@ -383,7 +396,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Blog`.
 	"""
-	blogCollection(after: String, before: String, first: Int, last: Int): BlogConnection
+	blogCollection(after: String, before: String, first: Int, last: Int, orderBy: BlogOrderByInput): BlogConnection
 	"""
 	Query a single Post by an ID or a unique field
 	"""
@@ -391,7 +404,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Post`.
 	"""
-	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
+	postCollection(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): PostConnection
 	"""
 	Query a single Author by an ID or a unique field
 	"""
@@ -399,7 +412,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Author`.
 	"""
-	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
+	authorCollection(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): AuthorConnection
 }
 schema {
 	query: Query

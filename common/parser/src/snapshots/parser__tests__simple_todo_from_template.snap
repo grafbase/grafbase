@@ -44,6 +44,10 @@ type Mutation {
 	"""
 	todoDelete(by: TodoByInput!): TodoDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type PageInfo {
 	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
@@ -58,7 +62,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `TodoList`.
 	"""
-	todoListCollection(after: String, before: String, first: Int, last: Int): TodoListConnection
+	todoListCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoListConnection
 	"""
 	Query a single Todo by an ID or a unique field
 	"""
@@ -66,7 +70,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
-	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
+	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
 }
 type Todo {
 	title: String!
@@ -115,7 +119,7 @@ type TodoEdge {
 }
 type TodoList {
 	title: String!
-	todos(after: String, before: String, first: Int, last: Int): TodoConnection
+	todos(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoConnection
 	"""
 	Unique identifier
 	"""
@@ -156,6 +160,9 @@ type TodoListEdge {
 	node: TodoList!
 	cursor: String!
 }
+input TodoListOrderByInput {
+	createdAt: OrderByDirection
+}
 """
 Input to update a TodoList
 """
@@ -165,6 +172,9 @@ input TodoListUpdateInput {
 }
 type TodoListUpdatePayload {
 	todoList: TodoList
+}
+input TodoOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to create a Todo for the TodoToTodoList relation of TodoList

@@ -9,8 +9,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
+use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
-use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor};
+use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering};
 
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
@@ -79,10 +80,11 @@ pub struct QueryTypePaginatedKey {
     pub r#type: String,
     pub edges: Vec<String>,
     pub cursor: PaginatedCursor,
+    pub ordering: PaginationOrdering,
 }
 
 impl QueryTypePaginatedKey {
-    pub fn new(r#type: String, mut edges: Vec<String>, cursor: PaginatedCursor) -> Self {
+    pub fn new(r#type: String, mut edges: Vec<String>, cursor: PaginatedCursor, ordering: PaginationOrdering) -> Self {
         Self {
             r#type: r#type.to_lowercase(),
             edges: {
@@ -90,8 +92,10 @@ impl QueryTypePaginatedKey {
                 edges
             },
             cursor,
+            ordering,
         }
     }
+
     fn ty(&self) -> &String {
         &self.r#type
     }
@@ -182,7 +186,6 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
     ) -> Result<HashMap<QueryTypePaginatedKey, Self::Value>, Self::Error> {
         let mut concurrent_futures = vec![];
         for query_key in keys {
-            let has_edges = !query_key.edges.is_empty();
             let entity_type = query_key.r#type.clone();
 
             let user_limit = match query_key.cursor {
@@ -197,70 +200,43 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 "entity_type" => SqlValue::String(entity_type),
                 "user_limit" => SqlValue::String(user_limit.to_string()),
                 "query_limit" => SqlValue::String(query_limit.to_string()),
-                "edges" => SqlValue::VecDeque(query_key.edges.clone().into())
+                "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
             };
 
-            // TODO: optimize the query by omitting the edges for the n+1 entity
-            let (query, values) = match query_key {
-                QueryTypePaginatedKey {
-                    cursor:
-                        PaginatedCursor::Forward {
-                            exclusive_last_key,
-                            nested,
-                            ..
-                        },
-                    ..
-                } => {
-                    if let Some(exclusive_last_key) = exclusive_last_key.clone() {
-                        value_map.insert("sk", SqlValue::String(exclusive_last_key));
-                    }
-                    if let Some((relation_name, pk)) = nested {
-                        value_map.insert("pk", SqlValue::String(pk.to_string()));
-                        value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
-                    }
+            if let Some(origin) = query_key.cursor.maybe_origin() {
+                value_map.insert("sk", SqlValue::String(origin.to_string()));
+            }
 
-                    if has_edges {
-                        Sql::SelectTypePaginatedForwardWithEdges(
-                            exclusive_last_key.is_some(),
-                            query_key.edges.len(),
-                            nested.is_some(),
-                        )
-                        .compile(value_map)
-                    } else {
-                        Sql::SelectTypePaginatedForward(exclusive_last_key.is_some(), nested.is_some())
-                            .compile(value_map)
-                    }
-                }
-                QueryTypePaginatedKey {
-                    cursor:
-                        PaginatedCursor::Backward {
-                            exclusive_first_key,
-                            nested,
-                            ..
-                        },
-                    ..
-                } => {
-                    if let Some(exclusive_last_key) = exclusive_first_key.clone() {
-                        value_map.insert("sk", SqlValue::String(exclusive_last_key));
-                    }
-                    if let Some((relation_name, pk)) = nested {
-                        value_map.insert("pk", SqlValue::String(pk.to_string()));
-                        value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
-                    }
+            if let Some(ParentEdge {
+                relation_name,
+                parent_id,
+            }) = query_key.cursor.maybe_parent_edge()
+            {
+                value_map.insert("pk", SqlValue::String(parent_id.to_string()));
+                value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
+            }
 
-                    if has_edges {
-                        Sql::SelectTypePaginatedBackwardWithEdges(
-                            exclusive_first_key.is_some(),
-                            query_key.edges.len(),
-                            nested.is_some(),
-                        )
-                        .compile(value_map)
-                    } else {
-                        Sql::SelectTypePaginatedBackward(exclusive_first_key.is_some(), nested.is_some())
-                            .compile(value_map)
-                    }
-                }
-            };
+            let (query, values) = Sql::SelectTypePaginated {
+                has_origin: query_key.cursor.maybe_origin().is_some(),
+                is_nested: query_key.cursor.maybe_parent_edge().is_some(),
+                // compact version: query_key.cursor.is_backward() ^ query_key.ordering.is_asc()
+                ascending: if query_key.cursor.is_forward() {
+                    query_key.ordering.is_asc()
+                } else {
+                    // As we're going backwards, we need to reverse the database scan and reverse
+                    // the results at the end to return the expected ordering.
+                    //                         after
+                    //                           ┌───────► first (forward)
+                    //                           │
+                    //              ─────────────┼───────────────► Record order
+                    //                           │
+                    // last (backward) ◄─────────┘
+                    //                         before
+                    !query_key.ordering.is_asc()
+                },
+                edges_count: query_key.edges.len(),
+            }
+            .compile(value_map);
 
             let future_get = || async move {
                 let query_results = bridge_api::query(
@@ -289,28 +265,15 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     })
                     .expect("must parse");
 
-                    // Ordering of the items is independent of cursor direction. So when going
-                    // forward the excess item is at the end. But going backwards it's at the
-                    // beginning.
-                    //                         after
-                    //                           ┌───────► first (forward)
-                    //                           │
-                    //              ─────────────┼───────────────► Record order
-                    //                           │
-                    // last (backward) ◄─────────┘
-                    //                         before
-                    let page_records = if query_key.cursor.is_forward() {
-                        query_results[..(query_results.len() - 1)].iter()
-                    } else {
-                        query_results[1..].iter()
-                    };
-
+                    // Skipping last item which corresponds to the last item retrieved in cursor
+                    // direction.
+                    let page_records = query_results[..(query_results.len() - 1)].iter();
                     (Some(last_evaluated_key), page_records)
                 } else {
                     (None, query_results.iter())
                 };
 
-                page_records.try_fold(
+                let result = page_records.try_fold(
                     (
                         query_key.clone(),
                         QueryResult {
@@ -383,7 +346,23 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                         }
                         Ok::<_, QueryTypePaginatedLoaderError>((query_key, accumulator))
                     },
-                )
+                );
+
+                result.map(|(key, mut query_result)| {
+                    // Ordering of the items is independent of cursor direction. So if cursor dicrection
+                    // doesn't matches the record one, we must reverse the results.
+                    //                         after
+                    //                           ┌───────► first (forward)
+                    //                           │
+                    //              ─────────────┼───────────────► Record order
+                    //                           │
+                    // last (backward) ◄─────────┘
+                    //                         before
+                    if query_key.cursor.is_backward() {
+                        query_result.values.reverse();
+                    }
+                    (key, query_result)
+                })
             };
 
             concurrent_futures.push(future_get());

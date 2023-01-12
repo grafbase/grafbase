@@ -122,6 +122,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "AuthorOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -360,6 +368,14 @@ expression: reg_string
                 "is_secret": false,
                 "name": "last",
                 "ty": "Int",
+                "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "AuthorOrderByInput",
                 "validators": null
               }
             },
@@ -740,6 +756,24 @@ expression: reg_string
         "keys": null,
         "name": "AuthorEdge",
         "rust_typename": "AuthorEdge"
+      }
+    },
+    "AuthorOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "AuthorOrderByInput",
+        "oneof": true,
+        "rust_typename": "AuthorOrderByInput"
       }
     },
     "AuthorToBlogCreateAuthor": {
@@ -1181,6 +1215,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "BlogOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -1536,6 +1578,24 @@ expression: reg_string
         "keys": null,
         "name": "BlogEdge",
         "rust_typename": "BlogEdge"
+      }
+    },
+    "BlogOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "BlogOrderByInput",
+        "oneof": true,
+        "rust_typename": "BlogOrderByInput"
       }
     },
     "BlogToPostCreateBlog": {
@@ -2262,6 +2322,25 @@ expression: reg_string
         "rust_typename": "Mutation"
       }
     },
+    "OrderByDirection": {
+      "Enum": {
+        "description": null,
+        "enum_values": {
+          "ASC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "ASC"
+          },
+          "DESC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "DESC"
+          }
+        },
+        "name": "OrderByDirection",
+        "rust_typename": "OrderByDirection"
+      }
+    },
     "PageInfo": {
       "Object": {
         "cache_control": {
@@ -2438,6 +2517,14 @@ expression: reg_string
                 "is_secret": false,
                 "name": "last",
                 "ty": "Int",
+                "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "PostOrderByInput",
                 "validators": null
               }
             },
@@ -2943,6 +3030,24 @@ expression: reg_string
         "rust_typename": "PostEdge"
       }
     },
+    "PostOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "PostOrderByInput",
+        "oneof": true,
+        "rust_typename": "PostOrderByInput"
+      }
+    },
     "PostUpdateInput": {
       "InputObject": {
         "description": "Input to update a Post",
@@ -3336,6 +3441,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "AuthorOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -3378,6 +3491,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Author"
                     }
@@ -3461,6 +3577,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "BlogOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -3503,6 +3627,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Blog"
                     }
@@ -3586,6 +3713,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "PostOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -3628,6 +3763,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Post"
                     }

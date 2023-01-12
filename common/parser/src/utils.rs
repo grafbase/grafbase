@@ -1,6 +1,6 @@
 use crate::rules::model_directive::MODEL_DIRECTIVE;
 use case::CaseExt;
-use dynaql::{indexmap::IndexMap, registry::MetaInputValue};
+
 use dynaql::{Name, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, TypeKind};
 use std::borrow::Cow;
@@ -120,57 +120,4 @@ pub fn to_input_type(
 
 pub fn to_lower_camelcase<S: AsRef<str>>(field: S) -> String {
     field.as_ref().to_snake().to_camel_lowercase()
-}
-
-pub fn pagination_arguments() -> IndexMap<String, MetaInputValue> {
-    IndexMap::from([
-        (
-            "after".to_owned(),
-            MetaInputValue {
-                name: "after".to_owned(),
-                description: None,
-                ty: "String".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
-        ),
-        (
-            "before".to_owned(),
-            MetaInputValue {
-                name: "before".to_owned(),
-                description: None,
-                ty: "String".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
-        ),
-        (
-            "first".to_owned(),
-            MetaInputValue {
-                name: "first".to_owned(),
-                description: None,
-                ty: "Int".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
-        ),
-        (
-            "last".to_owned(),
-            MetaInputValue {
-                name: "last".to_owned(),
-                description: None,
-                ty: "Int".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
-        ),
-    ])
 }

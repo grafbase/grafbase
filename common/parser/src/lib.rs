@@ -4,6 +4,7 @@ extern crate assert_matches;
 
 use std::collections::HashMap;
 
+use dynaql::registry::enums::DynaqlEnums;
 use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
 use dynaql_parser::{parse_schema, Error as ParserError};
 use quick_error::quick_error;
@@ -98,7 +99,8 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckAllDirectivesAreKnown::default());
 
     let schema = format!(
-        "{}\n{}\n{}",
+        "{}\n{}\n{}\n{}",
+        DynaqlEnums::sdl(),
         PossibleScalar::sdl(),
         directives.to_definition(),
         input.as_ref()

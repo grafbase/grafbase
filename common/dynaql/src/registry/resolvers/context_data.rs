@@ -186,12 +186,18 @@ impl ResolverTrait for ContextDataResolver {
                     }
                 };
 
+                // FIXME: this should be used instead of EdgeArray, we're relying on the arguments
+                // names defined in common/parser, so the actual resolver should be defined
+                // there. My refactor changes this, but we're not there yet...
                 let result = DynamoResolver::ListResultByTypePaginated {
                     r#type: VariableResolveDefinition::DebugString(expected_ty.to_string()),
                     first: VariableResolveDefinition::InputTypeName("first".to_string()),
                     after: VariableResolveDefinition::InputTypeName("after".to_string()),
                     before: VariableResolveDefinition::InputTypeName("before".to_string()),
                     last: VariableResolveDefinition::InputTypeName("last".to_string()),
+                    order_by: Some(VariableResolveDefinition::InputTypeName(
+                        "orderBy".to_string(),
+                    )),
                     nested: Some((relation_name.clone(), sk.clone())),
                 }
                 .resolve(ctx, resolver_ctx, last_resolver_value)

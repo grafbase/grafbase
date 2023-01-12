@@ -44,9 +44,13 @@ type Mutation {
 	"""
 	organizationDelete(by: OrganizationByInput!): OrganizationDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type Organization {
 	name: String!
-	users(after: String, before: String, first: Int, last: Int): UserConnection
+	users(after: String, before: String, first: Int, last: Int, orderBy: OrganizationOrderByInput): UserConnection
 	"""
 	Unique identifier
 	"""
@@ -86,6 +90,9 @@ type OrganizationDeletePayload {
 type OrganizationEdge {
 	node: Organization!
 	cursor: String!
+}
+input OrganizationOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to create a Organization for the OrganizationToUser relation of User
@@ -155,7 +162,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `User`.
 	"""
-	userCollection(after: String, before: String, first: Int, last: Int): UserConnection
+	userCollection(after: String, before: String, first: Int, last: Int, orderBy: UserOrderByInput): UserConnection
 	"""
 	Query a single Organization by an ID or a unique field
 	"""
@@ -163,11 +170,11 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Organization`.
 	"""
-	organizationCollection(after: String, before: String, first: Int, last: Int): OrganizationConnection
+	organizationCollection(after: String, before: String, first: Int, last: Int, orderBy: OrganizationOrderByInput): OrganizationConnection
 }
 type User {
 	name: String!
-	organizations(after: String, before: String, first: Int, last: Int): OrganizationConnection
+	organizations(after: String, before: String, first: Int, last: Int, orderBy: UserOrderByInput): OrganizationConnection
 	"""
 	Unique identifier
 	"""
@@ -207,6 +214,9 @@ type UserDeletePayload {
 type UserEdge {
 	node: User!
 	cursor: String!
+}
+input UserOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to update a User

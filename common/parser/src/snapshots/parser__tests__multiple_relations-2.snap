@@ -4,8 +4,8 @@ expression: sdl
 ---
 type Author {
 	lastname: String!
-	published(after: String, before: String, first: Int, last: Int): PostConnection
-	commented(after: String, before: String, first: Int, last: Int): CommentConnection
+	published(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): PostConnection
+	commented(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): CommentConnection
 	"""
 	Unique identifier
 	"""
@@ -46,6 +46,9 @@ type AuthorDeletePayload {
 type AuthorEdge {
 	node: Author!
 	cursor: String!
+}
+input AuthorOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to update a Author
@@ -104,6 +107,9 @@ type CommentDeletePayload {
 type CommentEdge {
 	node: Comment!
 	cursor: String!
+}
+input CommentOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to update a Comment
@@ -271,6 +277,10 @@ type Mutation {
 	"""
 	commentDelete(by: CommentByInput!): CommentDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type PageInfo {
 	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
@@ -280,7 +290,7 @@ type PageInfo {
 type Post {
 	content: String!
 	author: Author
-	comments(after: String, before: String, first: Int, last: Int): CommentConnection
+	comments(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): CommentConnection
 	"""
 	Unique identifier
 	"""
@@ -321,6 +331,9 @@ type PostDeletePayload {
 type PostEdge {
 	node: Post!
 	cursor: String!
+}
+input PostOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 Input to update a Post
@@ -386,7 +399,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Author`.
 	"""
-	authorCollection(after: String, before: String, first: Int, last: Int): AuthorConnection
+	authorCollection(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): AuthorConnection
 	"""
 	Query a single Post by an ID or a unique field
 	"""
@@ -394,7 +407,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Post`.
 	"""
-	postCollection(after: String, before: String, first: Int, last: Int): PostConnection
+	postCollection(after: String, before: String, first: Int, last: Int, orderBy: PostOrderByInput): PostConnection
 	"""
 	Query a single Comment by an ID or a unique field
 	"""
@@ -402,7 +415,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Comment`.
 	"""
-	commentCollection(after: String, before: String, first: Int, last: Int): CommentConnection
+	commentCollection(after: String, before: String, first: Int, last: Int, orderBy: CommentOrderByInput): CommentConnection
 }
 schema {
 	query: Query

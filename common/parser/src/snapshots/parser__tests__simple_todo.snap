@@ -422,6 +422,25 @@ expression: reg_string
         "rust_typename": "Mutation"
       }
     },
+    "OrderByDirection": {
+      "Enum": {
+        "description": null,
+        "enum_values": {
+          "ASC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "ASC"
+          },
+          "DESC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "DESC"
+          }
+        },
+        "name": "OrderByDirection",
+        "rust_typename": "OrderByDirection"
+      }
+    },
     "PageInfo": {
       "Object": {
         "cache_control": {
@@ -659,6 +678,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "TodoOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -701,6 +728,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Todo"
                     }
@@ -1179,6 +1209,24 @@ expression: reg_string
         "keys": null,
         "name": "TodoEdge",
         "rust_typename": "TodoEdge"
+      }
+    },
+    "TodoOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "TodoOrderByInput",
+        "oneof": true,
+        "rust_typename": "TodoOrderByInput"
       }
     },
     "TodoUpdateInput": {

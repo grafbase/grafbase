@@ -293,8 +293,8 @@ fn register_mutation_input_type(
     mutation_kind: MutationKind<'_>,
 ) -> BaseType {
     let input_type_name: String = match &mutation_kind {
-        MutationKind::Update => MetaNames::update_input_type(model_type_definition),
-        _ => MetaNames::create_input_type(model_type_definition, mutation_kind.maybe_parent_relation()),
+        MutationKind::Update => MetaNames::update_input(model_type_definition),
+        _ => MetaNames::create_input(model_type_definition, mutation_kind.maybe_parent_relation()),
     };
 
     // type is only created if necessary
@@ -417,8 +417,7 @@ fn register_mutation_input_type(
     match mutation_kind {
         // Relation within an update
         MutationKind::CreateOrLinkOrUnlinkRelation(parent_relation) => {
-            let relation_input_type_name =
-                MetaNames::update_relation_input_type(&parent_relation, model_type_definition);
+            let relation_input_type_name = MetaNames::update_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
                 &mut |_| MetaType::InputObject {
@@ -469,8 +468,7 @@ fn register_mutation_input_type(
         }
         // Relation within a create
         MutationKind::CreateOrLinkRelation(parent_relation) => {
-            let relation_input_type_name =
-                MetaNames::create_relation_input_type(&parent_relation, model_type_definition);
+            let relation_input_type_name = MetaNames::create_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
                 &mut |_| MetaType::InputObject {
@@ -521,9 +519,9 @@ fn register_mutation_payload_type<'a>(
     model_auth: Option<&AuthConfig>,
 ) -> BaseType {
     let payload_type_name = if mutation_kind.is_update() {
-        MetaNames::mutation_update_payload_type(model_type_definition)
+        MetaNames::update_payload_type(model_type_definition)
     } else {
-        MetaNames::mutation_create_payload_type(model_type_definition)
+        MetaNames::create_payload_type(model_type_definition)
     };
 
     ctx.registry.get_mut().create_type(
@@ -604,7 +602,7 @@ impl NumericFieldKind {
 }
 
 pub fn register_numerical_operations(registry: &mut Registry, numerical_field_kind: NumericFieldKind) -> BaseType {
-    let operation_input_type_name = MetaNames::numerical_operation(&numerical_field_kind);
+    let operation_input_type_name = MetaNames::numerical_operation_input(&numerical_field_kind);
 
     registry.create_type(
         &mut |_| MetaType::InputObject {

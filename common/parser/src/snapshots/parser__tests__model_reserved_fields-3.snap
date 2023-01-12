@@ -266,6 +266,25 @@ expression: req_string_b
         "rust_typename": "Mutation"
       }
     },
+    "OrderByDirection": {
+      "Enum": {
+        "description": null,
+        "enum_values": {
+          "ASC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "ASC"
+          },
+          "DESC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "DESC"
+          }
+        },
+        "name": "OrderByDirection",
+        "rust_typename": "OrderByDirection"
+      }
+    },
     "PageInfo": {
       "Object": {
         "cache_control": {
@@ -814,6 +833,24 @@ expression: req_string_b
         "rust_typename": "ProductEdge"
       }
     },
+    "ProductOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "ProductOrderByInput",
+        "oneof": true,
+        "rust_typename": "ProductOrderByInput"
+      }
+    },
     "ProductUpdateInput": {
       "InputObject": {
         "description": "Input to update a Product",
@@ -987,6 +1024,14 @@ expression: req_string_b
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "ProductOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -1029,6 +1074,9 @@ expression: req_string_b
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Product"
                     }

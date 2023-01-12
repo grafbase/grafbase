@@ -6,12 +6,14 @@
 //! `VariableResolveDefinition` struct to define how the graphql server should
 //! resolve this variable.
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
-use crate::{Error, ServerError};
+use crate::{Error, ServerError, ServerResult};
 use dynaql_value::Name;
 use graph_entities::cursor::PaginationCursor;
 use indexmap::IndexMap;
+use serde::de::DeserializeOwned;
 
 pub mod id;
+pub mod oneof;
 
 /// Describe what should be done by the GraphQL Server to resolve this Variable.
 #[non_exhaustive]
@@ -58,6 +60,20 @@ impl VariableResolveDefinition {
                 Ok(Value::from_json(result).ok())
             }
         }
+    }
+
+    pub fn resolve<T: DeserializeOwned>(
+        &self,
+        ctx: &Context<'_>,
+        last_resolver_value: Option<&serde_json::Value>,
+    ) -> ServerResult<T> {
+        let param = self.param(ctx, last_resolver_value)?;
+        // Looks a bit stupid to convert from and back serde_json::Value but it's way more friendly
+        // to use Deserialize to parse the expect input.
+        // TODO: Instead of self.param returning a ConstValue it should return a serde_json::Value
+        serde_json::to_value(param)
+            .and_then(|value| serde_json::from_value(value))
+            .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
     }
 
     pub fn expect_string<'a>(

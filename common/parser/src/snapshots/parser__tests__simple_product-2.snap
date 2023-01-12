@@ -40,6 +40,10 @@ type Mutation {
 	"""
 	productDelete(by: ProductByInput!): ProductDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type PageInfo {
 	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
@@ -95,6 +99,9 @@ type ProductEdge {
 	node: Product!
 	cursor: String!
 }
+input ProductOrderByInput {
+	createdAt: OrderByDirection
+}
 """
 Input to update a Product
 """
@@ -116,7 +123,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Product`.
 	"""
-	productCollection(after: String, before: String, first: Int, last: Int): ProductConnection
+	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput): ProductConnection
 }
 schema {
 	query: Query

@@ -1,7 +1,7 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
-use crate::DynamoDBRequestedIndex;
+use crate::{DynamoDBRequestedIndex, QueryTypePaginatedKey};
 use dynomite::Attribute;
 use futures::TryFutureExt;
 use graph_entities::cursor::PaginationCursor;
@@ -16,6 +16,28 @@ use std::collections::HashMap;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub struct ParentEdge {
+    pub relation_name: String,
+    pub parent_id: String,
+}
+
+#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+pub enum PaginationOrdering {
+    ASC,
+    DESC,
+}
+
+impl PaginationOrdering {
+    pub fn is_asc(&self) -> bool {
+        matches!(self, PaginationOrdering::ASC)
+    }
+
+    pub fn is_desc(&self) -> bool {
+        matches!(self, PaginationOrdering::DESC)
+    }
+}
+
 /// A Cursor.
 /// The first elements are the most recents ones.
 /// The last elements are the most anciens.
@@ -25,15 +47,13 @@ pub enum PaginatedCursor {
     Forward {
         exclusive_last_key: Option<String>,
         first: usize,
-        // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        maybe_parent_edge: Option<ParentEdge>,
     },
     // before
     Backward {
         exclusive_first_key: Option<String>,
         last: usize,
-        // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        maybe_parent_edge: Option<ParentEdge>,
     },
 }
 
@@ -72,22 +92,21 @@ impl PaginatedCursor {
         last: Option<usize>,
         after: Option<PaginationCursor>,
         before: Option<PaginationCursor>,
-        // (relation_name, parent_pk)
-        nested: Option<(String, String)>,
+        nested: Option<ParentEdge>,
     ) -> Result<Self, CursorCreation> {
         match (first, after, last, before) {
             (Some(_), _, Some(_), _) => Err(CursorCreation::SameParameterSameTime),
             (Some(_), _, _, Some(_)) => Err(CursorCreation::FirstAndBeforeSameTime),
             (_, Some(_), Some(_), _) => Err(CursorCreation::LastAndAfterSameTime),
             (Some(first), after, None, None) => Ok(Self::Forward {
-                exclusive_last_key: after.map(|cursor| cursor.sk),
+                exclusive_last_key: after.map(|cursor| cursor.id),
                 first,
-                nested,
+                maybe_parent_edge: nested,
             }),
             (None, None, Some(last), before) => Ok(Self::Backward {
-                exclusive_first_key: before.map(|cursor| cursor.sk),
+                exclusive_first_key: before.map(|cursor| cursor.id),
                 last,
-                nested,
+                maybe_parent_edge: nested,
             }),
             (None, _, None, _) => Err(CursorCreation::Direction),
         }
@@ -101,7 +120,14 @@ impl PaginatedCursor {
         matches!(self, Self::Backward { .. })
     }
 
-    fn pagination_string(&self) -> Option<String> {
+    pub fn maybe_parent_edge(&self) -> Option<&ParentEdge> {
+        match self {
+            PaginatedCursor::Forward { maybe_parent_edge, .. }
+            | PaginatedCursor::Backward { maybe_parent_edge, .. } => maybe_parent_edge.as_ref(),
+        }
+    }
+
+    pub fn maybe_origin(&self) -> Option<String> {
         match self {
             PaginatedCursor::Forward { exclusive_last_key, .. } => exclusive_last_key.clone(),
             PaginatedCursor::Backward {
@@ -111,24 +137,17 @@ impl PaginatedCursor {
     }
 
     fn relation_name(&self) -> Option<String> {
-        match self {
-            PaginatedCursor::Forward { nested, .. } => nested.clone().map(|nested| nested.0),
-            PaginatedCursor::Backward { nested, .. } => nested.clone().map(|nested| nested.0),
-        }
+        self.maybe_parent_edge()
+            .map(|parent_edge| parent_edge.relation_name.clone())
     }
 
     pub fn nested_parent_pk(&self) -> Option<String> {
-        match self {
-            PaginatedCursor::Forward { nested, .. } | PaginatedCursor::Backward { nested, .. } => {
-                nested.clone().map(|nested| nested.1)
-            }
-        }
+        self.maybe_parent_edge()
+            .map(|parent_edge| parent_edge.parent_id.clone())
     }
 
     fn is_nested_relation(&self) -> bool {
-        match self {
-            PaginatedCursor::Forward { nested, .. } | PaginatedCursor::Backward { nested, .. } => nested.is_some(),
-        }
+        self.maybe_parent_edge().is_some()
     }
 
     const fn limit(&self) -> usize {
@@ -152,9 +171,7 @@ pub trait DynamoDbExtPaginated {
     async fn query_node_edges(
         self,
         trace_id: &str,
-        cursor: PaginatedCursor,
-        edges: Vec<String>,
-        node_type: String,
+        query_key: QueryTypePaginatedKey,
         table: String,
         index: DynamoDBRequestedIndex,
     ) -> Result<QueryResult, RusotoError<QueryError>>;
@@ -212,12 +229,16 @@ where
     async fn query_node_edges(
         self,
         trace_id: &str,
-        cursor: PaginatedCursor,
-        edges: Vec<String>,
-        node_type: String,
+        query_key: QueryTypePaginatedKey,
         table: String,
         index: DynamoDBRequestedIndex,
     ) -> Result<QueryResult, RusotoError<QueryError>> {
+        let QueryTypePaginatedKey {
+            r#type: node_type,
+            edges,
+            cursor,
+            ordering,
+        } = query_key;
         let node_type = node_type.to_lowercase();
         let mut exp = dynomite::attr_map! {
             ":pk" => cursor.nested_parent_pk().unwrap_or_else(|| node_type.clone())
@@ -273,18 +294,32 @@ where
             Some(format!("begins_with(#type, :type) {edge_query}"))
         };
 
-        let pagination_string = cursor.pagination_string();
-        let key_condition_expression = match (&pagination_string, &cursor) {
-            // Ordering is defined to be oldest to newest
-            (Some(_), PaginatedCursor::Forward { .. }) => Some("#pk = :pk AND #sk > :pkorder".to_string()),
-            (Some(_), PaginatedCursor::Backward { .. }) => Some("#pk = :pk AND #sk < :pkorder".to_string()),
-            _ => Some("#pk = :pk".to_string()),
+        let scan_index_forward = if cursor.is_forward() {
+            ordering.is_asc()
+        } else {
+            // As we're going backwards, we need to reverse the database scan and reverse
+            // the results at the end to return the expected ordering.
+            //                         after
+            //                           ┌───────► first (forward)
+            //                           │
+            //              ─────────────┼───────────────► Record order
+            //                           │
+            // last (backward) ◄─────────┘
+            //                         before
+            !ordering.is_asc()
         };
 
-        pagination_string.map(|x| {
+        let key_condition_expression = if cursor.maybe_origin().is_some() {
+            let op = if scan_index_forward { ">" } else { "<" };
+            Some(format!("#pk = :pk AND #sk {op} :origin"))
+        } else {
+            Some("#pk = :pk".to_string())
+        };
+
+        if let Some(origin) = cursor.maybe_origin() {
             exp_att_name.insert("#sk".to_string(), sort_index);
-            exp.insert(":pkorder".to_string(), x.into_attr())
-        });
+            exp.insert(":origin".to_string(), origin.into_attr());
+        }
 
         let input: QueryInput = QueryInput {
             table_name: table,
@@ -297,9 +332,7 @@ where
             },
             expression_attribute_values: Some(exp),
             expression_attribute_names: Some(exp_att_name),
-            // Items are stored with their ID (~ULID) as the DynamoDB sort_key, so stored by
-            // createdAt.
-            scan_index_forward: Some(cursor.is_forward()),
+            scan_index_forward: Some(scan_index_forward),
             ..Default::default()
         };
 
@@ -456,8 +489,8 @@ where
             };
         }
 
-        // Ordering of the items is independent of cursor direction. So if scanned backwards
-        // we will have result in reverse order currently.
+        // Ordering of the items is independent of cursor direction. So if cursor dicrection
+        // doesn't matches the record one, we must reverse the results.
         //                         after
         //                           ┌───────► first (forward)
         //                           │

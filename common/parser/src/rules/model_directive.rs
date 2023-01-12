@@ -34,11 +34,11 @@ use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefi
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::registry::add_list_query_paginated;
+use crate::registry::add_query_paginated_collection;
 use crate::registry::add_remove_mutation;
+use crate::registry::generate_pagination_args;
 use crate::registry::names::MetaNames;
 use crate::registry::{add_mutation_create, add_mutation_update};
-use crate::utils::pagination_arguments;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
 
@@ -49,10 +49,10 @@ use super::visitor::{Visitor, VisitorContext};
 
 pub struct ModelDirective;
 
-const RESERVED_FIELD_ID: &str = "id";
-const RESERVED_FIELD_CREATED_AT: &str = "createdAt";
-const RESERVED_FIELD_UPDATED_AT: &str = "updatedAt";
-const RESERVED_FIELDS: [&str; 3] = [RESERVED_FIELD_ID, RESERVED_FIELD_UPDATED_AT, RESERVED_FIELD_CREATED_AT];
+pub const RESERVED_FIELD_ID: &str = "id";
+pub const RESERVED_FIELD_CREATED_AT: &str = "createdAt";
+pub const RESERVED_FIELD_UPDATED_AT: &str = "updatedAt";
+pub const RESERVED_FIELDS: [&str; 3] = [RESERVED_FIELD_ID, RESERVED_FIELD_UPDATED_AT, RESERVED_FIELD_CREATED_AT];
 pub const MODEL_DIRECTIVE: &str = "model";
 pub const UNIQUE_DIRECTIVE: &str = "unique";
 
@@ -184,7 +184,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             // If it's a modeled Type, we create the associated type into the registry.
             // Without more data, we infer it's from our modelization.
             ctx.registry.borrow_mut().create_type(
-                &mut |_| MetaType::Object {
+                &mut |registry| MetaType::Object {
                     name: type_name.clone(),
                     description: type_definition.node.description.clone().map(|x| x.node),
                     fields: {
@@ -236,7 +236,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     name: name.clone(),
                                     description: field.node.description.clone().map(|x| x.node),
                                     args: if relation_array {
-                                        pagination_arguments()
+                                        generate_pagination_args(registry, &type_definition.node)
                                     } else {
                                         Default::default()
                                     },
@@ -450,7 +450,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             add_mutation_create(ctx, &type_definition.node, object, model_auth.as_ref());
             add_mutation_update(ctx, &type_definition.node, object, model_auth.as_ref());
 
-            add_list_query_paginated(ctx, &type_name, connection_edges, model_auth.as_ref());
+            add_query_paginated_collection(ctx, &type_definition.node, connection_edges, model_auth.as_ref());
             add_remove_mutation(ctx, &type_name, model_auth.as_ref());
         }
     }
@@ -559,7 +559,13 @@ mod tests {
             let field = types[type_name].field_by_name(field_name).unwrap();
             assert_eq!(
                 field.auth.as_ref(),
-                Some(&expected_model_auth),
+                // PageInfo is not specific to the model. The model_auth should be passed down
+                // during resolution.
+                if type_name == "PageInfo" {
+                    None
+                } else {
+                    Some(&expected_model_auth)
+                },
                 "{type_name}.{field_name}"
             );
             assert_eq!(field.required_operation, required_op, "{type_name}.{field_name}");

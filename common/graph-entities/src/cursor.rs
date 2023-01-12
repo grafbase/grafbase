@@ -4,7 +4,7 @@ use serde::Serialize;
 
 #[derive(Debug, Hash, Clone, PartialEq, Eq)]
 pub struct PaginationCursor {
-    pub sk: String,
+    pub id: String,
 }
 
 impl Serialize for PaginationCursor {
@@ -20,7 +20,7 @@ impl Display for PaginationCursor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use base64::Engine;
         // No padding makes it easier to copy paste (without `=`) and just shorter.
-        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&self.sk);
+        let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(&self.id);
         write!(f, "{encoded}")
     }
 }
@@ -29,8 +29,8 @@ impl PaginationCursor {
     pub fn from_string(value: String) -> anyhow::Result<PaginationCursor> {
         use base64::Engine;
         let utf8 = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(value)?;
-        let sk = String::from_utf8(utf8)?;
-        Ok(PaginationCursor { sk })
+        let id = String::from_utf8(utf8)?;
+        Ok(PaginationCursor { id })
     }
 }
 
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn test_string_conversion_consistency() {
         let cursor = PaginationCursor {
-            sk: String::from("My shiny new cursor"),
+            id: String::from("My shiny new cursor"),
         };
         let copy = PaginationCursor::from_string(cursor.to_string());
         assert!(copy.is_ok());
@@ -51,7 +51,7 @@ mod tests {
     #[test]
     fn test_serde() {
         let cursor = PaginationCursor {
-            sk: String::from("My shiny new cursor"),
+            id: String::from("My shiny new cursor"),
         };
         insta::assert_json_snapshot!(cursor);
     }

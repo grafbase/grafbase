@@ -39,7 +39,7 @@ impl Transformer {
             }
             Self::ConvertSkToCursor => {
                 let sk: String = serde_json::from_value(value)?;
-                Ok(serde_json::to_value(PaginationCursor { sk })?)
+                Ok(serde_json::to_value(PaginationCursor { id: sk })?)
             }
             Self::JSONSelect { property } => {
                 let result = value

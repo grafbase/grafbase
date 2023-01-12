@@ -214,6 +214,8 @@ pub struct Operation {
     pub kind: Option<OperationKind>,
 }
 
+// TODO: SQL parameters are defined in different places. Those should all be defined here, creating
+// a new struct "SqlQuery" which holds both the values and the generated SQL query.
 // TODO: turn these tuple arguments into structs
 pub enum Sql<'a> {
     /// value ordering: handled by [`Row`]
@@ -236,14 +238,12 @@ pub enum Sql<'a> {
     SelectId(String),
     /// values: parent_pk, relation_name
     SelectSingleRelation(String),
-    /// values: entity_type, sk?, query_limit, edges[]
-    SelectTypePaginatedForwardWithEdges(bool, usize, bool),
-    /// values: entity_type, sk?, query_limit, edges[]
-    SelectTypePaginatedBackwardWithEdges(bool, usize, bool),
-    /// values: entity_type, sk?, query_limit
-    SelectTypePaginatedForward(bool, bool),
-    /// values: entity_type, sk?, query_limit
-    SelectTypePaginatedBackward(bool, bool),
+    SelectTypePaginated {
+        has_origin: bool,
+        is_nested: bool,
+        ascending: bool,
+        edges_count: usize,
+    },
     /// values: entity_type
     SelectType,
 }
@@ -471,31 +471,48 @@ impl<'a> Sql<'a> {
                     table = Self::TABLE,
                 )
             }
-            Self::SelectTypePaginatedForwardWithEdges(has_key, number_of_edges, is_nested) => {
+            Self::SelectTypePaginated {
+                has_origin,
+                is_nested,
+                ascending,
+                edges_count,
+            } => {
+                let mut r#where = vec!["entity_type=?entity_type".to_string()];
                 let select = if *is_nested {
+                    r#where.push("pk=?pk".to_string());
+                    r#where.push("json_each.value=?relation_name".to_string());
                     format!(
                         "SELECT {table}.* FROM {table}, json_each({table}.relation_names)",
                         table = Self::TABLE,
                     )
                 } else {
+                    r#where.push("pk=sk".to_string());
                     format!("SELECT * FROM {table}", table = Self::TABLE,)
                 };
-                let nested_search = if *is_nested {
-                    "AND json_each.value=?relation_name"
+                if *has_origin {
+                    let op = if *ascending { ">" } else { "<" };
+                    r#where.push(format!("sk {op} ?sk"));
+                }
+                let ordering = if *ascending { "ASC" } else { "DESC" };
+                let page = format!(
+                    indoc::indoc! {"
+                        {select}
+                        WHERE {conditions}
+                        ORDER BY sk {ordering} LIMIT ?query_limit
+                    "},
+                    select = select,
+                    conditions = r#where.join(" AND "),
+                    ordering = ordering
+                );
+                if *edges_count == 0 {
+                    page
                 } else {
-                    ""
-                };
-                let pk_query = if *is_nested { "pk=?pk" } else { "pk=sk" };
+                    format!(
+                        indoc::indoc! {r##"
+                            WITH page AS (
+                                {page}
+                            )
 
-                if *has_key {
-                    format!(
-                        indoc::indoc! {r##"
-                            WITH page AS (
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
-                            )
-                            
                             SELECT sk AS "__#key", * FROM page
                             UNION ALL
                             SELECT {table}.pk as "__#key", {table}.*
@@ -505,193 +522,12 @@ impl<'a> Sql<'a> {
                             WHERE
                                 ({table}.pk) IN (SELECT sk FROM page)
                                 AND ({edges})
-                            ORDER BY "__#key"
+                            ORDER BY "__#key" {ordering}
                         "##},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search,
+                        page = page,
+                        ordering = ordering,
                         table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
-                    )
-                } else {
-                    format!(
-                        indoc::indoc! {r##"
-                            WITH page AS (
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
-                            )
-                            
-                            SELECT sk AS "__#key", * FROM page
-                            UNION ALL
-                            SELECT {table}.pk as "__#key", {table}.*
-                            FROM
-                                {table},
-                                json_each({table}.relation_names)
-                            WHERE
-                                ({table}.pk) IN (SELECT sk FROM page)
-                                AND ({edges})
-                            ORDER BY "__#key"
-                        "##},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search,
-                        table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
-                    )
-                }
-            }
-            Self::SelectTypePaginatedBackwardWithEdges(has_key, number_of_edges, is_nested) => {
-                let select = if *is_nested {
-                    format!(
-                        "SELECT {table}.* FROM {table}, json_each({table}.relation_names)",
-                        table = Self::TABLE,
-                    )
-                } else {
-                    format!("SELECT * FROM {table}", table = Self::TABLE,)
-                };
-                let nested_search = if *is_nested {
-                    "AND json_each.value=?relation_name"
-                } else {
-                    ""
-                };
-                let pk_query = if *is_nested { "pk=?pk" } else { "pk=sk" };
-
-                if *has_key {
-                    format!(
-                        indoc::indoc! {r##"
-                            WITH page AS (
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
-                                ORDER BY sk DESC LIMIT ?query_limit
-                            )
-                            
-                            SELECT sk AS "__#key", * FROM page
-                            UNION ALL
-                            SELECT {table}.pk as "__#key", {table}.*
-                            FROM
-                                {table},
-                                json_each({table}.relation_names)
-                            WHERE
-                                ({table}.pk) IN (SELECT sk FROM page)
-                                AND ({edges})
-                            ORDER BY "__#key"
-                        "##},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search,
-                        table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
-                    )
-                } else {
-                    format!(
-                        indoc::indoc! {r##"
-                            WITH page AS (
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY sk DESC LIMIT ?query_limit
-                            )
-                            
-                            SELECT sk AS "__#key", * FROM page
-                            UNION ALL
-                            SELECT {table}.pk as "__#key", {table}.*
-                            FROM
-                                {table},
-                                json_each({table}.relation_names)
-                            WHERE
-                                ({table}.pk) IN (SELECT sk FROM page)
-                                AND ({edges})
-                            ORDER BY "__#key"
-                        "##},
-                        pk_query = pk_query,
-                        table = Self::TABLE,
-                        edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
-                        select = select,
-                        nested_search = nested_search
-                    )
-                }
-            }
-            Self::SelectTypePaginatedForward(has_key, is_nested) => {
-                let select = if *is_nested {
-                    format!(
-                        "SELECT {table}.* FROM {table}, json_each({table}.relation_names)",
-                        table = Self::TABLE,
-                    )
-                } else {
-                    format!("SELECT * FROM {table}", table = Self::TABLE,)
-                };
-                let nested_search = if *is_nested {
-                    "AND json_each.value=?relation_name"
-                } else {
-                    ""
-                };
-                let pk_query = if *is_nested { "pk=?pk" } else { "pk=sk" };
-                if *has_key {
-                    format!(
-                        indoc::indoc! {"
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} AND sk > ?sk {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
-                            "},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search
-                    )
-                } else {
-                    format!(
-                        indoc::indoc! {"
-                                {select}
-                                WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                ORDER BY sk LIMIT ?query_limit
-                            "},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search
-                    )
-                }
-            }
-            Self::SelectTypePaginatedBackward(has_key, is_nested) => {
-                let select = if *is_nested {
-                    format!(
-                        "SELECT {table}.* FROM {table}, json_each({table}.relation_names)",
-                        table = Self::TABLE,
-                    )
-                } else {
-                    format!("SELECT * FROM {table}", table = Self::TABLE,)
-                };
-                let nested_search = if *is_nested {
-                    "AND json_each.value=?relation_name"
-                } else {
-                    ""
-                };
-                let pk_query = if *is_nested { "pk=?pk" } else { "pk=sk" };
-                if *has_key {
-                    format!(
-                        indoc::indoc! {"
-                                SELECT *
-                                FROM (
-                                    {select}
-                                    WHERE entity_type=?entity_type AND {pk_query} AND sk < ?sk {nested_search}
-                                    ORDER BY sk DESC LIMIT ?query_limit
-                                ) ORDER BY sk
-                            "},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search
-                    )
-                } else {
-                    format!(
-                        indoc::indoc! {"
-                                SELECT *
-                                FROM (
-                                    {select}
-                                    WHERE entity_type=?entity_type AND {pk_query} {nested_search}
-                                    ORDER BY sk DESC LIMIT ?query_limit
-                                ) ORDER BY sk
-                            "},
-                        pk_query = pk_query,
-                        select = select,
-                        nested_search = nested_search
+                        edges = joined_repeating("json_each.value=?edges", *edges_count, " OR "),
                     )
                 }
             }

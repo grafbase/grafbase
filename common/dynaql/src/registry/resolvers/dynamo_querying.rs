@@ -1,11 +1,14 @@
 use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 
+use crate::registry::enums::OrderByDirection;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
+use crate::registry::variables::oneof::OneOf;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
 use dynamodb::{
-    DynamoDBBatchersData, PaginatedCursor, QueryKey, QuerySingleRelationKey, QueryTypePaginatedKey,
+    DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey,
+    QuerySingleRelationKey, QueryTypePaginatedKey,
 };
 use graph_entities::cursor::PaginationCursor;
 use graph_entities::{ConstraintID, NodeID};
@@ -86,6 +89,7 @@ pub enum DynamoResolver {
         last: VariableResolveDefinition,
         after: VariableResolveDefinition,
         before: VariableResolveDefinition,
+        order_by: Option<VariableResolveDefinition>,
         // (relation_name, parent_pk)
         // TODO: turn this into a struct
         nested: Option<(String, String)>,
@@ -167,6 +171,7 @@ impl ResolverTrait for DynamoResolver {
                 after,
                 last,
                 first,
+                order_by,
                 nested,
             } => {
                 let pk = r#type
@@ -217,38 +222,61 @@ impl ResolverTrait for DynamoResolver {
                     last_resolver_value.map(|x| x.data_resolved.borrow()),
                     Some(PAGINATION_LIMIT),
                 )?;
+
+                let order_by: Option<OneOf<OrderByDirection>> = match order_by {
+                    Some(order_by) => order_by
+                        .resolve(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?,
+                    None => None,
+                };
+                let ordering = match order_by
+                    .map(|oneof| oneof.value)
+                    .unwrap_or(OrderByDirection::ASC)
+                {
+                    OrderByDirection::ASC => PaginationOrdering::ASC,
+                    OrderByDirection::DESC => PaginationOrdering::DESC,
+                };
                 let len = edges.len();
 
-                let cursor =
-                    PaginatedCursor::from_graphql(first, last, after, before, nested.clone())?;
-                let mut pagination = ResolvedPaginationInfo::new(
-                    ResolvedPaginationDirection::from_paginated_cursor(&cursor),
-                );
-
+                let cursor = PaginatedCursor::from_graphql(
+                    first,
+                    last,
+                    after,
+                    before,
+                    nested.clone().map(|(relation_name, parent_id)| ParentEdge {
+                        relation_name,
+                        parent_id,
+                    }),
+                )?;
                 let result = query_loader_fat_paginated
-                    .load_one(QueryTypePaginatedKey::new(pk.clone(), edges, cursor))
-                    .await?;
+                    .load_one(QueryTypePaginatedKey::new(
+                        pk.clone(),
+                        edges,
+                        cursor.clone(),
+                        ordering,
+                    ))
+                    .await?
+                    .ok_or_else(|| {
+                        Error::new("Internal Error: Failed to fetch the associated nodes.")
+                    })?;
 
-                let result = result.ok_or_else(|| {
-                    Error::new("Internal Error: Failed to fetch the associated nodes.")
-                })?;
-
-                pagination = pagination
-                    .with_start(
-                        result
-                            .values
-                            .iter()
-                            .next()
-                            .map(|(pk, _)| PaginationCursor { sk: pk.to_string() }),
-                    )
-                    .with_end(
-                        result
-                            .values
-                            .iter()
-                            .last()
-                            .map(|(pk, _)| PaginationCursor { sk: pk.to_string() }),
-                    )
-                    .with_more_data(result.last_evaluated_key.is_some());
+                let pagination = ResolvedPaginationInfo::new(
+                    ResolvedPaginationDirection::from_paginated_cursor(&cursor),
+                )
+                .with_start(
+                    result
+                        .values
+                        .iter()
+                        .next()
+                        .map(|(id, _)| PaginationCursor { id: id.to_string() }),
+                )
+                .with_end(
+                    result
+                        .values
+                        .iter()
+                        .last()
+                        .map(|(id, _)| PaginationCursor { id: id.to_string() }),
+                )
+                .with_more_data(result.last_evaluated_key.is_some());
 
                 let result: Vec<serde_json::Value> = result
                     .values

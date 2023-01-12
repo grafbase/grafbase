@@ -400,6 +400,25 @@ expression: reg_string
         "rust_typename": "Mutation"
       }
     },
+    "OrderByDirection": {
+      "Enum": {
+        "description": null,
+        "enum_values": {
+          "ASC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "ASC"
+          },
+          "DESC": {
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "name": "DESC"
+          }
+        },
+        "name": "OrderByDirection",
+        "rust_typename": "OrderByDirection"
+      }
+    },
     "Organization": {
       "Object": {
         "cache_control": {
@@ -574,6 +593,14 @@ expression: reg_string
                 "is_secret": false,
                 "name": "last",
                 "ty": "Int",
+                "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "OrganizationOrderByInput",
                 "validators": null
               }
             },
@@ -896,6 +923,24 @@ expression: reg_string
         "keys": null,
         "name": "OrganizationEdge",
         "rust_typename": "OrganizationEdge"
+      }
+    },
+    "OrganizationOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "OrganizationOrderByInput",
+        "oneof": true,
+        "rust_typename": "OrganizationOrderByInput"
       }
     },
     "OrganizationToUserCreateOrganization": {
@@ -1385,6 +1430,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "OrganizationOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -1427,6 +1480,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "Organization"
                     }
@@ -1510,6 +1566,14 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "UserOrderByInput",
+                "validators": null
               }
             },
             "auth": null,
@@ -1552,6 +1616,9 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
+                    "order_by": {
+                      "InputTypeName": "orderBy"
+                    },
                     "type": {
                       "DebugString": "User"
                     }
@@ -1718,6 +1785,14 @@ expression: reg_string
                 "is_secret": false,
                 "name": "last",
                 "ty": "Int",
+                "validators": null
+              },
+              "orderBy": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "orderBy",
+                "ty": "UserOrderByInput",
                 "validators": null
               }
             },
@@ -2073,6 +2148,24 @@ expression: reg_string
         "keys": null,
         "name": "UserEdge",
         "rust_typename": "UserEdge"
+      }
+    },
+    "UserOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "UserOrderByInput",
+        "oneof": true,
+        "rust_typename": "UserOrderByInput"
       }
     },
     "UserUpdateInput": {

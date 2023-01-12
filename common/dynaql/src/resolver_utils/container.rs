@@ -201,10 +201,6 @@ async fn resolve_container_inner<'a>(
     };
 
     let relations = relations_edges(ctx, root);
-    #[cfg(feature = "tracing_worker")]
-    {
-        logworker::info!("", "Relations for {} {:?}", root.name(), relations);
-    }
 
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);

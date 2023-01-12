@@ -47,6 +47,10 @@ type Mutation {
 	"""
 	todoDelete(by: TodoByInput!): TodoDeletePayload
 }
+enum OrderByDirection {
+	ASC
+	DESC
+}
 type PageInfo {
 	hasPreviousPage: Boolean!
 	hasNextPage: Boolean!
@@ -61,7 +65,7 @@ type Query {
 	"""
 	Paginated query to fetch the whole list of `Todo`.
 	"""
-	todoCollection(after: String, before: String, first: Int, last: Int): TodoConnection
+	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
 }
 type Todo {
 	content: String!
@@ -107,6 +111,9 @@ type TodoDeletePayload {
 type TodoEdge {
 	node: Todo!
 	cursor: String!
+}
+input TodoOrderByInput {
+	createdAt: OrderByDirection
 }
 """
 A TodoType

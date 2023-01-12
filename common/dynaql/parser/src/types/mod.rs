@@ -123,6 +123,11 @@ impl BaseType {
     pub fn named(name: &str) -> BaseType {
         BaseType::Named(Name::new(name))
     }
+
+    /// Create a new list BaseType
+    pub fn list(ty: Type) -> BaseType {
+        BaseType::List(Box::new(ty))
+    }
 }
 
 impl BaseType {

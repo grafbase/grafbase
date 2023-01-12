@@ -7,7 +7,7 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, QueryResult};
+use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, PaginationOrdering, QueryResult};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 
@@ -31,6 +31,7 @@ pub struct QueryTypePaginatedKey {
     pub r#type: String,
     pub edges: Vec<String>,
     pub cursor: PaginatedCursor,
+    pub ordering: PaginationOrdering,
 }
 
 pub enum QueryTypePaginatedInfo {
@@ -47,7 +48,7 @@ pub enum QueryTypePaginatedInfo {
 }
 
 impl QueryTypePaginatedKey {
-    pub fn new(r#type: String, mut edges: Vec<String>, cursor: PaginatedCursor) -> Self {
+    pub fn new(r#type: String, mut edges: Vec<String>, cursor: PaginatedCursor, ordering: PaginationOrdering) -> Self {
         Self {
             r#type: r#type.to_lowercase(),
             edges: {
@@ -55,6 +56,7 @@ impl QueryTypePaginatedKey {
                 edges
             },
             cursor,
+            ordering,
         }
     }
 }
@@ -136,9 +138,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
             let future_get = || async move {
                 let req = self.ctx.dynamodb_client.clone().query_node_edges(
                     &self.ctx.trace_id,
-                    query_key.cursor.clone(),
-                    query_key.edges.clone(),
-                    query_key.r#type.clone(),
+                    query_key.clone(),
                     self.ctx.dynamodb_table_name.clone(),
                     self.index.clone(),
                 );
