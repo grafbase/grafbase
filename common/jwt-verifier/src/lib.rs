@@ -5,6 +5,7 @@ use jwt_compact::{jwk::JsonWebKey, prelude::*, TimeOptions};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use serde_with::{serde_as, OneOrMany};
 use url::Url;
 use worker::kv::KvError;
 
@@ -39,6 +40,7 @@ struct JsonWebKeySet<'a> {
     keys: Vec<ExtendedJsonWebKey<'a>>,
 }
 
+#[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
 struct CustomClaims {
     #[serde(rename = "iss")]
@@ -47,8 +49,11 @@ struct CustomClaims {
     #[serde(rename = "sub")]
     subject: Option<String>,
 
-    #[serde(rename = "aud")]
-    audience: Option<Value>,
+    // Can be either a single string or an array of strings according to
+    // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3
+    #[serde(rename = "aud", default)]
+    #[serde_as(deserialize_as = "OneOrMany<_>")]
+    audience: Vec<String>,
 
     #[serde(flatten)]
     extra: Value,
@@ -213,14 +218,10 @@ impl<'a> Client<'a> {
         }?;
 
         // Check "aud" claim
-        // Can be either a single string or an array of strings according to
-        // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3
         if let Some(client_id) = self.client_id {
-            match claims.custom.audience.as_ref() {
-                Some(Value::String(aud)) if aud == client_id => Ok(()),
-                Some(Value::Array(aud)) if aud.contains(&Value::from(client_id)) => Ok(()),
-                _ => Err(VerificationError::InvalidAudience),
-            }?;
+            if !claims.custom.audience.contains(&client_id.to_string()) {
+                return Err(VerificationError::InvalidAudience);
+            };
         }
 
         // Extract groups from custom claim if present
