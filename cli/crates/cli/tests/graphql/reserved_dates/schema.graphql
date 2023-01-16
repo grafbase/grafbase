@@ -3,6 +3,7 @@ type User @model {
   email: String! @unique
   name: String!
   posts: [Post]
+  comments: [Comment]
 }
 
 type Post @model {
@@ -30,4 +31,5 @@ type Todo @model {
   id: ID!
   title: String!
   complete: Boolean!
+  list: TodoList
 }
