@@ -523,7 +523,23 @@ impl MetaField {
                     .map_err(|err| err.into_server_error(ctx.item.pos));
 
                 let len = match &resolved_value?.data_resolved.as_ref() {
-                    serde_json::Value::Null => Vec::new(),
+                    serde_json::Value::Null => {
+                        if self.ty.ends_with('!') {
+                            return Err(ServerError::new(
+                                format!(
+                                    "An error occurred while fetching `{}`, a non-nullable value was expected but no value was found.",
+                                    ctx.item.node.name.node
+                                ),
+                                Some(ctx.item.pos),
+                            ));
+                        } else {
+                            return Ok(ctx
+                                .response_graph
+                                .write()
+                                .await
+                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()));
+                        }
+                    }
                     serde_json::Value::Array(arr) => arr.clone(),
                     _ => {
                         return Err(ServerError::new(

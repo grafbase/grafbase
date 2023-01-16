@@ -16,40 +16,85 @@ pub fn resolve_input(
     resolve_input_inner(
         &ctx_field.schema_env.registry,
         &mut Vec::new(),
-        &meta_input_value.ty,
+        &meta_input_value.into(),
         value,
-        meta_input_value.default_value.as_ref(),
     )
     .map_err(|err| err.into_server_error(ctx_field.item.pos))
+}
+
+struct InputContext<'a> {
+    /// Expected GraphQL type
+    ty: &'a str,
+    /// Whether we allow list coercion at this point:
+    /// https://spec.graphql.org/October2021/#sec-List.Input-Coercion
+    /// Most of time this will be true expect for:
+    /// ty: [[Int]]  value: [1, 2, 3] => Error: Incorrect item value
+    allow_list_coercion: bool,
+    default_value: Option<&'a ConstValue>,
+}
+
+impl<'a> From<&'a MetaInputValue> for InputContext<'a> {
+    fn from(input: &'a MetaInputValue) -> Self {
+        InputContext {
+            ty: &input.ty,
+            allow_list_coercion: true,
+            default_value: input.default_value.as_ref(),
+        }
+    }
 }
 
 fn resolve_input_inner(
     registry: &Registry,
     path: &mut Vec<String>,
-    ty: &str,
+    ctx: &InputContext<'_>,
     value: ConstValue,
-    default_value: Option<&ConstValue>,
 ) -> Result<ConstValue, Error> {
     if value != ConstValue::Null {
-        match MetaTypeName::create(&ty) {
+        match MetaTypeName::create(&ctx.ty) {
             MetaTypeName::List(type_name) => {
                 if let ConstValue::List(list) = value {
+                    let input_context = InputContext {
+                        ty: &type_name,
+                        allow_list_coercion: list.len() <= 1,
+                        default_value: None,
+                    };
                     let mut arr = Vec::new();
                     for (idx, element) in list.into_iter().enumerate() {
                         path.push(idx.to_string());
                         arr.push(resolve_input_inner(
-                            registry, path, &type_name, element, None,
+                            registry,
+                            path,
+                            &input_context,
+                            element,
                         )?);
                         path.pop();
                     }
                     Ok(ConstValue::List(arr))
+                } else if ctx.allow_list_coercion {
+                    Ok(ConstValue::List(vec![resolve_input_inner(
+                        registry,
+                        path,
+                        &InputContext {
+                            ty: &type_name,
+                            allow_list_coercion: true,
+                            default_value: None,
+                        },
+                        value,
+                    )?]))
                 } else {
                     Err(input_error("Expected a List", path))
                 }
             }
-            MetaTypeName::NonNull(type_name) => {
-                resolve_input_inner(registry, path, &type_name, value, None)
-            }
+            MetaTypeName::NonNull(type_name) => resolve_input_inner(
+                registry,
+                path,
+                &InputContext {
+                    ty: type_name,
+                    allow_list_coercion: true,
+                    default_value: None,
+                },
+                value,
+            ),
             MetaTypeName::Named(type_name) => {
                 match registry
                     .types
@@ -68,9 +113,8 @@ fn resolve_input_inner(
                                 let field_value = resolve_input_inner(
                                     registry,
                                     path,
-                                    &meta_input_value.ty,
+                                    &meta_input_value.into(),
                                     fields.remove(&Name::new(name)).unwrap_or(ConstValue::Null),
-                                    meta_input_value.default_value.as_ref(),
                                 )?;
                                 path.pop();
                                 // Not adding NULLs for now makes it easier to work with later.
@@ -110,9 +154,9 @@ fn resolve_input_inner(
             }
         }
     } else {
-        match default_value {
+        match ctx.default_value {
             Some(v) => Ok(v.clone()),
-            None => match MetaTypeName::create(&ty) {
+            None => match MetaTypeName::create(&ctx.ty) {
                 MetaTypeName::NonNull(_) => Err(input_error("Unexpected null value", path)),
                 _ => Ok(ConstValue::Null),
             },
