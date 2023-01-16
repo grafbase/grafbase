@@ -75,7 +75,7 @@ Input to create a Organization
 """
 input OrganizationCreateInput {
 	name: String!
-	users: [OrganizationOrganizationRelateUserUserCreateRelationInput!]
+	users: [OrganizationRelateUserCreateUserRelationInput!]
 }
 type OrganizationCreatePayload {
 	organization: Organization
@@ -88,24 +88,46 @@ type OrganizationEdge {
 	cursor: String!
 }
 """
+Input to create a Organization for the OrganizationRelateUser relation of User
+"""
+input OrganizationRelateUserCreateOrganizationInput {
+	name: String!
+	users: [OrganizationRelateUserCreateUserRelationInput!]
+}
+"""
+Input to link to or create a Organization for the OrganizationRelateUser relation of User
+"""
+input OrganizationRelateUserCreateOrganizationRelationInput {
+	create: OrganizationRelateUserCreateOrganizationInput
+	link: ID
+}
+"""
 Input to create a User for the OrganizationRelateUser relation of Organization
 """
-input OrganizationOrganizationRelateUserUserCreateInput {
+input OrganizationRelateUserCreateUserInput {
 	name: String!
-	organizations: [UserOrganizationRelateUserOrganizationCreateRelationInput!]
+	organizations: [OrganizationRelateUserCreateOrganizationRelationInput!]
 }
 """
 Input to link to or create a User for the OrganizationRelateUser relation of Organization
 """
-input OrganizationOrganizationRelateUserUserCreateRelationInput {
-	create: OrganizationOrganizationRelateUserUserCreateInput
+input OrganizationRelateUserCreateUserRelationInput {
+	create: OrganizationRelateUserCreateUserInput
 	link: ID
+}
+"""
+Input to link/unlink to or create a Organization for the OrganizationRelateUser relation of User
+"""
+input OrganizationRelateUserUpdateOrganizationRelationInput {
+	create: OrganizationRelateUserCreateOrganizationInput
+	link: ID
+	unlink: ID
 }
 """
 Input to link/unlink to or create a User for the OrganizationRelateUser relation of Organization
 """
-input OrganizationOrganizationRelateUserUserUpdateRelationInput {
-	create: OrganizationOrganizationRelateUserUserCreateInput
+input OrganizationRelateUserUpdateUserRelationInput {
+	create: OrganizationRelateUserCreateUserInput
 	link: ID
 	unlink: ID
 }
@@ -114,7 +136,7 @@ Input to update a Organization
 """
 input OrganizationUpdateInput {
 	name: String
-	users: [OrganizationOrganizationRelateUserUserUpdateRelationInput!]
+	users: [OrganizationRelateUserUpdateUserRelationInput!]
 }
 type OrganizationUpdatePayload {
 	organization: Organization
@@ -174,7 +196,7 @@ Input to create a User
 """
 input UserCreateInput {
 	name: String!
-	organizations: [UserOrganizationRelateUserOrganizationCreateRelationInput!]
+	organizations: [OrganizationRelateUserCreateOrganizationRelationInput!]
 }
 type UserCreatePayload {
 	user: User
@@ -187,33 +209,11 @@ type UserEdge {
 	cursor: String!
 }
 """
-Input to create a Organization for the OrganizationRelateUser relation of User
-"""
-input UserOrganizationRelateUserOrganizationCreateInput {
-	name: String!
-	users: [OrganizationOrganizationRelateUserUserCreateRelationInput!]
-}
-"""
-Input to link to or create a Organization for the OrganizationRelateUser relation of User
-"""
-input UserOrganizationRelateUserOrganizationCreateRelationInput {
-	create: UserOrganizationRelateUserOrganizationCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Organization for the OrganizationRelateUser relation of User
-"""
-input UserOrganizationRelateUserOrganizationUpdateRelationInput {
-	create: UserOrganizationRelateUserOrganizationCreateInput
-	link: ID
-	unlink: ID
-}
-"""
 Input to update a User
 """
 input UserUpdateInput {
 	name: String
-	organizations: [UserOrganizationRelateUserOrganizationUpdateRelationInput!]
+	organizations: [OrganizationRelateUserUpdateOrganizationRelationInput!]
 }
 type UserUpdatePayload {
 	user: User
