@@ -465,7 +465,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "commented",
-            "ty": "[CommentedCreateCommentRelationInput]",
+            "ty": "[CommentedCreateCommentRelation]",
             "validators": null
           },
           "lastname": {
@@ -481,7 +481,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "published",
-            "ty": "[PublishedCreatePostRelationInput]",
+            "ty": "[PublishedCreatePostRelation]",
             "validators": null
           }
         },
@@ -669,7 +669,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "commented",
-            "ty": "[CommentedUpdateCommentRelationInput]",
+            "ty": "[CommentedUpdateCommentRelation]",
             "validators": null
           },
           "lastname": {
@@ -685,7 +685,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "published",
-            "ty": "[PublishedUpdatePostRelationInput]",
+            "ty": "[PublishedUpdatePostRelation]",
             "validators": null
           }
         },
@@ -1104,7 +1104,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "CommentedCreateAuthorRelationInput!",
+            "ty": "CommentedCreateAuthorRelation!",
             "validators": null
           },
           "comment": {
@@ -1128,7 +1128,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "post",
-            "ty": "CommentsCreatePostRelationInput",
+            "ty": "CommentsCreatePostRelation",
             "validators": null
           }
         },
@@ -1316,7 +1316,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "CommentedUpdateAuthorRelationInput",
+            "ty": "CommentedUpdateAuthorRelation",
             "validators": null
           },
           "comment": {
@@ -1340,7 +1340,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "post",
-            "ty": "CommentsUpdatePostRelationInput",
+            "ty": "CommentsUpdatePostRelation",
             "validators": null
           }
         },
@@ -1401,7 +1401,7 @@ expression: reg_string
         "rust_typename": "CommentUpdatePayload"
       }
     },
-    "CommentedCreateAuthorInput": {
+    "CommentedCreateAuthor": {
       "InputObject": {
         "description": "Input to create a Author for the commented relation of Comment",
         "input_fields": {
@@ -1410,7 +1410,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "commented",
-            "ty": "[CommentedCreateCommentRelationInput]",
+            "ty": "[CommentedCreateCommentRelation]",
             "validators": null
           },
           "lastname": {
@@ -1426,16 +1426,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "published",
-            "ty": "[PublishedCreatePostRelationInput]",
+            "ty": "[PublishedCreatePostRelation]",
             "validators": null
           }
         },
-        "name": "CommentedCreateAuthorInput",
+        "name": "CommentedCreateAuthor",
         "oneof": false,
-        "rust_typename": "CommentedCreateAuthorInput"
+        "rust_typename": "CommentedCreateAuthor"
       }
     },
-    "CommentedCreateAuthorRelationInput": {
+    "CommentedCreateAuthorRelation": {
       "InputObject": {
         "description": "Input to link to or create a Author for the commented relation of Comment",
         "input_fields": {
@@ -1444,7 +1444,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentedCreateAuthorInput",
+            "ty": "CommentedCreateAuthor",
             "validators": null
           },
           "link": {
@@ -1456,12 +1456,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentedCreateAuthorRelationInput",
+        "name": "CommentedCreateAuthorRelation",
         "oneof": true,
-        "rust_typename": "CommentedCreateAuthorRelationInput"
+        "rust_typename": "CommentedCreateAuthorRelation"
       }
     },
-    "CommentedCreateCommentInput": {
+    "CommentedCreateComment": {
       "InputObject": {
         "description": "Input to create a Comment for the commented relation of Author",
         "input_fields": {
@@ -1486,16 +1486,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "post",
-            "ty": "CommentsCreatePostRelationInput",
+            "ty": "CommentsCreatePostRelation",
             "validators": null
           }
         },
-        "name": "CommentedCreateCommentInput",
+        "name": "CommentedCreateComment",
         "oneof": false,
-        "rust_typename": "CommentedCreateCommentInput"
+        "rust_typename": "CommentedCreateComment"
       }
     },
-    "CommentedCreateCommentRelationInput": {
+    "CommentedCreateCommentRelation": {
       "InputObject": {
         "description": "Input to link to or create a Comment for the commented relation of Author",
         "input_fields": {
@@ -1504,7 +1504,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentedCreateCommentInput",
+            "ty": "CommentedCreateComment",
             "validators": null
           },
           "link": {
@@ -1516,12 +1516,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentedCreateCommentRelationInput",
+        "name": "CommentedCreateCommentRelation",
         "oneof": true,
-        "rust_typename": "CommentedCreateCommentRelationInput"
+        "rust_typename": "CommentedCreateCommentRelation"
       }
     },
-    "CommentedUpdateAuthorRelationInput": {
+    "CommentedUpdateAuthorRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Author for the commented relation of Comment",
         "input_fields": {
@@ -1530,7 +1530,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentedCreateAuthorInput",
+            "ty": "CommentedCreateAuthor",
             "validators": null
           },
           "link": {
@@ -1550,12 +1550,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentedUpdateAuthorRelationInput",
+        "name": "CommentedUpdateAuthorRelation",
         "oneof": true,
-        "rust_typename": "CommentedUpdateAuthorRelationInput"
+        "rust_typename": "CommentedUpdateAuthorRelation"
       }
     },
-    "CommentedUpdateCommentRelationInput": {
+    "CommentedUpdateCommentRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Comment for the commented relation of Author",
         "input_fields": {
@@ -1564,7 +1564,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentedCreateCommentInput",
+            "ty": "CommentedCreateComment",
             "validators": null
           },
           "link": {
@@ -1584,12 +1584,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentedUpdateCommentRelationInput",
+        "name": "CommentedUpdateCommentRelation",
         "oneof": true,
-        "rust_typename": "CommentedUpdateCommentRelationInput"
+        "rust_typename": "CommentedUpdateCommentRelation"
       }
     },
-    "CommentsCreateCommentInput": {
+    "CommentsCreateComment": {
       "InputObject": {
         "description": "Input to create a Comment for the comments relation of Post",
         "input_fields": {
@@ -1598,7 +1598,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "CommentedCreateAuthorRelationInput!",
+            "ty": "CommentedCreateAuthorRelation!",
             "validators": null
           },
           "comment": {
@@ -1618,12 +1618,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsCreateCommentInput",
+        "name": "CommentsCreateComment",
         "oneof": false,
-        "rust_typename": "CommentsCreateCommentInput"
+        "rust_typename": "CommentsCreateComment"
       }
     },
-    "CommentsCreateCommentRelationInput": {
+    "CommentsCreateCommentRelation": {
       "InputObject": {
         "description": "Input to link to or create a Comment for the comments relation of Post",
         "input_fields": {
@@ -1632,7 +1632,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentsCreateCommentInput",
+            "ty": "CommentsCreateComment",
             "validators": null
           },
           "link": {
@@ -1644,12 +1644,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsCreateCommentRelationInput",
+        "name": "CommentsCreateCommentRelation",
         "oneof": true,
-        "rust_typename": "CommentsCreateCommentRelationInput"
+        "rust_typename": "CommentsCreateCommentRelation"
       }
     },
-    "CommentsCreatePostInput": {
+    "CommentsCreatePost": {
       "InputObject": {
         "description": "Input to create a Post for the comments relation of Comment",
         "input_fields": {
@@ -1658,7 +1658,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "PublishedCreateAuthorRelationInput",
+            "ty": "PublishedCreateAuthorRelation",
             "validators": null
           },
           "comments": {
@@ -1666,7 +1666,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "comments",
-            "ty": "[CommentsCreateCommentRelationInput]",
+            "ty": "[CommentsCreateCommentRelation]",
             "validators": null
           },
           "content": {
@@ -1678,12 +1678,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsCreatePostInput",
+        "name": "CommentsCreatePost",
         "oneof": false,
-        "rust_typename": "CommentsCreatePostInput"
+        "rust_typename": "CommentsCreatePost"
       }
     },
-    "CommentsCreatePostRelationInput": {
+    "CommentsCreatePostRelation": {
       "InputObject": {
         "description": "Input to link to or create a Post for the comments relation of Comment",
         "input_fields": {
@@ -1692,7 +1692,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentsCreatePostInput",
+            "ty": "CommentsCreatePost",
             "validators": null
           },
           "link": {
@@ -1704,12 +1704,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsCreatePostRelationInput",
+        "name": "CommentsCreatePostRelation",
         "oneof": true,
-        "rust_typename": "CommentsCreatePostRelationInput"
+        "rust_typename": "CommentsCreatePostRelation"
       }
     },
-    "CommentsUpdateCommentRelationInput": {
+    "CommentsUpdateCommentRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Comment for the comments relation of Post",
         "input_fields": {
@@ -1718,7 +1718,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentsCreateCommentInput",
+            "ty": "CommentsCreateComment",
             "validators": null
           },
           "link": {
@@ -1738,12 +1738,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsUpdateCommentRelationInput",
+        "name": "CommentsUpdateCommentRelation",
         "oneof": true,
-        "rust_typename": "CommentsUpdateCommentRelationInput"
+        "rust_typename": "CommentsUpdateCommentRelation"
       }
     },
-    "CommentsUpdatePostRelationInput": {
+    "CommentsUpdatePostRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Post for the comments relation of Comment",
         "input_fields": {
@@ -1752,7 +1752,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "CommentsCreatePostInput",
+            "ty": "CommentsCreatePost",
             "validators": null
           },
           "link": {
@@ -1772,9 +1772,9 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "CommentsUpdatePostRelationInput",
+        "name": "CommentsUpdatePostRelation",
         "oneof": true,
-        "rust_typename": "CommentsUpdatePostRelationInput"
+        "rust_typename": "CommentsUpdatePostRelation"
       }
     },
     "DateTime": {
@@ -2745,7 +2745,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "PublishedCreateAuthorRelationInput",
+            "ty": "PublishedCreateAuthorRelation",
             "validators": null
           },
           "comments": {
@@ -2753,7 +2753,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "comments",
-            "ty": "[CommentsCreateCommentRelationInput]",
+            "ty": "[CommentsCreateCommentRelation]",
             "validators": null
           },
           "content": {
@@ -2949,7 +2949,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "author",
-            "ty": "PublishedUpdateAuthorRelationInput",
+            "ty": "PublishedUpdateAuthorRelation",
             "validators": null
           },
           "comments": {
@@ -2957,7 +2957,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "comments",
-            "ty": "[CommentsUpdateCommentRelationInput]",
+            "ty": "[CommentsUpdateCommentRelation]",
             "validators": null
           },
           "content": {
@@ -3026,7 +3026,7 @@ expression: reg_string
         "rust_typename": "PostUpdatePayload"
       }
     },
-    "PublishedCreateAuthorInput": {
+    "PublishedCreateAuthor": {
       "InputObject": {
         "description": "Input to create a Author for the published relation of Post",
         "input_fields": {
@@ -3035,7 +3035,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "commented",
-            "ty": "[CommentedCreateCommentRelationInput]",
+            "ty": "[CommentedCreateCommentRelation]",
             "validators": null
           },
           "lastname": {
@@ -3051,16 +3051,16 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "published",
-            "ty": "[PublishedCreatePostRelationInput]",
+            "ty": "[PublishedCreatePostRelation]",
             "validators": null
           }
         },
-        "name": "PublishedCreateAuthorInput",
+        "name": "PublishedCreateAuthor",
         "oneof": false,
-        "rust_typename": "PublishedCreateAuthorInput"
+        "rust_typename": "PublishedCreateAuthor"
       }
     },
-    "PublishedCreateAuthorRelationInput": {
+    "PublishedCreateAuthorRelation": {
       "InputObject": {
         "description": "Input to link to or create a Author for the published relation of Post",
         "input_fields": {
@@ -3069,7 +3069,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "PublishedCreateAuthorInput",
+            "ty": "PublishedCreateAuthor",
             "validators": null
           },
           "link": {
@@ -3081,12 +3081,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "PublishedCreateAuthorRelationInput",
+        "name": "PublishedCreateAuthorRelation",
         "oneof": true,
-        "rust_typename": "PublishedCreateAuthorRelationInput"
+        "rust_typename": "PublishedCreateAuthorRelation"
       }
     },
-    "PublishedCreatePostInput": {
+    "PublishedCreatePost": {
       "InputObject": {
         "description": "Input to create a Post for the published relation of Author",
         "input_fields": {
@@ -3095,7 +3095,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "comments",
-            "ty": "[CommentsCreateCommentRelationInput]",
+            "ty": "[CommentsCreateCommentRelation]",
             "validators": null
           },
           "content": {
@@ -3107,12 +3107,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "PublishedCreatePostInput",
+        "name": "PublishedCreatePost",
         "oneof": false,
-        "rust_typename": "PublishedCreatePostInput"
+        "rust_typename": "PublishedCreatePost"
       }
     },
-    "PublishedCreatePostRelationInput": {
+    "PublishedCreatePostRelation": {
       "InputObject": {
         "description": "Input to link to or create a Post for the published relation of Author",
         "input_fields": {
@@ -3121,7 +3121,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "PublishedCreatePostInput",
+            "ty": "PublishedCreatePost",
             "validators": null
           },
           "link": {
@@ -3133,12 +3133,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "PublishedCreatePostRelationInput",
+        "name": "PublishedCreatePostRelation",
         "oneof": true,
-        "rust_typename": "PublishedCreatePostRelationInput"
+        "rust_typename": "PublishedCreatePostRelation"
       }
     },
-    "PublishedUpdateAuthorRelationInput": {
+    "PublishedUpdateAuthorRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Author for the published relation of Post",
         "input_fields": {
@@ -3147,7 +3147,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "PublishedCreateAuthorInput",
+            "ty": "PublishedCreateAuthor",
             "validators": null
           },
           "link": {
@@ -3167,12 +3167,12 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "PublishedUpdateAuthorRelationInput",
+        "name": "PublishedUpdateAuthorRelation",
         "oneof": true,
-        "rust_typename": "PublishedUpdateAuthorRelationInput"
+        "rust_typename": "PublishedUpdateAuthorRelation"
       }
     },
-    "PublishedUpdatePostRelationInput": {
+    "PublishedUpdatePostRelation": {
       "InputObject": {
         "description": "Input to link/unlink to or create a Post for the published relation of Author",
         "input_fields": {
@@ -3181,7 +3181,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "PublishedCreatePostInput",
+            "ty": "PublishedCreatePost",
             "validators": null
           },
           "link": {
@@ -3201,9 +3201,9 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "PublishedUpdatePostRelationInput",
+        "name": "PublishedUpdatePostRelation",
         "oneof": true,
-        "rust_typename": "PublishedUpdatePostRelationInput"
+        "rust_typename": "PublishedUpdatePostRelation"
       }
     },
     "Query": {

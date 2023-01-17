@@ -1,11 +1,10 @@
 ---
 source: common/parser/src/rules/relations/relations_engine.rs
-assertion_line: 275
 expression: "&ctx.relations"
 ---
 {
-    "AuthorRelatePost": MetaRelation {
-        name: "AuthorRelatePost",
+    "AuthorToPost": MetaRelation {
+        name: "AuthorToPost",
         kind: OneToMany,
         relation: (
             Some(

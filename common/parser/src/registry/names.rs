@@ -51,7 +51,7 @@ impl MetaNames {
         match maybe_parent_relation {
             None => format!("{}CreateInput", Self::model(model_type_definition)),
             Some(parent_relation) => format!(
-                "{}Create{}Input",
+                "{}Create{}",
                 Self::relation_prefix(parent_relation),
                 Self::model(model_type_definition),
             ),
@@ -68,7 +68,7 @@ impl MetaNames {
         field_model_type_definition: &TypeDefinition,
     ) -> String {
         format!(
-            "{}Create{}RelationInput",
+            "{}Create{}Relation",
             Self::relation_prefix(parent_relation),
             Self::model(field_model_type_definition)
         )
@@ -80,7 +80,7 @@ impl MetaNames {
         field_model_type_definition: &TypeDefinition,
     ) -> String {
         format!(
-            "{}Update{}RelationInput",
+            "{}Update{}Relation",
             Self::relation_prefix(parent_relation),
             Self::model(field_model_type_definition)
         )

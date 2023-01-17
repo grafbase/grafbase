@@ -142,7 +142,7 @@ Input to create a TodoList
 """
 input TodoListCreateInput {
 	title: String!
-	todos: [TodoRelateTodoListCreateTodoRelationInput]
+	todos: [TodoToTodoListCreateTodoRelation]
 }
 type TodoListCreatePayload {
 	todoList: TodoList
@@ -159,30 +159,30 @@ Input to update a TodoList
 """
 input TodoListUpdateInput {
 	title: String
-	todos: [TodoRelateTodoListUpdateTodoRelationInput]
+	todos: [TodoToTodoListUpdateTodoRelation]
 }
 type TodoListUpdatePayload {
 	todoList: TodoList
 }
 """
-Input to create a Todo for the TodoRelateTodoList relation of TodoList
+Input to create a Todo for the TodoToTodoList relation of TodoList
 """
-input TodoRelateTodoListCreateTodoInput {
+input TodoToTodoListCreateTodo {
 	title: String!
 	complete: Boolean
 }
 """
-Input to link to or create a Todo for the TodoRelateTodoList relation of TodoList
+Input to link to or create a Todo for the TodoToTodoList relation of TodoList
 """
-input TodoRelateTodoListCreateTodoRelationInput {
-	create: TodoRelateTodoListCreateTodoInput
+input TodoToTodoListCreateTodoRelation {
+	create: TodoToTodoListCreateTodo
 	link: ID
 }
 """
-Input to link/unlink to or create a Todo for the TodoRelateTodoList relation of TodoList
+Input to link/unlink to or create a Todo for the TodoToTodoList relation of TodoList
 """
-input TodoRelateTodoListUpdateTodoRelationInput {
-	create: TodoRelateTodoListCreateTodoInput
+input TodoToTodoListUpdateTodoRelation {
+	create: TodoToTodoListCreateTodo
 	link: ID
 	unlink: ID
 }
