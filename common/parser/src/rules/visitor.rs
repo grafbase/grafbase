@@ -20,7 +20,9 @@ type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positione
 
 /// The VisitorContext to visit every types from the Schema.
 pub struct VisitorContext<'a> {
+    #[allow(dead_code)]
     pub(crate) directives: HashMap<String, &'a Positioned<DirectiveDefinition>>,
+    #[allow(dead_code)]
     pub(crate) types: HashMap<String, Cow<'a, Positioned<TypeDefinition>>>,
     #[allow(dead_code)]
     pub(crate) schema: Vec<&'a Positioned<SchemaDefinition>>,
