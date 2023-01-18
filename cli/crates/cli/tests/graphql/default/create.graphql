@@ -9,11 +9,14 @@ mutation {
     }
   ) {
     todoList {
+      id
       title
       todos(last: 100) {
         edges {
           node {
+            id
             title
+            complete
           }
         }
       }

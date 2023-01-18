@@ -7,4 +7,5 @@ type Todo @model {
   list: TodoList
   title: String!
   complete: Boolean!
+  list: TodoList!
 }
