@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/rules/relations/mod.rs
-assertion_line: 64
 expression: ctx.relations
 ---
 {
@@ -13,7 +12,7 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        birectional: false,
+        bidirectional: false,
     },
     "postsYesterday": MetaRelation {
         name: "postsYesterday",
@@ -24,7 +23,7 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        birectional: false,
+        bidirectional: false,
     },
     "published": MetaRelation {
         name: "published",
@@ -35,6 +34,6 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        birectional: true,
+        bidirectional: true,
     },
 }
