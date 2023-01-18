@@ -2,6 +2,7 @@ type User @model {
   email: Email! @unique
   name: String!
   posts: [Post]
+  comments: [Comment]
 }
 
 type Post @model {
