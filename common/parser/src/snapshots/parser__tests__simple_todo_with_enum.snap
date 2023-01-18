@@ -673,7 +673,7 @@ expression: reg_string
             "name": "todoCollection",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "bidirectional": false,
               "kind": "OneToMany",
               "name": "todoCollection",
               "relation": [

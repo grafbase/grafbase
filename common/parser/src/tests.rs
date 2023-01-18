@@ -85,6 +85,7 @@ fn test_simple_todo_from_template() {
           id: ID!
           title: String!
           complete: Boolean
+          list: TodoList
         }
         "#,
     )
@@ -181,12 +182,13 @@ fn test_simple_post_with_relation() {
 
         type Blog @model {
           id: ID!
-          posts: [Post] 
+          posts: [Post]
           owner: Author!
         }
 
         type Post @model {
           id: ID!
+          blog: Blog
           content: String!
           authors: [Author] @relation(name: "published")
         }
@@ -197,6 +199,7 @@ fn test_simple_post_with_relation() {
           lastname: String!
           country: Country!
           posts: [Post] @relation(name: "published")
+          blogsOwned: [Blog]
         }
         "#,
     )
@@ -420,5 +423,22 @@ fn should_validate_relation_name() {
             }
         "#,
         "Relation names should only contain [_a-zA-Z0-9] but second-author does not"
+    );
+}
+
+#[test]
+fn shouldnt_allow_ambiguous_relations() {
+    assert_validation_error!(
+        r#"
+        type Post @model {
+            title: String
+            comment: [Comment]
+        }
+
+        type Comment @model {
+            content: String
+        }
+        "#,
+        "You defined a relation from Post to Comment without defining a field on the Comment side of the relation."
     );
 }

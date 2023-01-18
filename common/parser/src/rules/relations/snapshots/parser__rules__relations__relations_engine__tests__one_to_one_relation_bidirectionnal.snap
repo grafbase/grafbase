@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/rules/relations/relations_engine.rs
-assertion_line: 165
 expression: "&ctx.relations"
 ---
 {
@@ -13,6 +12,6 @@ expression: "&ctx.relations"
             ),
             "Post",
         ),
-        birectional: true,
+        bidirectional: true,
     },
 }

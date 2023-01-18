@@ -170,7 +170,7 @@ pub struct MetaRelation {
     /// 0 -> 1
     /// The relation can have a null origin, it means it's everything related to 1.
     pub relation: (Option<String>, String),
-    pub birectional: bool,
+    pub bidirectional: bool,
 }
 
 impl MetaRelation {
@@ -187,7 +187,7 @@ impl MetaRelation {
             name: name
                 .unwrap_or_else(|| MetaRelation::generate_relation_name(&base_from, &base_to)),
             relation: (Some(base_from.to_string()), base_to.to_string()),
-            birectional: false,
+            bidirectional: false,
             kind: MetaRelationKind::new(&from, &to),
         }
     }
@@ -198,7 +198,7 @@ impl MetaRelation {
         Self {
             name,
             relation: (None, base_to.to_string()),
-            birectional: false,
+            bidirectional: false,
             kind: MetaRelationKind::OneToMany,
         }
     }
@@ -210,24 +210,16 @@ impl MetaRelation {
             return Err(RelationCombinationError::UndefinedError);
         }
 
-        if self
+        let (self_origin, other_origin) = self
             .relation
             .0
             .as_ref()
-            .ok_or(RelationCombinationError::ImpossibleCombination)?
-            .ne(&relation.relation.1)
-            || self.relation.1.ne(relation
-                .relation
-                .0
-                .as_ref()
-                .ok_or(RelationCombinationError::ImpossibleCombination)?)
-        {
+            .zip(relation.relation.0.as_ref())
+            .ok_or(RelationCombinationError::ImpossibleCombination)?;
+
+        if *self_origin != relation.relation.1 || *other_origin != self.relation.1 {
             return Err(RelationCombinationError::MultipleRelationsError {
-                from: self
-                    .relation
-                    .0
-                    .clone()
-                    .ok_or(RelationCombinationError::ImpossibleCombination)?,
+                from: self_origin.clone(),
             });
         }
 
@@ -248,7 +240,7 @@ impl MetaRelation {
             }
         };
 
-        self.birectional = true;
+        self.bidirectional = true;
         Ok(())
     }
 }
