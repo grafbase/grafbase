@@ -13,6 +13,7 @@ enum Privilege {
 }
 
 type Account @model {
+  user: User
   active: Boolean! @default(value: true)
   privilege: Privilege @default(value: MEMBER)
 }
