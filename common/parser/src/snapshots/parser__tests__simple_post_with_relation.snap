@@ -138,7 +138,7 @@ expression: reg_string
             "name": "blogsOwned",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "OneToMany",
               "name": "AuthorRelateBlog",
               "relation": [
@@ -377,7 +377,7 @@ expression: reg_string
             "name": "posts",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToMany",
               "name": "published",
               "relation": [
@@ -1108,7 +1108,7 @@ expression: reg_string
             "name": "owner",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToOne",
               "name": "AuthorRelateBlog",
               "relation": [
@@ -1181,7 +1181,7 @@ expression: reg_string
             "name": "posts",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "OneToMany",
               "name": "BlogRelatePost",
               "relation": [
@@ -2463,7 +2463,7 @@ expression: reg_string
             "name": "authors",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToMany",
               "name": "published",
               "relation": [
@@ -2504,7 +2504,7 @@ expression: reg_string
             "name": "blog",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToOne",
               "name": "BlogRelatePost",
               "relation": [
@@ -3350,7 +3350,7 @@ expression: reg_string
             "name": "authorCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "authorCollection",
               "relation": [
@@ -3475,7 +3475,7 @@ expression: reg_string
             "name": "blogCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "blogCollection",
               "relation": [
@@ -3600,7 +3600,7 @@ expression: reg_string
             "name": "postCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "postCollection",
               "relation": [

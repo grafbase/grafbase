@@ -170,8 +170,7 @@ pub struct MetaRelation {
     /// 0 -> 1
     /// The relation can have a null origin, it means it's everything related to 1.
     pub relation: (Option<String>, String),
-    #[serde(alias = "birectional")]
-    pub bidirectional: bool,
+    pub birectional: bool,
 }
 
 impl MetaRelation {
@@ -188,7 +187,7 @@ impl MetaRelation {
             name: name
                 .unwrap_or_else(|| MetaRelation::generate_relation_name(&base_from, &base_to)),
             relation: (Some(base_from.to_string()), base_to.to_string()),
-            bidirectional: false,
+            birectional: false,
             kind: MetaRelationKind::new(&from, &to),
         }
     }
@@ -199,7 +198,7 @@ impl MetaRelation {
         Self {
             name,
             relation: (None, base_to.to_string()),
-            bidirectional: false,
+            birectional: false,
             kind: MetaRelationKind::OneToMany,
         }
     }
@@ -241,36 +240,7 @@ impl MetaRelation {
             }
         };
 
-        self.bidirectional = true;
+        self.birectional = true;
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use serde_json::json;
-
-    use super::MetaRelation;
-
-    #[test]
-    fn can_deser_old_metarelations() {
-        // Fixed a typo in "bidirectional", so make sure we can still desserialize the old
-        // "birectional"
-        insta::assert_json_snapshot!(serde_json::from_value::<MetaRelation>(json!({
-            "name": "UserRelateBlog",
-            "kind": "OneToOne",
-            "relation": ["User", "Blog"],
-            "birectional": false
-        })).expect("to be able to deserialize the old MetaRelation format"), @r###"
-        {
-          "name": "UserRelateBlog",
-          "kind": "OneToOne",
-          "relation": [
-            "User",
-            "Blog"
-          ],
-          "bidirectional": false
-        }
-        "###);
     }
 }

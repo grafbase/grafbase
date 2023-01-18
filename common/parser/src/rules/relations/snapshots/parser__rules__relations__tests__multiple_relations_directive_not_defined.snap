@@ -12,7 +12,7 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        bidirectional: false,
+        birectional: false,
     },
     "postsYesterday": MetaRelation {
         name: "postsYesterday",
@@ -23,7 +23,7 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        bidirectional: false,
+        birectional: false,
     },
     "published": MetaRelation {
         name: "published",
@@ -34,6 +34,6 @@ expression: ctx.relations
             ),
             "Post",
         ),
-        bidirectional: true,
+        birectional: true,
     },
 }

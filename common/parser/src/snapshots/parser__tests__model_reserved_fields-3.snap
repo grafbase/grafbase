@@ -1001,7 +1001,7 @@ expression: req_string_b
             "name": "productCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "productCollection",
               "relation": [

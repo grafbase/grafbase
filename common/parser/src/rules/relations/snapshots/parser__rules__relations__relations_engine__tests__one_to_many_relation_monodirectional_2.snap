@@ -12,6 +12,6 @@ expression: "&ctx.relations"
             ),
             "Post",
         ),
-        bidirectional: false,
+        birectional: false,
     },
 }

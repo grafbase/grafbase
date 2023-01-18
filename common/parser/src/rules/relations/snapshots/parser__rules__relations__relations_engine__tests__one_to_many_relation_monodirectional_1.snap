@@ -12,6 +12,6 @@ expression: "&ctx.relations"
             ),
             "Author",
         ),
-        bidirectional: false,
+        birectional: false,
     },
 }
