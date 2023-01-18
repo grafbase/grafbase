@@ -1,7 +1,6 @@
 //! Implement the Relation Engine
 use crate::rules::directive::Directive;
 use crate::rules::model_directive::{ModelDirective, MODEL_DIRECTIVE};
-use crate::rules::visitor::RuleError;
 use crate::{Visitor, VisitorContext};
 use dynaql::indexmap::map::Entry;
 use dynaql::registry::relations::MetaRelation;
@@ -63,16 +62,6 @@ impl RelationEngine {
                 }
             }
         })
-    }
-
-    pub fn validate(ctx: &mut VisitorContext<'_>) {
-        for relation in ctx.relations.values() {
-            if !relation.bidirectional {
-                let origin = relation.relation.0.as_ref().unwrap();
-                let target = &relation.relation.1;
-                ctx.errors.push(RuleError::new(vec![], format!("You defined a relation from {origin} to {target} without defining a field on the {target} side of the relation.")));
-            }
-        }
     }
 }
 
@@ -190,7 +179,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            !ctx.relations.iter().next().unwrap().1.bidirectional,
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -218,7 +207,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            ctx.relations.iter().next().unwrap().1.bidirectional,
+            ctx.relations.iter().next().unwrap().1.birectional,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -245,7 +234,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            !ctx.relations.iter().next().unwrap().1.bidirectional,
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -272,7 +261,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            !ctx.relations.iter().next().unwrap().1.bidirectional,
+            !ctx.relations.iter().next().unwrap().1.birectional,
             "Should be monodirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -300,7 +289,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            ctx.relations.iter().next().unwrap().1.bidirectional,
+            ctx.relations.iter().next().unwrap().1.birectional,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -328,7 +317,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            ctx.relations.iter().next().unwrap().1.bidirectional,
+            ctx.relations.iter().next().unwrap().1.birectional,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);
@@ -356,7 +345,7 @@ mod tests {
         assert!(ctx.errors.is_empty(), "should be empty");
         assert_eq!(ctx.relations.len(), 1_usize, "Should have only one relation");
         assert!(
-            ctx.relations.iter().next().unwrap().1.bidirectional,
+            ctx.relations.iter().next().unwrap().1.birectional,
             "Should be bidirectional"
         );
         assert_debug_snapshot!(&ctx.relations);

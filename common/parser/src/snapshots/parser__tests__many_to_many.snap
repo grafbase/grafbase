@@ -591,7 +591,7 @@ expression: reg_string
             "name": "users",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToMany",
               "name": "OrganizationRelateUser",
               "relation": [
@@ -1313,7 +1313,7 @@ expression: reg_string
             "name": "organizationCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "organizationCollection",
               "relation": [
@@ -1438,7 +1438,7 @@ expression: reg_string
             "name": "userCollection",
             "provides": null,
             "relation": {
-              "bidirectional": false,
+              "birectional": false,
               "kind": "OneToMany",
               "name": "userCollection",
               "relation": [
@@ -1649,7 +1649,7 @@ expression: reg_string
             "name": "organizations",
             "provides": null,
             "relation": {
-              "bidirectional": true,
+              "birectional": true,
               "kind": "ManyToMany",
               "name": "OrganizationRelateUser",
               "relation": [
