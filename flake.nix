@@ -54,6 +54,9 @@
           openssl
           pkg-config
           nodejs
+
+          # Formatting
+          nodePackages.prettier
         ];
 
         # This is hack to avoid the redefinition of CC, CXX and so on to use aarch64.

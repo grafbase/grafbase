@@ -10,7 +10,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/eb1c1f7-2023-01-06'
+  ASSETS_VERSION: 'release/0e19819-2023-01-09'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
@@ -27,27 +27,25 @@ jobs:
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
 
-      - name: check formatting of Rust code
-        uses: actions-rs/cargo@v1
+      - name: Sanitize
+        uses: ./.github/actions/sanitize
         with:
-          command: fmt
-          args: -- --check
-
-      - name: lint
-        uses: actions-rs/clippy-check@v1
-        with:
-          args: --locked --tests -- -D warnings
-          name: clippy
-          token: ${{ github.token }}
+          test: false
 
       - name: Individual package build
         shell: bash
         run: |
           set -euo pipefail
-          cd crates
+          cd cli/crates
           # The actual features used for each dependency depends on what is being built simultaneously.
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
@@ -67,30 +65,33 @@ jobs:
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
+          platform: windows
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-          platform: windows
 
-      - name: Test
-        uses: actions-rs/cargo@v1
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        name: Sanitize
+        uses: ./.github/actions/sanitize
         with:
-          command: nextest
-          args: 'run --profile ci'
+          lint: false
 
       - name: Build release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: '--release --target x86_64-pc-windows-msvc'
+        run: |
+          cd cli
+          cargo build --release --target x86_64-pc-windows-msvc
 
-      - name: Upload binaries
-        if: startsWith(github.ref, 'refs/tags/')
+      - if: startsWith(github.ref, 'refs/tags/')
+        name: Upload binaries
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.ref_name }}-windows
           path: |
-            target/x86_64-pc-windows-msvc/release/grafbase.exe
+            cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
 
   linux:
     runs-on: ubuntu-latest
@@ -102,30 +103,33 @@ jobs:
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-          platform: linux
 
-      - name: Test
-        uses: actions-rs/cargo@v1
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        name: Sanitize
+        uses: ./.github/actions/sanitize
         with:
-          command: nextest
-          args: 'run --profile ci'
+          lint: false
 
       - name: Build release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: '--release --target x86_64-unknown-linux-musl'
+        run: |
+          cd cli
+          cargo build --release --target x86_64-unknown-linux-musl
 
-      - name: Upload binaries
-        if: startsWith(github.ref, 'refs/tags/')
+      - if: startsWith(github.ref, 'refs/tags/')
+        name: Upload binaries
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.ref_name }}-linux
           path: |
-            target/x86_64-unknown-linux-musl/release/grafbase
+            cli/target/x86_64-unknown-linux-musl/release/grafbase
 
   darwin:
     runs-on: macos-latest
@@ -137,45 +141,44 @@ jobs:
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
+          platform: macos
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
-          platform: macos
 
-      - name: Test
-        uses: actions-rs/cargo@v1
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        name: Sanitize
+        uses: ./.github/actions/sanitize
         with:
-          command: nextest
-          args: 'run --profile ci'
+          lint: false
 
       - name: Build aarch64 release
-        uses: actions-rs/cargo@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          use-cross: true
-          command: build
-          args: '--release --target aarch64-apple-darwin'
+        run: |
+          cd cli
+          cargo build --release --target aarch64-apple-darwin
 
       - name: Build x86_64 release
-        uses: actions-rs/cargo@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          use-cross: true
-          command: build
-          args: '--release --target x86_64-apple-darwin'
+        run: |
+          cd cli
+          cargo build --release --target x86_64-apple-darwin
 
-      - name: Upload aarch binary
-        if: startsWith(github.ref, 'refs/tags/')
+      - if: startsWith(github.ref, 'refs/tags/')
+        name: Upload aarch binary
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.ref_name }}-aarch64-apple-darwin
-          path: target/aarch64-apple-darwin/release/grafbase
+          path: cli/target/aarch64-apple-darwin/release/grafbase
 
-      - name: Upload x86_64 binary
-        if: startsWith(github.ref, 'refs/tags/')
+      - if: startsWith(github.ref, 'refs/tags/')
+        name: Upload x86_64 binary
         uses: actions/upload-artifact@v3
         with:
           name: ${{ github.ref_name }}-x86_64-apple-darwin
-          path: target/x86_64-apple-darwin/release/grafbase
+          path: cli/target/x86_64-apple-darwin/release/grafbase
 
   release:
     needs: [windows, linux, darwin]
