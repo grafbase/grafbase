@@ -109,9 +109,6 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     // Building all relations first are it requires to parse the whole schema (for ManyToMany). This allows later
     // rules to rely on RelationEngine::get to have correct information on relations.
     visit(&mut relations_rules(), &mut ctx, &schema);
-
-    RelationEngine::validate(&mut ctx);
-
     visit(&mut rules, &mut ctx, &schema);
 
     // FIXME: Get rid of the ugly double pass.
