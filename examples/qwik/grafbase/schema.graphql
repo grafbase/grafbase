@@ -1,5 +1,5 @@
-type Plant @model {
+type Message @model {
   id: ID!
-  name: String! @unique
-  description: String!
+  author: String!
+  message: String!
 }
