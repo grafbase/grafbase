@@ -89,6 +89,80 @@ expression: reg_string
         "description": null,
         "extends": false,
         "fields": {
+          "blogsOwned": {
+            "args": {
+              "after": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "after",
+                "ty": "String",
+                "validators": null
+              },
+              "before": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "before",
+                "ty": "String",
+                "validators": null
+              },
+              "first": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "first",
+                "ty": "Int",
+                "validators": null
+              },
+              "last": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "last",
+                "ty": "Int",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Blog"
+            ],
+            "external": false,
+            "name": "blogsOwned",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "OneToMany",
+              "name": "AuthorRelateBlog",
+              "relation": [
+                "Author",
+                "Blog"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "author_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "EdgeArray": {
+                    "expected_ty": "Blog",
+                    "key": "Author",
+                    "relation_name": "AuthorRelateBlog"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "BlogConnection"
+          },
           "country": {
             "args": {},
             "auth": null,
@@ -369,6 +443,84 @@ expression: reg_string
         "rust_typename": "Author"
       }
     },
+    "AuthorAuthorRelateBlogBlogCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Blog for the AuthorRelateBlog relation of Author",
+        "input_fields": {
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[BlogBlogRelatePostPostCreateRelationInput]",
+            "validators": null
+          }
+        },
+        "name": "AuthorAuthorRelateBlogBlogCreateInput",
+        "oneof": false,
+        "rust_typename": "AuthorAuthorRelateBlogBlogCreateInput"
+      }
+    },
+    "AuthorAuthorRelateBlogBlogCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Blog for the AuthorRelateBlog relation of Author",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorAuthorRelateBlogBlogCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "AuthorAuthorRelateBlogBlogCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "AuthorAuthorRelateBlogBlogCreateRelationInput"
+      }
+    },
+    "AuthorAuthorRelateBlogBlogUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Blog for the AuthorRelateBlog relation of Author",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "AuthorAuthorRelateBlogBlogCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "AuthorAuthorRelateBlogBlogUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "AuthorAuthorRelateBlogBlogUpdateRelationInput"
+      }
+    },
     "AuthorByInput": {
       "InputObject": {
         "description": null,
@@ -407,7 +559,8 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Post"
+              "Post",
+              "Blog"
             ],
             "external": false,
             "name": "edges",
@@ -451,6 +604,14 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Author",
         "input_fields": {
+          "blogsOwned": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blogsOwned",
+            "ty": "[AuthorAuthorRelateBlogBlogCreateRelationInput]",
+            "validators": null
+          },
           "country": {
             "default_value": null,
             "description": null,
@@ -671,6 +832,14 @@ expression: reg_string
             "ty": "[PostPublishedAuthorCreateRelationInput]",
             "validators": null
           },
+          "blog": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blog",
+            "ty": "PostBlogRelatePostBlogCreateRelationInput",
+            "validators": null
+          },
           "content": {
             "default_value": null,
             "description": null,
@@ -749,6 +918,14 @@ expression: reg_string
       "InputObject": {
         "description": "Input to update a Author",
         "input_fields": {
+          "blogsOwned": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blogsOwned",
+            "ty": "[AuthorAuthorRelateBlogBlogUpdateRelationInput]",
+            "validators": null
+          },
           "country": {
             "default_value": null,
             "description": null,
@@ -931,8 +1108,8 @@ expression: reg_string
             "name": "owner",
             "provides": null,
             "relation": {
-              "birectional": false,
-              "kind": "OneToOne",
+              "birectional": true,
+              "kind": "ManyToOne",
               "name": "AuthorRelateBlog",
               "relation": [
                 "Blog",
@@ -1004,7 +1181,7 @@ expression: reg_string
             "name": "posts",
             "provides": null,
             "relation": {
-              "birectional": false,
+              "birectional": true,
               "kind": "OneToMany",
               "name": "BlogRelatePost",
               "relation": [
@@ -1074,6 +1251,14 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Author for the AuthorRelateBlog relation of Blog",
         "input_fields": {
+          "blogsOwned": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blogsOwned",
+            "ty": "[AuthorAuthorRelateBlogBlogCreateRelationInput]",
+            "validators": null
+          },
           "country": {
             "default_value": null,
             "description": null,
@@ -2303,6 +2488,46 @@ expression: reg_string
             "transformer": null,
             "ty": "AuthorConnection"
           },
+          "blog": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [
+              "Blog"
+            ],
+            "external": false,
+            "name": "blog",
+            "provides": null,
+            "relation": {
+              "birectional": true,
+              "kind": "ManyToOne",
+              "name": "BlogRelatePost",
+              "relation": [
+                "Post",
+                "Blog"
+              ]
+            },
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "post_edge_resolver",
+              "type": {
+                "ContextDataResolver": {
+                  "SingleEdge": {
+                    "key": "Post",
+                    "relation_name": "BlogRelatePost"
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Blog"
+          },
           "content": {
             "args": {},
             "auth": null,
@@ -2443,6 +2668,92 @@ expression: reg_string
         "rust_typename": "Post"
       }
     },
+    "PostBlogRelatePostBlogCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Blog for the BlogRelatePost relation of Post",
+        "input_fields": {
+          "owner": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "owner",
+            "ty": "BlogAuthorRelateBlogAuthorCreateRelationInput!",
+            "validators": null
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[BlogBlogRelatePostPostCreateRelationInput]",
+            "validators": null
+          }
+        },
+        "name": "PostBlogRelatePostBlogCreateInput",
+        "oneof": false,
+        "rust_typename": "PostBlogRelatePostBlogCreateInput"
+      }
+    },
+    "PostBlogRelatePostBlogCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Blog for the BlogRelatePost relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostBlogRelatePostBlogCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostBlogRelatePostBlogCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostBlogRelatePostBlogCreateRelationInput"
+      }
+    },
+    "PostBlogRelatePostBlogUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Blog for the BlogRelatePost relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostBlogRelatePostBlogCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostBlogRelatePostBlogUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostBlogRelatePostBlogUpdateRelationInput"
+      }
+    },
     "PostByInput": {
       "InputObject": {
         "description": null,
@@ -2481,6 +2792,7 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
+              "Blog",
               "Author"
             ],
             "external": false,
@@ -2531,6 +2843,14 @@ expression: reg_string
             "is_secret": false,
             "name": "authors",
             "ty": "[PostPublishedAuthorCreateRelationInput]",
+            "validators": null
+          },
+          "blog": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blog",
+            "ty": "PostBlogRelatePostBlogCreateRelationInput",
             "validators": null
           },
           "content": {
@@ -2721,6 +3041,14 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Author for the published relation of Post",
         "input_fields": {
+          "blogsOwned": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blogsOwned",
+            "ty": "[AuthorAuthorRelateBlogBlogCreateRelationInput]",
+            "validators": null
+          },
           "country": {
             "default_value": null,
             "description": null,
@@ -2829,6 +3157,14 @@ expression: reg_string
             "is_secret": false,
             "name": "authors",
             "ty": "[PostPublishedAuthorUpdateRelationInput]",
+            "validators": null
+          },
+          "blog": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "blog",
+            "ty": "PostBlogRelatePostBlogUpdateRelationInput",
             "validators": null
           },
           "content": {

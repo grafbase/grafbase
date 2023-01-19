@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/rules/relations/mod.rs
-assertion_line: 64
 expression: ctx.relations
 ---
 {

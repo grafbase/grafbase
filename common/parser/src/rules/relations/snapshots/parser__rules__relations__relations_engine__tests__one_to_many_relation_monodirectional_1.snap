@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/rules/relations/relations_engine.rs
-assertion_line: 192
 expression: "&ctx.relations"
 ---
 {

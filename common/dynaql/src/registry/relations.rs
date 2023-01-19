@@ -210,24 +210,16 @@ impl MetaRelation {
             return Err(RelationCombinationError::UndefinedError);
         }
 
-        if self
+        let (self_origin, other_origin) = self
             .relation
             .0
             .as_ref()
-            .ok_or(RelationCombinationError::ImpossibleCombination)?
-            .ne(&relation.relation.1)
-            || self.relation.1.ne(relation
-                .relation
-                .0
-                .as_ref()
-                .ok_or(RelationCombinationError::ImpossibleCombination)?)
-        {
+            .zip(relation.relation.0.as_ref())
+            .ok_or(RelationCombinationError::ImpossibleCombination)?;
+
+        if *self_origin != relation.relation.1 || *other_origin != self.relation.1 {
             return Err(RelationCombinationError::MultipleRelationsError {
-                from: self
-                    .relation
-                    .0
-                    .clone()
-                    .ok_or(RelationCombinationError::ImpossibleCombination)?,
+                from: self_origin.clone(),
             });
         }
 
