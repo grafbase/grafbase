@@ -1,13 +1,12 @@
 type User @model {
-  id: ID!
   name: String!
   email: Email! @unique
   posts: [Post]
   comments: [Comment]
+  votes: [Vote]
 }
 
 type Post @model {
-  id: ID!
   author: User!
   title: String!
   url: URL!
@@ -16,14 +15,12 @@ type Post @model {
 }
 
 type Comment @model {
-  id: ID!
   author: User!
   post: Post!
   content: String!
 }
 
 type Vote @model {
-  id: ID!
   user: User!
   post: Post!
 }

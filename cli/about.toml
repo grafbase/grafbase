@@ -9,6 +9,7 @@ accepted = [
     "NOASSERTION",
     "CC0-1.0",
     "Unicode-DFS-2016",
+    "BSD-2-Clause",
 ]
 
 targets = [

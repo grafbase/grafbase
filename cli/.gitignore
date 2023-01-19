@@ -42,6 +42,8 @@ grafbase/
 ## Cargo
 debug/
 target/
+/.cargo
+!/.cargo/config.toml
 
 ## Backup
 **/*.rs.bk

@@ -2,73 +2,64 @@ name: CLI rust job init
 description: Base steps for CLI jobs
 
 inputs:
-  cdn:
-    description: CDN to use when fetching assets
+  cache-key:
     required: true
+    description: The cache key used on actions/cache
   platform:
     type: choice
-    description: Target platform to use when setting up rust
+    description: Target platform to use when installing nextest
     required: true
     options:
       - windows
       - macos
       - linux
-  assets_version:
-    description: Version of the assets to fetch from CDN
-    required: true
 
 runs:
   using: 'composite'
   steps:
-    - name: move CLI to root
-      shell: bash
-      run: |
-        shopt -s extglob
-        rm -r !("cli")
-        shopt -s dotglob
-        mv cli/* .
-        rm -r cli
-
     - name: Cargo cache
       uses: actions/cache@v3
       continue-on-error: false
       with:
-        key: ${{ runner.os }}-${{ runner.arch }}-cargo-${{ hashFiles('Cargo.lock') }}
+        key: ${{ inputs.cache-key }}
         restore-keys: ${{ runner.os }}-${{ runner.arch }}-cargo-
         path: |
           ~/.cargo/
-          target/
+          cli/target/
 
-    - name: Install rustup linux
-      if: ${{ inputs.platform == 'linux' }}
+    - name: Extract the Rust version to use from the `rust-toolchain.toml` file
       shell: bash
-      working-directory: cli
       run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=stable --profile=minimal
+        cd cli
+        rust_version=$(grep "channel" rust-toolchain.toml | cut -d "=" -f 2)
+        echo "RUST_VERSION=$rust_version" >> $GITHUB_ENV
 
-    - name: Install rustup windows
-      if: ${{ inputs.platform == 'windows' }}
-      uses: crazy-max/ghaction-chocolatey@v2
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
       with:
-        args: install rustup
-
-    - name: Install rustup macos
-      if: ${{ inputs.platform == 'macos' }}
-      shell: bash
-      run: |
-        brew install rustup
+        toolchain: ${{ env.RUST_VERSION }}
+        components: clippy, rustfmt
 
     - name: rustup
       shell: bash
       run: |
         rustup target list
 
-    - name: Fetch CDN assets
+    - name: Install cargo-nextest & libs linux
+      if: ${{ inputs.platform == 'linux' }}
       shell: bash
       run: |
-        curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.zip --output assets.zip
-        unzip assets.zip -d assets
-        rm -r crates/server/assets
-        mv assets crates/server/assets
-        cp -r crates/server/assets ~/.grafbase/
-        touch ~/.grafbase/version.txt
+        curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+        sudo apt-get install musl-tools
+
+    - name: Install cargo-nextest windows
+      if: ${{ inputs.platform == 'windows' }}
+      shell: bash
+      run: |
+        curl -LsSf https://get.nexte.st/latest/windows-tar | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+
+    - name: Install cargo-nextest macos
+      if: ${{ inputs.platform == 'macos' }}
+      shell: bash
+      run: |
+        curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
