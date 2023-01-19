@@ -71,6 +71,7 @@ type Query {
 type Todo {
 	title: String!
 	complete: Boolean
+	list: TodoList
 	"""
 	Unique identifier
 	"""
@@ -100,6 +101,7 @@ Input to create a Todo
 input TodoCreateInput {
 	title: String!
 	complete: Boolean
+	list: TodoToTodoListCreateTodoListRelation
 }
 type TodoCreatePayload {
 	todo: Todo
@@ -172,11 +174,33 @@ input TodoToTodoListCreateTodo {
 	complete: Boolean
 }
 """
+Input to create a TodoList for the TodoToTodoList relation of Todo
+"""
+input TodoToTodoListCreateTodoList {
+	title: String!
+	todos: [TodoToTodoListCreateTodoRelation]
+}
+"""
+Input to link to or create a TodoList for the TodoToTodoList relation of Todo
+"""
+input TodoToTodoListCreateTodoListRelation {
+	create: TodoToTodoListCreateTodoList
+	link: ID
+}
+"""
 Input to link to or create a Todo for the TodoToTodoList relation of TodoList
 """
 input TodoToTodoListCreateTodoRelation {
 	create: TodoToTodoListCreateTodo
 	link: ID
+}
+"""
+Input to link/unlink to or create a TodoList for the TodoToTodoList relation of Todo
+"""
+input TodoToTodoListUpdateTodoListRelation {
+	create: TodoToTodoListCreateTodoList
+	link: ID
+	unlink: ID
 }
 """
 Input to link/unlink to or create a Todo for the TodoToTodoList relation of TodoList
@@ -192,6 +216,7 @@ Input to update a Todo
 input TodoUpdateInput {
 	title: String
 	complete: Boolean
+	list: TodoToTodoListUpdateTodoListRelation
 }
 type TodoUpdatePayload {
 	todo: Todo

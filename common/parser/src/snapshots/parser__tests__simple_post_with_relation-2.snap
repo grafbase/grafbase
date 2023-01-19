@@ -7,6 +7,7 @@ type Author {
 	lastname: String!
 	country: Country!
 	posts(after: String, before: String, first: Int, last: Int): PostConnection
+	blogsOwned(after: String, before: String, first: Int, last: Int): BlogConnection
 	"""
 	Unique identifier
 	"""
@@ -38,6 +39,7 @@ input AuthorCreateInput {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 type AuthorCreatePayload {
 	author: Author
@@ -57,12 +59,26 @@ input AuthorToBlogCreateAuthor {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
 Input to link to or create a Author for the AuthorToBlog relation of Blog
 """
 input AuthorToBlogCreateAuthorRelation {
 	create: AuthorToBlogCreateAuthor
+	link: ID
+}
+"""
+Input to create a Blog for the AuthorToBlog relation of Author
+"""
+input AuthorToBlogCreateBlog {
+	posts: [BlogToPostCreatePostRelation]
+}
+"""
+Input to link to or create a Blog for the AuthorToBlog relation of Author
+"""
+input AuthorToBlogCreateBlogRelation {
+	create: AuthorToBlogCreateBlog
 	link: ID
 }
 """
@@ -74,6 +90,14 @@ input AuthorToBlogUpdateAuthorRelation {
 	unlink: ID
 }
 """
+Input to link/unlink to or create a Blog for the AuthorToBlog relation of Author
+"""
+input AuthorToBlogUpdateBlogRelation {
+	create: AuthorToBlogCreateBlog
+	link: ID
+	unlink: ID
+}
+"""
 Input to update a Author
 """
 input AuthorUpdateInput {
@@ -81,6 +105,7 @@ input AuthorUpdateInput {
 	lastname: String
 	country: Country
 	posts: [PublishedUpdatePostRelation]
+	blogsOwned: [AuthorToBlogUpdateBlogRelation]
 }
 type AuthorUpdatePayload {
 	author: Author
@@ -129,6 +154,20 @@ type BlogEdge {
 	cursor: String!
 }
 """
+Input to create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlog {
+	posts: [BlogToPostCreatePostRelation]
+	owner: AuthorToBlogCreateAuthorRelation!
+}
+"""
+Input to link to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+}
+"""
 Input to create a Post for the BlogToPost relation of Blog
 """
 input BlogToPostCreatePost {
@@ -141,6 +180,14 @@ Input to link to or create a Post for the BlogToPost relation of Blog
 input BlogToPostCreatePostRelation {
 	create: BlogToPostCreatePost
 	link: ID
+}
+"""
+Input to link/unlink to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostUpdateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+	unlink: ID
 }
 """
 Input to link/unlink to or create a Post for the BlogToPost relation of Blog
@@ -225,6 +272,7 @@ type PageInfo {
 	endCursor: String
 }
 type Post {
+	blog: Blog
 	content: String!
 	authors(after: String, before: String, first: Int, last: Int): AuthorConnection
 	"""
@@ -254,6 +302,7 @@ type PostConnection {
 Input to create a Post
 """
 input PostCreateInput {
+	blog: BlogToPostCreateBlogRelation
 	content: String!
 	authors: [PublishedCreateAuthorRelation]
 }
@@ -271,6 +320,7 @@ type PostEdge {
 Input to update a Post
 """
 input PostUpdateInput {
+	blog: BlogToPostUpdateBlogRelation
 	content: String
 	authors: [PublishedUpdateAuthorRelation]
 }
@@ -285,6 +335,7 @@ input PublishedCreateAuthor {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
 Input to link to or create a Author for the published relation of Post
@@ -297,6 +348,7 @@ input PublishedCreateAuthorRelation {
 Input to create a Post for the published relation of Author
 """
 input PublishedCreatePost {
+	blog: BlogToPostCreateBlogRelation
 	content: String!
 	authors: [PublishedCreateAuthorRelation]
 }
