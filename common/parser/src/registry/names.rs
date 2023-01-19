@@ -48,12 +48,14 @@ impl MetaNames {
         model_type_definition: &TypeDefinition,
         maybe_parent_relation: Option<&ParentRelation<'_>>,
     ) -> String {
-        format!(
-            "{}CreateInput",
-            maybe_parent_relation
-                .map(|parent_relation| Self::relation_prefix(parent_relation, model_type_definition))
-                .unwrap_or_else(|| Self::model(model_type_definition))
-        )
+        match maybe_parent_relation {
+            None => format!("{}CreateInput", Self::model(model_type_definition)),
+            Some(parent_relation) => format!(
+                "{}Create{}",
+                Self::relation_prefix(parent_relation),
+                Self::model(model_type_definition),
+            ),
+        }
     }
 
     pub fn update_input_type(model_type_definition: &TypeDefinition) -> String {
@@ -66,8 +68,9 @@ impl MetaNames {
         field_model_type_definition: &TypeDefinition,
     ) -> String {
         format!(
-            "{}CreateRelationInput",
-            Self::relation_prefix(parent_relation, field_model_type_definition)
+            "{}Create{}Relation",
+            Self::relation_prefix(parent_relation),
+            Self::model(field_model_type_definition)
         )
     }
 
@@ -77,8 +80,9 @@ impl MetaNames {
         field_model_type_definition: &TypeDefinition,
     ) -> String {
         format!(
-            "{}UpdateRelationInput",
-            Self::relation_prefix(parent_relation, field_model_type_definition)
+            "{}Update{}Relation",
+            Self::relation_prefix(parent_relation),
+            Self::model(field_model_type_definition)
         )
     }
 
@@ -87,12 +91,7 @@ impl MetaNames {
     }
 
     /// Prefix used for any input/output type created for a relation.
-    fn relation_prefix(parent_relation: &ParentRelation<'_>, field_model_type_definition: &TypeDefinition) -> String {
-        format!(
-            "{}{}{}",
-            &Self::model(parent_relation.model_type_definition),
-            &parent_relation.meta.name.to_camel(),
-            Self::model(field_model_type_definition)
-        )
+    fn relation_prefix(parent_relation: &ParentRelation<'_>) -> String {
+        parent_relation.meta.name.to_camel()
     }
 }

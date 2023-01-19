@@ -21,27 +21,6 @@ type Author {
 	"""
 	createdAt: DateTime!
 }
-"""
-Input to create a Blog for the AuthorRelateBlog relation of Author
-"""
-input AuthorAuthorRelateBlogBlogCreateInput {
-	posts: [BlogBlogRelatePostPostCreateRelationInput]
-}
-"""
-Input to link to or create a Blog for the AuthorRelateBlog relation of Author
-"""
-input AuthorAuthorRelateBlogBlogCreateRelationInput {
-	create: AuthorAuthorRelateBlogBlogCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Blog for the AuthorRelateBlog relation of Author
-"""
-input AuthorAuthorRelateBlogBlogUpdateRelationInput {
-	create: AuthorAuthorRelateBlogBlogCreateInput
-	link: ID
-	unlink: ID
-}
 input AuthorByInput {
 	id: ID
 }
@@ -59,8 +38,8 @@ input AuthorCreateInput {
 	name: String!
 	lastname: String!
 	country: Country!
-	posts: [AuthorPublishedPostCreateRelationInput]
-	blogsOwned: [AuthorAuthorRelateBlogBlogCreateRelationInput]
+	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 type AuthorCreatePayload {
 	author: Author
@@ -73,25 +52,48 @@ type AuthorEdge {
 	cursor: String!
 }
 """
-Input to create a Post for the published relation of Author
+Input to create a Author for the AuthorToBlog relation of Blog
 """
-input AuthorPublishedPostCreateInput {
-	blog: PostBlogRelatePostBlogCreateRelationInput
-	content: String!
-	authors: [PostPublishedAuthorCreateRelationInput]
+input AuthorToBlogCreateAuthor {
+	name: String!
+	lastname: String!
+	country: Country!
+	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
-Input to link to or create a Post for the published relation of Author
+Input to link to or create a Author for the AuthorToBlog relation of Blog
 """
-input AuthorPublishedPostCreateRelationInput {
-	create: AuthorPublishedPostCreateInput
+input AuthorToBlogCreateAuthorRelation {
+	create: AuthorToBlogCreateAuthor
 	link: ID
 }
 """
-Input to link/unlink to or create a Post for the published relation of Author
+Input to create a Blog for the AuthorToBlog relation of Author
 """
-input AuthorPublishedPostUpdateRelationInput {
-	create: AuthorPublishedPostCreateInput
+input AuthorToBlogCreateBlog {
+	posts: [BlogToPostCreatePostRelation]
+}
+"""
+Input to link to or create a Blog for the AuthorToBlog relation of Author
+"""
+input AuthorToBlogCreateBlogRelation {
+	create: AuthorToBlogCreateBlog
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the AuthorToBlog relation of Blog
+"""
+input AuthorToBlogUpdateAuthorRelation {
+	create: AuthorToBlogCreateAuthor
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Blog for the AuthorToBlog relation of Author
+"""
+input AuthorToBlogUpdateBlogRelation {
+	create: AuthorToBlogCreateBlog
 	link: ID
 	unlink: ID
 }
@@ -102,8 +104,8 @@ input AuthorUpdateInput {
 	name: String
 	lastname: String
 	country: Country
-	posts: [AuthorPublishedPostUpdateRelationInput]
-	blogsOwned: [AuthorAuthorRelateBlogBlogUpdateRelationInput]
+	posts: [PublishedUpdatePostRelation]
+	blogsOwned: [AuthorToBlogUpdateBlogRelation]
 }
 type AuthorUpdatePayload {
 	author: Author
@@ -124,53 +126,6 @@ type Blog {
 	"""
 	createdAt: DateTime!
 }
-"""
-Input to create a Author for the AuthorRelateBlog relation of Blog
-"""
-input BlogAuthorRelateBlogAuthorCreateInput {
-	name: String!
-	lastname: String!
-	country: Country!
-	posts: [AuthorPublishedPostCreateRelationInput]
-	blogsOwned: [AuthorAuthorRelateBlogBlogCreateRelationInput]
-}
-"""
-Input to link to or create a Author for the AuthorRelateBlog relation of Blog
-"""
-input BlogAuthorRelateBlogAuthorCreateRelationInput {
-	create: BlogAuthorRelateBlogAuthorCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Author for the AuthorRelateBlog relation of Blog
-"""
-input BlogAuthorRelateBlogAuthorUpdateRelationInput {
-	create: BlogAuthorRelateBlogAuthorCreateInput
-	link: ID
-	unlink: ID
-}
-"""
-Input to create a Post for the BlogRelatePost relation of Blog
-"""
-input BlogBlogRelatePostPostCreateInput {
-	content: String!
-	authors: [PostPublishedAuthorCreateRelationInput]
-}
-"""
-Input to link to or create a Post for the BlogRelatePost relation of Blog
-"""
-input BlogBlogRelatePostPostCreateRelationInput {
-	create: BlogBlogRelatePostPostCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Post for the BlogRelatePost relation of Blog
-"""
-input BlogBlogRelatePostPostUpdateRelationInput {
-	create: BlogBlogRelatePostPostCreateInput
-	link: ID
-	unlink: ID
-}
 input BlogByInput {
 	id: ID
 }
@@ -185,8 +140,8 @@ type BlogConnection {
 Input to create a Blog
 """
 input BlogCreateInput {
-	posts: [BlogBlogRelatePostPostCreateRelationInput]
-	owner: BlogAuthorRelateBlogAuthorCreateRelationInput!
+	posts: [BlogToPostCreatePostRelation]
+	owner: AuthorToBlogCreateAuthorRelation!
 }
 type BlogCreatePayload {
 	blog: Blog
@@ -199,11 +154,55 @@ type BlogEdge {
 	cursor: String!
 }
 """
+Input to create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlog {
+	posts: [BlogToPostCreatePostRelation]
+	owner: AuthorToBlogCreateAuthorRelation!
+}
+"""
+Input to link to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostCreateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+}
+"""
+Input to create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostCreatePost {
+	content: String!
+	authors: [PublishedCreateAuthorRelation]
+}
+"""
+Input to link to or create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostCreatePostRelation {
+	create: BlogToPostCreatePost
+	link: ID
+}
+"""
+Input to link/unlink to or create a Blog for the BlogToPost relation of Post
+"""
+input BlogToPostUpdateBlogRelation {
+	create: BlogToPostCreateBlog
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Post for the BlogToPost relation of Blog
+"""
+input BlogToPostUpdatePostRelation {
+	create: BlogToPostCreatePost
+	link: ID
+	unlink: ID
+}
+"""
 Input to update a Blog
 """
 input BlogUpdateInput {
-	posts: [BlogBlogRelatePostPostUpdateRelationInput]
-	owner: BlogAuthorRelateBlogAuthorUpdateRelationInput
+	posts: [BlogToPostUpdatePostRelation]
+	owner: AuthorToBlogUpdateAuthorRelation
 }
 type BlogUpdatePayload {
 	blog: Blog
@@ -289,28 +288,6 @@ type Post {
 	"""
 	createdAt: DateTime!
 }
-"""
-Input to create a Blog for the BlogRelatePost relation of Post
-"""
-input PostBlogRelatePostBlogCreateInput {
-	posts: [BlogBlogRelatePostPostCreateRelationInput]
-	owner: BlogAuthorRelateBlogAuthorCreateRelationInput!
-}
-"""
-Input to link to or create a Blog for the BlogRelatePost relation of Post
-"""
-input PostBlogRelatePostBlogCreateRelationInput {
-	create: PostBlogRelatePostBlogCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Blog for the BlogRelatePost relation of Post
-"""
-input PostBlogRelatePostBlogUpdateRelationInput {
-	create: PostBlogRelatePostBlogCreateInput
-	link: ID
-	unlink: ID
-}
 input PostByInput {
 	id: ID
 }
@@ -325,9 +302,9 @@ type PostConnection {
 Input to create a Post
 """
 input PostCreateInput {
-	blog: PostBlogRelatePostBlogCreateRelationInput
+	blog: BlogToPostCreateBlogRelation
 	content: String!
-	authors: [PostPublishedAuthorCreateRelationInput]
+	authors: [PublishedCreateAuthorRelation]
 }
 type PostCreatePayload {
 	post: Post
@@ -340,40 +317,63 @@ type PostEdge {
 	cursor: String!
 }
 """
+Input to update a Post
+"""
+input PostUpdateInput {
+	blog: BlogToPostUpdateBlogRelation
+	content: String
+	authors: [PublishedUpdateAuthorRelation]
+}
+type PostUpdatePayload {
+	post: Post
+}
+"""
 Input to create a Author for the published relation of Post
 """
-input PostPublishedAuthorCreateInput {
+input PublishedCreateAuthor {
 	name: String!
 	lastname: String!
 	country: Country!
-	posts: [AuthorPublishedPostCreateRelationInput]
-	blogsOwned: [AuthorAuthorRelateBlogBlogCreateRelationInput]
+	posts: [PublishedCreatePostRelation]
+	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
 Input to link to or create a Author for the published relation of Post
 """
-input PostPublishedAuthorCreateRelationInput {
-	create: PostPublishedAuthorCreateInput
+input PublishedCreateAuthorRelation {
+	create: PublishedCreateAuthor
+	link: ID
+}
+"""
+Input to create a Post for the published relation of Author
+"""
+input PublishedCreatePost {
+	blog: BlogToPostCreateBlogRelation
+	content: String!
+	authors: [PublishedCreateAuthorRelation]
+}
+"""
+Input to link to or create a Post for the published relation of Author
+"""
+input PublishedCreatePostRelation {
+	create: PublishedCreatePost
 	link: ID
 }
 """
 Input to link/unlink to or create a Author for the published relation of Post
 """
-input PostPublishedAuthorUpdateRelationInput {
-	create: PostPublishedAuthorCreateInput
+input PublishedUpdateAuthorRelation {
+	create: PublishedCreateAuthor
 	link: ID
 	unlink: ID
 }
 """
-Input to update a Post
+Input to link/unlink to or create a Post for the published relation of Author
 """
-input PostUpdateInput {
-	blog: PostBlogRelatePostBlogUpdateRelationInput
-	content: String
-	authors: [PostPublishedAuthorUpdateRelationInput]
-}
-type PostUpdatePayload {
-	post: Post
+input PublishedUpdatePostRelation {
+	create: PublishedCreatePost
+	link: ID
+	unlink: ID
 }
 type Query {
 	"""

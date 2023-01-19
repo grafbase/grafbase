@@ -177,7 +177,7 @@ impl MetaRelation {
     fn generate_relation_name(a: &str, b: &str) -> String {
         let mut a = vec![a, b];
         a.sort_unstable();
-        a.join("Relate")
+        a.join("To")
     }
 
     pub fn new(name: Option<String>, from: &Type, to: &Type) -> Self {

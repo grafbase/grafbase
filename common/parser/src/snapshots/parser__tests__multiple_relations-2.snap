@@ -22,29 +22,6 @@ type Author {
 input AuthorByInput {
 	id: ID
 }
-"""
-Input to create a Comment for the commented relation of Author
-"""
-input AuthorCommentedCommentCreateInput {
-	post: CommentCommentsPostCreateRelationInput
-	comment: String!
-	like: Int!
-}
-"""
-Input to link to or create a Comment for the commented relation of Author
-"""
-input AuthorCommentedCommentCreateRelationInput {
-	create: AuthorCommentedCommentCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Comment for the commented relation of Author
-"""
-input AuthorCommentedCommentUpdateRelationInput {
-	create: AuthorCommentedCommentCreateInput
-	link: ID
-	unlink: ID
-}
 type AuthorConnection {
 	"""
 	Information to aid in pagination
@@ -57,8 +34,8 @@ Input to create a Author
 """
 input AuthorCreateInput {
 	lastname: String!
-	published: [AuthorPublishedPostCreateRelationInput]
-	commented: [AuthorCommentedCommentCreateRelationInput]
+	published: [PublishedCreatePostRelation]
+	commented: [CommentedCreateCommentRelation]
 }
 type AuthorCreatePayload {
 	author: Author
@@ -71,34 +48,12 @@ type AuthorEdge {
 	cursor: String!
 }
 """
-Input to create a Post for the published relation of Author
-"""
-input AuthorPublishedPostCreateInput {
-	content: String!
-	comments: [PostCommentsCommentCreateRelationInput]
-}
-"""
-Input to link to or create a Post for the published relation of Author
-"""
-input AuthorPublishedPostCreateRelationInput {
-	create: AuthorPublishedPostCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Post for the published relation of Author
-"""
-input AuthorPublishedPostUpdateRelationInput {
-	create: AuthorPublishedPostCreateInput
-	link: ID
-	unlink: ID
-}
-"""
 Input to update a Author
 """
 input AuthorUpdateInput {
 	lastname: String
-	published: [AuthorPublishedPostUpdateRelationInput]
-	commented: [AuthorCommentedCommentUpdateRelationInput]
+	published: [PublishedUpdatePostRelation]
+	commented: [CommentedUpdateCommentRelation]
 }
 type AuthorUpdatePayload {
 	author: Author
@@ -124,52 +79,6 @@ type Comment {
 input CommentByInput {
 	id: ID
 }
-"""
-Input to create a Author for the commented relation of Comment
-"""
-input CommentCommentedAuthorCreateInput {
-	lastname: String!
-	published: [AuthorPublishedPostCreateRelationInput]
-	commented: [AuthorCommentedCommentCreateRelationInput]
-}
-"""
-Input to link to or create a Author for the commented relation of Comment
-"""
-input CommentCommentedAuthorCreateRelationInput {
-	create: CommentCommentedAuthorCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Author for the commented relation of Comment
-"""
-input CommentCommentedAuthorUpdateRelationInput {
-	create: CommentCommentedAuthorCreateInput
-	link: ID
-	unlink: ID
-}
-"""
-Input to create a Post for the comments relation of Comment
-"""
-input CommentCommentsPostCreateInput {
-	content: String!
-	author: PostPublishedAuthorCreateRelationInput
-	comments: [PostCommentsCommentCreateRelationInput]
-}
-"""
-Input to link to or create a Post for the comments relation of Comment
-"""
-input CommentCommentsPostCreateRelationInput {
-	create: CommentCommentsPostCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Post for the comments relation of Comment
-"""
-input CommentCommentsPostUpdateRelationInput {
-	create: CommentCommentsPostCreateInput
-	link: ID
-	unlink: ID
-}
 type CommentConnection {
 	"""
 	Information to aid in pagination
@@ -181,8 +90,8 @@ type CommentConnection {
 Input to create a Comment
 """
 input CommentCreateInput {
-	author: CommentCommentedAuthorCreateRelationInput!
-	post: CommentCommentsPostCreateRelationInput
+	author: CommentedCreateAuthorRelation!
+	post: CommentsCreatePostRelation
 	comment: String!
 	like: Int!
 }
@@ -200,13 +109,105 @@ type CommentEdge {
 Input to update a Comment
 """
 input CommentUpdateInput {
-	author: CommentCommentedAuthorUpdateRelationInput
-	post: CommentCommentsPostUpdateRelationInput
+	author: CommentedUpdateAuthorRelation
+	post: CommentsUpdatePostRelation
 	comment: String
 	like: IntOperationsInput
 }
 type CommentUpdatePayload {
 	comment: Comment
+}
+"""
+Input to create a Author for the commented relation of Comment
+"""
+input CommentedCreateAuthor {
+	lastname: String!
+	published: [PublishedCreatePostRelation]
+	commented: [CommentedCreateCommentRelation]
+}
+"""
+Input to link to or create a Author for the commented relation of Comment
+"""
+input CommentedCreateAuthorRelation {
+	create: CommentedCreateAuthor
+	link: ID
+}
+"""
+Input to create a Comment for the commented relation of Author
+"""
+input CommentedCreateComment {
+	post: CommentsCreatePostRelation
+	comment: String!
+	like: Int!
+}
+"""
+Input to link to or create a Comment for the commented relation of Author
+"""
+input CommentedCreateCommentRelation {
+	create: CommentedCreateComment
+	link: ID
+}
+"""
+Input to link/unlink to or create a Author for the commented relation of Comment
+"""
+input CommentedUpdateAuthorRelation {
+	create: CommentedCreateAuthor
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Comment for the commented relation of Author
+"""
+input CommentedUpdateCommentRelation {
+	create: CommentedCreateComment
+	link: ID
+	unlink: ID
+}
+"""
+Input to create a Comment for the comments relation of Post
+"""
+input CommentsCreateComment {
+	author: CommentedCreateAuthorRelation!
+	comment: String!
+	like: Int!
+}
+"""
+Input to link to or create a Comment for the comments relation of Post
+"""
+input CommentsCreateCommentRelation {
+	create: CommentsCreateComment
+	link: ID
+}
+"""
+Input to create a Post for the comments relation of Comment
+"""
+input CommentsCreatePost {
+	content: String!
+	author: PublishedCreateAuthorRelation
+	comments: [CommentsCreateCommentRelation]
+}
+"""
+Input to link to or create a Post for the comments relation of Comment
+"""
+input CommentsCreatePostRelation {
+	create: CommentsCreatePost
+	link: ID
+}
+"""
+Input to link/unlink to or create a Comment for the comments relation of Post
+"""
+input CommentsUpdateCommentRelation {
+	create: CommentsCreateComment
+	link: ID
+	unlink: ID
+}
+"""
+Input to link/unlink to or create a Post for the comments relation of Comment
+"""
+input CommentsUpdatePostRelation {
+	create: CommentsCreatePost
+	link: ID
+	unlink: ID
 }
 """
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
@@ -296,29 +297,6 @@ type Post {
 input PostByInput {
 	id: ID
 }
-"""
-Input to create a Comment for the comments relation of Post
-"""
-input PostCommentsCommentCreateInput {
-	author: CommentCommentedAuthorCreateRelationInput!
-	comment: String!
-	like: Int!
-}
-"""
-Input to link to or create a Comment for the comments relation of Post
-"""
-input PostCommentsCommentCreateRelationInput {
-	create: PostCommentsCommentCreateInput
-	link: ID
-}
-"""
-Input to link/unlink to or create a Comment for the comments relation of Post
-"""
-input PostCommentsCommentUpdateRelationInput {
-	create: PostCommentsCommentCreateInput
-	link: ID
-	unlink: ID
-}
 type PostConnection {
 	"""
 	Information to aid in pagination
@@ -331,8 +309,8 @@ Input to create a Post
 """
 input PostCreateInput {
 	content: String!
-	author: PostPublishedAuthorCreateRelationInput
-	comments: [PostCommentsCommentCreateRelationInput]
+	author: PublishedCreateAuthorRelation
+	comments: [CommentsCreateCommentRelation]
 }
 type PostCreatePayload {
 	post: Post
@@ -345,38 +323,60 @@ type PostEdge {
 	cursor: String!
 }
 """
+Input to update a Post
+"""
+input PostUpdateInput {
+	content: String
+	author: PublishedUpdateAuthorRelation
+	comments: [CommentsUpdateCommentRelation]
+}
+type PostUpdatePayload {
+	post: Post
+}
+"""
 Input to create a Author for the published relation of Post
 """
-input PostPublishedAuthorCreateInput {
+input PublishedCreateAuthor {
 	lastname: String!
-	published: [AuthorPublishedPostCreateRelationInput]
-	commented: [AuthorCommentedCommentCreateRelationInput]
+	published: [PublishedCreatePostRelation]
+	commented: [CommentedCreateCommentRelation]
 }
 """
 Input to link to or create a Author for the published relation of Post
 """
-input PostPublishedAuthorCreateRelationInput {
-	create: PostPublishedAuthorCreateInput
+input PublishedCreateAuthorRelation {
+	create: PublishedCreateAuthor
+	link: ID
+}
+"""
+Input to create a Post for the published relation of Author
+"""
+input PublishedCreatePost {
+	content: String!
+	comments: [CommentsCreateCommentRelation]
+}
+"""
+Input to link to or create a Post for the published relation of Author
+"""
+input PublishedCreatePostRelation {
+	create: PublishedCreatePost
 	link: ID
 }
 """
 Input to link/unlink to or create a Author for the published relation of Post
 """
-input PostPublishedAuthorUpdateRelationInput {
-	create: PostPublishedAuthorCreateInput
+input PublishedUpdateAuthorRelation {
+	create: PublishedCreateAuthor
 	link: ID
 	unlink: ID
 }
 """
-Input to update a Post
+Input to link/unlink to or create a Post for the published relation of Author
 """
-input PostUpdateInput {
-	content: String
-	author: PostPublishedAuthorUpdateRelationInput
-	comments: [PostCommentsCommentUpdateRelationInput]
-}
-type PostUpdatePayload {
-	post: Post
+input PublishedUpdatePostRelation {
+	create: PublishedCreatePost
+	link: ID
+	unlink: ID
 }
 type Query {
 	"""

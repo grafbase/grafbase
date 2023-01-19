@@ -593,7 +593,7 @@ expression: reg_string
             "relation": {
               "birectional": true,
               "kind": "ManyToMany",
-              "name": "OrganizationRelateUser",
+              "name": "OrganizationToUser",
               "relation": [
                 "Organization",
                 "User"
@@ -608,7 +608,7 @@ expression: reg_string
                   "EdgeArray": {
                     "expected_ty": "User",
                     "key": "Organization",
-                    "relation_name": "OrganizationRelateUser"
+                    "relation_name": "OrganizationToUser"
                   }
                 }
               }
@@ -719,7 +719,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "users",
-            "ty": "[OrganizationOrganizationRelateUserUserCreateRelationInput!]",
+            "ty": "[OrganizationToUserCreateUserRelation!]",
             "validators": null
           }
         },
@@ -898,9 +898,61 @@ expression: reg_string
         "rust_typename": "OrganizationEdge"
       }
     },
-    "OrganizationOrganizationRelateUserUserCreateInput": {
+    "OrganizationToUserCreateOrganization": {
       "InputObject": {
-        "description": "Input to create a User for the OrganizationRelateUser relation of Organization",
+        "description": "Input to create a Organization for the OrganizationToUser relation of User",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "users": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "users",
+            "ty": "[OrganizationToUserCreateUserRelation!]",
+            "validators": null
+          }
+        },
+        "name": "OrganizationToUserCreateOrganization",
+        "oneof": false,
+        "rust_typename": "OrganizationToUserCreateOrganization"
+      }
+    },
+    "OrganizationToUserCreateOrganizationRelation": {
+      "InputObject": {
+        "description": "Input to link to or create a Organization for the OrganizationToUser relation of User",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "OrganizationToUserCreateOrganization",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "OrganizationToUserCreateOrganizationRelation",
+        "oneof": true,
+        "rust_typename": "OrganizationToUserCreateOrganizationRelation"
+      }
+    },
+    "OrganizationToUserCreateUser": {
+      "InputObject": {
+        "description": "Input to create a User for the OrganizationToUser relation of Organization",
         "input_fields": {
           "name": {
             "default_value": null,
@@ -915,25 +967,25 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "organizations",
-            "ty": "[UserOrganizationRelateUserOrganizationCreateRelationInput!]",
+            "ty": "[OrganizationToUserCreateOrganizationRelation!]",
             "validators": null
           }
         },
-        "name": "OrganizationOrganizationRelateUserUserCreateInput",
+        "name": "OrganizationToUserCreateUser",
         "oneof": false,
-        "rust_typename": "OrganizationOrganizationRelateUserUserCreateInput"
+        "rust_typename": "OrganizationToUserCreateUser"
       }
     },
-    "OrganizationOrganizationRelateUserUserCreateRelationInput": {
+    "OrganizationToUserCreateUserRelation": {
       "InputObject": {
-        "description": "Input to link to or create a User for the OrganizationRelateUser relation of Organization",
+        "description": "Input to link to or create a User for the OrganizationToUser relation of Organization",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "OrganizationOrganizationRelateUserUserCreateInput",
+            "ty": "OrganizationToUserCreateUser",
             "validators": null
           },
           "link": {
@@ -945,21 +997,21 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "OrganizationOrganizationRelateUserUserCreateRelationInput",
+        "name": "OrganizationToUserCreateUserRelation",
         "oneof": true,
-        "rust_typename": "OrganizationOrganizationRelateUserUserCreateRelationInput"
+        "rust_typename": "OrganizationToUserCreateUserRelation"
       }
     },
-    "OrganizationOrganizationRelateUserUserUpdateRelationInput": {
+    "OrganizationToUserUpdateOrganizationRelation": {
       "InputObject": {
-        "description": "Input to link/unlink to or create a User for the OrganizationRelateUser relation of Organization",
+        "description": "Input to link/unlink to or create a Organization for the OrganizationToUser relation of User",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "OrganizationOrganizationRelateUserUserCreateInput",
+            "ty": "OrganizationToUserCreateOrganization",
             "validators": null
           },
           "link": {
@@ -979,9 +1031,43 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "OrganizationOrganizationRelateUserUserUpdateRelationInput",
+        "name": "OrganizationToUserUpdateOrganizationRelation",
         "oneof": true,
-        "rust_typename": "OrganizationOrganizationRelateUserUserUpdateRelationInput"
+        "rust_typename": "OrganizationToUserUpdateOrganizationRelation"
+      }
+    },
+    "OrganizationToUserUpdateUserRelation": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a User for the OrganizationToUser relation of Organization",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "OrganizationToUserCreateUser",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "OrganizationToUserUpdateUserRelation",
+        "oneof": true,
+        "rust_typename": "OrganizationToUserUpdateUserRelation"
       }
     },
     "OrganizationUpdateInput": {
@@ -1001,7 +1087,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "users",
-            "ty": "[OrganizationOrganizationRelateUserUserUpdateRelationInput!]",
+            "ty": "[OrganizationToUserUpdateUserRelation!]",
             "validators": null
           }
         },
@@ -1651,7 +1737,7 @@ expression: reg_string
             "relation": {
               "birectional": true,
               "kind": "ManyToMany",
-              "name": "OrganizationRelateUser",
+              "name": "OrganizationToUser",
               "relation": [
                 "User",
                 "Organization"
@@ -1666,7 +1752,7 @@ expression: reg_string
                   "EdgeArray": {
                     "expected_ty": "Organization",
                     "key": "User",
-                    "relation_name": "OrganizationRelateUser"
+                    "relation_name": "OrganizationToUser"
                   }
                 }
               }
@@ -1810,7 +1896,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "organizations",
-            "ty": "[UserOrganizationRelateUserOrganizationCreateRelationInput!]",
+            "ty": "[OrganizationToUserCreateOrganizationRelation!]",
             "validators": null
           }
         },
@@ -1989,92 +2075,6 @@ expression: reg_string
         "rust_typename": "UserEdge"
       }
     },
-    "UserOrganizationRelateUserOrganizationCreateInput": {
-      "InputObject": {
-        "description": "Input to create a Organization for the OrganizationRelateUser relation of User",
-        "input_fields": {
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "users": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "users",
-            "ty": "[OrganizationOrganizationRelateUserUserCreateRelationInput!]",
-            "validators": null
-          }
-        },
-        "name": "UserOrganizationRelateUserOrganizationCreateInput",
-        "oneof": false,
-        "rust_typename": "UserOrganizationRelateUserOrganizationCreateInput"
-      }
-    },
-    "UserOrganizationRelateUserOrganizationCreateRelationInput": {
-      "InputObject": {
-        "description": "Input to link to or create a Organization for the OrganizationRelateUser relation of User",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "UserOrganizationRelateUserOrganizationCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "UserOrganizationRelateUserOrganizationCreateRelationInput",
-        "oneof": true,
-        "rust_typename": "UserOrganizationRelateUserOrganizationCreateRelationInput"
-      }
-    },
-    "UserOrganizationRelateUserOrganizationUpdateRelationInput": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Organization for the OrganizationRelateUser relation of User",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "UserOrganizationRelateUserOrganizationCreateInput",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "UserOrganizationRelateUserOrganizationUpdateRelationInput",
-        "oneof": true,
-        "rust_typename": "UserOrganizationRelateUserOrganizationUpdateRelationInput"
-      }
-    },
     "UserUpdateInput": {
       "InputObject": {
         "description": "Input to update a User",
@@ -2092,7 +2092,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "organizations",
-            "ty": "[UserOrganizationRelateUserOrganizationUpdateRelationInput!]",
+            "ty": "[OrganizationToUserUpdateOrganizationRelation!]",
             "validators": null
           }
         },
