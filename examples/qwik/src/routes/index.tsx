@@ -29,11 +29,11 @@ export const GetAllMessagesQuery = /* GraphQL */ `
 `
 
 export const onGet: RequestHandler<Data> = async () => {
-  const res = await fetch(`http://127.0.0.1:4000/graphql`, {
+  const res = await fetch(import.meta.env.VITE_GRAFBASE_API_URL, {
     method: 'POST',
     headers: {
       'content-type': 'application/json'
-      // 'x-api-key': `Your token...`
+      // 'x-api-key': import.meta.env.VITE_GRAFBASE_API_KEY
     },
     body: JSON.stringify({
       query: GetAllMessagesQuery,
