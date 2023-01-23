@@ -26,6 +26,7 @@ type Customer @model {
   email: Email! @unique
   phoneNumber: String
   billingAddress: Address
+  carts: [Cart]
 }
 
 type Order @model {
