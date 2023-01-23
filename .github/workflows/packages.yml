@@ -19,6 +19,7 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
+          base: ${{ github.event.pull_request.base.ref }}
           filters: |
             packages:
               - 'packages/**'
