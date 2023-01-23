@@ -20,6 +20,7 @@ jobs:
         id: filter
         with:
           base: ${{ github.event.pull_request.base.ref }}
+          ref: ${{ github.event.pull_request.head.sha }}
           filters: |
             packages:
               - 'packages/**'
