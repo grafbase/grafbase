@@ -1,4 +1,4 @@
-use std::{fmt::Display, ops::Deref};
+use std::{fmt::Display, ops::Deref, time::SystemTime};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::{Attribute, AttributeValue};
@@ -26,8 +26,14 @@ impl Display for CurrentDateTime {
 }
 
 impl From<CurrentDateTime> for DateTime<Utc> {
-    fn from(item: CurrentDateTime) -> Self {
-        item.0
+    fn from(value: CurrentDateTime) -> Self {
+        value.0
+    }
+}
+
+impl From<CurrentDateTime> for SystemTime {
+    fn from(value: CurrentDateTime) -> Self {
+        value.0.into()
     }
 }
 

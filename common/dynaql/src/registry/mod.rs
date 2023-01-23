@@ -340,7 +340,7 @@ impl CurrentResolverType {
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
-        let execution_id = Ulid::new();
+        let execution_id = Ulid::from_datetime(ctx.query_env.current_datetime.clone().into());
         let registry = ctx.registry();
 
         let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
