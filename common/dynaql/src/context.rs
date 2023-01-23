@@ -845,7 +845,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             resolve_input(self, meta_input_value, const_value)
         } else {
             Err(ServerError::new(
-                "Internal Error: Unknown argument '{name}'",
+                &format!("Internal Error: Unknown argument '{name}'"),
                 Some(self.item.pos),
             ))
         }
