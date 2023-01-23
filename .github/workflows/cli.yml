@@ -3,6 +3,7 @@ name: cli
 on:
   workflow_dispatch:
   pull_request:
+  push:
 
 permissions:
   # Allow checks read
@@ -19,7 +20,7 @@ env:
   CARGO_TERM_COLOR: 'always'
 
 concurrency:
-  group: ${{ github.event.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   changes:
