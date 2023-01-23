@@ -19,7 +19,7 @@ env:
   CARGO_TERM_COLOR: 'always'
 
 concurrency:
-  group: ${{ github.event.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   changes:
