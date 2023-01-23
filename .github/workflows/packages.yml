@@ -1,10 +1,6 @@
 name: packages
 
-on:
-  pull_request:
-  push:
-    branches:
-      - main
+on: [push]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,8 +19,6 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: ${{ github.event.pull_request.base.ref }}
-          ref: ${{ github.event.pull_request.head.sha }}
           filters: |
             packages:
               - 'packages/**'
