@@ -1,6 +1,12 @@
 name: packages
 
-on: [push]
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,8 +25,6 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: ${{ github.event.pull_request.base.ref }}
-          ref: ${{ github.event.pull_request.head.sha }}
           filters: |
             packages:
               - 'packages/**'

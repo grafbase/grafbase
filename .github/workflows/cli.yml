@@ -1,12 +1,16 @@
 name: cli
 
-on: [push, workflow_dispatch]
+on:
+  workflow_dispatch:
+  pull_request:
 
 permissions:
   # Allow checks read
   checks: write
   # Allow repo checkout
   contents: write
+  # Allow PRs read
+  pull-requests: read
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
@@ -30,8 +34,6 @@ jobs:
         uses: dorny/paths-filter@v2
         id: filter
         with:
-          base: ${{ github.event.pull_request.base.ref }}
-          ref: ${{ github.event.pull_request.head.sha }}
           filters: |
             cli:
               - 'cli/**'
