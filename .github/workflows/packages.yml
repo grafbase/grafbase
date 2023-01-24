@@ -31,8 +31,8 @@ jobs:
 
   lint:
     name: Lint
-    needs: [changes]
-    if: ${{ needs.changes.outputs.packages == 'true' }}
+    needs: [detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.packages == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository

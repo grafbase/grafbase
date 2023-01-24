@@ -39,8 +39,8 @@ jobs:
               - 'cli/**'
 
   lint:
-    needs: [changes]
-    if: ${{ needs.changes.outputs.cli == 'true' }}
+    needs: [detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.cli == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
