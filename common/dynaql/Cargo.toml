@@ -59,8 +59,8 @@ ipnet = "2.7"
 itertools = "0.10"
 mime = "0.3"
 multer = "2"
+nom = "7.1"
 num-traits = "0.2"
-phonenumber = { git = "https://github.com/meh/rust-phonenumber", rev = "f936b0545fc8ad3ac195714de0c6ae8cd941723e" }
 pin-project-lite = "0.2"
 regex = "1"
 serde = { workspace = true }
