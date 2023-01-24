@@ -10,6 +10,9 @@ pub struct ConstraintDefinition {
 }
 
 pub mod db {
+    use base64::Engine;
+    use sha2::{Digest, Sha256};
+
     use super::super::ID_SEPARATOR;
     use super::normalize_constraint_value;
     use std::borrow::{Borrow, Cow};
@@ -17,14 +20,15 @@ pub mod db {
 
     #[derive(Debug, PartialEq, Eq, Clone)]
     pub struct ConstraintID<'a> {
-        field: Cow<'a, str>,
         ty: Cow<'a, str>,
+        field: Cow<'a, str>,
         value: Cow<'a, str>,
     }
 
     impl<'a> ConstraintID<'a> {
         pub fn from_owned(ty: String, field: String, value: serde_json::Value) -> Self {
-            let value = normalize_constraint_value(&value);
+            let value = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .encode(Sha256::digest(normalize_constraint_value(&value)));
 
             Self {
                 ty: Cow::Owned(ty),
@@ -33,8 +37,14 @@ pub mod db {
             }
         }
 
-        pub fn value(&self) -> &str {
-            self.value.borrow()
+        pub fn with_new_value(self, value: serde_json::Value) -> Self {
+            let value = base64::engine::general_purpose::URL_SAFE_NO_PAD
+                .encode(Sha256::digest(normalize_constraint_value(&value)));
+
+            Self {
+                value: Cow::Owned(value),
+                ..self
+            }
         }
 
         pub fn field(&self) -> &str {
@@ -106,13 +116,7 @@ pub mod db {
 
     impl<'a> Display for ConstraintID<'a> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(
-                f,
-                "{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}",
-                self.ty.to_lowercase(),
-                self.field,
-                self.value
-            )
+            write!(f, "{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}", self.ty, self.field, self.value)
         }
     }
 }
@@ -130,25 +134,32 @@ mod tests {
     use super::db::ConstraintID;
 
     #[test]
-    fn ensure_constraint_new() {
-        const TEST_TY: &str = "author_name_Val_1";
-
+    fn test_string_roundtrip() {
         let id = ConstraintID::from_owned(
             "Author".into(),
             "name".into(),
             serde_json::Value::String("Val_1".into()),
         );
 
-        assert_eq!(id.to_string(), TEST_TY, "Should give the same result");
+        assert_eq!(
+            ConstraintID::try_from(id.to_string()).unwrap(),
+            id,
+            "Constraint ID should survive a roundtrip via a String"
+        );
     }
 
     #[test]
-    fn ensure_constraint_from_string() {
-        const TEST_TY: &str = "author_name_Val";
+    fn test_str_roundtrip() {
+        let id = ConstraintID::from_owned(
+            "Author".into(),
+            "name".into(),
+            serde_json::Value::String("Val_1".into()),
+        );
 
-        let id = ConstraintID::try_from(TEST_TY.to_string());
-
-        assert!(id.is_ok(), "Id should be transformed");
-        assert_eq!(id.unwrap().to_string(), TEST_TY, "Should give the same result");
+        assert_eq!(
+            ConstraintID::try_from(id.to_string().as_str()).unwrap(),
+            id,
+            "Constraint ID should survive a roundtrip via a str"
+        );
     }
 }

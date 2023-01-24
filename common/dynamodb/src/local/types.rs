@@ -197,7 +197,7 @@ pub enum OperationKind {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "kind", content = "reportingData")]
 pub enum Constraint {
-    Unique { value: String, field: String },
+    Unique { values: Vec<String>, fields: Vec<String> },
 }
 
 #[derive(Serialize, Debug)]

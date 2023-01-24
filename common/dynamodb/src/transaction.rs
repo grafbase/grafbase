@@ -14,7 +14,7 @@ use tracing::{info_span, Instrument};
 
 #[derive(Clone, Debug)]
 pub enum TxItemMetadata {
-    Unique { value: String, field: String },
+    Unique { values: Vec<String>, fields: Vec<String> },
     None,
 }
 
@@ -54,8 +54,15 @@ pub enum TransactionError {
     UnknownError,
     #[error("Unique numeric values cannot be incremented or decremented")]
     UniqueNumericAtomic,
-    #[error(r#"The value {value} is already taken on field "{field}""#)]
-    UniqueCondition { value: String, field: String },
+
+    #[error(r#"The {} {} {} already taken on {} "{}""#,
+        if .values.len() == 1 { "value" } else { "values"},
+        .values.join(", "),
+        if .values.len() == 1 { "is" } else { "are"},
+        if .fields.len() == 1 { "field" } else { "fields" },
+        .fields.join(", ")
+    )]
+    UniqueCondition { values: Vec<String>, fields: Vec<String> },
 }
 
 /// The result is not accessible, the Hashmap will be empty
@@ -108,10 +115,10 @@ async fn transaction_by_pk(
                 if let Some(reasons) = dynamodb_utils::transaction_cancelled_reasons(&msg) {
                     for (index, reason) in reasons.iter().enumerate() {
                         if let dynamodb_utils::TransactionCanceledReason::ConditionalCheckFailed = reason {
-                            if let TxItemMetadata::Unique { ref value, ref field } = tx[index].metadata {
+                            if let TxItemMetadata::Unique { ref values, ref fields } = tx[index].metadata {
                                 return TransactionError::UniqueCondition {
-                                    value: value.clone(),
-                                    field: field.clone(),
+                                    values: values.clone(),
+                                    fields: fields.clone(),
                                 };
                             }
                         }
