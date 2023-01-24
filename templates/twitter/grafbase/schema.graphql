@@ -1,7 +1,8 @@
 type User @model {
-  name: String!
+  username: String! @unique
   email: Email! @unique
-  image: String
+  url: URL
+  avatar: String
   likes: [Like]
   tweets: [Tweet]
 }
@@ -10,9 +11,21 @@ type Tweet @model {
   text: String!
   user: User!
   likes: [Like]
+  replies: [Tweet]
+  media: [Media] @length(max: 4)
 }
 
 type Like @model {
   tweet: Tweet!
   user: User!
+}
+
+type Media @model {
+  url: URL
+  type: MediaType
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }
