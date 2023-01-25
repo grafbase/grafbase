@@ -1,6 +1,5 @@
 use dynomite::{attr_map, AttributeValue};
 use graph_entities::ID;
-use indexmap::map::Entry;
 use indexmap::IndexMap;
 use maplit::hashmap;
 use quick_error::quick_error;
@@ -325,7 +324,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                                         .push(current.document.clone());
                                 }
                             }
-                            (ID::ConstraintID((constraint_id)), ID::ConstraintID(_)) => {
+                            (ID::ConstraintID(_), ID::ConstraintID(_)) => {
                                 value.constraints.push(current.document.clone());
                             }
                             _ => {}

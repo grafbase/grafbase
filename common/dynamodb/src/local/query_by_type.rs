@@ -4,7 +4,6 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dynomite::AttributeValue;
 use graph_entities::ID;
-use indexmap::map::Entry;
 use indexmap::IndexMap;
 use maplit::hashmap;
 use quick_error::quick_error;
