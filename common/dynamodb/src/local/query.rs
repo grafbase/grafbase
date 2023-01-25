@@ -104,52 +104,21 @@ impl Loader<QueryKey> for QueryLoader {
                         let sk = ID::try_from(current.sk.clone()).expect("Can't fail");
                         let relation_names = current.relation_names.clone();
 
-                        match accumulator.values.entry(pk.to_string()) {
-                            Entry::Vacant(vacant) => {
-                                let mut value = QueryValue {
-                                    node: None,
-                                    constraints: Vec::new(),
-                                    edges: IndexMap::with_capacity(5),
-                                };
-
-                                match (pk, sk) {
-                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                        if sk.eq(&pk) {
-                                            value.node = Some(current.document.clone());
-                                        } else if !relation_names.is_empty() {
-                                            for edge in relation_names {
-                                                value.edges.insert(edge, vec![current.document.clone()]);
-                                            }
-                                        }
+                        let value = accumulator.values.entry(pk.to_string()).or_default();
+                        match (pk, sk) {
+                            (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                if sk.eq(&pk) {
+                                    value.node = Some(current.document.clone());
+                                } else if !relation_names.is_empty() {
+                                    for edge in relation_names {
+                                        value.edges.entry(edge).or_default().push(current.document.clone());
                                     }
-                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        value.constraints.push(current.document.clone());
-                                    }
-                                    _ => {}
                                 }
-
-                                vacant.insert(value);
                             }
-                            Entry::Occupied(mut occupied) => match (pk, sk) {
-                                (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                    if sk.eq(&pk) {
-                                        occupied.get_mut().node = Some(current.document.clone());
-                                    } else if !relation_names.is_empty() {
-                                        for edge in relation_names {
-                                            occupied
-                                                .get_mut()
-                                                .edges
-                                                .entry(edge)
-                                                .or_default()
-                                                .push(current.document.clone());
-                                        }
-                                    }
-                                }
-                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                    occupied.get_mut().constraints.push(current.document.clone());
-                                }
-                                _ => {}
-                            },
+                            (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                value.constraints.push((constraint_id, current.document.clone()));
+                            }
+                            _ => {}
                         };
                         Ok::<_, QueryLoaderError>((query_key, accumulator))
                     },

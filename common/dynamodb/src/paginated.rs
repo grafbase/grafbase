@@ -5,7 +5,7 @@ use crate::{DynamoDBRequestedIndex, QueryTypePaginatedKey};
 use dynomite::Attribute;
 use futures::TryFutureExt;
 use graph_entities::cursor::PaginationCursor;
-use graph_entities::ID;
+use graph_entities::{ConstraintID, ID};
 use indexmap::map::Entry;
 use indexmap::IndexMap;
 use itertools::Itertools;
@@ -182,7 +182,17 @@ pub struct QueryValue {
     pub node: Option<HashMap<String, AttributeValue>>,
     pub edges: IndexMap<String, Vec<HashMap<String, AttributeValue>>>,
     /// Constraints are other kind of row we can store, it'll add data over a node
-    pub constraints: Vec<HashMap<String, AttributeValue>>,
+    pub constraints: Vec<(ConstraintID<'static>, HashMap<String, AttributeValue>)>,
+}
+
+impl Default for QueryValue {
+    fn default() -> Self {
+        QueryValue {
+            node: None,
+            constraints: Vec::new(),
+            edges: IndexMap::with_capacity(5),
+        }
+    }
 }
 
 pub struct QueryValueIter<'a> {
@@ -419,8 +429,8 @@ where
                                         value.edges.insert(edge.clone(), vec![x.clone()]);
                                     }
                                 }
-                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                    value.constraints.push(x);
+                                (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                    value.constraints.push((constraint_id, x));
                                 }
                                 _ => {}
                             }
@@ -438,19 +448,12 @@ where
                                     .iter()
                                     .find(|edge| relation_names.as_ref().map(|x| x.contains(edge)).unwrap_or_default())
                                 {
-                                    match oqp.get_mut().edges.entry(edge.clone()) {
-                                        Entry::Vacant(vac) => {
-                                            vac.insert(vec![x]);
-                                        }
-                                        Entry::Occupied(mut oqp) => {
-                                            oqp.get_mut().push(x);
-                                        }
-                                    };
+                                    oqp.get_mut().edges.entry(edge.clone()).or_default().push(x);
                                     continue;
                                 }
                             }
-                            (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                oqp.get_mut().constraints.push(x);
+                            (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                oqp.get_mut().constraints.push((constraint_id, x));
                                 continue;
                             }
                             _ => {}

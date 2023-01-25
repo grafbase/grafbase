@@ -1,12 +1,12 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::paginated::{QueryResult, QueryValue};
+use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use graph_entities::{NodeID, ID};
-use indexmap::{map::Entry, IndexMap};
+use indexmap::IndexMap;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -108,36 +108,18 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
                             let sk = ID::try_from(curr.get(SK).and_then(|x| x.s.as_ref()).expect("can't fail").clone())
                                 .expect("Can't fail");
 
-                            match acc.values.entry(pk.to_string()) {
-                                Entry::Vacant(vac) => {
-                                    let mut value = QueryValue {
-                                        node: None,
-                                        constraints: Vec::new(),
-                                        edges: IndexMap::with_capacity(5),
-                                    };
+                            let value = acc.values.entry(pk.to_string()).or_default();
 
-                                    match (pk, sk) {
-                                        (ID::NodeID(_), ID::NodeID(_)) => {
-                                            value.node = Some(curr.clone());
-                                        }
-                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                            value.constraints.push(curr);
-                                        }
-                                        _ => {}
-                                    }
-
-                                    vac.insert(value);
+                            match (pk, sk) {
+                                (ID::NodeID(_), ID::NodeID(_)) => {
+                                    value.node = Some(curr.clone());
                                 }
-                                Entry::Occupied(mut oqp) => match (pk, sk) {
-                                    (ID::NodeID(_), ID::NodeID(_)) => {
-                                        oqp.get_mut().node = Some(curr);
-                                    }
-                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        oqp.get_mut().constraints.push(curr);
-                                    }
-                                    _ => {}
-                                },
-                            };
+                                (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                    value.constraints.push((constraint_id, curr));
+                                }
+                                _ => {}
+                            }
+
                             Ok((query_key, acc))
                         },
                     );

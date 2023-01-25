@@ -15,7 +15,6 @@ use graph_entities::{normalize_constraint_value, ConstraintDefinition, Constrain
 use itertools::Itertools;
 use log::info;
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
@@ -1485,14 +1484,7 @@ async fn execute(
         result
             .into_iter()
             .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
-                cur.into_iter().for_each(|(k, v)| match acc.entry(k) {
-                    Entry::Vacant(vac) => {
-                        vac.insert(vec![v]);
-                    }
-                    Entry::Occupied(mut oqp) => {
-                        oqp.get_mut().push(v);
-                    }
-                });
+                cur.into_iter().for_each(|(k, v)| acc.entry(k).or_default().push(v));
                 acc
             });
 
@@ -1503,16 +1495,9 @@ async fn execute(
         .map(|((pk, sk), val)| val.to_transaction(batchers, ctx, pk, sk))
         .collect();
 
-    let transactions_len = transactions.len();
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let merged: HashMap<TxItem, AttributeValue> =
-        transactions
-            .into_iter()
-            .fold(HashMap::with_capacity(transactions_len), |mut acc, cur| {
-                acc.extend(cur);
-                acc
-            });
+    let merged = itertools::concat(transactions);
 
     Ok(merged)
 }
@@ -1552,14 +1537,7 @@ async fn execute(
         result
             .into_iter()
             .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
-                cur.into_iter().for_each(|(k, v)| match acc.entry(k) {
-                    Entry::Vacant(vac) => {
-                        vac.insert(vec![v]);
-                    }
-                    Entry::Occupied(mut oqp) => {
-                        oqp.get_mut().push(v);
-                    }
-                });
+                cur.into_iter().for_each(|(k, v)| acc.entry(k).or_default().push(v));
                 acc
             });
 
