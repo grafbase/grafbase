@@ -35,6 +35,7 @@ rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+wasm-timer = { version = "0.2" }
 
 tracing = { version = "0.1", optional = true }
 

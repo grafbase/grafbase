@@ -1,15 +1,18 @@
-use std::{fmt::Display, ops::Deref};
+use std::fmt::Display;
+use std::hash::{Hash, Hasher};
 
-use chrono::{DateTime, SecondsFormat, Utc};
+use chrono::{DateTime, SecondsFormat, TimeZone, Utc};
 use dynomite::{Attribute, AttributeValue};
 
+use wasm_timer::{SystemTime, UNIX_EPOCH};
+
 // TODO: It should be placed in a different crate than dynamodb
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
-pub struct CurrentDateTime(DateTime<Utc>);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CurrentDateTime(SystemTime);
 
 impl CurrentDateTime {
     pub fn new() -> Self {
-        Self(Utc::now())
+        Self(SystemTime::now())
     }
 
     // Overriding Dynamite implementation as we only store for milliseconds.
@@ -19,15 +22,39 @@ impl CurrentDateTime {
     }
 }
 
+#[allow(clippy::derive_hash_xor_eq)]
+impl Hash for CurrentDateTime {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Hash is not implemented for wasm_timer::SystemTime on wasm
+        Into::<DateTime<Utc>>::into(self.clone()).hash(state);
+    }
+}
+
 impl Display for CurrentDateTime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.to_rfc3339_opts(SecondsFormat::Millis, true))
+        write!(
+            f,
+            "{}",
+            Into::<DateTime<Utc>>::into(self.clone()).to_rfc3339_opts(SecondsFormat::Millis, true)
+        )
     }
 }
 
 impl From<CurrentDateTime> for DateTime<Utc> {
-    fn from(item: CurrentDateTime) -> Self {
-        item.0
+    fn from(value: CurrentDateTime) -> Self {
+        let duration = value
+            .0
+            .duration_since(UNIX_EPOCH)
+            .expect("UNIX_EPOCH is always before current SystemTime");
+        #[allow(clippy::cast_possible_wrap)]
+        let (sec, nano_sec) = (duration.as_secs() as i64, duration.subsec_nanos());
+        Utc.timestamp_opt(sec, nano_sec).unwrap()
+    }
+}
+
+impl From<CurrentDateTime> for SystemTime {
+    fn from(value: CurrentDateTime) -> Self {
+        value.0
     }
 }
 
@@ -35,13 +62,5 @@ impl From<CurrentDateTime> for DateTime<Utc> {
 impl Default for CurrentDateTime {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Deref for CurrentDateTime {
-    type Target = DateTime<Utc>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
     }
 }

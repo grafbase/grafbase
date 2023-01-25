@@ -12,6 +12,7 @@ use std::fmt::{self, Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, RwLock};
+use ulid::Ulid;
 
 use cached::UnboundCache;
 use derivative::Derivative;
@@ -473,7 +474,7 @@ impl<'a, T> ContextBase<'a, T> {
                 executable_field: Some(field),
                 resolver: meta_field.and_then(|x| x.resolve.as_ref()),
                 transformer: meta_field.and_then(|x| x.transformer.as_ref()),
-                execution_id: ulid::Ulid::new(),
+                execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
                 variables: {
                     meta_field.map(|x| {
@@ -783,7 +784,7 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
                 ty: self.resolver_node.as_ref().and_then(|x| x.ty),
                 resolver: None,
                 transformer: None,
-                execution_id: ulid::Ulid::new(),
+                execution_id: Ulid::from_datetime(self.query_env.current_datetime.clone().into()),
                 selections,
                 variables: None,
             }),

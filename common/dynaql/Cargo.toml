@@ -69,7 +69,7 @@ serde_with = { workspace = true }
 static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
-ulid = "1"
+ulid = { version = "1", features = ["wasm"] }
 url = { version = "2" }
 unindent = "0.1"
 
