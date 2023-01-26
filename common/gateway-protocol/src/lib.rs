@@ -43,6 +43,7 @@ pub struct ExecutionHealthResponse {
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct CustomerDeploymentConfig {
     /// Grafbase Deployment ID where this config was generated
+    #[serde(default)]
     pub deployment_id: String,
     /// Branch of the project this deployment belongs to
     pub github_ref_name: Option<String>,
