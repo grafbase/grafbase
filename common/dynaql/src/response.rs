@@ -3,12 +3,13 @@ use std::collections::BTreeMap;
 use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
 use http::HeaderValue;
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::{CacheControl, Result, ServerError, Value};
 
 /// Query response
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Response {
     /// Data of query result
     #[serde(default)]
