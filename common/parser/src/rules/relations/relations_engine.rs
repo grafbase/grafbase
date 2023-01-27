@@ -97,7 +97,7 @@ fn relation_name(field: &FieldDefinition) -> Option<&Positioned<dynaql_value::Co
 }
 
 impl Directive for RelationEngine {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @relation(
           """

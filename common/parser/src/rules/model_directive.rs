@@ -23,12 +23,12 @@ use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
 use dynaql::registry::scalars::{DateTimeScalar, IDScalar, SDLDefinitionScalar};
+use dynaql::registry::MetaField;
+use dynaql::registry::MetaInputValue;
 use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
-use dynaql::registry::{Constraint, MetaField};
-use dynaql::registry::{ConstraintType, MetaInputValue};
 use dynaql::{AuthConfig, Operations, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
 use std::borrow::Cow;
@@ -45,6 +45,7 @@ use crate::utils::to_lower_camelcase;
 use super::auth_directive::AuthDirective;
 use super::directive::Directive;
 use super::relations::RelationEngine;
+use super::unique_directive::UniqueDirective;
 use super::visitor::{Visitor, VisitorContext};
 
 pub struct ModelDirective;
@@ -54,7 +55,6 @@ pub const RESERVED_FIELD_CREATED_AT: &str = "createdAt";
 pub const RESERVED_FIELD_UPDATED_AT: &str = "updatedAt";
 pub const RESERVED_FIELDS: [&str; 3] = [RESERVED_FIELD_ID, RESERVED_FIELD_UPDATED_AT, RESERVED_FIELD_CREATED_AT];
 pub const MODEL_DIRECTIVE: &str = "model";
-pub const UNIQUE_DIRECTIVE: &str = "unique";
 
 impl ModelDirective {
     pub fn is_not_reserved_field(field: &Positioned<FieldDefinition>) -> bool {
@@ -124,7 +124,7 @@ fn insert_metadata_field(
 }
 
 impl Directive for ModelDirective {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @model on OBJECT
         "#
@@ -177,6 +177,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                 map
             });
 
+            let unique_directives = object
+                .fields
+                .iter()
+                .filter_map(|field| UniqueDirective::parse(ctx, object, &type_name, field))
+                .collect::<Vec<_>>();
+
             //
             // CREATE ACTUAL TYPE
             //
@@ -184,7 +190,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             // If it's a modeled Type, we create the associated type into the registry.
             // Without more data, we infer it's from our modelization.
             ctx.registry.borrow_mut().create_type(
-                &mut |registry| MetaType::Object {
+                |registry| MetaType::Object {
                     name: type_name.clone(),
                     description: type_definition.node.description.clone().map(|x| x.node),
                     fields: {
@@ -317,21 +323,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     is_subscription: false,
                     is_node: true,
                     rust_typename: type_name.clone(),
-                    constraints: object
-                        .fields
-                        .iter()
-                        .filter_map(|field| {
-                            field
-                                .node
-                                .directives
-                                .iter()
-                                .find(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)
-                                .map(|_| Constraint {
-                                    field: field.node.name.to_string(),
-                                    r#type: ConstraintType::Unique,
-                                })
-                        })
-                        .collect(),
+                    constraints: unique_directives.iter().map(UniqueDirective::to_constraint).collect(),
                 },
                 &type_name,
                 &type_name,
@@ -340,20 +332,10 @@ impl<'a> Visitor<'a> for ModelDirective {
             //
             // GENERATE QUERY ONE OF: type(by: { ... })
             //
-            let unique_fields: Vec<&Positioned<FieldDefinition>> = object
-                .fields
-                .iter()
-                .filter(|field| {
-                    field
-                        .node
-                        .directives
-                        .iter()
-                        .any(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)
-                })
-                .collect();
+
             let one_of_type_name = format!("{type_name}ByInput");
             ctx.registry.get_mut().create_type(
-                &mut |_| MetaType::InputObject {
+                |registry| MetaType::InputObject {
                     name: one_of_type_name.clone(),
                     description: type_definition
                         .node
@@ -376,19 +358,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 is_secret: false,
                             },
                         );
-                        for field in &unique_fields {
-                            input_fields.insert(
-                                field.node.name.to_string(),
-                                MetaInputValue {
-                                    name: field.node.name.to_string(),
-                                    description: None,
-                                    ty: field.node.ty.to_string().trim_end_matches('!').to_string(),
-                                    default_value: None,
-                                    validators: None,
-                                    visible: None,
-                                    is_secret: false,
-                                },
-                            );
+                        for unique_directive in &unique_directives {
+                            input_fields.insert(unique_directive.name(), unique_directive.lookup_by_field(registry));
                         }
                         input_fields
                     },

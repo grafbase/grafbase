@@ -34,7 +34,7 @@ impl AuthDirective {
 impl Directive for AuthDirective {
     // This snippet is parsed, but not enforced by the server, which is why we
     // don't bother adding detailed types here.
-    fn definition(&self) -> String {
+    fn definition() -> String {
         format!("directive @{AUTH_DIRECTIVE} on SCHEMA | OBJECT | FIELD_DEFINITION")
     }
 }

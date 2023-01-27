@@ -15,7 +15,7 @@ pub struct OneOfDirective;
 pub const ONE_OF_DIRECTIVE: &str = "oneOf";
 
 impl Directive for OneOfDirective {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @oneOf on INPUT_OBJECT
         "#
@@ -48,7 +48,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
 
                 let one_of_type_name = type_definition.node.name.node.to_string();
 
-                ctx.registry.get_mut().create_type(&mut |_| MetaType::InputObject  {
+                ctx.registry.get_mut().create_type(|_| MetaType::InputObject  {
                     name: one_of_type_name.clone(),
                     description: type_definition.node.description.clone().map(|description| description.node),
                     visible: None,

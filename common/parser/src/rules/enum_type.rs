@@ -22,7 +22,7 @@ impl<'a> Visitor<'a> for EnumType {
             if let TypeKind::Enum(enum_ty) = &type_definition.node.kind;
             then {
                 let type_name = type_definition.node.name.node.to_string();
-                ctx.registry.get_mut().create_type(&mut |_| MetaType::Enum {
+                ctx.registry.get_mut().create_type(|_| MetaType::Enum {
                     name: type_name.clone(),
                     description: type_definition.node.description.clone().map(|x| x.node),
                     visible: None,

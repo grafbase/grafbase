@@ -20,7 +20,7 @@ impl DefaultDirective {
 }
 
 impl Directive for DefaultDirective {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @default(value: String) on FIELD_DEFINITION
         "#

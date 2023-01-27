@@ -17,12 +17,13 @@ use dynamo_mutation::DynamoMutationResolver;
 use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
-use graph_entities::cursor::PaginationCursor;
+use dynaql_value::{ConstValue, Name};
+use graph_entities::{cursor::PaginationCursor, ConstraintID};
 
 use std::sync::Arc;
 use ulid::Ulid;
 
-use super::{MetaField, MetaType};
+use super::{Constraint, MetaField, MetaType};
 
 pub mod context_data;
 pub mod debug;
@@ -297,4 +298,41 @@ pub enum ResolverType {
     DynamoMutationResolver(DynamoMutationResolver),
     ContextDataResolver(ContextDataResolver),
     DebugResolver(DebugResolver),
+}
+
+impl Constraint {
+    /// Extracts a ConstraintID for this constraint from the corresponding field
+    /// of a `*ByInput` type.
+    ///
+    /// If the constraint has one field we expect the value to just be a string.
+    /// If the constraint has multiple it should be an Object of fieldName: value
+    fn extract_id_from_by_input_field(
+        &self,
+        ty: &str,
+        value: &ConstValue,
+    ) -> Option<ConstraintID<'static>> {
+        if self.fields.len() == 1 {
+            return Some(ConstraintID::new(
+                ty.to_string(),
+                vec![(self.fields[0].clone(), value.clone().into_json().ok()?)],
+            ));
+        }
+
+        let ConstValue::Object(by_fields) = value else {
+            return None;
+        };
+
+        let constraint_fields = self
+            .fields
+            .iter()
+            .map(|field| {
+                Some((
+                    field.to_string(),
+                    by_fields.get(&Name::new(field))?.clone().into_json().ok()?,
+                ))
+            })
+            .collect::<Option<Vec<_>>>()?;
+
+        Some(ConstraintID::new(ty.to_string(), constraint_fields))
+    }
 }

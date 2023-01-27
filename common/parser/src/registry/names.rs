@@ -139,4 +139,9 @@ impl MetaNames {
     fn relation_prefix(parent_relation: &ParentRelation<'_>) -> String {
         parent_relation.meta.name.to_camel()
     }
+
+    // Name of the struct that looks up a model by a composite index.
+    pub fn nested_order_by_input(model_name: &str, constraint_name: &str) -> String {
+        format!("{model_name}By{}", constraint_name.to_camel())
+    }
 }

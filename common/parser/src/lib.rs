@@ -22,7 +22,7 @@ use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
 use rules::relations::{relations_rules, RelationEngine};
-use rules::unique_directive::UniqueDirective;
+use rules::unique_directive::{UniqueDirective, UniqueDirectiveVisitor};
 use rules::unique_fields::UniqueObjectFields;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
@@ -76,19 +76,19 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     variables: &HashMap<String, String>,
 ) -> Result<Registry, Error> {
     let directives = Directives::new()
-        .with(AuthDirective)
-        .with(DefaultDirective)
-        .with(LengthDirective)
-        .with(ModelDirective)
-        .with(OneOfDirective)
-        .with(RelationEngine)
-        .with(UniqueDirective);
+        .with::<AuthDirective>()
+        .with::<DefaultDirective>()
+        .with::<LengthDirective>()
+        .with::<ModelDirective>()
+        .with::<OneOfDirective>()
+        .with::<RelationEngine>()
+        .with::<UniqueDirective>();
 
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
-        .with(UniqueDirective)
+        .with(UniqueDirectiveVisitor)
         .with(ModelDirective)
         .with(AuthDirective)
         .with(BasicType)

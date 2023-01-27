@@ -112,7 +112,7 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.create_type(
-            &mut |registry| {
+            |registry| {
                 let schema_type = __Schema::create_type_info(registry);
                 dynaql::registry::MetaType::Object {
                     name: "Query".to_owned(),
@@ -165,7 +165,7 @@ impl<'a> VisitorContext<'a> {
 
         if !self.mutations.is_empty() {
             registry.create_type(
-                &mut |_| dynaql::registry::MetaType::Object {
+                |_| dynaql::registry::MetaType::Object {
                     name: "Mutation".to_owned(),
                     description: None,
                     fields: {

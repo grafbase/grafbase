@@ -24,7 +24,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
 
         if PossibleScalar::test_scalar_name_recursive(name.as_str()) {
             ctx.registry.get_mut().create_type(
-                &mut |_| {
+                |_| {
                     let specified_by_url = type_definition
                         .node
                         .directives

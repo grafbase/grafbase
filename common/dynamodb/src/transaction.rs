@@ -52,7 +52,7 @@ impl Eq for TxItem {}
 pub enum TransactionError {
     #[error("An issue happened while applying the transaction.")]
     UnknownError,
-    #[error("Unique numeric values cannot be incremented or decremented")]
+    #[error("Numeric values in a unique constraint cannot be incremented or decremented")]
     UniqueNumericAtomic,
 
     #[error(r#"The {} {} {} already taken on {} "{}""#,

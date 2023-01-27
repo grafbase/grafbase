@@ -22,6 +22,9 @@ quick_error! {
         DynamoError {
             display("An internal error happened while fetching entities")
         }
+        MissingUniqueFields {
+            display("Couldn't find values for required unique fields")
+        }
     }
 }
 

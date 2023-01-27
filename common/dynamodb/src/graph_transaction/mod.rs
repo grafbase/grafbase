@@ -267,12 +267,24 @@ impl GetIds for InsertNodeInput {
         let mut result = HashMap::with_capacity(1 + self.constraints.len());
 
         for ConstraintDefinition {
-            field,
+            fields,
             r#type: ConstraintType::Unique,
         } in self.constraints
         {
-            if let Some(value) = self.user_defined_item.get(&field) {
-                let contraint_id = ConstraintID::from_owned(self.ty.clone(), field.clone(), value.clone().into_json());
+            let values = fields
+                .into_iter()
+                .map(|field| {
+                    let value = self.user_defined_item.get(&field)?;
+                    Some((field, value.clone().into_json()))
+                })
+                .collect::<Option<Vec<_>>>();
+
+            if let Some(values) = values {
+                let contraint_id = ConstraintID::new(self.ty.clone(), values.clone());
+
+                let (constraint_fields, constraint_values) =
+                    values.into_iter().map(|(f, v)| (f, v.to_string())).unzip();
+
                 result.insert(
                     (contraint_id.to_string(), contraint_id.to_string()),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
@@ -280,8 +292,8 @@ impl GetIds for InsertNodeInput {
                             current_datetime: self.current_datetime.clone(),
                             target: pk.clone(),
                             user_defined_item: self.user_defined_item.clone(),
-                            constraint_values: vec![value.clone().into_json().to_string()],
-                            constraint_fields: vec![field],
+                            constraint_values,
+                            constraint_fields,
                         }),
                     )),
                 );
@@ -327,14 +339,13 @@ impl GetIds for UpdateNodeInput {
             // specific handling of the constraint that the ID was queried by (if any)
             // to prevent ACID issues
             if let Some(constraint_id) = &self.update_by {
-                let updated_value = self
-                    .user_defined_item
-                    .get(constraint_id.field())
-                    .cloned()
-                    .unwrap_or_default()
-                    .into_json();
+                let updated_values = constraint_id
+                    .fields()
+                    .map(|field| Some(self.user_defined_item.get(field)?.clone().into_json()))
+                    .collect::<Option<Vec<_>>>()
+                    .ok_or(BatchGetItemLoaderError::MissingUniqueFields)?;
 
-                let new_constraint_id = constraint_id.clone().with_new_value(updated_value.clone());
+                let new_constraint_id = constraint_id.clone().with_new_values(updated_values.clone());
 
                 if *constraint_id == new_constraint_id {
                     let constraint_id_string = constraint_id.to_string();
@@ -366,8 +377,8 @@ impl GetIds for UpdateNodeInput {
                                 current_datetime: self.current_datetime.clone(),
                                 target: pk,
                                 user_defined_item: self.user_defined_item.clone(),
-                                constraint_values: vec![normalize_constraint_value(&updated_value)],
-                                constraint_fields: vec![new_constraint_id.field().to_string()],
+                                constraint_values: updated_values.into_iter().map(normalize_constraint_value).collect(),
+                                constraint_fields: constraint_id.fields().map(ToOwned::to_owned).collect(),
                             }),
                         )),
                     );
@@ -413,14 +424,13 @@ impl GetIds for UpdateNodeInput {
                             }
                         }
 
-                        let updated_value = self
-                            .user_defined_item
-                            .get(constraint_id.field())
-                            .map(std::clone::Clone::clone)
-                            .unwrap_or_default()
-                            .into_json();
+                        let updated_values = constraint_id
+                            .fields()
+                            .map(|field| Some(self.user_defined_item.get(field)?.clone().into_json()))
+                            .collect::<Option<Vec<_>>>()
+                            .ok_or(BatchGetItemLoaderError::MissingUniqueFields)?;
 
-                        let new_constraint_id = constraint_id.clone().with_new_value(updated_value.clone());
+                        let new_constraint_id = constraint_id.clone().with_new_values(updated_values.clone());
 
                         if constraint_id == new_constraint_id {
                             result.insert(
@@ -455,8 +465,11 @@ impl GetIds for UpdateNodeInput {
                                             .and_then(|x| x.s)
                                             .unwrap(),
                                         user_defined_item: self.user_defined_item.clone(),
-                                        constraint_values: vec![normalize_constraint_value(&updated_value)],
-                                        constraint_fields: vec![new_constraint_id.field().to_string()],
+                                        constraint_values: updated_values
+                                            .into_iter()
+                                            .map(normalize_constraint_value)
+                                            .collect(),
+                                        constraint_fields: constraint_id.fields().map(ToOwned::to_owned).collect(),
                                     }),
                                 )),
                             );

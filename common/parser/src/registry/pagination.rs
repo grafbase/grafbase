@@ -32,7 +32,7 @@ fn register_edge_type(
 ) -> BaseType {
     let type_name = MetaNames::pagination_edge_type(model_type_definition);
     registry.create_type(
-        &mut |_| MetaType::Object {
+        |_| MetaType::Object {
             name: type_name.clone(),
             description: None,
             fields: IndexMap::from([
@@ -111,7 +111,7 @@ fn register_edge_type(
 
 fn register_page_info_type(registry: &mut Registry) -> BaseType {
     registry.create_type(
-        &mut |_| MetaType::Object {
+        |_| MetaType::Object {
             name: PAGE_INFO_TYPE.to_string(),
             description: None,
             fields: IndexMap::from([
@@ -254,7 +254,7 @@ fn register_connection_type(
     let type_name = MetaNames::pagination_connection_type(model_type_definition);
 
     registry.create_type(
-        &mut |registry| {
+        |registry| {
             let edge_type = register_edge_type(registry, model_type_definition, model_auth);
             let page_info_type = register_page_info_type(registry);
             MetaType::Object {
@@ -463,7 +463,7 @@ pub fn generate_pagination_args(
 fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeDefinition) -> BaseType {
     let input_type_name = MetaNames::pagination_orderby_input(model_type_definition);
     registry.create_type(
-        &mut |registry| {
+        |registry| {
             let order_by_direction_type = register_dynaql_enum::<OrderByDirection>(registry);
             MetaType::InputObject {
                 name: input_type_name.clone(),

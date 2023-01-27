@@ -16,7 +16,7 @@ pub const MAX_ARGUMENT: &str = "max";
 pub struct LengthDirective;
 
 impl Directive for LengthDirective {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @length(min: Int, max: Int) on FIELD_DEFINITION
         "#

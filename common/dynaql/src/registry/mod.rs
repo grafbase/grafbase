@@ -194,14 +194,25 @@ pub enum ConstraintType {
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
 )]
 pub struct Constraint {
-    pub field: String,
+    pub name: String,
+    pub fields: Vec<String>,
     pub r#type: ConstraintType,
 }
 
+impl Constraint {
+    pub fn unique(name: String, fields: Vec<String>) -> Constraint {
+        Constraint {
+            name,
+            fields,
+            r#type: ConstraintType::Unique,
+        }
+    }
+}
+
 impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition {
-    fn from(Constraint { field, r#type }: Constraint) -> Self {
+    fn from(Constraint { fields, r#type, .. }: Constraint) -> Self {
         Self {
-            field,
+            fields,
             r#type: match r#type {
                 ConstraintType::Unique => dynamodb::export::graph_entities::ConstraintType::Unique,
             },
@@ -1243,36 +1254,36 @@ impl Registry {
 }
 
 impl Registry {
-    pub fn create_input_type<T: InputType + ?Sized, F: FnMut(&mut Registry) -> MetaType>(
+    pub fn create_input_type<T: InputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
-        mut f: F,
+        f: F,
     ) -> String {
-        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
+        self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
-    pub fn create_output_type<T: OutputType + ?Sized, F: FnMut(&mut Registry) -> MetaType>(
+    pub fn create_output_type<T: OutputType + ?Sized, F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
-        mut f: F,
+        f: F,
     ) -> String {
-        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
+        self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
     pub fn create_subscription_type<
         T: SubscriptionType + ?Sized,
-        F: FnMut(&mut Registry) -> MetaType,
+        F: FnOnce(&mut Registry) -> MetaType,
     >(
         &mut self,
-        mut f: F,
+        f: F,
     ) -> String {
-        self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>());
+        self.create_type(f, &T::type_name(), std::any::type_name::<T>());
         T::qualified_type_name()
     }
 
-    pub fn create_type<F: FnMut(&mut Registry) -> MetaType>(
+    pub fn create_type<F: FnOnce(&mut Registry) -> MetaType>(
         &mut self,
-        f: &mut F,
+        f: F,
         name: &str,
         rust_typename: &str,
     ) {
