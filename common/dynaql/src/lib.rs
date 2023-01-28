@@ -152,6 +152,7 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::needless_lifetimes)]
 #![allow(clippy::option_if_let_else)]
 #![allow(clippy::panic)]
 #![allow(clippy::redundant_else)]
