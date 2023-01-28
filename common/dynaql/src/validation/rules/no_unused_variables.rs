@@ -63,10 +63,7 @@ impl<'a> Visitor<'a> for NoUnusedVariables<'a> {
                 if let Some(op_name) = op_name {
                     ctx.report_error(
                         vec![*pos],
-                        format!(
-                            r#"Variable "${}" is not used by operation "{}""#,
-                            var, op_name
-                        ),
+                        format!(r#"Variable "${var}" is not used by operation "{op_name}""#),
                     );
                 } else {
                     ctx.report_error(vec![*pos], format!(r#"Variable "${var}" is not used"#));

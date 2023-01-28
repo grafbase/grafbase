@@ -101,8 +101,7 @@ mod tests {
         };
         assert!(
             err.to_string().contains("at most one field"),
-            "Unexpected message: {}",
-            err
+            "Unexpected message: {err}"
         );
 
         let result = serde_json::from_str::<OneOf<String>>(r#"{}"#);
@@ -111,8 +110,7 @@ mod tests {
         };
         assert!(
             err.to_string().contains("at least one field"),
-            "Unexpected message: {}",
-            err
+            "Unexpected message: {err}"
         );
     }
 }

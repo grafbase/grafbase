@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{self, Seek, SeekFrom, Write};
+use std::io::{self, Seek, Write};
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
@@ -117,7 +117,7 @@ pub(super) async fn receive_batch_multipart(
                         while let Some(chunk) = field.chunk().await? {
                             file.write(&chunk).map_err(ParseRequestError::Io)?;
                         }
-                        file.seek(SeekFrom::Start(0))?;
+                        file.rewind()?;
                         files.push((name, filename, content_type, file));
                     }
                 }

@@ -1281,8 +1281,7 @@ impl Registry {
                 if let Some(prev_typename) = ty.rust_typename() {
                     if prev_typename.ne("__fake_type__") && prev_typename.ne(rust_typename) {
                         panic!(
-                            "`{}` and `{}` have the same GraphQL name `{}`",
-                            prev_typename, rust_typename, name,
+                            "`{prev_typename}` and `{rust_typename}` have the same GraphQL name `{name}`",
                         );
                     }
                 }
