@@ -3,6 +3,7 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 #![allow(clippy::use_self)]
+#![allow(clippy::manual_let_else)]
 #![allow(clippy::module_name_repetitions)]
 
 mod deserializer;

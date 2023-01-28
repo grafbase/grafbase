@@ -144,6 +144,7 @@
 #![allow(clippy::implicit_hasher)]
 #![allow(clippy::map_flatten)]
 #![allow(clippy::map_unwrap_or)]
+#![allow(clippy::manual_let_else)]
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::missing_const_for_fn)]
 #![allow(clippy::missing_errors_doc)]
