@@ -187,10 +187,8 @@ impl DynamoDBContext {
     /// * `trace_id` - Trace id, should be removed as soon as we have tracing.
     /// * `access_key_id` - AWS Access Key.
     /// * `secret_access_key` - AWS Secret Access Key.
-    /// * `dynamodb_replication_regions` - The Regions in which the dynamodb table is replicated.
+    /// * `region` - Details that will be used to lookup the best AWS region
     /// * `dynamodb_table_name` - The DynamoDB TableName.
-    /// * `latitude` - Request latitude, to locate the closest region
-    /// * `longitude` - Request longitude, to locate the closest region
     /// * `user_id` - Optional ID identifying the current user
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -198,28 +196,15 @@ impl DynamoDBContext {
         trace_id: String,
         access_key_id: String,
         secret_access_key: String,
-        dynamodb_replication_regions: Vec<aws_region_nearby::AwsRegion>,
+        region: Region,
         dynamodb_table_name: String,
-        latitude: f32,
-        longitude: f32,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
         user_id: Option<String>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
-        let closest_region: rusoto_core::Region =
-            aws_region_nearby::find_region_from_list(latitude, longitude, &dynamodb_replication_regions)
-                .name()
-                .parse()
-                .expect("the name of the region is certainly valid");
 
-        log::debug!(
-            &trace_id,
-            "Picked the closest region {} for coordinates (lat {}, lon {})",
-            closest_region.name(),
-            latitude,
-            longitude
-        );
+        let closest_region = region.into_aws(&trace_id);
 
         let http_client = HttpClient::new().expect("failed to create HTTP client");
         let client = DynamoDbClient::new_with(http_client, provider, closest_region.clone());
@@ -244,6 +229,50 @@ impl DynamoDBContext {
     /// GSI name used to reverse lockup
     pub(crate) const fn index_reverse_lockup() -> &'static str {
         "gsi2"
+    }
+}
+
+pub enum Region {
+    Local(String),
+    Closest {
+        // The Regions in which the dynamodb table is replicated
+        replication_regions: Vec<aws_region_nearby::AwsRegion>,
+        /// Request latitude, to locate the closest region
+        latitude: f32,
+        /// Request longitude, to locate the closest region
+        longitude: f32,
+    },
+}
+
+impl Region {
+    fn into_aws(self, trace_id: &str) -> rusoto_core::Region {
+        match self {
+            Region::Local(endpoint) => rusoto_core::Region::Custom {
+                name: "local-emulator".to_string(),
+                endpoint,
+            },
+            Region::Closest {
+                replication_regions,
+                latitude,
+                longitude,
+            } => {
+                let closest_region =
+                    aws_region_nearby::find_region_from_list(latitude, longitude, &replication_regions)
+                        .name()
+                        .parse::<rusoto_core::Region>()
+                        .expect("the name of the region is certainly valid");
+
+                log::debug!(
+                    trace_id,
+                    "Picked the closest region {} for coordinates (lat {}, lon {})",
+                    closest_region.name(),
+                    latitude,
+                    longitude
+                );
+
+                closest_region
+            }
+        }
     }
 }
 
