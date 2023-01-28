@@ -57,15 +57,9 @@ pub mod db {
     impl<'a> TryFrom<String> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: String) -> Result<Self, Self::Error> {
-            let (ty, rest) = match origin.split_once(ID_SEPARATOR) {
-                Some((ty, rest)) => (ty, rest),
-                None => return Err(ConstraintIDError::NotAConstraint { origin }),
-            };
+            let Some((ty, rest)) = origin.split_once(ID_SEPARATOR) else { return Err(ConstraintIDError::NotAConstraint { origin }) };
 
-            let (field, value) = match rest.split_once(ID_SEPARATOR) {
-                Some((field, value)) => (field, value),
-                None => return Err(ConstraintIDError::NotAConstraint { origin }),
-            };
+            let Some((field, value)) = rest.split_once(ID_SEPARATOR) else { return Err(ConstraintIDError::NotAConstraint { origin }) };
 
             Ok(Self {
                 ty: Cow::Owned(ty.to_string()),
@@ -78,23 +72,17 @@ pub mod db {
     impl<'a> TryFrom<&'a str> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: &'a str) -> Result<Self, Self::Error> {
-            let (ty, rest) = match origin.split_once(ID_SEPARATOR) {
-                Some((ty, rest)) => (ty, rest),
-                None => {
+            let Some((ty, rest)) = origin.split_once(ID_SEPARATOR) else {
                     return Err(ConstraintIDError::NotAConstraint {
                         origin: origin.to_string(),
                     })
-                }
-            };
+                };
 
-            let (field, value) = match rest.split_once(ID_SEPARATOR) {
-                Some((field, value)) => (field, value),
-                None => {
+            let Some((field, value)) = rest.split_once(ID_SEPARATOR) else {
                     return Err(ConstraintIDError::NotAConstraint {
                         origin: origin.to_string(),
                     })
-                }
-            };
+                };
 
             Ok(Self {
                 ty: Cow::Owned(ty.to_string()),

@@ -46,10 +46,7 @@ pub fn required_migrations(from: &Registry, to: &Registry) -> Vec<RequiredMigrat
             |((from_type, _from_create_input_type), (to_type, to_create_input_type))| {
                 let type_name = from_type.name();
 
-                let to_create_input_fields = match to_create_input_type {
-                    MetaType::InputObject { input_fields, .. } => input_fields,
-                    _ => unreachable!("Impossible"),
-                };
+                let MetaType::InputObject { input_fields: to_create_input_fields, .. } = to_create_input_type else { unreachable!("Impossible") };
 
                 from_type
                     .fields()

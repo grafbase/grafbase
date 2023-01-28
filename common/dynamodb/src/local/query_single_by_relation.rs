@@ -57,12 +57,9 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
         let mut query_result = HashMap::new();
         let mut concurrent_futures = vec![];
         for query_key in keys {
-            let parent_pk = match NodeID::from_borrowed(&query_key.parent_pk) {
-                Ok(id) => id,
-                Err(_) => {
-                    query_result.insert(query_key.clone(), QueryResult::default());
-                    continue;
-                }
+            let Ok(parent_pk) = NodeID::from_borrowed(&query_key.parent_pk)  else {
+                query_result.insert(query_key.clone(), QueryResult::default());
+                continue;
             };
 
             let value_map = hashmap! {
