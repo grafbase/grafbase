@@ -149,10 +149,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         return Ok(());
     }
 
-    let datadog_api_key = match log_config.datadog_api_key.as_deref() {
-        Some(api_key) => api_key,
-        None => return Ok(()),
-    };
+    let Some(datadog_api_key) = log_config.datadog_api_key.as_deref() else { return Ok(()) };
 
     // We use `Cow` to avoid needless cloning.
     let mut tags: HashMap<&'static str, Cow<'_, str>> = maplit::hashmap! {
@@ -209,10 +206,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
 pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry]) -> Result<(), Error> {
     use sentry_cf_worker::{send_envelope, Envelope, Event, Level};
 
-    let sentry_config = match log_config.sentry_config.as_ref() {
-        Some(sentry_config) => sentry_config,
-        None => return Ok(()),
-    };
+    let Some(sentry_config) = log_config.sentry_config.as_ref() else { return Ok(()) };
 
     let sentry_ingest_url = format!("https://{}@{}", sentry_config.api_key, sentry_config.dsn);
 

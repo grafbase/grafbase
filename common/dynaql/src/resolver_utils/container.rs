@@ -397,8 +397,7 @@ impl<'a> FieldsGraph<'a> {
                                         None => {
                                             return Err(ServerError::new(
                                                 format!(
-                                                    r#"Cannot query field "{}" on type "{}"."#,
-                                                    field_name, type_name
+                                                    r#"Cannot query field "{field_name}" on type "{type_name}"."#
                                                 ),
                                                 Some(ctx_field.item.pos),
                                             ));
@@ -619,8 +618,7 @@ impl<'a> Fields<'a> {
                                         None => {
                                             return Err(ServerError::new(
                                                 format!(
-                                                    r#"Cannot query field "{}" on type "{}"."#,
-                                                    field_name, type_name
+                                                    r#"Cannot query field "{field_name}" on type "{type_name}"."#
                                                 ),
                                                 Some(ctx_field.item.pos),
                                             ));
