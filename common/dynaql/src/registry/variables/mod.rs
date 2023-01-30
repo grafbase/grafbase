@@ -147,8 +147,7 @@ impl VariableResolveDefinition {
                 .map(|value| value as usize)
                 .and_then(|value| match limit {
                     Some(limit) if value > limit => Err(Error::new(format!(
-                        "Limit Error: the integer must be smaller than {}",
-                        limit
+                        "Limit Error: the integer must be smaller than {limit}"
                     ))),
                     _ => Ok(Some(value)),
                 }),

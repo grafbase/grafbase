@@ -96,8 +96,7 @@ pub fn is_valid_input_value(
                             Some(valid_error(
                                 &path_node,
                                 format!(
-                                    "enumeration type \"{}\" does not contain the value \"{}\"",
-                                    enum_name, name
+                                    "enumeration type \"{enum_name}\" does not contain the value \"{name}\""
                                 ),
                             ))
                         } else {
@@ -109,8 +108,7 @@ pub fn is_valid_input_value(
                             Some(valid_error(
                                 &path_node,
                                 format!(
-                                    "enumeration type \"{}\" does not contain the value \"{}\"",
-                                    enum_name, name
+                                    "enumeration type \"{enum_name}\" does not contain the value \"{name}\""
                                 ),
                             ))
                         } else {

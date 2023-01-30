@@ -58,12 +58,9 @@ impl Loader<QueryKey> for QueryLoader {
         for query_key in keys {
             let has_edges = !query_key.edges.is_empty();
             let number_of_edges = query_key.edges.len();
-            let pk = match NodeID::from_borrowed(&query_key.pk) {
-                Ok(id) => id,
-                Err(_) => {
-                    query_result.insert(query_key.clone(), QueryResult::default());
-                    continue;
-                }
+            let Ok(pk) = NodeID::from_borrowed(&query_key.pk) else {
+                query_result.insert(query_key.clone(), QueryResult::default());
+                continue;
             };
 
             let value_map = hashmap! {

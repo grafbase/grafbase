@@ -1,4 +1,5 @@
 #![allow(clippy::cognitive_complexity)]
+#![allow(clippy::manual_let_else)]
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::trivially_copy_pass_by_ref)]
 #![allow(clippy::use_self)]

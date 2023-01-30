@@ -771,11 +771,8 @@ impl ExecuteChangesOnDatabase for Vec<InternalChanges> {
         let mut list = self.into_iter();
         let first = list.next().map(|first| list.try_fold(first, |acc, cur| acc.with(cur)));
 
-        let first = match first {
-            Some(Ok(first)) => first,
-            _ => {
-                return Box::pin(async { Err(ToTransactionError::Unknown) });
-            }
+        let Some(Ok(first)) = first else {
+            return Box::pin(async { Err(ToTransactionError::Unknown) });
         };
 
         first.to_transaction(batchers, ctx, pk, sk)

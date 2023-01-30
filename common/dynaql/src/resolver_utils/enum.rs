@@ -30,8 +30,7 @@ pub fn parse_enum<T: EnumType + InputType>(value: Value) -> InputValueResult<T> 
         .map(|item| item.value)
         .ok_or_else(|| {
             InputValueError::custom(format_args!(
-                r#"Enumeration type does not contain value "{}"."#,
-                value,
+                r#"Enumeration type does not contain value "{value}"."#,
             ))
         })
 }

@@ -62,7 +62,7 @@ fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
 }
 
 /// Create an input type for a non_primitive Type.
-pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &ObjectType, type_name: &str) -> String {
+pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &ObjectType, type_name: &str) -> String {
     let type_name = type_name.to_string();
     let input_type = format!("{}Input", type_name.to_camel());
 
@@ -103,7 +103,7 @@ pub fn add_input_type_non_primitive<'a>(ctx: &mut VisitorContext<'a>, object: &O
 }
 
 /// Add the remove mutation for a given Object
-pub fn add_remove_mutation<'a>(ctx: &mut VisitorContext<'a>, type_name: &str, auth: Option<&AuthConfig>) {
+pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: Option<&AuthConfig>) {
     let type_name = type_name.to_string();
     let delete_payload_name = format!("{}DeletePayload", type_name.to_camel());
 
