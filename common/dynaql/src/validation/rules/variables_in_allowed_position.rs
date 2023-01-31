@@ -33,21 +33,22 @@ impl<'a> VariableInAllowedPosition<'a> {
         visited.insert(*from);
 
         if let Some(usages) = self.variable_usages.get(from) {
-            for (var_name, usage_pos, var_type) in usages {
+            for (var_name, usage_pos, expected_type) in usages {
                 if let Some(def) = var_defs.iter().find(|def| def.node.name.node == *var_name) {
-                    let expected_type =
+                    let declared_variable_type = def.node.var_type.node.to_string();
+                    let effective_variable_type =
                         if def.node.var_type.node.nullable && def.node.default_value.is_some() {
                             // A nullable type with a default value functions as a non-nullable
                             format!("{}!", def.node.var_type.node)
                         } else {
-                            def.node.var_type.node.to_string()
+                            declared_variable_type.clone()
                         };
 
-                    if !var_type.is_subtype(&MetaTypeName::create(&expected_type)) {
+                    if !expected_type.is_subtype(&MetaTypeName::create(&effective_variable_type)) {
                         ctx.report_error(
                             vec![def.pos, *usage_pos],
                             format!(
-                                "Variable \"{var_name}\" of type \"{var_type}\" used in position expecting type \"{expected_type}\""
+                                "Variable \"{var_name}\" of type \"{declared_variable_type}\" used in position expecting type \"{expected_type}\""
                             ),
                         );
                     }
@@ -451,10 +452,11 @@ mod tests {
         expect_fails_rule!(
             factory,
             r#"
-          query Query($stringVar: String) {
-            dog @include(if: $stringVar)
-          }
-        "#,
+              query Query($stringVar: String) {
+                dog @include(if: $stringVar)
+              }
+            "#,
+            "Variable \"stringVar\" of type \"String\" used in position expecting type \"Boolean!\""
         );
     }
 }
