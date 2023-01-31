@@ -1,4 +1,4 @@
-name: Release
+name: CLI Release
 
 on:
   workflow_call:
@@ -22,6 +22,12 @@ jobs:
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
+        with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3
@@ -49,8 +55,8 @@ jobs:
 
       - name: Process artifacts
         shell: bash
-        working-directory: cli/npm
         run: |
+          cd cli/npm
           mkdir github
           cp aarch64-apple-darwin/grafbase github/grafbase-aarch64-apple-darwin
           cp x86_64-apple-darwin/grafbase github/grafbase-x86_64-apple-darwin
@@ -76,12 +82,13 @@ jobs:
 
       - name: Publish cargo
         shell: bash
-        working-directory: cli/crates
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
         run: |
           set -e
           set -o pipefail
+          
+          cd cli/crates
 
           retryable() {
             for i in {1..5}; do
@@ -102,9 +109,9 @@ jobs:
 
       - name: Publish npm
         shell: bash
-        working-directory: cli/npm
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
+          cd cli/npm
           (cd aarch64-apple-darwin && npm publish)
           (cd x86_64-apple-darwin && npm publish)
           (cd x86_64-pc-windows-msvc && npm publish)

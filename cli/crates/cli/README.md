@@ -45,3 +45,7 @@ Sets up the current or a new project for Grafbase
 #### Arguments
 
 - `[name]` - If supplied, creates a new project directory with the given name rather than setting up the current directory
+
+#### Flags
+
+- `-t, --template <name>` - The name or GitHub URL of the template to use for the new project
