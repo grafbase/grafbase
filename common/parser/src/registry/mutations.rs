@@ -309,7 +309,7 @@ fn register_mutation_input_type(
                 .iter()
                 .filter(|field| ModelDirective::is_not_reserved_field(field))
             {
-                let maybe_type = match RelationEngine::get(ctx, model_type_definition, &field.node) {
+                let maybe_type = match RelationEngine::get(ctx, &model_type_definition.name.node, &field.node) {
                     // If a relation exists, the field is a model
                     Some(model_to_field_relation) => {
                         ModelDirective::get_model_type_definition(ctx, &field.node.ty.node.base)

@@ -203,7 +203,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 continue;
                             }
 
-                            let relation = RelationEngine::get(ctx, &type_definition.node, &field.node);
+                            let relation = RelationEngine::get(ctx, &type_definition.node.name.node, &field.node);
                             let transformer = if relation.is_some() {
                                 None
                             } else {

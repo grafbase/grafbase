@@ -3,15 +3,12 @@ use dynaql::{
     registry::{Constraint, MetaInputValue, MetaType, Registry},
     Pos, Positioned,
 };
-use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, TypeDefinition};
+use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType};
 use dynaql_value::ConstValue;
 
 use crate::registry::names::MetaNames;
 
-use super::{
-    directive::Directive,
-    visitor::{Visitor, VisitorContext},
-};
+use super::{directive::Directive, relations::RelationEngine, visitor::VisitorContext};
 
 pub const UNIQUE_DIRECTIVE: &str = "unique";
 pub const UNIQUE_FIELDS_ARGUMENT: &str = "fields";
@@ -52,7 +49,7 @@ impl UniqueDirective {
             .find(|directive| directive.node.name.node == UNIQUE_DIRECTIVE)?;
 
         let field_name = field.node.name.node.to_string();
-        let mut fields = vec![UniqueDirectiveField::parse(ctx, &field.node, directive.pos)];
+        let mut fields = vec![UniqueDirectiveField::parse(ctx, model_name, &field.node, directive.pos)];
 
         for (name, argument) in &directive.node.arguments {
             if name.node != UNIQUE_FIELDS_ARGUMENT {
@@ -67,9 +64,9 @@ impl UniqueDirective {
 
             for field in fields_list {
                 let ConstValue::String(field) = field else {
-                ctx.report_error(vec![argument.pos], "The fields argument to @unique must be a list of strings");
-                return None;
-            };
+                    ctx.report_error(vec![argument.pos], "The fields argument to @unique must be a list of strings");
+                    return None;
+                };
                 let Some(model_field) = model.fields.iter().find(|f| f.node.name.node == *field) else {
                     ctx.report_error(
                         vec![argument.pos],
@@ -77,7 +74,12 @@ impl UniqueDirective {
                     );
                     return None;
                 };
-                fields.push(UniqueDirectiveField::parse(ctx, &model_field.node, argument.pos));
+                fields.push(UniqueDirectiveField::parse(
+                    ctx,
+                    model_name,
+                    &model_field.node,
+                    argument.pos,
+                ));
             }
         }
 
@@ -156,18 +158,39 @@ impl UniqueDirective {
 }
 
 impl UniqueDirectiveField {
-    pub fn parse(ctx: &mut VisitorContext<'_>, field: &FieldDefinition, pos: Pos) -> UniqueDirectiveField {
+    pub fn parse(
+        ctx: &mut VisitorContext<'_>,
+        model_name: &str,
+        field: &FieldDefinition,
+        pos: Pos,
+    ) -> UniqueDirectiveField {
         if field.ty.node.nullable {
             ctx.report_error(
                 vec![pos],
-                "The @unique directive cannot be used on nullable fields".to_string(),
+                format!(
+                    "The @unique directive cannot be used with nullable fields, but {} is nullable",
+                    field.name.node
+                ),
             );
         }
 
         if let dynaql_parser::types::BaseType::List(_) = field.ty.node.base {
             ctx.report_error(
                 vec![pos],
-                "The @unique directive cannot be used on collections".to_string(),
+                format!(
+                    "The @unique directive cannot be used with collections, but {} is a collection",
+                    field.name.node
+                ),
+            );
+        }
+
+        if RelationEngine::get(ctx, model_name, field).is_some() {
+            ctx.report_error(
+                vec![pos],
+                format!(
+                    "The @unique directive cannot be used with relations, but {} is a relation",
+                    field.name.node
+                ),
             );
         }
 
@@ -195,98 +218,194 @@ impl UniqueDirectiveField {
     }
 }
 
-pub struct UniqueDirectiveVisitor;
-
-impl<'a> Visitor<'a> for UniqueDirectiveVisitor {
-    fn enter_field(
-        &mut self,
-        ctx: &mut VisitorContext<'a>,
-        field: &'a Positioned<FieldDefinition>,
-        _parent_type: &'a Positioned<TypeDefinition>,
-    ) {
-        if let Some(directive) = field
-            .node
-            .directives
-            .iter()
-            .find(|d| d.node.name.node == UNIQUE_DIRECTIVE)
-        {
-            if field.node.ty.node.nullable {
-                ctx.report_error(
-                    vec![directive.pos],
-                    "The @unique directive cannot be used on nullable fields".to_string(),
-                );
-            }
-
-            if let dynaql_parser::types::BaseType::List(_) = field.node.ty.node.base {
-                ctx.report_error(
-                    vec![directive.pos],
-                    "The @unique directive cannot be used on collections".to_string(),
-                );
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::rules::visitor::visit;
-    use dynaql_parser::parse_schema;
+    use assert_matches::assert_matches;
+    use dynaql::Schema;
     use pretty_assertions::assert_eq;
+
+    use crate::rules::visitor::RuleError;
+
+    macro_rules! assert_validation_error {
+        ($schema:literal, $expected_message:literal) => {
+            assert_matches!(
+                dbg!(crate::to_registry($schema))
+                    .err()
+                    .and_then(crate::Error::validation_errors)
+                    // We don't care whether there are more errors or not.
+                    // It only matters that we find the expected error.
+                    .and_then(|errors| errors.into_iter().next()),
+                Some(RuleError { message, .. }) => {
+                    assert_eq!(message, $expected_message);
+                }
+            );
+        };
+    }
 
     #[test]
     fn test_not_usable_on_nullable_fields() {
-        let schema = r#"
+        assert_validation_error!(
+            r#"
             type Product @model {
                 id: ID!
                 name: String @unique
             }
-            "#;
-
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut UniqueDirectiveVisitor, &mut ctx, &schema);
-
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "The @unique directive cannot be used on nullable fields",
+            "#,
+            "The @unique directive cannot be used with nullable fields, but name is nullable"
         );
     }
 
     #[test]
     fn test_usable_on_non_nullable_fields() {
-        let schema = r#"
+        let registry = crate::to_registry(
+            r#"
             type Product @model {
                 id: ID!
                 name: String! @unique
             }
-            "#;
+            "#,
+        )
+        .unwrap();
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut UniqueDirectiveVisitor, &mut ctx, &schema);
-
-        assert!(ctx.errors.is_empty());
+        insta::assert_snapshot!("sdl", Schema::new(registry).sdl());
     }
 
     #[test]
     fn test_not_usable_on_collection() {
-        let schema = r#"
+        assert_validation_error!(
+            r#"
             type Product @model {
                 id: ID!
                 name: [String]! @unique
             }
-            "#;
+            "#,
+            "The @unique directive cannot be used with collections, but name is a collection"
+        );
+    }
 
-        let schema = parse_schema(schema).unwrap();
-        let mut ctx = VisitorContext::new(&schema);
-        visit(&mut UniqueDirectiveVisitor, &mut ctx, &schema);
+    #[test]
+    fn test_not_usable_on_relations() {
+        assert_validation_error!(
+            r#"
+            type Category @model {
+                id: ID!
+                product: Product
+            }
 
-        assert_eq!(ctx.errors.len(), 1);
-        assert_eq!(
-            ctx.errors.get(0).unwrap().message,
-            "The @unique directive cannot be used on collections",
+            type Product @model {
+                id: ID!
+                name: [String]!
+                category: Category! @unique
+            }
+            "#,
+            "The @unique directive cannot be used with relations, but category is a relation"
+        );
+    }
+
+    #[test]
+    fn test_multifield() {
+        let registry = crate::to_registry(
+            r#"
+            type Product @model {
+                id: ID!
+                productLine: String!
+                name: String! @unique(fields: ["productLine"])
+            }
+            "#,
+        )
+        .unwrap();
+
+        insta::assert_snapshot!("multifield_sdl", Schema::new(registry).sdl());
+    }
+
+    #[test]
+    fn test_multifield_not_usable_on_collection() {
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                productLines: [String]!
+                name: String! @unique(fields: ["productLines"])
+            }
+            "#,
+            "The @unique directive cannot be used with collections, but productLines is a collection"
+        );
+    }
+
+    #[test]
+    fn test_multifield_not_usable_on_nullable_fields() {
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                productLine: String
+                name: String! @unique(fields: ["productLine"])
+            }
+            "#,
+            "The @unique directive cannot be used with nullable fields, but productLine is nullable"
+        );
+    }
+
+    #[test]
+    fn test_referencing_missing_field() {
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique(fields: ["productLine"])
+            }
+            "#,
+            "The field productLine referenced in the @unique on name doesn't exist on Product"
+        );
+    }
+
+    #[test]
+    fn test_multifield_not_usable_on_relations() {
+        assert_validation_error!(
+            r#"
+            type Category @model {
+                id: ID!
+                product: Product
+            }
+
+            type Product @model {
+                id: ID!
+                name: String! @unique(fields: ["category"])
+                category: Category!
+            }
+            "#,
+            "The @unique directive cannot be used with relations, but category is a relation"
+        );
+    }
+
+    #[test]
+    fn test_malformed_input() {
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique(fields: [{hello: "there"}])
+            }
+            "#,
+            "The fields argument to @unique must be a list of strings"
+        );
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique(fields: {hello: "there"})
+            }
+            "#,
+            "The fields argument to @unique must be a list of strings"
+        );
+        assert_validation_error!(
+            r#"
+            type Product @model {
+                id: ID!
+                name: String! @unique(other: ["productLine"])
+            }
+            "#,
+            "Unknown argument to @unique: other"
         );
     }
 }
