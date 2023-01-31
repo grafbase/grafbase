@@ -44,7 +44,7 @@ pub fn is_type_with_length(ty: &Type) -> bool {
 ///
 /// A BasicType is an Object and not an entity: it's not modelized.
 #[allow(dead_code)]
-pub fn is_type_basic_type<'a>(ctx: &HashMap<String, &'a Positioned<TypeDefinition>>, ty: &Type) -> bool {
+pub fn is_type_basic_type(ctx: &HashMap<String, &'_ Positioned<TypeDefinition>>, ty: &Type) -> bool {
     let ty = get_base_from_type(ty);
 
     let is_a_basic_type = ctx

@@ -35,7 +35,7 @@ pub struct VisitorContext<'a> {
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
-fn add_fake_scalar<'a>(types: &mut HashMap<String, Cow<'a, Positioned<TypeDefinition>>>, name: &str) {
+fn add_fake_scalar(types: &mut HashMap<String, Cow<'_, Positioned<TypeDefinition>>>, name: &str) {
     match types.entry(name.to_string()) {
         Entry::Vacant(v) => {
             let pos = Positioned::new(

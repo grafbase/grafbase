@@ -56,14 +56,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
 
         let response = results
             .iter()
-            .map(
-                |&Record {
-                     ref pk,
-                     ref sk,
-                     ref document,
-                     ..
-                 }| ((pk.clone(), sk.clone()), document.clone()),
-            )
+            .map(|Record { pk, sk, document, .. }| ((pk.clone(), sk.clone()), document.clone()))
             .collect();
 
         Ok(response)

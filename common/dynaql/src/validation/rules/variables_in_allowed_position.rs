@@ -47,8 +47,7 @@ impl<'a> VariableInAllowedPosition<'a> {
                         ctx.report_error(
                             vec![def.pos, *usage_pos],
                             format!(
-                                "Variable \"{}\" of type \"{}\" used in position expecting type \"{}\"",
-                                var_name, var_type, expected_type
+                                "Variable \"{var_name}\" of type \"{var_type}\" used in position expecting type \"{expected_type}\""
                             ),
                         );
                     }

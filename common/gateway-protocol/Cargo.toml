@@ -4,5 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aws-region-nearby = { workspace = true }
 dynaql = { path = "../dynaql" }
 serde = { version = "1", features = ["derive"] }
+
+grafbase = { path = "../grafbase", features = ["json"] }

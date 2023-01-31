@@ -61,7 +61,7 @@ impl ModelDirective {
         !RESERVED_FIELDS.contains(&field.node.name.node.as_str())
     }
 
-    pub fn is_model<'a>(ctx: &'a VisitorContext<'_>, ty: &Type) -> bool {
+    pub fn is_model(ctx: &'_ VisitorContext<'_>, ty: &Type) -> bool {
         Self::get_model_type_definition(ctx, &ty.base).is_some()
     }
 
@@ -427,7 +427,7 @@ impl<'a> Visitor<'a> for ModelDirective {
     }
 }
 
-fn has_any_invalid_reserved_fields<'a>(ctx: &mut VisitorContext<'a>, object_name: &str, object: &ObjectType) -> bool {
+fn has_any_invalid_reserved_fields(ctx: &mut VisitorContext<'_>, object_name: &str, object: &ObjectType) -> bool {
     let mut has_invalid_field = false;
     for field in &object.fields {
         let field_name = field.node.name.node.as_str();

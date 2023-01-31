@@ -7,6 +7,7 @@
 #![allow(clippy::unnecessary_wraps)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::match_same_arms)]
+#![allow(clippy::needless_lifetimes)]
 #![allow(clippy::needless_question_mark)]
 #![allow(elided_lifetimes_in_paths)]
 #![allow(clippy::debug_assert_with_mut_call)]

@@ -48,7 +48,7 @@ impl<'a> NoUndefinedVariables<'a> {
 
 impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
     fn exit_document(&mut self, ctx: &mut VisitorContext<'a>, _doc: &'a ExecutableDocument) {
-        for (op_name, &(ref def_pos, ref def_vars)) in &self.defined_variables {
+        for (op_name, (def_pos, def_vars)) in &self.defined_variables {
             let mut undef = Vec::new();
             let mut visited = HashSet::new();
             self.find_undef_vars(
@@ -62,10 +62,7 @@ impl<'a> Visitor<'a> for NoUndefinedVariables<'a> {
                 if let Some(op_name) = op_name {
                     ctx.report_error(
                         vec![*def_pos, pos],
-                        format!(
-                            r#"Variable "${}" is not defined by operation "{}""#,
-                            var, op_name
-                        ),
+                        format!(r#"Variable "${var}" is not defined by operation "{op_name}""#),
                     );
                 } else {
                     ctx.report_error(vec![pos], format!(r#"Variable "${var}" is not defined"#));

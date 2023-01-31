@@ -57,12 +57,9 @@ impl Loader<QueryKey> for QueryLoader {
         let mut concurrent_f = vec![];
         for query_key in keys {
             // TODO: Handle this when dealing with Custom ID
-            let pk = match NodeID::from_borrowed(&query_key.pk) {
-                Ok(id) => id,
-                Err(_) => {
+            let Ok(pk) = NodeID::from_borrowed(&query_key.pk) else {
                     h.insert(query_key.clone(), QueryResult::default());
                     continue;
-                }
             };
             let mut exp = dynomite::attr_map! {
                 ":pk" => pk.to_string(),
