@@ -311,10 +311,11 @@ impl Constraint {
         ty: &str,
         value: &ConstValue,
     ) -> Option<ConstraintID<'static>> {
-        if self.fields.len() == 1 {
+        let fields = self.fields();
+        if fields.len() == 1 {
             return Some(ConstraintID::new(
                 ty.to_string(),
-                vec![(self.fields[0].clone(), value.clone().into_json().ok()?)],
+                vec![(fields[0].clone(), value.clone().into_json().ok()?)],
             ));
         }
 
@@ -322,12 +323,11 @@ impl Constraint {
             return None;
         };
 
-        let constraint_fields = self
-            .fields
-            .iter()
+        let constraint_fields = fields
+            .into_iter()
             .map(|field| {
                 Some((
-                    field.to_string(),
+                    field.clone(),
                     by_fields.get(&Name::new(field))?.clone().into_json().ok()?,
                 ))
             })

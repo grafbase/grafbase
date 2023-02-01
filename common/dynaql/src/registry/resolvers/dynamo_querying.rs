@@ -522,7 +522,7 @@ impl ResolverTrait for DynamoResolver {
                     let constraint_id = ctx_ty
                         .constraints()
                         .iter()
-                        .find(|constraint| constraint.name == key)
+                        .find(|constraint| constraint.name() == key)
                         .and_then(|constraint| {
                             constraint.extract_id_from_by_input_field(ctx_ty.name(), value)
                         })

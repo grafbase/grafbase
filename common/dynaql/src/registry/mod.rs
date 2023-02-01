@@ -194,26 +194,50 @@ pub enum ConstraintType {
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
 )]
 pub struct Constraint {
-    pub name: String,
-    pub fields: Vec<String>,
+    // This is an option for backwards compatability reasons.
+    // Constraints didn't always have a name.
+    // Can possibly make it required in the future.
+    name: Option<String>,
+
+    #[serde(default)]
+    fields_: Vec<String>,
+
+    // This is also here for backwards compatability
+    field_: String,
+
     pub r#type: ConstraintType,
 }
 
 impl Constraint {
+    pub fn name(&self) -> &str {
+        self.name
+            .as_deref()
+            .or_else(|| Some(self.fields_.first()?))
+            .unwrap_or(&self.field_)
+    }
+
+    pub fn fields(&self) -> Vec<String> {
+        if self.fields_.is_empty() {
+            return vec![self.field_.clone()];
+        }
+        self.fields_.clone()
+    }
+
     pub fn unique(name: String, fields: Vec<String>) -> Constraint {
         Constraint {
-            name,
-            fields,
+            name: Some(name),
+            fields_: fields,
+            field_: String::new(),
             r#type: ConstraintType::Unique,
         }
     }
 }
 
 impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition {
-    fn from(Constraint { fields, r#type, .. }: Constraint) -> Self {
+    fn from(constraint: Constraint) -> Self {
         Self {
-            fields,
-            r#type: match r#type {
+            fields: constraint.fields(),
+            r#type: match constraint.r#type {
                 ConstraintType::Unique => dynamodb::export::graph_entities::ConstraintType::Unique,
             },
         }

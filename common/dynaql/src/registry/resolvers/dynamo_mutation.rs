@@ -493,7 +493,7 @@ fn node_update<'a>(
         } else if constraints.iter().any(|constraint| {
             constraint.r#type == ConstraintType::Unique
                 && constraint
-                    .fields
+                    .fields()
                     .iter()
                     .any(|constraint_field| *constraint_field == field)
         }) {
@@ -1084,7 +1084,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     let constraint_id = ctx_ty
                         .constraints()
                         .iter()
-                        .find(|constraint| constraint.name == key)
+                        .find(|constraint| constraint.name() == key)
                         .and_then(|constraint| constraint.extract_id_from_by_input_field(ty, value))
                         .expect("constraint fields to be in the input");
 
@@ -1178,7 +1178,7 @@ impl ResolverTrait for DynamoMutationResolver {
                     let constraint_id = ctx_ty
                         .constraints()
                         .iter()
-                        .find(|constraint| constraint.name == key)
+                        .find(|constraint| constraint.name() == key)
                         .and_then(|constraint| constraint.extract_id_from_by_input_field(ty, value))
                         .expect("constraint fields to be in the input");
 
