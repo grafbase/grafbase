@@ -433,7 +433,7 @@ fn node_update<'a>(
     increment: Arc<AtomicUsize>,
     input: IndexMap<Name, Value>,
     id: String,
-    by_id: Option<String>,
+    by_id: Option<ConstraintID<'static>>,
 ) -> Result<RecursiveCreation<'a>, TransactionError> {
     let relations = node_ty.relations();
 
@@ -1077,12 +1077,12 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(value.to_string()),
                     }))))
                 } else {
-                    let pk = ConstraintID::from_owned(
+                    let constraint_id = ConstraintID::from_owned(
                         ty.to_string(),
                         key.clone(),
                         value.clone().into_json().expect("cannot fail"),
-                    )
-                    .to_string();
+                    );
+                    let pk = constraint_id.to_string();
                     let sk = pk.clone();
 
                     let original_pk = match loader.load_one((pk.clone(), sk)).await {
@@ -1110,7 +1110,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         Arc::new(AtomicUsize::new(0)),
                         input,
                         id.to_string(),
-                        Some(pk),
+                        Some(constraint_id),
                     )?;
 
                     let _ = update.selection.await?;
@@ -1165,12 +1165,12 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(id_to_be_deleted),
                     }))))
                 } else {
-                    let pk = ConstraintID::from_owned(
+                    let constraint_id = ConstraintID::from_owned(
                         ty.to_string(),
                         key.clone(),
                         value.clone().into_json().expect("cannot fail"),
-                    )
-                    .to_string();
+                    );
+                    let pk = constraint_id.to_string();
                     let sk = pk.clone();
 
                     let original_pk = match loader.load_one((pk.clone(), sk)).await {
@@ -1192,7 +1192,7 @@ impl ResolverTrait for DynamoMutationResolver {
                         .load_one(PossibleChanges::delete_node(
                             ty.clone(),
                             ulid.clone(),
-                            Some(pk),
+                            Some(constraint_id),
                         ))
                         .await?;
 

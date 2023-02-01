@@ -2,11 +2,10 @@ use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
-use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use graph_entities::{NodeID, ID};
-use indexmap::{map::Entry, IndexMap};
+use indexmap::IndexMap;
 use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
@@ -93,36 +92,18 @@ impl Loader<QuerySingleRelationKey> for QuerySingleRelationLoader {
                         let pk = ID::try_from(current.pk.clone()).expect("Can't fail");
                         let sk = ID::try_from(current.sk.clone()).expect("Can't fail");
 
-                        match accumulator.values.entry(sk.to_string()) {
-                            Entry::Vacant(vacant) => {
-                                let mut value = QueryValue {
-                                    node: None,
-                                    constraints: Vec::new(),
-                                    edges: IndexMap::with_capacity(5),
-                                };
+                        let value = accumulator.values.entry(sk.to_string()).or_default();
 
-                                match (pk, sk) {
-                                    (ID::NodeID(_), ID::NodeID(_)) => {
-                                        value.node = Some(current.document.clone());
-                                    }
-                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        value.constraints.push(current.document.clone());
-                                    }
-                                    _ => {}
-                                }
-
-                                vacant.insert(value);
+                        match (pk, sk) {
+                            (ID::NodeID(_), ID::NodeID(_)) => {
+                                value.node = Some(current.document.clone());
                             }
-                            Entry::Occupied(mut occupied) => match (pk, sk) {
-                                (ID::NodeID(_), ID::NodeID(_)) => {
-                                    occupied.get_mut().node = Some(current.document.clone());
-                                }
-                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                    occupied.get_mut().constraints.push(current.document.clone());
-                                }
-                                _ => {}
-                            },
-                        };
+                            (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                value.constraints.push((constraint_id, current.document.clone()));
+                            }
+                            _ => {}
+                        }
+
                         Ok::<_, QuerySingleRelationLoaderError>((query_key, accumulator))
                     },
                 )

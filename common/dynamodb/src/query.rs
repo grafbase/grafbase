@@ -1,12 +1,12 @@
 use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
-use crate::paginated::{QueryResult, QueryValue};
+use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use graph_entities::{NodeID, ID};
-use indexmap::{map::Entry, IndexMap};
+use indexmap::IndexMap;
 use itertools::Itertools;
 use rusoto_dynamodb::QueryInput;
 use std::collections::HashMap;
@@ -127,48 +127,24 @@ impl Loader<QueryKey> for QueryLoader {
                                 .expect("Can't fail");
                             let relation_names = curr.get(RELATION_NAMES).and_then(|y| y.ss.clone());
 
-                            match acc.values.entry(pk.to_string()) {
-                                Entry::Vacant(vac) => {
-                                    let mut value = QueryValue {
-                                        node: None,
-                                        constraints: Vec::new(),
-                                        edges: IndexMap::with_capacity(5),
-                                    };
+                            let value = acc.values.entry(pk.to_string()).or_default();
 
-                                    match (pk, sk) {
-                                        (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                            if sk.eq(&pk) {
-                                                value.node = Some(curr.clone());
-                                            } else if let Some(edges) = relation_names {
-                                                for edge in edges {
-                                                    value.edges.insert(edge, vec![curr.clone()]);
-                                                }
-                                            }
+                            match (pk, sk) {
+                                (ID::NodeID(pk), ID::NodeID(sk)) => {
+                                    if sk.eq(&pk) {
+                                        value.node = Some(curr.clone());
+                                    } else if let Some(edges) = relation_names {
+                                        for edge in edges {
+                                            value.edges.entry(edge).or_default().push(curr.clone());
                                         }
-                                        (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                            value.constraints.push(curr);
-                                        }
-                                        _ => {}
                                     }
-
-                                    vac.insert(value);
                                 }
-                                Entry::Occupied(mut oqp) => match (pk, sk) {
-                                    (ID::NodeID(pk), ID::NodeID(sk)) => {
-                                        if sk.eq(&pk) {
-                                            oqp.get_mut().node = Some(curr);
-                                        } else if let Some(edges) = relation_names {
-                                            for edge in edges {
-                                                oqp.get_mut().edges.entry(edge).or_default().push(curr.clone());
-                                            }
-                                        }
-                                    }
-                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        oqp.get_mut().constraints.push(curr);
-                                    }
-                                    _ => {}
-                                },
-                            };
+                                (ID::ConstraintID(constraint_id), ID::ConstraintID(_)) => {
+                                    value.constraints.push((constraint_id, curr));
+                                }
+                                _ => {}
+                            }
+
                             Ok((query_key, acc))
                         },
                     );

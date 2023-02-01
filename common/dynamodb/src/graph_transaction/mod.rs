@@ -15,7 +15,6 @@ use graph_entities::{normalize_constraint_value, ConstraintDefinition, Constrain
 use itertools::Itertools;
 use log::info;
 
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::ops::Add;
@@ -71,7 +70,7 @@ pub struct UpdateNodeInput {
     user_defined_item: HashMap<String, AttributeValue>,
     #[derivative(Debug = "ignore")]
     increments: HashMap<String, AttributeValue>,
-    by_id: Option<String>,
+    update_by: Option<ConstraintID<'static>>,
     current_datetime: CurrentDateTime,
 }
 
@@ -93,7 +92,7 @@ impl Hash for UpdateNodeInput {
 pub struct DeleteNodeInput {
     id: String,
     ty: String,
-    by_id: Option<String>,
+    delete_by: Option<ConstraintID<'static>>,
 }
 
 #[derive(Debug, PartialEq, Clone, Hash)]
@@ -189,7 +188,7 @@ impl PossibleChanges {
         id: String,
         user_defined_item: HashMap<String, AttributeValue>,
         increments: HashMap<String, AttributeValue>,
-        by_id: Option<String>,
+        update_by: Option<ConstraintID<'static>>,
         current_datetime: CurrentDateTime,
     ) -> Self {
         Self::UpdateNode(UpdateNodeInput {
@@ -197,13 +196,13 @@ impl PossibleChanges {
             ty,
             user_defined_item,
             increments,
-            by_id,
+            update_by,
             current_datetime,
         })
     }
 
-    pub const fn delete_node(ty: String, id: String, by_id: Option<String>) -> Self {
-        Self::DeleteNode(DeleteNodeInput { id, ty, by_id })
+    pub const fn delete_node(ty: String, id: String, delete_by: Option<ConstraintID<'static>>) -> Self {
+        Self::DeleteNode(DeleteNodeInput { id, ty, delete_by })
     }
 
     pub const fn new_link_cached(
@@ -273,7 +272,7 @@ impl GetIds for InsertNodeInput {
         } in self.constraints
         {
             if let Some(value) = self.user_defined_item.get(&field) {
-                let contraint_id = ConstraintID::from_owned(self.ty.clone(), field, value.clone().into_json());
+                let contraint_id = ConstraintID::from_owned(self.ty.clone(), field.clone(), value.clone().into_json());
                 result.insert(
                     (contraint_id.to_string(), contraint_id.to_string()),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
@@ -281,6 +280,8 @@ impl GetIds for InsertNodeInput {
                             current_datetime: self.current_datetime.clone(),
                             target: pk.clone(),
                             user_defined_item: self.user_defined_item.clone(),
+                            constraint_values: vec![value.clone().into_json().to_string()],
+                            constraint_fields: vec![field],
                         }),
                     )),
                 );
@@ -325,55 +326,51 @@ impl GetIds for UpdateNodeInput {
 
             // specific handling of the constraint that the ID was queried by (if any)
             // to prevent ACID issues
-            if let Some(ref by_id) = self.by_id {
-                if let Ok(constraint_id) = ConstraintID::try_from(by_id.clone()) {
-                    let origin = constraint_id.value();
+            if let Some(constraint_id) = &self.update_by {
+                let updated_value = self
+                    .user_defined_item
+                    .get(constraint_id.field())
+                    .cloned()
+                    .unwrap_or_default()
+                    .into_json();
 
-                    let updated = self
-                        .user_defined_item
-                        .get(constraint_id.field())
-                        .map(std::clone::Clone::clone)
-                        .unwrap_or_default()
-                        .into_json();
+                let new_constraint_id = constraint_id.clone().with_new_value(updated_value.clone());
 
-                    let updated_string = normalize_constraint_value(&updated);
+                if *constraint_id == new_constraint_id {
+                    let constraint_id_string = constraint_id.to_string();
+                    result.insert(
+                        (constraint_id_string.clone(), constraint_id_string),
+                        InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                            UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                current_datetime: self.current_datetime.clone(),
+                                target: pk,
+                                user_defined_item: self.user_defined_item.clone(),
+                                increments: self.increments.clone(),
+                            }),
+                        )),
+                    );
+                } else {
+                    let constraint_id_string = constraint_id.to_string();
+                    result.insert(
+                        (constraint_id_string.clone(), constraint_id_string),
+                        InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                            DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                        )),
+                    );
 
-                    if updated_string == origin {
-                        result.insert(
-                            (constraint_id.to_string(), constraint_id.to_string()),
-                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
-                                UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
-                                    current_datetime: self.current_datetime.clone(),
-                                    target: pk,
-                                    user_defined_item: self.user_defined_item.clone(),
-                                    increments: self.increments.clone(),
-                                }),
-                            )),
-                        );
-                    } else {
-                        result.insert(
-                            (by_id.clone(), by_id.clone()),
-                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
-                                DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
-                            )),
-                        );
-
-                        let new_id = ConstraintID::from_owned(
-                            constraint_id.ty().to_string(),
-                            constraint_id.field().to_string(),
-                            updated,
-                        );
-                        result.insert(
-                            (new_id.to_string(), new_id.to_string()),
-                            InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
-                                InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
-                                    current_datetime: self.current_datetime.clone(),
-                                    target: pk,
-                                    user_defined_item: self.user_defined_item.clone(),
-                                }),
-                            )),
-                        );
-                    }
+                    let constraint_id_string = new_constraint_id.to_string();
+                    result.insert(
+                        (constraint_id_string.clone(), constraint_id_string),
+                        InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                            InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                current_datetime: self.current_datetime.clone(),
+                                target: pk,
+                                user_defined_item: self.user_defined_item.clone(),
+                                constraint_values: vec![normalize_constraint_value(&updated_value)],
+                                constraint_fields: vec![new_constraint_id.field().to_string()],
+                            }),
+                        )),
+                    );
                 }
             }
 
@@ -403,73 +400,66 @@ impl GetIds for UpdateNodeInput {
                     );
                 }
 
-                for mut constraint in val.constraints {
-                    let pk = constraint.remove(PK).and_then(|x| x.s);
-                    let sk = constraint.remove(SK).and_then(|x| x.s);
+                for (constraint_id, mut constraint_row) in val.constraints {
+                    let pk = constraint_row.remove(PK).and_then(|x| x.s);
+                    let sk = constraint_row.remove(SK).and_then(|x| x.s);
 
                     if let (Some(pk), Some(sk)) = (pk, sk) {
                         // skip the constraint that we queried by if any, since it
                         // was already handled above
-                        if let Some(ref by_id) = self.by_id {
-                            if by_id == &pk {
+                        if let Some(update_constraint_id) = &self.update_by {
+                            if constraint_id == *update_constraint_id {
                                 continue;
                             }
                         }
 
-                        if let Ok(constraint_id) = ConstraintID::try_from(pk.clone()) {
-                            let origin = constraint_id.value();
+                        let updated_value = self
+                            .user_defined_item
+                            .get(constraint_id.field())
+                            .map(std::clone::Clone::clone)
+                            .unwrap_or_default()
+                            .into_json();
 
-                            let updated = self
-                                .user_defined_item
-                                .get(constraint_id.field())
-                                .map(std::clone::Clone::clone)
-                                .unwrap_or_default()
-                                .into_json();
+                        let new_constraint_id = constraint_id.clone().with_new_value(updated_value.clone());
 
-                            let updated_string = normalize_constraint_value(&updated);
+                        if constraint_id == new_constraint_id {
+                            result.insert(
+                                (constraint_id.to_string(), constraint_id.to_string()),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
+                                    UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
+                                        current_datetime: self.current_datetime.clone(),
+                                        target: constraint_row
+                                            .remove(constant::INVERTED_INDEX_PK)
+                                            .and_then(|x| x.s)
+                                            .unwrap(),
+                                        user_defined_item: self.user_defined_item.clone(),
+                                        increments: self.increments.clone(),
+                                    }),
+                                )),
+                            );
+                        } else {
+                            result.insert(
+                                (pk, sk),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
+                                    DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
+                                )),
+                            );
 
-                            if updated_string == origin {
-                                result.insert(
-                                    (constraint_id.to_string(), constraint_id.to_string()),
-                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Update(
-                                        UpdateNodeConstraintInternalInput::Unique(UpdateUniqueConstraint {
-                                            current_datetime: self.current_datetime.clone(),
-                                            target: constraint
-                                                .remove(constant::INVERTED_INDEX_PK)
-                                                .and_then(|x| x.s)
-                                                .unwrap(),
-                                            user_defined_item: self.user_defined_item.clone(),
-                                            increments: self.increments.clone(),
-                                        }),
-                                    )),
-                                );
-                            } else {
-                                result.insert(
-                                    (pk, sk),
-                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
-                                        DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
-                                    )),
-                                );
-
-                                let new_id = ConstraintID::from_owned(
-                                    constraint_id.ty().to_string(),
-                                    constraint_id.field().to_string(),
-                                    updated,
-                                );
-                                result.insert(
-                                    (new_id.to_string(), new_id.to_string()),
-                                    InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
-                                        InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
-                                            current_datetime: self.current_datetime.clone(),
-                                            target: constraint
-                                                .remove(constant::INVERTED_INDEX_PK)
-                                                .and_then(|x| x.s)
-                                                .unwrap(),
-                                            user_defined_item: self.user_defined_item.clone(),
-                                        }),
-                                    )),
-                                );
-                            }
+                            result.insert(
+                                (new_constraint_id.to_string(), new_constraint_id.to_string()),
+                                InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
+                                    InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
+                                        current_datetime: self.current_datetime.clone(),
+                                        target: constraint_row
+                                            .remove(constant::INVERTED_INDEX_PK)
+                                            .and_then(|x| x.s)
+                                            .unwrap(),
+                                        user_defined_item: self.user_defined_item.clone(),
+                                        constraint_values: vec![normalize_constraint_value(&updated_value)],
+                                        constraint_fields: vec![new_constraint_id.field().to_string()],
+                                    }),
+                                )),
+                            );
                         }
                     }
                 }
@@ -535,9 +525,10 @@ impl GetIds for DeleteNodeInput {
 
             // specific handling of the constraint that the ID was queried by (if any)
             // to prevent ACID issues
-            if let Some(by_id) = self.by_id.clone() {
+            if let Some(constraint_id) = self.delete_by.clone() {
+                let constraint_id_string = constraint_id.to_string();
                 result.insert(
-                    (by_id.clone(), by_id),
+                    (constraint_id_string.clone(), constraint_id_string),
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Delete(
                         DeleteNodeConstraintInternalInput::Unit(DeleteUnitNodeConstraintInput {}),
                     )),
@@ -601,15 +592,15 @@ impl GetIds for DeleteNodeInput {
                     }
                 }
 
-                for mut constraint in val.constraints {
+                for (constraint_id, mut constraint) in val.constraints {
                     let pk = constraint.remove(PK).and_then(|x| x.s);
                     let sk = constraint.remove(SK).and_then(|x| x.s);
 
                     if let (Some(pk), Some(sk)) = (pk, sk) {
                         // skip the constraint that we queried by if any, since it
                         // was already handled above
-                        if let Some(ref by_id) = self.by_id {
-                            if by_id == &pk {
+                        if let Some(by_id) = &self.delete_by {
+                            if constraint_id == *by_id {
                                 continue;
                             }
                         }
@@ -771,11 +762,18 @@ pub enum ToTransactionError {
     GetItemError(#[from] BatchGetItemLoaderError),
     #[error("{0}")]
     TransactionError(#[from] TransactionError),
-    #[error(r#"The value {value} is already taken on field "{field}""#)]
+
+    #[error(r#"The {} {} {} already taken on {} "{}""#,
+        if .values.len() == 1 { "value" } else { "values"},
+        .values.join(", "),
+        if .values.len() == 1 { "is" } else { "are" },
+        if .fields.len() == 1 { "field" } else { "fields" },
+        .fields.join(", ")
+    )]
     UniqueCondition {
         source: TransactionError,
-        value: String,
-        field: String,
+        values: Vec<String>,
+        fields: Vec<String>,
     },
 }
 
@@ -1116,6 +1114,8 @@ pub struct InsertUniqueConstraint {
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
     pub current_datetime: CurrentDateTime,
+    pub constraint_fields: Vec<String>,
+    pub constraint_values: Vec<String>,
 }
 
 #[derive(Debug, Clone, Derivative, PartialEq)]
@@ -1483,14 +1483,7 @@ async fn execute(
         result
             .into_iter()
             .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
-                cur.into_iter().for_each(|(k, v)| match acc.entry(k) {
-                    Entry::Vacant(vac) => {
-                        vac.insert(vec![v]);
-                    }
-                    Entry::Occupied(mut oqp) => {
-                        oqp.get_mut().push(v);
-                    }
-                });
+                cur.into_iter().for_each(|(k, v)| acc.entry(k).or_default().push(v));
                 acc
             });
 
@@ -1501,16 +1494,9 @@ async fn execute(
         .map(|((pk, sk), val)| val.to_transaction(batchers, ctx, pk, sk))
         .collect();
 
-    let transactions_len = transactions.len();
     let transactions = futures_util::future::try_join_all(transactions).await?;
 
-    let merged: HashMap<TxItem, AttributeValue> =
-        transactions
-            .into_iter()
-            .fold(HashMap::with_capacity(transactions_len), |mut acc, cur| {
-                acc.extend(cur);
-                acc
-            });
+    let merged = itertools::concat(transactions);
 
     Ok(merged)
 }
@@ -1550,14 +1536,7 @@ async fn execute(
         result
             .into_iter()
             .fold(HashMap::with_capacity(selection_len), |mut acc, cur| {
-                cur.into_iter().for_each(|(k, v)| match acc.entry(k) {
-                    Entry::Vacant(vac) => {
-                        vac.insert(vec![v]);
-                    }
-                    Entry::Occupied(mut oqp) => {
-                        oqp.get_mut().push(v);
-                    }
-                });
+                cur.into_iter().for_each(|(k, v)| acc.entry(k).or_default().push(v));
                 acc
             });
 
@@ -1607,10 +1586,10 @@ async fn load_keys(
                 .map_err(|error| match error {
                     MutationError::Surf(_) | MutationError::InternalServerError => ToTransactionError::Unknown,
                     MutationError::Api(api_error) => match api_error.error_kind {
-                        ApiErrorKind::ConstraintViolation(Constraint::Unique { value, field }) => {
+                        ApiErrorKind::ConstraintViolation(Constraint::Unique { values, fields }) => {
                             ToTransactionError::UniqueCondition {
-                                value,
-                                field,
+                                values,
+                                fields,
                                 source: TransactionError::UnknownError,
                             }
                         }

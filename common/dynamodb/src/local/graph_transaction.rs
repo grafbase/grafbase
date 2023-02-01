@@ -497,6 +497,8 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 target,
                 user_defined_item,
                 current_datetime,
+                constraint_fields,
+                constraint_values,
             } = self;
 
             let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
@@ -534,8 +536,8 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 query,
                 values,
                 Some(OperationKind::Constraint(Constraint::Unique {
-                    value: id.value().to_string(),
-                    field: id.field().to_string(),
+                    values: constraint_values,
+                    fields: constraint_fields,
                 })),
             ))
         })

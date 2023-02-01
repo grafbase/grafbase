@@ -10,35 +10,45 @@ pub struct ConstraintDefinition {
 }
 
 pub mod db {
-    use super::super::ID_SEPARATOR;
+    use base64::Engine;
+    use sha2::{Digest, Sha256};
+
     use super::normalize_constraint_value;
     use std::borrow::{Borrow, Cow};
     use std::fmt::Display;
 
-    #[derive(Debug, PartialEq, Eq, Clone)]
+    #[derive(Debug, PartialEq, Eq, Clone, Hash)]
     pub struct ConstraintID<'a> {
-        field: Cow<'a, str>,
         ty: Cow<'a, str>,
-        value: Cow<'a, str>,
+        fields: Vec<Cow<'a, str>>,
+        pub(super) value: Cow<'a, str>,
     }
 
     impl<'a> ConstraintID<'a> {
         pub fn from_owned(ty: String, field: String, value: serde_json::Value) -> Self {
-            let value = normalize_constraint_value(&value);
+            let value =
+                base64::prelude::BASE64_STANDARD_NO_PAD.encode(Sha256::digest(normalize_constraint_value(&value)));
 
             Self {
-                ty: Cow::Owned(ty),
-                field: Cow::Owned(field),
+                ty: Cow::Owned(ty.to_lowercase()),
+                fields: vec![Cow::Owned(field)],
                 value: Cow::Owned(value),
             }
         }
 
-        pub fn value(&self) -> &str {
-            self.value.borrow()
+        #[must_use]
+        pub fn with_new_value(self, value: serde_json::Value) -> Self {
+            let value =
+                base64::prelude::BASE64_STANDARD_NO_PAD.encode(Sha256::digest(normalize_constraint_value(&value)));
+
+            Self {
+                value: Cow::Owned(value),
+                ..self
+            }
         }
 
         pub fn field(&self) -> &str {
-            self.field.borrow()
+            self.fields.get(0).unwrap().borrow()
         }
 
         pub fn ty(&self) -> Cow<'a, str> {
@@ -57,50 +67,68 @@ pub mod db {
     impl<'a> TryFrom<String> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: String) -> Result<Self, Self::Error> {
-            let Some((ty, rest)) = origin.split_once(ID_SEPARATOR) else { return Err(ConstraintIDError::NotAConstraint { origin }) };
+            if !origin.starts_with("__C#V2#") {
+                return parse_constraint_id_v1(&origin).ok_or(ConstraintIDError::NotAConstraint { origin });
+            }
 
-            let Some((field, value)) = rest.split_once(ID_SEPARATOR) else { return Err(ConstraintIDError::NotAConstraint { origin }) };
-
-            Ok(Self {
-                ty: Cow::Owned(ty.to_string()),
-                field: Cow::Owned(field.to_string()),
-                value: Cow::Owned(value.to_string()),
-            })
+            parse_constraint_id_v2(origin.split('#')).ok_or(ConstraintIDError::NotAConstraint { origin })
         }
     }
 
     impl<'a> TryFrom<&'a str> for ConstraintID<'a> {
         type Error = ConstraintIDError;
         fn try_from(origin: &'a str) -> Result<Self, Self::Error> {
-            let Some((ty, rest)) = origin.split_once(ID_SEPARATOR) else {
-                    return Err(ConstraintIDError::NotAConstraint {
-                        origin: origin.to_string(),
-                    })
-                };
+            if !origin.starts_with("__C#V2#") {
+                return parse_constraint_id_v1(origin).ok_or(ConstraintIDError::NotAConstraint {
+                    origin: origin.to_string(),
+                });
+            }
 
-            let Some((field, value)) = rest.split_once(ID_SEPARATOR) else {
-                    return Err(ConstraintIDError::NotAConstraint {
-                        origin: origin.to_string(),
-                    })
-                };
-
-            Ok(Self {
-                ty: Cow::Owned(ty.to_string()),
-                field: Cow::Owned(field.to_string()),
-                value: Cow::Owned(value.to_string()),
+            parse_constraint_id_v2(origin.split('#')).ok_or(ConstraintIDError::NotAConstraint {
+                origin: origin.to_string(),
             })
         }
     }
 
+    /// Parses an older constraint ID
+    fn parse_constraint_id_v1<'a>(origin: &str) -> Option<ConstraintID<'a>> {
+        let (ty, rest) = origin.split_once('_')?;
+
+        let (field, value) = rest.split_once('_')?;
+
+        Some(ConstraintID {
+            ty: Cow::Owned(ty.to_string()),
+            fields: vec![Cow::Owned(field.to_string())],
+            value: Cow::Owned(value.to_string()),
+        })
+    }
+
+    fn parse_constraint_id_v2<'a>(sections: impl Iterator<Item = &'a str>) -> Option<ConstraintID<'static>> {
+        // First 2 sections are `__C#V2#` so skip them
+        let mut sections = sections.skip(2);
+
+        let ty = sections.next()?;
+        let mut fields = sections.collect::<Vec<_>>();
+        let value = fields.pop()?;
+
+        if fields.is_empty() {
+            return None;
+        }
+
+        Some(ConstraintID {
+            ty: Cow::Owned(ty.to_string()),
+            fields: fields.into_iter().map(|f| Cow::Owned(f.to_string())).collect(),
+            value: Cow::Owned(value.to_string()),
+        })
+    }
+
     impl<'a> Display for ConstraintID<'a> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(
-                f,
-                "{}{ID_SEPARATOR}{}{ID_SEPARATOR}{}",
-                self.ty.to_lowercase(),
-                self.field,
-                self.value
-            )
+            write!(f, "__C#V2#{}#", self.ty)?;
+            for field in &self.fields {
+                write!(f, "{field}#")?;
+            }
+            write!(f, "{}", self.value)
         }
     }
 }
@@ -118,25 +146,43 @@ mod tests {
     use super::db::ConstraintID;
 
     #[test]
-    fn ensure_constraint_new() {
-        const TEST_TY: &str = "author_name_Val_1";
-
+    fn test_string_roundtrip() {
         let id = ConstraintID::from_owned(
             "Author".into(),
             "name".into(),
             serde_json::Value::String("Val_1".into()),
         );
 
-        assert_eq!(id.to_string(), TEST_TY, "Should give the same result");
+        assert_eq!(
+            ConstraintID::try_from(id.to_string()).unwrap(),
+            id,
+            "Constraint ID should survive a roundtrip via a String"
+        );
     }
 
     #[test]
-    fn ensure_constraint_from_string() {
-        const TEST_TY: &str = "author_name_Val";
+    fn test_str_roundtrip() {
+        let id = ConstraintID::from_owned(
+            "Author".into(),
+            "name".into(),
+            serde_json::Value::String("Val_1".into()),
+        );
 
-        let id = ConstraintID::try_from(TEST_TY.to_string());
+        assert_eq!(
+            ConstraintID::try_from(id.to_string().as_str()).unwrap(),
+            id,
+            "Constraint ID should survive a roundtrip via a str"
+        );
+    }
 
-        assert!(id.is_ok(), "Id should be transformed");
-        assert_eq!(id.unwrap().to_string(), TEST_TY, "Should give the same result");
+    #[test]
+    fn test_can_load_v1_constraints() {
+        const V1_CONSTRAINT: &str = "author_name_Val_1";
+
+        let constraint = ConstraintID::try_from(V1_CONSTRAINT).expect("to be able to parse v1 ConstraintIDs");
+
+        assert_eq!(constraint.ty(), "author");
+        assert_eq!(constraint.field(), "name");
+        assert_eq!(constraint.value, "Val_1");
     }
 }

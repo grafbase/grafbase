@@ -567,6 +567,8 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 target,
                 mut user_defined_item,
                 current_datetime,
+                constraint_values,
+                constraint_fields,
             } = self;
 
             let id = ConstraintID::try_from(pk).expect("Wrong Constraint ID");
@@ -587,8 +589,8 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 sk: id.to_string(),
                 relation_name: None,
                 metadata: TxItemMetadata::Unique {
-                    value: id.value().to_string(),
-                    field: id.field().to_string(),
+                    values: constraint_values.clone(),
+                    fields: constraint_fields.clone(),
                 },
                 transaction: TransactWriteItem {
                     // We can do a Put here because we only have the Unique constraint, as soon
@@ -611,8 +613,8 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
                 .await
                 .map_err(|err| ToTransactionError::UniqueCondition {
                     source: err,
-                    value: id.value().to_string(),
-                    field: id.field().to_string(),
+                    values: constraint_values,
+                    fields: constraint_fields,
                 })
         })
     }

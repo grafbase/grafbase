@@ -4,7 +4,6 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::{DynamoDBRequestedIndex, LocalContext};
 use dynomite::AttributeValue;
 use graph_entities::ID;
-use indexmap::map::Entry;
 use indexmap::IndexMap;
 use maplit::hashmap;
 use quick_error::quick_error;
@@ -31,6 +30,16 @@ pub struct QueryValue {
     pub edges: IndexMap<String, Vec<HashMap<String, AttributeValue>>>,
     /// Constraints are other kind of row we can store, it'll add data over a node
     pub constraints: Vec<HashMap<String, AttributeValue>>,
+}
+
+impl Default for QueryValue {
+    fn default() -> Self {
+        QueryValue {
+            node: None,
+            constraints: Vec::new(),
+            edges: IndexMap::with_capacity(5),
+        }
+    }
 }
 
 pub struct QueryTypeLoader {
@@ -121,52 +130,28 @@ impl Loader<QueryTypeKey> for QueryTypeLoader {
                         let sk = ID::try_from(current.sk.clone()).expect("can't fail");
                         let relation_names = current.relation_names.clone();
 
-                        match accumulator.values.entry(pk.to_string()) {
-                            Entry::Vacant(vacant) => {
-                                let mut value = QueryValue {
-                                    node: None,
-                                    edges: IndexMap::with_capacity(5),
-                                    constraints: Vec::new(),
-                                };
-                                match (pk, sk) {
-                                    (ID::NodeID(_), ID::NodeID(sk)) => {
-                                        if sk.ty() == *query_key.ty() {
-                                            value.node = Some(current.document.clone());
-                                        } else if let Some(edge) =
-                                            query_key.edges.iter().find(|edge| relation_names.contains(edge))
-                                        {
-                                            value.edges.insert(edge.clone(), vec![current.document.clone()]);
-                                        }
-                                    }
-                                    (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                        value.constraints.push(current.document.clone());
-                                    }
-                                    _ => {}
-                                }
+                        let value = accumulator.values.entry(pk.to_string()).or_default();
 
-                                vacant.insert(value);
+                        match (pk, sk) {
+                            (ID::NodeID(_), ID::NodeID(sk)) => {
+                                if sk.ty() == *query_key.ty() {
+                                    value.node = Some(current.document.clone());
+                                } else if let Some(edge) =
+                                    query_key.edges.iter().find(|edge| relation_names.contains(edge))
+                                {
+                                    value
+                                        .edges
+                                        .entry(edge.clone())
+                                        .or_default()
+                                        .push(current.document.clone());
+                                }
                             }
-                            Entry::Occupied(mut occupied) => match (pk, sk) {
-                                (ID::NodeID(_), ID::NodeID(sk)) => {
-                                    if sk.ty() == *query_key.ty() {
-                                        occupied.get_mut().node = Some(current.document.clone());
-                                    } else if let Some(edge) =
-                                        query_key.edges.iter().find(|edge| relation_names.contains(edge))
-                                    {
-                                        occupied
-                                            .get_mut()
-                                            .edges
-                                            .entry(edge.clone())
-                                            .or_default()
-                                            .push(current.document.clone());
-                                    }
-                                }
-                                (ID::ConstraintID(_), ID::ConstraintID(_)) => {
-                                    occupied.get_mut().constraints.push(current.document.clone());
-                                }
-                                _ => {}
-                            },
+                            (ID::ConstraintID(_), ID::ConstraintID(_)) => {
+                                value.constraints.push(current.document.clone());
+                            }
+                            _ => {}
                         }
+
                         Ok::<_, QueryTypeLoaderError>((query_key, accumulator))
                     },
                 )
