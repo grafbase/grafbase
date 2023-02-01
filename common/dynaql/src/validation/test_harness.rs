@@ -406,19 +406,28 @@ macro_rules! expect_passes_rule {
     };
 }
 
-pub(crate) fn expect_fails_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F)
+pub(crate) fn expect_fails_rule_<'a, V, F>(doc: &'a ExecutableDocument, factory: F) -> String
 where
     V: Visitor<'a> + 'a,
     F: Fn() -> V,
 {
-    if validate(doc, factory).is_ok() {
+    let result = validate(doc, factory);
+    if result.is_ok() {
         panic!("Expected rule to fail, but no errors were found");
     }
+    result.unwrap_err().first().unwrap().message.clone()
 }
 
 macro_rules! expect_fails_rule {
     ($factory:expr, $query_source:literal $(,)?) => {
         let doc = crate::parser::parse_query($query_source).expect("Parse error");
         crate::validation::test_harness::expect_fails_rule_(&doc, $factory);
+    };
+    ($factory:expr, $query_source:literal, $error:literal) => {
+        let doc = crate::parser::parse_query($query_source).expect("Parse error");
+        assert_eq!(
+            crate::validation::test_harness::expect_fails_rule_(&doc, $factory),
+            $error
+        );
     };
 }
