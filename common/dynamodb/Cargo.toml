@@ -46,7 +46,7 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 tokio = { version = "1", optional = true }
 # feature="local"
 cfg-if = "1"
-indoc = { version = "1", optional = true }
+indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
