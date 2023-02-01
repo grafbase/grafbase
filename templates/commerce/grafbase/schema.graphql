@@ -13,7 +13,7 @@ type Address @model {
 type Cart @model {
   customer: Customer
   order: Order
-  lineItems: [CartLineItem]
+  lineItems: [LineItem]
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
@@ -26,26 +26,19 @@ type Customer @model {
   email: Email! @unique
   phoneNumber: String
   billingAddress: Address
-  carts: [Cart]
 }
 
 type Order @model {
   cart: Cart
-  lineItems: [OrderLineItem]
+  lineItems: [LineItem]
   shippingTotal: Float!
   discountTotal: Float!
   total: Float!
   currency: String!
 }
 
-type OrderLineItem @model {
+type LineItem @model {
   order: Order!
-  variant: Variant!
-  quantity: Int!
-}
-
-type CartLineItem @model {
-  cart: Cart!
   variant: Variant!
   quantity: Int!
 }

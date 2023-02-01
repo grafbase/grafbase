@@ -3,7 +3,6 @@ type User @model {
   email: Email! @unique
   posts: [Post]
   comments: [Comment]
-  votes: [Vote]
 }
 
 type Post @model {
