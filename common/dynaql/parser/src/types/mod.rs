@@ -11,6 +11,7 @@ mod service;
 
 use crate::pos::Positioned;
 use dynaql_value::{ConstValue, Name, Value};
+use serde::{Deserialize, Serialize};
 use std::collections::{hash_map, HashMap};
 use std::fmt::{self, Display, Formatter, Write};
 
@@ -20,7 +21,7 @@ pub use service::*;
 /// The type of an operation; `query`, `mutation` or `subscription`.
 ///
 /// [Reference](https://spec.graphql.org/October2021/#OperationType).
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Serialize, Deserialize)]
 pub enum OperationType {
     /// A query.
     Query,
