@@ -526,7 +526,7 @@ impl ResolverTrait for DynamoResolver {
                         .and_then(|constraint| {
                             constraint.extract_id_from_by_input_field(ctx_ty.name(), value)
                         })
-                        .expect("can this happen?  TODO: find out");
+                        .expect("constraint fields to be in the input");
 
                     let pk = constraint_id.to_string();
                     let sk = pk.clone();
