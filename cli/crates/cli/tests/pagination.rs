@@ -26,7 +26,7 @@ fn pagination() {
             })
             .to_string(),
         );
-        buffer.push(dot_get!(dbg!(response), "data.todoCreate.todo.id", String));
+        buffer.push(dot_get!(response, "data.todoCreate.todo.id", String));
         buffer
     });
 

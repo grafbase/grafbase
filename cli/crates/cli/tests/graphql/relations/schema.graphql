@@ -9,5 +9,4 @@ type Author @model {
   id: ID!
   name: String!
   blogs: [Blog] @relation(name: "authors")
-  blogsWhereSecondaryAuthor: [Blog] @relation(name: "secondaryAuthors")
 }
