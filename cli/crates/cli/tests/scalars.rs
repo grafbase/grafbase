@@ -46,11 +46,7 @@ impl TestCase {
         match expected {
             Ok(expected) => {
                 let result: Value = dot_get!(response, &format!("data.scalarsCreate.scalars.{}", &ty));
-                assert_eq!(
-                    result, expected,
-                    "{}: expected {:#?} but got {:#?}",
-                    ty, expected, result
-                );
+                assert_eq!(result, expected, "{ty}: expected {expected:#?} but got {result:#?}",);
             }
             Err(regex) => {
                 // Clippy doesn't like the format call within expect but the suggest alternative of
@@ -58,12 +54,7 @@ impl TestCase {
                 #[allow(clippy::expect_fun_call)]
                 let result = dot_get_opt!(response, "errors.0.message", String)
                     .expect(&format!("No errors for '{ty}' with: {input:#?}"));
-                assert!(
-                    regex.is_match(&result),
-                    "'{}' didn't match the pattern '{}'",
-                    result,
-                    regex
-                );
+                assert!(regex.is_match(&result), "'{result}' didn't match the pattern '{regex}'");
             }
         }
     }
