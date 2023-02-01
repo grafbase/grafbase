@@ -7,7 +7,6 @@ type Author {
 	lastname: String!
 	country: Country!
 	posts(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): PostConnection
-	blogsOwned(after: String, before: String, first: Int, last: Int, orderBy: AuthorOrderByInput): BlogConnection
 	"""
 	Unique identifier
 	"""
@@ -39,7 +38,6 @@ input AuthorCreateInput {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
-	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 type AuthorCreatePayload {
 	author: Author
@@ -62,26 +60,12 @@ input AuthorToBlogCreateAuthor {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
-	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
 Input to link to or create a Author for the AuthorToBlog relation of Blog
 """
 input AuthorToBlogCreateAuthorRelation {
 	create: AuthorToBlogCreateAuthor
-	link: ID
-}
-"""
-Input to create a Blog for the AuthorToBlog relation of Author
-"""
-input AuthorToBlogCreateBlog {
-	posts: [BlogToPostCreatePostRelation]
-}
-"""
-Input to link to or create a Blog for the AuthorToBlog relation of Author
-"""
-input AuthorToBlogCreateBlogRelation {
-	create: AuthorToBlogCreateBlog
 	link: ID
 }
 """
@@ -93,14 +77,6 @@ input AuthorToBlogUpdateAuthorRelation {
 	unlink: ID
 }
 """
-Input to link/unlink to or create a Blog for the AuthorToBlog relation of Author
-"""
-input AuthorToBlogUpdateBlogRelation {
-	create: AuthorToBlogCreateBlog
-	link: ID
-	unlink: ID
-}
-"""
 Input to update a Author
 """
 input AuthorUpdateInput {
@@ -108,7 +84,6 @@ input AuthorUpdateInput {
 	lastname: String
 	country: Country
 	posts: [PublishedUpdatePostRelation]
-	blogsOwned: [AuthorToBlogUpdateBlogRelation]
 }
 type AuthorUpdatePayload {
 	author: Author
@@ -348,7 +323,6 @@ input PublishedCreateAuthor {
 	lastname: String!
 	country: Country!
 	posts: [PublishedCreatePostRelation]
-	blogsOwned: [AuthorToBlogCreateBlogRelation]
 }
 """
 Input to link to or create a Author for the published relation of Post
