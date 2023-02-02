@@ -1,5 +1,4 @@
 use dynaql_parser::Positioned;
-
 use query_planning::logical_plan::builder::LogicalPlanBuilder;
 use query_planning::logical_plan::LogicalPlan;
 use query_planning::logical_query::{
@@ -7,7 +6,6 @@ use query_planning::logical_query::{
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
 use query_planning::scalar::ScalarValue;
-
 use std::sync::Arc;
 
 use crate::parser::types::Selection;

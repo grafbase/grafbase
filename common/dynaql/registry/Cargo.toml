@@ -1,0 +1,13 @@
+[package]
+name = "dynaql-registry"
+version = "3.0.31"
+authors = ["Grafbase"]
+edition = "2021"
+description = "Registry Entity for Dynaql"
+license = "MIT/Apache-2.0"
+
+[dependencies]
+dynaql-value = { path = "../value", version = "3" }
+pest = "2"
+pest_derive = "2"
+serde = { workspace = true }

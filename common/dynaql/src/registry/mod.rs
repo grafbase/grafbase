@@ -380,6 +380,13 @@ impl CurrentResolverType {
     }
 }
 
+impl MetaType {
+    /// Resolve the actual type
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
+        todo!()
+    }
+}
+
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
