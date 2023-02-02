@@ -13,7 +13,7 @@ categories = ["network-programming", "asynchronous"]
 readme = "README.md"
 
 [features]
-default = []
+default = ["query-planning"]
 apollo_tracing = []
 apollo_persisted_queries = ["lru", "sha2"]
 unblock = ["blocking"]
@@ -28,6 +28,7 @@ unstable_oneof = ["dynaql-derive/unstable_oneof"]
 tracing_worker = ["logworker"]
 tokio_runtime = ["dynamodb/tokio_runtime"]
 wasm_runtime = ["dynamodb/wasm_runtime"]
+query-planning = ["dep:query-planning"]
 
 [dependencies]
 dynaql-derive = { path = "derive", version = "3" }
@@ -75,6 +76,7 @@ unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 
 # API dependencies
+query-planning = { path = "../query-planing", optional = true }
 dynamodb = { path = "../dynamodb" }
 graph-entities = { path = "../graph-entities" }
 logworker = { path = "../log", package = "log", optional = true }

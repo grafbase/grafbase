@@ -27,6 +27,9 @@ use crate::{
     QueryEnv, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
 
+#[cfg(feature = "query-planning")]
+use query_planning::logical_query::LogicalQuery;
+
 /// Schema builder
 pub struct SchemaBuilder {
     validation_mode: ValidationMode,
@@ -582,6 +585,13 @@ impl Schema {
         }
         remove_skipped_selection(&mut operation.node.selection_set.node, &request.variables);
 
+        // We could have the whole flow here to create the LogicalQuery
+        // As the rules passed, we could in theory have a working LogicalQuery
+        //
+        // Then we can pass it along with other variables to an execution layer
+        // Or just print it for now.
+        // LogicalQuery::build(document, registry);
+
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
@@ -642,6 +652,56 @@ impl Schema {
         resp
     }
 
+    /// LogicalQuery execution mechanism, we'll visit each node with the context
+    /// of the actual query and the schema, then it'll create the actual
+    /// [`LogicalQuery`] to be execute or give back an error.
+    ///
+    /// Theorically there shouldn't have any errors as we validate the GraphQL
+    /// query before executing it.
+    #[cfg(feature = "query-planning")]
+    async fn logical_query(&self, env: QueryEnv) -> LogicalQuery {
+        let ctx = ContextBase {
+            path_node: None,
+            resolver_node: None,
+            item: &env.operation.node.selection_set,
+            schema_env: &self.env,
+            query_env: &env,
+            resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
+            resolvers_data: Default::default(),
+            response_graph: Arc::new(RwLock::new(QueryResponse::default())),
+        };
+
+        let query = ctx.registry().query_root();
+
+        let res = match &env.operation.node.ty {
+            OperationType::Query => resolve_container(&ctx, query, None).await,
+            OperationType::Mutation => {
+                resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await
+            }
+            OperationType::Subscription => Err(ServerError::new(
+                "Subscriptions are not supported on this transport.",
+                None,
+            )),
+        };
+
+        let mut resp = match res {
+            Ok(value) => {
+                let response = &mut *ctx.response_graph.write().await;
+                response.set_root_unchecked(value);
+                let a = QueryResponse::default();
+                let b = std::mem::replace(response, a);
+                Response::new(b)
+            }
+            Err(err) => Response::from_errors(vec![err]),
+        }
+        .http_headers(std::mem::take(&mut *env.http_headers.lock().unwrap()));
+
+        resp.errors
+            .extend(std::mem::take(&mut *env.errors.lock().unwrap()));
+
+        todo!()
+    }
+
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
@@ -654,6 +714,10 @@ impl Schema {
                     .await
                 {
                     Ok((env, cache_control)) => {
+                        // After the request is ready, we start the creation of the Logic
+                        #[cfg(feature = "query-planning")]
+                        let a = self.logical_query(env.clone()).await;
+
                         let fut = async {
                             self.execute_once(env.clone())
                                 .await

@@ -372,6 +372,13 @@ impl CurrentResolverType {
     }
 }
 
+impl MetaType {
+    /// Resolve the actual type
+    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
+        todo!()
+    }
+}
+
 impl MetaField {
     /// The whole logic to link resolver and transformers for each fields.
     pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
@@ -1171,6 +1178,8 @@ pub struct MetaDirective {
     pub visible: Option<MetaVisibleFn>,
 }
 
+// TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
+// for a LogicalQuery
 #[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
@@ -1195,6 +1204,14 @@ impl Registry {
         self.types
             .get(self.mutation_type.as_deref().unwrap())
             .unwrap()
+    }
+
+    pub fn associate_node_id_to_ty<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
+        let ty = node_id.ty();
+        self.types
+            .iter()
+            .find(|(key, value)| key.to_lowercase() == ty)
+            .map(|(_, val)| val)
     }
 
     /// Function ran when resolving a field.

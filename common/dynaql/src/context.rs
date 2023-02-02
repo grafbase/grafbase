@@ -39,6 +39,11 @@ use crate::{
     ServerResult, UploadValue, Value,
 };
 
+#[cfg(feature = "query-planning")]
+use query_planning::logical_plan::LogicalPlan;
+#[cfg(feature = "query-planning")]
+use query_planning::logical_query::SelectionPlan;
+
 /// Data related functions of the context.
 pub trait DataContext<'a> {
     /// Gets the global data defined in the `Context` or `Schema`.
@@ -796,7 +801,9 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
             response_graph: self.response_graph.clone(),
         }
     }
+}
 
+impl<'a, T> ContextBase<'a, T> {
     /// Get the registry
     pub fn registry(&'a self) -> &'a Registry {
         &self.schema_env.registry
@@ -804,9 +811,25 @@ impl<'a> ContextBase<'a, &'a Positioned<SelectionSet>> {
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
-    /// Get the registry
-    pub fn registry(&'a self) -> &'a Registry {
-        &self.schema_env.registry
+    #[cfg(feature = "query-planning")]
+    pub fn to_selection_plan(
+        &self,
+        root: &'a MetaType,
+        preivous_plan: Option<Arc<LogicalPlan>>,
+    ) -> Positioned<SelectionPlan> {
+        todo!()
+    }
+
+    #[cfg(feature = "query-planning")]
+    /// Convert the actual field to a [`LogicalPlan`] by looking at the corresponding type on the
+    /// schema.
+    pub fn to_logic_plan(
+        &self,
+        parent_type: &MetaType,
+        preivous_plan: Option<Arc<LogicalPlan>>,
+    ) -> ServerResult<LogicalPlan> {
+        // Take the associated metafield, convert the resolver to a LogicPlan
+        todo!()
     }
 
     #[doc(hidden)]
