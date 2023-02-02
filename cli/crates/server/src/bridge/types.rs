@@ -60,3 +60,33 @@ pub struct Record {
     pub created_at: String,
     pub updated_at: String,
 }
+
+#[derive(sqlx::FromRow, Serialize, Deserialize, Debug)]
+pub struct RecordDocument {
+    pub id: String,
+    pub document: Value,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchRequest {
+    pub raw_query: String,
+    pub limit: u64,
+    pub entity_type: String,
+    pub schema: SearchSchema,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SearchResponse {
+    pub matching_records: Vec<String>,
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+pub struct SearchSchema {
+    pub fields: Vec<SearchField>,
+}
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+pub struct SearchField {
+    pub name: String,
+    pub r#type: String,
+}

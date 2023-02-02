@@ -54,6 +54,14 @@ pub const SCALARS_SCHEMA: &str = include_str!("../graphql/scalars/schema.graphql
 pub const SCALARS_CREATE_OPTIONAL: &str = include_str!("../graphql/scalars/create-optional.graphql");
 pub const SCALARS_CREATE_REQUIRED: &str = include_str!("../graphql/scalars/create-required.graphql");
 
+pub const SEARCH_SCHEMA: &str = include_str!("../graphql/search/schema.graphql");
+pub const SEARCH_CREATE_LIST: &str = include_str!("../graphql/search/create-list.graphql");
+pub const SEARCH_SEARCH_LIST: &str = include_str!("../graphql/search/search-list.graphql");
+pub const SEARCH_CREATE_REQUIRED: &str = include_str!("../graphql/search/create-required.graphql");
+pub const SEARCH_SEARCH_REQUIRED: &str = include_str!("../graphql/search/search-required.graphql");
+pub const SEARCH_CREATE_OPTIONAL: &str = include_str!("../graphql/search/create-optional.graphql");
+pub const SEARCH_SEARCH_OPTIONAL: &str = include_str!("../graphql/search/search-optional.graphql");
+
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
 pub const JWT_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/schema.graphql");

@@ -17,7 +17,10 @@ pub enum ApiError {
     User(UserError),
     /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
-    LogicError(SqlxError),
+    SqlError(SqlxError),
+
+    #[error("server error")]
+    ServerError,
 }
 
 #[derive(Serialize, Debug)]
@@ -27,7 +30,7 @@ pub enum UserError {
 
 impl From<SqlxError> for ApiError {
     fn from(error: SqlxError) -> Self {
-        Self::LogicError(error)
+        Self::SqlError(error)
     }
 }
 
@@ -42,7 +45,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
-            ApiError::LogicError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            ApiError::SqlError(_) | ApiError::ServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }
 }
@@ -54,9 +57,9 @@ impl ApiError {
                 Some(extended_error_codes::SQLITE_CONSTRAINT_PRIMARYKEY) => {
                     ApiError::User(UserError::ConstraintViolation(constraint))
                 }
-                _ => ApiError::LogicError(error),
+                _ => ApiError::SqlError(error),
             },
-            _ => ApiError::LogicError(error),
+            _ => ApiError::SqlError(error),
         }
     }
 }

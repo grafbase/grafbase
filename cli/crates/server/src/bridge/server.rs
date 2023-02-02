@@ -1,5 +1,6 @@
 use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
-use super::types::{Mutation, Operation, Record};
+use super::search::Index;
+use super::types::{Mutation, Operation, Record, SearchRequest, SearchResponse};
 use crate::bridge::errors::ApiError;
 use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
@@ -8,11 +9,14 @@ use crate::event::{wait_for_event, Event};
 use axum::extract::State;
 use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
+
 use common::environment::Environment;
+
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+
 use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
@@ -79,6 +83,20 @@ async fn mutation_endpoint(
     Ok(StatusCode::OK)
 }
 
+async fn search_endpoint(
+    State(pool): State<Arc<SqlitePool>>,
+    Json(query): Json<SearchRequest>,
+) -> Result<Json<SearchResponse>, ApiError> {
+    // Good enough for any sane limit.
+    #[allow(clippy::cast_possible_truncation)]
+    let limit = query.limit as usize;
+
+    let matching_records = Index::build(pool.as_ref(), &query.entity_type, &query.schema)
+        .await?
+        .search_top_records(&query.raw_query, limit)?;
+    Ok(Json(SearchResponse { matching_records }))
+}
+
 pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
@@ -104,6 +122,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
+        .route("/search", post(search_endpoint))
         .with_state(Arc::clone(&pool))
         .layer(TraceLayer::new_for_http());
 
