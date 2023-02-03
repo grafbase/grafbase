@@ -71,7 +71,7 @@ tempfile = "3"
 thiserror = { workspace = true }
 ulid = { version = "1", features = ["wasm"] }
 url = { version = "2" }
-unindent = "0.1"
+unindent = "0.2"
 
 # API dependencies
 dynamodb = { path = "../dynamodb" }
