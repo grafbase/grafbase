@@ -77,24 +77,33 @@ impl Environment {
             .unwrap()
     }
 
-    pub fn grafbase_init_template_output(&self, template: &str) -> Output {
-        cmd!(cargo_bin("grafbase"), "init", "--template", template)
-            .dir(&self.directory)
-            .stderr_capture()
-            .unchecked()
-            .run()
-            .unwrap()
+    pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {
+        if let Some(name) = name {
+            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
+        } else {
+            cmd!(cargo_bin("grafbase"), "init", "--template", template)
+        }
+        .dir(&self.directory)
+        .stderr_capture()
+        .unchecked()
+        .run()
+        .unwrap()
     }
 
-    pub fn grafbase_init_template(&self, template: &str) {
-        cmd!(cargo_bin("grafbase"), "init", "--template", template)
-            .dir(&self.directory)
-            .run()
-            .unwrap();
+    pub fn grafbase_init_template(&self, name: Option<&str>, template: &str) {
+        if let Some(name) = name {
+            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
+        } else {
+            cmd!(cargo_bin("grafbase"), "init", "--template", template)
+        }
+        .dir(&self.directory)
+        .run()
+        .unwrap();
     }
 
-    pub fn remove_grafbase_dir(&self) {
-        fs::remove_dir_all(self.directory.join("grafbase")).unwrap();
+    pub fn remove_grafbase_dir(&self, name: Option<&str>) {
+        let directory = name.map_or_else(|| self.directory.join("grafbase"), |name| self.directory.join(name));
+        fs::remove_dir_all(directory).unwrap();
     }
 
     pub fn grafbase_dev(&mut self) {

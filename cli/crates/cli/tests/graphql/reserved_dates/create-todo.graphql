@@ -1,0 +1,10 @@
+mutation TodoCreate($title: String!) {
+  todoCreate(input: { title: $title, complete: true }) {
+    todo {
+      id
+      title
+      createdAt
+      updatedAt
+    }
+  }
+}

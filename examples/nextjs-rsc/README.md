@@ -10,7 +10,7 @@ This example uses Next.js 13 experimental `app` directory &mdash; [read more](ht
 
 1. Run `npx degit grafbase/grafbase/examples/nextjs-rsc grafbase-with-nextjs-rsc` to clone this example
 2. Change directory into the new folder `cd grafbase-with-nextjs-rsc`
-3. Run `cp .env.example .env` to copy the example `.env.example` file to `.env`
+3. Run `cp .env.example .env`
 4. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
 5. Run `npm install` or `yarn install` to install dependencies
 6. Run `npx grafbase@latest dev` in your terminal

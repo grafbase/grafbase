@@ -1,0 +1,40 @@
+name: Sanitize CLI
+description: Run cargo fmt, clippy, test
+
+inputs:
+  working-directory:
+    required: false
+    default: cli
+    description: Where to run cargo
+  lint:
+    required: false
+    default: "true"
+    description: To run fmt/clippy or not to run
+  test:
+    required: false
+    default: "true"
+    description: To run test or not to run
+
+runs:
+  using: 'composite'
+  steps:
+    - if: ${{ inputs.lint == 'true' }}
+      name: cargo fmt
+      shell: bash
+      run: |
+        cd ${{ inputs.working-directory }}
+        cargo fmt --check
+
+    - if: ${{ inputs.lint == 'true' }}
+      name: cargo clippy
+      shell: bash
+      run: |
+        cd ${{ inputs.working-directory }}
+        cargo clippy --locked --all-targets --tests -- -D warnings
+
+    - if: ${{ inputs.test == 'true' }}
+      name: cargo nextest
+      shell: bash
+      run: |
+        cd ${{ inputs.working-directory }}
+        cargo nextest run --profile ci

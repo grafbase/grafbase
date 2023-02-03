@@ -24,16 +24,19 @@
 
 See how easy it is to use Grafbase with the frontend frameworks you already know and love.
 
-| Example                                                     | Description                                                                                       |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [Fresh](/examples/fresh)                                    | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL. |
-| [NextAuth.js Credentials](/examples/nextauthjs-credentials) | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                |
-| [Next.js](/examples/nextjs)                                 | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.     |
-| [Next.js RSC](/examples/nextjs-rsc)                         | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.   |
-| [Nuxt](/examples/nuxt)                                      | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.          |
-| [Remix](/examples/remix)                                    | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.        |
-| [SolidStart](/examples/solid-start)                         | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.               |
-| [SvelteKit](/examples/sveltekit)                            | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.   |
+| Example                                                       | Description                                                                                                                       |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| [Eleventy](/examples/eleventy)                                | Build static sites using [11ty](https://www.11ty.dev) with data from Grafbase.                                                    |
+| [Fresh](/examples/fresh)                                      | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL.                                 |
+| [NextAuth.js Credentials](/examples/nextauthjs-credentials)   | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                                                |
+| [NextAuth.js JWT Provider](/examples/nextauthjs-jwt-provider) | Use [NextAuth.js](https://nextauth.js.org) as your Grafbase JWT auth provider.                                                    |
+| [Next.js](/examples/nextjs)                                   | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.                                     |
+| [Next.js RSC](/examples/nextjs-rsc)                           | Use React Server Components with [Next.js](https://grafbase.com/frameworks/nextjs) and GraphQL.                                   |
+| [Nuxt](/examples/nuxt)                                        | Build and scale your [Nuxt](https://grafbase.com/frameworks/nuxt) backend with Grafbase.                                          |
+| [Qwik](/examples/qwik)                                        | Use [Qwik](https://qwik.builder.io) + [Qwik City](https://qwik.builder.io/qwikcity/overview/) to build a performant app at scale. |
+| [Remix](/examples/remix)                                      | Build and scale your [Remix](https://grafbase.com/frameworks/remix) backend with Grafbase.                                        |
+| [SolidStart](/examples/solid-start)                           | Build and scale your [SolidStart](https://start.solidjs.com) backend with Grafbase.                                               |
+| [SvelteKit](/examples/sveltekit)                              | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.                                   |
 
 ## Features & Integrations
 

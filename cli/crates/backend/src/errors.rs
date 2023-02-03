@@ -27,23 +27,27 @@ pub enum BackendError {
     #[error("{0} already exists")]
     ProjectDirectoryExists(PathBuf),
 
-    /// returned if the current directory path cannot be read
+    /// returned if the current directory path could not be read
     #[error("could not read the current path")]
     ReadCurrentDirectory,
 
-    /// returned if the grafbase directory cannot be created
-    #[error("could not create a Grafbase directory\ncaused by: {0}")]
+    /// returned if the grafbase directory could not be created
+    #[error("could not create the 'grafbase' directory\ncaused by: {0}")]
     CreateGrafbaseDirectory(io::Error),
 
-    /// returned if a schema.graphql file cannot be created
+    /// returned if the project directory could not be created
+    #[error("could not create the project directory\ncaused by: {0}")]
+    CreateProjectDirectory(io::Error),
+
+    /// returned if a schema.graphql file could not be created
     #[error("could not create a schema.graphql file\ncaused by: {0}")]
     WriteSchema(io::Error),
 
-    /// returned if the dot grafbase directory cannot be deleted
+    /// returned if the dot grafbase directory could not be deleted
     #[error("could not delete the .grafbase directory\ncaused by: {0}")]
     DeleteDotGrafbaseDirectory(io::Error),
 
-    /// returned if the grafbase directory for the project cannot be deleted
+    /// returned if the grafbase directory for the project could not be deleted
     #[error("could not delete the grafbase directory\ncaused by: {0}")]
     DeleteGrafbaseDirectory(io::Error),
 
@@ -62,10 +66,6 @@ pub enum BackendError {
     /// returned if a repo tar could not be downloaded
     #[error("could not download the archive for '{0}'")]
     DownloadRepoArchive(String),
-
-    /// returned if a repo tar could not be stored
-    #[error("could not store the archive for '{0}'\ncaused by: {1}")]
-    StoreRepoArchive(String, std::io::Error),
 
     // since this is checked by looking for the extracted files on disk (extraction errors are checked beforehand),
     // may have unlikely false positives if the files were deleted or moved by an external process immediately after extraction.
@@ -92,28 +92,45 @@ pub enum BackendError {
     /// returned if the files extracted from the template repository archive could not be cleaned
     #[error("could not clean the files extracted from the repository archive\ncaused by: {0}")]
     CleanExtractedFiles(io::Error),
+
+    /// returned if the request to get the information for a repository could not be sent
+    #[error("could not get the repository information for {0}")]
+    StartGetRepositoryInformation(String),
+
+    /// returned if the request to get the information for a repository returned a non 200-299 status
+    #[error("could not get the repository information for {0}")]
+    GetRepositoryInformation(String),
+
+    /// returned if the request to get the information for a repository returned a response that could not be parsed
+    #[error("could not read the repository information for {0}")]
+    ReadRepositoryInformation(String),
 }
 
 impl ToExitCode for BackendError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::AvailablePort | Self::PortInUse(_) => exitcode::UNAVAILABLE,
+            Self::AvailablePort
+            | Self::PortInUse(_)
+            | Self::StartDownloadRepoArchive(_, _)
+            | Self::StartGetRepositoryInformation(_)
+            | Self::ReadRepositoryInformation(_)
+            | Self::DownloadRepoArchive(_)
+            | Self::ReadArchiveEntries
+            | Self::GetRepositoryInformation(_) => exitcode::UNAVAILABLE,
             Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) => exitcode::USAGE,
+            Self::UnsupportedTemplateURL(_) | Self::MalformedTemplateURL(_) | Self::TemplateNotFound => {
+                exitcode::DATAERR
+            }
             Self::ReadCurrentDirectory
-            | Self::CreateGrafbaseDirectory(_)
-            | Self::WriteSchema(_)
+            | Self::MoveExtractedFiles(_)
             | Self::DeleteDotGrafbaseDirectory(_)
             | Self::DeleteGrafbaseDirectory(_)
-            | Self::UnsupportedTemplateURL(_)
-            | Self::MalformedTemplateURL(_)
-            | Self::StartDownloadRepoArchive(_, _)
-            | Self::DownloadRepoArchive(_)
-            | Self::StoreRepoArchive(_, _)
-            | Self::TemplateNotFound
-            | Self::MoveExtractedFiles(_)
-            | Self::ReadArchiveEntries
+            | Self::WriteSchema(_)
+            | Self::CreateGrafbaseDirectory(_)
             | Self::ExtractArchiveEntry(_)
-            | Self::CleanExtractedFiles(_) => exitcode::DATAERR,
+            | Self::CleanExtractedFiles(_)
+            | Self::CreateProjectDirectory(_) => exitcode::IOERR,
+
             Self::ServerError(inner) => inner.to_exit_code(),
         }
     }

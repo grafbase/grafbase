@@ -44,7 +44,7 @@ pub fn build_cli() -> Command {
             Command::new("init")
                 .args(&[
                     arg!([name] "The name of the project to create"),
-                    arg!(-t --template <name> "The name or URL of the template to use for the new project"),
+                    arg!(-t --template <name> "The name or GitHub URL of the template to use for the new project"),
                 ])
                 .about(indoc! {"
                     Sets up the current or a new project for Grafbase
