@@ -584,6 +584,13 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
+            // If user_defined_item is passed in as part of an update it'll have these
+            // keys in it and we do not want them on a unique constraint.
+            // Seems like it would be easier to not have these in user_defined_item
+            // in the first place but here we are.
+            user_defined_item.remove(&constant::TYPE_INDEX_PK.to_string());
+            user_defined_item.remove(&constant::TYPE_INDEX_SK.to_string());
+
             let node_transaction = TxItem {
                 pk: id.to_string(),
                 sk: id.to_string(),
