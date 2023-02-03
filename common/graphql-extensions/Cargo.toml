@@ -1,0 +1,11 @@
+[package]
+name = "graphql-extensions"
+description = "Has extensions to be used on dynaql"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1"
+dynaql = { path = "../../common/dynaql", default-features = false }
+dynaql-value = { path = "../../common/dynaql/value" }
+log = { path = "../../common/log", features = ["with-worker"] }
