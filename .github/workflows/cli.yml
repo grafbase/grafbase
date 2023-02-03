@@ -14,7 +14,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/0e19819-2023-01-09'
+  ASSETS_VERSION: 'release/520686f-2023-02-03'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
