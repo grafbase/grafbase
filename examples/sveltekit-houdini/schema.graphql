@@ -1,0 +1,238 @@
+"""Directs the executor to return values as a Streaming response."""
+directive @live on QUERY
+
+"""Indicates that an input object is a oneOf input object"""
+directive @oneOf on INPUT_OBJECT
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
+profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+
+This scalar is a description of an exact instant on the timeline such as the instant that a user account was created.
+
+# Input Coercion
+
+When expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.
+
+# Result Coercion
+
+Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.
+For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
+"""
+scalar DateTime
+
+type Mutation {
+  """Create a Todo"""
+  todoCreate(input: TodoCreateInput!): TodoCreatePayload
+
+  """Delete a Todo by ID or unique field"""
+  todoDelete(by: TodoByInput!): TodoDeletePayload
+
+  """Create a TodoList"""
+  todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
+
+  """Delete a TodoList by ID or unique field"""
+  todoListDelete(by: TodoListByInput!): TodoListDeletePayload
+
+  """Update a TodoList"""
+  todoListUpdate(by: TodoListByInput!, input: TodoListUpdateInput!): TodoListUpdatePayload
+
+  """Update a Todo"""
+  todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
+}
+
+enum OrderByDirection {
+  ASC
+  DESC
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Query {
+  """Query a single Todo by an ID or a unique field"""
+  todo(
+    """The field and value by which to query the Todo"""
+    by: TodoByInput!
+  ): Todo
+
+  """Paginated query to fetch the whole list of `Todo`."""
+  todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
+
+  """Query a single TodoList by an ID or a unique field"""
+  todoList(
+    """The field and value by which to query the TodoList"""
+    by: TodoListByInput!
+  ): TodoList
+
+  """Paginated query to fetch the whole list of `TodoList`."""
+  todoListCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoListConnection
+}
+
+type Todo {
+  complete: Boolean!
+
+  """when the model was created"""
+  createdAt: DateTime!
+
+  """Unique identifier"""
+  id: ID!
+  list: TodoList
+  title: String!
+
+  """when the model was updated"""
+  updatedAt: DateTime!
+}
+
+input TodoByInput {
+  id: ID
+}
+
+type TodoConnection {
+  edges: [TodoEdge]
+
+  """Information to aid in pagination"""
+  pageInfo: PageInfo!
+}
+
+"""Input to create a Todo"""
+input TodoCreateInput {
+  complete: Boolean!
+  list: TodoToTodoListCreateTodoListRelation
+  title: String!
+}
+
+type TodoCreatePayload {
+  todo: Todo
+}
+
+type TodoDeletePayload {
+  deletedId: ID!
+}
+
+type TodoEdge {
+  cursor: String!
+  node: Todo!
+}
+
+type TodoList {
+  """when the model was created"""
+  createdAt: DateTime!
+
+  """Unique identifier"""
+  id: ID!
+  title: String!
+  todos(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoConnection
+
+  """when the model was updated"""
+  updatedAt: DateTime!
+}
+
+input TodoListByInput {
+  id: ID
+}
+
+type TodoListConnection {
+  edges: [TodoListEdge]
+
+  """Information to aid in pagination"""
+  pageInfo: PageInfo!
+}
+
+"""Input to create a TodoList"""
+input TodoListCreateInput {
+  title: String!
+  todos: [TodoToTodoListCreateTodoRelation]
+}
+
+type TodoListCreatePayload {
+  todoList: TodoList
+}
+
+type TodoListDeletePayload {
+  deletedId: ID!
+}
+
+type TodoListEdge {
+  cursor: String!
+  node: TodoList!
+}
+
+input TodoListOrderByInput {
+  createdAt: OrderByDirection
+}
+
+"""Input to update a TodoList"""
+input TodoListUpdateInput {
+  title: String
+  todos: [TodoToTodoListUpdateTodoRelation]
+}
+
+type TodoListUpdatePayload {
+  todoList: TodoList
+}
+
+input TodoOrderByInput {
+  createdAt: OrderByDirection
+}
+
+"""Input to create a Todo for the TodoToTodoList relation of TodoList"""
+input TodoToTodoListCreateTodo {
+  complete: Boolean!
+  title: String!
+}
+
+"""Input to create a TodoList for the TodoToTodoList relation of Todo"""
+input TodoToTodoListCreateTodoList {
+  title: String!
+  todos: [TodoToTodoListCreateTodoRelation]
+}
+
+"""
+Input to link to or create a TodoList for the TodoToTodoList relation of Todo
+"""
+input TodoToTodoListCreateTodoListRelation {
+  create: TodoToTodoListCreateTodoList
+  link: ID
+}
+
+"""
+Input to link to or create a Todo for the TodoToTodoList relation of TodoList
+"""
+input TodoToTodoListCreateTodoRelation {
+  create: TodoToTodoListCreateTodo
+  link: ID
+}
+
+"""
+Input to link/unlink to or create a TodoList for the TodoToTodoList relation of Todo
+"""
+input TodoToTodoListUpdateTodoListRelation {
+  create: TodoToTodoListCreateTodoList
+  link: ID
+  unlink: ID
+}
+
+"""
+Input to link/unlink to or create a Todo for the TodoToTodoList relation of TodoList
+"""
+input TodoToTodoListUpdateTodoRelation {
+  create: TodoToTodoListCreateTodo
+  link: ID
+  unlink: ID
+}
+
+"""Input to update a Todo"""
+input TodoUpdateInput {
+  complete: Boolean
+  list: TodoToTodoListUpdateTodoListRelation
+  title: String
+}
+
+type TodoUpdatePayload {
+  todo: Todo
+}

@@ -1,0 +1,5 @@
+query ExampleQuery @live {
+	todoList(by: { id: "todolist_01GRHTKYNGGZCHSRTE9CP7T591" }) {
+		title
+	}
+}
