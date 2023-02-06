@@ -12,6 +12,7 @@ pub mod length_directive;
 pub mod model_directive;
 pub mod one_of_directive;
 pub mod relations;
+pub mod resolver_directive;
 pub mod scalar_hydratation;
 pub mod unique_directive;
 pub mod unique_fields;
