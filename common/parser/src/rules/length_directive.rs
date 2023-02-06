@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use super::{
     directive::Directive,
     visitor::{Visitor, VisitorContext},
@@ -37,8 +35,6 @@ impl<'a> Visitor<'a> for LengthDirective {
             .iter()
             .find(|d| d.node.name.node == super::length_directive::LENGTH_DIRECTIVE)
         {
-            use itertools::Itertools;
-
             if !crate::utils::is_type_with_length(&field.node.ty.node) {
                 return ctx.report_error(
                     vec![directive.pos],
@@ -46,76 +42,41 @@ impl<'a> Visitor<'a> for LengthDirective {
                 );
             }
 
-            // Extract and group args
-            let arguments: HashMap<_, _> = directive
-                .node
-                .arguments
-                .iter()
-                .into_group_map_by(move |(key, _)| key.node.as_str().to_string())
-                .into_iter()
-                .map(move |(key, values)| {
-                    (
-                        key,
-                        values.into_iter().map(|val| val.1.node.clone()).collect::<Vec<_>>(),
-                    )
-                })
-                .collect();
+            if let Ok(mut arguments) = super::directive::extract_arguments(
+                ctx,
+                directive,
+                &[&[MIN_ARGUMENT], &[MAX_ARGUMENT], &[MAX_ARGUMENT, MIN_ARGUMENT]],
+                Some("`max` and `min`"),
+            ) {
+                let min_value = arguments.remove(MIN_ARGUMENT);
+                let max_value = arguments.remove(MAX_ARGUMENT);
 
-            if arguments.is_empty() {
-                ctx.report_error(
-                    vec![directive.pos],
-                    format!("The @length directive expects at least one of the `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}` arguments"),
-                );
-            }
-
-            let mut deduplicated_arguments: HashMap<_, _> = arguments
-                .into_iter()
-                .map(|(key, mut values)| {
-                    if values.len() > 1 {
-                        ctx.report_error(
-                            vec![directive.pos],
-                            "The @length directive expects the `key` argument only once".to_string(),
-                        );
-                    }
-                    (key, values.pop())
-                })
-                .collect();
-
-            let min_value = deduplicated_arguments.remove(MIN_ARGUMENT).flatten();
-            let max_value = deduplicated_arguments.remove(MAX_ARGUMENT).flatten();
-
-            for (key, _) in deduplicated_arguments {
-                ctx.report_error(
-                    vec![directive.pos],
-                    format!("Unexpected argument {key}, @length directive expects at most 2 arguments; `{MIN_ARGUMENT}` and `{MAX_ARGUMENT}`"),
-                );
-            }
-
-            // Parse the successfully extracted args
-            let mut value_as_number = |key, value: Option<_>| {
-                value.as_ref().and_then(|value| {
-                    match value {
-                        ConstValue::Number(ref min) => Some(min.as_u64().unwrap(/* Infallible */)),
-                        _ => None,
-                    }
-                    .or_else(|| {
-                        ctx.report_error(
-                            vec![directive.pos],
-                            format!("The @length directive's {key} argument must be a positive number"),
-                        );
-                        None
+                // Parse the successfully extracted args
+                let mut value_as_number = |key, value: Option<_>| {
+                    value.as_ref().and_then(|value| {
+                        match value {
+                            ConstValue::Number(ref min) => Some(min.as_u64().unwrap(/* Infallible */)),
+                            _ => None,
+                        }
+                        .or_else(|| {
+                            ctx.report_error(
+                                vec![directive.pos],
+                                format!("The @length directive's {key} argument must be a positive number"),
+                            );
+                            None
+                        })
                     })
-                })
-            };
+                };
 
-            let min_value = value_as_number(MIN_ARGUMENT, min_value);
-            let max_value = value_as_number(MAX_ARGUMENT, max_value);
-            if let Some((min_value, max_value)) = min_value.zip(max_value) {
-                if min_value > max_value {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!("The `{MAX_ARGUMENT}` must be greater than the `{MIN_ARGUMENT}`"),
-                    );
+                let min_value = value_as_number(MIN_ARGUMENT, min_value);
+                let max_value = value_as_number(MAX_ARGUMENT, max_value);
+                if let Some((min_value, max_value)) = min_value.zip(max_value) {
+                    if min_value > max_value {
+                        ctx.report_error(
+                            vec![directive.pos],
+                            format!("The `{MAX_ARGUMENT}` must be greater than the `{MIN_ARGUMENT}`"),
+                        );
+                    }
                 }
             }
         }
@@ -131,116 +92,112 @@ mod tests {
 
     #[rstest::rstest]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String @length(foo: 10)
-            }
-            "#, 1, &[
-            "Unexpected argument foo, @length directive expects at most 2 arguments; `min` and `max`"
+        type Product @model {
+            id: ID!
+            name: String @length(foo: 10)
+        }
+        "#, &[
+        "Unexpected argument foo, @length directive expects one of the arguments: `max` and `min`"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String @length
-            }
-            "#, 1, &[
-            "The @length directive expects at least one of the `min` and `max` arguments"
+        type Product @model {
+            id: ID!
+            name: String @length
+        }
+        "#, &[
+        "The @length directive expects at least one of the `max` and `min` arguments"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID! @length(min: 0, max: 100)
-                name: String
-            }
-            "#, 1, &[
-            "The @length directive is only accepted on Strings and Lists"
+        type Product @model {
+            id: ID! @length(min: 0, max: 100)
+            name: String
+        }
+        "#, &[
+        "The @length directive is only accepted on Strings and Lists"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String!
-                category: Int @length(min:0)
-            }
-            "#, 1, &[
-            "The @length directive is only accepted on Strings and Lists"
+        type Product @model {
+            id: ID!
+            name: String!
+            category: Int @length(min:0)
+        }
+        "#, &[
+        "The @length directive is only accepted on Strings and Lists"
     ])]
     #[case(r#"
-            type Category @model {
-                id: ID!
-                name: String!
-            }
+        type Category @model {
+            id: ID!
+            name: String!
+        }
 
-            type Product @model {
-                id: ID!
-                name: String!
-                category: Category @length(min: 0)
-            }
-            "#, 1, &[
-            "The @length directive is only accepted on Strings and Lists"
+        type Product @model {
+            id: ID!
+            name: String!
+            category: Category @length(min: 0)
+        }
+        "#, &[
+        "The @length directive is only accepted on Strings and Lists"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(min: "10")
-            }
-            "#, 1, &[
-            "The @length directive's min argument must be a positive number"
+        type Product @model {
+            id: ID!
+            name: String! @length(min: "10")
+        }
+        "#, &[
+        "The @length directive's min argument must be a positive number"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(value: 10)
-            }
-            "#, 1, &[
-            "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
+        type Product @model {
+            id: ID!
+            name: String! @length(value: 10)
+        }
+        "#, &[
+        "Unexpected argument value, @length directive expects one of the arguments: `max` and `min`"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(min: 0, value: 10)
-            }
-            "#, 1, &[
-            "Unexpected argument value, @length directive expects at most 2 arguments; `min` and `max`"
+        type Product @model {
+            id: ID!
+            name: String! @length(min: 0, value: 10)
+        }
+        "#, &[
+        "Unexpected argument value, @length directive expects one of the arguments: `max` and `min`"
     ])]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(min:10, max: 1)
-            }
-            "#, 1,
-            &["The `max` must be greater than the `min`"])]
+        type Product @model {
+            id: ID!
+            name: String! @length(min:10, max: 1)
+        }
+        "#,
+        &["The `max` must be greater than the `min`"]
+    )]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(min: 10, max: 100)
-            }
-            "#, 0, &[])]
+        type Product @model {
+            id: ID!
+            name: String! @length(min: 10, max: 100)
+        }
+        "#, &[]
+    )]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(min: 10)
-            }
-            "#, 0, &[])]
+        type Product @model {
+            id: ID!
+            name: String! @length(min: 10)
+        }
+        "#, &[]
+    )]
     #[case(r#"
-            type Product @model {
-                id: ID!
-                name: String! @length(max: 10)
-            }
-            "#, 0, &[ ])]
+        type Product @model {
+            id: ID!
+            name: String! @length(max: 10)
+        }
+        "#, &[]
+    )]
 
-    fn test_parse_result(#[case] schema: &str, #[case] error_count: usize, #[case] error_messages: &[&str]) {
-        let schema = parse_schema(schema).unwrap();
+    fn test_parse_result(#[case] schema_string: &str, #[case] expected_messages: &[&str]) {
+        let schema = parse_schema(schema_string).unwrap();
         let mut ctx = VisitorContext::new(&schema);
         visit(&mut LengthDirective, &mut ctx, &schema);
 
-        assert_eq!(ctx.errors.len(), error_count);
-
-        assert_eq!(
-            ctx.errors.len(),
-            error_messages.len(),
-            "Did you forget an error_message example case?"
-        );
-        for (error, expected) in ctx.errors.iter().zip(error_messages) {
-            assert_eq!(&&error.message, expected);
-        }
+        let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
+        assert_eq!(actual_messages.as_slice(), expected_messages, "for {schema_string}");
     }
 }
