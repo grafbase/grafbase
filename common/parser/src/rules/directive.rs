@@ -46,26 +46,23 @@ pub(crate) fn extract_arguments<'a>(
         .map(|(name, value)| (name.node.as_str(), value.node.clone()))
         .collect();
 
-    let mut bail_out = false;
-    for (duplicate_key, _) in arguments.iter().duplicates_by(|(key, _)| key) {
-        ctx.report_error(
-            vec![directive.pos],
-            format!("The @{directive_name} directive expects the `{duplicate_key}` argument only once"),
-        );
-        bail_out = true;
-    }
+    let argument_keys: Vec<_> = arguments.iter().map(|(name, _)| *name).sorted().collect();
 
-    if bail_out {
-        return Err(());
-    }
-
-    let deduplicated_arguments: HashMap<_, _> = arguments.into_iter().collect();
-
-    let deduplicated_keys: Vec<_> = deduplicated_arguments.keys().copied().sorted().collect();
-
-    if allowed_argument_combinations.contains(&deduplicated_keys.as_slice()) {
-        Ok(deduplicated_arguments)
+    if allowed_argument_combinations.contains(&argument_keys.as_slice()) {
+        Ok(arguments.into_iter().collect())
     } else {
+        let mut bail_out = false;
+        for (duplicate_key, _) in arguments.iter().duplicates_by(|(key, _)| key) {
+            ctx.report_error(
+                vec![directive.pos],
+                format!("The @{directive_name} directive expects the `{duplicate_key}` argument only once"),
+            );
+            bail_out = true;
+        }
+        if bail_out {
+            return Err(());
+        }
+
         if let &[&[single_argument]] = allowed_argument_combinations {
             ctx.report_error(
                 vec![directive.pos],
@@ -78,7 +75,7 @@ pub(crate) fn extract_arguments<'a>(
                 .copied()
                 .collect();
 
-            let argument_keys: HashSet<_> = deduplicated_arguments.keys().copied().collect();
+            let argument_keys: HashSet<_> = argument_keys.into_iter().collect();
 
             for unknown_key in argument_keys.difference(&all_accepted_argument_keys) {
                 let all_accepted_argument_keys_string: String = all_accepted_argument_keys
