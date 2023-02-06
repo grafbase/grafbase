@@ -29,9 +29,9 @@ use crate::parser::types::{
 };
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
-use crate::registry::resolvers::ResolvedValue;
-use crate::registry::Registry;
+use crate::registry::resolvers::{ResolvedValue, Resolver};
 use crate::registry::{get_basic_type, MetaInputValue, MetaType};
+use crate::registry::{Registry, SchemaID};
 use crate::resolver_utils::resolve_input;
 use crate::schema::SchemaEnv;
 use crate::{
@@ -39,6 +39,10 @@ use crate::{
     ServerResult, UploadValue, Value,
 };
 
+use arrow_schema::Schema as ArrowSchema;
+
+#[cfg(feature = "query-planning")]
+use crate::registry::variables::VariableResolveDefinition;
 #[cfg(feature = "query-planning")]
 use query_planning::logical_plan::LogicalPlan;
 #[cfg(feature = "query-planning")]
@@ -811,11 +815,15 @@ impl<'a, T> ContextBase<'a, T> {
 }
 
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
+    pub fn get_schema_id(&self, id: SchemaID) -> ServerResult<Arc<ArrowSchema>> {
+        self.registry().get_schema_id(id, Some(self.item.pos))
+    }
+
     #[cfg(feature = "query-planning")]
     pub fn to_selection_plan(
         &self,
         root: &'a MetaType,
-        preivous_plan: Option<Arc<LogicalPlan>>,
+        previous_plan: Option<Arc<LogicalPlan>>,
     ) -> Positioned<SelectionPlan> {
         todo!()
     }
@@ -826,10 +834,112 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn to_logic_plan(
         &self,
         parent_type: &MetaType,
-        preivous_plan: Option<Arc<LogicalPlan>>,
+        previous_plan: Option<Arc<LogicalPlan>>,
     ) -> ServerResult<LogicalPlan> {
-        // Take the associated metafield, convert the resolver to a LogicPlan
-        todo!()
+        use query_planning::logical_plan::builder::LogicalPlanBuilder;
+
+        let resolver = self
+            .resolver_node
+            .as_ref()
+            .and_then(|x| x.resolver)
+            .map(|x| self.from_resolver_to_logic_plan(previous_plan, x));
+
+        match resolver {
+            None => Ok(LogicalPlanBuilder::empty().build()),
+            Some(elt) => elt,
+        }
+    }
+
+    #[cfg(feature = "query-planning")]
+    /// Convert a [`VariableResolveDefinition`] into an equivalent LogicPlan
+    pub fn from_variable_resolution(
+        &self,
+        previous_plan: Option<Arc<LogicalPlan>>,
+        variable: &VariableResolveDefinition,
+    ) -> ServerResult<LogicalPlan> {
+        use query_planning::logical_plan::builder::LogicalPlanBuilder;
+        use query_planning::reexport::arrow_schema::{DataType, Field};
+        use query_planning::scalar::ScalarValue;
+
+        let pos = self.item.pos;
+        let field_name = (&self.item.node.response_key().clone().node).to_string();
+
+        match variable {
+            VariableResolveDefinition::DebugString(value) => LogicalPlanBuilder::values(
+                vec![Field::new(field_name, DataType::Utf8, false)],
+                vec![vec![ScalarValue::new_utf8(value)]],
+            )
+            .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
+            .map(|x| x.build()),
+            VariableResolveDefinition::InputTypeName(value) => {
+                // We need to have input
+                let resolved_value = self.param_value_dynamic(&value)?;
+                // Convert this input to an Arrow Format
+                todo!()
+            },
+            VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
+            VariableResolveDefinition::LocalData(value) => match previous_plan {
+                Some(plan) => LogicalPlanBuilder::from(plan.as_ref().clone())
+                    .projection(vec![value])
+                    .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
+                    .map(|x| x.build()),
+                None => {
+                    Err(ServerError::new("You can't ask for {value} from the Input plan when no Input plan are not included.", Some(pos)))
+                },
+            },
+        }
+    }
+
+    #[cfg(feature = "query-planning")]
+    pub fn from_resolver_to_logic_plan(
+        &self,
+        previous_plan: Option<Arc<LogicalPlan>>,
+        resolver: &Resolver,
+    ) -> ServerResult<LogicalPlan> {
+        use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
+        use query_planning::logical_plan::Datasource;
+
+        use crate::registry::resolvers::dynamo_querying::DynamoResolver;
+        use crate::registry::resolvers::ResolverType;
+
+        // TODO: Take the resolver from the context.
+
+        Ok(match &resolver.r#type {
+            ResolverType::DynamoResolver(DynamoResolver::QueryPKSK { pk, sk, schema }) => {
+                let pk = self.from_variable_resolution(previous_plan.clone(), pk)?;
+                let sk = self.from_variable_resolution(previous_plan.clone(), sk)?;
+                let schema = self.get_schema_id(
+                    schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
+                )?;
+
+                LogicalPlanBuilder::from(
+                    join(pk, sk)
+                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?,
+                )
+                .get_entity_by_id(&schema, Datasource::gb())
+            }
+            ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
+                let by = self.from_variable_resolution(previous_plan.clone(), by)?;
+                let schema = self.get_schema_id(
+                    schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
+                )?;
+
+                // TODO: Add the by into values
+                LogicalPlanBuilder::empty().get_entity_by_unique(&schema, Datasource::gb())
+            }
+            ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
+                parent_pk,
+                relation_name,
+            }) => Ok(LogicalPlanBuilder::empty()),
+            ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated { .. }) => {
+                Ok(LogicalPlanBuilder::empty())
+            }
+            ResolverType::DynamoMutationResolver(_) => Ok(LogicalPlanBuilder::empty()),
+            ResolverType::ContextDataResolver(_) => Ok(LogicalPlanBuilder::empty()),
+            ResolverType::DebugResolver(_) => Ok(LogicalPlanBuilder::empty()),
+        }
+        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+        .build())
     }
 
     #[doc(hidden)]

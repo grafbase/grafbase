@@ -87,8 +87,15 @@ impl FieldsGraph {
                                             .response_key()
                                             .clone()
                                             .map(|x| x.to_string()),
-                                        logic_plan: ctx_field
-                                            .to_logic_plan(root, previous_logical_plan.clone())?,
+                                        logic_plan: LogicalPlanBuilder::from(
+                                            ctx_field.to_logic_plan(
+                                                root,
+                                                previous_logical_plan.clone(),
+                                            )?,
+                                        )
+                                        .projection(vec!["__type"])
+                                        .expect("can't fail?")
+                                        .build(),
                                         selection_set: Default::default(),
                                     }),
                                 ));
@@ -130,10 +137,14 @@ impl FieldsGraph {
 
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
 
-                    todo!("resolve_field");
-
-                    let plan = ctx_field.to_selection_plan(root, previous_logical_plan.clone());
-
+                    let plan = ctx_field.item.position_node(SelectionPlan::Field(
+                        ctx_field.item.position_node(FieldPlan {
+                            name: field.node.response_key().clone().map(|x| x.to_string()),
+                            logic_plan: ctx_field
+                                .to_logic_plan(root, previous_logical_plan.clone())?,
+                            selection_set: Default::default(),
+                        }),
+                    ));
                     result.push(plan);
                 }
                 selection => {

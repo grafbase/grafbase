@@ -75,6 +75,9 @@ url = { version = "2" }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 
+# Query planing schema
+arrow-schema = { version = "31", features = ["serde"] }
+
 # API dependencies
 query-planning = { path = "../query-planing", optional = true }
 dynamodb = { path = "../dynamodb" }

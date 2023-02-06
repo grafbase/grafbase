@@ -10,11 +10,14 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
+use arrow_schema::Schema as ArrowSchema;
+use dynaql_parser::Pos;
 use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::Hash;
+use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use ulid::Ulid;
 
@@ -39,6 +42,9 @@ use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
 use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
+
+#[cfg(feature = "query-planning")]
+use query_planning::reexport::arrow_schema::{DataType, Field as ArrowField, Schema};
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -766,6 +772,94 @@ pub enum MetaType {
     },
 }
 
+#[cfg(feature = "query-planning")]
+impl MetaType {
+    /// Transform a MetaType to an associated schema.
+    ///
+    /// TODO: right now we do not have the type associated inside the registry, later we'll need to
+    /// have those as they are the real source of thruth for every logic happening.
+    ///
+    /// For instance, when we fetch a Node what we would get would be:
+    ///
+    /// - id: Utf8
+    /// - propery: DataType
+    ///
+    /// But for the case of a Scalar, what would be the associated schema?
+    /// We should have a property inside the QPSchema to know that is a scalar.
+    /// Meaningwhile we'll modelize scalar with a sample column which will be
+    /// the scalar type.
+    pub fn to_schema(&self, ctx: &Context<'_>) -> Vec<ArrowField> {
+        match self {
+            MetaType::Scalar {
+                name,
+                description,
+                is_valid,
+                visible,
+                specified_by_url,
+            } => {
+                // Right now scalars are a little harder to work on as we are not sure how to
+                // modelize it.
+                vec![ArrowField::new(name, DataType::Null, true)]
+            }
+            MetaType::Object {
+                name,
+                description,
+                fields,
+                cache_control,
+                extends,
+                keys,
+                visible,
+                is_subscription,
+                is_node,
+                rust_typename,
+                constraints,
+            } => {
+                let mut result_fields = Vec::with_capacity(fields.len());
+                for (key, field) in fields {
+                    if let Some(associated_meta_ty) = ctx.registry().types.get(&field.ty).cloned() {
+                        let fields_associated = associated_meta_ty.to_schema(ctx);
+                    }
+                    // For each field, we
+                    let a = ArrowField::new(key.to_string(), DataType::Null, true);
+                }
+                result_fields
+            }
+            MetaType::Interface {
+                name,
+                description,
+                fields,
+                possible_types,
+                extends,
+                keys,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::Union {
+                name,
+                description,
+                possible_types,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::Enum {
+                name,
+                description,
+                enum_values,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::InputObject {
+                name,
+                description,
+                input_fields,
+                visible,
+                rust_typename,
+                oneof,
+            } => todo!(),
+        }
+    }
+}
+
 // Hash custom implementation must be done as we can't derive Hash Indexmap Implementation.
 impl Hash for MetaType {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -1178,6 +1272,35 @@ pub struct MetaDirective {
     pub visible: Option<MetaVisibleFn>,
 }
 
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    derivative::Derivative,
+    serde::Serialize,
+    serde::Deserialize,
+    Hash,
+    Eq,
+    Ord,
+    PartialOrd,
+    PartialEq,
+)]
+#[repr(transparent)]
+pub struct SchemaID(u16);
+
+#[derive(Default)]
+pub struct SchemaIDGenerator {
+    cur: AtomicU16,
+}
+
+impl SchemaIDGenerator {
+    /// Generate a new ID for a schema ID.
+    fn new_id(&self) -> SchemaID {
+        let val = self.cur.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        SchemaID(val)
+    }
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
 // for a LogicalQuery
 #[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
@@ -1192,6 +1315,9 @@ pub struct Registry {
     pub enable_federation: bool,
     pub federation_subscription: bool,
     pub auth: AuthConfig,
+    /// Store data about the modelization here
+    /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
+    pub schema_list: HashMap<SchemaID, Arc<ArrowSchema>>,
 }
 
 impl Registry {
@@ -1212,6 +1338,15 @@ impl Registry {
             .iter()
             .find(|(key, value)| key.to_lowercase() == ty)
             .map(|(_, val)| val)
+    }
+
+    pub fn get_schema_id(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
+        self.schema_list
+            .get(&id)
+            .ok_or_else(|| {
+                ServerError::new("An error occured while interpreting your data schema.", pos)
+            })
+            .map(Clone::clone)
     }
 
     /// Function ran when resolving a field.

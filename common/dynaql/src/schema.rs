@@ -289,6 +289,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
+            schema_list: Default::default(),
             auth: Default::default(),
         };
 
@@ -381,6 +382,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
+            schema_list: Default::default(),
             auth: Default::default(),
         };
 
