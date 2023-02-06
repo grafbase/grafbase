@@ -3,6 +3,9 @@ name: cli
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    tags:
+      - '*'
 
 permissions:
   # Allow checks read
@@ -40,7 +43,7 @@ jobs:
 
   lint:
     needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.cli == 'true' }}
+    if: ${{ needs.detect-change-type.outputs.cli == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
