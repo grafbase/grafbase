@@ -718,7 +718,7 @@ impl Schema {
                     Ok((env, cache_control)) => {
                         // After the request is ready, we start the creation of the Logic
                         #[cfg(feature = "query-planning")]
-                        let a = self.logical_query(env.clone()).await;
+                        let _a = self.logical_query(env.clone()).await;
 
                         let fut = async {
                             self.execute_once(env.clone())

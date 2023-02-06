@@ -1,9 +1,6 @@
 use dynaql_parser::Positioned;
 use futures_util::FutureExt;
-use graph_entities::{
-    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
-    ResponsePrimitive,
-};
+
 use query_planning::logical_plan::builder::LogicalPlanBuilder;
 use query_planning::logical_plan::LogicalPlan;
 use query_planning::logical_query::{
@@ -11,19 +8,19 @@ use query_planning::logical_query::{
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
 use query_planning::scalar::ScalarValue;
-use std::future::Future;
-use std::pin::Pin;
+
+
 use std::sync::Arc;
 
-use indexmap::IndexMap;
 
-use crate::extensions::ResolveInfo;
-use crate::graph::field_into_node;
+
+
+
 use crate::parser::types::Selection;
 use crate::registry::MetaType;
 use crate::{
-    relations_edges, Context, ContextBase, ContextSelectionSet, Error, Name, OutputType,
-    ServerError, ServerResult, Value,
+    ContextSelectionSet, OutputType,
+    ServerError, ServerResult,
 };
 
 /// Resolve an container by executing each of the fields concurrently.
@@ -46,7 +43,7 @@ pub fn resolve_logical_plan_container_serial<'a>(
 
 fn resolve_logical_plan_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
-    parallel: bool,
+    _parallel: bool,
     root: &'a MetaType,
     previous_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
@@ -108,8 +105,8 @@ impl FieldsGraph {
                                 // The actual typename should be the concrete typename.
                                 let ctx_field =
                                     ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                                let field_name = ctx_field.item.node.name.node.clone();
-                                let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
+                                let _field_name = ctx_field.item.node.name.node.clone();
+                                let _alias = ctx_field.item.node.alias.clone().map(|x| x.node);
                                 let typename = registry.introspection_type_name(root).to_owned();
 
                                 let plan = ctx.item.position_node(SelectionPlan::Field(

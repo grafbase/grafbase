@@ -822,8 +822,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     #[cfg(feature = "query-planning")]
     pub fn to_selection_plan(
         &self,
-        root: &'a MetaType,
-        previous_plan: Option<Arc<LogicalPlan>>,
+        _root: &'a MetaType,
+        _previous_plan: Option<Arc<LogicalPlan>>,
     ) -> Positioned<SelectionPlan> {
         todo!()
     }
@@ -833,7 +833,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     /// schema.
     pub fn to_logic_plan(
         &self,
-        parent_type: &MetaType,
+        _parent_type: &MetaType,
         previous_plan: Option<Arc<LogicalPlan>>,
     ) -> ServerResult<LogicalPlan> {
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
@@ -870,10 +870,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 vec![vec![ScalarValue::new_utf8(value)]],
             )
             .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
-            .map(|x| x.build()),
+            .map(query_planning::logical_plan::builder::LogicalPlanBuilder::build),
             VariableResolveDefinition::InputTypeName(value) => {
                 // We need to have input
-                let resolved_value = self.param_value_dynamic(&value)?;
+                let _resolved_value = self.param_value_dynamic(&value)?;
                 // Convert this input to an Arrow Format
                 todo!()
             },
@@ -882,7 +882,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 Some(plan) => LogicalPlanBuilder::from(plan.as_ref().clone())
                     .projection(vec![value])
                     .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
-                    .map(|x| x.build()),
+                    .map(query_planning::logical_plan::builder::LogicalPlanBuilder::build),
                 None => {
                     Err(ServerError::new("You can't ask for {value} from the Input plan when no Input plan are not included.", Some(pos)))
                 },
@@ -907,7 +907,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         Ok(match &resolver.r#type {
             ResolverType::DynamoResolver(DynamoResolver::QueryPKSK { pk, sk, schema }) => {
                 let pk = self.from_variable_resolution(previous_plan.clone(), pk)?;
-                let sk = self.from_variable_resolution(previous_plan.clone(), sk)?;
+                let sk = self.from_variable_resolution(previous_plan, sk)?;
                 let schema = self.get_schema_id(
                     schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
                 )?;
@@ -919,7 +919,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 .get_entity_by_id(&schema, Datasource::gb())
             }
             ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
-                let by = self.from_variable_resolution(previous_plan.clone(), by)?;
+                let _by = self.from_variable_resolution(previous_plan, by)?;
                 let schema = self.get_schema_id(
                     schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
                 )?;
@@ -928,8 +928,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 LogicalPlanBuilder::empty().get_entity_by_unique(&schema, Datasource::gb())
             }
             ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
-                parent_pk,
-                relation_name,
+                parent_pk: _,
+                relation_name: _,
             }) => Ok(LogicalPlanBuilder::empty()),
             ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated { .. }) => {
                 Ok(LogicalPlanBuilder::empty())

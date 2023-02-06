@@ -44,7 +44,7 @@ use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
 #[cfg(feature = "query-planning")]
-use query_planning::reexport::arrow_schema::{DataType, Field as ArrowField, Schema};
+use query_planning::reexport::arrow_schema::{DataType, Field as ArrowField};
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -380,7 +380,7 @@ impl CurrentResolverType {
 
 impl MetaType {
     /// Resolve the actual type
-    pub async fn resolve(&self, ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
+    pub async fn resolve(&self, _ctx: &Context<'_>) -> Result<ResponseNodeId, ServerError> {
         todo!()
     }
 }
@@ -792,69 +792,69 @@ impl MetaType {
         match self {
             MetaType::Scalar {
                 name,
-                description,
-                is_valid,
-                visible,
-                specified_by_url,
+                description: _,
+                is_valid: _,
+                visible: _,
+                specified_by_url: _,
             } => {
                 // Right now scalars are a little harder to work on as we are not sure how to
                 // modelize it.
                 vec![ArrowField::new(name, DataType::Null, true)]
             }
             MetaType::Object {
-                name,
-                description,
+                name: _,
+                description: _,
                 fields,
-                cache_control,
-                extends,
-                keys,
-                visible,
-                is_subscription,
-                is_node,
-                rust_typename,
-                constraints,
+                cache_control: _,
+                extends: _,
+                keys: _,
+                visible: _,
+                is_subscription: _,
+                is_node: _,
+                rust_typename: _,
+                constraints: _,
             } => {
-                let mut result_fields = Vec::with_capacity(fields.len());
+                let result_fields = Vec::with_capacity(fields.len());
                 for (key, field) in fields {
                     if let Some(associated_meta_ty) = ctx.registry().types.get(&field.ty).cloned() {
-                        let fields_associated = associated_meta_ty.to_schema(ctx);
+                        let _fields_associated = associated_meta_ty.to_schema(ctx);
                     }
                     // For each field, we
-                    let a = ArrowField::new(key.to_string(), DataType::Null, true);
+                    let _a = ArrowField::new(key.to_string(), DataType::Null, true);
                 }
                 result_fields
             }
             MetaType::Interface {
-                name,
-                description,
-                fields,
-                possible_types,
-                extends,
-                keys,
-                visible,
-                rust_typename,
+                name: _,
+                description: _,
+                fields: _,
+                possible_types: _,
+                extends: _,
+                keys: _,
+                visible: _,
+                rust_typename: _,
             } => todo!(),
             MetaType::Union {
-                name,
-                description,
-                possible_types,
-                visible,
-                rust_typename,
+                name: _,
+                description: _,
+                possible_types: _,
+                visible: _,
+                rust_typename: _,
             } => todo!(),
             MetaType::Enum {
-                name,
-                description,
-                enum_values,
-                visible,
-                rust_typename,
+                name: _,
+                description: _,
+                enum_values: _,
+                visible: _,
+                rust_typename: _,
             } => todo!(),
             MetaType::InputObject {
-                name,
-                description,
-                input_fields,
-                visible,
-                rust_typename,
-                oneof,
+                name: _,
+                description: _,
+                input_fields: _,
+                visible: _,
+                rust_typename: _,
+                oneof: _,
             } => todo!(),
         }
     }
@@ -1336,7 +1336,7 @@ impl Registry {
         let ty = node_id.ty();
         self.types
             .iter()
-            .find(|(key, value)| key.to_lowercase() == ty)
+            .find(|(key, _value)| key.to_lowercase() == ty)
             .map(|(_, val)| val)
     }
 
