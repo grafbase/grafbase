@@ -45,6 +45,9 @@ use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
+#[cfg(feature = "query-planning")]
+use query_planning::reexport::arrow_schema::{DataType, Field as ArrowField, Schema};
+
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
         .strip_prefix('[')
@@ -772,6 +775,94 @@ pub enum MetaType {
         rust_typename: String,
         oneof: bool,
     },
+}
+
+#[cfg(feature = "query-planning")]
+impl MetaType {
+    /// Transform a MetaType to an associated schema.
+    ///
+    /// TODO: right now we do not have the type associated inside the registry, later we'll need to
+    /// have those as they are the real source of thruth for every logic happening.
+    ///
+    /// For instance, when we fetch a Node what we would get would be:
+    ///
+    /// - id: Utf8
+    /// - propery: DataType
+    ///
+    /// But for the case of a Scalar, what would be the associated schema?
+    /// We should have a property inside the QPSchema to know that is a scalar.
+    /// Meaningwhile we'll modelize scalar with a sample column which will be
+    /// the scalar type.
+    pub fn to_schema(&self, ctx: &Context<'_>) -> Vec<ArrowField> {
+        match self {
+            MetaType::Scalar {
+                name,
+                description,
+                is_valid,
+                visible,
+                specified_by_url,
+            } => {
+                // Right now scalars are a little harder to work on as we are not sure how to
+                // modelize it.
+                vec![ArrowField::new(name, DataType::Null, true)]
+            }
+            MetaType::Object {
+                name,
+                description,
+                fields,
+                cache_control,
+                extends,
+                keys,
+                visible,
+                is_subscription,
+                is_node,
+                rust_typename,
+                constraints,
+            } => {
+                let mut result_fields = Vec::with_capacity(fields.len());
+                for (key, field) in fields {
+                    if let Some(associated_meta_ty) = ctx.registry().types.get(&field.ty).cloned() {
+                        let fields_associated = associated_meta_ty.to_schema(ctx);
+                    }
+                    // For each field, we
+                    let a = ArrowField::new(key.to_string(), DataType::Null, true);
+                }
+                result_fields
+            }
+            MetaType::Interface {
+                name,
+                description,
+                fields,
+                possible_types,
+                extends,
+                keys,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::Union {
+                name,
+                description,
+                possible_types,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::Enum {
+                name,
+                description,
+                enum_values,
+                visible,
+                rust_typename,
+            } => todo!(),
+            MetaType::InputObject {
+                name,
+                description,
+                input_fields,
+                visible,
+                rust_typename,
+                oneof,
+            } => todo!(),
+        }
+    }
 }
 
 // Hash custom implementation must be done as we can't derive Hash Indexmap Implementation.
