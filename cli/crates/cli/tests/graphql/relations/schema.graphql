@@ -8,5 +8,6 @@ type Blog @model {
 type Author @model {
   id: ID!
   name: String!
-  blogs: [Blog] @relation(name: "authors")
+  # FIXME: change this back when we fix the cyclic result issue
+  blogs: [Blog] @relation(name: "blogs")
 }
