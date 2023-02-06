@@ -42,6 +42,10 @@ impl MetaNames {
         model_type_definition.name.node.to_camel()
     }
 
+    pub fn search(model_type_definition: &TypeDefinition) -> String {
+        to_lower_camelcase(format!("{}Search", Self::model(model_type_definition)))
+    }
+
     //
     // PAGINATION
     //

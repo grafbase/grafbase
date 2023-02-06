@@ -14,6 +14,7 @@ pub mod one_of_directive;
 pub mod relations;
 pub mod resolver_directive;
 pub mod scalar_hydratation;
+pub mod search_directive;
 pub mod unique_directive;
 pub mod unique_fields;
 pub mod visitor;

@@ -54,6 +54,9 @@ pub enum DynamoResolver {
         pk: VariableResolveDefinition,
         sk: VariableResolveDefinition,
     },
+    QueryIds {
+        ids: VariableResolveDefinition,
+    },
     /// A Paginated Query based on the type of the entity.
     ///
     /// We query the reverted index by type to get a node and his edges.
@@ -138,7 +141,9 @@ pub enum DynamoResolver {
     ///   }
     /// }
     /// ```
-    QueryBy { by: VariableResolveDefinition },
+    QueryBy {
+        by: VariableResolveDefinition,
+    },
 }
 
 #[async_trait::async_trait]
@@ -325,6 +330,33 @@ impl ResolverTrait for DynamoResolver {
                     ResolvedValue::new(Arc::new(serde_json::Value::Array(result)))
                         .with_pagination(pagination),
                 )
+            }
+            DynamoResolver::QueryIds { ids } => {
+                let ids: Vec<String> = ids.resolve(
+                    ctx,
+                    last_resolver_value.map(|resolved| resolved.data_resolved.borrow()),
+                )?;
+                let keys = ids
+                    .into_iter()
+                    .map(|id| (id.clone(), id))
+                    .collect::<Vec<_>>();
+                let mut db_result = ctx
+                    .data::<Arc<DynamoDBBatchersData>>()?
+                    .loader
+                    .load_many(keys.clone())
+                    .await?;
+                let result = keys
+                    .into_iter()
+                    .filter_map(|key| {
+                        db_result
+                            .remove(&key)
+                            .map(|record| serde_json::json!({ current_ty: record }))
+                    })
+                    .collect::<Vec<_>>();
+
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::Array(
+                    result,
+                ))))
             }
             DynamoResolver::QueryPKSK { pk, sk } => {
                 let pk = match pk

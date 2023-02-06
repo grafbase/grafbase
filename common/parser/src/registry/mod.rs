@@ -27,8 +27,10 @@ mod mutations;
 pub mod names;
 mod pagination;
 mod relations;
+mod search;
 pub use mutations::{add_mutation_create, add_mutation_update, NumericFieldKind};
 pub use pagination::{add_query_paginated_collection, generate_pagination_args};
+pub use search::add_query_search;
 
 fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
     let type_name = T::ty().to_string();
