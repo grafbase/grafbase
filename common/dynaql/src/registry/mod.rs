@@ -200,10 +200,10 @@ pub struct Constraint {
     name: Option<String>,
 
     #[serde(default)]
-    fields_: Vec<String>,
+    fields: Vec<String>,
 
     // This is also here for backwards compatability
-    field_: String,
+    field: String,
 
     pub r#type: ConstraintType,
 }
@@ -212,22 +212,22 @@ impl Constraint {
     pub fn name(&self) -> &str {
         self.name
             .as_deref()
-            .or_else(|| Some(self.fields_.first()?))
-            .unwrap_or(&self.field_)
+            .or_else(|| Some(self.fields.first()?))
+            .unwrap_or(&self.field)
     }
 
     pub fn fields(&self) -> Vec<String> {
-        if self.fields_.is_empty() {
-            return vec![self.field_.clone()];
+        if self.fields.is_empty() {
+            return vec![self.field.clone()];
         }
-        self.fields_.clone()
+        self.fields.clone()
     }
 
     pub fn unique(name: String, fields: Vec<String>) -> Constraint {
         Constraint {
             name: Some(name),
-            fields_: fields,
-            field_: String::new(),
+            fields,
+            field: String::new(),
             r#type: ConstraintType::Unique,
         }
     }

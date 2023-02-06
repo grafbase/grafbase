@@ -152,14 +152,12 @@ fn hash_constraint_values(mut values: Vec<serde_json::Value>) -> String {
             .encode(Sha256::digest(normalize_constraint_value(values.pop().unwrap())));
     }
 
-    let mut hasher = Sha256::new();
-    for value in values {
-        hasher.update("::");
-        hasher.update(normalize_constraint_value(value));
-        hasher.update("::");
-    }
+    let hash = Sha256::digest(
+        serde_json::to_vec(&values.into_iter().map(normalize_constraint_value).collect::<Vec<_>>())
+            .expect("to be able to serialize strings"),
+    );
 
-    base64::prelude::BASE64_STANDARD_NO_PAD.encode(hasher.finalize())
+    base64::prelude::BASE64_STANDARD_NO_PAD.encode(hash)
 }
 
 #[cfg(test)]
