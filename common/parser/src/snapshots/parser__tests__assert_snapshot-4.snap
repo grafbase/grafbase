@@ -1,7 +1,7 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 328
-expression: req_string_b
+assertion_line: 45
+expression: reg_string
 ---
 {
   "auth": {
@@ -81,6 +81,162 @@ expression: req_string_b
   "schema_list": {},
   "subscription_type": null,
   "types": {
+    "Author": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "lastname": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "lastname",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "lastname"
+              }
+            },
+            "ty": "String!"
+          },
+          "name": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "name"
+              }
+            },
+            "ty": "String!"
+          },
+          "pseudo": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "pseudo",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "pseudo"
+              }
+            },
+            "ty": "String"
+          },
+          "truc": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "truc",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "truc"
+              }
+            },
+            "ty": "Truc!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Author",
+        "rust_typename": "Author"
+      }
+    },
+    "AuthorInput": {
+      "InputObject": {
+        "description": "Author input type.",
+        "input_fields": {
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!",
+            "validators": null
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "pseudo": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "pseudo",
+            "ty": "String",
+            "validators": null
+          },
+          "truc": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "truc",
+            "ty": "TrucInput!",
+            "validators": null
+          }
+        },
+        "name": "AuthorInput",
+        "oneof": false,
+        "rust_typename": "Author"
+      }
+    },
     "Boolean": {
       "Scalar": {
         "description": "The `Boolean` scalar type represents `true` or `false`.",
@@ -126,14 +282,14 @@ expression: req_string_b
         "description": null,
         "extends": false,
         "fields": {
-          "productCreate": {
+          "todoCreate": {
             "args": {
               "input": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "ProductCreateInput!",
+                "ty": "TodoCreateInput!",
                 "validators": null
               }
             },
@@ -143,38 +299,38 @@ expression: req_string_b
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Create a Product",
+            "description": "Create a Todo",
             "edges": [],
             "external": false,
-            "name": "productCreate",
+            "name": "todoCreate",
             "provides": null,
             "relation": null,
             "required_operation": 1,
             "requires": null,
             "resolve": {
-              "id": "product_create_resolver",
+              "id": "todo_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "CreateNode": {
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Product"
+                    "ty": "Todo"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "ProductCreatePayload"
+            "ty": "TodoCreatePayload"
           },
-          "productDelete": {
+          "todoDelete": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!",
+                "ty": "TodoByInput!",
                 "validators": null
               }
             },
@@ -184,38 +340,38 @@ expression: req_string_b
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Delete a Product by ID or unique field",
+            "description": "Delete a Todo by ID or unique field",
             "edges": [],
             "external": false,
-            "name": "productDelete",
+            "name": "todoDelete",
             "provides": null,
             "relation": null,
             "required_operation": 16,
             "requires": null,
             "resolve": {
-              "id": "product_delete_resolver",
+              "id": "todo_delete_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "DeleteNode": {
                     "by": {
                       "InputTypeName": "by"
                     },
-                    "ty": "Product"
+                    "ty": "Todo"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "ProductDeletePayload"
+            "ty": "TodoDeletePayload"
           },
-          "productUpdate": {
+          "todoUpdate": {
             "args": {
               "by": {
                 "default_value": null,
                 "description": null,
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!",
+                "ty": "TodoByInput!",
                 "validators": null
               },
               "input": {
@@ -223,7 +379,7 @@ expression: req_string_b
                 "description": null,
                 "is_secret": false,
                 "name": "input",
-                "ty": "ProductUpdateInput!",
+                "ty": "TodoUpdateInput!",
                 "validators": null
               }
             },
@@ -233,16 +389,16 @@ expression: req_string_b
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Update a Product",
+            "description": "Update a Todo",
             "edges": [],
             "external": false,
-            "name": "productUpdate",
+            "name": "todoUpdate",
             "provides": null,
             "relation": null,
             "required_operation": 8,
             "requires": null,
             "resolve": {
-              "id": "product_create_resolver",
+              "id": "todo_create_resolver",
               "type": {
                 "DynamoMutationResolver": {
                   "UpdateNode": {
@@ -252,13 +408,13 @@ expression: req_string_b
                     "input": {
                       "InputTypeName": "input"
                     },
-                    "ty": "Product"
+                    "ty": "Todo"
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "ProductUpdatePayload"
+            "ty": "TodoUpdatePayload"
           }
         },
         "is_node": false,
@@ -421,510 +577,6 @@ expression: req_string_b
         "rust_typename": "PageInfo"
       }
     },
-    "Product": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "createdAt": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": "when the model was created",
-            "edges": [],
-            "external": false,
-            "name": "createdAt",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__created_at"
-              }
-            },
-            "ty": "DateTime!"
-          },
-          "id": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": "Unique identifier",
-            "edges": [],
-            "external": false,
-            "name": "id",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__sk"
-              }
-            },
-            "ty": "ID!"
-          },
-          "title": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "title",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "title"
-              }
-            },
-            "ty": "String"
-          },
-          "updatedAt": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": "when the model was updated",
-            "edges": [],
-            "external": false,
-            "name": "updatedAt",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "__updated_at"
-              }
-            },
-            "ty": "DateTime!"
-          }
-        },
-        "is_node": true,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Product",
-        "rust_typename": "Product"
-      }
-    },
-    "ProductByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
-          "id": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "id",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "ProductByInput",
-        "oneof": true,
-        "rust_typename": "ProductByInput"
-      }
-    },
-    "ProductConnection": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "edges": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "edges",
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[ProductEdge]"
-          },
-          "pageInfo": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": "Information to aid in pagination",
-            "edges": [],
-            "external": false,
-            "name": "pageInfo",
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "PageInfo!"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "ProductConnection",
-        "rust_typename": "ProductConnection"
-      }
-    },
-    "ProductCreateInput": {
-      "InputObject": {
-        "description": "Input to create a Product",
-        "input_fields": {
-          "title": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "title",
-            "ty": "String",
-            "validators": null
-          }
-        },
-        "name": "ProductCreateInput",
-        "oneof": false,
-        "rust_typename": "ProductCreateInput"
-      }
-    },
-    "ProductCreatePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "product": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "product",
-            "provides": null,
-            "relation": null,
-            "required_operation": 1,
-            "requires": null,
-            "resolve": {
-              "id": "product_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
-                  }
-                }
-              }
-            },
-            "transformer": null,
-            "ty": "Product"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "ProductCreatePayload",
-        "rust_typename": "ProductCreatePayload"
-      }
-    },
-    "ProductDeletePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "deletedId": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "deletedId",
-            "provides": null,
-            "relation": null,
-            "required_operation": 16,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
-              "JSONSelect": {
-                "property": "id"
-              }
-            },
-            "ty": "ID!"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "ProductDeletePayload",
-        "rust_typename": "ProductDeletePayload"
-      }
-    },
-    "ProductEdge": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "cursor": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "cursor",
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "Pipeline": [
-                {
-                  "DynamoSelect": {
-                    "property": "__sk"
-                  }
-                },
-                "ConvertSkToCursor"
-              ]
-            },
-            "ty": "String!"
-          },
-          "node": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "node",
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "Product!"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "ProductEdge",
-        "rust_typename": "ProductEdge"
-      }
-    },
-    "ProductOrderByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
-          "createdAt": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
-            "validators": null
-          }
-        },
-        "name": "ProductOrderByInput",
-        "oneof": true,
-        "rust_typename": "ProductOrderByInput"
-      }
-    },
-    "ProductUpdateInput": {
-      "InputObject": {
-        "description": "Input to update a Product",
-        "input_fields": {
-          "title": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "title",
-            "ty": "String",
-            "validators": null
-          }
-        },
-        "name": "ProductUpdateInput",
-        "oneof": false,
-        "rust_typename": "ProductUpdateInput"
-      }
-    },
-    "ProductUpdatePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true
-        },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
-          "product": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "product",
-            "provides": null,
-            "relation": null,
-            "required_operation": 8,
-            "requires": null,
-            "resolve": {
-              "id": "product_resolver",
-              "type": {
-                "DynamoResolver": {
-                  "QueryPKSK": {
-                    "pk": {
-                      "LocalData": "id"
-                    },
-                    "schema": null,
-                    "sk": {
-                      "LocalData": "id"
-                    }
-                  }
-                }
-              }
-            },
-            "transformer": null,
-            "ty": "Product"
-          }
-        },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "ProductUpdatePayload",
-        "rust_typename": "ProductUpdatePayload"
-      }
-    },
     "Query": {
       "Object": {
         "cache_control": {
@@ -955,14 +607,14 @@ expression: req_string_b
             "transformer": null,
             "ty": "__Schema!"
           },
-          "product": {
+          "todo": {
             "args": {
               "by": {
                 "default_value": null,
-                "description": "The field and value by which to query the Product",
+                "description": "The field and value by which to query the Todo",
                 "is_secret": false,
                 "name": "by",
-                "ty": "ProductByInput!",
+                "ty": "TodoByInput!",
                 "validators": null
               }
             },
@@ -972,16 +624,16 @@ expression: req_string_b
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Query a single Product by an ID or a unique field",
+            "description": "Query a single Todo by an ID or a unique field",
             "edges": [],
             "external": false,
-            "name": "product",
+            "name": "todo",
             "provides": null,
             "relation": null,
             "required_operation": 2,
             "requires": null,
             "resolve": {
-              "id": "product_resolver",
+              "id": "todo_resolver",
               "type": {
                 "DynamoResolver": {
                   "QueryBy": {
@@ -994,9 +646,9 @@ expression: req_string_b
               }
             },
             "transformer": null,
-            "ty": "Product"
+            "ty": "Todo"
           },
-          "productCollection": {
+          "todoCollection": {
             "args": {
               "after": {
                 "default_value": null,
@@ -1035,7 +687,7 @@ expression: req_string_b
                 "description": null,
                 "is_secret": false,
                 "name": "orderBy",
-                "ty": "ProductOrderByInput",
+                "ty": "TodoOrderByInput",
                 "validators": null
               }
             },
@@ -1045,24 +697,24 @@ expression: req_string_b
               "public": true
             },
             "deprecation": "NoDeprecated",
-            "description": "Paginated query to fetch the whole list of `Product`.",
+            "description": "Paginated query to fetch the whole list of `Todo`.",
             "edges": [],
             "external": false,
-            "name": "productCollection",
+            "name": "todoCollection",
             "provides": null,
             "relation": {
               "birectional": false,
               "kind": "OneToMany",
-              "name": "productCollection",
+              "name": "todoCollection",
               "relation": [
                 null,
-                "Product"
+                "Todo"
               ]
             },
             "required_operation": 4,
             "requires": null,
             "resolve": {
-              "id": "product_resolver",
+              "id": "todo_resolver",
               "type": {
                 "DynamoResolver": {
                   "ListResultByTypePaginated": {
@@ -1083,14 +735,14 @@ expression: req_string_b
                       "InputTypeName": "orderBy"
                     },
                     "type": {
-                      "DebugString": "Product"
+                      "DebugString": "Todo"
                     }
                   }
                 }
               }
             },
             "transformer": null,
-            "ty": "ProductConnection"
+            "ty": "TodoConnection"
           }
         },
         "is_node": false,
@@ -1105,6 +757,619 @@ expression: req_string_b
         "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
         "name": "String",
         "specified_by_url": null
+      }
+    },
+    "Todo": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "author": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "author",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "author"
+              }
+            },
+            "ty": "Author"
+          },
+          "content": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "content",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "content"
+              }
+            },
+            "ty": "String!"
+          },
+          "createdAt": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "when the model was created",
+            "edges": [],
+            "external": false,
+            "name": "createdAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__created_at"
+              }
+            },
+            "ty": "DateTime!"
+          },
+          "id": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Unique identifier",
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
+            },
+            "ty": "ID!"
+          },
+          "updatedAt": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "when the model was updated",
+            "edges": [],
+            "external": false,
+            "name": "updatedAt",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__updated_at"
+              }
+            },
+            "ty": "DateTime!"
+          }
+        },
+        "is_node": true,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Todo",
+        "rust_typename": "Todo"
+      }
+    },
+    "TodoByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "id": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "id",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "TodoByInput",
+        "oneof": true,
+        "rust_typename": "TodoByInput"
+      }
+    },
+    "TodoConnection": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "edges": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "edges",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "[TodoEdge]"
+          },
+          "pageInfo": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Information to aid in pagination",
+            "edges": [],
+            "external": false,
+            "name": "pageInfo",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "PageInfo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoConnection",
+        "rust_typename": "TodoConnection"
+      }
+    },
+    "TodoCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Todo",
+        "input_fields": {
+          "author": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "author",
+            "ty": "AuthorInput",
+            "validators": null
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!",
+            "validators": null
+          }
+        },
+        "name": "TodoCreateInput",
+        "oneof": false,
+        "rust_typename": "TodoCreateInput"
+      }
+    },
+    "TodoCreatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "todo": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "todo",
+            "provides": null,
+            "relation": null,
+            "required_operation": 1,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "schema": null,
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Todo"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoCreatePayload",
+        "rust_typename": "TodoCreatePayload"
+      }
+    },
+    "TodoDeletePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "deletedId": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "deletedId",
+            "provides": null,
+            "relation": null,
+            "required_operation": 16,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "id"
+              }
+            },
+            "ty": "ID!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoDeletePayload",
+        "rust_typename": "TodoDeletePayload"
+      }
+    },
+    "TodoEdge": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "cursor": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "cursor",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Todo"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "Pipeline": [
+                {
+                  "DynamoSelect": {
+                    "property": "__sk"
+                  }
+                },
+                "ConvertSkToCursor"
+              ]
+            },
+            "ty": "String!"
+          },
+          "node": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "required_operation": 4,
+            "requires": null,
+            "resolve": null,
+            "transformer": null,
+            "ty": "Todo!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoEdge",
+        "rust_typename": "TodoEdge"
+      }
+    },
+    "TodoOrderByInput": {
+      "InputObject": {
+        "description": null,
+        "input_fields": {
+          "createdAt": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "createdAt",
+            "ty": "OrderByDirection",
+            "validators": null
+          }
+        },
+        "name": "TodoOrderByInput",
+        "oneof": true,
+        "rust_typename": "TodoOrderByInput"
+      }
+    },
+    "TodoUpdateInput": {
+      "InputObject": {
+        "description": "Input to update a Todo",
+        "input_fields": {
+          "author": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "author",
+            "ty": "AuthorInput",
+            "validators": null
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String",
+            "validators": null
+          }
+        },
+        "name": "TodoUpdateInput",
+        "oneof": false,
+        "rust_typename": "TodoUpdateInput"
+      }
+    },
+    "TodoUpdatePayload": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "todo": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "todo",
+            "provides": null,
+            "relation": null,
+            "required_operation": 8,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "LocalData": "id"
+                    },
+                    "schema": null,
+                    "sk": {
+                      "LocalData": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Todo"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "TodoUpdatePayload",
+        "rust_typename": "TodoUpdatePayload"
+      }
+    },
+    "Truc": {
+      "Object": {
+        "cache_control": {
+          "max_age": 0,
+          "public": true
+        },
+        "constraints": [],
+        "description": null,
+        "extends": false,
+        "fields": {
+          "name": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": null,
+            "edges": [],
+            "external": false,
+            "name": "name",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": null,
+            "transformer": {
+              "JSONSelect": {
+                "property": "name"
+              }
+            },
+            "ty": "String!"
+          }
+        },
+        "is_node": false,
+        "is_subscription": false,
+        "keys": null,
+        "name": "Truc",
+        "rust_typename": "Truc"
+      }
+    },
+    "TrucInput": {
+      "InputObject": {
+        "description": "Truc input type.",
+        "input_fields": {
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          }
+        },
+        "name": "TrucInput",
+        "oneof": false,
+        "rust_typename": "Truc"
       }
     },
     "__Directive": {

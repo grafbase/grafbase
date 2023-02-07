@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 208
 expression: reg_string
 ---
 {
@@ -74,7 +75,17 @@ expression: reg_string
   "disable_introspection": false,
   "enable_federation": false,
   "federation_subscription": false,
-  "implements": {},
+  "implements": {
+    "Author": [
+      "Node"
+    ],
+    "Blog": [
+      "Node"
+    ],
+    "Post": [
+      "Node"
+    ]
+  },
   "mutation_type": "Mutation",
   "query_type": "Query",
   "subscription_type": null,
@@ -287,14 +298,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "AuthorOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -488,7 +491,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "posts",
-            "ty": "[PublishedCreatePostRelation]",
+            "ty": "[AuthorPublishedPostCreateRelationInput]",
             "validators": null
           }
         },
@@ -667,76 +670,42 @@ expression: reg_string
         "rust_typename": "AuthorEdge"
       }
     },
-    "AuthorOrderByInput": {
+    "AuthorPublishedPostCreateInput": {
       "InputObject": {
-        "description": null,
+        "description": "Input to create a Post for the published relation of Author",
         "input_fields": {
-          "createdAt": {
+          "authors": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreateRelationInput]",
+            "validators": null
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!",
             "validators": null
           }
         },
-        "name": "AuthorOrderByInput",
-        "oneof": true,
-        "rust_typename": "AuthorOrderByInput"
-      }
-    },
-    "AuthorToBlogCreateAuthor": {
-      "InputObject": {
-        "description": "Input to create a Author for the AuthorToBlog relation of Blog",
-        "input_fields": {
-          "country": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "country",
-            "ty": "Country!",
-            "validators": null
-          },
-          "lastname": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "lastname",
-            "ty": "String!",
-            "validators": null
-          },
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[PublishedCreatePostRelation]",
-            "validators": null
-          }
-        },
-        "name": "AuthorToBlogCreateAuthor",
+        "name": "AuthorPublishedPostCreateInput",
         "oneof": false,
-        "rust_typename": "AuthorToBlogCreateAuthor"
+        "rust_typename": "AuthorPublishedPostCreateInput"
       }
     },
-    "AuthorToBlogCreateAuthorRelation": {
+    "AuthorPublishedPostCreateRelationInput": {
       "InputObject": {
-        "description": "Input to link to or create a Author for the AuthorToBlog relation of Blog",
+        "description": "Input to link to or create a Post for the published relation of Author",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "AuthorToBlogCreateAuthor",
+            "ty": "AuthorPublishedPostCreateInput",
             "validators": null
           },
           "link": {
@@ -748,21 +717,21 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "AuthorToBlogCreateAuthorRelation",
+        "name": "AuthorPublishedPostCreateRelationInput",
         "oneof": true,
-        "rust_typename": "AuthorToBlogCreateAuthorRelation"
+        "rust_typename": "AuthorPublishedPostCreateRelationInput"
       }
     },
-    "AuthorToBlogUpdateAuthorRelation": {
+    "AuthorPublishedPostUpdateRelationInput": {
       "InputObject": {
-        "description": "Input to link/unlink to or create a Author for the AuthorToBlog relation of Blog",
+        "description": "Input to link/unlink to or create a Post for the published relation of Author",
         "input_fields": {
           "create": {
             "default_value": null,
             "description": null,
             "is_secret": false,
             "name": "create",
-            "ty": "AuthorToBlogCreateAuthor",
+            "ty": "AuthorPublishedPostCreateInput",
             "validators": null
           },
           "link": {
@@ -782,9 +751,9 @@ expression: reg_string
             "validators": null
           }
         },
-        "name": "AuthorToBlogUpdateAuthorRelation",
+        "name": "AuthorPublishedPostUpdateRelationInput",
         "oneof": true,
-        "rust_typename": "AuthorToBlogUpdateAuthorRelation"
+        "rust_typename": "AuthorPublishedPostUpdateRelationInput"
       }
     },
     "AuthorUpdateInput": {
@@ -820,7 +789,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "posts",
-            "ty": "[PublishedUpdatePostRelation]",
+            "ty": "[AuthorPublishedPostUpdateRelationInput]",
             "validators": null
           }
         },
@@ -975,7 +944,7 @@ expression: reg_string
             "relation": {
               "birectional": false,
               "kind": "OneToOne",
-              "name": "AuthorToBlog",
+              "name": "AuthorRelateBlog",
               "relation": [
                 "Blog",
                 "Author"
@@ -989,7 +958,7 @@ expression: reg_string
                 "ContextDataResolver": {
                   "SingleEdge": {
                     "key": "Blog",
-                    "relation_name": "AuthorToBlog"
+                    "relation_name": "AuthorRelateBlog"
                   }
                 }
               }
@@ -1030,14 +999,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "BlogOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -1054,9 +1015,9 @@ expression: reg_string
             "name": "posts",
             "provides": null,
             "relation": {
-              "birectional": true,
+              "birectional": false,
               "kind": "OneToMany",
-              "name": "BlogToPost",
+              "name": "BlogRelatePost",
               "relation": [
                 "Blog",
                 "Post"
@@ -1071,7 +1032,7 @@ expression: reg_string
                   "EdgeArray": {
                     "expected_ty": "Post",
                     "key": "Blog",
-                    "relation_name": "BlogToPost"
+                    "relation_name": "BlogRelatePost"
                   }
                 }
               }
@@ -1118,6 +1079,194 @@ expression: reg_string
         "keys": null,
         "name": "Blog",
         "rust_typename": "Blog"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Author for the AuthorRelateBlog relation of Blog",
+        "input_fields": {
+          "country": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "country",
+            "ty": "Country!",
+            "validators": null
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!",
+            "validators": null
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostCreateRelationInput]",
+            "validators": null
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorCreateInput",
+        "oneof": false,
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreateInput"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Author for the AuthorRelateBlog relation of Blog",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogAuthorRelateBlogAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogAuthorRelateBlogAuthorCreateRelationInput"
+      }
+    },
+    "BlogAuthorRelateBlogAuthorUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Author for the AuthorRelateBlog relation of Blog",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogAuthorRelateBlogAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "BlogAuthorRelateBlogAuthorUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogAuthorRelateBlogAuthorUpdateRelationInput"
+      }
+    },
+    "BlogBlogRelatePostPostCreateInput": {
+      "InputObject": {
+        "description": "Input to create a Post for the BlogRelatePost relation of Blog",
+        "input_fields": {
+          "authors": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "authors",
+            "ty": "[PostPublishedAuthorCreateRelationInput]",
+            "validators": null
+          },
+          "content": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "content",
+            "ty": "String!",
+            "validators": null
+          }
+        },
+        "name": "BlogBlogRelatePostPostCreateInput",
+        "oneof": false,
+        "rust_typename": "BlogBlogRelatePostPostCreateInput"
+      }
+    },
+    "BlogBlogRelatePostPostCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Post for the BlogRelatePost relation of Blog",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogBlogRelatePostPostCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "BlogBlogRelatePostPostCreateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogBlogRelatePostPostCreateRelationInput"
+      }
+    },
+    "BlogBlogRelatePostPostUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Post for the BlogRelatePost relation of Blog",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "BlogBlogRelatePostPostCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "BlogBlogRelatePostPostUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "BlogBlogRelatePostPostUpdateRelationInput"
       }
     },
     "BlogByInput": {
@@ -1208,7 +1357,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "owner",
-            "ty": "AuthorToBlogCreateAuthorRelation!",
+            "ty": "BlogAuthorRelateBlogAuthorCreateRelationInput!",
             "validators": null
           },
           "posts": {
@@ -1216,7 +1365,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "posts",
-            "ty": "[BlogToPostCreatePostRelation]",
+            "ty": "[BlogBlogRelatePostPostCreateRelationInput]",
             "validators": null
           }
         },
@@ -1395,196 +1544,6 @@ expression: reg_string
         "rust_typename": "BlogEdge"
       }
     },
-    "BlogOrderByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
-          "createdAt": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
-            "validators": null
-          }
-        },
-        "name": "BlogOrderByInput",
-        "oneof": true,
-        "rust_typename": "BlogOrderByInput"
-      }
-    },
-    "BlogToPostCreateBlog": {
-      "InputObject": {
-        "description": "Input to create a Blog for the BlogToPost relation of Post",
-        "input_fields": {
-          "owner": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "owner",
-            "ty": "AuthorToBlogCreateAuthorRelation!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[BlogToPostCreatePostRelation]",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostCreateBlog",
-        "oneof": false,
-        "rust_typename": "BlogToPostCreateBlog"
-      }
-    },
-    "BlogToPostCreateBlogRelation": {
-      "InputObject": {
-        "description": "Input to link to or create a Blog for the BlogToPost relation of Post",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogToPostCreateBlog",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostCreateBlogRelation",
-        "oneof": true,
-        "rust_typename": "BlogToPostCreateBlogRelation"
-      }
-    },
-    "BlogToPostCreatePost": {
-      "InputObject": {
-        "description": "Input to create a Post for the BlogToPost relation of Blog",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[PublishedCreateAuthorRelation]",
-            "validators": null
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostCreatePost",
-        "oneof": false,
-        "rust_typename": "BlogToPostCreatePost"
-      }
-    },
-    "BlogToPostCreatePostRelation": {
-      "InputObject": {
-        "description": "Input to link to or create a Post for the BlogToPost relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogToPostCreatePost",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostCreatePostRelation",
-        "oneof": true,
-        "rust_typename": "BlogToPostCreatePostRelation"
-      }
-    },
-    "BlogToPostUpdateBlogRelation": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Blog for the BlogToPost relation of Post",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogToPostCreateBlog",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostUpdateBlogRelation",
-        "oneof": true,
-        "rust_typename": "BlogToPostUpdateBlogRelation"
-      }
-    },
-    "BlogToPostUpdatePostRelation": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Post for the BlogToPost relation of Blog",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "BlogToPostCreatePost",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "BlogToPostUpdatePostRelation",
-        "oneof": true,
-        "rust_typename": "BlogToPostUpdatePostRelation"
-      }
-    },
     "BlogUpdateInput": {
       "InputObject": {
         "description": "Input to update a Blog",
@@ -1594,7 +1553,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "owner",
-            "ty": "AuthorToBlogUpdateAuthorRelation",
+            "ty": "BlogAuthorRelateBlogAuthorUpdateRelationInput",
             "validators": null
           },
           "posts": {
@@ -1602,7 +1561,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "posts",
-            "ty": "[BlogToPostUpdatePostRelation]",
+            "ty": "[BlogBlogRelatePostPostUpdateRelationInput]",
             "validators": null
           }
         },
@@ -2137,23 +2096,53 @@ expression: reg_string
         "rust_typename": "Mutation"
       }
     },
-    "OrderByDirection": {
-      "Enum": {
+    "Node": {
+      "Interface": {
         "description": null,
-        "enum_values": {
-          "ASC": {
+        "extends": false,
+        "fields": {
+          "id": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
             "deprecation": "NoDeprecated",
             "description": null,
-            "name": "ASC"
-          },
-          "DESC": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "DESC"
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Node"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
+            },
+            "ty": "ID!"
           }
         },
-        "name": "OrderByDirection",
-        "rust_typename": "OrderByDirection"
+        "keys": null,
+        "name": "Node",
+        "possible_types": [
+          "Blog",
+          "Post",
+          "Author"
+        ],
+        "rust_typename": "Node"
       }
     },
     "PageInfo": {
@@ -2333,14 +2322,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "PostOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -2381,46 +2362,6 @@ expression: reg_string
             },
             "transformer": null,
             "ty": "AuthorConnection"
-          },
-          "blog": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [
-              "Blog"
-            ],
-            "external": false,
-            "name": "blog",
-            "provides": null,
-            "relation": {
-              "birectional": true,
-              "kind": "ManyToOne",
-              "name": "BlogToPost",
-              "relation": [
-                "Post",
-                "Blog"
-              ]
-            },
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": "post_edge_resolver",
-              "type": {
-                "ContextDataResolver": {
-                  "SingleEdge": {
-                    "key": "Post",
-                    "relation_name": "BlogToPost"
-                  }
-                }
-              }
-            },
-            "transformer": null,
-            "ty": "Blog"
           },
           "content": {
             "args": {},
@@ -2600,7 +2541,6 @@ expression: reg_string
             "deprecation": "NoDeprecated",
             "description": null,
             "edges": [
-              "Blog",
               "Author"
             ],
             "external": false,
@@ -2650,15 +2590,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "authors",
-            "ty": "[PublishedCreateAuthorRelation]",
-            "validators": null
-          },
-          "blog": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "blog",
-            "ty": "BlogToPostCreateBlogRelation",
+            "ty": "[PostPublishedAuthorCreateRelationInput]",
             "validators": null
           },
           "content": {
@@ -2845,22 +2777,106 @@ expression: reg_string
         "rust_typename": "PostEdge"
       }
     },
-    "PostOrderByInput": {
+    "PostPublishedAuthorCreateInput": {
       "InputObject": {
-        "description": null,
+        "description": "Input to create a Author for the published relation of Post",
         "input_fields": {
-          "createdAt": {
+          "country": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
+            "name": "country",
+            "ty": "Country!",
+            "validators": null
+          },
+          "lastname": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "lastname",
+            "ty": "String!",
+            "validators": null
+          },
+          "name": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "name",
+            "ty": "String!",
+            "validators": null
+          },
+          "posts": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "posts",
+            "ty": "[AuthorPublishedPostCreateRelationInput]",
             "validators": null
           }
         },
-        "name": "PostOrderByInput",
+        "name": "PostPublishedAuthorCreateInput",
+        "oneof": false,
+        "rust_typename": "PostPublishedAuthorCreateInput"
+      }
+    },
+    "PostPublishedAuthorCreateRelationInput": {
+      "InputObject": {
+        "description": "Input to link to or create a Author for the published relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostPublishedAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostPublishedAuthorCreateRelationInput",
         "oneof": true,
-        "rust_typename": "PostOrderByInput"
+        "rust_typename": "PostPublishedAuthorCreateRelationInput"
+      }
+    },
+    "PostPublishedAuthorUpdateRelationInput": {
+      "InputObject": {
+        "description": "Input to link/unlink to or create a Author for the published relation of Post",
+        "input_fields": {
+          "create": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "create",
+            "ty": "PostPublishedAuthorCreateInput",
+            "validators": null
+          },
+          "link": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "link",
+            "ty": "ID",
+            "validators": null
+          },
+          "unlink": {
+            "default_value": null,
+            "description": null,
+            "is_secret": false,
+            "name": "unlink",
+            "ty": "ID",
+            "validators": null
+          }
+        },
+        "name": "PostPublishedAuthorUpdateRelationInput",
+        "oneof": true,
+        "rust_typename": "PostPublishedAuthorUpdateRelationInput"
       }
     },
     "PostUpdateInput": {
@@ -2872,15 +2888,7 @@ expression: reg_string
             "description": null,
             "is_secret": false,
             "name": "authors",
-            "ty": "[PublishedUpdateAuthorRelation]",
-            "validators": null
-          },
-          "blog": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "blog",
-            "ty": "BlogToPostUpdateBlogRelation",
+            "ty": "[PostPublishedAuthorUpdateRelationInput]",
             "validators": null
           },
           "content": {
@@ -2947,202 +2955,6 @@ expression: reg_string
         "keys": null,
         "name": "PostUpdatePayload",
         "rust_typename": "PostUpdatePayload"
-      }
-    },
-    "PublishedCreateAuthor": {
-      "InputObject": {
-        "description": "Input to create a Author for the published relation of Post",
-        "input_fields": {
-          "country": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "country",
-            "ty": "Country!",
-            "validators": null
-          },
-          "lastname": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "lastname",
-            "ty": "String!",
-            "validators": null
-          },
-          "name": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "posts": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "posts",
-            "ty": "[PublishedCreatePostRelation]",
-            "validators": null
-          }
-        },
-        "name": "PublishedCreateAuthor",
-        "oneof": false,
-        "rust_typename": "PublishedCreateAuthor"
-      }
-    },
-    "PublishedCreateAuthorRelation": {
-      "InputObject": {
-        "description": "Input to link to or create a Author for the published relation of Post",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "PublishedCreateAuthor",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "PublishedCreateAuthorRelation",
-        "oneof": true,
-        "rust_typename": "PublishedCreateAuthorRelation"
-      }
-    },
-    "PublishedCreatePost": {
-      "InputObject": {
-        "description": "Input to create a Post for the published relation of Author",
-        "input_fields": {
-          "authors": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "authors",
-            "ty": "[PublishedCreateAuthorRelation]",
-            "validators": null
-          },
-          "blog": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "blog",
-            "ty": "BlogToPostCreateBlogRelation",
-            "validators": null
-          },
-          "content": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "content",
-            "ty": "String!",
-            "validators": null
-          }
-        },
-        "name": "PublishedCreatePost",
-        "oneof": false,
-        "rust_typename": "PublishedCreatePost"
-      }
-    },
-    "PublishedCreatePostRelation": {
-      "InputObject": {
-        "description": "Input to link to or create a Post for the published relation of Author",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "PublishedCreatePost",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "PublishedCreatePostRelation",
-        "oneof": true,
-        "rust_typename": "PublishedCreatePostRelation"
-      }
-    },
-    "PublishedUpdateAuthorRelation": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Author for the published relation of Post",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "PublishedCreateAuthor",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "PublishedUpdateAuthorRelation",
-        "oneof": true,
-        "rust_typename": "PublishedUpdateAuthorRelation"
-      }
-    },
-    "PublishedUpdatePostRelation": {
-      "InputObject": {
-        "description": "Input to link/unlink to or create a Post for the published relation of Author",
-        "input_fields": {
-          "create": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "create",
-            "ty": "PublishedCreatePost",
-            "validators": null
-          },
-          "link": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "link",
-            "ty": "ID",
-            "validators": null
-          },
-          "unlink": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "unlink",
-            "ty": "ID",
-            "validators": null
-          }
-        },
-        "name": "PublishedUpdatePostRelation",
-        "oneof": true,
-        "rust_typename": "PublishedUpdatePostRelation"
       }
     },
     "Query": {
@@ -3248,14 +3060,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "AuthorOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -3298,9 +3102,6 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
                     "type": {
                       "DebugString": "Author"
                     }
@@ -3384,14 +3185,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "BlogOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -3434,9 +3227,6 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
                     "type": {
                       "DebugString": "Blog"
                     }
@@ -3446,6 +3236,49 @@ expression: reg_string
             },
             "transformer": null,
             "ty": "BlogConnection"
+          },
+          "node": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Query a node",
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "blog_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Node"
           },
           "post": {
             "args": {
@@ -3520,14 +3353,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "PostOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -3570,9 +3395,6 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
                     "type": {
                       "DebugString": "Post"
                     }

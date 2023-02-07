@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 70
 expression: reg_string
 ---
 {
@@ -74,7 +75,11 @@ expression: reg_string
   "disable_introspection": false,
   "enable_federation": false,
   "federation_subscription": false,
-  "implements": {},
+  "implements": {
+    "Todo": [
+      "Node"
+    ]
+  },
   "mutation_type": "Mutation",
   "query_type": "Query",
   "subscription_type": null,
@@ -422,23 +427,51 @@ expression: reg_string
         "rust_typename": "Mutation"
       }
     },
-    "OrderByDirection": {
-      "Enum": {
+    "Node": {
+      "Interface": {
         "description": null,
-        "enum_values": {
-          "ASC": {
+        "extends": false,
+        "fields": {
+          "id": {
+            "args": {},
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
             "deprecation": "NoDeprecated",
             "description": null,
-            "name": "ASC"
-          },
-          "DESC": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "DESC"
+            "edges": [],
+            "external": false,
+            "name": "id",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": null,
+              "type": {
+                "ContextDataResolver": {
+                  "LocalKey": {
+                    "key": "Node"
+                  }
+                }
+              }
+            },
+            "transformer": {
+              "DynamoSelect": {
+                "property": "__sk"
+              }
+            },
+            "ty": "ID!"
           }
         },
-        "name": "OrderByDirection",
-        "rust_typename": "OrderByDirection"
+        "keys": null,
+        "name": "Node",
+        "possible_types": [
+          "Todo"
+        ],
+        "rust_typename": "Node"
       }
     },
     "PageInfo": {
@@ -605,6 +638,49 @@ expression: reg_string
             "transformer": null,
             "ty": "__Schema!"
           },
+          "node": {
+            "args": {
+              "id": {
+                "default_value": null,
+                "description": null,
+                "is_secret": false,
+                "name": "id",
+                "ty": "ID!",
+                "validators": null
+              }
+            },
+            "auth": null,
+            "cache_control": {
+              "max_age": 0,
+              "public": true
+            },
+            "deprecation": "NoDeprecated",
+            "description": "Query a node",
+            "edges": [],
+            "external": false,
+            "name": "node",
+            "provides": null,
+            "relation": null,
+            "required_operation": null,
+            "requires": null,
+            "resolve": {
+              "id": "todo_resolver",
+              "type": {
+                "DynamoResolver": {
+                  "QueryPKSK": {
+                    "pk": {
+                      "InputTypeName": "id"
+                    },
+                    "sk": {
+                      "InputTypeName": "id"
+                    }
+                  }
+                }
+              }
+            },
+            "transformer": null,
+            "ty": "Node"
+          },
           "todo": {
             "args": {
               "by": {
@@ -678,14 +754,6 @@ expression: reg_string
                 "name": "last",
                 "ty": "Int",
                 "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "TodoOrderByInput",
-                "validators": null
               }
             },
             "auth": null,
@@ -728,9 +796,6 @@ expression: reg_string
                       "InputTypeName": "last"
                     },
                     "nested": null,
-                    "order_by": {
-                      "InputTypeName": "orderBy"
-                    },
                     "type": {
                       "DebugString": "Todo"
                     }
@@ -1209,24 +1274,6 @@ expression: reg_string
         "keys": null,
         "name": "TodoEdge",
         "rust_typename": "TodoEdge"
-      }
-    },
-    "TodoOrderByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
-          "createdAt": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
-            "validators": null
-          }
-        },
-        "name": "TodoOrderByInput",
-        "oneof": true,
-        "rust_typename": "TodoOrderByInput"
       }
     },
     "TodoUpdateInput": {
