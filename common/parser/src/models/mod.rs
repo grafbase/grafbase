@@ -98,6 +98,11 @@ fn temp_scalar_to_datatype(registry: &Registry, field: &str, scalar: &Type) -> F
     )
 }
 
+/// System fields for Entities
+pub fn entity_fields() -> Vec<Field> {
+    vec![Field::new("__type", DataType::Utf8, false)]
+}
+
 /// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
 /// of it.
 ///
@@ -122,6 +127,7 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
             }
         }
 
+        arrow_fields.extend(entity_fields());
         return Ok(Schema::new(arrow_fields));
     }
     Err(ConversionError::ParsingSchema(format!(

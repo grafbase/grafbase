@@ -17,6 +17,7 @@
 //! TODO: Should have either: an ID or a PK
 
 use case::CaseExt;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
 
@@ -93,6 +94,7 @@ fn insert_metadata_field(
     description: Option<String>,
     ty: &str,
     dynamo_property_name: &str,
+    plan_field: &str,
     auth: Option<&AuthConfig>,
 ) -> Option<MetaField> {
     fields.insert(
@@ -115,7 +117,7 @@ fn insert_metadata_field(
                     key: type_name.to_string(),
                 }),
             }),
-            plan: None,
+            plan: Some(SchemaPlan::projection(vec![plan_field.to_string()])),
             edges: Vec::new(),
             transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
@@ -293,6 +295,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         )
                                     });
 
+                            let plan = if relation.is_none() {
+                                Some(SchemaPlan::projection(vec![name.clone()]))
+                            } else {
+                                None
+                            };
+
                             fields.insert(
                                 name.clone(),
                                 MetaField {
@@ -324,6 +332,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("Unique identifier".to_owned()),
                             "ID!",
                             dynamodb::constant::SK,
+                            "id",
                             field_auth
                                 .get(RESERVED_FIELD_ID)
                                 .map(|e| e.as_ref())
@@ -336,6 +345,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("when the model was updated".to_owned()),
                             "DateTime!",
                             dynamodb::constant::UPDATED_AT,
+                            "updatedAt",
                             field_auth
                                 .get(RESERVED_FIELD_UPDATED_AT)
                                 .map(|e| e.as_ref())
@@ -348,6 +358,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("when the model was created".to_owned()),
                             "DateTime!",
                             dynamodb::constant::CREATED_AT,
+                            "createdAt",
                             field_auth
                                 .get(RESERVED_FIELD_CREATED_AT)
                                 .map(|e| e.as_ref())
