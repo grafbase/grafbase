@@ -1,0 +1,28 @@
+name: Download CLI assets
+description: Download CLI assets from Grafbase CDN
+
+inputs:
+  working-directory:
+    description: Where to run
+    required: false
+    default: cli
+  cdn:
+    description: CDN to use when fetching assets
+    required: true
+  assets_version:
+    description: Version of the assets to fetch from CDN
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Fetch CDN assets
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        curl https://${{ inputs.cdn }}/cli/${{ inputs.assets_version }}.zip --output assets.zip
+        unzip assets.zip -d assets
+        rm -rf crates/server/assets
+        mv assets crates/server/assets
+        cp -r crates/server/assets ~/.grafbase/
+        touch ~/.grafbase/version.txt

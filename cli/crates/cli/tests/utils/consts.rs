@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
 pub const DEFAULT_SCHEMA: &str = include_str!("../graphql/default/schema.graphql");
-pub const DEFAULT_MUTATION: &str = include_str!("../graphql/default/mutation.graphql");
+pub const DEFAULT_CREATE: &str = include_str!("../graphql/default/create.graphql");
+pub const DEFAULT_UPDATE: &str = include_str!("../graphql/default/update.graphql");
 pub const DEFAULT_QUERY: &str = include_str!("../graphql/default/query.graphql");
 
 pub const UPDATED_SCHEMA: &str = include_str!("../graphql/updated/schema.graphql");
@@ -46,9 +47,12 @@ pub const PAGINATION_CREATE_TODO_LIST: &str = include_str!("../graphql/paginatio
 pub const PAGINATION_PAGINATE_TODOS: &str = include_str!("../graphql/pagination/paginate-todos.graphql");
 pub const PAGINATION_PAGINATE_TODO_LISTS: &str = include_str!("../graphql/pagination/paginate-todo-lists.graphql");
 
+pub const COERCION_SCHEMA: &str = include_str!("../graphql/coercion/schema.graphql");
+pub const COERCION_CREATE_DUMMY: &str = include_str!("../graphql/coercion/create-dummy.graphql");
+
 pub const SCALARS_SCHEMA: &str = include_str!("../graphql/scalars/schema.graphql");
-pub const SCALARS_MUTATION: &str = include_str!("../graphql/scalars/mutation.graphql");
-pub const SCALARS_QUERY: &str = include_str!("../graphql/scalars/query.graphql");
+pub const SCALARS_CREATE_OPTIONAL: &str = include_str!("../graphql/scalars/create-optional.graphql");
+pub const SCALARS_CREATE_REQUIRED: &str = include_str!("../graphql/scalars/create-required.graphql");
 
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
@@ -56,3 +60,12 @@ pub const JWT_PROVIDER_SCHEMA: &str = include_str!("../graphql/auth/schema.graph
 pub const JWT_PROVIDER_QUERY: &str = include_str!("../graphql/auth/query.graphql");
 
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
+
+pub const RESERVED_DATES_SCHEMA: &str = include_str!("../graphql/reserved_dates/schema.graphql");
+pub const RESERVED_DATES_NESTED_CREATION: &str = include_str!("../graphql/reserved_dates/nested-creation.graphql");
+pub const RESERVED_DATES_CREATE_TODO: &str = include_str!("../graphql/reserved_dates/create-todo.graphql");
+pub const RESERVED_DATES_CREATE_TODO_LIST: &str = include_str!("../graphql/reserved_dates/create-todo-list.graphql");
+
+pub const DEFAULT_DIRECTIVE_CREATE_USER1: &str = include_str!("../graphql/default_directive/create-user1.graphql");
+pub const DEFAULT_DIRECTIVE_CREATE_USER2: &str = include_str!("../graphql/default_directive/create-user2.graphql");
+pub const DEFAULT_DIRECTIVE_SCHEMA: &str = include_str!("../graphql/default_directive/schema.graphql");

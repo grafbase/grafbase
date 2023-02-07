@@ -1,8 +1,10 @@
-query PaginateTodos($first: Int, $last: Int, $before: String, $after: String) {
-  todoCollection(first: $first, last: $last, before: $before, after: $after) {
+query PaginateTodos($first: Int, $last: Int, $before: String, $after: String, $orderBy: TodoOrderByInput) {
+  todoCollection(first: $first, last: $last, before: $before, after: $after, orderBy: $orderBy) {
     pageInfo {
       hasNextPage
       hasPreviousPage
+      startCursor
+      endCursor
     }
     edges {
       cursor
