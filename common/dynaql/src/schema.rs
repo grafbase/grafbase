@@ -14,6 +14,8 @@ use indexmap::map::IndexMap;
 use crate::context::{Data, QueryEnvInner};
 use crate::custom_directive::CustomDirectiveFactory;
 use crate::extensions::{ExtensionFactory, Extensions};
+#[cfg(feature = "query-planning")]
+use crate::logical_plan_utils::resolve_logical_plan_container;
 use crate::model::__DirectiveLocation;
 use crate::parser::types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet};
 use crate::parser::{parse_query, Positioned};
@@ -28,7 +30,7 @@ use crate::{
 };
 
 #[cfg(feature = "query-planning")]
-use query_planning::logical_query::LogicalQuery;
+use query_planning::logical_query::{LogicalQuery, QueryOperationDefinition};
 
 /// Schema builder
 pub struct SchemaBuilder {
@@ -661,7 +663,9 @@ impl Schema {
     /// Theorically there shouldn't have any errors as we validate the GraphQL
     /// query before executing it.
     #[cfg(feature = "query-planning")]
-    async fn logical_query(&self, env: QueryEnv) -> LogicalQuery {
+    fn logical_query_once(&self, env: QueryEnv) -> Response {
+        use query_planning::logical_query::QueryOperations;
+
         let ctx = ContextBase {
             path_node: None,
             resolver_node: None,
@@ -676,9 +680,19 @@ impl Schema {
         let query = ctx.registry().query_root();
 
         let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_container(&ctx, query, None).await,
+            OperationType::Query => resolve_logical_plan_container(&ctx, query, None).map(|x| {
+                QueryOperationDefinition {
+                    ty: OperationType::Query,
+                    selection_set: x,
+                }
+            }),
             OperationType::Mutation => {
-                resolve_container_serial(&ctx, ctx.registry().mutation_root(), None).await
+                resolve_logical_plan_container(&ctx, ctx.registry().mutation_root(), None).map(
+                    |x| QueryOperationDefinition {
+                        ty: OperationType::Mutation,
+                        selection_set: x,
+                    },
+                )
             }
             OperationType::Subscription => Err(ServerError::new(
                 "Subscriptions are not supported on this transport.",
@@ -688,20 +702,17 @@ impl Schema {
 
         let mut resp = match res {
             Ok(value) => {
-                let response = &mut *ctx.response_graph.write().await;
-                response.set_root_unchecked(value);
-                let a = QueryResponse::default();
-                let b = std::mem::replace(response, a);
-                Response::new(b)
+                let query = LogicalQuery {
+                    operations: QueryOperations::Single(value),
+                };
+                return Response::from_logical_query(query);
             }
             Err(err) => Response::from_errors(vec![err]),
-        }
-        .http_headers(std::mem::take(&mut *env.http_headers.lock().unwrap()));
+        };
 
         resp.errors
             .extend(std::mem::take(&mut *env.errors.lock().unwrap()));
-
-        todo!()
+        resp
     }
 
     /// Execute a GraphQL query.
@@ -722,8 +733,7 @@ impl Schema {
                         #[cfg(feature = "query-planning")]
                         {
                             if is_logical_plan {
-                                let query = self.logical_query(env.clone()).await;
-                                return Response::from_logical_query(query);
+                                return self.logical_query_once(env.clone());
                             }
                         }
 
