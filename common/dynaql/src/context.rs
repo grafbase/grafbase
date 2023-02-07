@@ -27,6 +27,7 @@ use crate::extensions::Extensions;
 use crate::parser::types::{
     Directive, Field, FragmentDefinition, OperationDefinition, Selection, SelectionSet,
 };
+use crate::registry::plan::SchemaPlan;
 use crate::registry::relations::MetaRelation;
 use crate::registry::resolver_chain::ResolverChainNode;
 use crate::registry::resolvers::{ResolvedValue, Resolver};
@@ -841,8 +842,14 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         let resolver = self
             .resolver_node
             .as_ref()
-            .and_then(|x| x.resolver)
-            .map(|x| self.from_resolver_to_logic_plan(previous_plan, x));
+            .and_then(|x| x.field)
+            .map(|(field)| {
+                self.from_resolver_to_logic_plan(
+                    previous_plan,
+                    field.resolve.as_ref(),
+                    field.plan.as_ref(),
+                )
+            });
 
         match resolver {
             None => Ok(LogicalPlanBuilder::empty().build()),
@@ -894,52 +901,72 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn from_resolver_to_logic_plan(
         &self,
         previous_plan: Option<Arc<LogicalPlan>>,
-        resolver: &Resolver,
+        resolver: Option<&Resolver>,
+        plan: Option<&SchemaPlan>,
     ) -> ServerResult<LogicalPlan> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
         use query_planning::logical_plan::Datasource;
 
+        use crate::registry::plan::PlanProjection;
         use crate::registry::resolvers::dynamo_querying::DynamoResolver;
         use crate::registry::resolvers::ResolverType;
 
-        // TODO: Take the resolver from the context.
+        if let Some(plan) = plan {
+            return Ok(match plan {
+                SchemaPlan::Projection(PlanProjection { fields }) => {
+                    let previous = previous_plan.ok_or_else(|| ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos)))?;
 
-        Ok(match &resolver.r#type {
-            ResolverType::DynamoResolver(DynamoResolver::QueryPKSK { pk, sk, schema }) => {
-                let pk = self.from_variable_resolution(previous_plan.clone(), pk)?;
-                let sk = self.from_variable_resolution(previous_plan, sk)?;
-                let schema = self.get_schema_id(
-                    schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
-                )?;
-
-                LogicalPlanBuilder::from(
-                    join(pk, sk)
-                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?,
-                )
-                .get_entity_by_id(&schema, Datasource::gb())
-            }
-            ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
-                let _by = self.from_variable_resolution(previous_plan, by)?;
-                let schema = self.get_schema_id(
-                    schema.ok_or_else(|| ServerError::new("No schema id", Some(self.item.pos)))?,
-                )?;
-
-                // TODO: Add the by into values
-                LogicalPlanBuilder::empty().get_entity_by_unique(&schema, Datasource::gb())
-            }
-            ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
-                parent_pk: _,
-                relation_name: _,
-            }) => Ok(LogicalPlanBuilder::empty()),
-            ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated { .. }) => {
-                Ok(LogicalPlanBuilder::empty())
-            }
-            ResolverType::DynamoMutationResolver(_) => Ok(LogicalPlanBuilder::empty()),
-            ResolverType::ContextDataResolver(_) => Ok(LogicalPlanBuilder::empty()),
-            ResolverType::DebugResolver(_) => Ok(LogicalPlanBuilder::empty()),
+                    LogicalPlanBuilder::from(previous.as_ref().clone())
+                        .projection(fields.clone())
+                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                        .build()
+                }
+            });
         }
-        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
-        .build())
+
+        if let Some(resolver) = resolver {
+            return Ok(match &resolver.r#type {
+                ResolverType::DynamoResolver(DynamoResolver::QueryPKSK { pk, sk, schema }) => {
+                    let pk = self.from_variable_resolution(previous_plan.clone(), pk)?;
+                    let sk = self.from_variable_resolution(previous_plan, sk)?;
+                    let schema = self
+                        .get_schema_id(schema.ok_or_else(|| {
+                            ServerError::new("No schema id", Some(self.item.pos))
+                        })?)?;
+
+                    LogicalPlanBuilder::from(
+                        join(pk, sk).map_err(|err| {
+                            ServerError::new(err.to_string(), Some(self.item.pos))
+                        })?,
+                    )
+                    .get_entity_by_id(&schema, Datasource::gb())
+                }
+                ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
+                    let _by = self.from_variable_resolution(previous_plan, by)?;
+                    let schema = self
+                        .get_schema_id(schema.ok_or_else(|| {
+                            ServerError::new("No schema id", Some(self.item.pos))
+                        })?)?;
+
+                    // TODO: Add the by into values
+                    LogicalPlanBuilder::empty().get_entity_by_unique(&schema, Datasource::gb())
+                }
+                ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
+                    parent_pk: _,
+                    relation_name: _,
+                }) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
+                    ..
+                }) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::DynamoMutationResolver(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::ContextDataResolver(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::DebugResolver(_) => Ok(LogicalPlanBuilder::empty()),
+            }
+            .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+            .build());
+        }
+
+        Ok(LogicalPlanBuilder::empty().build())
     }
 
     #[doc(hidden)]

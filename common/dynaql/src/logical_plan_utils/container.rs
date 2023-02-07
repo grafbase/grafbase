@@ -238,7 +238,22 @@ impl FieldsGraph {
                                     .projection(vec!["__type"])
                                     .expect("shouldn't fail")
                                     .build(),
-                                    selection_set: Default::default(),
+                                    selection_set: {
+                                        if !selection_set.node.items.is_empty() {
+                                            let associated_meta_ty =
+                                                ctx.registry().types.get(type_condition).unwrap();
+                                            let ctx_selection_set =
+                                                ctx.with_selection_set(selection_set);
+                                            let selection_set = resolve_logical_plan_container(
+                                                &ctx_selection_set,
+                                                associated_meta_ty,
+                                                previous_logical_plan.clone(),
+                                            )?;
+                                            selection_set
+                                        } else {
+                                            Default::default()
+                                        }
+                                    },
                                 }),
                             ))]
                         }
