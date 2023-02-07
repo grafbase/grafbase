@@ -90,7 +90,7 @@ pub enum BackendError {
     ExtractArchiveEntry(io::Error),
 
     /// returned if the files extracted from the template repository archive could not be cleaned
-    #[error("could not clean the files extracted from the repository archiveio::Error")]
+    #[error("could not clean the files extracted from the repository archive\ncaused by: {0}")]
     CleanExtractedFiles(io::Error),
 
     /// returned if the request to get the information for a repository could not be sent
