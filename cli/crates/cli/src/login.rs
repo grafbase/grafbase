@@ -23,7 +23,7 @@ pub fn login() -> Result<(), CliError> {
     };
 
     let spinner = ProgressBar::new_spinner()
-        .with_message("Waiting for authentication to be completed")
+        .with_message("waiting for authentication to be completed")
         .with_style(
             ProgressStyle::with_template("{spinner} {wide_msg:.dim}")
                 .expect("must parse")

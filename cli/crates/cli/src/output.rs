@@ -81,7 +81,7 @@ pub mod report {
 
     pub fn login(url: &str) {
         println!(
-            "Please continue by opening the following URL:\n{}\n",
+            "please continue by opening the following URL:\n{}\n",
             watercolor!("{url}", @BrightBlue)
         );
     }
