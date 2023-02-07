@@ -60,7 +60,7 @@ fn try_main() -> Result<(), CliError> {
 
     trace!("subcommand: {}", subcommand.expect("required").0);
 
-    if let Some(("dev" | "init" | "reset" | "login" | "logout", ..)) = subcommand {
+    if let Some(("dev" | "init" | "reset" | "login"..)) = subcommand {
         report::cli_header();
     }
 
