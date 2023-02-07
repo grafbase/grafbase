@@ -1,7 +1,7 @@
 use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{MetaField, Registry};
+use dynaql::registry::{MetaField, MetaType, Registry, SchemaID, SchemaIDGenerator};
 use dynaql::{Name, OutputType, Pos, Positioned, Schema, ServerError};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
@@ -13,8 +13,10 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
+use std::sync::Arc;
 
 use crate::dynamic_string::DynamicString;
+use crate::models::from_meta_type;
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
 
@@ -30,6 +32,10 @@ pub struct VisitorContext<'a> {
     pub(crate) mutations: Vec<MetaField>,
     /// Relations by name
     pub(crate) relations: IndexMap<String, MetaRelation>,
+    pub schema_id_generator: SchemaIDGenerator,
+    /// Each schema to build should contains a SchemaID -> MetaType String to be
+    /// able to construct the whole SchemaRegistry at the end of the parsing.
+    pub schema_to_build: HashMap<SchemaID, String>,
     pub registry: RefCell<Registry>,
     variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
@@ -63,6 +69,18 @@ impl<'a> VisitorContext<'a> {
             static ref EMPTY_HASHMAP: HashMap<String, String> = HashMap::new();
         }
         Self::new_with_variables(document, &EMPTY_HASHMAP)
+    }
+
+    /// Create a new unique [`SchemaID`] for this [`VisitorContext`].
+    pub(crate) fn new_schema_id(&self) -> SchemaID {
+        self.schema_id_generator.new_id()
+    }
+
+    /// Add a new schema to build.
+    pub(crate) fn add_schema(&mut self, id: Option<SchemaID>, meta_ty: impl ToString) -> SchemaID {
+        let id = id.unwrap_or_else(|| self.new_schema_id());
+        self.schema_to_build.insert(id, meta_ty.to_string());
+        id
     }
 
     pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
@@ -101,6 +119,8 @@ impl<'a> VisitorContext<'a> {
             mutations: Default::default(),
             queries: Default::default(),
             relations: Default::default(),
+            schema_to_build: Default::default(),
+            schema_id_generator: Default::default(),
             variables,
             required_resolvers: Default::default(),
         }
@@ -195,6 +215,17 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
+
+        let mut result = HashMap::new();
+
+        for (id, val) in self.schema_to_build {
+            let meta_ty = registry.types.get(&val).unwrap();
+            let schema = from_meta_type(&registry, meta_ty).unwrap();
+            result.insert(id, Arc::new(schema));
+        }
+
+        registry.schema_list = result;
+
         (registry, self.required_resolvers)
     }
 

@@ -185,6 +185,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .iter()
                 .filter_map(|field| UniqueDirective::parse(ctx, object, &type_name, field))
                 .collect::<Vec<_>>();
+            // Schema ID
+            let schema_id = ctx.new_schema_id();
 
             //
             // CREATE ACTUAL TYPE
@@ -368,6 +370,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 &type_name,
             );
 
+            // Add a new schema to build.
+            ctx.add_schema(Some(schema_id), &type_name);
+
             //
             // GENERATE QUERY ONE OF: type(by: { ... })
             //
@@ -447,7 +452,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     // Single entity
                     r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
                         by: VariableResolveDefinition::InputTypeName("by".to_owned()),
-                        schema: None,
+                        schema: Some(schema_id),
                     }),
                 }),
                 transformer: None,
