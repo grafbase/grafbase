@@ -1295,7 +1295,7 @@ pub struct SchemaIDGenerator {
 
 impl SchemaIDGenerator {
     /// Generate a new ID for a schema ID.
-    fn new_id(&self) -> SchemaID {
+    pub fn new_id(&self) -> SchemaID {
         let val = self.cur.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         SchemaID(val)
     }
