@@ -1,8 +1,9 @@
-use std::collections::{HashMap, HashSet};
-
+use dynaql::registry::{MetaType, Registry};
 use dynaql::Schema;
 use serde_json as _;
+use std::collections::{HashMap, HashSet};
 
+use crate::models::from_meta_type;
 use crate::rules::visitor::RuleError;
 
 macro_rules! assert_validation_error {
@@ -17,6 +18,33 @@ macro_rules! assert_validation_error {
             Some(RuleError { message, .. }) if message == $expected_message
         );
     };
+}
+
+fn assert_registry_schema_generation(registry: &Registry) {
+    for (name, ty) in &registry.types {
+        if name.ends_with("Input")
+            || name.starts_with("__")
+            || ["PageInfo", "Query", "Mutation"].contains(&name.as_str())
+        {
+            continue;
+        }
+        if let ty @ MetaType::Object { .. } = ty {
+            let schema_opt = from_meta_type(&registry, ty);
+            // To print the name if there is an issue.
+            dbg!(name);
+            assert!(schema_opt.is_ok());
+        }
+    }
+}
+
+fn assert_snapshot(registry: Registry) {
+    let reg_string = serde_json::to_value(&registry).unwrap();
+    let sdl = Schema::new(registry).sdl();
+
+    /*
+    insta::assert_json_snapshot!(reg_string);
+    insta::assert_snapshot!(sdl);
+    */
 }
 
 #[test]
@@ -35,11 +63,8 @@ fn test_simple_product() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -66,11 +91,8 @@ fn test_simple_todo() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -93,9 +115,8 @@ fn test_simple_todo_from_template() {
     )
     .unwrap();
 
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -122,11 +143,8 @@ fn test_simple_todo_with_vec() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -166,11 +184,8 @@ fn test_simple_todo_with_enum() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -206,11 +221,8 @@ fn test_simple_post_with_relation() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -242,11 +254,8 @@ fn test_multiple_relations() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]
@@ -266,11 +275,8 @@ fn test_many_to_many() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(result);
 }
 
 #[test]

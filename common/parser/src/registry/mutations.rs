@@ -554,6 +554,7 @@ fn register_mutation_payload_type<'a>(
                             r#type: ResolverType::DynamoResolver(DynamoResolver::QueryPKSK {
                                 pk: VariableResolveDefinition::LocalData("id".to_string()),
                                 sk: VariableResolveDefinition::LocalData("id".to_string()),
+                                schema: None,
                             }),
                         }),
                         transformer: None,

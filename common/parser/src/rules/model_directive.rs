@@ -447,6 +447,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                     // Single entity
                     r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
                         by: VariableResolveDefinition::InputTypeName("by".to_owned()),
+                        schema: None,
                     }),
                 }),
                 transformer: None,
