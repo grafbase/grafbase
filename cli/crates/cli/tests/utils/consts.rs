@@ -47,6 +47,9 @@ pub const PAGINATION_CREATE_TODO_LIST: &str = include_str!("../graphql/paginatio
 pub const PAGINATION_PAGINATE_TODOS: &str = include_str!("../graphql/pagination/paginate-todos.graphql");
 pub const PAGINATION_PAGINATE_TODO_LISTS: &str = include_str!("../graphql/pagination/paginate-todo-lists.graphql");
 
+pub const COERCION_SCHEMA: &str = include_str!("../graphql/coercion/schema.graphql");
+pub const COERCION_CREATE_DUMMY: &str = include_str!("../graphql/coercion/create-dummy.graphql");
+
 pub const SCALARS_SCHEMA: &str = include_str!("../graphql/scalars/schema.graphql");
 pub const SCALARS_CREATE_OPTIONAL: &str = include_str!("../graphql/scalars/create-optional.graphql");
 pub const SCALARS_CREATE_REQUIRED: &str = include_str!("../graphql/scalars/create-required.graphql");
