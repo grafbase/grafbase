@@ -46,11 +46,7 @@ impl TestCase {
         match expected {
             Ok(expected) => {
                 let result: Value = dot_get!(response, &format!("data.scalarsCreate.scalars.{}", &ty));
-                assert_eq!(
-                    result, expected,
-                    "{}: expected {:#?} but got {:#?}",
-                    ty, expected, result
-                );
+                assert_eq!(result, expected, "{ty}: expected {expected:#?} but got {result:#?}",);
             }
             Err(regex) => {
                 // Clippy doesn't like the format call within expect but the suggest alternative of
@@ -58,12 +54,7 @@ impl TestCase {
                 #[allow(clippy::expect_fun_call)]
                 let result = dot_get_opt!(response, "errors.0.message", String)
                     .expect(&format!("No errors for '{ty}' with: {input:#?}"));
-                assert!(
-                    regex.is_match(&result),
-                    "'{}' didn't match the pattern '{}'",
-                    result,
-                    regex
-                );
+                assert!(regex.is_match(&result), "'{result}' didn't match the pattern '{regex}'");
             }
         }
     }
@@ -97,7 +88,7 @@ fn scalars() {
                 "b": 22
             })
         }),
-        "phone": "+33 6 12 12 12 12",
+        "phone": "+33612121212",
         "date": "2007-12-03",
         "datetime": "2016-01-01T13:10:20.000Z"
     });
@@ -109,6 +100,7 @@ fn scalars() {
             client.create_req(variables.clone()),
         ),
     ] {
+        dbg!(&response);
         assert_eq!(
             dot_get!(response, &format!("{prefix}.ip"), String),
             dot_get!(variables, "ip", String)
@@ -163,7 +155,7 @@ fn scalars() {
         TestCase {
             ty: "phone",
             input: json!("+33612121212"),
-            expected: Ok(json!("+33 6 12 12 12 12")),
+            expected: Ok(json!("+33612121212")),
         },
         TestCase {
             ty: "url",

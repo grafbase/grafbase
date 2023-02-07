@@ -1,4 +1,4 @@
-name: Release
+name: CLI Release
 
 on:
   workflow_call:
