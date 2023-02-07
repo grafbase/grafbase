@@ -1,5 +1,5 @@
 pub trait Directive {
-    fn definition(&self) -> String;
+    fn definition() -> String;
 }
 
 pub struct Directives(Vec<String>);
@@ -13,9 +13,9 @@ impl Directives {
         self.0.join("\n")
     }
 
-    pub fn with<D: Directive>(self, directive: D) -> Directives {
+    pub fn with<D: Directive>(self) -> Directives {
         let mut v = self.0;
-        v.push(directive.definition());
+        v.push(D::definition());
         Self(v)
     }
 }

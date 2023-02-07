@@ -28,7 +28,7 @@ impl<'a> Visitor<'a> for BasicType {
                 let type_name = type_definition.node.name.node.to_string();
                 // If it's a modeled Type, we create the associated type into the registry.
                 // Without more data, we infer it's from our modelization.
-                ctx.registry.get_mut().create_type(&mut |_| MetaType::Object {
+                ctx.registry.get_mut().create_type(|_| MetaType::Object {
                     name: type_name.clone(),
                     description: type_definition.node.description.clone().map(|x| x.node),
                     fields: {

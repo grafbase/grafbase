@@ -145,10 +145,10 @@ mod tests {
 
     fn directives() -> Directives {
         Directives::new()
-            .with(UniqueDirective)
-            .with(ModelDirective)
-            .with(AuthDirective)
-            .with(RelationEngine)
+            .with::<UniqueDirective>()
+            .with::<ModelDirective>()
+            .with::<AuthDirective>()
+            .with::<RelationEngine>()
     }
 
     #[test]
@@ -161,7 +161,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -188,7 +187,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -216,7 +214,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -244,7 +241,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -271,7 +267,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -299,7 +294,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())
@@ -327,7 +321,6 @@ mod tests {
             "#;
 
         let mut rules = rules::visitor::VisitorNil
-            .with(rules::unique_directive::UniqueDirective)
             .with(rules::model_directive::ModelDirective)
             .with(rules::auth_directive::AuthDirective)
             .with(rules::relations::relations_rules())

@@ -491,7 +491,11 @@ fn node_update<'a>(
                 dynaql_value::ConstValue::from_json(set.clone()).expect("must parse"),
             ));
         } else if constraints.iter().any(|constraint| {
-            constraint.field == field && constraint.r#type == ConstraintType::Unique
+            constraint.r#type == ConstraintType::Unique
+                && constraint
+                    .fields()
+                    .iter()
+                    .any(|constraint_field| *constraint_field == field)
         }) {
             return Err(TransactionError::UniqueNumericAtomic);
         } else if let Some(increment) = operation.get("increment") {
@@ -1077,11 +1081,13 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(value.to_string()),
                     }))))
                 } else {
-                    let constraint_id = ConstraintID::from_owned(
-                        ty.to_string(),
-                        key.clone(),
-                        value.clone().into_json().expect("cannot fail"),
-                    );
+                    let constraint_id = ctx_ty
+                        .constraints()
+                        .iter()
+                        .find(|constraint| constraint.name() == key)
+                        .and_then(|constraint| constraint.extract_id_from_by_input_field(ty, value))
+                        .expect("constraint fields to be in the input");
+
                     let pk = constraint_id.to_string();
                     let sk = pk.clone();
 
@@ -1131,6 +1137,10 @@ impl ResolverTrait for DynamoMutationResolver {
                 let new_transaction = &batchers.transaction_new;
                 let loader = &batchers.loader;
 
+                let ctx_ty = ctx.registry().types.get(ty).ok_or_else(|| {
+                    Error::new("Internal Error: Failed process the associated schema.")
+                })?;
+
                 let by = match by
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
@@ -1165,11 +1175,13 @@ impl ResolverTrait for DynamoMutationResolver {
                         "id": serde_json::Value::String(id_to_be_deleted),
                     }))))
                 } else {
-                    let constraint_id = ConstraintID::from_owned(
-                        ty.to_string(),
-                        key.clone(),
-                        value.clone().into_json().expect("cannot fail"),
-                    );
+                    let constraint_id = ctx_ty
+                        .constraints()
+                        .iter()
+                        .find(|constraint| constraint.name() == key)
+                        .and_then(|constraint| constraint.extract_id_from_by_input_field(ty, value))
+                        .expect("constraint fields to be in the input");
+
                     let pk = constraint_id.to_string();
                     let sk = pk.clone();
 

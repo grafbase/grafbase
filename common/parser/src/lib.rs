@@ -76,19 +76,18 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     variables: &HashMap<String, String>,
 ) -> Result<Registry, Error> {
     let directives = Directives::new()
-        .with(AuthDirective)
-        .with(DefaultDirective)
-        .with(LengthDirective)
-        .with(ModelDirective)
-        .with(OneOfDirective)
-        .with(RelationEngine)
-        .with(UniqueDirective);
+        .with::<AuthDirective>()
+        .with::<DefaultDirective>()
+        .with::<LengthDirective>()
+        .with::<ModelDirective>()
+        .with::<OneOfDirective>()
+        .with::<RelationEngine>()
+        .with::<UniqueDirective>();
 
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
-        .with(UniqueDirective)
         .with(ModelDirective)
         .with(AuthDirective)
         .with(BasicType)

@@ -16,6 +16,9 @@ quick_error! {
         UnknownError {
             display("An internal error happened")
         }
+        MissingUniqueFields {
+            display("Couldn't find values for required unique fields")
+        }
     }
 }
 

@@ -299,7 +299,7 @@ fn register_mutation_input_type(
 
     // type is only created if necessary
     registry.create_type(
-        &mut |registry| {
+        |registry| {
             let mut input_fields = IndexMap::new();
             let maybe_parent_relation_meta = mutation_kind
                 .maybe_parent_relation()
@@ -309,7 +309,7 @@ fn register_mutation_input_type(
                 .iter()
                 .filter(|field| ModelDirective::is_not_reserved_field(field))
             {
-                let maybe_type = match RelationEngine::get(ctx, model_type_definition, &field.node) {
+                let maybe_type = match RelationEngine::get(ctx, &model_type_definition.name.node, &field.node) {
                     // If a relation exists, the field is a model
                     Some(model_to_field_relation) => {
                         ModelDirective::get_model_type_definition(ctx, &field.node.ty.node.base)
@@ -420,7 +420,7 @@ fn register_mutation_input_type(
             let relation_input_type_name = MetaNames::update_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
-                &mut |_| MetaType::InputObject {
+                |_| MetaType::InputObject {
                     name: relation_input_type_name.clone(),
                     description: Some(format!(
                         "Input to link/unlink to or create a {} for the {}",
@@ -471,7 +471,7 @@ fn register_mutation_input_type(
             let relation_input_type_name = MetaNames::create_relation_input(&parent_relation, model_type_definition);
 
             registry.create_type(
-                &mut |_| MetaType::InputObject {
+                |_| MetaType::InputObject {
                     name: relation_input_type_name.clone(),
                     description: Some(format!(
                         "Input to link to or create a {} for the {}",
@@ -525,7 +525,7 @@ fn register_mutation_payload_type<'a>(
     };
 
     ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::Object {
+        |_| MetaType::Object {
             name: payload_type_name.clone(),
             description: None,
             fields: {
@@ -605,7 +605,7 @@ pub fn register_numerical_operations(registry: &mut Registry, numerical_field_ki
     let operation_input_type_name = MetaNames::numerical_operation_input(&numerical_field_kind);
 
     registry.create_type(
-        &mut |_| MetaType::InputObject {
+        |_| MetaType::InputObject {
             name: operation_input_type_name.clone(),
             description: Some(format!(
                 "Possible operations for {} {} field",

@@ -33,7 +33,7 @@ pub use pagination::{add_query_paginated_collection, generate_pagination_args};
 fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
     let type_name = T::ty().to_string();
     registry.create_type(
-        &mut |_| MetaType::Enum {
+        |_| MetaType::Enum {
             name: type_name.clone(),
             description: None,
             enum_values: IndexMap::from_iter(
@@ -68,7 +68,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
 
     // Input
     ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::InputObject {
+        |_| MetaType::InputObject {
             name: input_type.clone(),
             description: Some(format!("{type_name} input type.")),
             oneof: false,
@@ -109,7 +109,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
 
     // DeletePayload
     ctx.registry.get_mut().create_type(
-        &mut |_| MetaType::Object {
+        |_| MetaType::Object {
             name: delete_payload_name.clone(),
             description: None,
             fields: {

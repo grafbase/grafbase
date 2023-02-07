@@ -11,7 +11,7 @@ use dynamodb::{
     QuerySingleRelationKey, QueryTypePaginatedKey,
 };
 use graph_entities::cursor::PaginationCursor;
-use graph_entities::{ConstraintID, NodeID};
+use graph_entities::NodeID;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde_json::Map;
@@ -122,8 +122,6 @@ pub enum DynamoResolver {
     /// # Returns
     ///
     /// We expect this resolver to return a Value with this type, if for example.
-    /// This resolver should ALWAYS be used for Unique Results.
-    ///
     ///
     /// This resolver should ALWAYS be used for Unique Results.
     ///
@@ -521,12 +519,16 @@ impl ResolverTrait for DynamoResolver {
 
                     (pk, sk)
                 } else {
-                    let pk = ConstraintID::from_owned(
-                        current_ty.to_string(),
-                        key.clone(),
-                        value.clone().into_json().expect("cannot fail"),
-                    )
-                    .to_string();
+                    let constraint_id = ctx_ty
+                        .constraints()
+                        .iter()
+                        .find(|constraint| constraint.name() == key)
+                        .and_then(|constraint| {
+                            constraint.extract_id_from_by_input_field(ctx_ty.name(), value)
+                        })
+                        .expect("constraint fields to be in the input");
+
+                    let pk = constraint_id.to_string();
                     let sk = pk.clone();
                     (pk, sk)
                 };

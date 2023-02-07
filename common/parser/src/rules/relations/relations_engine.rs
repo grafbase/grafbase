@@ -5,7 +5,7 @@ use crate::{Visitor, VisitorContext};
 use dynaql::indexmap::map::Entry;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::{Positioned, Value};
-use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition, TypeKind};
+use dynaql_parser::types::{FieldDefinition, Type, TypeKind};
 use if_chain::if_chain;
 use regex::Regex;
 
@@ -42,14 +42,10 @@ lazy_static::lazy_static! {
 
 impl RelationEngine {
     /// Can only be safely used after the RelationEngine has parsed the schema.
-    pub fn get(
-        ctx: &VisitorContext<'_>,
-        type_definition: &TypeDefinition,
-        field: &FieldDefinition,
-    ) -> Option<MetaRelation> {
+    pub fn get(ctx: &VisitorContext<'_>, type_name: &str, field: &FieldDefinition) -> Option<MetaRelation> {
         // partial relation because the full relation can only be generated through the full
         // schema parsing. We're only using it as parts of it are correct like the relation name.
-        let partial_relation = generate_metarelation(type_definition, field);
+        let partial_relation = generate_metarelation(type_name, field);
         ctx.relations.get(&partial_relation.name).cloned().map(|relation| {
             if relation.relation == partial_relation.relation {
                 relation
@@ -66,8 +62,8 @@ impl RelationEngine {
 }
 
 /// Generate a `MetaRelation` if possible
-fn generate_metarelation(ty: &TypeDefinition, field: &FieldDefinition) -> MetaRelation {
-    let type_name = ty.name.node.to_string();
+fn generate_metarelation(type_name: &str, field: &FieldDefinition) -> MetaRelation {
+    let type_name = type_name.to_string();
     let name = relation_name(field).and_then(|name| match &name.node {
         Value::String(inner) => Some(inner.clone()),
         _ => None,
@@ -86,7 +82,7 @@ fn relation_name(field: &FieldDefinition) -> Option<&Positioned<dynaql_value::Co
 }
 
 impl Directive for RelationEngine {
-    fn definition(&self) -> String {
+    fn definition() -> String {
         r#"
         directive @relation(
           """
@@ -117,7 +113,7 @@ impl<'a> Visitor<'a> for RelationEngine {
                 let mut errors = Vec::new();
                 for field in &object.fields {
                     if ModelDirective::is_model(ctx, &field.node.ty.node) {
-                        let relation = generate_metarelation(&type_definition.node, &field.node);
+                        let relation = generate_metarelation(&type_definition.node.name.node, &field.node);
                         if !NAME_RE.is_match(&relation.name) {
                             let name = &relation.name;
                             ctx.report_error(

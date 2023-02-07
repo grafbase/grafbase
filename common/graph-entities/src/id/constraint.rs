@@ -1,3 +1,6 @@
+use base64::Engine;
+use sha2::{Digest, Sha256};
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ConstraintType {
     Unique,
@@ -5,15 +8,12 @@ pub enum ConstraintType {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConstraintDefinition {
-    pub field: String,
+    pub fields: Vec<String>,
     pub r#type: ConstraintType,
 }
 
 pub mod db {
-    use base64::Engine;
-    use sha2::{Digest, Sha256};
-
-    use super::normalize_constraint_value;
+    use super::hash_constraint_values;
     use std::borrow::{Borrow, Cow};
     use std::fmt::Display;
 
@@ -25,30 +25,35 @@ pub mod db {
     }
 
     impl<'a> ConstraintID<'a> {
-        pub fn from_owned(ty: String, field: String, value: serde_json::Value) -> Self {
-            let value =
-                base64::prelude::BASE64_STANDARD_NO_PAD.encode(Sha256::digest(normalize_constraint_value(&value)));
+        pub fn new(ty: String, fields: Vec<(String, serde_json::Value)>) -> Self {
+            let (fields, values) = fields
+                .into_iter()
+                .map(|(name, value)| (Cow::Owned(name), value))
+                .unzip();
 
             Self {
                 ty: Cow::Owned(ty.to_lowercase()),
-                fields: vec![Cow::Owned(field)],
-                value: Cow::Owned(value),
+                fields,
+                value: Cow::Owned(hash_constraint_values(values)),
             }
         }
 
         #[must_use]
-        pub fn with_new_value(self, value: serde_json::Value) -> Self {
-            let value =
-                base64::prelude::BASE64_STANDARD_NO_PAD.encode(Sha256::digest(normalize_constraint_value(&value)));
+        pub fn with_new_values(self, values: Vec<serde_json::Value>) -> Self {
+            assert_eq!(
+                values.len(),
+                self.fields.len(),
+                "Tried to update a ConstraintID with incorrect number of values"
+            );
 
             Self {
-                value: Cow::Owned(value),
+                value: Cow::Owned(hash_constraint_values(values)),
                 ..self
             }
         }
 
-        pub fn field(&self) -> &str {
-            self.fields.get(0).unwrap().borrow()
+        pub fn fields(&self) -> impl Iterator<Item = &str> {
+            self.fields.iter().map(Cow::borrow)
         }
 
         pub fn ty(&self) -> Cow<'a, str> {
@@ -133,25 +138,40 @@ pub mod db {
     }
 }
 
-pub fn normalize_constraint_value(value: &serde_json::Value) -> String {
-    if value.is_string() {
-        value.as_str().unwrap().to_owned()
+pub fn normalize_constraint_value(value: serde_json::Value) -> String {
+    if let serde_json::Value::String(s) = value {
+        s
     } else {
         value.to_string()
     }
 }
 
+fn hash_constraint_values(mut values: Vec<serde_json::Value>) -> String {
+    if values.len() == 1 {
+        return base64::prelude::BASE64_STANDARD_NO_PAD
+            .encode(Sha256::digest(normalize_constraint_value(values.pop().unwrap())));
+    }
+
+    let hash = Sha256::digest(serde_json::to_vec(&values).expect("to be able to serialize constraint values"));
+
+    base64::prelude::BASE64_STANDARD_NO_PAD.encode(hash)
+}
+
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+    use serde_json::Value;
+
     use super::db::ConstraintID;
 
-    #[test]
-    fn test_string_roundtrip() {
-        let id = ConstraintID::from_owned(
-            "Author".into(),
-            "name".into(),
-            serde_json::Value::String("Val_1".into()),
-        );
+    #[rstest]
+    #[case(vec![("name".into(), Value::String("Val_1".into()))])]
+    #[case(vec![
+        ("name".into(), Value::String("Val_1".into())),
+        ("other".into(), Value::String("hello".into()))
+    ])]
+    fn test_string_roundtrip(#[case] fields: Vec<(String, Value)>) {
+        let id = ConstraintID::new("Author".into(), fields);
 
         assert_eq!(
             ConstraintID::try_from(id.to_string()).unwrap(),
@@ -160,13 +180,14 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_str_roundtrip() {
-        let id = ConstraintID::from_owned(
-            "Author".into(),
-            "name".into(),
-            serde_json::Value::String("Val_1".into()),
-        );
+    #[rstest]
+    #[case(vec![("name".into(), Value::String("Val_1".into()))])]
+    #[case(vec![
+        ("name".into(), Value::String("Val_1".into())),
+        ("other".into(), Value::String("hello".into()))
+    ])]
+    fn test_str_roundtrip(#[case] fields: Vec<(String, Value)>) {
+        let id = ConstraintID::new("Author".into(), fields);
 
         assert_eq!(
             ConstraintID::try_from(id.to_string().as_str()).unwrap(),
@@ -182,7 +203,7 @@ mod tests {
         let constraint = ConstraintID::try_from(V1_CONSTRAINT).expect("to be able to parse v1 ConstraintIDs");
 
         assert_eq!(constraint.ty(), "author");
-        assert_eq!(constraint.field(), "name");
+        assert_eq!(constraint.fields().collect::<Vec<_>>(), ["name"]);
         assert_eq!(constraint.value, "Val_1");
     }
 }
