@@ -2,8 +2,6 @@
 //  ContentView.swift
 //  Grafbase Swift
 //
-//  Created by Craig Tweedy on 05/12/2022.
-//
 
 import SwiftUI
 
