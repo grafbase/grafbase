@@ -875,7 +875,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 // We need to have input
                 let _resolved_value = self.param_value_dynamic(&value)?;
                 // Convert this input to an Arrow Format
-                todo!()
+                Ok(LogicalPlanBuilder::empty().build())
             },
             VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
             VariableResolveDefinition::LocalData(value) => match previous_plan {
