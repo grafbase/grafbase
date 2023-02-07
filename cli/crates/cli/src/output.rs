@@ -78,4 +78,15 @@ pub mod report {
         #[cfg(target_family = "unix")]
         watercolor::output!(r#"if you have a running 'grafbase dev' instance in this project, it will need to be restarted for this change to take effect"#, @BrightBlue);
     }
+
+    pub fn login(url: &str) {
+        println!(
+            "Please continue by opening the following URL:\n{}\n",
+            watercolor!("{url}", @BrightBlue)
+        );
+    }
+
+    pub fn login_success() {
+        watercolor::output_error!("\n\n✨ successfully logged in!", @BrightBlue);
+    }
 }
