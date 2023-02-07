@@ -700,6 +700,11 @@ impl Schema {
             )),
         };
 
+        #[cfg(feature = "tracing_worker")]
+        {
+            logworker::info!("", "{res:?}");
+        }
+
         let mut resp = match res {
             Ok(value) => {
                 let query = LogicalQuery {

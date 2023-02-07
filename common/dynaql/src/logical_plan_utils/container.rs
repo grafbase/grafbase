@@ -12,6 +12,7 @@ use query_planning::scalar::ScalarValue;
 use std::sync::Arc;
 
 use crate::parser::types::Selection;
+use crate::registry::utils::type_to_base_type;
 use crate::registry::MetaType;
 use crate::{ContextSelectionSet, OutputType, ServerError, ServerResult};
 
@@ -135,33 +136,40 @@ impl FieldsGraph {
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                     let actual_logic_plan =
                         ctx_field.to_logic_plan(root, previous_logical_plan.clone())?;
-                    let associated_meta_field = root
-                        .field_by_name(field.node.name.node.as_str())
-                        .ok_or_else(|| {
-                        ServerError::new(
-                            format!("Can't find the associated field: {}", field.node.name),
-                            Some(field.node.name.pos),
-                        )
-                    })?;
-                    let associated_meta_ty = ctx
-                        .registry()
-                        .types
-                        .get(&associated_meta_field.ty)
-                        .ok_or_else(|| {
-                            ServerError::new(
-                                format!(
-                                    "Can't find the associated type: {}",
-                                    &associated_meta_field.ty
-                                ),
-                                Some(field.node.name.pos),
-                            )
-                        })?;
-                    let ctx_selection_set = ctx_field.with_selection_set(&field.node.selection_set);
-                    let selection_set = resolve_logical_plan_container(
-                        &ctx_selection_set,
-                        associated_meta_ty,
-                        Some(Arc::new(actual_logic_plan.clone())),
-                    )?;
+                    let selection_set = if !field.node.selection_set.node.items.is_empty() {
+                        let associated_meta_field = root
+                            .field_by_name(field.node.name.node.as_str())
+                            .ok_or_else(|| {
+                                ServerError::new(
+                                    format!("Can't find the associated field: {}", field.node.name),
+                                    Some(field.node.name.pos),
+                                )
+                            })?;
+                        let associated_meta_ty = ctx
+                            .registry()
+                            .types
+                            .get(&type_to_base_type(&associated_meta_field.ty).unwrap_or_default())
+                            .ok_or_else(|| {
+                                ServerError::new(
+                                    format!(
+                                        "Can't find the associated type: {}",
+                                        &associated_meta_field.ty
+                                    ),
+                                    Some(field.node.name.pos),
+                                )
+                            })?;
+                        let ctx_selection_set =
+                            ctx_field.with_selection_set(&field.node.selection_set);
+                        let selection_set = resolve_logical_plan_container(
+                            &ctx_selection_set,
+                            associated_meta_ty,
+                            Some(Arc::new(actual_logic_plan.clone())),
+                        )?;
+
+                        selection_set
+                    } else {
+                        ctx_field.item.position_node(SelectionPlanSet::default())
+                    };
 
                     let plan = ctx_field.item.position_node(SelectionPlan::Field(
                         ctx_field.item.position_node(FieldPlan {

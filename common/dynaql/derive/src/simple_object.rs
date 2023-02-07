@@ -179,6 +179,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     edges: Vec::new(),
                     relation: None,
                     resolve: None,
+                    plan: None,
                     transformer: None,
                     required_operation: None,
                     auth: None,
