@@ -707,6 +707,8 @@ impl Schema {
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
+        #[cfg(feature = "query-planning")]
+        let is_logical_plan = request.logic_plan;
         let extensions = self.create_extensions(Default::default());
         let request_fut = {
             let extensions = extensions.clone();
@@ -718,7 +720,12 @@ impl Schema {
                     Ok((env, cache_control)) => {
                         // After the request is ready, we start the creation of the Logic
                         #[cfg(feature = "query-planning")]
-                        let _a = self.logical_query(env.clone()).await;
+                        {
+                            if is_logical_plan {
+                                let query = self.logical_query(env.clone()).await;
+                                return Response::from_logical_query(query);
+                            }
+                        }
 
                         let fut = async {
                             self.execute_once(env.clone())

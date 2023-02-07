@@ -8,6 +8,9 @@ use serde::Serialize;
 
 use crate::{CacheControl, Result, ServerError, Value};
 
+#[cfg(feature = "query-planning")]
+use query_planning::logical_query::LogicalQuery;
+
 /// Query response
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Response {
@@ -30,9 +33,21 @@ pub struct Response {
     /// HTTP headers
     #[serde(skip)]
     pub http_headers: HeaderMap,
+
+    #[cfg(feature = "query-planning")]
+    #[serde(skip)]
+    pub query_plan: Option<LogicalQuery>,
 }
 
 impl Response {
+    #[cfg(feature = "query-planning")]
+    pub fn from_logical_query(query: LogicalQuery) -> Self {
+        Self {
+            query_plan: Some(query),
+            ..Default::default()
+        }
+    }
+
     pub fn to_json_value(&self) -> serde_json::Result<serde_json::Value> {
         let mut fields = serde_json::Map::new();
         fields.insert("data".to_string(), self.data.to_json_value()?);
