@@ -16,7 +16,8 @@
   "peerDependencies": {
     "next": "^12 || ^13",
     "react": "*",
-    "react-dom": "*"
+    "react-dom": "*",
+    "grafbase": "*"
   },
   "devDependencies": {
     "@types/node": "^18.11.18",
