@@ -115,6 +115,7 @@ fn insert_metadata_field(
                     key: type_name.to_string(),
                 }),
             }),
+            plan: None,
             edges: Vec::new(),
             transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
@@ -308,6 +309,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     compute_complexity: None,
                                     resolve: Some(resolver),
                                     edges,
+                                    plan: None,
                                     relation,
                                     transformer,
                                     required_operation: None,
@@ -455,6 +457,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         schema: Some(schema_id),
                     }),
                 }),
+                plan: None,
                 transformer: None,
                 required_operation: Some(Operations::GET),
                 auth: model_auth.clone(),
