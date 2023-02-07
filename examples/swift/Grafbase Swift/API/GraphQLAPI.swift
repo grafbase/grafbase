@@ -8,7 +8,7 @@ import Foundation
 struct GraphQLOperation: Encodable {
     var operationString: String
     
-    private var url = ""
+    private var url = "http://localhost:4000/graphql"
     
     enum CodingKeys: String, CodingKey {
         case variables
