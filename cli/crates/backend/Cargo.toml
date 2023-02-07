@@ -10,6 +10,7 @@ readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
+axum = "0.6"
 async-compression = { version = "0.3", features = ["gzip", "tokio"] }
 async-tar = "0.4"
 dirs = "4"
@@ -22,11 +23,15 @@ reqwest = { version = "0.11", features = [
 ], default-features = false }
 reqwest-middleware = "0.2"
 serde = "1"
+serde_json = "1"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tokio-stream = { version = "0.1", features = ["tokio-util"] }
 tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
+tower-http = { version = "0.3", features = ["trace"] }
 url = "2"
+urlencoding = "2"
+webbrowser = "0.8"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.17.0" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.17.0" }

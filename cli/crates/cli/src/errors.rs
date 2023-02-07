@@ -21,13 +21,17 @@ pub enum CliError {
     /// wraps an error originating in the common crate
     #[error(transparent)]
     CommonError(CommonError),
+    // TODO: this might be better as `expect`
+    /// returned if the login server panics
+    #[error("{0}")]
+    LoginPanic(String),
 }
 
 impl ToExitCode for CliError {
     fn to_exit_code(&self) -> i32 {
         match &self {
             Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
-            Self::ServerPanic(_) | Self::ServerError(_) => exitcode::SOFTWARE,
+            Self::ServerPanic(_) | Self::ServerError(_) | Self::LoginPanic(_) => exitcode::SOFTWARE,
             Self::BackendError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
         }

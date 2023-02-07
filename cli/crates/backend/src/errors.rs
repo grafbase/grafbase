@@ -90,7 +90,7 @@ pub enum BackendError {
     ExtractArchiveEntry(io::Error),
 
     /// returned if the files extracted from the template repository archive could not be cleaned
-    #[error("could not clean the files extracted from the repository archive\ncaused by: {0}")]
+    #[error("could not clean the files extracted from the repository archiveio::Error")]
     CleanExtractedFiles(io::Error),
 
     /// returned if the request to get the information for a repository could not be sent
@@ -104,6 +104,22 @@ pub enum BackendError {
     /// returned if the request to get the information for a repository returned a response that could not be parsed
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
+
+    /// returned if the path of `~/.grafbase` could not be found
+    #[error("could not find the current user home folder")]
+    FindUserDotGrafbaseFolder,
+
+    /// returned if ~/.grafbase could not be created
+    #[error("could not create '~/.grafbase\ncaused by: {0}")]
+    CreateUserDotGrafbaseFolder(io::Error),
+
+    /// returned if an available port could not be find
+    #[error("could not find an available port")]
+    FindAvailablePort,
+
+    /// returned if the login server could not be started
+    #[error("could not start the login server")]
+    StartLoginServer,
 }
 
 impl ToExitCode for BackendError {
@@ -116,7 +132,8 @@ impl ToExitCode for BackendError {
             | Self::ReadRepositoryInformation(_)
             | Self::DownloadRepoArchive(_)
             | Self::ReadArchiveEntries
-            | Self::GetRepositoryInformation(_) => exitcode::UNAVAILABLE,
+            | Self::GetRepositoryInformation(_)
+            | Self::StartLoginServer => exitcode::UNAVAILABLE,
             Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) => exitcode::USAGE,
             Self::UnsupportedTemplateURL(_) | Self::MalformedTemplateURL(_) | Self::TemplateNotFound => {
                 exitcode::DATAERR
@@ -129,7 +146,10 @@ impl ToExitCode for BackendError {
             | Self::CreateGrafbaseDirectory(_)
             | Self::ExtractArchiveEntry(_)
             | Self::CleanExtractedFiles(_)
-            | Self::CreateProjectDirectory(_) => exitcode::IOERR,
+            | Self::CreateProjectDirectory(_)
+            | Self::FindUserDotGrafbaseFolder
+            | Self::CreateUserDotGrafbaseFolder(_)
+            | Self::FindAvailablePort => exitcode::IOERR,
 
             Self::ServerError(inner) => inner.to_exit_code(),
         }

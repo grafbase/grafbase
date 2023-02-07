@@ -37,6 +37,11 @@ pub struct Environment {
 /// static singleton for the environment struct
 static ENVIRONMENT: OnceCell<Environment> = OnceCell::new();
 
+#[must_use]
+pub fn get_user_dot_grafbase_path() -> Option<PathBuf> {
+    dirs::home_dir().map(|home| home.join(DOT_GRAFBASE_DIRECTORY))
+}
+
 impl Environment {
     /// initializes the static Environment instance
     ///
@@ -57,10 +62,8 @@ impl Environment {
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
         let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
-        let user_dot_grafbase_path = {
-            let home = dirs::home_dir().unwrap_or_else(|| project_grafbase_path.clone());
-            home.join(DOT_GRAFBASE_DIRECTORY)
-        };
+        let user_dot_grafbase_path =
+            get_user_dot_grafbase_path().unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         ENVIRONMENT
             .set(Self {
