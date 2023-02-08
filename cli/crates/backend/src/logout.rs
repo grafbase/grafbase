@@ -2,6 +2,15 @@ use crate::{consts::CREDENTIALS_FILE, errors::BackendError};
 use common::environment::get_user_dot_grafbase_path;
 use std::fs;
 
+/// Deletes the login credentials file
+///
+/// # Errors
+///
+/// - returns [`BackendError::NotLoggedIn`] if the user is not logged in when attempting to log out
+///
+/// - returns [`BackendError::DeleteCredentialsFile`] if ~/.grafbase could not be created
+///
+/// - returns [`BackendError::ReadCredentialsFile`] if ~/.grafbase could not be read
 pub fn logout() -> Result<(), BackendError> {
     let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(BackendError::NotLoggedIn)?;
 
