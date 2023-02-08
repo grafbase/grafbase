@@ -7,11 +7,9 @@ pub fn logout() -> Result<(), BackendError> {
 
     let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
 
-    if credentials_path.exists() {
-        fs::remove_file(credentials_path).map_err(BackendError::DeleteCredentialsFile)?;
-    } else {
-        return Err(BackendError::NotLoggedIn);
+    match credentials_path.try_exists() {
+        Ok(true) => fs::remove_file(credentials_path).map_err(BackendError::DeleteCredentialsFile),
+        Ok(false) => Err(BackendError::NotLoggedIn),
+        Err(error) => Err(BackendError::ReadCredentialsFile(error)),
     }
-
-    Ok(())
 }

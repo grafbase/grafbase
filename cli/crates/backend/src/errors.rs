@@ -128,6 +128,10 @@ pub enum BackendError {
     /// returned if ~/.grafbase could not be created
     #[error("could not delete '~/.grafbase/credentials.json'\ncaused by: {0}")]
     DeleteCredentialsFile(io::Error),
+
+    /// returned if ~/.grafbase could not be read
+    #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    ReadCredentialsFile(io::Error),
 }
 
 impl ToExitCode for BackendError {
@@ -158,7 +162,8 @@ impl ToExitCode for BackendError {
             | Self::FindUserDotGrafbaseFolder
             | Self::CreateUserDotGrafbaseFolder(_)
             | Self::FindAvailablePort
-            | Self::DeleteCredentialsFile(_) => exitcode::IOERR,
+            | Self::DeleteCredentialsFile(_)
+            | Self::ReadCredentialsFile(_) => exitcode::IOERR,
 
             Self::ServerError(inner) => inner.to_exit_code(),
         }
