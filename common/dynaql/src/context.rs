@@ -864,6 +864,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         previous_plan: Option<Arc<LogicalPlan>>,
         variable: &VariableResolveDefinition,
     ) -> ServerResult<LogicalPlan> {
+        use query_planning::error::QueryPlanningError;
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
         use query_planning::reexport::arrow_schema::{DataType, Field};
         use query_planning::scalar::ScalarValue;
@@ -879,9 +880,16 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
             .map(query_planning::logical_plan::builder::LogicalPlanBuilder::build),
             VariableResolveDefinition::InputTypeName(value) => {
-                // We need to have input
-                let _resolved_value = self.param_value_dynamic(&value)?;
-                // Convert this input to an Arrow Format
+                let resolved_value = self.param_value_dynamic(&value)?.prepare_container(value);
+                let schema = resolved_value.to_schema().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
+                let values = resolved_value.arrow().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
+
+                if let Some(values) = values {
+                    let values = vec![values.columns().iter().map(|x| ScalarValue::try_from_array(x, 0)).collect::<Result<Vec<ScalarValue>, QueryPlanningError>>().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?];
+
+                    return Ok(LogicalPlanBuilder::values(schema.fields, values).map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?.build())
+                }
+
                 Ok(LogicalPlanBuilder::empty().build())
             },
             VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
@@ -907,7 +915,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
         use query_planning::logical_plan::Datasource;
 
-        use crate::registry::plan::PlanProjection;
+        use crate::registry::plan::{PlanProjection, PlanRelated};
         use crate::registry::resolvers::dynamo_querying::DynamoResolver;
         use crate::registry::resolvers::ResolverType;
 
@@ -918,6 +926,33 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
                     LogicalPlanBuilder::from(previous.as_ref().clone())
                         .projection(fields.clone())
+                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                        .build()
+                }
+                SchemaPlan::Related(PlanRelated {
+                    from,
+                    to,
+                    relation_name,
+                }) => {
+                    let previous = if from.is_some() {
+                        previous_plan.ok_or_else(|| {
+                        ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
+                    })?
+                    } else {
+                        Arc::new(LogicalPlanBuilder::empty().build())
+                    };
+
+                    let schema = self.registry().get_schema_id(*to, Some(self.item.pos))?;
+
+                    LogicalPlanBuilder::from(previous.as_ref().clone())
+                        .related(
+                            relation_name
+                                .as_ref()
+                                .map(|x| vec![x.clone()])
+                                .unwrap_or_default(),
+                            schema.as_ref(),
+                            Datasource::gb(),
+                        )
                         .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
                         .build()
                 }
@@ -942,14 +977,13 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     .get_entity_by_id(&schema, Datasource::gb())
                 }
                 ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
-                    let _by = self.from_variable_resolution(previous_plan, by)?;
+                    let by = self.from_variable_resolution(previous_plan, by)?;
                     let schema = self
                         .get_schema_id(schema.ok_or_else(|| {
                             ServerError::new("No schema id", Some(self.item.pos))
                         })?)?;
 
-                    // TODO: Add the by into values
-                    LogicalPlanBuilder::empty().get_entity_by_unique(&schema, Datasource::gb())
+                    LogicalPlanBuilder::from(by).get_entity_by_unique(&schema, Datasource::gb())
                 }
                 ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
                     parent_pk: _,
@@ -966,7 +1000,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .build());
         }
 
-        Ok(LogicalPlanBuilder::empty().build())
+        Ok(previous_plan
+            .map(|x| x.as_ref().clone())
+            .unwrap_or_else(|| LogicalPlanBuilder::empty().build()))
     }
 
     #[doc(hidden)]
