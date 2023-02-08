@@ -7,7 +7,7 @@ use dynaql_parser::types::{FieldDefinition, TypeDefinition};
 use dynaql_value::ConstValue;
 
 pub const RESOLVER_DIRECTIVE: &str = "resolver";
-pub const NAME_ARGUMENT: &str = "value";
+pub const NAME_ARGUMENT: &str = "name";
 
 pub struct ResolverDirective;
 
@@ -59,5 +59,45 @@ impl Directive for ResolverDirective {
         directive @resolver(name: String) on FIELD_DEFINITION
         "#
         .to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::rules::visitor::visit;
+    use dynaql_parser::parse_schema;
+    use pretty_assertions::assert_eq;
+
+    #[rstest::rstest]
+    #[case(r#"
+        type Customer @model {
+            id: ID!
+            balance: Int! @resolver
+        }
+    "#, &[
+        "The @resolver directive takes a single `name` argument"
+    ])]
+    #[case(r#"
+        type Customer @model {
+            id: ID!
+            balance: Int! @resolver(path: "resolvers/balance")
+        }
+    "#, &[
+        "The @resolver directive takes a single `name` argument"
+    ])]
+    #[case(r#"
+        type Customer @model {
+            id: ID!
+            balance: Int! @resolver(name: "resolvers/balance")
+        }
+    "#, &[])]
+    fn test_parse_result(#[case] schema: &str, #[case] expected_messages: &[&str]) {
+        let schema = parse_schema(schema).unwrap();
+        let mut ctx = VisitorContext::new(&schema);
+        visit(&mut ResolverDirective, &mut ctx, &schema);
+
+        let actual_messages: Vec<_> = ctx.errors.iter().map(|error| error.message.as_str()).collect();
+        assert_eq!(actual_messages.as_slice(), expected_messages);
     }
 }
