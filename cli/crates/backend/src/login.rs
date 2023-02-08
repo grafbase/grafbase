@@ -76,8 +76,10 @@ struct LoginApiState {
 pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), BackendError> {
     let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(BackendError::FindUserDotGrafbaseFolder)?;
 
-    if !user_dot_grafbase_path.exists() {
-        create_dir_all(&user_dot_grafbase_path).map_err(BackendError::CreateUserDotGrafbaseFolder)?;
+    match user_dot_grafbase_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => create_dir_all(&user_dot_grafbase_path).map_err(BackendError::CreateUserDotGrafbaseFolder)?,
+        Err(error) => return Err(BackendError::ReadUserDotGrafbaseFolder(error)),
     }
 
     let port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
