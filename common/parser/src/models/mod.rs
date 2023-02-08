@@ -54,7 +54,7 @@ quick_error! {
     }
 }
 
-fn temp_base_scalar(registry: &Registry, scalar: &str) -> DataType {
+fn primitive_to_datatype(registry: &Registry, scalar: &str) -> DataType {
     match scalar {
         "ID" => DataType::Utf8,
         "String" => DataType::Utf8,
@@ -78,7 +78,7 @@ fn temp_base_scalar(registry: &Registry, scalar: &str) -> DataType {
 fn temp_base_tyto_datatype(registry: &Registry, scalar: &BaseType) -> DataType {
     match scalar {
         // Here it **HAS** to be a Scalar we know as we cancel every relations.
-        BaseType::Named(value) => temp_base_scalar(registry, value),
+        BaseType::Named(value) => primitive_to_datatype(registry, value),
         BaseType::List(list) => {
             let base_data = scalar_to_datatype(registry, "", list);
             DataType::List(Box::new(base_data))
