@@ -59,6 +59,7 @@ async fn token<'a>(
     if write_result.is_ok() {
         Ok(Redirect::temporary("https://grafbase.com/auth/cli?success=true"))
     } else {
+        // TODO: either pass a specific error to the URL or print an error
         Err(Redirect::temporary("https://grafbase.com/auth/cli?success=false"))
     }
 }
