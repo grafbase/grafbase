@@ -119,11 +119,11 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
 ///   -> We map every custom scalar by the internal representation associated
 pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
     if let MetaType::Object {
-        ref name, ref fields, ..
+         ref fields, ..
     } = ty
     {
         let mut arrow_fields = Vec::with_capacity(fields.len());
-        for (key, field) in fields {
+        for (_key, field) in fields {
             if field.relation.is_none() {
                 let ty = Type::new(&field.ty).ok_or_else(|| {
                     ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
@@ -147,13 +147,13 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
 /// of it.
 pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
     if let MetaType::InputObject {
-        ref name,
+        
         ref input_fields,
         ..
     } = ty
     {
         let mut arrow_fields = Vec::with_capacity(input_fields.len());
-        for (key, input_value) in input_fields {
+        for (_key, input_value) in input_fields {
             let ty = Type::new(&input_value.ty).ok_or_else(|| {
                 ConversionError::ParsingSchema(format!(
                     "The Type {ty} is not a proper GraphQL type",

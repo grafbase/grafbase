@@ -15,7 +15,7 @@ mod variables;
 use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Formatter, Write};
 use std::hash::Hash;
-use std::io::Cursor;
+
 use std::ops::Deref;
 use std::sync::Arc;
 

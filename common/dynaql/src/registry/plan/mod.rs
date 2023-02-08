@@ -1,4 +1,4 @@
-use super::{SchemaID, SchemaIDGenerator};
+use super::{SchemaID};
 
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]

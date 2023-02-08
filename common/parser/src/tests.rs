@@ -29,7 +29,7 @@ fn assert_registry_schema_generation(registry: &Registry) {
             continue;
         }
         if let ty @ MetaType::Object { .. } = ty {
-            let schema_opt = from_meta_type(&registry, ty);
+            let schema_opt = from_meta_type(registry, ty);
             // To print the name if there is an issue.
             dbg!(name);
             assert!(schema_opt.is_ok());
@@ -38,8 +38,8 @@ fn assert_registry_schema_generation(registry: &Registry) {
 }
 
 fn assert_snapshot(registry: Registry) {
-    let reg_string = serde_json::to_value(&registry).unwrap();
-    let sdl = Schema::new(registry).sdl();
+    let _reg_string = serde_json::to_value(&registry).unwrap();
+    let _sdl = Schema::new(registry).sdl();
 
     /*
     insta::assert_json_snapshot!(reg_string);

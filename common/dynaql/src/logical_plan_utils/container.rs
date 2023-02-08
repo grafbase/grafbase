@@ -160,13 +160,13 @@ impl FieldsGraph {
                             })?;
                         let ctx_selection_set =
                             ctx_field.with_selection_set(&field.node.selection_set);
-                        let selection_set = resolve_logical_plan_container(
+                        
+
+                        resolve_logical_plan_container(
                             &ctx_selection_set,
                             associated_meta_ty,
                             Some(Arc::new(actual_logic_plan.clone())),
-                        )?;
-
-                        selection_set
+                        )?
                     } else {
                         ctx_field.item.position_node(SelectionPlanSet::default())
                     };
@@ -213,7 +213,7 @@ impl FieldsGraph {
 
                     #[cfg(feature = "tracing_worker")]
                     {
-                        logworker::info!("", "on {}?", type_condition.clone().unwrap_or_default());
+                        logworker::info!("", "on {}?", type_condition.unwrap_or_default());
                     }
 
                     let plan = match type_condition {
@@ -244,12 +244,12 @@ impl FieldsGraph {
                                                 ctx.registry().types.get(type_condition).unwrap();
                                             let ctx_selection_set =
                                                 ctx.with_selection_set(selection_set);
-                                            let selection_set = resolve_logical_plan_container(
+                                            
+                                            resolve_logical_plan_container(
                                                 &ctx_selection_set,
                                                 associated_meta_ty,
                                                 previous_logical_plan.clone(),
-                                            )?;
-                                            selection_set
+                                            )?
                                         } else {
                                             Default::default()
                                         }

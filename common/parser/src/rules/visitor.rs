@@ -1,7 +1,7 @@
 use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
-use dynaql::registry::{MetaField, MetaType, Registry, SchemaID, SchemaIDGenerator};
+use dynaql::registry::{MetaField, Registry, SchemaID, SchemaIDGenerator};
 use dynaql::{Name, OutputType, Pos, Positioned, Schema, ServerError};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
@@ -74,14 +74,14 @@ impl<'a> VisitorContext<'a> {
     /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
     /// already have a [`SchemaID`]
     pub(crate) fn new_schema_id<S: AsRef<str>>(&self, ty: S) -> SchemaID {
-        if let Some((id, val)) = self
+        if let Some((id, _val)) = self
             .schema_to_build
             .try_read()
             .expect("Poisoned")
             .iter()
-            .find(|(id, val)| val.as_str() == ty.as_ref())
+            .find(|(_id, val)| val.as_str() == ty.as_ref())
         {
-            return id.clone();
+            return *id;
         }
         let new_id = self.schema_id_generator.new_id();
         self.schema_to_build
@@ -230,7 +230,7 @@ impl<'a> VisitorContext<'a> {
         for (id, val) in self.schema_to_build.try_read().expect("Poisoned").iter() {
             let meta_ty = registry.types.get(val).unwrap();
             let schema = from_meta_type(&registry, meta_ty).unwrap();
-            result.insert(id.clone(), Arc::new(schema));
+            result.insert(*id, Arc::new(schema));
         }
 
         registry.schema_list = result;

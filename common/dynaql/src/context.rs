@@ -843,7 +843,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .resolver_node
             .as_ref()
             .and_then(|x| x.field)
-            .map(|(field)| {
+            .map(|field| {
                 self.from_resolver_to_logic_plan(
                     previous_plan,
                     field.resolve.as_ref(),
