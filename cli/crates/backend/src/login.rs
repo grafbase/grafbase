@@ -70,7 +70,17 @@ struct LoginApiState {
     user_dot_grafbase_path: PathBuf,
 }
 
+/// Logs a user in via a browser flow
+///
 /// # Errors
+///
+/// - returns [`BackendError::FindUserDotGrafbaseFolder`] if the path of `~/.grafbase` could not be found
+///
+/// - returns [`BackendError::CreateUserDotGrafbaseFolder`] if ~/.grafbase could not be created
+///
+/// - returns [`BackendError::ReadUserDotGrafbaseFolder`] if ~/.grafbase could not be read
+///
+/// - returns [`BackendError::StartLoginServer`] if the login server could not be started
 #[allow(clippy::needless_pass_by_value)] // &Sender is not Sync
 #[tokio::main]
 pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), BackendError> {
