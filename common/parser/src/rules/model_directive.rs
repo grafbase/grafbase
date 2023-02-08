@@ -188,8 +188,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .iter()
                 .filter_map(|field| UniqueDirective::parse(ctx, object, &type_name, field))
                 .collect::<Vec<_>>();
-            // Schema ID
-            let schema_id = ctx.new_schema_id();
+
+            // Add typename schema
+            let schema_id = ctx.new_schema_id(&type_name);
 
             //
             // CREATE ACTUAL TYPE
@@ -295,10 +296,13 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         )
                                     });
 
-                            let plan = if relation.is_none() {
-                                Some(SchemaPlan::projection(vec![name.clone()]))
-                            } else {
-                                None
+                            let plan = match &relation {
+                                None => Some(SchemaPlan::projection(vec![name.clone()])),
+                                Some(meta_relation) => Some(SchemaPlan::related(
+                                    Some(ctx.new_schema_id(&meta_relation.relation.0.clone().unwrap())),
+                                    ctx.new_schema_id(&meta_relation.relation.1.clone()),
+                                    Some(meta_relation.name.clone()),
+                                )),
                             };
 
                             fields.insert(
@@ -382,9 +386,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                 &type_name,
                 &type_name,
             );
-
-            // Add a new schema to build.
-            ctx.add_schema(Some(schema_id), &type_name);
 
             //
             // GENERATE QUERY ONE OF: type(by: { ... })

@@ -1,6 +1,7 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::Registry;
@@ -357,6 +358,8 @@ pub fn add_query_paginated_collection(
     );
     let field = MetaNames::query_collection(model_type_definition);
 
+    let plan = Some(SchemaPlan::related(None, ctx.new_schema_id(&type_name), None));
+
     ctx.queries.push(MetaField {
         name: field.clone(),
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
@@ -393,7 +396,7 @@ pub fn add_query_paginated_collection(
                 nested: None,
             }),
         }),
-        plan: None,
+        plan,
         transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),

@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use crate::dynamic_string::DynamicString;
 use crate::models::from_meta_type;
@@ -35,7 +35,7 @@ pub struct VisitorContext<'a> {
     pub schema_id_generator: SchemaIDGenerator,
     /// Each schema to build should contains a SchemaID -> MetaType String to be
     /// able to construct the whole SchemaRegistry at the end of the parsing.
-    pub schema_to_build: HashMap<SchemaID, String>,
+    pub schema_to_build: RwLock<HashMap<SchemaID, String>>,
     pub registry: RefCell<Registry>,
     variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
@@ -71,16 +71,24 @@ impl<'a> VisitorContext<'a> {
         Self::new_with_variables(document, &EMPTY_HASHMAP)
     }
 
-    /// Create a new unique [`SchemaID`] for this [`VisitorContext`].
-    pub(crate) fn new_schema_id(&self) -> SchemaID {
-        self.schema_id_generator.new_id()
-    }
-
-    /// Add a new schema to build.
-    pub(crate) fn add_schema(&mut self, id: Option<SchemaID>, meta_ty: impl ToString) -> SchemaID {
-        let id = id.unwrap_or_else(|| self.new_schema_id());
-        self.schema_to_build.insert(id, meta_ty.to_string());
-        id
+    /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
+    /// already have a [`SchemaID`]
+    pub(crate) fn new_schema_id<S: AsRef<str>>(&self, ty: S) -> SchemaID {
+        if let Some((id, val)) = self
+            .schema_to_build
+            .try_read()
+            .expect("Poisoned")
+            .iter()
+            .find(|(id, val)| val.as_str() == ty.as_ref())
+        {
+            return id.clone();
+        }
+        let new_id = self.schema_id_generator.new_id();
+        self.schema_to_build
+            .try_write()
+            .expect("Poisoned")
+            .insert(new_id, ty.as_ref().to_string());
+        new_id
     }
 
     pub(crate) fn new_with_variables(document: &'a ServiceDocument, variables: &'a HashMap<String, String>) -> Self {
@@ -219,10 +227,10 @@ impl<'a> VisitorContext<'a> {
 
         let mut result = HashMap::new();
 
-        for (id, val) in self.schema_to_build {
-            let meta_ty = registry.types.get(&val).unwrap();
+        for (id, val) in self.schema_to_build.try_read().expect("Poisoned").iter() {
+            let meta_ty = registry.types.get(val).unwrap();
             let schema = from_meta_type(&registry, meta_ty).unwrap();
-            result.insert(id, Arc::new(schema));
+            result.insert(id.clone(), Arc::new(schema));
         }
 
         registry.schema_list = result;

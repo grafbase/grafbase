@@ -70,7 +70,7 @@ fn temp_base_scalar(registry: &Registry, scalar: &str) -> DataType {
                 return DataType::Utf8;
             }
 
-            DataType::Struct(from_meta_type(registry, meta_ty).expect("blblb").fields)
+            DataType::Struct(from_meta_type(registry, meta_ty).expect("can't fail").fields)
         }
     }
 }
@@ -80,17 +80,16 @@ fn temp_base_tyto_datatype(registry: &Registry, scalar: &BaseType) -> DataType {
         // Here it **HAS** to be a Scalar we know as we cancel every relations.
         BaseType::Named(value) => temp_base_scalar(registry, value),
         BaseType::List(list) => {
-            let base_data = temp_scalar_to_datatype(registry, "", list);
+            let base_data = scalar_to_datatype(registry, "", list);
             DataType::List(Box::new(base_data))
         }
     }
 }
 
-// Temporary scalar conversion
 //  nameList: [String!]! -> nameList: List<[Utf8]>
 //  nameList: [String]! -> nameList: List<[Utf8;?]>
 //  nameList: [String] -> nameList [List<[Utf8;?]>;?]
-fn temp_scalar_to_datatype(registry: &Registry, field: &str, scalar: &Type) -> Field {
+fn scalar_to_datatype(registry: &Registry, field: &str, scalar: &Type) -> Field {
     Field::new(
         field.to_string(),
         temp_base_tyto_datatype(registry, &scalar.base),
@@ -103,6 +102,14 @@ pub fn entity_fields() -> Vec<Field> {
     vec![Field::new("__type", DataType::Utf8, false)]
 }
 
+pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+    match ty {
+        // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
+        obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj),
+        _ => Err(ConversionError::Unknown),
+    }
+}
+
 /// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
 /// of it.
 ///
@@ -110,7 +117,7 @@ pub fn entity_fields() -> Vec<Field> {
 /// -> For each field:
 ///   -> Is not a relation
 ///   -> We map every custom scalar by the internal representation associated
-pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
     if let MetaType::Object {
         ref name, ref fields, ..
     } = ty
@@ -122,9 +129,40 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
                     ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
                 })?;
 
-                let arrow_field = temp_scalar_to_datatype(registry, &field.name, &ty);
+                let arrow_field = scalar_to_datatype(registry, &field.name, &ty);
                 arrow_fields.push(arrow_field);
             }
+        }
+
+        arrow_fields.extend(entity_fields());
+        return Ok(Schema::new(arrow_fields));
+    }
+    Err(ConversionError::ParsingSchema(format!(
+        "The Type {name} is not an Object, we can't infer the proper schema.",
+        name = ty.name()
+    )))
+}
+
+/// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
+/// of it.
+pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+    if let MetaType::InputObject {
+        ref name,
+        ref input_fields,
+        ..
+    } = ty
+    {
+        let mut arrow_fields = Vec::with_capacity(input_fields.len());
+        for (key, input_value) in input_fields {
+            let ty = Type::new(&input_value.ty).ok_or_else(|| {
+                ConversionError::ParsingSchema(format!(
+                    "The Type {ty} is not a proper GraphQL type",
+                    ty = input_value.ty
+                ))
+            })?;
+
+            let arrow_field = scalar_to_datatype(registry, &input_value.name, &ty);
+            arrow_fields.push(arrow_field);
         }
 
         arrow_fields.extend(entity_fields());
