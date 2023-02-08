@@ -54,7 +54,7 @@ pub fn build_cli() -> Command {
             Resets the local data for the current project by removing the .grafbase directory
         "}))
         .subcommand(Command::new("login").about("Logs into your Grafbase account"))
-    // .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
+        .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view
