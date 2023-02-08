@@ -189,8 +189,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .iter()
                 .filter_map(|field| UniqueDirective::parse(ctx, object, &type_name, field))
                 .collect::<Vec<_>>();
-            // Schema ID
-            let schema_id = ctx.new_schema_id();
+
+            // Add typename schema
+            let schema_id = ctx.new_schema_id(&type_name);
 
             // Add typename schema
             let schema_id = ctx.get_schema_id(&type_name);
@@ -389,9 +390,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                 &type_name,
                 &type_name,
             );
-
-            // Add a new schema to build.
-            ctx.add_schema(Some(schema_id), &type_name);
 
             //
             // GENERATE QUERY ONE OF: type(by: { ... })

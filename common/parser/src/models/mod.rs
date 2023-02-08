@@ -102,6 +102,7 @@ pub fn entity_system_fields() -> Vec<Field> {
 
 pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
     match ty {
+        // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
         obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj),
         _ => Err(ConversionError::Unknown),
     }
@@ -129,6 +130,37 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
         }
 
         arrow_fields.extend(entity_system_fields());
+        return Ok(Schema::new(arrow_fields));
+    }
+    Err(ConversionError::ParsingSchema(format!(
+        "The Type {name} is not an Object, we can't infer the proper schema.",
+        name = ty.name()
+    )))
+}
+
+/// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
+/// of it.
+pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+    if let MetaType::InputObject {
+        ref name,
+        ref input_fields,
+        ..
+    } = ty
+    {
+        let mut arrow_fields = Vec::with_capacity(input_fields.len());
+        for (key, input_value) in input_fields {
+            let ty = Type::new(&input_value.ty).ok_or_else(|| {
+                ConversionError::ParsingSchema(format!(
+                    "The Type {ty} is not a proper GraphQL type",
+                    ty = input_value.ty
+                ))
+            })?;
+
+            let arrow_field = scalar_to_datatype(registry, &input_value.name, &ty);
+            arrow_fields.push(arrow_field);
+        }
+
+        arrow_fields.extend(entity_fields());
         return Ok(Schema::new(arrow_fields));
     }
     Err(ConversionError::ParsingSchema(format!(
