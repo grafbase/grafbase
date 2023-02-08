@@ -15,7 +15,7 @@ pub enum CliError {
     /// wraps a server error
     #[error(transparent)]
     ServerError(ServerError),
-    /// wraps an error originating in the local-gateway crate
+    /// wraps an error originating in the local-backend crate
     #[error(transparent)]
     BackendError(BackendError),
     /// wraps an error originating in the common crate
