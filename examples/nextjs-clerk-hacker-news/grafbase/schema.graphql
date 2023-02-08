@@ -1,0 +1,41 @@
+schema
+  @auth(
+    providers: [{ type: oidc, issuer: "{{ env.CLERK_ISSUER_URL }}" }]
+    rules: [
+      { allow: private }
+    ]
+  ) {
+  query: Query
+}
+
+type User @model {
+  id: ID!
+  name: String!
+  email: Email! @unique
+  imageUrl: String
+  items: [Item]
+  comments: [Comment]
+}
+
+type Item @model {
+  id: ID!
+  author: User!
+  title: String!
+  url: URL!
+  votes: [Vote]
+  comments: [Comment]
+}
+
+type Comment @model {
+  id: ID!
+  author: User!
+  item: Item!
+  content: String!
+}
+
+type Vote @model {
+  id: ID!
+  user: User!
+  item: Item!
+  positive: Boolean!
+}
