@@ -1,4 +1,4 @@
-use crate::{errors::BackendError, types::LoginMessage};
+use crate::{consts::CREDENTIALS_FILE, errors::BackendError, types::LoginMessage};
 use axum::{
     extract::{Query, State},
     response::Redirect,
@@ -48,7 +48,7 @@ async fn token<'a>(
     let token = &query.token;
 
     let write_result = tokio::fs::write(
-        user_dot_grafbase_path.join("credentials.json"),
+        user_dot_grafbase_path.join(CREDENTIALS_FILE),
         Credentials { token }.to_string(),
     )
     .await;

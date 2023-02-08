@@ -23,6 +23,7 @@ let (server_port, server_handle) = start_server(PORT, SEARCH).unwrap();
 mod consts;
 pub mod errors;
 pub mod login;
+pub mod logout;
 pub mod project;
 pub mod server_api;
 pub mod types;

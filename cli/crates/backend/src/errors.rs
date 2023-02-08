@@ -120,6 +120,14 @@ pub enum BackendError {
     /// returned if the login server could not be started
     #[error("could not start the login server")]
     StartLoginServer,
+
+    /// returned if the user is not logged in when attempting to log out
+    #[error("could not log out as you are not logged in")]
+    NotLoggedIn,
+
+    /// returned if ~/.grafbase could not be created
+    #[error("could not delete '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    DeleteCredentialsFile(io::Error),
 }
 
 impl ToExitCode for BackendError {
@@ -134,7 +142,7 @@ impl ToExitCode for BackendError {
             | Self::ReadArchiveEntries
             | Self::GetRepositoryInformation(_)
             | Self::StartLoginServer => exitcode::UNAVAILABLE,
-            Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) => exitcode::USAGE,
+            Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) | Self::NotLoggedIn => exitcode::USAGE,
             Self::UnsupportedTemplateURL(_) | Self::MalformedTemplateURL(_) | Self::TemplateNotFound => {
                 exitcode::DATAERR
             }
@@ -149,7 +157,8 @@ impl ToExitCode for BackendError {
             | Self::CreateProjectDirectory(_)
             | Self::FindUserDotGrafbaseFolder
             | Self::CreateUserDotGrafbaseFolder(_)
-            | Self::FindAvailablePort => exitcode::IOERR,
+            | Self::FindAvailablePort
+            | Self::DeleteCredentialsFile(_) => exitcode::IOERR,
 
             Self::ServerError(inner) => inner.to_exit_code(),
         }

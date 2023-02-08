@@ -89,4 +89,8 @@ pub mod report {
     pub fn login_success() {
         watercolor::output_error!("\n\n✨ successfully logged in!", @BrightBlue);
     }
+
+    pub fn logout() {
+        watercolor::output_error!("✨ successfully logged out!", @BrightBlue);
+    }
 }
