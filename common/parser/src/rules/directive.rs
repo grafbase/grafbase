@@ -31,7 +31,7 @@ impl Directives {
 pub(crate) fn extract_arguments<'a>(
     ctx: &mut VisitorContext<'a>,
     directive: &'a Positioned<ConstDirective>,
-    allowed_argument_combinations: &[&[&str]],
+    allowed_sorted_argument_combinations: &[&[&str]],
     argument_help_string: Option<&str>,
 ) -> Result<HashMap<&'a str, ConstValue>, ()> {
     use itertools::Itertools;
@@ -48,7 +48,7 @@ pub(crate) fn extract_arguments<'a>(
 
     let argument_keys: Vec<_> = arguments.iter().map(|(name, _)| *name).sorted().collect();
 
-    if allowed_argument_combinations.contains(&argument_keys.as_slice()) {
+    if allowed_sorted_argument_combinations.contains(&argument_keys.as_slice()) {
         Ok(arguments.into_iter().collect())
     } else {
         let mut bail_out = false;
@@ -63,13 +63,13 @@ pub(crate) fn extract_arguments<'a>(
             return Err(());
         }
 
-        if let &[&[single_argument]] = allowed_argument_combinations {
+        if let &[&[single_argument]] = allowed_sorted_argument_combinations {
             ctx.report_error(
                 vec![directive.pos],
                 format!("The @{directive_name} directive takes a single `{single_argument}` argument"),
             );
         } else {
-            let all_accepted_argument_keys: HashSet<_> = allowed_argument_combinations
+            let all_accepted_argument_keys: HashSet<_> = allowed_sorted_argument_combinations
                 .iter()
                 .flat_map(|combination| combination.iter())
                 .copied()
@@ -92,7 +92,7 @@ pub(crate) fn extract_arguments<'a>(
 
                 ctx.report_error(
                     vec![directive.pos],
-                    format!("Unexpected argument {unknown_key}, @{directive_name} directive expects one of the arguments: {all_accepted_argument_keys_string}")
+                    format!("Unexpected argument {unknown_key}, @{directive_name} directive only supports the following arguments: {all_accepted_argument_keys_string}")
                 );
                 bail_out = true;
             }
@@ -101,7 +101,7 @@ pub(crate) fn extract_arguments<'a>(
             }
 
             let combinations_string = argument_help_string.map(std::borrow::Cow::Borrowed).unwrap_or_else(|| {
-                allowed_argument_combinations
+                allowed_sorted_argument_combinations
                     .iter()
                     .map(|combination| combination.iter().map(|argument| format!("`{argument}`")).join(" and "))
                     .join(" or ")

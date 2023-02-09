@@ -97,7 +97,7 @@ mod tests {
             name: String @length(foo: 10)
         }
         "#, &[
-        "Unexpected argument foo, @length directive expects one of the arguments: `max` and `min`"
+        "Unexpected argument foo, @length directive only supports the following arguments: `max` and `min`"
     ])]
     #[case(r#"
         type Product @model {
@@ -152,7 +152,7 @@ mod tests {
             name: String! @length(value: 10)
         }
         "#, &[
-        "Unexpected argument value, @length directive expects one of the arguments: `max` and `min`"
+        "Unexpected argument value, @length directive only supports the following arguments: `max` and `min`"
     ])]
     #[case(r#"
         type Product @model {
@@ -160,7 +160,7 @@ mod tests {
             name: String! @length(min: 0, value: 10)
         }
         "#, &[
-        "Unexpected argument value, @length directive expects one of the arguments: `max` and `min`"
+        "Unexpected argument value, @length directive only supports the following arguments: `max` and `min`"
     ])]
     #[case(r#"
         type Product @model {
