@@ -867,7 +867,13 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "cursor",
-            "plan": null,
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -1139,7 +1145,13 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "productCollection",
-            "plan": null,
+            "plan": {
+              "Related": {
+                "from": null,
+                "relation_name": null,
+                "to": 0
+              }
+            },
             "provides": null,
             "relation": {
               "birectional": false,
