@@ -56,12 +56,10 @@ quick_error! {
 
 fn primitive_to_datatype(registry: &Registry, scalar: &str) -> DataType {
     match scalar {
-        "ID" => DataType::Utf8,
-        "String" => DataType::Utf8,
+        "ID" | "String" | "DateTime" => DataType::Utf8,
         "Int" => DataType::Int64,
         "Float" => DataType::Float64,
         "Boolean" => DataType::Boolean,
-        "DateTime" => DataType::Utf8,
         rest => {
             let meta_ty = registry.types.get(rest).expect("can't find the scalar: {scalar}");
 
@@ -104,7 +102,6 @@ pub fn entity_fields() -> Vec<Field> {
 
 pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
     match ty {
-        // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
         obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj),
         _ => Err(ConversionError::Unknown),
     }
@@ -118,10 +115,7 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
 ///   -> Is not a relation
 ///   -> We map every custom scalar by the internal representation associated
 pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
-    if let MetaType::Object {
-         ref fields, ..
-    } = ty
-    {
+    if let MetaType::Object { ref fields, .. } = ty {
         let mut arrow_fields = Vec::with_capacity(fields.len());
         for (_key, field) in fields {
             if field.relation.is_none() {
@@ -132,37 +126,6 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
                 let arrow_field = scalar_to_datatype(registry, &field.name, &ty);
                 arrow_fields.push(arrow_field);
             }
-        }
-
-        arrow_fields.extend(entity_fields());
-        return Ok(Schema::new(arrow_fields));
-    }
-    Err(ConversionError::ParsingSchema(format!(
-        "The Type {name} is not an Object, we can't infer the proper schema.",
-        name = ty.name()
-    )))
-}
-
-/// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
-/// of it.
-pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
-    if let MetaType::InputObject {
-        
-        ref input_fields,
-        ..
-    } = ty
-    {
-        let mut arrow_fields = Vec::with_capacity(input_fields.len());
-        for (_key, input_value) in input_fields {
-            let ty = Type::new(&input_value.ty).ok_or_else(|| {
-                ConversionError::ParsingSchema(format!(
-                    "The Type {ty} is not a proper GraphQL type",
-                    ty = input_value.ty
-                ))
-            })?;
-
-            let arrow_field = scalar_to_datatype(registry, &input_value.name, &ty);
-            arrow_fields.push(arrow_field);
         }
 
         arrow_fields.extend(entity_fields());

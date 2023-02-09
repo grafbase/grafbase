@@ -892,6 +892,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
                 Ok(LogicalPlanBuilder::empty().build())
             },
+            #[allow(deprecated)] // Only temporary while we move to the new resolution engine.
             VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
             VariableResolveDefinition::LocalData(value) => match previous_plan {
                 Some(plan) => LogicalPlanBuilder::from(plan.as_ref().clone())
@@ -985,10 +986,16 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
                     LogicalPlanBuilder::from(by).get_entity_by_unique(&schema, Datasource::gb())
                 }
+                // We don't need it to implement it as we implemented the Plan over every node
+                // using it.
+                // Will be removed when we enable the query planning
                 ResolverType::DynamoResolver(DynamoResolver::QuerySingleRelation {
                     parent_pk: _,
                     relation_name: _,
                 }) => Ok(LogicalPlanBuilder::empty()),
+                // We don't need it to implement it as we implemented the Plan over every node
+                // using it.
+                // Will be removed when we enable the query planning
                 ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
                     ..
                 }) => Ok(LogicalPlanBuilder::empty()),

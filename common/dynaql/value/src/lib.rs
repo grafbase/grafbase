@@ -158,7 +158,10 @@ pub enum ConstValue {
 
 #[cfg(feature = "query-planning")]
 impl ConstValue {
-    pub fn prepare_container(self, root: &str) -> ConstValue {
+    /// Wrap the [`ConstValue`] into an Object, when dealing with an ArrowSchema we need to have an
+    /// Object.
+    #[must_use]
+    pub fn prepare_container(self, root: &str) -> Self {
         let map = IndexMap::from_iter(vec![(Name::new(root), self)]);
         Self::Object(map)
     }

@@ -87,6 +87,7 @@ impl ModelDirective {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn insert_metadata_field(
     fields: &mut IndexMap<String, MetaField>,
     type_name: &str,

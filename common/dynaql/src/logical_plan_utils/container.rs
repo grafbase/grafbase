@@ -1,5 +1,4 @@
 use dynaql_parser::Positioned;
-use futures_util::FutureExt;
 
 use query_planning::logical_plan::builder::LogicalPlanBuilder;
 use query_planning::logical_plan::LogicalPlan;
@@ -14,7 +13,7 @@ use std::sync::Arc;
 use crate::parser::types::Selection;
 use crate::registry::utils::type_to_base_type;
 use crate::registry::MetaType;
-use crate::{ContextSelectionSet, OutputType, ServerError, ServerResult};
+use crate::{ContextSelectionSet, ServerError, ServerResult};
 
 /// Resolve an container by executing each of the fields concurrently.
 pub fn resolve_logical_plan_container<'a>(
@@ -160,7 +159,6 @@ impl FieldsGraph {
                             })?;
                         let ctx_selection_set =
                             ctx_field.with_selection_set(&field.node.selection_set);
-                        
 
                         resolve_logical_plan_container(
                             &ctx_selection_set,
@@ -244,7 +242,7 @@ impl FieldsGraph {
                                                 ctx.registry().types.get(type_condition).unwrap();
                                             let ctx_selection_set =
                                                 ctx.with_selection_set(selection_set);
-                                            
+
                                             resolve_logical_plan_container(
                                                 &ctx_selection_set,
                                                 associated_meta_ty,
