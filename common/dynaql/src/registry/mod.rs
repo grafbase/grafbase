@@ -45,9 +45,6 @@ use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
-#[cfg(feature = "query-planning")]
-use query_planning::reexport::arrow_schema::{DataType, Field as ArrowField};
-
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
         .strip_prefix('[')
