@@ -150,8 +150,8 @@ async fn spawn_servers(
             "--text-blob",
             &format!("REGISTRY={registry_path}"),
         ])
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
