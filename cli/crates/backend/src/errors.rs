@@ -105,11 +105,11 @@ pub enum BackendError {
     #[error("could not read the repository information for {0}")]
     ReadRepositoryInformation(String),
 
-    /// returned if the path of `~/.grafbase` could not be found
+    /// returned if the path of '~/.grafbase' could not be found
     #[error("could not find the current user home folder")]
     FindUserDotGrafbaseFolder,
 
-    /// returned if ~/.grafbase could not be created
+    /// returned if '~/.grafbase' could not be created
     #[error("could not create '~/.grafbase\ncaused by: {0}")]
     CreateUserDotGrafbaseFolder(io::Error),
 
@@ -133,7 +133,7 @@ pub enum BackendError {
     #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
     ReadCredentialsFile(io::Error),
 
-    /// returned if ~/.grafbase could not be read
+    /// returned if '~/.grafbase' could not be read
     #[error("could not read '~/.grafbase'\ncaused by: {0}")]
     ReadUserDotGrafbaseFolder(io::Error),
 }
