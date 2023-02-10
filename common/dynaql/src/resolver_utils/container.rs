@@ -341,80 +341,27 @@ impl<'a> FieldsGraph<'a> {
             match &selection.node {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
-                        match root {
-                            // The __typename has to be the concrete type name, right now it's not.
-                            //
-                            // To have the concrete typename, we need to have a way to know when we need
-                            // this concrete type name, in fact we need it when we are in Union & Interface
-                            //
-                            // Right now we are forced to do a little shenanigan to have it working
-                            // properly as we do not have really access to the prior type.
-                            //
-                            // What we do is: we fetch the id field then infer the type of the id to a real
-                            // one
-                            MetaType::Interface { .. } => {
-                                let ctx = ctx.clone();
+                        // Get the typename
+                        // The actual typename should be the concrete typename.
+                        let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+                        let field_name = ctx_field.item.node.name.node.clone();
+                        let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
+                        let typename = registry.introspection_type_name(root).to_owned();
 
-                                let resolve_fut = Box::pin({
-                                    async move {
-                                        let ctx_field =
-                                            ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                                        let field_name = ctx_field.item.node.name.node.clone();
-                                        let alias =
-                                            ctx_field.item.node.alias.clone().map(|x| x.node);
-
-                                        let meta_ty = current_node_id.and_then(|x| {
-                                            ctx.registry().associate_node_id_to_ty(&x)
-                                        });
-                                        let typename = match meta_ty {
-                                            Some(ty) => ty.name().to_string(),
-                                            _ => return Err(ServerError::new(
-                                                "Cannot define type for interface implementation.",
-                                                Some(ctx_field.item.pos),
-                                            )),
-                                        };
-
-                                        let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                            Value::String(typename),
-                                        ));
-
-                                        let node_id = ctx_field
-                                            .response_graph
-                                            .write()
-                                            .await
-                                            .new_node_unchecked(node);
-
-                                        Ok(((alias, field_name), node_id))
-                                    }
-                                });
-                                self.0.push(resolve_fut);
-                                continue;
-                            }
-                            _ => {
-                                // Get the typename
-                                // The actual typename should be the concrete typename.
-                                let ctx_field =
-                                    ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                                let field_name = ctx_field.item.node.name.node.clone();
-                                let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
-                                let typename = registry.introspection_type_name(root).to_owned();
-
-                                self.0.push(Box::pin(async move {
-                                    let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                        Value::String(typename),
-                                    ));
-                                    Ok((
-                                        (alias, field_name),
-                                        ctx_field
-                                            .response_graph
-                                            .write()
-                                            .await
-                                            .new_node_unchecked(node),
-                                    ))
-                                }));
-                                continue;
-                            }
-                        }
+                        self.0.push(Box::pin(async move {
+                            let node = QueryResponseNode::from(ResponsePrimitive::new(
+                                Value::String(typename),
+                            ));
+                            Ok((
+                                (alias, field_name),
+                                ctx_field
+                                    .response_graph
+                                    .write()
+                                    .await
+                                    .new_node_unchecked(node),
+                            ))
+                        }));
+                        continue;
                     }
 
                     let resolve_fut = Box::pin({
@@ -579,34 +526,7 @@ impl<'a> FieldsGraph<'a> {
                     let type_condition =
                         type_condition.map(|condition| condition.node.on.node.as_str());
 
-                    #[cfg(feature = "tracing_worker")]
-                    {
-                        logworker::info!("", "Type condition: {:?}", type_condition);
-                    }
-
-                    // multiple possibilities:
-                    //
-                    // -> Convert add_set async to have the typename be ran inside: not possible,
-                    // cycle not easy, down perf.
-                    //
-                    // -> add_set must have previous resolved value.
-                    // let introspection_type_name = registry.introspection_type_name(root);
-
-                    let meta_ty_opt = current_node_id
-                        .as_ref()
-                        .and_then(|x| ctx.schema_env.registry.associate_node_id_to_ty(x));
-
-                    let meta_ty = match meta_ty_opt {
-                        Some(ty) => ty,
-                        _ => {
-                            return Err(ServerError::new(
-                                "Cannot define type for interface implementation.",
-                                Some(ctx.item.pos),
-                            ))
-                        }
-                    };
-
-                    let introspection_type_name = meta_ty.name();
+                    let introspection_type_name = registry.introspection_type_name(root);
 
                     let applies_concrete_object = type_condition.map_or(false, |condition| {
                         introspection_type_name == condition
@@ -619,7 +539,7 @@ impl<'a> FieldsGraph<'a> {
                     });
                     if applies_concrete_object {
                         collect_all_fields_graph_meta(
-                            meta_ty,
+                            root,
                             &ctx.with_selection_set(selection_set),
                             self,
                             current_node_id,

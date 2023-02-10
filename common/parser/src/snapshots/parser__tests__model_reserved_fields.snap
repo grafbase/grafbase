@@ -78,53 +78,56 @@ expression: req_string_a
   "implements": {},
   "mutation_type": "Mutation",
   "query_type": "Query",
-  "schema_list": {
-    "0": {
-      "fields": [
-        {
-          "data_type": "Utf8",
-          "dict_id": 0,
-          "dict_is_ordered": false,
-          "metadata": {},
-          "name": "title",
-          "nullable": true
-        },
-        {
-          "data_type": "Utf8",
-          "dict_id": 0,
-          "dict_is_ordered": false,
-          "metadata": {},
-          "name": "id",
-          "nullable": false
-        },
-        {
-          "data_type": "Utf8",
-          "dict_id": 0,
-          "dict_is_ordered": false,
-          "metadata": {},
-          "name": "updatedAt",
-          "nullable": false
-        },
-        {
-          "data_type": "Utf8",
-          "dict_id": 0,
-          "dict_is_ordered": false,
-          "metadata": {},
-          "name": "createdAt",
-          "nullable": false
-        },
-        {
-          "data_type": "Utf8",
-          "dict_id": 0,
-          "dict_is_ordered": false,
-          "metadata": {},
-          "name": "__type",
-          "nullable": false
-        }
-      ],
-      "metadata": {}
-    }
-  },
+  "schema_list": [
+    [
+      0,
+      {
+        "fields": [
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "title",
+            "nullable": true
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "id",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "updatedAt",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "createdAt",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__type",
+            "nullable": false
+          }
+        ],
+        "metadata": {}
+      }
+    ]
+  ],
   "subscription_type": null,
   "types": {
     "Boolean": {
