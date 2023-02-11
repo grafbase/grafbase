@@ -360,8 +360,7 @@ async fn stream_github_archive<'a>(
 pub fn reset() -> Result<(), BackendError> {
     let environment = Environment::get();
 
-    fs::remove_dir_all(environment.project_dot_grafbase_path.clone())
-        .map_err(BackendError::DeleteDotGrafbaseDirectory)?;
+    fs::remove_dir_all(environment.project_dot_grafbase_path()).map_err(BackendError::DeleteDotGrafbaseDirectory)?;
 
     Ok(())
 }

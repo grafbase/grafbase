@@ -83,7 +83,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
-    let db_file = environment.project_dot_grafbase_path.join(DB_FILE);
+    let db_file = environment.project_dot_grafbase_path().join(DB_FILE);
 
     let db_url = match db_file.to_str() {
         Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),

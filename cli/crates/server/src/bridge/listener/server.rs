@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
     let environment = Environment::get();
-    let db_file = environment.project_dot_grafbase_path.join(DB_FILE);
+    let db_file = environment.project_dot_grafbase_path().join(DB_FILE);
 
     let db_url = match db_file.to_str() {
         Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),

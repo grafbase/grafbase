@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE},
+    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME},
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -15,23 +15,47 @@ use std::{
 /// must be initialized before use
 #[derive(Debug)]
 pub struct Environment {
-    /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
-    /// with a `grafbase/schema.graphql` file
-    pub project_path: PathBuf,
-    /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database directory,
-    /// in the nearest ancestor directory with `grafbase/schema.graphql`
-    pub project_dot_grafbase_path: PathBuf,
-    /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
-    /// with `grafbase/schema.graphql`
-    pub project_grafbase_path: PathBuf,
     /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
     /// in the nearest ancestor directory with said directory and file
     pub project_grafbase_schema_path: PathBuf,
+}
+
+impl Environment {
+    /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
+    /// with `grafbase/schema.graphql`
+    pub fn project_grafbase_path(&self) -> &Path {
+        self.project_grafbase_schema_path
+            .parent()
+            .expect("the schema directory must have a parent by definiton")
+    }
+    /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
+    /// with a `grafbase/schema.graphql` file
+    pub fn project_path(&self) -> &Path {
+        self.project_grafbase_path()
+            .parent()
+            .expect("the grafbase directory must have a parent directory by definition")
+    }
+    /// the path of the `grafbase/resolvers` directory.
+    pub fn resolvers_path(&self) -> PathBuf {
+        self.project_grafbase_path().join(RESOLVERS_DIRECTORY_NAME)
+    }
+    /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database directory,
+    /// in the nearest ancestor directory with `grafbase/schema.graphql`
+    pub fn project_dot_grafbase_path(&self) -> PathBuf {
+        self.project_path().join(DOT_GRAFBASE_DIRECTORY)
+    }
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
-    pub user_dot_grafbase_path: PathBuf,
+    pub fn user_dot_grafbase_path(&self) -> PathBuf {
+        let home = dirs::home_dir()
+            .map(std::borrow::Cow::Owned)
+            .unwrap_or_else(|| std::borrow::Cow::Borrowed(self.project_grafbase_path()));
+        home.join(DOT_GRAFBASE_DIRECTORY)
+    }
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
-    pub project_grafbase_registry_path: PathBuf,
+    pub fn project_grafbase_registry_path(&self) -> PathBuf {
+        self.project_dot_grafbase_path().join(REGISTRY_FILE)
+    }
 }
 
 /// static singleton for the environment struct
@@ -48,31 +72,11 @@ impl Environment {
     pub fn try_init() -> Result<(), CommonError> {
         let project_grafbase_schema_path =
             Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
-        let project_grafbase_path = project_grafbase_schema_path
-            .parent()
-            .expect("the schema directory must have a parent by definiton")
-            .to_path_buf();
-        let project_path = project_grafbase_path
-            .parent()
-            .expect("the grafbase directory must have a parent directory by definition")
-            .to_path_buf();
-        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
-        let user_dot_grafbase_path = {
-            let home = dirs::home_dir().unwrap_or_else(|| project_grafbase_path.clone());
-            home.join(DOT_GRAFBASE_DIRECTORY)
-        };
-        let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         ENVIRONMENT
             .set(Self {
-                project_path,
-                project_dot_grafbase_path,
-                project_grafbase_path,
                 project_grafbase_schema_path,
-                user_dot_grafbase_path,
-                project_grafbase_registry_path,
             })
             .expect("cannot set environment twice");
-
         Ok(())
     }
 

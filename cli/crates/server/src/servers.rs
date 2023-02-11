@@ -124,8 +124,9 @@ async fn spawn_servers(
     trace!("bridge ready");
 
     let registry_path = environment
-        .project_grafbase_registry_path
+        .project_grafbase_registry_path()
         .to_str()
+        .map(str::to_owned)
         .ok_or(ServerError::ProjectPath)?;
 
     trace!("spawining miniflare");
@@ -152,7 +153,7 @@ async fn spawn_servers(
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
+        .current_dir(environment.user_dot_grafbase_path().join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;
@@ -182,11 +183,11 @@ fn export_embedded_files() -> Result<(), ServerError> {
 
     let current_version = env!("CARGO_PKG_VERSION");
 
-    let version_path = environment.user_dot_grafbase_path.join(ASSET_VERSION_FILE);
+    let version_path = environment.user_dot_grafbase_path().join(ASSET_VERSION_FILE);
 
     let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {
         false
-    } else if environment.user_dot_grafbase_path.is_dir() {
+    } else if environment.user_dot_grafbase_path().is_dir() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
         current_version != asset_version
@@ -197,9 +198,9 @@ fn export_embedded_files() -> Result<(), ServerError> {
     if export_files {
         trace!("writing worker files");
 
-        fs::create_dir_all(&environment.user_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
+        fs::create_dir_all(&environment.user_dot_grafbase_path()).map_err(|_| ServerError::CreateCacheDir)?;
 
-        let gitignore_path = &environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE);
+        let gitignore_path = &environment.user_dot_grafbase_path().join(GIT_IGNORE_FILE);
 
         fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
             .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
@@ -207,7 +208,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
 
-            let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
+            let full_path = environment.user_dot_grafbase_path().join(path.as_ref());
 
             let parent = full_path.parent().expect("must have a parent");
 
@@ -242,7 +243,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
 fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     let environment = Environment::get();
 
-    let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();
+    let project_dot_grafbase_path = environment.project_dot_grafbase_path().clone();
 
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
@@ -256,7 +257,7 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
 #[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
 fn environment_variables() -> impl Iterator<Item = (String, String)> {
     let environment = Environment::get();
-    let dot_env_file_path = environment.project_grafbase_path.join(DOT_ENV_FILE);
+    let dot_env_file_path = environment.project_grafbase_path().join(DOT_ENV_FILE);
     // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
     // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
     // changes which is something we may want to do in the future.
@@ -276,7 +277,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     let environment = Environment::get();
 
     let parser_path = environment
-        .user_dot_grafbase_path
+        .user_dot_grafbase_path()
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
 
@@ -291,11 +292,11 @@ async fn run_schema_parser() -> Result<(), ServerError> {
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
                 &environment
-                    .project_grafbase_registry_path
+                    .project_grafbase_registry_path()
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
             ])
-            .current_dir(&environment.project_dot_grafbase_path)
+            .current_dir(&environment.project_dot_grafbase_path())
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
