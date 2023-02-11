@@ -1,6 +1,7 @@
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "local"))] {
         mod batch_getitem;
+        mod custom_resolvers;
         mod query;
         mod query_by_type;
         mod query_by_type_paginated;
@@ -17,6 +18,7 @@ cfg_if::cfg_if! {
         pub use batch_getitem::BatchGetItemLoaderError;
         pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
         pub use query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
+        pub use custom_resolvers::{CustomResolvers, get_custom_resolvers};
     } else {
         mod local;
 
@@ -32,6 +34,7 @@ cfg_if::cfg_if! {
         pub use local::query::{QueryKey, QueryLoader, QueryLoaderError};
         pub use local::local_context::LocalContext;
         pub use local::batch_getitem::BatchGetItemLoaderError;
+        pub use local::custom_resolvers::{CustomResolvers, get_custom_resolvers};
     }
 }
 
@@ -256,6 +259,8 @@ pub struct DynamoDBBatchersData {
     pub transaction_new: DataLoader<NewTransactionLoader, LruCache>,
     /// Used to load single relations
     pub query_single_relation: DataLoader<QuerySingleRelationLoader, LruCache>,
+    /// Used to call custom resolvers
+    pub custom_resolvers: CustomResolvers,
 }
 
 impl DynamoDBBatchersData {
@@ -287,6 +292,7 @@ impl DynamoDBBatchersData {
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
             query_single_relation: get_loader_single_relation_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
+            custom_resolvers: get_custom_resolvers(),
         })
     }
 }
@@ -310,6 +316,7 @@ impl DynamoDBBatchersData {
                 Arc::clone(local_ctx),
                 DynamoDBRequestedIndex::None,
             ),
+            custom_resolvers: get_custom_resolvers(Arc::clone(local_ctx)),
         })
     }
 }
