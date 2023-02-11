@@ -1,3 +1,5 @@
+use std::collections::{HashMap, HashSet};
+
 use dynaql::Schema;
 use serde_json as _;
 
@@ -422,5 +424,37 @@ fn should_validate_relation_name() {
             }
         "#,
         "Relation names should only contain [_a-zA-Z0-9] but second-author does not"
+    );
+}
+
+#[test]
+fn should_pick_up_required_resolvers() {
+    const SCHEMA: &str = r#"
+        type User @model {
+            name: String!
+            email: String!
+            lastSignIn: DateTime
+            daysInactive: Int! @resolver(name: "user/days-inactive")
+        }
+
+        type Post @model {
+            author: User!
+            contents: String!
+            computedSummary: String! @resolver(name: "text/summary")
+        }
+
+        type Comment @model {
+            author: User!
+            post: Post!
+            contents: String!
+            computedSummary: String! @resolver(name: "text/summary")
+        }
+    "#;
+
+    let result = super::to_registry_with_variables(SCHEMA, &HashMap::new()).expect("must succeed");
+
+    assert_eq!(
+        result.required_resolvers,
+        HashSet::from(["user/days-inactive".to_owned(), "text/summary".to_owned()])
     );
 }

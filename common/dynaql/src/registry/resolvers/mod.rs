@@ -287,6 +287,14 @@ impl ResolverTrait for Resolver {
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
+            ResolverType::CustomResolver(_resolver_name) => {
+                // TODO: Implement.
+                // In Grafbase.com this will call out to another worker.
+                // In local dev this will call out to a local HTTP server handling custom resolver calls.
+                Ok(ResolvedValue::new(Arc::new(serde_json::Value::String(
+                    "Hello World".to_string(),
+                ))))
+            }
         }
     }
 }
@@ -298,6 +306,7 @@ pub enum ResolverType {
     DynamoMutationResolver(DynamoMutationResolver),
     ContextDataResolver(ContextDataResolver),
     DebugResolver(DebugResolver),
+    CustomResolver(String),
 }
 
 impl Constraint {

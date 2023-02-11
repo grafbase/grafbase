@@ -2,7 +2,7 @@
 #[macro_use]
 extern crate assert_matches;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use dynaql::registry::enums::DynaqlEnums;
 use dynaql::registry::scalars::{PossibleScalar, SDLDefinitionScalar};
@@ -22,6 +22,7 @@ use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
 use rules::relations::{relations_rules, RelationEngine};
+use rules::resolver_directive::ResolverDirective;
 use rules::unique_directive::UniqueDirective;
 use rules::unique_fields::UniqueObjectFields;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
@@ -67,14 +68,19 @@ impl Error {
 
 /// Transform the input schema into a Registry
 pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
-    to_registry_with_variables(input, &HashMap::new())
+    Ok(to_registry_with_variables(input, &HashMap::new())?.registry)
+}
+
+pub struct ParseResult {
+    pub registry: Registry,
+    pub required_resolvers: HashSet<String>,
 }
 
 /// Transform the input schema into a Registry in the context of provided environment variables
 pub fn to_registry_with_variables<S: AsRef<str>>(
     input: S,
     variables: &HashMap<String, String>,
-) -> Result<Registry, Error> {
+) -> Result<ParseResult, Error> {
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
@@ -82,6 +88,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with::<ModelDirective>()
         .with::<OneOfDirective>()
         .with::<RelationEngine>()
+        .with::<ResolverDirective>()
         .with::<UniqueDirective>();
 
     let mut rules = rules::visitor::VisitorNil
@@ -90,6 +97,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(CheckTypeValidity)
         .with(ModelDirective)
         .with(AuthDirective)
+        .with(ResolverDirective)
         .with(BasicType)
         .with(EnumType)
         .with(ScalarHydratation)
@@ -121,6 +129,9 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         return Err(ctx.errors.into());
     }
 
-    let reg = ctx.finish();
-    Ok(reg)
+    let (registry, required_resolvers) = ctx.finish();
+    Ok(ParseResult {
+        registry,
+        required_resolvers,
+    })
 }

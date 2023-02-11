@@ -5,6 +5,8 @@ use std::collections::HashSet;
 pub struct VersionedRegistry<'a> {
     pub registry: std::borrow::Cow<'a, dynaql::registry::Registry>,
     pub deployment_id: std::borrow::Cow<'a, str>,
+    #[serde(default)]
+    pub required_resolvers: Vec<String>,
 }
 
 /// Self-contained execution request

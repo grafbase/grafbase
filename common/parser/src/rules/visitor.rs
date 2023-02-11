@@ -11,7 +11,7 @@ use dynaql_value::ConstValue;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
 
 use crate::dynamic_string::DynamicString;
@@ -32,6 +32,7 @@ pub struct VisitorContext<'a> {
     pub(crate) relations: IndexMap<String, MetaRelation>,
     pub registry: RefCell<Registry>,
     variables: &'a HashMap<String, String>,
+    pub(crate) required_resolvers: HashSet<String>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -101,11 +102,12 @@ impl<'a> VisitorContext<'a> {
             queries: Default::default(),
             relations: Default::default(),
             variables,
+            required_resolvers: Default::default(),
         }
     }
 
     /// Finish the Registry
-    pub(crate) fn finish(self) -> Registry {
+    pub(crate) fn finish(self) -> (Registry, HashSet<String>) {
         let mut registry = self.registry.take();
         if !self.mutations.is_empty() {
             registry.mutation_type = Some("Mutation".to_string());
@@ -193,7 +195,7 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
-        registry
+        (registry, self.required_resolvers)
     }
 
     #[allow(dead_code)]

@@ -45,6 +45,7 @@ use crate::utils::to_lower_camelcase;
 use super::auth_directive::AuthDirective;
 use super::directive::Directive;
 use super::relations::RelationEngine;
+use super::resolver_directive::ResolverDirective;
 use super::unique_directive::UniqueDirective;
 use super::visitor::{Visitor, VisitorContext};
 
@@ -203,54 +204,95 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 continue;
                             }
 
-                            let relation = RelationEngine::get(ctx, &type_definition.node.name.node, &field.node);
-                            let transformer = if relation.is_some() {
-                                None
-                            } else {
-                                Some(Transformer::DynamoSelect { property: name.clone() })
-                            };
-
-                            let is_expecting_array = is_array_basic_type(&field.node.ty.to_string());
-                            let relation_array = relation.is_some() && is_expecting_array;
-                            let resolve = relation
-                                .as_ref()
-                                .map(|r| Resolver {
-                                    id: Some(format!("{}_edge_resolver", type_name.to_lowercase())),
-                                    r#type: ResolverType::ContextDataResolver(if relation_array {
-                                        ContextDataResolver::EdgeArray {
-                                            key: type_name.clone(),
-                                            relation_name: r.name.clone(),
-                                            expected_ty: to_base_type_str(&field.node.ty.node.base),
-                                        }
-                                    } else {
-                                        ContextDataResolver::SingleEdge {
-                                            key: type_name.clone(),
-                                            relation_name: r.name.clone(),
-                                        }
-                                    }),
-                                })
-                                .unwrap_or_else(|| Resolver {
-                                    id: None,
-                                    r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                                        key: type_name.to_string(),
-                                    }),
-                                });
+                            let (resolver, relation, transformer, edges, args, ty) =
+                                ResolverDirective::resolver_name(&field.node)
+                                    .map(|resolver_name| {
+                                        (
+                                            Resolver {
+                                                id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
+                                                r#type: ResolverType::CustomResolver(resolver_name.to_owned()),
+                                            },
+                                            None,
+                                            Some(Transformer::DynamoSelect { property: name.clone() }),
+                                            vec![],
+                                            Default::default(),
+                                            field.node.ty.clone().node.to_string(),
+                                        )
+                                    })
+                                    .or_else(|| {
+                                        RelationEngine::get(ctx, &type_definition.node.name.node, &field.node).map(
+                                            |relation| {
+                                                let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
+                                                let edges = {
+                                                    let edge_type = to_base_type_str(&field.node.ty.node.base);
+                                                    connection_edges.push(edge_type.clone());
+                                                    vec![edge_type]
+                                                };
+                                                let (context_data_resolver, args, ty) =
+                                                    if is_array_basic_type(&field.node.ty.to_string()) {
+                                                        (
+                                                            ContextDataResolver::EdgeArray {
+                                                                key: type_name.clone(),
+                                                                relation_name: relation.name.clone(),
+                                                                expected_ty: to_base_type_str(&field.node.ty.node.base),
+                                                            },
+                                                            generate_pagination_args(registry, &type_definition.node),
+                                                            format!(
+                                                                "{}Connection",
+                                                                to_base_type_str(&field.node.ty.node.base).to_camel()
+                                                            ),
+                                                        )
+                                                    } else {
+                                                        (
+                                                            ContextDataResolver::SingleEdge {
+                                                                key: type_name.clone(),
+                                                                relation_name: relation.name.clone(),
+                                                            },
+                                                            Default::default(),
+                                                            field.node.ty.clone().node.to_string(),
+                                                        )
+                                                    };
+                                                (
+                                                    Resolver {
+                                                        id,
+                                                        r#type: ResolverType::ContextDataResolver(
+                                                            context_data_resolver,
+                                                        ),
+                                                    },
+                                                    Some(relation),
+                                                    None,
+                                                    edges,
+                                                    args,
+                                                    ty,
+                                                )
+                                            },
+                                        )
+                                    })
+                                    .unwrap_or_else(|| {
+                                        (
+                                            Resolver {
+                                                id: None,
+                                                r#type: ResolverType::ContextDataResolver(
+                                                    ContextDataResolver::LocalKey {
+                                                        key: type_name.to_string(),
+                                                    },
+                                                ),
+                                            },
+                                            None,
+                                            Some(Transformer::DynamoSelect { property: name.clone() }),
+                                            vec![],
+                                            Default::default(),
+                                            field.node.ty.clone().node.to_string(),
+                                        )
+                                    });
 
                             fields.insert(
                                 name.clone(),
                                 MetaField {
                                     name: name.clone(),
                                     description: field.node.description.clone().map(|x| x.node),
-                                    args: if relation_array {
-                                        generate_pagination_args(registry, &type_definition.node)
-                                    } else {
-                                        Default::default()
-                                    },
-                                    ty: if relation_array {
-                                        format!("{}Connection", to_base_type_str(&field.node.ty.node.base).to_camel())
-                                    } else {
-                                        field.node.ty.clone().node.to_string()
-                                    },
+                                    args,
+                                    ty,
                                     deprecation: Default::default(),
                                     cache_control: Default::default(),
                                     external: false,
@@ -258,15 +300,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     provides: None,
                                     visible: None,
                                     compute_complexity: None,
-                                    resolve: Some(resolve),
-                                    edges: relation
-                                        .as_ref()
-                                        .map(|_| {
-                                            let edge_type = to_base_type_str(&field.node.ty.node.base);
-                                            connection_edges.push(edge_type.clone());
-                                            vec![edge_type]
-                                        })
-                                        .unwrap_or_default(),
+                                    resolve: Some(resolver),
+                                    edges,
                                     relation,
                                     transformer,
                                     required_operation: None,
