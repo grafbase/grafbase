@@ -24,6 +24,7 @@ reqwest = { version = "0.11", features = [
 rust-embed = { version = "6", features = ["compression"] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
+serde_v8 = "0.82"
 sqlx = { version = "0.6", features = [
   "runtime-tokio-rustls",
   "sqlite",
@@ -35,6 +36,7 @@ tower-http = { version = "0.3", features = ["trace"] }
 tracing = "0.1"
 uuid = { version = "1", features = ["v4"] }
 version-compare = "0.1"
+v8 = "0.60"
 which = "4"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.16.0" }

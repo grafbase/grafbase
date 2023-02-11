@@ -60,3 +60,10 @@ pub struct Record {
     pub created_at: String,
     pub updated_at: String,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolverInvocation {
+    pub resolver_name: String,
+    pub arguments: serde_json::Value,
+}
