@@ -101,11 +101,8 @@ pub async fn invoke_resolver<'a>(
         })?
         .await?;
 
-    match response.status() {
-        StatusCode::InternalServerError => {
-            return Err(ResolverInvocationError::InternalServerError);
-        }
-        _ => {}
+    if response.status() == StatusCode::InternalServerError {
+        return Err(ResolverInvocationError::InternalServerError);
     }
 
     Ok(response.body_json::<serde_json::Value>().await?)
