@@ -99,10 +99,10 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
 
     let schema = format!(
         "{}\n{}\n{}\n{}",
+        input.as_ref(),
         DynaqlEnums::sdl(),
         PossibleScalar::sdl(),
         directives.to_definition(),
-        input.as_ref()
     );
     let schema = parse_schema(schema)?;
 
