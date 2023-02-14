@@ -1198,6 +1198,7 @@ dependencies = [
  "axum",
  "dotenv",
  "exitcode",
+ "futures-util",
  "grafbase-local-common",
  "hyper",
  "log",

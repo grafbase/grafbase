@@ -14,6 +14,7 @@ include = ["/src", "/assets"]
 axum = "0.6"
 dotenv = "0.15"
 exitcode = "1"
+futures-util = "0.3"
 hyper = "0.14"
 log = "0.4"
 notify = "4"

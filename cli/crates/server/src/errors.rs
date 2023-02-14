@@ -58,9 +58,16 @@ pub enum ServerError {
     #[error(transparent)]
     SchemaParserError(IoError),
 
+    /// returned if the schema parser returns invalid JSON
+    #[error("schema parser returned malformed JSON:\n{0}")]
+    SchemaParserJsonError(serde_json::Error),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}")]
+    ResolverDoesNotExist(PathBuf),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
@@ -119,6 +126,8 @@ impl ToExitCode for ServerError {
             | Self::MiniflareError(_)
             | Self::SpawnedTaskPanic(_)
             | Self::SchemaParserError(_)
+            | Self::SchemaParserJsonError(_)
+            | Self::ResolverDoesNotExist(_)
             | Self::CheckNodeVersion => exitcode::SOFTWARE,
             Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,

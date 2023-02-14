@@ -137,17 +137,12 @@ async fn invoke_resolver_endpoint(
         let module_namespace: v8::Local<'_, v8::Object> = module.get_module_namespace().try_into().unwrap();
         let default_key = v8::String::new(tc_scope, "default").unwrap();
         let module_namespace = module_namespace.get(tc_scope, default_key.into()).unwrap();
-        trace!(
-            "namespace type: {}",
-            module_namespace.type_of(tc_scope).to_rust_string_lossy(tc_scope)
-        );
         let default_function: v8::Local<'_, v8::Function> = module_namespace.try_into().map_err(|error| {
             error!("v8 error: {error}");
             ApiError::ResolverInvalid(payload.resolver_name.clone())
         })?;
 
         let global = context.global(tc_scope).into();
-
         trace!("about to run the exported function");
 
         let context = v8::Object::new(tc_scope).into();

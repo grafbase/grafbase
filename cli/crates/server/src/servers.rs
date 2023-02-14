@@ -273,6 +273,23 @@ fn environment_variables() -> impl Iterator<Item = (String, String)> {
     )
 }
 
+async fn check_if_resolvers_exist(environment: &Environment, resolvers: &[String]) -> Result<(), ServerError> {
+    use futures_util::TryFutureExt;
+
+    futures_util::future::try_join_all(
+        resolvers
+            .iter()
+            .map(|resolver_name| environment.resolvers_path().join(&resolver_name).with_extension("js"))
+            .map(|resolver_path| {
+                tokio::fs::metadata(resolver_path.clone())
+                    .map_ok(|_| ())
+                    .map_err(|_| ServerError::ResolverDoesNotExist(resolver_path))
+            }),
+    )
+    .await
+    .map(|_| ())
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser() -> Result<(), ServerError> {
@@ -303,6 +320,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .current_dir(&environment.project_dot_grafbase_path())
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
             .spawn()
             .map_err(ServerError::SchemaParserError)?;
 
@@ -318,11 +336,16 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .map_err(ServerError::SchemaParserError)?
     };
 
-    output
-        .status
-        .success()
-        .then_some(())
-        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))
+    if output.status.success() {
+        let required_resolvers: Vec<String> =
+            serde_json::from_slice(&output.stdout).map_err(ServerError::SchemaParserJsonError)?;
+        check_if_resolvers_exist(&environment, &required_resolvers).await?;
+        Ok(())
+    } else {
+        Err(ServerError::ParseSchema(
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        ))
+    }
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {
