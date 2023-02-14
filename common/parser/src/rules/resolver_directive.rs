@@ -12,7 +12,6 @@ pub const NAME_ARGUMENT: &str = "name";
 pub struct ResolverDirective;
 
 impl ResolverDirective {
-    #[allow(dead_code)]
     pub fn resolver_name(field: &FieldDefinition) -> Option<&str> {
         field
             .directives
@@ -39,9 +38,10 @@ impl<'a> Visitor<'a> for ResolverDirective {
             .iter()
             .find(|d| d.node.name.node == RESOLVER_DIRECTIVE)
         {
-            if let Ok(mut arguments) = super::directive::extract_arguments(ctx, directive, &[&[NAME_ARGUMENT]], None) {
-                if let ConstValue::String(_resolver_name) = arguments.remove(NAME_ARGUMENT).unwrap() {
+            if let Ok(arguments) = super::directive::extract_arguments(ctx, directive, &[&[NAME_ARGUMENT]], None) {
+                if let ConstValue::String(resolver_name) = arguments.get(NAME_ARGUMENT).unwrap() {
                     // OK.
+                    ctx.required_resolvers.insert(resolver_name.clone());
                 } else {
                     ctx.report_error(
                         vec![directive.pos],
