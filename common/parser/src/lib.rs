@@ -23,6 +23,7 @@ use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
 use rules::relations::{relations_rules, RelationEngine};
 use rules::resolver_directive::ResolverDirective;
+use rules::search_directive::SearchDirective;
 use rules::unique_directive::UniqueDirective;
 use rules::unique_fields::UniqueObjectFields;
 use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
@@ -89,12 +90,14 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with::<OneOfDirective>()
         .with::<RelationEngine>()
         .with::<ResolverDirective>()
-        .with::<UniqueDirective>();
+        .with::<UniqueDirective>()
+        .with::<SearchDirective>();
 
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
         .with(CheckFieldCamelCase)
         .with(CheckTypeValidity)
+        .with(SearchDirective)
         .with(ModelDirective)
         .with(AuthDirective)
         .with(ResolverDirective)

@@ -35,11 +35,11 @@ use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefi
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-use crate::registry::add_query_paginated_collection;
 use crate::registry::add_remove_mutation;
 use crate::registry::generate_pagination_args;
 use crate::registry::names::MetaNames;
 use crate::registry::{add_mutation_create, add_mutation_update};
+use crate::registry::{add_query_paginated_collection, add_query_search};
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
 
@@ -47,6 +47,7 @@ use super::auth_directive::AuthDirective;
 use super::directive::Directive;
 use super::relations::RelationEngine;
 use super::resolver_directive::ResolverDirective;
+use super::search_directive::SEARCH_DIRECTIVE;
 use super::unique_directive::UniqueDirective;
 use super::visitor::{Visitor, VisitorContext};
 
@@ -461,6 +462,22 @@ impl<'a> Visitor<'a> for ModelDirective {
 
             add_query_paginated_collection(ctx, &type_definition.node, connection_edges, model_auth.as_ref());
             add_remove_mutation(ctx, &type_name, model_auth.as_ref());
+
+            let search_fields = object
+                .fields
+                .iter()
+                .filter_map(|field| {
+                    field
+                        .node
+                        .directives
+                        .iter()
+                        .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+                        .map(|directive| (&field.node, &directive.node))
+                })
+                .collect::<Vec<_>>();
+            if !search_fields.is_empty() {
+                add_query_search(ctx, &type_definition.node, model_auth.as_ref(), search_fields);
+            }
         }
     }
 }
@@ -475,7 +492,7 @@ fn has_any_invalid_reserved_fields(ctx: &mut VisitorContext<'_>, object_name: &s
             // Field is not reserved.
             _ => continue,
         }
-        .expect("Reserved field with an unamed Scalar cannot happen.");
+        .expect("Reserved field with an unnamed Scalar cannot happen.");
 
         if_chain! {
             if let BaseType::Named(type_name) = &field.node.ty.node.base;

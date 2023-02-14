@@ -1,9 +1,10 @@
 use crate::extensions::ResolveInfo;
 use crate::graph::selection_set_into_node;
 use crate::parser::types::Field;
+use crate::registry::scalars::{DynamicScalar, PossibleScalar};
 use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
-use crate::{ContextSelectionSet, OutputType, Positioned, ServerError, ServerResult, Value};
+use crate::{ContextSelectionSet, Error, OutputType, Positioned, ServerError, ServerResult, Value};
 use dynaql_value::Name;
 use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
 
@@ -58,12 +59,17 @@ pub async fn resolve_list<'a>(
                     let resolve_fut = async {
                         match ty {
                             MetaType::Scalar { .. } | MetaType::Enum { .. } => {
-                                let result = Value::try_from(item).map_err(|err| {
+                                let mut result = Value::try_from(item).map_err(|err| {
                                     ctx_idx.set_error_path(ServerError::new(
                                         format!("{err:?}"),
                                         Some(field.pos),
                                     ))
                                 })?;
+                                // Yes it's ugly...
+                                if let MetaType::Scalar { .. } = ty {
+                                    result = resolve_scalar(result, type_name)
+                                        .map_err(|err| err.into_server_error(field.pos))?;
+                                }
                                 Ok(Some(
                                     ctx_idx.response_graph.write().await.new_node_unchecked(
                                         QueryResponseNode::Primitive(ResponsePrimitive::new(
@@ -123,6 +129,24 @@ pub async fn resolve_list<'a>(
         ));
 
         Ok(ctx.response_graph.write().await.new_node_unchecked(node))
+    }
+}
+
+fn resolve_scalar(value: Value, base_type_name: &str) -> Result<Value, Error> {
+    if value == Value::Null {
+        return Ok(value);
+    }
+    match value {
+        Value::Null => Ok(Value::Null),
+        Value::List(list) => list
+            .into_iter()
+            .map(|value| resolve_scalar(value, base_type_name))
+            .collect::<Result<Vec<Value>, Error>>()
+            .map(Value::List),
+        value => PossibleScalar::to_value(
+            base_type_name,
+            serde_json::to_value(value).expect("ConstValue can always be transformed into a json"),
+        ),
     }
 }
 

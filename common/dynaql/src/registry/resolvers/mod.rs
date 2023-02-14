@@ -19,6 +19,7 @@ use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
 use dynaql_value::{ConstValue, Name};
 use graph_entities::{cursor::PaginationCursor, ConstraintID};
+use query::QueryResolver;
 
 use std::sync::Arc;
 use ulid::Ulid;
@@ -30,6 +31,7 @@ pub mod custom;
 pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
+pub mod query;
 
 /// Resolver declarative struct to assign a Resolver for a Field.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
@@ -37,6 +39,20 @@ pub struct Resolver {
     /// Unique id to identify Resolver.
     pub id: Option<String>,
     pub r#type: ResolverType,
+}
+
+impl Resolver {
+    pub fn and_then(self, resolver: ResolverType) -> Self {
+        let mut resolvers = match self.r#type {
+            ResolverType::Composition(resolvers) => resolvers,
+            r => vec![r],
+        };
+        resolvers.push(resolver);
+        Resolver {
+            r#type: ResolverType::Composition(resolvers),
+            ..self
+        }
+    }
 }
 
 /// Resolver Context
@@ -269,7 +285,21 @@ impl ResolverTrait for Resolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        match &self.r#type {
+        self.r#type
+            .resolve(ctx, resolver_ctx, last_resolver_value)
+            .await
+    }
+}
+
+impl ResolverType {
+    #[async_recursion::async_recursion]
+    async fn resolve(
+        &self,
+        ctx: &Context<'_>,
+        resolver_ctx: &ResolverContext<'_>,
+        last_resolver_value: Option<&'async_recursion ResolvedValue>,
+    ) -> Result<ResolvedValue, Error> {
+        match self {
             ResolverType::DebugResolver(debug) => {
                 debug.resolve(ctx, resolver_ctx, last_resolver_value).await
             }
@@ -293,6 +323,19 @@ impl ResolverTrait for Resolver {
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
+            ResolverType::Query(query) => {
+                query.resolve(ctx, resolver_ctx, last_resolver_value).await
+            }
+            ResolverType::Composition(resolvers) => {
+                let [head, tail @ ..] = &resolvers[..] else {
+                    unreachable!("Composition of resolvers always have at least one element")
+                };
+                let mut current = head.resolve(ctx, resolver_ctx, last_resolver_value).await?;
+                for resolver in tail {
+                    current = resolver.resolve(ctx, resolver_ctx, Some(&current)).await?;
+                }
+                Ok(current)
+            }
         }
     }
 }
@@ -301,10 +344,12 @@ impl ResolverTrait for Resolver {
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ResolverType {
     DynamoResolver(DynamoResolver),
+    Query(QueryResolver),
     DynamoMutationResolver(DynamoMutationResolver),
     ContextDataResolver(ContextDataResolver),
     DebugResolver(DebugResolver),
     CustomResolver(CustomResolver),
+    Composition(Vec<ResolverType>),
 }
 
 impl Constraint {

@@ -458,3 +458,58 @@ fn should_pick_up_required_resolvers() {
         HashSet::from(["user/days-inactive".to_owned(), "text/summary".to_owned()])
     );
 }
+
+#[test]
+fn should_support_search_directive() {
+    assert!(
+        super::to_registry(
+            r#"
+            type Product @model {
+                title: String @search
+            }
+            "#
+        )
+        .is_ok(),
+        "Search should be supported on @model type"
+    );
+
+    assert!(
+        super::to_registry(
+            r#"
+            type Product @model {
+              ip: IPAddress @search
+              timestamp: Timestamp! @search
+              url: URL @search
+              email: [Email] @search
+              phone: PhoneNumber @search
+              date: [Date!]! @search
+              datetime: DateTime @search
+              text: [[String]] @search
+              int: Int @search
+              float: Float @search
+              bool: Boolean @search
+            }
+            "#
+        )
+        .is_ok(),
+        "Search should support various field types."
+    );
+
+    assert_validation_error!(
+        r#"
+            type Product {
+                title: String @search
+            }
+        "#,
+        "The @search directive can only be used on @model types."
+    );
+
+    assert_validation_error!(
+        r#"
+            type Product @model {
+                title: JSON @search
+            }
+        "#,
+        "The @search directive cannot be used with the JSON type."
+    );
+}
