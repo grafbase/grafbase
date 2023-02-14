@@ -9,12 +9,12 @@ use query_planning::scalar::ScalarValue;
 use std::sync::Arc;
 
 use crate::parser::types::Selection;
-use crate::registry::utils::type_to_base_type;
+
 use crate::registry::MetaType;
 use crate::{ContextSelectionSet, ServerError, ServerResult};
 
 /// Resolve an container by executing each of the fields concurrently.
-pub fn resolve_logical_plan_container<'a>(
+pub async fn resolve_logical_plan_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
@@ -23,7 +23,7 @@ pub fn resolve_logical_plan_container<'a>(
 }
 
 /// Resolve an container by executing each of the fields serially.
-pub fn resolve_logical_plan_container_serial<'a>(
+pub async fn resolve_logical_plan_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
@@ -31,7 +31,7 @@ pub fn resolve_logical_plan_container_serial<'a>(
     resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan)
 }
 
-fn resolve_logical_plan_container_inner<'a>(
+async fn resolve_logical_plan_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     _parallel: bool,
     root: &'a MetaType,
@@ -47,7 +47,8 @@ pub struct FieldsGraph(Vec<BoxFieldGraphFuture>);
 
 impl FieldsGraph {
     /// Add another set of fields to this set of fields using the given container.
-    pub fn add_set(
+    #[async_recursion::async_recursion]
+    pub async fn add_set(
         ctx: &ContextSelectionSet<'_>,
         root: &MetaType,
         parent_logical_plan: Option<Arc<LogicalPlan>>,
@@ -156,22 +157,6 @@ impl FieldsGraph {
                         let ctx_selection_set =
                             ctx_field.with_selection_set(&field.node.selection_set);
 
-                        resolve_logical_plan_container(
-                            &ctx_selection_set,
-                            associated_meta_ty,
-                            Some(Arc::new(actual_logic_plan.clone())),
-                        )?
-                    } else {
-                        ctx_field.item.position_node(SelectionPlanSet::default())
-                    };
-
-                    let plan = ctx_field.item.position_node(SelectionPlan::Field(
-                        ctx_field.item.position_node(FieldPlan {
-                            name: field.node.response_key().clone().map(|x| x.to_string()),
-                            logic_plan: actual_logic_plan,
-                            selection_set,
-                        }),
-                    ));
                     result.push(plan);
                 }
                 selection => {

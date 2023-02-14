@@ -193,6 +193,7 @@ pub mod extensions;
 pub mod http;
 #[cfg(feature = "query-planning")]
 pub mod logical_plan_utils;
+
 pub mod resolver_utils;
 pub mod types;
 #[doc(hidden)]
