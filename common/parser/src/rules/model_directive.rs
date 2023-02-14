@@ -494,7 +494,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         .directives
                         .iter()
                         .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
-                        .map(|directive| (&field.node, &directive.node))
+                        .map(|directive| (&field.node, directive))
                 })
                 .collect::<Vec<_>>();
             if !search_fields.is_empty() {
