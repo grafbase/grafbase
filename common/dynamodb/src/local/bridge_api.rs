@@ -2,7 +2,7 @@ use serde::Deserialize;
 use surf::StatusCode;
 
 use super::types::Record;
-use super::types::{BridgeUrl, Constraint, Mutation, Operation};
+use super::types::{BridgeUrl, Constraint, Mutation, Operation, ResolverInvocation};
 
 pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, QueryError> {
     let mut response = surf::client()
@@ -73,4 +73,37 @@ pub async fn mutation<'a>(mutations: Vec<Operation>, port: &str) -> Result<(), M
     }
 
     Ok(())
+}
+
+#[allow(dead_code)]
+pub enum ResolverInvocationError {
+    Surf(surf::Error),
+    InternalServerError,
+}
+
+impl From<surf::Error> for ResolverInvocationError {
+    fn from(error: surf::Error) -> Self {
+        Self::Surf(error)
+    }
+}
+
+pub async fn invoke_resolver<'a>(
+    resolver_name: &str,
+    arguments: serde_json::Value,
+    port: &str,
+) -> Result<serde_json::Value, ResolverInvocationError> {
+    let client = surf::client();
+    let mut response = client
+        .post(BridgeUrl::InvokeResolver(port).to_string())
+        .body_json(&ResolverInvocation {
+            resolver_name,
+            arguments,
+        })?
+        .await?;
+
+    if response.status() == StatusCode::InternalServerError {
+        return Err(ResolverInvocationError::InternalServerError);
+    }
+
+    Ok(response.body_json::<serde_json::Value>().await?)
 }

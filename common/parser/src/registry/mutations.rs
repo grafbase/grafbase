@@ -22,6 +22,7 @@ use crate::rules::default_directive::DefaultDirective;
 
 use crate::rules::model_directive::ModelDirective;
 use crate::rules::relations::RelationEngine;
+use crate::rules::resolver_directive::ResolverDirective;
 use crate::rules::visitor::VisitorContext;
 use crate::utils::{to_input_type, to_lower_camelcase};
 
@@ -283,8 +284,8 @@ impl<'a> MutationKind<'a> {
     }
 }
 
-/// Creates the actual input types. See `add_mutation_create` and `add_mutation_create` for
-/// examples.
+/// Creates the actual input types.
+/// See `add_mutation_create` and `add_mutation_update` for examples.
 fn register_mutation_input_type(
     ctx: &VisitorContext<'_>,
     registry: &mut Registry,
@@ -308,6 +309,7 @@ fn register_mutation_input_type(
                 .fields
                 .iter()
                 .filter(|field| ModelDirective::is_not_reserved_field(field))
+                .filter(|field| ResolverDirective::resolver_name(&field.node).is_none())
             {
                 let maybe_type = match RelationEngine::get(ctx, &model_type_definition.name.node, &field.node) {
                     // If a relation exists, the field is a model

@@ -9,7 +9,7 @@
 //!
 //! A Resolver always know how to apply the associated transformers.
 
-use self::debug::DebugResolver;
+use self::{custom::CustomResolver, debug::DebugResolver};
 use crate::{Context, Error};
 use context_data::ContextDataResolver;
 use derivative::Derivative;
@@ -26,6 +26,7 @@ use ulid::Ulid;
 use super::{Constraint, MetaField, MetaType};
 
 pub mod context_data;
+pub mod custom;
 pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
@@ -287,13 +288,10 @@ impl ResolverTrait for Resolver {
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
-            ResolverType::CustomResolver(_resolver_name) => {
-                // TODO: Implement.
-                // In Grafbase.com this will call out to another worker.
-                // In local dev this will call out to a local HTTP server handling custom resolver calls.
-                Ok(ResolvedValue::new(Arc::new(serde_json::Value::String(
-                    "Hello World".to_string(),
-                ))))
+            ResolverType::CustomResolver(resolver) => {
+                resolver
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
             }
         }
     }
@@ -306,7 +304,7 @@ pub enum ResolverType {
     DynamoMutationResolver(DynamoMutationResolver),
     ContextDataResolver(ContextDataResolver),
     DebugResolver(DebugResolver),
-    CustomResolver(String),
+    CustomResolver(CustomResolver),
 }
 
 impl Constraint {

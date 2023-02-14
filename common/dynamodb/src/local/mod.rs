@@ -1,6 +1,7 @@
 pub mod batch_getitem;
 pub mod bridge_api;
 pub mod consts;
+pub mod custom_resolvers;
 pub mod graph_transaction;
 pub mod local_context;
 pub mod query;

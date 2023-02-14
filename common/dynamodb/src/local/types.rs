@@ -175,6 +175,7 @@ impl Row {
 pub enum BridgeUrl<'a> {
     Query(&'a str),
     Mutation(&'a str),
+    InvokeResolver(&'a str),
 }
 
 impl<'a> ToString for BridgeUrl<'a> {
@@ -182,6 +183,7 @@ impl<'a> ToString for BridgeUrl<'a> {
         let (endpoint, port) = match self {
             Self::Query(port) => ("query", port),
             Self::Mutation(port) => ("mutation", port),
+            Self::InvokeResolver(port) => ("invoke-resolver", port),
         };
 
         format!("{BRIDGE_PROTOCOL}://{}:{port}/{endpoint}", Ipv4Addr::LOCALHOST)
@@ -212,6 +214,13 @@ pub struct Operation {
     pub values: Vec<String>,
     #[serde(flatten)]
     pub kind: Option<OperationKind>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolverInvocation<'a> {
+    pub resolver_name: &'a str,
+    pub arguments: serde_json::Value,
 }
 
 // TODO: SQL parameters are defined in different places. Those should all be defined here, creating

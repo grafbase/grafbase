@@ -17,6 +17,7 @@
 //! TODO: Should have either: an ID or a PK
 
 use case::CaseExt;
+use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
 
 use dynaql::indexmap::IndexMap;
@@ -210,10 +211,12 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         (
                                             Resolver {
                                                 id: Some(format!("{}_custom_resolver", type_name.to_lowercase())),
-                                                r#type: ResolverType::CustomResolver(resolver_name.to_owned()),
+                                                r#type: ResolverType::CustomResolver(CustomResolver {
+                                                    resolver_name: resolver_name.to_owned(),
+                                                }),
                                             },
                                             None,
-                                            Some(Transformer::DynamoSelect { property: name.clone() }),
+                                            None,
                                             vec![],
                                             Default::default(),
                                             field.node.ty.clone().node.to_string(),
