@@ -3,15 +3,10 @@ use std::sync::Arc;
 use super::bridge_api;
 use crate::LocalContext;
 
-use quick_error::quick_error;
-
-quick_error! {
-    #[derive(Debug, Clone)]
-    pub enum CustomResolversError {
-        InvocationError {
-            display("Invocation failed")
-        }
-    }
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum CustomResolversError {
+    #[error("Invocation failed")]
+    InvocationError,
 }
 
 pub struct CustomResolvers {

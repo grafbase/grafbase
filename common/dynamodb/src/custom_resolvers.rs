@@ -1,14 +1,9 @@
-use quick_error::quick_error;
-
 pub struct CustomResolvers;
 
-quick_error! {
-    #[derive(Debug, Clone)]
-    pub enum CustomResolversError {
-        UnknownError {
-            display("An internal error happened")
-        }
-    }
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum CustomResolversError {
+    #[error("An internal error happened")]
+    UnknownError,
 }
 
 impl CustomResolvers {
