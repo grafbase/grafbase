@@ -202,7 +202,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
     if export_files {
         trace!("writing worker files");
 
-        fs::create_dir_all(&environment.user_dot_grafbase_path()).map_err(|_| ServerError::CreateCacheDir)?;
+        fs::create_dir_all(environment.user_dot_grafbase_path()).map_err(|_| ServerError::CreateCacheDir)?;
 
         let gitignore_path = &environment.user_dot_grafbase_path().join(GIT_IGNORE_FILE);
 
@@ -247,7 +247,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
 fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     let environment = Environment::get();
 
-    let project_dot_grafbase_path = environment.project_dot_grafbase_path().clone();
+    let project_dot_grafbase_path = environment.project_dot_grafbase_path();
 
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
@@ -264,7 +264,7 @@ async fn check_if_resolvers_exist(environment: &Environment, resolvers: &[String
     futures_util::future::try_join_all(
         resolvers
             .iter()
-            .map(|resolver_name| environment.resolvers_path().join(&resolver_name).with_extension("js"))
+            .map(|resolver_name| environment.resolvers_path().join(resolver_name).with_extension("js"))
             .map(|resolver_path| {
                 tokio::fs::metadata(resolver_path.clone())
                     .map_ok(|_| ())
@@ -287,7 +287,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
 
-    let environment_variables: std::collections::HashMap<_, _> = crate::environment::environment_variables().collect();
+    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
     let output = {
         let mut node_command = Command::new("node")
@@ -324,7 +324,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     if output.status.success() {
         let required_resolvers: Vec<String> =
             serde_json::from_slice(&output.stdout).map_err(ServerError::SchemaParserJsonError)?;
-        check_if_resolvers_exist(&environment, &required_resolvers).await?;
+        check_if_resolvers_exist(environment, &required_resolvers).await?;
         Ok(())
     } else {
         Err(ServerError::ParseSchema(

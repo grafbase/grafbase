@@ -20,13 +20,13 @@ pub async fn invoke_resolver(
 ) -> Result<serde_json::Value, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", resolver_name);
 
-    let resolver_source_code = tokio::fs::read_to_string(resolvers_path.join(&resolver_name).with_extension("js"))
+    let resolver_source_code = tokio::fs::read_to_string(resolvers_path.join(resolver_name).with_extension("js"))
         .await
         .map_err(|_| ApiError::ResolverDoesNotExist(resolver_name.to_owned()))?;
 
-    let isolate = &mut v8::Isolate::new(Default::default());
+    let isolate = &mut v8::Isolate::new(v8::CreateParams::default());
     let scope = &mut v8::HandleScope::new(isolate);
-    let resource_name = v8::String::new(scope, &resolver_name).unwrap();
+    let resource_name = v8::String::new(scope, resolver_name).unwrap();
     let context = v8::Context::new(scope);
     let scope = &mut v8::ContextScope::new(scope, context);
     let code = v8::String::new(scope, &resolver_source_code).unwrap();

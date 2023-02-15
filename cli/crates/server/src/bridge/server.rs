@@ -114,8 +114,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     let pool = Arc::new(pool);
 
-    let environment_variables =
-        crate::environment::environment_variables().collect::<std::collections::HashMap<_, _>>();
+    let environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
 
     let router = Router::new()
         .route("/query", post(query_endpoint))

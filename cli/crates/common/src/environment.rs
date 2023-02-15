@@ -23,37 +23,35 @@ pub struct Environment {
 impl Environment {
     /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
     /// with `grafbase/schema.graphql`
-    pub fn project_grafbase_path(&self) -> &Path {
+    #[must_use] pub fn project_grafbase_path(&self) -> &Path {
         self.project_grafbase_schema_path
             .parent()
             .expect("the schema directory must have a parent by definiton")
     }
     /// the path of the (assumed) user project root (`$PROJECT`), the nearest ancestor directory
     /// with a `grafbase/schema.graphql` file
-    pub fn project_path(&self) -> &Path {
+    #[must_use] pub fn project_path(&self) -> &Path {
         self.project_grafbase_path()
             .parent()
             .expect("the grafbase directory must have a parent directory by definition")
     }
     /// the path of the `grafbase/resolvers` directory.
-    pub fn resolvers_path(&self) -> PathBuf {
+    #[must_use] pub fn resolvers_path(&self) -> PathBuf {
         self.project_grafbase_path().join(RESOLVERS_DIRECTORY_NAME)
     }
     /// the path of `$PROJECT/.grafbase/`, the Grafbase local developer tool cache and database directory,
     /// in the nearest ancestor directory with `grafbase/schema.graphql`
-    pub fn project_dot_grafbase_path(&self) -> PathBuf {
+    #[must_use] pub fn project_dot_grafbase_path(&self) -> PathBuf {
         self.project_path().join(DOT_GRAFBASE_DIRECTORY)
     }
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
     pub fn user_dot_grafbase_path(&self) -> PathBuf {
-        let home = dirs::home_dir()
-            .map(std::borrow::Cow::Owned)
-            .unwrap_or_else(|| std::borrow::Cow::Borrowed(self.project_grafbase_path()));
+        let home = dirs::home_dir().map_or_else(|| std::borrow::Cow::Borrowed(self.project_grafbase_path()), std::borrow::Cow::Owned);
         home.join(DOT_GRAFBASE_DIRECTORY)
     }
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
-    pub fn project_grafbase_registry_path(&self) -> PathBuf {
+    #[must_use] pub fn project_grafbase_registry_path(&self) -> PathBuf {
         self.project_dot_grafbase_path().join(REGISTRY_FILE)
     }
 }
