@@ -1,0 +1,16 @@
+[package]
+name = "parser-openapi"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+case = "1"
+openapiv3 = "1"
+petgraph = "0.6"
+serde_json = "1"
+thiserror = "1"
+
+[dev-dependencies]
+insta = "1.26"
