@@ -1,4 +1,8 @@
-use crate::{consts::CREDENTIALS_FILE, errors::BackendError, types::LoginMessage};
+use crate::{
+    consts::CREDENTIALS_FILE,
+    errors::{BackendError, LoginApiError},
+    types::LoginMessage,
+};
 use axum::{
     extract::{Query, State},
     response::Redirect,
@@ -38,6 +42,8 @@ impl<'a> ToString for Credentials<'a> {
     }
 }
 
+const AUTH_URL: &str = "https://grafbase.com/auth/cli";
+
 async fn token<'a>(
     State(LoginApiState {
         shutdown_sender,
@@ -47,26 +53,30 @@ async fn token<'a>(
 ) -> Result<Redirect, Redirect> {
     let token = &query.token;
 
-    let write_result = tokio::fs::write(
-        user_dot_grafbase_path.join(CREDENTIALS_FILE),
-        Credentials { token }.to_string(),
-    )
-    .await;
+    let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
 
-    // the current connection will still be redirected before closing the server
-    shutdown_sender.send(()).await.expect("must be open");
+    let write_result = tokio::fs::write(&credentials_path, Credentials { token }.to_string()).await;
 
     if write_result.is_ok() {
-        Ok(Redirect::temporary("https://grafbase.com/auth/cli?success=true"))
+        // the current connection will still be redirected before closing the server
+        shutdown_sender.send(Ok(())).await.expect("must be open");
+        Ok(Redirect::temporary(&format!("{AUTH_URL}?success=true")))
     } else {
-        // TODO: either pass a specific error to the URL or print an error
-        Err(Redirect::temporary("https://grafbase.com/auth/cli?success=false"))
+        // the current connection will still be redirected before closing the server
+        shutdown_sender
+            .send(Err(LoginApiError::WriteCredentialFile(credentials_path)))
+            .await
+            .expect("must be open");
+        Err(Redirect::temporary(&format!(
+            "{AUTH_URL}?success=false&error={}",
+            encode("Could not write ~/.grafbase/credentials.json")
+        )))
     }
 }
 
 #[derive(Clone)]
 struct LoginApiState {
-    shutdown_sender: Sender<()>,
+    shutdown_sender: Sender<Result<(), LoginApiError>>,
     user_dot_grafbase_path: PathBuf,
 }
 
@@ -95,16 +105,13 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), Backe
     let port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
         .ok_or(BackendError::FindAvailablePort)?;
 
-    let url = &format!(
-        "https://grafbase.com/auth/cli?callback={}",
-        encode(&format!("http://127.0.0.1:{port}"))
-    );
+    let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
     message_sender
         .send(LoginMessage::CallbackUrl(url.clone()))
         .expect("must be open");
 
-    let (shutdown_sender, mut shutdown_receiver) = tokio::sync::mpsc::channel::<()>(2);
+    let (shutdown_sender, mut shutdown_receiver) = tokio::sync::mpsc::channel::<Result<(), LoginApiError>>(2);
 
     let router = Router::new()
         .route("/", get(token))
@@ -119,12 +126,15 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), Backe
     let server = axum::Server::bind(&socket_address)
         .serve(router.into_make_service())
         .with_graceful_shutdown(async {
-            shutdown_receiver.recv().await;
+            let shutdown_result = shutdown_receiver.recv().await.expect("must be open");
+
+            match shutdown_result {
+                Ok(_) => message_sender.send(LoginMessage::Done).expect("must be open"),
+                Err(error) => message_sender.send(LoginMessage::Error(error)).expect("must be open"),
+            }
         });
 
     server.await.map_err(|_| BackendError::StartLoginServer)?;
-
-    message_sender.send(LoginMessage::Done).expect("must be open");
 
     Ok(())
 }

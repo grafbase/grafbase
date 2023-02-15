@@ -1,4 +1,4 @@
-use backend::errors::{BackendError, ServerError};
+use backend::errors::{BackendError, LoginApiError, ServerError};
 use common::{errors::CommonError, traits::ToExitCode};
 use std::io::ErrorKind;
 use thiserror::Error;
@@ -18,6 +18,9 @@ pub enum CliError {
     /// wraps an error originating in the local-backend crate
     #[error(transparent)]
     BackendError(BackendError),
+    /// wraps an error originating in the local-backend crate's login API
+    #[error(transparent)]
+    LoginApiError(LoginApiError),
     /// wraps an error originating in the common crate
     #[error(transparent)]
     CommonError(CommonError),
@@ -34,6 +37,7 @@ impl ToExitCode for CliError {
             Self::ServerPanic(_) | Self::ServerError(_) | Self::LoginPanic(_) => exitcode::SOFTWARE,
             Self::BackendError(inner) => inner.to_exit_code(),
             Self::CommonError(inner) => inner.to_exit_code(),
+            Self::LoginApiError(inner) => inner.to_exit_code(),
         }
     }
 }

@@ -174,3 +174,17 @@ impl ToExitCode for BackendError {
         }
     }
 }
+
+#[derive(Error, Debug)]
+pub enum LoginApiError {
+    #[error("could not write '{0}'")]
+    WriteCredentialFile(PathBuf),
+}
+
+impl ToExitCode for LoginApiError {
+    fn to_exit_code(&self) -> i32 {
+        match &self {
+            Self::WriteCredentialFile(_) => exitcode::IOERR,
+        }
+    }
+}
