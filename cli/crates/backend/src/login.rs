@@ -1,5 +1,5 @@
 use crate::{
-    consts::CREDENTIALS_FILE,
+    consts::{AUTH_URL, CREDENTIALS_FILE},
     errors::{BackendError, LoginApiError},
     types::LoginMessage,
 };
@@ -41,8 +41,6 @@ impl<'a> ToString for Credentials<'a> {
         serde_json::to_string(&self).expect("must parse")
     }
 }
-
-const AUTH_URL: &str = "https://grafbase.com/auth/cli";
 
 async fn token<'a>(
     State(LoginApiState {
