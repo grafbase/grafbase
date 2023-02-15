@@ -78,21 +78,3 @@ impl std::fmt::Display for FieldType {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use openapiv3::OpenAPI;
-
-    use crate::parsing::parse;
-
-    use super::*;
-
-    #[test]
-    fn test_outputs() {
-        let spec = serde_json::from_slice::<OpenAPI>(&std::fs::read("spec3.json").unwrap()).unwrap();
-
-        let graph = OpenApiGraph::new(parse(spec).unwrap());
-
-        insta::assert_snapshot!(output(&graph).unwrap());
-    }
-}

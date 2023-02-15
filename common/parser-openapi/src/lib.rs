@@ -7,7 +7,9 @@ mod output;
 mod parsing;
 
 pub fn parse_spec(data: &str) -> String {
-    let spec = serde_json::from_str::<OpenAPI>(data).unwrap();
+    let spec = serde_json::from_str::<OpenAPI>(data)
+        .map_err(Error::ParsingError)
+        .unwrap();
 
     let graph = OpenApiGraph::new(parsing::parse(spec).unwrap());
 
@@ -16,6 +18,8 @@ pub fn parse_spec(data: &str) -> String {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("Could not parse the open api spec: {0}")]
+    ParsingError(serde_json::Error),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
     #[error("The path component {0} was a reference, which we don't currently support.")]
@@ -45,5 +49,17 @@ fn is_ok(status: &openapiv3::StatusCode) -> bool {
         openapiv3::StatusCode::Code(200) => true,
         openapiv3::StatusCode::Range(_range) => todo!(),
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stripe_output() {
+        let spec = std::fs::read_to_string("test_data/stripe.openapi.json").unwrap();
+
+        insta::assert_snapshot!(parse_spec(&spec));
     }
 }
