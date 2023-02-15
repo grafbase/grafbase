@@ -90,6 +90,14 @@ pub mod report {
         watercolor::output_error!("\n\n✨ successfully logged in!", @BrightBlue);
     }
 
+    // TODO: better handling of spinner position to avoid this extra function
+    pub fn login_error(error: &CliError) {
+        watercolor::output_error!("\n\nerror: {error}", @BrightRed);
+        if let Some(hint) = error.to_hint() {
+            watercolor::output_error!("hint: {hint}", @BrightBlue);
+        }
+    }
+
     pub fn logout() {
         watercolor::output_error!("✨ successfully logged out!", @BrightBlue);
     }
