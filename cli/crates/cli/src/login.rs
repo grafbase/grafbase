@@ -34,11 +34,11 @@ pub fn login() -> Result<(), CliError> {
         match message_receiver.recv_timeout(Duration::from_millis(250)) {
             Ok(LoginMessage::Done) => {
                 spinner.finish_with_message("token received");
-                report::login_success()
+                report::login_success();
             }
             Ok(LoginMessage::Error(error)) => {
                 spinner.finish_with_message("token received");
-                report::login_error(&CliError::LoginApiError(error))
+                report::login_error(&CliError::LoginApiError(error));
             }
             Err(error) => match error {
                 RecvTimeoutError::Timeout => spinner.inc(1),
