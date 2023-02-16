@@ -47,7 +47,7 @@ impl Field {
 }
 
 pub enum FieldType {
-    Required(Box<FieldType>),
+    NonNull(Box<FieldType>),
     List(Box<FieldType>),
     Named(String),
 }
@@ -55,7 +55,7 @@ pub enum FieldType {
 impl FieldType {
     pub fn new(wrapping: &WrappingType, name: String) -> FieldType {
         match wrapping {
-            WrappingType::Required(inner) => FieldType::Required(Box::new(FieldType::new(inner.as_ref(), name))),
+            WrappingType::NonNull(inner) => FieldType::NonNull(Box::new(FieldType::new(inner.as_ref(), name))),
             WrappingType::List(inner) => FieldType::List(Box::new(FieldType::new(inner.as_ref(), name))),
             WrappingType::Named => FieldType::Named(name),
         }
@@ -71,7 +71,7 @@ impl std::fmt::Display for Field {
 impl std::fmt::Display for FieldType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FieldType::Required(inner) => write!(f, "{inner}!"),
+            FieldType::NonNull(inner) => write!(f, "{inner}!"),
             FieldType::List(inner) => write!(f, "[{inner}]"),
             FieldType::Named(name) => write!(f, "{name}"),
         }

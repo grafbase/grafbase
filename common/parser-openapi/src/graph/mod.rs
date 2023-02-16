@@ -119,9 +119,11 @@ impl std::fmt::Debug for Node {
     }
 }
 
+// The GraphQL spec calls the "NonNull"/"List" types "wrapping types" so I'm borrowing
+// that terminology here
 #[derive(Debug)]
 pub enum WrappingType {
-    Required(Box<WrappingType>),
+    NonNull(Box<WrappingType>),
     List(Box<WrappingType>),
     Named,
 }

@@ -176,11 +176,11 @@ impl WrappingType {
     }
 
     fn wrap_required(self) -> WrappingType {
-        if matches!(self, WrappingType::Required(_)) {
+        if matches!(self, WrappingType::NonNull(_)) {
             // Don't double wrap things in required
             self
         } else {
-            WrappingType::Required(Box::new(self))
+            WrappingType::NonNull(Box::new(self))
         }
     }
 }
