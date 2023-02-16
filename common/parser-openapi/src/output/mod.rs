@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use case::CaseExt;
 
-use crate::graph::{OpenApiGraph, WrapperType};
+use crate::graph::{OpenApiGraph, WrappingType};
 
 pub fn output(graph: &OpenApiGraph) -> Result<String, std::fmt::Error> {
     let mut buffer = String::new();
@@ -19,7 +19,7 @@ pub fn output(graph: &OpenApiGraph) -> Result<String, std::fmt::Error> {
     let query_operations = graph.query_operations();
     if !query_operations.is_empty() {
         writeln!(&mut buffer, "extend type Query {{")?;
-        for op in graph.query_operations() {
+        for op in query_operations {
             let Some(name) = op.name(graph) else { continue; };
             let Some(ty) = op.ty(graph) else { continue; };
 
@@ -32,40 +32,39 @@ pub fn output(graph: &OpenApiGraph) -> Result<String, std::fmt::Error> {
 }
 
 pub struct Field {
-    pub graphql_name: String,
     pub api_name: String,
     pub ty: FieldType,
 }
 
 impl Field {
     pub fn new(api_name: String, ty: FieldType) -> Self {
-        Field {
-            graphql_name: api_name.to_camel_lowercase(),
-            api_name,
-            ty,
-        }
+        Field { api_name, ty }
+    }
+
+    pub fn graphql_name(&self) -> String {
+        self.api_name.to_camel_lowercase()
     }
 }
 
 pub enum FieldType {
     Required(Box<FieldType>),
     List(Box<FieldType>),
-    NamedType(String),
+    Named(String),
 }
 
 impl FieldType {
-    pub fn new(wrapper: &WrapperType, name: String) -> FieldType {
-        match wrapper {
-            WrapperType::Required(inner) => FieldType::Required(Box::new(FieldType::new(inner.as_ref(), name))),
-            WrapperType::List(inner) => FieldType::List(Box::new(FieldType::new(inner.as_ref(), name))),
-            WrapperType::Named => FieldType::NamedType(name),
+    pub fn new(wrapping: &WrappingType, name: String) -> FieldType {
+        match wrapping {
+            WrappingType::Required(inner) => FieldType::Required(Box::new(FieldType::new(inner.as_ref(), name))),
+            WrappingType::List(inner) => FieldType::List(Box::new(FieldType::new(inner.as_ref(), name))),
+            WrappingType::Named => FieldType::Named(name),
         }
     }
 }
 
 impl std::fmt::Display for Field {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {}", self.graphql_name, self.ty)
+        write!(f, "{}: {}", self.graphql_name(), self.ty)
     }
 }
 
@@ -74,7 +73,7 @@ impl std::fmt::Display for FieldType {
         match self {
             FieldType::Required(inner) => write!(f, "{inner}!"),
             FieldType::List(inner) => write!(f, "[{inner}]"),
-            FieldType::NamedType(name) => write!(f, "{name}"),
+            FieldType::Named(name) => write!(f, "{name}"),
         }
     }
 }

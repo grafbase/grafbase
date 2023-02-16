@@ -17,7 +17,7 @@ pub mod operations;
 pub struct Context {
     pub graph: Graph<Node, Edge>,
     schema_index: HashMap<Ref, NodeIndex>,
-    pub operation_index: Vec<NodeIndex>,
+    pub operation_indices: Vec<NodeIndex>,
     errors: Vec<Error>,
 }
 

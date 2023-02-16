@@ -1,7 +1,7 @@
 use case::CaseExt;
 use petgraph::{
     graph::NodeIndex,
-    visit::{Dfs, EdgeRef, IntoEdges, Reversed, Walker},
+    visit::{Dfs, EdgeFiltered, EdgeRef, Reversed, Walker},
 };
 
 use crate::{
@@ -25,16 +25,16 @@ impl super::OpenApiGraph {
         dfs.stack = self.query_operations().into_iter().map(|op| op.0).collect();
 
         dfs.iter(&self.graph)
-            .filter_map(|idx| self.graph[idx].object().map(|_| OutputType(idx)))
+            .filter_map(|idx| self.graph[idx].as_object().map(|_| OutputType(idx)))
     }
 
     /// Gets all the QueryOperations we'll need in the eventual schema
     pub fn query_operations(&self) -> Vec<QueryOperation> {
-        self.operation_index
+        self.operation_indices
             .iter()
             .filter(|&&idx| {
                 self.graph[idx]
-                    .operation()
+                    .as_operation()
                     .map(|op| op.verb == Verb::Get)
                     .unwrap_or_default()
             })
@@ -52,31 +52,45 @@ impl super::OpenApiGraph {
                 // nearest named thing, and construct a name based on the fields in-betweeen.
                 // Not ideal, but the best we can do.
                 let reversed_graph = Reversed(&self.graph);
-                let mut name_components = Vec::new();
-                let mut current_node = node;
-                'outer: loop {
-                    for edge in reversed_graph.edges(current_node) {
-                        if let Some(name) = self.graph[edge.target()].name() {
-                            name_components.push(name);
-                            break 'outer;
-                        }
+                let filtered_graph = EdgeFiltered::from_fn(reversed_graph, |edge| {
+                    matches!(
+                        edge.weight(),
+                        Edge::HasField { .. }
+                            | Edge::HasResponseType { .. }
+                            | Edge::HasType { .. }
+                            | Edge::HasUnionMember
+                    )
+                });
+                let named_node = Dfs::new(&filtered_graph, node)
+                    .iter(&filtered_graph)
+                    .find(|current_node| self.graph[*current_node].name().is_some())?;
 
-                        match edge.weight() {
-                            Edge::HasField { name, .. } => {
-                                name_components.push(name.clone());
-                                current_node = edge.target();
-                                continue 'outer;
-                            }
-                            Edge::HasResponseType { .. } | Edge::HasType { .. } | Edge::HasUnionMember { .. } => {
-                                // For now we follow these edges but they don't contribute to the name.
-                                current_node = edge.target();
-                                continue 'outer;
-                            }
-                            _ => {}
-                        }
+                let (_, mut path) = petgraph::algo::astar(
+                    &filtered_graph,
+                    node,
+                    |current_node| current_node == named_node,
+                    |_| 0,
+                    |_| 0,
+                )?;
+
+                // Reverse our path so we can look things up in the original graph.
+                path.reverse();
+
+                let mut name_components = Vec::new();
+                let mut path_iter = path.into_iter().peekable();
+                while let Some(src_node) = path_iter.next() {
+                    let Some(&dest_node) = path_iter.peek() else { break; };
+
+                    // I am sort of assuming there's only one edge here.
+                    // Should be the case at the moment but might need to update this to a loop if that changes
+                    let edge = self.graph.edges_connecting(src_node, dest_node).next().unwrap();
+                    if let Edge::HasField { name, .. } = edge.weight() {
+                        name_components.push(name.as_str());
                     }
-                    return None;
                 }
+
+                let root_name = self.graph[named_node].name().unwrap();
+                name_components.push(root_name.as_str());
 
                 name_components.reverse();
                 Some(name_components.join("_").to_camel())
@@ -94,7 +108,7 @@ impl super::OpenApiGraph {
                         _ => None,
                     })
                     .collect::<Vec<_>>()
-                    .join("_Or_");
+                    .join("Or");
                 name.push_str("Union");
                 Some(name)
             }
@@ -112,9 +126,9 @@ impl OutputType {
             .graph
             .edges(self.0)
             .filter_map(|edge| match edge.weight() {
-                super::Edge::HasField { name, wrapper } => Some(Field::new(
+                super::Edge::HasField { name, wrapping } => Some(Field::new(
                     name.clone(),
-                    FieldType::new(wrapper, graph.type_name(edge.target())?),
+                    FieldType::new(wrapping, graph.type_name(edge.target())?),
                 )),
                 _ => None,
             })
@@ -131,10 +145,15 @@ impl QueryOperation {
     }
 
     pub fn ty(self, graph: &super::OpenApiGraph) -> Option<FieldType> {
+        // An query operation can have a lot of different types: successes/fails,
+        // and different content types for each of those scenarios.
+        //
+        // For now we're just picking the first success response we come across
+        // but we'll probably want to do something smarter in the future.
         graph.graph.edges(self.0).find_map(|edge| match edge.weight() {
             super::Edge::HasResponseType {
-                status_code, wrapper, ..
-            } if is_ok(status_code) => Some(FieldType::new(wrapper, graph.type_name(edge.target())?)),
+                status_code, wrapping, ..
+            } if is_ok(status_code) => Some(FieldType::new(wrapping, graph.type_name(edge.target())?)),
             _ => None,
         })
     }
@@ -169,7 +188,7 @@ impl super::Node {
                     .schema_data
                     .title
                     .as_ref()
-                    .unwrap_or(&schema.name)
+                    .unwrap_or(&schema.openapi_name)
                     .to_camel(),
             ),
             super::Node::Operation(op) => op.operation_id.clone(),

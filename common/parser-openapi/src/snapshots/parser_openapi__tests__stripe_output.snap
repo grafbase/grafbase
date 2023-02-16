@@ -244,7 +244,7 @@ type IssuingAuthorizationAmountDetails {
 type BalanceTransaction {
     type: String!
     status: String!
-    source: TransferReversal_Or_Transfer_Or_Topup_Or_TaxDeductedAtSource_Or_ReserveTransaction_Or_Refund_Or_PlatformTax_Or_Payout_Or_IssuingTransaction_Or_IssuingDispute_Or_IssuingAuthorization_Or_FeeRefund_Or_Dispute_Or_ConnectCollectionTransfer_Or_Charge_Or_PlatformFeeUnion
+    source: TransferReversalOrTransferOrTopupOrTaxDeductedAtSourceOrReserveTransactionOrRefundOrPlatformTaxOrPayoutOrIssuingTransactionOrIssuingDisputeOrIssuingAuthorizationOrFeeRefundOrDisputeOrConnectCollectionTransferOrChargeOrPlatformFeeUnion
     reportingCategory: String!
     object: String!
     net: Int!
@@ -448,7 +448,7 @@ type AccountExternalAccounts {
     url: String!
     object: String!
     hasMore: Boolean!
-    data: [Card_Or_BankAccountUnion!]!
+    data: [CardOrBankAccountUnion!]!
 }
 
 type BankAccount {
@@ -460,7 +460,7 @@ type BankAccount {
     id: String!
     fingerprint: String
     defaultForCurrency: Boolean
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     currency: String!
     country: String!
     bankName: String
@@ -494,7 +494,7 @@ type Customer {
     discount: DiscountUnion
     description: String
     delinquent: Boolean
-    defaultSource: Source_Or_Card_Or_BankAccountUnion
+    defaultSource: SourceOrCardOrBankAccountUnion
     currency: String
     created: Int!
     cashBalance: CashBalanceUnion
@@ -533,7 +533,7 @@ type Card {
     dynamicLast4: String
     defaultForCurrency: Boolean
     cvcCheck: String
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     currency: String
     country: String
     brand: String!
@@ -875,7 +875,7 @@ type Discount {
     invoice: String
     id: String!
     end: Int
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     coupon: Coupon!
     checkoutSession: String
 }
@@ -919,7 +919,7 @@ type PromotionCode {
     livemode: Boolean!
     id: String!
     expiresAt: Int
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     created: Int!
     coupon: Coupon!
     code: String!
@@ -1118,7 +1118,7 @@ type PaymentFlowsSetupIntentSetupAttempt {
     livemode: Boolean!
     id: String!
     flowDirections: [String!]
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     created: Int!
     attachToSelf: Boolean!
     application: ApplicationUnion
@@ -1315,7 +1315,7 @@ type SetupAttemptPaymentMethodDetailsUsBankAccount {
 
 type APIErrors {
     type: String!
-    source: Source_Or_Card_Or_BankAccountUnion!
+    source: SourceOrCardOrBankAccountUnion!
     setupIntent: SetupIntent!
     requestLogUrl: String!
     paymentMethodType: String!
@@ -1353,7 +1353,7 @@ type PaymentIntent {
     invoice: InvoiceUnion
     id: String!
     description: String
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     currency: String!
     created: Int!
     confirmationMethod: String!
@@ -1429,11 +1429,11 @@ type Invoice {
     footer: String
     endingBalance: Int
     dueDate: Int
-    discounts: [DeletedDiscount_Or_DiscountUnion!]
+    discounts: [DeletedDiscountOrDiscountUnion!]
     discount: DiscountUnion
     description: String
     defaultTaxRates: [TaxRate!]!
-    defaultSource: Source_Or_Card_Or_BankAccountUnion
+    defaultSource: SourceOrCardOrBankAccountUnion
     defaultPaymentMethod: PaymentMethodUnion
     customerTaxIds: [InvoicesResourceInvoiceTaxID!]
     customerTaxExempt: String
@@ -1442,7 +1442,7 @@ type Invoice {
     customerName: String
     customerEmail: String
     customerAddress: AddressUnion
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     customFields: [InvoiceSettingCustomField!]
     currency: String!
     created: Int!
@@ -1454,12 +1454,12 @@ type Invoice {
     attempted: Boolean!
     attemptCount: Int!
     applicationFeeAmount: Int
-    application: DeletedApplication_Or_ApplicationUnion
+    application: DeletedApplicationOrApplicationUnion
     amountShipping: Int!
     amountRemaining: Int!
     amountPaid: Int!
     amountDue: Int!
-    accountTaxIds: [DeletedTaxId_Or_TaxIdUnion!]
+    accountTaxIds: [DeletedTaxIdOrTaxIdUnion!]
     accountName: String
     accountCountry: String
 }
@@ -1533,7 +1533,7 @@ type Charge {
     failureBalanceTransaction: BalanceTransactionUnion
     disputed: Boolean!
     description: String
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     currency: String!
     created: Int!
     captured: Boolean!
@@ -2064,7 +2064,7 @@ type DeletedDiscount {
     invoice: String
     id: String!
     deleted: Boolean!
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     coupon: Coupon!
     checkoutSession: String
 }
@@ -2108,7 +2108,7 @@ type InvoiceLineItem {
 }
 
 type DiscountsResourceDiscountAmount {
-    discount: DeletedDiscount_Or_DiscountUnion!
+    discount: DeletedDiscountOrDiscountUnion!
     amount: Int!
 }
 
@@ -2129,7 +2129,7 @@ type Price {
     tiers: [PriceTier!]!
     taxBehavior: String
     recurring: RecurringUnion
-    product: DeletedProduct_Or_ProductUnion!
+    product: DeletedProductOrProductUnion!
     object: String!
     nickname: String
     metadata: PriceMetadata!
@@ -2316,7 +2316,7 @@ type Quote {
     livemode: Boolean!
     lineItems: QuoteLineItems!
     invoiceSettings: InvoiceSettingQuoteSettingUnion
-    invoice: DeletedInvoice_Or_InvoiceUnion
+    invoice: DeletedInvoiceOrInvoiceUnion
     id: String!
     header: String
     fromQuote: QuotesResourceFromQuoteUnion
@@ -2325,7 +2325,7 @@ type Quote {
     discounts: [DiscountUnion!]!
     description: String
     defaultTaxRates: [TaxRateUnion!]!
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     currency: String
     created: Int!
     computed: QuotesResourceComputed!
@@ -2333,7 +2333,7 @@ type Quote {
     automaticTax: QuotesResourceAutomaticTax!
     applicationFeePercent: Float
     applicationFeeAmount: Int
-    application: DeletedApplication_Or_ApplicationUnion
+    application: DeletedApplicationOrApplicationUnion
     amountTotal: Int!
     amountSubtotal: Int!
 }
@@ -2464,10 +2464,10 @@ type Subscription {
     discount: DiscountUnion
     description: String
     defaultTaxRates: [TaxRate!]
-    defaultSource: Source_Or_Card_Or_BankAccountUnion
+    defaultSource: SourceOrCardOrBankAccountUnion
     defaultPaymentMethod: PaymentMethodUnion
     daysUntilDue: Int
-    customer: DeletedCustomer_Or_CustomerUnion!
+    customer: DeletedCustomerOrCustomerUnion!
     currentPeriodStart: Int!
     currentPeriodEnd: Int!
     currency: String!
@@ -2480,7 +2480,7 @@ type Subscription {
     billingCycleAnchor: Int!
     automaticTax: SubscriptionAutomaticTax!
     applicationFeePercent: Float
-    application: DeletedApplication_Or_ApplicationUnion
+    application: DeletedApplicationOrApplicationUnion
 }
 
 type SubscriptionAutomaticTax {
@@ -2576,7 +2576,7 @@ type SetupIntent {
     id: String!
     flowDirections: [String!]
     description: String
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     created: Int!
     clientSecret: String
     cancellationReason: String
@@ -2609,12 +2609,12 @@ type SetupIntentNextActionVerifyWithMicrodeposits {
 }
 
 type SetupIntentPaymentMethodOptions {
-    usBankAccount: SetupIntentTypeSpecificPaymentMethodOptionsClient_Or_SetupIntentPaymentMethodOptionsUsBankAccountUnion!
-    sepaDebit: SetupIntentTypeSpecificPaymentMethodOptionsClient_Or_SetupIntentPaymentMethodOptionsSepaDebitUnion!
-    link: SetupIntentTypeSpecificPaymentMethodOptionsClient_Or_SetupIntentPaymentMethodOptionsLinkUnion!
+    usBankAccount: SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsUsBankAccountUnion!
+    sepaDebit: SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsSepaDebitUnion!
+    link: SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsLinkUnion!
     card: SetupIntentPaymentMethodOptionsCard!
-    blik: SetupIntentTypeSpecificPaymentMethodOptionsClient_Or_SetupIntentPaymentMethodOptionsBlikUnion!
-    acssDebit: SetupIntentTypeSpecificPaymentMethodOptionsClient_Or_SetupIntentPaymentMethodOptionsAcssDebitUnion!
+    blik: SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsBlikUnion!
+    acssDebit: SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsAcssDebitUnion!
 }
 
 type SetupIntentPaymentMethodOptionsAcssDebit {
@@ -2706,12 +2706,12 @@ type SubscriptionSchedule {
     id: String!
     endBehavior: String!
     defaultSettings: SubscriptionSchedulesResourceDefaultSettings!
-    customer: DeletedCustomer_Or_CustomerUnion!
+    customer: DeletedCustomerOrCustomerUnion!
     currentPhase: SubscriptionScheduleCurrentPhaseUnion
     created: Int!
     completedAt: Int
     canceledAt: Int
-    application: DeletedApplication_Or_ApplicationUnion
+    application: DeletedApplicationOrApplicationUnion
 }
 
 type SubscriptionScheduleCurrentPhase {
@@ -2762,7 +2762,7 @@ type SubscriptionSchedulePhaseConfiguration {
     defaultTaxRates: [TaxRate!]
     defaultPaymentMethod: PaymentMethodUnion
     currency: String!
-    coupon: DeletedCoupon_Or_CouponUnion
+    coupon: DeletedCouponOrCouponUnion
     collectionMethod: String
     billingThresholds: SubscriptionBillingThresholdsUnion
     billingCycleAnchor: String
@@ -2774,7 +2774,7 @@ type SubscriptionSchedulePhaseConfiguration {
 type SubscriptionScheduleAddInvoiceItem {
     taxRates: [TaxRate!]
     quantity: Int
-    price: DeletedPrice_Or_PriceUnion!
+    price: DeletedPriceOrPriceUnion!
 }
 
 type DeletedPrice {
@@ -2796,7 +2796,7 @@ type DeletedCoupon {
 type SubscriptionScheduleConfigurationItem {
     taxRates: [TaxRate!]
     quantity: Int!
-    price: DeletedPrice_Or_PriceUnion!
+    price: DeletedPriceOrPriceUnion!
     metadata: SubscriptionScheduleConfigurationItemMetadata
     billingThresholds: SubscriptionItemBillingThresholdsUnion
 }
@@ -3095,36 +3095,36 @@ type PaymentIntentNextActionWechatPayRedirectToIOSApp {
 }
 
 type PaymentIntentPaymentMethodOptions {
-    wechatPay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsWechatPayUnion!
-    usBankAccount: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsUsBankAccountUnion!
-    sofort: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsSofortUnion!
-    sepaDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsSepaDebitUnion!
-    promptpay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsPromptpayUnion!
-    pix: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsPixUnion!
-    paynow: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsPaynowUnion!
-    p24: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsP24Union!
-    oxxo: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsOxxoUnion!
-    link: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsLinkUnion!
-    konbini: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsKonbiniUnion!
-    klarna: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsKlarnaUnion!
-    interacPresent: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsInteracPresentUnion!
-    ideal: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsIdealUnion!
-    grabpay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsGrabpayUnion!
-    giropay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsGiropayUnion!
-    fpx: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsFpxUnion!
-    eps: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsEpsUnion!
-    customerBalance: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsCustomerBalanceUnion!
-    cardPresent: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsCardPresentUnion!
-    card: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsCardUnion!
-    boleto: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsBoletoUnion!
-    blik: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsBlikUnion!
-    bancontact: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsBancontactUnion!
-    bacsDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsBacsDebitUnion!
-    auBecsDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsAuBecsDebitUnion!
-    alipay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsAlipayUnion!
-    afterpayClearpay: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsAfterpayClearpayUnion!
-    affirm: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentMethodOptionsAffirmUnion!
-    acssDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClient_Or_PaymentIntentPaymentMethodOptionsAcssDebitUnion!
+    wechatPay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsWechatPayUnion!
+    usBankAccount: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsUsBankAccountUnion!
+    sofort: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsSofortUnion!
+    sepaDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsSepaDebitUnion!
+    promptpay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPromptpayUnion!
+    pix: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPixUnion!
+    paynow: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPaynowUnion!
+    p24: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsP24Union!
+    oxxo: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsOxxoUnion!
+    link: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsLinkUnion!
+    konbini: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKonbiniUnion!
+    klarna: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKlarnaUnion!
+    interacPresent: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsInteracPresentUnion!
+    ideal: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsIdealUnion!
+    grabpay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGrabpayUnion!
+    giropay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGiropayUnion!
+    fpx: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsFpxUnion!
+    eps: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsEpsUnion!
+    customerBalance: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCustomerBalanceUnion!
+    cardPresent: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCardPresentUnion!
+    card: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsCardUnion!
+    boleto: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBoletoUnion!
+    blik: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsBlikUnion!
+    bancontact: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBancontactUnion!
+    bacsDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBacsDebitUnion!
+    auBecsDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAuBecsDebitUnion!
+    alipay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAlipayUnion!
+    afterpayClearpay: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAfterpayClearpayUnion!
+    affirm: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAffirmUnion!
+    acssDebit: PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAcssDebitUnion!
 }
 
 type PaymentIntentPaymentMethodOptionsAcssDebit {
@@ -3503,7 +3503,7 @@ type CustomerSources {
     url: String!
     object: String!
     hasMore: Boolean!
-    data: [Source_Or_Card_Or_BankAccountUnion!]!
+    data: [SourceOrCardOrBankAccountUnion!]!
 }
 
 type CustomerSubscriptions {
@@ -4179,7 +4179,7 @@ type Payout {
     failureMessage: String
     failureCode: String
     failureBalanceTransaction: BalanceTransactionUnion
-    destination: DeletedCard_Or_DeletedBankAccount_Or_Card_Or_BankAccountUnion
+    destination: DeletedCardOrDeletedBankAccountOrCardOrBankAccountUnion
     description: String
     currency: String!
     created: Int!
@@ -5279,7 +5279,7 @@ type Plan {
     transformUsage: TransformUsageUnion
     tiersMode: String
     tiers: [PlanTier!]!
-    product: DeletedProduct_Or_ProductUnion
+    product: DeletedProductOrProductUnion
     object: String!
     nickname: String
     metadata: PlanMetadata
@@ -5415,7 +5415,7 @@ type PaymentLinksResourceInvoiceSettings {
     footer: String
     description: String
     customFields: [InvoiceSettingCustomField!]
-    accountTaxIds: [DeletedTaxId_Or_TaxIdUnion!]
+    accountTaxIds: [DeletedTaxIdOrTaxIdUnion!]
 }
 
 type PaymentLinksResourceInvoiceSettingsMetadata {
@@ -5723,7 +5723,7 @@ type InvoiceItem {
     discountable: Boolean!
     description: String
     date: Int!
-    customer: DeletedCustomer_Or_CustomerUnion!
+    customer: DeletedCustomerOrCustomerUnion!
     currency: String!
     amount: Int!
 }
@@ -6015,7 +6015,7 @@ type GetCustomersCustomerSources {
     url: String!
     object: String!
     hasMore: Boolean!
-    data: [Source_Or_Card_Or_BankAccountUnion!]!
+    data: [SourceOrCardOrBankAccountUnion!]!
 }
 
 type GetCustomersCustomerPaymentMethods {
@@ -6131,7 +6131,7 @@ type CreditNote {
     discountAmounts: [DiscountsResourceDiscountAmount!]!
     discountAmount: Int!
     customerBalanceTransaction: CustomerBalanceTransactionUnion
-    customer: DeletedCustomer_Or_CustomerUnion!
+    customer: DeletedCustomerOrCustomerUnion!
     currency: String!
     created: Int!
     amountShipping: Int!
@@ -6299,7 +6299,7 @@ type Session {
     customerEmail: String
     customerDetails: PaymentPagesCheckoutSessionCustomerDetailsUnion
     customerCreation: String
-    customer: DeletedCustomer_Or_CustomerUnion
+    customer: DeletedCustomerOrCustomerUnion
     customText: PaymentPagesCheckoutSessionCustomText!
     currency: String
     created: Int!
@@ -6375,7 +6375,7 @@ type PaymentPagesCheckoutSessionInvoiceSettings {
     footer: String
     description: String
     customFields: [InvoiceSettingCustomField!]
-    accountTaxIds: [DeletedTaxId_Or_TaxIdUnion!]
+    accountTaxIds: [DeletedTaxIdOrTaxIdUnion!]
 }
 
 type PaymentPagesCheckoutSessionInvoiceSettingsMetadata {
@@ -6624,7 +6624,7 @@ type PortalConfiguration {
     defaultReturnUrl: String
     created: Int!
     businessProfile: PortalBusinessProfile!
-    application: DeletedApplication_Or_ApplicationUnion
+    application: DeletedApplicationOrApplicationUnion
     active: Boolean!
 }
 
@@ -6810,7 +6810,7 @@ type GetAccountsAccountExternalAccounts {
     url: String!
     object: String!
     hasMore: Boolean!
-    data: [Card_Or_BankAccountUnion!]!
+    data: [CardOrBankAccountUnion!]!
 }
 
 type AccountCapability {
@@ -6908,7 +6908,7 @@ extend type Query {
     getCreditNotesId: CreditNote!
     getCustomers: GetCustomers!
     getCustomersSearch: GetCustomersSearch!
-    getCustomersCustomer: DeletedCustomer_Or_CustomerUnion!
+    getCustomersCustomer: DeletedCustomerOrCustomerUnion!
     getCustomersCustomerBalanceTransactions: GetCustomersCustomerBalanceTransactions!
     getCustomersCustomerBalanceTransactionsTransaction: CustomerBalanceTransaction!
     getCustomersCustomerBankAccounts: GetCustomersCustomerBankAccounts!
@@ -7034,11 +7034,11 @@ extend type Query {
     getTaxRates: GetTaxRates!
     getTaxRatesTaxRate: TaxRate!
     getTerminalConfigurations: GetTerminalConfigurations!
-    getTerminalConfigurationsConfiguration: TerminalConfigurationDeletedConfiguration_Or_TerminalConfigurationConfigurationUnion!
+    getTerminalConfigurationsConfiguration: TerminalConfigurationDeletedConfigurationOrTerminalConfigurationConfigurationUnion!
     getTerminalLocations: GetTerminalLocations!
-    getTerminalLocationsLocation: TerminalLocationDeletedLocation_Or_TerminalLocationLocationUnion!
+    getTerminalLocationsLocation: TerminalLocationDeletedLocationOrTerminalLocationLocationUnion!
     getTerminalReaders: GetTerminalReaders!
-    getTerminalReadersReader: TerminalReaderDeletedReader_Or_TerminalReaderReaderUnion!
+    getTerminalReadersReader: TerminalReaderDeletedReaderOrTerminalReaderReaderUnion!
     getTestHelpersTestClocks: GetTestHelpersTestClocks!
     getTestHelpersTestClocksTestClock: TestClock!
     getTokensToken: Token!

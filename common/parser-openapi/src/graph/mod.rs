@@ -11,26 +11,26 @@ mod query_types;
 #[derive(Default)]
 pub struct OpenApiGraph {
     graph: Graph<Node, Edge>,
-    operation_index: Vec<NodeIndex>,
+    operation_indices: Vec<NodeIndex>,
 }
 
 impl OpenApiGraph {
     pub fn new(parsed: crate::parsing::Context) -> Self {
         OpenApiGraph {
             graph: parsed.graph,
-            operation_index: parsed.operation_index,
+            operation_indices: parsed.operation_indices,
         }
     }
 }
 
 pub struct SchemaDetails {
-    name: String,
+    openapi_name: String,
     openapi: openapiv3::Schema,
 }
 
 impl SchemaDetails {
-    pub fn new(name: String, openapi: openapiv3::Schema) -> Self {
-        SchemaDetails { name, openapi }
+    pub fn new(openapi_name: String, openapi: openapiv3::Schema) -> Self {
+        SchemaDetails { openapi_name, openapi }
     }
 }
 
@@ -54,21 +54,24 @@ pub enum Node {
 #[allow(clippy::enum_variant_names)]
 pub enum Edge {
     /// Links an object with the types of it's fields.
-    HasField { name: String, wrapper: WrapperType },
+    HasField { name: String, wrapping: WrappingType },
 
     /// The edge between a schema and its underlying type
-    HasType { wrapper: WrapperType },
+    HasType { wrapping: WrappingType },
 
     /// An edge bewteen an operation and it's request type
     #[allow(dead_code)]
-    HasRequestType { content_type: String, wrapper: WrapperType },
+    HasRequestType {
+        content_type: String,
+        wrapping: WrappingType,
+    },
 
     /// An edge bewteen an operation and it's response type
     HasResponseType {
         status_code: StatusCode,
         #[allow(dead_code)]
         content_type: String,
-        wrapper: WrapperType,
+        wrapping: WrappingType,
     },
 
     /// An edge between a union and it's constituent members
@@ -76,14 +79,14 @@ pub enum Edge {
 }
 
 impl Node {
-    fn operation(&self) -> Option<&OperationDetails> {
+    fn as_operation(&self) -> Option<&OperationDetails> {
         match self {
             Node::Operation(op) => Some(op),
             _ => None,
         }
     }
 
-    fn object(&self) -> Option<()> {
+    fn as_object(&self) -> Option<()> {
         match self {
             Node::Object => Some(()),
             _ => None,
@@ -106,19 +109,19 @@ impl std::fmt::Debug for Node {
         match self {
             Self::Schema(schema) => f
                 .debug_struct("Schema")
-                .field("name", &schema.name)
+                .field("name", &schema.openapi_name)
                 .finish_non_exhaustive(),
-            Self::Operation(arg0) => f.debug_tuple("Operation").field(arg0).finish(),
+            Self::Operation(details) => f.debug_tuple("Operation").field(details).finish(),
             Self::Object => write!(f, "Object"),
-            Self::Scalar(arg0) => f.debug_tuple("Scalar").field(arg0).finish(),
+            Self::Scalar(kind) => f.debug_tuple("Scalar").field(kind).finish(),
             Self::Union => write!(f, "Union"),
         }
     }
 }
 
 #[derive(Debug)]
-pub enum WrapperType {
-    Required(Box<WrapperType>),
-    List(Box<WrapperType>),
+pub enum WrappingType {
+    Required(Box<WrappingType>),
+    List(Box<WrappingType>),
     Named,
 }

@@ -2,7 +2,7 @@ use openapiv3::{ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
 
 use crate::{
-    graph::{ScalarKind, SchemaDetails, WrapperType},
+    graph::{ScalarKind, SchemaDetails, WrappingType},
     parsing::{
         components::{Components, Ref},
         operations::OperationDetails,
@@ -75,7 +75,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                 );
             }
 
-            ctx.operation_index.push(index);
+            ctx.operation_indices.push(index);
         }
     }
 }
@@ -105,33 +105,41 @@ enum ParentNode {
     Union(NodeIndex),
 }
 
-impl ParentNode {
-    fn link_type(&self, dest_index: NodeIndex, nullable: bool, ctx: &mut Context) {
-        let src_index = self.parent_index();
-        let mut wrapper = WrapperType::Named;
-        if !nullable {
-            wrapper = wrapper.wrap_required();
-        }
-        let weight = self.to_edge_weight(wrapper);
-        ctx.graph.add_edge(src_index, dest_index, weight);
+impl Context {
+    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool) -> NodeIndex {
+        let dest_index = self.graph.add_node(node);
+        self.add_type_edge(parent, dest_index, nullable);
+        dest_index
     }
 
-    fn parent_index(&self) -> NodeIndex {
+    fn add_type_edge(&mut self, parent: ParentNode, dest_index: NodeIndex, nullable: bool) {
+        let src_index = parent.node_index();
+        let mut wrapping = WrappingType::Named;
+        if !nullable {
+            wrapping = wrapping.wrap_required();
+        }
+        self.graph
+            .add_edge(src_index, dest_index, parent.create_edge_weight(wrapping));
+    }
+}
+
+impl ParentNode {
+    fn node_index(&self) -> NodeIndex {
         match self {
             ParentNode::Union(idx) | ParentNode::Schema(idx) => *idx,
             ParentNode::OperationResponse { operation_index, .. }
             | ParentNode::OperationRequest { operation_index, .. } => *operation_index,
             ParentNode::Field { object_index, .. } => *object_index,
-            ParentNode::List { parent, .. } => parent.parent_index(),
+            ParentNode::List { parent, .. } => parent.node_index(),
         }
     }
 
-    fn to_edge_weight(&self, wrapper: WrapperType) -> Edge {
+    fn create_edge_weight(&self, wrapping: WrappingType) -> Edge {
         match self {
-            ParentNode::Schema(_) => Edge::HasType { wrapper },
+            ParentNode::Schema(_) => Edge::HasType { wrapping },
             ParentNode::OperationRequest { content_type, .. } => Edge::HasRequestType {
                 content_type: content_type.clone(),
-                wrapper,
+                wrapping,
             },
             ParentNode::OperationResponse {
                 status_code,
@@ -140,39 +148,39 @@ impl ParentNode {
             } => Edge::HasResponseType {
                 content_type: content_type.clone(),
                 status_code: status_code.clone(),
-                wrapper,
+                wrapping,
             },
             ParentNode::Field {
                 field_name, required, ..
             } => Edge::HasField {
                 name: field_name.clone(),
-                wrapper: if *required { wrapper.wrap_required() } else { wrapper },
+                wrapping: if *required { wrapping.wrap_required() } else { wrapping },
             },
             ParentNode::List { nullable, parent } => {
-                // Ok, so call parent.to_edge_weight and then modifiy the wrapper in it.
-                // Wrapping the wrapper in a List(Required()) or just List() as appropriate.
-                let mut wrapper = wrapper.wrap_list();
+                // Ok, so call parent.to_edge_weight and then modifiy the wrapping in it.
+                // Wrapping the wrapping in a List(Required()) or just List() as appropriate.
+                let mut wrapping = wrapping.wrap_list();
                 if !nullable {
-                    wrapper = wrapper.wrap_required();
+                    wrapping = wrapping.wrap_required();
                 }
-                parent.to_edge_weight(wrapper)
+                parent.create_edge_weight(wrapping)
             }
             ParentNode::Union { .. } => Edge::HasUnionMember,
         }
     }
 }
 
-impl WrapperType {
-    fn wrap_list(self) -> WrapperType {
-        WrapperType::List(Box::new(self))
+impl WrappingType {
+    fn wrap_list(self) -> WrappingType {
+        WrappingType::List(Box::new(self))
     }
 
-    fn wrap_required(self) -> WrapperType {
-        if matches!(self, WrapperType::Required(_)) {
+    fn wrap_required(self) -> WrappingType {
+        if matches!(self, WrappingType::Required(_)) {
             // Don't double wrap things in required
             self
         } else {
-            WrapperType::Required(Box::new(self))
+            WrappingType::Required(Box::new(self))
         }
     }
 }
@@ -188,45 +196,28 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 return;
             };
 
-            parent.link_type(*schema, false, ctx);
+            ctx.add_type_edge(parent, *schema, false);
         }
         ReferenceOr::Item(schema) => match &schema.schema_kind {
             SchemaKind::Type(Type::String(_)) => {
-                parent.link_type(
-                    ctx.graph.add_node(Node::Scalar(ScalarKind::String)),
-                    schema.schema_data.nullable,
-                    ctx,
-                );
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Boolean {}) => {
-                parent.link_type(
-                    ctx.graph.add_node(Node::Scalar(ScalarKind::Boolean)),
-                    schema.schema_data.nullable,
-                    ctx,
-                );
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Integer(_)) => {
-                parent.link_type(
-                    ctx.graph.add_node(Node::Scalar(ScalarKind::Integer)),
-                    schema.schema_data.nullable,
-                    ctx,
-                );
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Number(_)) => {
-                parent.link_type(
-                    ctx.graph.add_node(Node::Scalar(ScalarKind::Float)),
-                    schema.schema_data.nullable,
-                    ctx,
-                );
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Object(obj)) => {
-                let object_index = ctx.graph.add_node(Node::Object);
-                parent.link_type(object_index, schema.schema_data.nullable, ctx);
-                for (field_name, schema_or_ref) in &obj.properties {
+                let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
+                for (field_name, field_schema_or_ref) in &obj.properties {
                     let required = obj.required.contains(field_name);
                     extract_types(
                         ctx,
-                        &schema_or_ref.clone().unbox(),
+                        &field_schema_or_ref.clone().unbox(),
                         ParentNode::Field {
                             object_index,
                             field_name: field_name.clone(),
@@ -252,8 +243,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 );
             }
             SchemaKind::OneOf { one_of: schemas } | SchemaKind::AnyOf { any_of: schemas } => {
-                let union_index = ctx.graph.add_node(Node::Union);
-                parent.link_type(union_index, schema.schema_data.nullable, ctx);
+                let union_index = ctx.add_type_node(parent, Node::Union, schema.schema_data.nullable);
                 for schema in schemas {
                     extract_types(ctx, schema, ParentNode::Union(union_index));
                 }
