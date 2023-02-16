@@ -275,6 +275,12 @@ async fn check_if_resolvers_exist(environment: &Environment, resolvers: &[String
     .map(|_| ())
 }
 
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SchemaParserOutput {
+    required_resolvers: Vec<String>,
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser() -> Result<(), ServerError> {
@@ -322,9 +328,9 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     };
 
     if output.status.success() {
-        let required_resolvers: Vec<String> =
+        let schema_parser_output: SchemaParserOutput =
             serde_json::from_slice(&output.stdout).map_err(ServerError::SchemaParserJsonError)?;
-        check_if_resolvers_exist(environment, &required_resolvers).await?;
+        check_if_resolvers_exist(environment, &schema_parser_output.required_resolvers).await?;
         Ok(())
     } else {
         Err(ServerError::ParseSchema(
