@@ -61,17 +61,16 @@ impl super::OpenApiGraph {
                             | Edge::HasUnionMember
                     )
                 });
-                let named_node = Dfs::new(&filtered_graph, node)
-                    .iter(&filtered_graph)
-                    .find(|current_node| self.graph[*current_node].name().is_some())?;
 
                 let (_, mut path) = petgraph::algo::astar(
                     &filtered_graph,
                     node,
-                    |current_node| current_node == named_node,
+                    |current_node| self.graph[current_node].name().is_some(),
                     |_| 0,
                     |_| 0,
                 )?;
+
+                let named_node = path.pop()?;
 
                 // Reverse our path so we can look things up in the original graph.
                 path.reverse();
