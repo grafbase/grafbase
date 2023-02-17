@@ -54,9 +54,9 @@ pub struct ExecutionHealthResponse {
 /// Required for executing requests that target a customer deployment
 #[derive(Clone, serde::Deserialize, serde::Serialize)]
 pub struct CustomerDeploymentConfig {
-    /// Grafbase API Version
+    /// Grafbase Gateway Version
     #[serde(default)]
-    pub api_version: String,
+    pub gateway_version: String,
     /// Grafbase Deployment ID where this config was generated
     #[serde(default)]
     pub deployment_id: String,
