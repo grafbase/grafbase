@@ -5,7 +5,17 @@ use std::collections::HashSet;
 pub struct VersionedRegistry<'a> {
     pub registry: std::borrow::Cow<'a, dynaql::registry::Registry>,
     pub deployment_id: std::borrow::Cow<'a, str>,
-    #[serde(default)]
+}
+
+#[derive(serde::Serialize)]
+pub struct VersionedRegistrySerializable<'a> {
+    pub registry: serde_json::Value,
+    pub deployment_id: std::borrow::Cow<'a, str>,
+}
+
+#[derive(serde::Serialize)]
+pub struct ParserResult<'a> {
+    pub versioned_registry: VersionedRegistry<'a>,
     pub required_resolvers: Vec<String>,
 }
 

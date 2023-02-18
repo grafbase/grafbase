@@ -7,5 +7,6 @@ edition = "2021"
 aws-region-nearby = { workspace = true }
 dynaql = { path = "../dynaql" }
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 grafbase = { path = "../grafbase", features = ["json"] }
