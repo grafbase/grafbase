@@ -96,7 +96,7 @@ fn scalar_to_datatype(registry: &Registry, field: &str, scalar: &Type) -> Field 
 }
 
 /// System fields for Entities
-pub fn entity_fields() -> Vec<Field> {
+pub fn entity_system_fields() -> Vec<Field> {
     vec![Field::new("__type", DataType::Utf8, false)]
 }
 
@@ -128,7 +128,7 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
             }
         }
 
-        arrow_fields.extend(entity_fields());
+        arrow_fields.extend(entity_system_fields());
         return Ok(Schema::new(arrow_fields));
     }
     Err(ConversionError::ParsingSchema(format!(
