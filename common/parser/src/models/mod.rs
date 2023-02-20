@@ -140,15 +140,11 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
 
 /// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
 /// of it.
+#[allow(dead_code)]
 pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
-    if let MetaType::InputObject {
-        ref name,
-        ref input_fields,
-        ..
-    } = ty
-    {
+    if let MetaType::InputObject { ref input_fields, .. } = ty {
         let mut arrow_fields = Vec::with_capacity(input_fields.len());
-        for (key, input_value) in input_fields {
+        for (_key, input_value) in input_fields {
             let ty = Type::new(&input_value.ty).ok_or_else(|| {
                 ConversionError::ParsingSchema(format!(
                     "The Type {ty} is not a proper GraphQL type",
@@ -160,7 +156,7 @@ pub fn from_meta_type_input(registry: &Registry, ty: &MetaType) -> Result<Schema
             arrow_fields.push(arrow_field);
         }
 
-        arrow_fields.extend(entity_fields());
+        arrow_fields.extend(entity_system_fields());
         return Ok(Schema::new(arrow_fields));
     }
     Err(ConversionError::ParsingSchema(format!(

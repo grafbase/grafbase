@@ -19,7 +19,7 @@ pub async fn resolve_logical_plan_container<'a>(
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan)
+    resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan).await
 }
 
 /// Resolve an container by executing each of the fields serially.
@@ -28,7 +28,7 @@ pub async fn resolve_logical_plan_container_serial<'a>(
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan)
+    resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan).await
 }
 
 async fn resolve_logical_plan_container_inner<'a>(
@@ -39,7 +39,7 @@ async fn resolve_logical_plan_container_inner<'a>(
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     Ok(ctx
         .item
-        .position_node(FieldsGraph::add_set(ctx, root, parent_logical_plan)?))
+        .position_node(FieldsGraph::add_set(ctx, root, parent_logical_plan).await?))
 }
 
 type BoxFieldGraphFuture = ServerResult<SelectionPlan>;
@@ -130,32 +130,10 @@ impl FieldsGraph {
                     }
 
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                    let actual_logic_plan =
-                        ctx_field.to_logic_plan(root, parent_logical_plan.clone())?;
-                    let selection_set = if !field.node.selection_set.node.items.is_empty() {
-                        let associated_meta_field = root
-                            .field_by_name(field.node.name.node.as_str())
-                            .ok_or_else(|| {
-                                ServerError::new(
-                                    format!("Can't find the associated field: {}", field.node.name),
-                                    Some(field.node.name.pos),
-                                )
-                            })?;
-                        let associated_meta_ty = ctx
-                            .registry()
-                            .types
-                            .get(&type_to_base_type(&associated_meta_field.ty).unwrap_or_default())
-                            .ok_or_else(|| {
-                                ServerError::new(
-                                    format!(
-                                        "Can't find the associated type: {}",
-                                        &associated_meta_field.ty
-                                    ),
-                                    Some(field.node.name.pos),
-                                )
-                            })?;
-                        let ctx_selection_set =
-                            ctx_field.with_selection_set(&field.node.selection_set);
+                    let plan = ctx_field
+                        .registry()
+                        .resolve_logic_field(&ctx_field, root, parent_logical_plan.clone())
+                        .await?;
 
                     result.push(plan);
                 }
@@ -230,7 +208,8 @@ impl FieldsGraph {
                                                 &ctx_selection_set,
                                                 associated_meta_ty,
                                                 parent_logical_plan.clone(),
-                                            )?
+                                            )
+                                            .await?
                                         }
                                     },
                                 }),
@@ -239,7 +218,8 @@ impl FieldsGraph {
                         None => {
                             let ctx = ctx.with_selection_set(selection_set);
                             let plan =
-                                FieldsGraph::add_set(&ctx, root, parent_logical_plan.clone())?;
+                                FieldsGraph::add_set(&ctx, root, parent_logical_plan.clone())
+                                    .await?;
                             ctx.item.position_node(plan).node.items
                         }
                     };

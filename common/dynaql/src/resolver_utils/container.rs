@@ -343,10 +343,6 @@ impl<'a> FieldsGraph<'a> {
                     if field.node.name.node == "__typename" {
                         // Get the typename
                         // The actual typename should be the concrete typename.
-                        let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                        let field_name = ctx_field.item.node.name.node.clone();
-                        let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
-                        let typename = registry.introspection_type_name(root).to_owned();
                         match root {
                             // The __typename has to be the concrete type name, right now it's not.
                             //
@@ -369,9 +365,8 @@ impl<'a> FieldsGraph<'a> {
                                         let alias =
                                             ctx_field.item.node.alias.clone().map(|x| x.node);
 
-                                        let meta_ty = current_node_id.and_then(|x| {
-                                            ctx.registry().associate_node_id_to_ty(&x)
-                                        });
+                                        let meta_ty = current_node_id
+                                            .and_then(|x| ctx.registry().find_ty_with_id(&x));
                                         let typename = match meta_ty {
                                             Some(ty) => ty.name().to_string(),
                                             _ => return Err(ServerError::new(
@@ -600,7 +595,7 @@ impl<'a> FieldsGraph<'a> {
 
                     let meta_ty_opt = current_node_id
                         .as_ref()
-                        .and_then(|x| ctx.schema_env.registry.associate_node_id_to_ty(x));
+                        .and_then(|x| ctx.schema_env.registry.find_ty_with_id(x));
 
                     let meta_ty = match meta_ty_opt {
                         Some(ty) => ty,

@@ -191,9 +191,6 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .collect::<Vec<_>>();
 
             // Add typename schema
-            let schema_id = ctx.new_schema_id(&type_name);
-
-            // Add typename schema
             let schema_id = ctx.get_schema_id(&type_name);
 
             //
