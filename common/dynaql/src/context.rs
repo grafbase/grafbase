@@ -999,9 +999,15 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
                     ..
                 }) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::DynamoResolver(DynamoResolver::QueryIds { .. }) => {
+                    Ok(LogicalPlanBuilder::empty())
+                }
                 ResolverType::DynamoMutationResolver(_) => Ok(LogicalPlanBuilder::empty()),
                 ResolverType::ContextDataResolver(_) => Ok(LogicalPlanBuilder::empty()),
                 ResolverType::DebugResolver(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::CustomResolver(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::Composition(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::Query(_) => Ok(LogicalPlanBuilder::empty()),
             }
             .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
             .build());
