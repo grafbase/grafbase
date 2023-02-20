@@ -19,29 +19,29 @@ use crate::{ContextSelectionSet, ServerError, ServerResult};
 pub fn resolve_logical_plan_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    previous_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, true, root, previous_logical_plan)
+    resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan)
 }
 
 /// Resolve an container by executing each of the fields serially.
 pub fn resolve_logical_plan_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    previous_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, false, root, previous_logical_plan)
+    resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan)
 }
 
 fn resolve_logical_plan_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     _parallel: bool,
     root: &'a MetaType,
-    previous_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     Ok(ctx
         .item
-        .position_node(FieldsGraph::add_set(ctx, root, previous_logical_plan)?))
+        .position_node(FieldsGraph::add_set(ctx, root, parent_logical_plan)?))
 }
 
 type BoxFieldGraphFuture = ServerResult<SelectionPlan>;
@@ -52,7 +52,7 @@ impl FieldsGraph {
     pub fn add_set(
         ctx: &ContextSelectionSet<'_>,
         root: &MetaType,
-        previous_logical_plan: Option<Arc<LogicalPlan>>,
+        parent_logical_plan: Option<Arc<LogicalPlan>>,
     ) -> ServerResult<SelectionPlanSet> {
         #[cfg(feature = "tracing_worker")]
         {
@@ -85,10 +85,8 @@ impl FieldsGraph {
                                             .clone()
                                             .map(|x| x.to_string()),
                                         logic_plan: LogicalPlanBuilder::from(
-                                            ctx_field.to_logic_plan(
-                                                root,
-                                                previous_logical_plan.clone(),
-                                            )?,
+                                            ctx_field
+                                                .to_logic_plan(root, parent_logical_plan.clone())?,
                                         )
                                         .projection(vec!["__type"])
                                         .expect("can't fail?")
@@ -134,7 +132,7 @@ impl FieldsGraph {
 
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                     let actual_logic_plan =
-                        ctx_field.to_logic_plan(root, previous_logical_plan.clone())?;
+                        ctx_field.to_logic_plan(root, parent_logical_plan.clone())?;
                     let selection_set = if !field.node.selection_set.node.items.is_empty() {
                         let associated_meta_field = root
                             .field_by_name(field.node.name.node.as_str())
@@ -222,7 +220,7 @@ impl FieldsGraph {
                                         on: ctx.item.position_node(type_condition.to_string()),
                                     },
                                     logic_plan: LogicalPlanBuilder::from(
-                                        previous_logical_plan
+                                        parent_logical_plan
                                             .clone()
                                             .ok_or_else(|| {
                                                 ServerError::new(
@@ -248,7 +246,7 @@ impl FieldsGraph {
                                             resolve_logical_plan_container(
                                                 &ctx_selection_set,
                                                 associated_meta_ty,
-                                                previous_logical_plan.clone(),
+                                                parent_logical_plan.clone(),
                                             )?
                                         }
                                     },
@@ -258,7 +256,7 @@ impl FieldsGraph {
                         None => {
                             let ctx = ctx.with_selection_set(selection_set);
                             let plan =
-                                FieldsGraph::add_set(&ctx, root, previous_logical_plan.clone())?;
+                                FieldsGraph::add_set(&ctx, root, parent_logical_plan.clone())?;
                             ctx.item.position_node(plan).node.items
                         }
                     };
