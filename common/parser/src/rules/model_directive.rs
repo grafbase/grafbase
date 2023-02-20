@@ -191,7 +191,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .collect::<Vec<_>>();
 
             // Add typename schema
-            let schema_id = ctx.new_schema_id(&type_name);
+            let schema_id = ctx.get_schema_id(&type_name);
 
             //
             // CREATE ACTUAL TYPE
@@ -300,8 +300,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                             let plan = match &relation {
                                 None => Some(SchemaPlan::projection(vec![name.clone()])),
                                 Some(meta_relation) => Some(SchemaPlan::related(
-                                    Some(ctx.new_schema_id(&meta_relation.relation.0.clone().unwrap())),
-                                    ctx.new_schema_id(&meta_relation.relation.1.clone()),
+                                    Some(ctx.get_schema_id(&meta_relation.relation.0.clone().unwrap())),
+                                    ctx.get_schema_id(&meta_relation.relation.1.clone()),
                                     Some(meta_relation.name.clone()),
                                 )),
                             };

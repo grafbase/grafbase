@@ -359,7 +359,7 @@ pub fn add_query_paginated_collection(
     );
     let field = MetaNames::query_collection(model_type_definition);
 
-    let plan = Some(SchemaPlan::related(None, ctx.new_schema_id(&type_name), None));
+    let plan = Some(SchemaPlan::related(None, ctx.get_schema_id(&type_name), None));
 
     ctx.queries.push(MetaField {
         name: field.clone(),

@@ -73,7 +73,7 @@ impl<'a> VisitorContext<'a> {
 
     /// Create a new unique [`SchemaID`] for this [`VisitorContext`] if the provided `ty` doesn't
     /// already have a [`SchemaID`]
-    pub(crate) fn new_schema_id<S: AsRef<str>>(&self, ty: S) -> SchemaID {
+    pub(crate) fn get_schema_id<S: AsRef<str>>(&self, ty: S) -> SchemaID {
         if let Some((id, _val)) = self
             .schema_to_build
             .try_read()
