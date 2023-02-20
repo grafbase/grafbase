@@ -39,7 +39,7 @@ fn assert_registry_schema_generation(registry: &Registry) {
 }
 
 fn assert_snapshot(name: &str, registry: Registry) {
-    let reg_string = serde_json::to_value(&registry).unwrap();
+    let _reg_string = serde_json::to_value(&registry).unwrap();
     let sdl = Schema::new(registry).sdl();
 
     insta::with_settings!({sort_maps => true}, {
