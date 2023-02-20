@@ -1,5 +1,6 @@
 use dynaql::registry::{MetaType, Registry};
 use dynaql::Schema;
+use function_name::named;
 use serde_json as _;
 use std::collections::{HashMap, HashSet};
 
@@ -37,17 +38,18 @@ fn assert_registry_schema_generation(registry: &Registry) {
     }
 }
 
-fn assert_snapshot(registry: Registry) {
-    let _reg_string = serde_json::to_value(&registry).unwrap();
-    let _sdl = Schema::new(registry).sdl();
+fn assert_snapshot(name: &str, registry: Registry) {
+    let reg_string = serde_json::to_value(&registry).unwrap();
+    let sdl = Schema::new(registry).sdl();
 
-    /*
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
-    */
+    insta::with_settings!({sort_maps => true}, {
+        // insta::assert_json_snapshot!(format!("{name}-registry"), reg_string);
+        insta::assert_snapshot!(format!("{name}-sdl"), sdl);
+    });
 }
 
 #[test]
+#[named]
 fn test_simple_product() {
     let result = super::to_registry(
         r#"
@@ -64,10 +66,11 @@ fn test_simple_product() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo() {
     let result = super::to_registry(
         r#"
@@ -92,10 +95,11 @@ fn test_simple_todo() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_from_template() {
     let result = super::to_registry(
         r#"
@@ -116,10 +120,12 @@ fn test_simple_todo_from_template() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_with_vec() {
     let result = super::to_registry(
         r#"
@@ -144,10 +150,12 @@ fn test_simple_todo_with_vec() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_with_enum() {
     let result = super::to_registry(
         r#"
@@ -185,10 +193,12 @@ fn test_simple_todo_with_enum() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_post_with_relation() {
     let result = super::to_registry(
         r#"
@@ -222,10 +232,12 @@ fn test_simple_post_with_relation() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_multiple_relations() {
     let result = super::to_registry(
         r#"
@@ -255,10 +267,12 @@ fn test_multiple_relations() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_many_to_many() {
     let result = super::to_registry(
         r#"
@@ -276,7 +290,8 @@ fn test_many_to_many() {
     .unwrap();
 
     assert_registry_schema_generation(&result);
-    assert_snapshot(result);
+
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
@@ -294,6 +309,7 @@ fn should_ensure_lowercase() {
 }
 
 #[test]
+#[named]
 fn test_model_reserved_fields() {
     let with_reserved_fields = super::to_registry(
         r#"
@@ -323,11 +339,11 @@ fn test_model_reserved_fields() {
     let sdl_b = Schema::new(without_reserved_fields).sdl();
 
     // Comparing snaphots for better test errors first
-    insta::assert_json_snapshot!(req_string_a);
-    insta::assert_snapshot!(sdl_a);
+    insta::assert_json_snapshot!(format!("{}-req-a", function_name!()), req_string_a);
+    insta::assert_snapshot!(format!("{}-sdl-a", function_name!()), sdl_a);
 
-    insta::assert_json_snapshot!(req_string_b);
-    insta::assert_snapshot!(sdl_b);
+    insta::assert_json_snapshot!(format!("{}-req-b", function_name!()), req_string_b);
+    insta::assert_snapshot!(format!("{}-sdl-b", function_name!()), sdl_b);
 
     // Actual test, ensuring they're equivalent.
     assert_eq!(req_string_a, req_string_b);
