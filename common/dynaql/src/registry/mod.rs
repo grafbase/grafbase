@@ -1281,7 +1281,7 @@ impl Registry {
             .ok_or_else(|| {
                 ServerError::new("An error occured while interpreting your data schema.", pos)
             })
-            .map(Clone::clone)
+            .cloned()
     }
 
     /// Function ran when resolving a field.
