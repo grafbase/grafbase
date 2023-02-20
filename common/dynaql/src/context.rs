@@ -851,10 +851,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 )
             });
 
-        match resolver {
-            None => Ok(LogicalPlanBuilder::empty().build()),
-            Some(elt) => elt,
-        }
+        resolver.unwrap_or_else(|| Ok(LogicalPlanBuilder::empty().build()))
     }
 
     #[cfg(feature = "query-planning")]
