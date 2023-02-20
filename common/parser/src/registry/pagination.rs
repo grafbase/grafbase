@@ -88,6 +88,7 @@ fn register_edge_type(
                             },
                             Transformer::ConvertSkToCursor,
                         ])),
+                        // Incomplete: need base64
                         plan: Some(SchemaPlan::projection(vec!["id".to_string()])),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
