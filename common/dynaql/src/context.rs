@@ -844,7 +844,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .as_ref()
             .and_then(|x| x.field)
             .map(|field| {
-                self.from_resolver_to_logic_plan(
+                self.convert_resolver_to_logic_plan(
                     previous_plan,
                     field.resolve.as_ref(),
                     field.plan.as_ref(),
@@ -904,7 +904,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     #[cfg(feature = "query-planning")]
-    pub fn from_resolver_to_logic_plan(
+    pub fn convert_resolver_to_logic_plan(
         &self,
         previous_plan: Option<Arc<LogicalPlan>>,
         resolver: Option<&Resolver>,
