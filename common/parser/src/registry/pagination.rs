@@ -113,17 +113,6 @@ fn register_edge_type(
 }
 
 fn register_page_info_type(registry: &mut Registry) -> BaseType {
-    /*
-    let plan = match &relation {
-        None => Some(SchemaPlan::projection(vec![name.clone()])),
-        Some(meta_relation) => Some(SchemaPlan::related(
-            Some(ctx.new_schema_id(&meta_relation.relation.0.clone().unwrap())),
-            ctx.new_schema_id(&meta_relation.relation.1.clone()),
-            Some(meta_relation.name.clone()),
-        )),
-    };
-    */
-
     registry.create_type(
         |_| MetaType::Object {
             name: PAGE_INFO_TYPE.to_string(),
