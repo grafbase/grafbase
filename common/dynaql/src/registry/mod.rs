@@ -1225,7 +1225,7 @@ pub struct Registry {
     /// Store data about the modelization here
     /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
     #[serde(with = "vectorize")]
-    pub schema_list: HashMap<SchemaID, Arc<ArrowSchema>>,
+    pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
 }
 
 pub mod vectorize {
@@ -1276,7 +1276,7 @@ impl Registry {
     }
 
     pub fn get_schema_id(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
-        self.schema_list
+        self.schemas
             .get(&id)
             .ok_or_else(|| {
                 ServerError::new("An error occured while interpreting your data schema.", pos)

@@ -233,7 +233,7 @@ impl<'a> VisitorContext<'a> {
             result.insert(*id, Arc::new(schema));
         }
 
-        registry.schema_list = result;
+        registry.schemas = result;
 
         (registry, self.required_resolvers)
     }
