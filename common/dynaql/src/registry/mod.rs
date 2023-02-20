@@ -1267,7 +1267,7 @@ impl Registry {
             .unwrap()
     }
 
-    pub fn associate_node_id_to_ty<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
+    pub fn find_ty_with_id<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
         let ty = node_id.ty();
         self.types
             .iter()
