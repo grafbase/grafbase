@@ -322,7 +322,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     compute_complexity: None,
                                     resolve: Some(resolver),
                                     edges,
-                                    plan: None,
+                                    plan,
                                     relation,
                                     transformer,
                                     required_operation: None,
