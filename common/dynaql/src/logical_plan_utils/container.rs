@@ -237,7 +237,9 @@ impl FieldsGraph {
                                     .expect("shouldn't fail")
                                     .build(),
                                     selection_set: {
-                                        if !selection_set.node.items.is_empty() {
+                                        if selection_set.node.items.is_empty() {
+                                            Default::default()
+                                        } else {
                                             let associated_meta_ty =
                                                 ctx.registry().types.get(type_condition).unwrap();
                                             let ctx_selection_set =
@@ -248,8 +250,6 @@ impl FieldsGraph {
                                                 associated_meta_ty,
                                                 previous_logical_plan.clone(),
                                             )?
-                                        } else {
-                                            Default::default()
                                         }
                                     },
                                 }),
