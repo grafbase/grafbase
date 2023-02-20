@@ -1275,7 +1275,7 @@ impl Registry {
             .map(|(_, val)| val)
     }
 
-    pub fn get_schema_id(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
+    pub fn get_schema(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
         self.schemas
             .get(&id)
             .ok_or_else(|| {

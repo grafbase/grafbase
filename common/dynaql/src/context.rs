@@ -817,7 +817,7 @@ impl<'a, T> ContextBase<'a, T> {
 
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn get_schema_id(&self, id: SchemaID) -> ServerResult<Arc<ArrowSchema>> {
-        self.registry().get_schema_id(id, Some(self.item.pos))
+        self.registry().get_schema(id, Some(self.item.pos))
     }
 
     #[cfg(feature = "query-planning")]
@@ -940,7 +940,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         Arc::new(LogicalPlanBuilder::empty().build())
                     };
 
-                    let schema = self.registry().get_schema_id(*to, Some(self.item.pos))?;
+                    let schema = self.registry().get_schema(*to, Some(self.item.pos))?;
 
                     LogicalPlanBuilder::from(previous.as_ref().clone())
                         .related(
