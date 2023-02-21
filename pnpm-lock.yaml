@@ -9,8 +9,8 @@ importers:
       turbo: latest
     devDependencies:
       eslint-config-grafbase: link:packages/eslint-config-grafbase
-      prettier: 2.8.3
-      turbo: 1.7.0
+      prettier: 2.8.4
+      turbo: 1.8.1
 
   packages/eslint-config-grafbase:
     specifiers:
@@ -24,7 +24,7 @@ importers:
       eslint: 7.32.0
       eslint-config-next: 13.0.0_yfqovispp7u7jaktymfaqwl2py
       eslint-config-prettier: 8.5.0_eslint@7.32.0
-      eslint-config-turbo: 0.0.7_eslint@7.32.0
+      eslint-config-turbo: 0.0.8_eslint@7.32.0
       eslint-plugin-react: 7.31.8_eslint@7.32.0
     devDependencies:
       typescript: 4.9.4
@@ -166,7 +166,7 @@ importers:
       '@testing-library/react': ^13.4.0
       '@testing-library/user-event': ^13.5.0
       '@types/jest': ^27.5.2
-      '@types/node': ^16.18.10
+      '@types/node': ^18.0.0
       '@types/react': ^18.0.26
       '@types/react-dom': ^18.0.10
       babel-jest: ^27.4.2
@@ -221,7 +221,7 @@ importers:
       webpack-manifest-plugin: ^4.0.2
       workbox-webpack-plugin: ^6.4.1
     dependencies:
-      '@grafbase/graphiql': 2.0.2_ab6mh5iv7txmiibxe6ur5b7q7q
+      '@grafbase/graphiql': 2.0.2_pztcinfh5im4g3egdevrip4cgy
       bfj: 7.0.2
       fs-extra: 10.1.0
       graphql: 16.6.0
@@ -239,7 +239,7 @@ importers:
       '@testing-library/react': 13.4.0_biqbaboplfbrettd7655fr4n2y
       '@testing-library/user-event': 13.5.0
       '@types/jest': 27.5.2
-      '@types/node': 16.18.11
+      '@types/node': 18.11.18
       '@types/react': 18.0.26
       '@types/react-dom': 18.0.10
       babel-jest: 27.5.1_@babel+core@7.20.12
@@ -1924,15 +1924,15 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
-  /@grafbase/graphiql/2.0.2_ab6mh5iv7txmiibxe6ur5b7q7q:
+  /@grafbase/graphiql/2.0.2_pztcinfh5im4g3egdevrip4cgy:
     resolution: {integrity: sha512-UDAuGhRLppGGMuSNy1SK3gWUEioGveDCMxUEhk6qa8b0a4GvdiCHuOc9PE/unsOA2QSqDkOZzA62I2XraF0nUg==}
     peerDependencies:
       graphql: ^16.0.0
       react: ^17.0.0 || ^18.0.0
       react-dom: ^17.0.0 || ^18.0.0
     dependencies:
-      '@graphiql/react': 0.15.0_ab6mh5iv7txmiibxe6ur5b7q7q
-      '@graphiql/toolkit': 0.8.0_7fbl5omhlrpwpn5f5culy6mafe
+      '@graphiql/react': 0.15.0_pztcinfh5im4g3egdevrip4cgy
+      '@graphiql/toolkit': 0.8.0_ncq6ysnrm2depoms6sshaymepy
       '@n1ru4l/graphql-live-query': 0.10.0_graphql@16.6.0
       '@n1ru4l/graphql-live-query-patch-json-patch': 0.7.0_graphql@16.6.0
       '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
@@ -1941,37 +1941,6 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       reconnecting-eventsource: 1.6.2
-    transitivePeerDependencies:
-      - '@codemirror/language'
-      - '@types/node'
-      - '@types/react'
-      - graphql-ws
-      - react-is
-    dev: false
-
-  /@graphiql/react/0.15.0_ab6mh5iv7txmiibxe6ur5b7q7q:
-    resolution: {integrity: sha512-kJqkdf6d4Cck05Wt5yCDZXWfs7HZgcpuoWq/v8nOa698qVaNMM3qdG4CpRsZEexku0DSSJzWWuanxd5x+sRcFg==}
-    peerDependencies:
-      graphql: ^15.5.0 || ^16.0.0
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-    dependencies:
-      '@graphiql/toolkit': 0.8.0_7fbl5omhlrpwpn5f5culy6mafe
-      '@reach/combobox': 0.17.0_biqbaboplfbrettd7655fr4n2y
-      '@reach/dialog': 0.17.0_ib3m5ricvtkl2cll7qpr2f6lvq
-      '@reach/listbox': 0.17.0_biqbaboplfbrettd7655fr4n2y
-      '@reach/menu-button': 0.17.0_biqbaboplfbrettd7655fr4n2y
-      '@reach/tooltip': 0.17.0_biqbaboplfbrettd7655fr4n2y
-      '@reach/visually-hidden': 0.17.0_biqbaboplfbrettd7655fr4n2y
-      codemirror: 5.65.11
-      codemirror-graphql: 2.0.3_jgf3zxlto355dl4ecdxtsqb5ja
-      copy-to-clipboard: 3.3.3
-      graphql: 16.6.0
-      graphql-language-service: 5.1.1_graphql@16.6.0
-      markdown-it: 12.3.2
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      set-value: 4.1.0
     transitivePeerDependencies:
       - '@codemirror/language'
       - '@types/node'
@@ -2010,21 +1979,35 @@ packages:
       - graphql-ws
       - react-is
 
-  /@graphiql/toolkit/0.8.0_7fbl5omhlrpwpn5f5culy6mafe:
-    resolution: {integrity: sha512-DbMFhEKejpPzB6k8W3Mj+Rl8geXiw49USDF9Wdi06EEk1XLVh1iebDqveYY+4lViITsV4+BeGikxlqi8umfP4g==}
+  /@graphiql/react/0.15.0_pztcinfh5im4g3egdevrip4cgy:
+    resolution: {integrity: sha512-kJqkdf6d4Cck05Wt5yCDZXWfs7HZgcpuoWq/v8nOa698qVaNMM3qdG4CpRsZEexku0DSSJzWWuanxd5x+sRcFg==}
     peerDependencies:
       graphql: ^15.5.0 || ^16.0.0
-      graphql-ws: '>= 4.5.0'
-    peerDependenciesMeta:
-      graphql-ws:
-        optional: true
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
     dependencies:
-      '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
+      '@graphiql/toolkit': 0.8.0_ncq6ysnrm2depoms6sshaymepy
+      '@reach/combobox': 0.17.0_biqbaboplfbrettd7655fr4n2y
+      '@reach/dialog': 0.17.0_ib3m5ricvtkl2cll7qpr2f6lvq
+      '@reach/listbox': 0.17.0_biqbaboplfbrettd7655fr4n2y
+      '@reach/menu-button': 0.17.0_biqbaboplfbrettd7655fr4n2y
+      '@reach/tooltip': 0.17.0_biqbaboplfbrettd7655fr4n2y
+      '@reach/visually-hidden': 0.17.0_biqbaboplfbrettd7655fr4n2y
+      codemirror: 5.65.11
+      codemirror-graphql: 2.0.3_jgf3zxlto355dl4ecdxtsqb5ja
+      copy-to-clipboard: 3.3.3
       graphql: 16.6.0
-      graphql-ws: 5.11.2_graphql@16.6.0
-      meros: 1.2.1_@types+node@16.18.11
+      graphql-language-service: 5.1.1_graphql@16.6.0
+      markdown-it: 12.3.2
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      set-value: 4.1.0
     transitivePeerDependencies:
+      - '@codemirror/language'
       - '@types/node'
+      - '@types/react'
+      - graphql-ws
+      - react-is
     dev: false
 
   /@graphiql/toolkit/0.8.0_graphql@16.6.0:
@@ -2041,6 +2024,23 @@ packages:
       meros: 1.2.1
     transitivePeerDependencies:
       - '@types/node'
+
+  /@graphiql/toolkit/0.8.0_ncq6ysnrm2depoms6sshaymepy:
+    resolution: {integrity: sha512-DbMFhEKejpPzB6k8W3Mj+Rl8geXiw49USDF9Wdi06EEk1XLVh1iebDqveYY+4lViITsV4+BeGikxlqi8umfP4g==}
+    peerDependencies:
+      graphql: ^15.5.0 || ^16.0.0
+      graphql-ws: '>= 4.5.0'
+    peerDependenciesMeta:
+      graphql-ws:
+        optional: true
+    dependencies:
+      '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
+      graphql: 16.6.0
+      graphql-ws: 5.11.2_graphql@16.6.0
+      meros: 1.2.1_@types+node@18.11.18
+    transitivePeerDependencies:
+      - '@types/node'
+    dev: false
 
   /@graphql-typed-document-node/core/3.1.1_graphql@16.6.0:
     resolution: {integrity: sha512-NQ17ii0rK1b34VZonlmT2QMJFI70m0TRwbknO/ihlbatXyaktDhN/98vBiUU6kNBPljqGqyIrl2T4nY2RpFANg==}
@@ -3194,9 +3194,6 @@ packages:
   /@types/mime/3.0.1:
     resolution: {integrity: sha512-Y4XFY5VJAuw0FgAqPNd6NNoV44jbq9Bz2L7Rh/J6jLTiHBSBJa9fxqQIvkIld4GsoDOcCbvzOUAbLPsSKKg+uA==}
     dev: true
-
-  /@types/node/16.18.11:
-    resolution: {integrity: sha512-3oJbGBUWuS6ahSnEq1eN2XrCyf4YsWI8OyCvo7c64zQJNplk3mO84t53o8lfTk+2ji59g5ycfc6qQ3fdHliHuA==}
 
   /@types/node/18.11.18:
     resolution: {integrity: sha512-DHQpWGjyQKSHj3ebjFI/wRKcqQcdR+MoFBygntYOZytCqNfkd2ZC4ARDJ2DQqhjH5p85Nnd3jhUJIXrszFX/JA==}
@@ -5559,13 +5556,13 @@ packages:
       - supports-color
     dev: true
 
-  /eslint-config-turbo/0.0.7_eslint@7.32.0:
-    resolution: {integrity: sha512-WbrGlyfs94rOXrhombi1wjIAYGdV2iosgJRndOZtmDQeq5GLTzYmBUCJQZWtLBEBUPCj96RxZ2OL7Cn+xv/Azg==}
+  /eslint-config-turbo/0.0.8_eslint@7.32.0:
+    resolution: {integrity: sha512-ijj6uv0QX2kWahg3OYnTK1/q4MueXsqY2uE4MP9yeUA5CzVhL7GU+biKlv1BfMMqPltixHUcpZoW4yyNLCnMiw==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
       eslint: 7.32.0
-      eslint-plugin-turbo: 0.0.7_eslint@7.32.0
+      eslint-plugin-turbo: 0.0.8_eslint@7.32.0
     dev: false
 
   /eslint-import-resolver-node/0.3.6:
@@ -5871,8 +5868,8 @@ packages:
       - typescript
     dev: true
 
-  /eslint-plugin-turbo/0.0.7_eslint@7.32.0:
-    resolution: {integrity: sha512-iajOH8eD4jha3duztGVBD1BEmvNrQBaA/y3HFHf91vMDRYRwH7BpHSDFtxydDpk5ghlhRxG299SFxz7D6z4MBQ==}
+  /eslint-plugin-turbo/0.0.8_eslint@7.32.0:
+    resolution: {integrity: sha512-pExSCmjWw/KFKb3/0PVqxiWb30FbcwDEf6kKv3alvNBSVEzDHalyAGHc9klbLSG+nFmbkfNE3Ky/UHDryCqt8g==}
     peerDependencies:
       eslint: '>6.6.0'
     dependencies:
@@ -8105,7 +8102,7 @@ packages:
       '@types/node':
         optional: true
 
-  /meros/1.2.1_@types+node@16.18.11:
+  /meros/1.2.1_@types+node@18.11.18:
     resolution: {integrity: sha512-R2f/jxYqCAGI19KhAvaxSOxALBMkaXWH2a7rOyqQw+ZmizX5bKkEYWLzdhC+U82ZVVPVp6MCXe3EkVligh+12g==}
     engines: {node: '>=13'}
     peerDependencies:
@@ -8114,7 +8111,7 @@ packages:
       '@types/node':
         optional: true
     dependencies:
-      '@types/node': 16.18.11
+      '@types/node': 18.11.18
     dev: false
 
   /methods/1.1.2:
@@ -9437,8 +9434,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  /prettier/2.8.3:
-    resolution: {integrity: sha512-tJ/oJ4amDihPoufT5sM0Z1SKEuKay8LfVAMlbbhnnkvt6BUserZylqo2PN+p9KeljLr0OHa2rXHU1T8reeoTrw==}
+  /prettier/2.8.4:
+    resolution: {integrity: sha512-vIS4Rlc2FNh0BySk3Wkd6xmwxB0FpOndW5fisM5H8hsZSxU2VWVB5CWIkIjWvrHjIhxk2g3bfMKM87zNTrZddw==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
@@ -10894,65 +10891,65 @@ packages:
       tslib: 1.14.1
       typescript: 4.9.4
 
-  /turbo-darwin-64/1.7.0:
-    resolution: {integrity: sha512-hSGAueSf5Ko8J67mpqjpt9FsP6ePn1nMcl7IVPoJq5dHsgX3anCP/BPlexJ502bNK+87DDyhQhJ/LPSJXKrSYQ==}
+  /turbo-darwin-64/1.8.1:
+    resolution: {integrity: sha512-H7pxGF/vsYG7kbY+vB8h+3r8VXn2L6hhYQi0XWA+EjZ1e2zu7+TzEMRWFYmvJPx8TRo5cV5txtg0I22/Y7bxUA==}
     cpu: [x64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-darwin-arm64/1.7.0:
-    resolution: {integrity: sha512-BLLOW5W6VZxk5+0ZOj5AO1qjM0P5isIgjbEuyAl8lHZ4s9antUbY4CtFrspT32XxPTYoDl4UjviPMcSsbcl3WQ==}
+  /turbo-darwin-arm64/1.8.1:
+    resolution: {integrity: sha512-zMcvplVGluR6v4oJXW7S1/R9QFsHdDkXMhPq8PIdvT3HwTb69ms0MNv7aKiQ0ZFy5D/eKCTyBRUFZvjorZmBqA==}
     cpu: [arm64]
     os: [darwin]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-64/1.7.0:
-    resolution: {integrity: sha512-aw2qxmfZa+kT87SB3GNUoFimqEPzTlzlRqhPgHuAAT6Uf0JHnmebPt4K+ZPtDNl5yfVmtB05bhHPqw+5QV97Yg==}
+  /turbo-linux-64/1.8.1:
+    resolution: {integrity: sha512-eJNx8iWDn5Lt8d0221RFd6lBjViLiPCVWNFF5JtqOohgRYplvepY3y/THa1GivMxY4px6zjTiy2oPE/VscVP4w==}
     cpu: [x64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-linux-arm64/1.7.0:
-    resolution: {integrity: sha512-AJEx2jX+zO5fQtJpO3r6uhTabj4oSA5ZhB7zTs/rwu/XqoydsvStA4X8NDW4poTbOjF7DcSHizqwi04tSMzpJw==}
+  /turbo-linux-arm64/1.8.1:
+    resolution: {integrity: sha512-hFZkm8tq9kLE8tdbOzD6EbNzftdzMR4JEuuoKC6AbTzx1ZsWRvXJ/BGTeSH9/dYYm/wfuIEUiOP7HeXWiZRx7g==}
     cpu: [arm64]
     os: [linux]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-64/1.7.0:
-    resolution: {integrity: sha512-ewj7PPv2uxqv0r31hgnBa3E5qwUu7eyVRP5M1gB/TJXfSHduU79gbxpKCyxIZv2fL/N2/3U7EPOQPSZxBAoljA==}
+  /turbo-windows-64/1.8.1:
+    resolution: {integrity: sha512-o3oDg0lTYZl5KZD3Mi753On2vQT51unIiungoUmHDCeDH5JXfWPFu+6p+GAoIyRwQkZPvaEzMLuUtRgklKcBJw==}
     cpu: [x64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo-windows-arm64/1.7.0:
-    resolution: {integrity: sha512-LzjOUzveWkvTD0jP8DBMYiAnYemmydsvqxdSmsUapHHJkl6wKZIOQNSO7pxsy+9XM/1/+0f9Y9F9ZNl5lePTEA==}
+  /turbo-windows-arm64/1.8.1:
+    resolution: {integrity: sha512-NDYr2Mra21KOdl18BhMRoH2jQmlu+oqkpqRd+cGB8+c5P0B6LDVCM83cfcXQ+PNqX9S3Y1eZDRENZJx9I03sSw==}
     cpu: [arm64]
     os: [win32]
     requiresBuild: true
     dev: true
     optional: true
 
-  /turbo/1.7.0:
-    resolution: {integrity: sha512-cwympNwQNnQZ/TffBd8yT0i0O10Cf/hlxccCYgUcwhcGEb9rDjE5thDbHoHw1hlJQUF/5ua7ERJe7Zr0lNE/ww==}
+  /turbo/1.8.1:
+    resolution: {integrity: sha512-g8RltmG5zd0nYbKpkBQwnTSXTWUiup9+yileQ1TETNzpjxI3TL5k7kt2WkgUHEqR947IPUV+ckIduZHVITJmIQ==}
     hasBin: true
     requiresBuild: true
     optionalDependencies:
-      turbo-darwin-64: 1.7.0
-      turbo-darwin-arm64: 1.7.0
-      turbo-linux-64: 1.7.0
-      turbo-linux-arm64: 1.7.0
-      turbo-windows-64: 1.7.0
-      turbo-windows-arm64: 1.7.0
+      turbo-darwin-64: 1.8.1
+      turbo-darwin-arm64: 1.8.1
+      turbo-linux-64: 1.8.1
+      turbo-linux-arm64: 1.8.1
+      turbo-windows-64: 1.8.1
+      turbo-windows-arm64: 1.8.1
     dev: true
 
   /type-check/0.3.2:
