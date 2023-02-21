@@ -11,6 +11,7 @@ pub mod enum_type;
 pub mod length_directive;
 pub mod model_directive;
 pub mod one_of_directive;
+pub mod openapi_directive;
 pub mod relations;
 pub mod resolver_directive;
 pub mod scalar_hydratation;

@@ -16,6 +16,8 @@ use std::fmt::{self, Display, Formatter};
 
 use crate::dynamic_string::DynamicString;
 
+use super::openapi_directive::OpenApiDirective;
+
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
 
 /// The VisitorContext to visit every types from the Schema.
@@ -33,6 +35,7 @@ pub struct VisitorContext<'a> {
     pub registry: RefCell<Registry>,
     variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
+    pub(crate) openapi_directives: Vec<OpenApiDirective>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -103,11 +106,12 @@ impl<'a> VisitorContext<'a> {
             relations: Default::default(),
             variables,
             required_resolvers: Default::default(),
+            openapi_directives: Vec::new(),
         }
     }
 
     /// Finish the Registry
-    pub(crate) fn finish(self) -> (Registry, HashSet<String>) {
+    pub(crate) fn finish(self) -> (Registry, HashSet<String>, Vec<OpenApiDirective>) {
         let mut registry = self.registry.take();
         if !self.mutations.is_empty() {
             registry.mutation_type = Some("Mutation".to_string());
@@ -195,7 +199,7 @@ impl<'a> VisitorContext<'a> {
         }
 
         registry.remove_unused_types();
-        (registry, self.required_resolvers)
+        (registry, self.required_resolvers, self.openapi_directives)
     }
 
     #[allow(dead_code)]
