@@ -67,8 +67,9 @@ fn collect_all_fields_graph_meta<'a>(
     ty: &'a MetaType,
     ctx: &ContextSelectionSet<'a>,
     fields: &mut FieldsGraph<'a>,
+    node_id: Option<NodeID<'a>>,
 ) -> ServerResult<()> {
-    fields.add_set(ctx, ty)
+    fields.add_set(ctx, ty, node_id.clone())
 }
 
 #[async_trait::async_trait]
@@ -187,8 +188,13 @@ async fn resolve_container_inner<'a>(
     root: &'a MetaType,
     node_id: Option<NodeID<'a>>,
 ) -> ServerResult<ResponseNodeId> {
+    #[cfg(feature = "tracing_worker")]
+    {
+        logworker::info!("", "Where: {}", root.name());
+        logworker::info!("", "Id: {:?}", node_id);
+    }
     let mut fields = FieldsGraph(Vec::new());
-    fields.add_set(ctx, root)?;
+    fields.add_set(ctx, root, node_id.clone())?;
 
     let res = if parallel {
         futures_util::future::try_join_all(fields.0).await?
@@ -326,14 +332,17 @@ impl<'a> FieldsGraph<'a> {
         &mut self,
         ctx: &ContextSelectionSet<'a>,
         root: &'a MetaType,
+        current_node_id: Option<NodeID<'a>>,
     ) -> ServerResult<()> {
         let registry = ctx.registry();
 
         for selection in &ctx.item.node.items {
+            let current_node_id = current_node_id.clone();
             match &selection.node {
                 Selection::Field(field) => {
                     if field.node.name.node == "__typename" {
                         // Get the typename
+                        // The actual typename should be the concrete typename.
                         let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                         let field_name = ctx_field.item.node.name.node.clone();
                         let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
@@ -384,6 +393,14 @@ impl<'a> FieldsGraph<'a> {
                                 ))
                             } else {
                                 let type_name = root.name();
+                                #[cfg(feature = "tracing_worker")]
+                                {
+                                    logworker::info!(
+                                        "",
+                                        "Resolving {field} on {type_name}",
+                                        field = field.node.name.node.as_str()
+                                    );
+                                }
                                 let meta_field =
                                     ctx_field.schema_env.registry.types.get(type_name).and_then(
                                         |ty| ty.field_by_name(field.node.name.node.as_str()),
@@ -525,6 +542,7 @@ impl<'a> FieldsGraph<'a> {
                             root,
                             &ctx.with_selection_set(selection_set),
                             self,
+                            current_node_id,
                         )?;
                     } else if type_condition.map_or(true, |condition| root.name() == condition) {
                         // The fragment applies to an interface type.

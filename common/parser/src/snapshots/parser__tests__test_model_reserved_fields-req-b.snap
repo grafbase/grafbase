@@ -1,6 +1,7 @@
 ---
 source: common/parser/src/tests.rs
-expression: reg_string
+assertion_line: 345
+expression: req_string_b
 ---
 {
   "auth": {
@@ -77,6 +78,56 @@ expression: reg_string
   "implements": {},
   "mutation_type": "Mutation",
   "query_type": "Query",
+  "schemas": [
+    [
+      0,
+      {
+        "fields": [
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "title",
+            "nullable": true
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "id",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "updatedAt",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "createdAt",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__type",
+            "nullable": false
+          }
+        ],
+        "metadata": {}
+      }
+    ]
+  ],
   "subscription_type": null,
   "types": {
     "Boolean": {
@@ -114,40 +165,6 @@ expression: reg_string
         "specified_by_url": null
       }
     },
-    "IntOperationsInput": {
-      "InputObject": {
-        "description": "Possible operations for an Int field",
-        "input_fields": {
-          "decrement": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "decrement",
-            "ty": "Int",
-            "validators": null
-          },
-          "increment": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "increment",
-            "ty": "Int",
-            "validators": null
-          },
-          "set": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "set",
-            "ty": "Int",
-            "validators": null
-          }
-        },
-        "name": "IntOperationsInput",
-        "oneof": true,
-        "rust_typename": "IntOperationsInput"
-      }
-    },
     "Mutation": {
       "Object": {
         "cache_control": {
@@ -179,6 +196,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "productCreate",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 1,
@@ -220,6 +238,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "productDelete",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 16,
@@ -269,6 +288,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "productUpdate",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 8,
@@ -341,6 +361,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "endCursor",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -370,6 +391,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "hasNextPage",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -399,6 +421,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "hasPreviousPage",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -428,6 +451,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "startCursor",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -475,6 +499,13 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "createdAt",
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "createdAt"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -508,6 +539,13 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "id",
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -529,7 +567,7 @@ expression: reg_string
             },
             "ty": "ID!"
           },
-          "name": {
+          "title": {
             "args": {},
             "auth": null,
             "cache_control": {
@@ -540,7 +578,14 @@ expression: reg_string
             "description": null,
             "edges": [],
             "external": false,
-            "name": "name",
+            "name": "title",
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "title"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -557,43 +602,10 @@ expression: reg_string
             },
             "transformer": {
               "DynamoSelect": {
-                "property": "name"
+                "property": "title"
               }
             },
-            "ty": "String!"
-          },
-          "price": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true
-            },
-            "deprecation": "NoDeprecated",
-            "description": "The product's price in $",
-            "edges": [],
-            "external": false,
-            "name": "price",
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "Product"
-                  }
-                }
-              }
-            },
-            "transformer": {
-              "DynamoSelect": {
-                "property": "price"
-              }
-            },
-            "ty": "Int!"
+            "ty": "String"
           },
           "updatedAt": {
             "args": {},
@@ -607,6 +619,13 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "updatedAt",
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "updatedAt"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -676,6 +695,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "edges",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -696,6 +716,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "pageInfo",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -716,20 +737,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to create a Product",
         "input_fields": {
-          "name": {
+          "title": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "name",
-            "ty": "String!",
-            "validators": null
-          },
-          "price": {
-            "default_value": null,
-            "description": "The product's price in $",
-            "is_secret": false,
-            "name": "price",
-            "ty": "Int!",
+            "name": "title",
+            "ty": "String",
             "validators": null
           }
         },
@@ -760,6 +773,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "product",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 1,
@@ -772,6 +786,7 @@ expression: reg_string
                     "pk": {
                       "LocalData": "id"
                     },
+                    "schema": null,
                     "sk": {
                       "LocalData": "id"
                     }
@@ -812,6 +827,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "deletedId",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 16,
@@ -854,6 +870,13 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "cursor",
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "id"
+                ]
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -892,6 +915,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "node",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -930,20 +954,12 @@ expression: reg_string
       "InputObject": {
         "description": "Input to update a Product",
         "input_fields": {
-          "name": {
+          "title": {
             "default_value": null,
             "description": null,
             "is_secret": false,
-            "name": "name",
+            "name": "title",
             "ty": "String",
-            "validators": null
-          },
-          "price": {
-            "default_value": null,
-            "description": "The product's price in $",
-            "is_secret": false,
-            "name": "price",
-            "ty": "IntOperationsInput",
             "validators": null
           }
         },
@@ -974,6 +990,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "product",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 8,
@@ -986,6 +1003,7 @@ expression: reg_string
                     "pk": {
                       "LocalData": "id"
                     },
+                    "schema": null,
                     "sk": {
                       "LocalData": "id"
                     }
@@ -1026,6 +1044,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "__schema",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1055,6 +1074,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "product",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": 2,
@@ -1066,7 +1086,8 @@ expression: reg_string
                   "QueryBy": {
                     "by": {
                       "InputTypeName": "by"
-                    }
+                    },
+                    "schema": 0
                   }
                 }
               }
@@ -1127,6 +1148,13 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "productCollection",
+            "plan": {
+              "Related": {
+                "from": null,
+                "relation_name": null,
+                "to": 0
+              }
+            },
             "provides": null,
             "relation": {
               "birectional": false,
@@ -1207,6 +1235,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "args",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1227,6 +1256,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "description",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1247,6 +1277,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "isRepeatable",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1267,6 +1298,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "locations",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1287,6 +1319,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "name",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1429,6 +1462,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "deprecationReason",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1449,6 +1483,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "description",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1469,6 +1504,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "isDeprecated",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1489,6 +1525,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "name",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1527,6 +1564,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "args",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1547,6 +1585,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "deprecationReason",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1567,6 +1606,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "description",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1587,6 +1627,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "isDeprecated",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1607,6 +1648,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "name",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1627,6 +1669,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "type",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1665,6 +1708,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "defaultValue",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1685,6 +1729,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "description",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1705,6 +1750,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "name",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1725,6 +1771,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "type",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1763,6 +1810,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "directives",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1783,6 +1831,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "mutationType",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1803,6 +1852,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "queryType",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1823,6 +1873,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "subscriptionType",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1843,6 +1894,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "types",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1881,6 +1933,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "description",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1910,6 +1963,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "enumValues",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1939,6 +1993,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "fields",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1959,6 +2014,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "inputFields",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1979,6 +2035,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "interfaces",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -1999,6 +2056,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "isOneOf",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -2019,6 +2077,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "kind",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -2039,6 +2098,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "name",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -2059,6 +2119,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "ofType",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -2079,6 +2140,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "possibleTypes",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -2099,6 +2161,7 @@ expression: reg_string
             "edges": [],
             "external": false,
             "name": "specifiedByURL",
+            "plan": null,
             "provides": null,
             "relation": null,
             "required_operation": null,

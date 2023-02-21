@@ -138,6 +138,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
                         transformer: Some(Transformer::JSONSelect {
                             property: "id".to_string(),
                         }),
+                        plan: None,
                         required_operation: Some(Operations::DELETE),
                         auth: auth.cloned(),
                     },
@@ -200,6 +201,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
                 by: VariableResolveDefinition::InputTypeName("by".to_owned()),
             }),
         }),
+        plan: None,
         transformer: None,
         required_operation: Some(Operations::DELETE),
         auth: auth.cloned(),

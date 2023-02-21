@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+arrow-schema = { version = "31", features = ["serde"] }
 dynaql-parser = { path = "../dynaql/parser" }
 dynaql-value = { path = "../dynaql/value" }
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
@@ -27,3 +28,4 @@ pretty_assertions = "1"
 serde_json = { workspace = true }
 rstest = "0.16"
 assert_matches = "1.5"
+function_name = "0.3"

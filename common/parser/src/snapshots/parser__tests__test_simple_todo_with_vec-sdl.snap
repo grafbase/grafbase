@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 47
 expression: sdl
 ---
 type Author {
@@ -69,7 +70,7 @@ type Query {
 }
 type Todo {
 	content: String!
-	author: Author
+	authors: [Author]
 	"""
 	Unique identifier
 	"""
@@ -98,7 +99,7 @@ Input to create a Todo
 """
 input TodoCreateInput {
 	content: String!
-	author: AuthorInput
+	authors: [AuthorInput]
 }
 type TodoCreatePayload {
 	todo: Todo
@@ -118,7 +119,7 @@ Input to update a Todo
 """
 input TodoUpdateInput {
 	content: String
-	author: AuthorInput
+	authors: [AuthorInput]
 }
 type TodoUpdatePayload {
 	todo: Todo

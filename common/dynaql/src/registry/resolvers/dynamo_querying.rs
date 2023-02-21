@@ -3,6 +3,7 @@ use super::{ResolvedPaginationDirection, ResolvedPaginationInfo, ResolvedValue, 
 use crate::registry::enums::OrderByDirection;
 use crate::registry::relations::{MetaRelation, MetaRelationKind};
 use crate::registry::variables::oneof::OneOf;
+use crate::registry::SchemaID;
 use crate::registry::{resolvers::ResolverContext, variables::VariableResolveDefinition};
 use crate::{Context, Error, Value};
 use dynamodb::constant::{INVERTED_INDEX_PK, SK};
@@ -18,7 +19,6 @@ use serde_json::Map;
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::hash::Hash;
-
 use std::sync::Arc;
 
 #[non_exhaustive]
@@ -53,6 +53,7 @@ pub enum DynamoResolver {
     QueryPKSK {
         pk: VariableResolveDefinition,
         sk: VariableResolveDefinition,
+        schema: Option<SchemaID>,
     },
     QueryIds {
         ids: VariableResolveDefinition,
@@ -143,6 +144,7 @@ pub enum DynamoResolver {
     /// ```
     QueryBy {
         by: VariableResolveDefinition,
+        schema: Option<SchemaID>,
     },
 }
 
@@ -358,7 +360,7 @@ impl ResolverTrait for DynamoResolver {
                     result,
                 ))))
             }
-            DynamoResolver::QueryPKSK { pk, sk } => {
+            DynamoResolver::QueryPKSK { pk, sk, .. } => {
                 let pk = match pk
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")
@@ -518,7 +520,7 @@ impl ResolverTrait for DynamoResolver {
                     result,
                 ))))
             }
-            DynamoResolver::QueryBy { by } => {
+            DynamoResolver::QueryBy { by, .. } => {
                 let by = match by
                     .param(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?
                     .expect("can't fail")

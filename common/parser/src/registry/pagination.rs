@@ -1,6 +1,7 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::Registry;
@@ -53,6 +54,7 @@ fn register_edge_type(
                         edges: Vec::new(),
                         relation: None,
                         resolve: None,
+                        plan: None,
                         transformer: None,
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
@@ -86,6 +88,8 @@ fn register_edge_type(
                             },
                             Transformer::ConvertSkToCursor,
                         ])),
+                        // Incomplete: need base64
+                        plan: Some(SchemaPlan::projection(vec!["id".to_string()])),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                     },
@@ -135,6 +139,7 @@ fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
+                        plan: None,
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
                         }),
@@ -165,6 +170,7 @@ fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
+                        plan: None,
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
                         }),
@@ -192,6 +198,7 @@ fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
+                        plan: None,
                         transformer: Some(Transformer::JSONSelect {
                             property: "start_cursor".to_string(),
                         }),
@@ -219,6 +226,7 @@ fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
+                        plan: None,
                         transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
                         }),
@@ -278,6 +286,7 @@ fn register_connection_type(
                             edges: Vec::new(),
                             relation: None,
                             resolve: None,
+                            plan: None,
                             transformer: None,
                             required_operation: Some(Operations::LIST),
                             auth: model_auth.cloned(),
@@ -301,6 +310,7 @@ fn register_connection_type(
                             edges: connection_edges.clone(),
                             relation: None,
                             resolve: None,
+                            plan: None,
                             transformer: None,
                             required_operation: Some(Operations::LIST),
                             auth: model_auth.cloned(),
@@ -349,6 +359,8 @@ pub fn add_query_paginated_collection(
     );
     let field = MetaNames::query_collection(model_type_definition);
 
+    let plan = Some(SchemaPlan::related(None, ctx.get_schema_id(&type_name), None));
+
     ctx.queries.push(MetaField {
         name: field.clone(),
         description: Some(format!("Paginated query to fetch the whole list of `{type_name}`.")),
@@ -385,6 +397,7 @@ pub fn add_query_paginated_collection(
                 nested: None,
             }),
         }),
+        plan,
         transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
