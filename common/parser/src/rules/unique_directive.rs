@@ -229,7 +229,7 @@ mod tests {
     macro_rules! assert_validation_error {
         ($schema:literal, $expected_message:literal) => {
             assert_matches!(
-                dbg!(crate::to_registry($schema))
+                crate::to_registry($schema)
                     .err()
                     .and_then(crate::Error::validation_errors)
                     // We don't care whether there are more errors or not.

@@ -21,6 +21,7 @@ use rules::enum_type::EnumType;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
+use rules::openapi_directive::{OpenApiDirective, OpenApiVisitor};
 use rules::relations::{relations_rules, RelationEngine};
 use rules::resolver_directive::ResolverDirective;
 use rules::search_directive::SearchDirective;
@@ -35,6 +36,7 @@ pub use migration_detection::{required_migrations, RequiredMigration};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 
+mod directive_de;
 mod dynamic_string;
 mod migration_detection;
 mod registry;
@@ -77,6 +79,7 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
 pub struct ParseResult {
     pub registry: Registry,
     pub required_resolvers: HashSet<String>,
+    pub openapi_directives: Vec<OpenApiDirective>,
 }
 
 /// Transform the input schema into a Registry in the context of provided environment variables
@@ -93,7 +96,8 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with::<RelationEngine>()
         .with::<ResolverDirective>()
         .with::<UniqueDirective>()
-        .with::<SearchDirective>();
+        .with::<SearchDirective>()
+        .with::<OpenApiDirective>();
 
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
@@ -108,6 +112,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(ScalarHydratation)
         .with(LengthDirective)
         .with(UniqueObjectFields)
+        .with(OpenApiVisitor)
         .with(CheckAllDirectivesAreKnown::default());
 
     let schema = format!(
@@ -133,9 +138,10 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         return Err(ctx.errors.into());
     }
 
-    let (registry, required_resolvers) = ctx.finish();
+    let (registry, required_resolvers, openapi_directives) = ctx.finish();
     Ok(ParseResult {
         registry,
         required_resolvers,
+        openapi_directives,
     })
 }
