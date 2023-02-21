@@ -1047,6 +1047,15 @@ impl MetaType {
         }
     }
 
+    #[inline]
+    pub fn fields_mut(&mut self) -> Option<&mut IndexMap<String, MetaField>> {
+        match self {
+            MetaType::Object { fields, .. } => Some(fields),
+            MetaType::Interface { fields, .. } => Some(fields),
+            _ => None,
+        }
+    }
+
     pub fn constraints(&self) -> &[Constraint] {
         match self {
             MetaType::Object { constraints, .. } => &constraints,
@@ -1258,6 +1267,10 @@ pub mod vectorize {
 impl Registry {
     pub fn query_root(&self) -> &MetaType {
         self.types.get(&self.query_type).unwrap()
+    }
+
+    pub fn query_root_mut(&mut self) -> &mut MetaType {
+        self.types.get_mut(&self.query_type).unwrap()
     }
 
     pub fn mutation_root(&self) -> &MetaType {
