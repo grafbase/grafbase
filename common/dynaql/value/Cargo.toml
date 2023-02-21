@@ -11,8 +11,17 @@ repository = "https://github.com/async-graphql/async-graphql"
 keywords = ["futures", "async", "graphql"]
 categories = ["network-programming", "asynchronous"]
 
+[features]
+default = ["query-planning"]
+query-planning = ["dep:arrow-json", "dep:arrow-schema", "dep:arrow"]
+
+
 [dependencies]
 serde_json = { workspace = true }
 serde = { workspace = true }
 bytes = { version = "1", features = ["serde"] }
 indexmap = { git = "https://github.com/bluss/indexmap.git", features = ["serde"], rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
+# Arrow
+arrow-json = { version = "31", optional = true }
+arrow-schema = { version = "31", optional = true }
+arrow = { version = "31", optional = true }

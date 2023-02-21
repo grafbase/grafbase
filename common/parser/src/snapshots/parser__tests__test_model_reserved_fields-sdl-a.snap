@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 343
 expression: sdl_a
 ---
 """

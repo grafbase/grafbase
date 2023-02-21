@@ -1,6 +1,7 @@
 mod cache_control;
 pub mod enums;
 mod export_sdl;
+pub mod plan;
 pub mod relations;
 pub mod resolver_chain;
 pub mod resolvers;
@@ -10,11 +11,14 @@ pub mod transformers;
 pub mod utils;
 pub mod variables;
 
+use arrow_schema::Schema as ArrowSchema;
+use dynaql_parser::Pos;
 use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::hash::Hash;
+use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use ulid::Ulid;
 
@@ -34,6 +38,7 @@ use crate::{
 
 pub use cache_control::CacheControl;
 
+use self::plan::SchemaPlan;
 use self::relations::MetaRelation;
 use self::resolvers::{ResolvedValue, Resolver, ResolverContext, ResolverTrait};
 use self::scalars::{DynamicScalar, PossibleScalar};
@@ -272,7 +277,10 @@ pub struct MetaField {
     /// 1: Type,
     /// relation: (String, String)
     pub relation: Option<MetaRelation>,
+    pub plan: Option<SchemaPlan>,
+    // To be deleted when enabling the new resolution mechanism
     pub resolve: Option<Resolver>,
+    // To be deleted when enabling the new resolution mechanism
     /// Transformer to be applied after a Resolver has been called.
     pub transformer: Option<Transformer>,
     pub required_operation: Option<Operations>,
@@ -1171,6 +1179,37 @@ pub struct MetaDirective {
     pub visible: Option<MetaVisibleFn>,
 }
 
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    derivative::Derivative,
+    serde::Serialize,
+    serde::Deserialize,
+    Hash,
+    Eq,
+    Ord,
+    PartialOrd,
+    PartialEq,
+)]
+#[repr(transparent)]
+pub struct SchemaID(u16);
+
+#[derive(Default)]
+pub struct SchemaIDGenerator {
+    cur: AtomicU16,
+}
+
+impl SchemaIDGenerator {
+    /// Generate a new ID for a schema ID.
+    pub fn new_id(&self) -> SchemaID {
+        let val = self.cur.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        SchemaID(val)
+    }
+}
+
+// TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
+// for a LogicalQuery
 #[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Registry {
     pub types: BTreeMap<String, MetaType>,
@@ -1183,6 +1222,37 @@ pub struct Registry {
     pub enable_federation: bool,
     pub federation_subscription: bool,
     pub auth: AuthConfig,
+    /// Store data about the modelization here
+    /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
+    #[serde(with = "vectorize")]
+    pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
+}
+
+pub mod vectorize {
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
+    use std::iter::FromIterator;
+
+    pub fn serialize<'a, T, K, V, S>(target: T, ser: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+        T: IntoIterator<Item = (&'a K, &'a V)>,
+        K: Serialize + 'a,
+        V: Serialize + 'a,
+    {
+        let container: Vec<_> = target.into_iter().collect();
+        serde::Serialize::serialize(&container, ser)
+    }
+
+    pub fn deserialize<'de, T, K, V, D>(des: D) -> Result<T, D::Error>
+    where
+        D: Deserializer<'de>,
+        T: FromIterator<(K, V)>,
+        K: Deserialize<'de>,
+        V: Deserialize<'de>,
+    {
+        let container: Vec<_> = serde::Deserialize::deserialize(des)?;
+        Ok(container.into_iter().collect::<T>())
+    }
 }
 
 impl Registry {
@@ -1195,6 +1265,23 @@ impl Registry {
         self.types
             .get(self.mutation_type.as_deref().unwrap())
             .unwrap()
+    }
+
+    pub fn find_ty_with_id<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
+        let ty = node_id.ty();
+        self.types
+            .iter()
+            .find(|(key, _value)| key.to_lowercase() == ty)
+            .map(|(_, val)| val)
+    }
+
+    pub fn get_schema(&self, id: SchemaID, pos: Option<Pos>) -> ServerResult<Arc<ArrowSchema>> {
+        self.schemas
+            .get(&id)
+            .ok_or_else(|| {
+                ServerError::new("An error occured while interpreting your data schema.", pos)
+            })
+            .cloned()
     }
 
     /// Function ran when resolving a field.
@@ -1478,6 +1565,7 @@ impl Registry {
                         relation: None,
                         compute_complexity: None,
                         resolve: None,
+                        plan: None,
                         transformer: None,
                         required_operation: None,
                         auth: None,
@@ -1516,6 +1604,7 @@ impl Registry {
                         visible: None,
                         compute_complexity: None,
                         resolve: None,
+                        plan: None,
                         transformer: None,
                         required_operation: None,
                         auth: None,
@@ -1552,6 +1641,7 @@ impl Registry {
                             edges: Vec::new(),
                             relation: None,
                             resolve: None,
+                            plan: None,
                             transformer: None,
                             required_operation: None,
                             auth: None,

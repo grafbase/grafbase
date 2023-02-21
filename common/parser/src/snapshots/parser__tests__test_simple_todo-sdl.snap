@@ -1,7 +1,23 @@
 ---
 source: common/parser/src/tests.rs
-expression: sdl_b
+assertion_line: 47
+expression: sdl
 ---
+type Author {
+	name: String!
+	lastname: String!
+	pseudo: String
+	truc: Truc!
+}
+"""
+Author input type.
+"""
+input AuthorInput {
+	name: String!
+	lastname: String!
+	pseudo: String
+	truc: TrucInput!
+}
 """
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
@@ -20,17 +36,17 @@ For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-0
 scalar DateTime
 type Mutation {
 	"""
-	Create a Product
+	Create a Todo
 	"""
-	productCreate(input: ProductCreateInput!): ProductCreatePayload
+	todoCreate(input: TodoCreateInput!): TodoCreatePayload
 	"""
-	Update a Product
+	Update a Todo
 	"""
-	productUpdate(by: ProductByInput!, input: ProductUpdateInput!): ProductUpdatePayload
+	todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
 	"""
-	Delete a Product by ID or unique field
+	Delete a Todo by ID or unique field
 	"""
-	productDelete(by: ProductByInput!): ProductDeletePayload
+	todoDelete(by: TodoByInput!): TodoDeletePayload
 }
 enum OrderByDirection {
 	ASC
@@ -42,8 +58,19 @@ type PageInfo {
 	startCursor: String
 	endCursor: String
 }
-type Product {
-	title: String
+type Query {
+	"""
+	Query a single Todo by an ID or a unique field
+	"""
+	todo(by: TodoByInput!): Todo
+	"""
+	Paginated query to fetch the whole list of `Todo`.
+	"""
+	todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
+}
+type Todo {
+	content: String!
+	author: Author
 	"""
 	Unique identifier
 	"""
@@ -57,53 +84,54 @@ type Product {
 	"""
 	createdAt: DateTime!
 }
-input ProductByInput {
+input TodoByInput {
 	id: ID
 }
-type ProductConnection {
+type TodoConnection {
 	"""
 	Information to aid in pagination
 	"""
 	pageInfo: PageInfo!
-	edges: [ProductEdge]
+	edges: [TodoEdge]
 }
 """
-Input to create a Product
+Input to create a Todo
 """
-input ProductCreateInput {
-	title: String
+input TodoCreateInput {
+	content: String!
+	author: AuthorInput
 }
-type ProductCreatePayload {
-	product: Product
+type TodoCreatePayload {
+	todo: Todo
 }
-type ProductDeletePayload {
+type TodoDeletePayload {
 	deletedId: ID!
 }
-type ProductEdge {
-	node: Product!
+type TodoEdge {
+	node: Todo!
 	cursor: String!
 }
-input ProductOrderByInput {
+input TodoOrderByInput {
 	createdAt: OrderByDirection
 }
 """
-Input to update a Product
+Input to update a Todo
 """
-input ProductUpdateInput {
-	title: String
+input TodoUpdateInput {
+	content: String
+	author: AuthorInput
 }
-type ProductUpdatePayload {
-	product: Product
+type TodoUpdatePayload {
+	todo: Todo
 }
-type Query {
-	"""
-	Query a single Product by an ID or a unique field
-	"""
-	product(by: ProductByInput!): Product
-	"""
-	Paginated query to fetch the whole list of `Product`.
-	"""
-	productCollection(after: String, before: String, first: Int, last: Int, orderBy: ProductOrderByInput): ProductConnection
+type Truc {
+	name: String!
+}
+"""
+Truc input type.
+"""
+input TrucInput {
+	name: String!
 }
 schema {
 	query: Query

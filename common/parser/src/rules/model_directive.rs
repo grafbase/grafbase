@@ -17,6 +17,7 @@
 //! TODO: Should have either: an ID or a PK
 
 use case::CaseExt;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
 
@@ -86,6 +87,7 @@ impl ModelDirective {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn insert_metadata_field(
     fields: &mut IndexMap<String, MetaField>,
     type_name: &str,
@@ -93,6 +95,7 @@ fn insert_metadata_field(
     description: Option<String>,
     ty: &str,
     dynamo_property_name: &str,
+    plan_field: &str,
     auth: Option<&AuthConfig>,
 ) -> Option<MetaField> {
     fields.insert(
@@ -115,6 +118,7 @@ fn insert_metadata_field(
                     key: type_name.to_string(),
                 }),
             }),
+            plan: Some(SchemaPlan::projection(vec![plan_field.to_string()])),
             edges: Vec::new(),
             transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
@@ -185,6 +189,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                 .iter()
                 .filter_map(|field| UniqueDirective::parse(ctx, object, &type_name, field))
                 .collect::<Vec<_>>();
+
+            // Add typename schema
+            let schema_id = ctx.get_schema_id(&type_name);
 
             //
             // CREATE ACTUAL TYPE
@@ -290,6 +297,15 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         )
                                     });
 
+                            let plan = match &relation {
+                                None => Some(SchemaPlan::projection(vec![name.clone()])),
+                                Some(meta_relation) => Some(SchemaPlan::related(
+                                    Some(ctx.get_schema_id(&meta_relation.relation.0.clone().unwrap())),
+                                    ctx.get_schema_id(&meta_relation.relation.1.clone()),
+                                    Some(meta_relation.name.clone()),
+                                )),
+                            };
+
                             fields.insert(
                                 name.clone(),
                                 MetaField {
@@ -306,6 +322,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     compute_complexity: None,
                                     resolve: Some(resolver),
                                     edges,
+                                    plan,
                                     relation,
                                     transformer,
                                     required_operation: None,
@@ -320,6 +337,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("Unique identifier".to_owned()),
                             "ID!",
                             dynamodb::constant::SK,
+                            "id",
                             field_auth
                                 .get(RESERVED_FIELD_ID)
                                 .map(|e| e.as_ref())
@@ -332,6 +350,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("when the model was updated".to_owned()),
                             "DateTime!",
                             dynamodb::constant::UPDATED_AT,
+                            "updatedAt",
                             field_auth
                                 .get(RESERVED_FIELD_UPDATED_AT)
                                 .map(|e| e.as_ref())
@@ -344,6 +363,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                             Some("when the model was created".to_owned()),
                             "DateTime!",
                             dynamodb::constant::CREATED_AT,
+                            "createdAt",
                             field_auth
                                 .get(RESERVED_FIELD_CREATED_AT)
                                 .map(|e| e.as_ref())
@@ -447,8 +467,10 @@ impl<'a> Visitor<'a> for ModelDirective {
                     // Single entity
                     r#type: ResolverType::DynamoResolver(DynamoResolver::QueryBy {
                         by: VariableResolveDefinition::InputTypeName("by".to_owned()),
+                        schema: Some(schema_id),
                     }),
                 }),
+                plan: None,
                 transformer: None,
                 required_operation: Some(Operations::GET),
                 auth: model_auth.clone(),

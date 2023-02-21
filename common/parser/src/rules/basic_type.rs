@@ -53,6 +53,7 @@ impl<'a> Visitor<'a> for BasicType {
                                 transformer: Some(Transformer::JSONSelect {
                                     property: name
                                 }),
+                                plan: None,
                                 required_operation: None,
                                 auth: None,
                             });

@@ -1,8 +1,10 @@
+use dynaql::registry::{MetaType, Registry};
+use dynaql::Schema;
+use function_name::named;
+use serde_json as _;
 use std::collections::{HashMap, HashSet};
 
-use dynaql::Schema;
-use serde_json as _;
-
+use crate::models::from_meta_type;
 use crate::rules::visitor::RuleError;
 
 macro_rules! assert_validation_error {
@@ -19,7 +21,35 @@ macro_rules! assert_validation_error {
     };
 }
 
+fn assert_registry_schema_generation(registry: &Registry) {
+    for (name, ty) in &registry.types {
+        if name.ends_with("Input")
+            || name.starts_with("__")
+            || ["PageInfo", "Query", "Mutation"].contains(&name.as_str())
+        {
+            continue;
+        }
+        if let ty @ MetaType::Object { .. } = ty {
+            let schema_opt = from_meta_type(registry, ty);
+            // To print the name if there is an issue.
+            dbg!(name);
+            assert!(schema_opt.is_ok());
+        }
+    }
+}
+
+fn assert_snapshot(name: &str, registry: Registry) {
+    let _reg_string = serde_json::to_value(&registry).unwrap();
+    let sdl = Schema::new(registry).sdl();
+
+    insta::with_settings!({sort_maps => true}, {
+        // insta::assert_json_snapshot!(format!("{name}-registry"), reg_string);
+        insta::assert_snapshot!(format!("{name}-sdl"), sdl);
+    });
+}
+
 #[test]
+#[named]
 fn test_simple_product() {
     let result = super::to_registry(
         r#"
@@ -35,14 +65,12 @@ fn test_simple_product() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo() {
     let result = super::to_registry(
         r#"
@@ -66,14 +94,12 @@ fn test_simple_todo() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
-
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_registry_schema_generation(&result);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_from_template() {
     let result = super::to_registry(
         r#"
@@ -93,12 +119,13 @@ fn test_simple_todo_from_template() {
     )
     .unwrap();
 
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_with_vec() {
     let result = super::to_registry(
         r#"
@@ -122,14 +149,13 @@ fn test_simple_todo_with_vec() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_todo_with_enum() {
     let result = super::to_registry(
         r#"
@@ -166,14 +192,13 @@ fn test_simple_todo_with_enum() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_simple_post_with_relation() {
     let result = super::to_registry(
         r#"
@@ -206,14 +231,13 @@ fn test_simple_post_with_relation() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_multiple_relations() {
     let result = super::to_registry(
         r#"
@@ -242,14 +266,13 @@ fn test_multiple_relations() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
+#[named]
 fn test_many_to_many() {
     let result = super::to_registry(
         r#"
@@ -266,11 +289,9 @@ fn test_many_to_many() {
     )
     .unwrap();
 
-    let reg_string = serde_json::to_value(&result).unwrap();
-    let sdl = Schema::new(result).sdl();
+    assert_registry_schema_generation(&result);
 
-    insta::assert_json_snapshot!(reg_string);
-    insta::assert_snapshot!(sdl);
+    assert_snapshot(function_name!(), result);
 }
 
 #[test]
@@ -288,6 +309,7 @@ fn should_ensure_lowercase() {
 }
 
 #[test]
+#[named]
 fn test_model_reserved_fields() {
     let with_reserved_fields = super::to_registry(
         r#"
@@ -317,11 +339,11 @@ fn test_model_reserved_fields() {
     let sdl_b = Schema::new(without_reserved_fields).sdl();
 
     // Comparing snaphots for better test errors first
-    insta::assert_json_snapshot!(req_string_a);
-    insta::assert_snapshot!(sdl_a);
+    insta::assert_json_snapshot!(format!("{}-req-a", function_name!()), req_string_a);
+    insta::assert_snapshot!(format!("{}-sdl-a", function_name!()), sdl_a);
 
-    insta::assert_json_snapshot!(req_string_b);
-    insta::assert_snapshot!(sdl_b);
+    insta::assert_json_snapshot!(format!("{}-req-b", function_name!()), req_string_b);
+    insta::assert_snapshot!(format!("{}-sdl-b", function_name!()), sdl_b);
 
     // Actual test, ensuring they're equivalent.
     assert_eq!(req_string_a, req_string_b);

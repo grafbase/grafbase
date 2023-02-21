@@ -15,6 +15,7 @@ mod variables;
 use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Display, Formatter, Write};
 use std::hash::Hash;
+
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -29,6 +30,15 @@ pub use serde_json::Number;
 pub use serializer::{to_value, SerializerError};
 
 pub use variables::Variables;
+
+#[cfg(feature = "query-planning")]
+use arrow::record_batch::RecordBatch;
+#[cfg(feature = "query-planning")]
+use arrow_json::reader::infer_json_schema_from_iterator;
+#[cfg(feature = "query-planning")]
+use arrow_schema::ArrowError;
+#[cfg(feature = "query-planning")]
+use arrow_schema::Schema;
 
 /// A GraphQL name.
 ///
@@ -144,6 +154,39 @@ pub enum ConstValue {
     List(Vec<ConstValue>),
     /// An object. This is a map of keys to values.
     Object(IndexMap<Name, ConstValue>),
+}
+
+#[cfg(feature = "query-planning")]
+impl ConstValue {
+    /// Wrap the [`ConstValue`] into an Object, when dealing with an ArrowSchema we need to have an
+    /// Object.
+    #[must_use]
+    pub fn prepare_container(self, root: &str) -> Self {
+        let map = IndexMap::from_iter(vec![(Name::new(root), self)]);
+        Self::Object(map)
+    }
+
+    /// Give the associated schema
+    pub fn to_schema(&self) -> Result<Schema, ArrowError> {
+        let value = self
+            .clone()
+            .into_json()
+            .map_err(|err| ArrowError::JsonError(err.to_string()));
+        infer_json_schema_from_iterator(std::iter::once(value))
+    }
+
+    /// Give the RecordBatch for the Value if it's an object
+    pub fn arrow(self) -> Result<Option<RecordBatch>, ArrowError> {
+        use arrow_json::reader::{Decoder, DecoderOptions};
+        let schema = Arc::new(self.to_schema()?);
+        let mut value = std::iter::once(
+            self.into_json()
+                .map_err(|err| ArrowError::JsonError(err.to_string())),
+        );
+
+        let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(1));
+        decoder.next_batch(&mut value)
+    }
 }
 
 impl PartialEq for ConstValue {
@@ -270,7 +313,13 @@ impl ConstValue {
     pub fn into_value(self) -> Value {
         match self {
             Self::Null => Value::Null,
-            Self::Number(num) => Value::Number(num),
+            Self::Number(num) => {
+                // We force it to be a f64 in the internal representation to generate the
+                // appropriate ArrowSchema
+                Value::Number(
+                    Number::from_f64(num.as_f64().expect("can't fail")).expect("can't fail"),
+                )
+            }
             Self::String(s) => Value::String(s),
             Self::Boolean(b) => Value::Boolean(b),
             Self::Binary(bytes) => Value::Binary(bytes),
