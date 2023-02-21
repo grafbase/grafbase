@@ -4,6 +4,11 @@
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "repository": "https://github.com/grafbase/grafbase",
+  "homepage": "https://github.com/grafbase/grafbase/blob/main/packages/grafbase-nextjs-plugin/README.md",
+  "publishConfig": {
+    "access": "public"
+  },
   "license": "MIT",
   "files": [
     "dist/**"
