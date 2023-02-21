@@ -11,6 +11,7 @@ openapiv3 = "1"
 petgraph = "0.6"
 serde_json = "1"
 thiserror = "1"
+url = "2.3"
 
 [dev-dependencies]
 insta = "1"
