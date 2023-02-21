@@ -9,10 +9,8 @@ mod parsing;
 
 pub fn parse_spec(data: &str, format: Format) -> Result<String, Vec<Error>> {
     let spec = match format {
-        Format::Json => serde_json::from_str::<OpenAPI>(data)
-            .map_err(Error::ParsingError)
-            .unwrap(),
-        Format::Yaml => todo!(),
+        Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
+        Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?);
@@ -61,7 +59,9 @@ fn extract_extension(url: &str) -> Option<String> {
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Could not parse the open api spec: {0}")]
-    ParsingError(serde_json::Error),
+    JsonParsingError(serde_json::Error),
+    #[error("Could not parse the open api spec: {0}")]
+    YamlParsingError(serde_yaml::Error),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
     #[error("The path component {0} was a reference, which we don't currently support.")]
