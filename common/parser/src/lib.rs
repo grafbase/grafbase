@@ -21,7 +21,7 @@ use rules::enum_type::EnumType;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
-use rules::openapi_directive::{OpenApiDirective, OpenApiVisitor};
+use rules::openapi_directive::OpenApiVisitor;
 use rules::relations::{relations_rules, RelationEngine};
 use rules::resolver_directive::ResolverDirective;
 use rules::search_directive::SearchDirective;
@@ -33,6 +33,7 @@ mod models;
 
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
+pub use rules::openapi_directive::OpenApiDirective;
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 
