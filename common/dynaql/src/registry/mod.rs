@@ -1224,7 +1224,7 @@ pub struct Registry {
     pub auth: AuthConfig,
     /// Store data about the modelization here
     /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
-    #[serde(with = "vectorize")]
+    #[serde(with = "vectorize", default)]
     pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
 }
 
