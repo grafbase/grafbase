@@ -1,3 +1,4 @@
+use dynaql::registry::Registry;
 use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
 use parsing::components::Ref;
@@ -7,7 +8,7 @@ mod graph;
 mod output;
 mod parsing;
 
-pub fn parse_spec(data: &str, format: Format) -> Result<String, Vec<Error>> {
+pub fn parse_spec(data: &str, format: Format, registry: &mut Registry) -> Result<(), Vec<Error>> {
     let spec = match format {
         Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
         Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
@@ -15,7 +16,9 @@ pub fn parse_spec(data: &str, format: Format) -> Result<String, Vec<Error>> {
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?);
 
-    Ok(output::output(&graph).expect("Formatting shouldn't really fail"))
+    output::output(&graph, registry);
+
+    Ok(())
 }
 
 pub enum Format {
@@ -96,12 +99,46 @@ fn is_ok(status: &openapiv3::StatusCode) -> bool {
 
 #[cfg(test)]
 mod tests {
+    use dynaql::{indexmap::IndexMap, CacheControl};
+
     use super::*;
 
     #[test]
     fn test_stripe_output() {
         let spec = std::fs::read_to_string("test_data/stripe.openapi.json").unwrap();
 
-        insta::assert_snapshot!(parse_spec(&spec, Format::Json).unwrap());
+        let mut registry = default_registry();
+
+        parse_spec(&spec, Format::Json, &mut registry).unwrap();
+
+        insta::assert_snapshot!(registry.export_sdl(false));
+    }
+
+    fn default_registry() -> Registry {
+        let mut registry = Registry {
+            query_type: "Query".to_string(),
+            ..Registry::default()
+        };
+        registry.types.insert(
+            "Query".to_string(),
+            dynaql::registry::MetaType::Object {
+                name: "Query".to_string(),
+                description: None,
+                fields: IndexMap::new(),
+                cache_control: CacheControl {
+                    public: true,
+                    max_age: 0,
+                },
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "Query".to_string(),
+                constraints: vec![],
+            },
+        );
+
+        registry
     }
 }

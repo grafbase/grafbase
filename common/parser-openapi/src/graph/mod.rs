@@ -5,6 +5,8 @@ use crate::parsing::operations::OperationDetails;
 
 mod query_types;
 
+pub use query_types::{OutputType, QueryOperation};
+
 /// A graph representation of an OpenApi schema.
 ///
 /// Can be queried to determine what resources are linked to what models etc.
