@@ -11,7 +11,7 @@ It's easy as 123!
 Install `grafbase` as a `devDependency`:
 
 ```bash
-npm install -D grafbase
+npm install -D grafbase @grafbase/nextjs-plugin
 ```
 
 ### Step 2
@@ -20,9 +20,9 @@ Add the following to `.env`:
 
 ```bash
 GRAFBASE_API_URL=http://localhost:4000/graphql
+# OR
+# NEXT_PUBLIC_GRAFBASE_API_URL=http://localhost:4000/graphql
 ```
-
-You can also prefix with `NEXT_PUBLIC_` if your Next.js app is to make requests from the client-side.
 
 ### Step 3
 

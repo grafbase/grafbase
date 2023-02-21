@@ -22,17 +22,12 @@ const createGrafbasePlugin =
         (_) => _.endsWith('bin/next') || _.endsWith('bin\\next')
       )
 
-    const hasLocalApiUrl =
-      (process.env['GRAFBASE_API_URL'] &&
-        (process.env['GRAFBASE_API_URL'].startsWith('http://localhost') ||
-          process.env['GRAFBASE_API_URL'].startsWith('http://127.0.0.1'))) ||
-      (process.env['NEXT_PUBLIC_GRAFBASE_API_URL'] &&
-        (process.env['NEXT_PUBLIC_GRAFBASE_API_URL'].startsWith(
-          'http://localhost'
-        ) ||
-          process.env['NEXT_PUBLIC_GRAFBASE_API_URL'].startsWith(
-            'http://127.0.0.1'
-          )))
+    const GRAFBASE_API_URL =
+      process.env['GRAFBASE_API_URL'] ||
+      process.env['NEXT_PUBLIC_GRAFBASE_API_URL']
+    const hasLocalApiUrl = /^http:\/\/(localhost|127\.0\.0\.1)/.test(
+      GRAFBASE_API_URL!
+    )
 
     return {
       ...nextConfig,
