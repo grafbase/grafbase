@@ -48,6 +48,8 @@ use crate::registry::variables::VariableResolveDefinition;
 use query_planning::logical_plan::LogicalPlan;
 #[cfg(feature = "query-planning")]
 use query_planning::logical_query::SelectionPlan;
+#[cfg(feature = "query-planning")]
+use query_planning::reexport::internment::ArcIntern;
 
 /// Data related functions of the context.
 pub trait DataContext<'a> {
@@ -835,8 +837,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn to_logic_plan(
         &self,
         _parent_type: &MetaType,
-        previous_plan: Option<Arc<LogicalPlan>>,
-    ) -> ServerResult<LogicalPlan> {
+        previous_plan: Option<ArcIntern<LogicalPlan>>,
+    ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
 
         let resolver = self
@@ -858,9 +860,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     /// Convert a [`VariableResolveDefinition`] into an equivalent LogicPlan
     pub fn from_variable_resolution(
         &self,
-        previous_plan: Option<Arc<LogicalPlan>>,
+        previous_plan: Option<ArcIntern<LogicalPlan>>,
         variable: &VariableResolveDefinition,
-    ) -> ServerResult<LogicalPlan> {
+    ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::error::QueryPlanningError;
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
         use query_planning::reexport::arrow_schema::{DataType, Field};
@@ -906,10 +908,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     #[cfg(feature = "query-planning")]
     pub fn convert_resolver_to_logic_plan(
         &self,
-        previous_plan: Option<Arc<LogicalPlan>>,
+        previous_plan: Option<ArcIntern<LogicalPlan>>,
         resolver: Option<&Resolver>,
         plan: Option<&SchemaPlan>,
-    ) -> ServerResult<LogicalPlan> {
+    ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
         use query_planning::logical_plan::Datasource;
 
@@ -937,12 +939,12 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
                     })?
                     } else {
-                        Arc::new(LogicalPlanBuilder::empty().build())
+                        LogicalPlanBuilder::empty().build()
                     };
 
                     let schema = self.registry().get_schema(*to, Some(self.item.pos))?;
 
-                    LogicalPlanBuilder::from(previous.as_ref().clone())
+                    LogicalPlanBuilder::from(previous)
                         .related(
                             relation_name
                                 .as_ref()
@@ -976,6 +978,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 }
                 ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
                     let by = self.from_variable_resolution(previous_plan, by)?;
+                    // TODO: We should resolve the Variable definition here to know if it's an ID
+                    // or something else and fill the LogicPlan by this data.
+                    // Either GetById or GetByUnique
+                    //
                     let schema = self
                         .get_schema_id(schema.ok_or_else(|| {
                             ServerError::new("No schema id", Some(self.item.pos))
@@ -1011,9 +1017,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .build());
         }
 
-        Ok(previous_plan
-            .map(|x| x.as_ref().clone())
-            .unwrap_or_else(|| LogicalPlanBuilder::empty().build()))
+        Ok(previous_plan.unwrap_or_else(|| LogicalPlanBuilder::empty().build()))
     }
 
     #[doc(hidden)]

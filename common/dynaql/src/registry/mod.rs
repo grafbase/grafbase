@@ -53,6 +53,8 @@ use query_planning::logical_query::{FieldPlan, SelectionPlan, SelectionPlanSet};
 
 #[cfg(feature = "query-planning")]
 use crate::logical_plan_utils::resolve_logical_plan_container;
+#[cfg(feature = "query-planning")]
+use query_planning::reexport::internment::ArcIntern;
 
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
@@ -1349,7 +1351,7 @@ impl Registry {
         &self,
         ctx: &'a Context<'a>,
         root: &'a MetaType,
-        previous_logical_plan: Option<Arc<LogicalPlan>>,
+        previous_logical_plan: Option<ArcIntern<LogicalPlan>>,
     ) -> ServerResult<Positioned<SelectionPlan>> {
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
         use query_planning::logical_query::dynaql::introspection_to_selection_plan_set;
@@ -1410,7 +1412,7 @@ impl Registry {
             resolve_logical_plan_container(
                 &ctx_selection_set,
                 associated_meta_ty,
-                Some(Arc::new(actual_logic_plan.clone())),
+                Some(actual_logic_plan.clone()),
             )
             .await?
         } else {

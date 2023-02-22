@@ -5,8 +5,8 @@ use query_planning::logical_query::{
     ConditionSelectionSet, FieldPlan, SelectionPlan, SelectionPlanSet, TypeCondition,
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
+use query_planning::reexport::internment::ArcIntern;
 use query_planning::scalar::ScalarValue;
-use std::sync::Arc;
 
 use crate::parser::types::Selection;
 
@@ -17,7 +17,7 @@ use crate::{ContextSelectionSet, ServerError, ServerResult};
 pub async fn resolve_logical_plan_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    parent_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<ArcIntern<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan).await
 }
@@ -26,7 +26,7 @@ pub async fn resolve_logical_plan_container<'a>(
 pub async fn resolve_logical_plan_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
-    parent_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<ArcIntern<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan).await
 }
@@ -35,7 +35,7 @@ async fn resolve_logical_plan_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     _parallel: bool,
     root: &'a MetaType,
-    parent_logical_plan: Option<Arc<LogicalPlan>>,
+    parent_logical_plan: Option<ArcIntern<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     Ok(ctx
         .item
@@ -51,7 +51,7 @@ impl FieldsGraph {
     pub async fn add_set(
         ctx: &ContextSelectionSet<'_>,
         root: &MetaType,
-        parent_logical_plan: Option<Arc<LogicalPlan>>,
+        parent_logical_plan: Option<ArcIntern<LogicalPlan>>,
     ) -> ServerResult<SelectionPlanSet> {
         #[cfg(feature = "tracing_worker")]
         {
