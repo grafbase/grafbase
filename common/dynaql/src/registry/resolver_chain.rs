@@ -216,6 +216,10 @@ impl<'a> ResolverTrait for ResolverChainNode<'a> {
             // and with the extra data, where each resolver can add extra data.
             final_result.data_resolved =
                 Arc::new(transformers.transform(final_result.data_resolved.as_ref().clone())?);
+
+            if *final_result.data_resolved == serde_json::Value::Null {
+                final_result = final_result.with_early_return();
+            }
         }
 
         {
