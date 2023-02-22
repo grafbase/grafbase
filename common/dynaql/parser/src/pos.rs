@@ -47,6 +47,17 @@ pub struct Positioned<T: ?Sized> {
     pub node: T,
 }
 
+impl<T, E> Positioned<Result<T, E>> {
+    /// Transposes a `Positioned` of a [`Result`] into a [`Result`] of a `Positioned`.
+    #[inline]
+    pub fn transpose(self) -> Result<Positioned<T>, E> {
+        match self.node {
+            Ok(x) => Ok(Positioned::new(x, self.pos)),
+            Err(e) => Err(e),
+        }
+    }
+}
+
 impl<T> Positioned<T> {
     /// Create a new positioned node from the node and its position.
     #[must_use]
@@ -62,6 +73,11 @@ impl<T> Positioned<T> {
     #[allow(clippy::missing_const_for_fn)]
     pub fn into_inner(self) -> T {
         self.node
+    }
+
+    /// Converts from `&Positioned<T>` to `Positioned<&T>`.
+    pub const fn as_ref(&self) -> Positioned<&T> {
+        Positioned::new(&self.node, self.pos)
     }
 
     /// Create a new positioned node with the same position as this one.
