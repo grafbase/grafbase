@@ -663,7 +663,7 @@ impl Schema {
     /// Theorically there shouldn't have any errors as we validate the GraphQL
     /// query before executing it.
     #[cfg(feature = "query-planning")]
-    fn logical_query_once(&self, env: QueryEnv) -> Response {
+    async fn logical_query_once(&self, env: QueryEnv) -> Response {
         use query_planning::logical_query::QueryOperations;
 
         let ctx = ContextBase {
@@ -679,31 +679,27 @@ impl Schema {
 
         let query = ctx.registry().query_root();
 
-        let res = match &env.operation.node.ty {
-            OperationType::Query => resolve_logical_plan_container(&ctx, query, None).map(|x| {
-                QueryOperationDefinition {
-                    ty: OperationType::Query,
-                    selection_set: x,
-                }
-            }),
-            OperationType::Mutation => {
-                resolve_logical_plan_container(&ctx, ctx.registry().mutation_root(), None).map(
-                    |x| QueryOperationDefinition {
-                        ty: OperationType::Mutation,
+        let res =
+            match &env.operation.node.ty {
+                OperationType::Query => resolve_logical_plan_container(&ctx, query, None)
+                    .await
+                    .map(|x| QueryOperationDefinition {
+                        ty: OperationType::Query,
                         selection_set: x,
-                    },
-                )
-            }
-            OperationType::Subscription => Err(ServerError::new(
-                "Subscriptions are not supported on this transport.",
-                None,
-            )),
-        };
-
-        #[cfg(feature = "tracing_worker")]
-        {
-            logworker::info!("", "{res:?}");
-        }
+                    }),
+                OperationType::Mutation => {
+                    resolve_logical_plan_container(&ctx, ctx.registry().mutation_root(), None)
+                        .await
+                        .map(|x| QueryOperationDefinition {
+                            ty: OperationType::Mutation,
+                            selection_set: x,
+                        })
+                }
+                OperationType::Subscription => Err(ServerError::new(
+                    "Subscriptions are not supported on this transport.",
+                    None,
+                )),
+            };
 
         let mut resp = match res {
             Ok(value) => {
@@ -738,7 +734,7 @@ impl Schema {
                         #[cfg(feature = "query-planning")]
                         {
                             if is_logical_plan {
-                                return self.logical_query_once(env.clone());
+                                return self.logical_query_once(env.clone()).await;
                             }
                         }
 

@@ -1,5 +1,4 @@
 use dynaql_parser::Positioned;
-
 use query_planning::logical_plan::builder::LogicalPlanBuilder;
 use query_planning::logical_plan::LogicalPlan;
 use query_planning::logical_query::{
@@ -7,33 +6,32 @@ use query_planning::logical_query::{
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
 use query_planning::scalar::ScalarValue;
-
 use std::sync::Arc;
 
 use crate::parser::types::Selection;
-use crate::registry::utils::type_to_base_type;
+
 use crate::registry::MetaType;
 use crate::{ContextSelectionSet, ServerError, ServerResult};
 
 /// Resolve an container by executing each of the fields concurrently.
-pub fn resolve_logical_plan_container<'a>(
+pub async fn resolve_logical_plan_container<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan)
+    resolve_logical_plan_container_inner(ctx, true, root, parent_logical_plan).await
 }
 
 /// Resolve an container by executing each of the fields serially.
-pub fn resolve_logical_plan_container_serial<'a>(
+pub async fn resolve_logical_plan_container_serial<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a MetaType,
     parent_logical_plan: Option<Arc<LogicalPlan>>,
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
-    resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan)
+    resolve_logical_plan_container_inner(ctx, false, root, parent_logical_plan).await
 }
 
-fn resolve_logical_plan_container_inner<'a>(
+async fn resolve_logical_plan_container_inner<'a>(
     ctx: &ContextSelectionSet<'a>,
     _parallel: bool,
     root: &'a MetaType,
@@ -41,7 +39,7 @@ fn resolve_logical_plan_container_inner<'a>(
 ) -> ServerResult<Positioned<SelectionPlanSet>> {
     Ok(ctx
         .item
-        .position_node(FieldsGraph::add_set(ctx, root, parent_logical_plan)?))
+        .position_node(FieldsGraph::add_set(ctx, root, parent_logical_plan).await?))
 }
 
 type BoxFieldGraphFuture = ServerResult<SelectionPlan>;
@@ -49,7 +47,8 @@ pub struct FieldsGraph(Vec<BoxFieldGraphFuture>);
 
 impl FieldsGraph {
     /// Add another set of fields to this set of fields using the given container.
-    pub fn add_set(
+    #[async_recursion::async_recursion]
+    pub async fn add_set(
         ctx: &ContextSelectionSet<'_>,
         root: &MetaType,
         parent_logical_plan: Option<Arc<LogicalPlan>>,
@@ -131,49 +130,11 @@ impl FieldsGraph {
                     }
 
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
-                    let actual_logic_plan =
-                        ctx_field.to_logic_plan(root, parent_logical_plan.clone())?;
-                    let selection_set = if !field.node.selection_set.node.items.is_empty() {
-                        let associated_meta_field = root
-                            .field_by_name(field.node.name.node.as_str())
-                            .ok_or_else(|| {
-                                ServerError::new(
-                                    format!("Can't find the associated field: {}", field.node.name),
-                                    Some(field.node.name.pos),
-                                )
-                            })?;
-                        let associated_meta_ty = ctx
-                            .registry()
-                            .types
-                            .get(&type_to_base_type(&associated_meta_field.ty).unwrap_or_default())
-                            .ok_or_else(|| {
-                                ServerError::new(
-                                    format!(
-                                        "Can't find the associated type: {}",
-                                        &associated_meta_field.ty
-                                    ),
-                                    Some(field.node.name.pos),
-                                )
-                            })?;
-                        let ctx_selection_set =
-                            ctx_field.with_selection_set(&field.node.selection_set);
+                    let plan = ctx_field
+                        .registry()
+                        .resolve_logic_field(&ctx_field, root, parent_logical_plan.clone())
+                        .await?;
 
-                        resolve_logical_plan_container(
-                            &ctx_selection_set,
-                            associated_meta_ty,
-                            Some(Arc::new(actual_logic_plan.clone())),
-                        )?
-                    } else {
-                        ctx_field.item.position_node(SelectionPlanSet::default())
-                    };
-
-                    let plan = ctx_field.item.position_node(SelectionPlan::Field(
-                        ctx_field.item.position_node(FieldPlan {
-                            name: field.node.response_key().clone().map(|x| x.to_string()),
-                            logic_plan: actual_logic_plan,
-                            selection_set,
-                        }),
-                    ));
                     result.push(plan);
                 }
                 selection => {
@@ -247,7 +208,8 @@ impl FieldsGraph {
                                                 &ctx_selection_set,
                                                 associated_meta_ty,
                                                 parent_logical_plan.clone(),
-                                            )?
+                                            )
+                                            .await?
                                         }
                                     },
                                 }),
@@ -256,7 +218,8 @@ impl FieldsGraph {
                         None => {
                             let ctx = ctx.with_selection_set(selection_set);
                             let plan =
-                                FieldsGraph::add_set(&ctx, root, parent_logical_plan.clone())?;
+                                FieldsGraph::add_set(&ctx, root, parent_logical_plan.clone())
+                                    .await?;
                             ctx.item.position_node(plan).node.items
                         }
                     };

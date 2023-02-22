@@ -175,6 +175,24 @@ impl ConstValue {
         infer_json_schema_from_iterator(std::iter::once(value))
     }
 
+    /// Give the associated schema for a list
+    pub fn to_schema_list(&self) -> Result<Schema, ArrowError> {
+        match self {
+            ConstValue::List(list) => {
+                let iter = list
+                    .iter()
+                    .map(|x| {
+                        x.clone()
+                            .into_json()
+                            .map_err(|err| ArrowError::JsonError(err.to_string()))
+                    })
+                    .take(10);
+                infer_json_schema_from_iterator(iter)
+            }
+            _ => Err(ArrowError::JsonError("Should be a list".to_string())),
+        }
+    }
+
     /// Give the RecordBatch for the Value if it's an object
     pub fn arrow(self) -> Result<Option<RecordBatch>, ArrowError> {
         use arrow_json::reader::{Decoder, DecoderOptions};
@@ -185,6 +203,22 @@ impl ConstValue {
         );
 
         let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(1));
+        decoder.next_batch(&mut value)
+    }
+
+    /// Give the RecordBatch for the Value if it's an object
+    pub fn arrow_list(self, len: usize) -> Result<Option<RecordBatch>, ArrowError> {
+        use arrow_json::reader::{Decoder, DecoderOptions};
+        let schema = Arc::new(self.to_schema_list()?);
+        let mut value = match self {
+            ConstValue::List(list) => list.into_iter().map(|x| {
+                x.into_json()
+                    .map_err(|err| ArrowError::JsonError(err.to_string()))
+            }),
+            _ => return Err(ArrowError::JsonError("Should be a list".to_string())),
+        };
+
+        let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(len));
         decoder.next_batch(&mut value)
     }
 }
