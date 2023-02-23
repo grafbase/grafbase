@@ -12,6 +12,7 @@ use rules::auth_directive::AuthDirective;
 use rules::basic_type::BasicType;
 use rules::check_field_lowercase::CheckFieldCamelCase;
 use rules::check_known_directives::CheckAllDirectivesAreKnown;
+use rules::check_type_collision::CheckTypeCollision;
 use rules::check_type_validity::CheckTypeValidity;
 use rules::check_types_underscore::CheckBeginsWithDoubleUnderscore;
 use rules::default_directive::DefaultDirective;
@@ -128,7 +129,15 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
     let mut ctx = VisitorContext::new_with_variables(&schema, variables);
     // Building all relations first are it requires to parse the whole schema (for ManyToMany). This allows later
     // rules to rely on RelationEngine::get to have correct information on relations.
-    visit(&mut relations_rules(), &mut ctx, &schema);
+    visit(
+        &mut relations_rules().with(CheckTypeCollision::default()),
+        &mut ctx,
+        &schema,
+    );
+    if !ctx.errors.is_empty() {
+        return Err(ctx.errors.into());
+    }
+
     visit(&mut rules, &mut ctx, &schema);
 
     // FIXME: Get rid of the ugly double pass.
