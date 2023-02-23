@@ -1,0 +1,18 @@
+mutation TodoListCreate($title: String!, $todoId: ID!) {
+  todoListCreate(input: { title: $title, todos: [{ link: $todoId }] }) {
+    todoList {
+      id
+      createdAt
+      updatedAt
+      todos(last: 3) {
+        edges {
+          node {
+            id
+            createdAt
+            updatedAt
+          }
+        }
+      }
+    }
+  }
+}
