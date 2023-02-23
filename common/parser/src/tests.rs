@@ -351,6 +351,26 @@ fn test_model_reserved_fields() {
 }
 
 #[test]
+fn should_not_allow_same_enum_and_type() {
+    let result = super::to_registry(
+        r#"
+        type Product @model {
+            id: ID!
+            content: String!
+            rel: Product
+        }
+
+        enum Product {
+          PRODUCT_A
+          PRODUCT_B
+        }
+        "#,
+    );
+
+    assert!(result.is_err(), "Should error here");
+}
+
+#[test]
 fn should_ensure_reserved_fields_have_correct_type_if_present() {
     assert_validation_error!(
         r#"
