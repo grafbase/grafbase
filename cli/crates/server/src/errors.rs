@@ -58,6 +58,22 @@ pub enum ServerError {
     #[error(transparent)]
     SchemaParserError(IoError),
 
+    /// returned if reading the parser result fails
+    #[error(transparent)]
+    SchemaParserResultReadError(IoError),
+
+    /// returned if the schema parser result is invalid JSON
+    #[error("schema parser result is malformed JSON:\n{0}")]
+    SchemaParserResultJsonError(serde_json::Error),
+
+    /// returned if writing the schema registry fails
+    #[error(transparent)]
+    SchemaRegistryWriteError(IoError),
+
+    /// returned if `tempfile::NamedTempFile::new()` fails.
+    #[error("could not create a temporary file for the parser result: {0}")]
+    CreateTemporaryFile(IoError),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
@@ -109,7 +125,10 @@ impl ToExitCode for ServerError {
             | Self::ParseSchema(_)
             | Self::NodeInPath
             | Self::OutdatedNode(_, _)
-            | Self::FileWatcherInit(_) => exitcode::DATAERR,
+            | Self::FileWatcherInit(_)
+            | Self::SchemaParserResultJsonError(_)
+            | Self::SchemaParserResultReadError(_)
+            | Self::SchemaRegistryWriteError(_) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
@@ -120,7 +139,7 @@ impl ToExitCode for ServerError {
             | Self::SpawnedTaskPanic(_)
             | Self::SchemaParserError(_)
             | Self::CheckNodeVersion => exitcode::SOFTWARE,
-            Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
+            Self::ProjectPath | Self::CachePath | Self::CreateTemporaryFile(_) => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }
     }
