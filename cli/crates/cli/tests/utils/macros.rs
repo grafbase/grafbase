@@ -16,10 +16,12 @@ macro_rules! dot_get_opt {
 macro_rules! dot_get {
     ($item: expr, $dotpath: expr, $ty: ty) => {{
         let path = $dotpath;
-        $crate::dot_get_opt!($item, path, $ty).expect(&format!("path `{path}` cannot be resolved"))
+        let item = &$item;
+        $crate::dot_get_opt!(item, path, $ty).expect(&format!("path `{path}` cannot be resolved in {item:?}"))
     }};
     ($item: expr, $dotpath: expr) => {{
         let path = $dotpath;
-        $crate::dot_get_opt!($item, path).expect(&format!("path `{path}` cannot be resolved"))
+        let item = &$item;
+        $crate::dot_get_opt!(item, path).expect(&format!("path `{path}` cannot be resolved in {item:?}"))
     }};
 }
