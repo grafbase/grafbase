@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-backend"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 description = "The local backend for grafbase developer tools"
 license = "Apache-2.0"
@@ -28,5 +28,5 @@ tokio-stream = { version = "0.1", features = ["tokio-util"] }
 tokio-util = { version = "0.7", features = ["futures-io", "compat"] }
 url = "2"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.16.0" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.16.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.17.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.17.0" }
