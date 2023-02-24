@@ -1,0 +1,57 @@
+mod utils;
+
+use serde_json::{json, Value};
+use utils::consts::{COERCION_CREATE_DUMMY, COERCION_SCHEMA};
+use utils::environment::Environment;
+
+#[test]
+fn coercion() {
+    let mut env = Environment::init(4020);
+    env.grafbase_init();
+    env.write_schema(COERCION_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client();
+    client.poll_endpoint(30, 300);
+
+    let coerce = |variables: Value| {
+        client.gql::<Value>(json!({"query": COERCION_CREATE_DUMMY, "variables": variables}).to_string())
+    };
+
+    // Test from the spec
+    // https://spec.graphql.org/October2021/#sec-List.Input-Coercion
+    for (value, expected) in [
+        (json!([1, 2, 3]), Some(vec![1, 2, 3])),
+        (json!([1]), Some(vec![1])),
+        (json!(1), Some(vec![1])),
+        (Value::Null, None),
+    ] {
+        let result = dot_get_opt!(
+            coerce(json!({ "list": value })),
+            "data.dummyCreate.dummy.list",
+            Vec<i32>
+        );
+        assert_eq!(result, expected, "Input was {value:?}");
+    }
+
+    for (value, expected) in [
+        (json!([[1], [2, 3]]), Some(vec![vec![1], vec![2, 3]])),
+        (json!([1]), Some(vec![vec![1]])),
+        (json!(1), Some(vec![vec![1]])),
+        (Value::Null, None),
+    ] {
+        let result = dot_get_opt!(
+            coerce(json!({ "matrix": value })),
+            "data.dummyCreate.dummy.matrix",
+            Vec<Vec<i32>>
+        );
+        assert_eq!(result, expected, "Input was {value:?}");
+    }
+
+    let response = coerce(serde_json::from_str(r#"{"list": [1, "b", true]}"#).unwrap());
+    let message = dot_get!(response, "errors.0.message", String);
+    assert!(message.contains("Cannot parse"), "{}", message);
+
+    let response = coerce(json!({"matrix": [1, 2, 3]}));
+    let message = dot_get!(response, "errors.0.message", String);
+    assert!(message.contains("Expected a List"), "{}", message);
+}

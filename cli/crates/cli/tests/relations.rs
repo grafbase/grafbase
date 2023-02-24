@@ -8,8 +8,6 @@ use utils::consts::{
 };
 use utils::environment::Environment;
 
-// FIXME: remove this when we fix duplicate items
-#[ignore]
 #[test]
 fn relations() {
     let mut env = Environment::init(4002);

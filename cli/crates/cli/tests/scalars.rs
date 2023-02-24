@@ -88,7 +88,7 @@ fn scalars() {
                 "b": 22
             })
         }),
-        "phone": "+33 6 12 12 12 12",
+        "phone": "+33612121212",
         "date": "2007-12-03",
         "datetime": "2016-01-01T13:10:20.000Z"
     });
@@ -100,6 +100,7 @@ fn scalars() {
             client.create_req(variables.clone()),
         ),
     ] {
+        dbg!(&response);
         assert_eq!(
             dot_get!(response, &format!("{prefix}.ip"), String),
             dot_get!(variables, "ip", String)
@@ -154,7 +155,7 @@ fn scalars() {
         TestCase {
             ty: "phone",
             input: json!("+33612121212"),
-            expected: Ok(json!("+33 6 12 12 12 12")),
+            expected: Ok(json!("+33612121212")),
         },
         TestCase {
             ty: "url",
