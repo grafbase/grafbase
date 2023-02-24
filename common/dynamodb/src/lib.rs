@@ -77,6 +77,7 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
+    pub user_id: Option<String>,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -190,6 +191,7 @@ impl DynamoDBContext {
     /// * `dynamodb_table_name` - The DynamoDB TableName.
     /// * `latitude` - Request latitude, to locate the closest region
     /// * `longitude` - Request longitude, to locate the closest region
+    /// * `user_id` - Optional ID identifying the current user
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         // TODO: This should go away with tracing.
@@ -202,6 +204,7 @@ impl DynamoDBContext {
         longitude: f32,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
+        user_id: Option<String>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
         let closest_region: rusoto_core::Region =
@@ -227,6 +230,7 @@ impl DynamoDBContext {
             dynamodb_table_name,
             closest_region,
             resolver_binding_map,
+            user_id,
         }
     }
 
