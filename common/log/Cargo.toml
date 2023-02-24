@@ -16,7 +16,7 @@ serde = { workspace = true }
 strum = { version = "0.24", features = ["derive"] }
 thiserror = { workspace = true }
 wasm-timer = "0.2"
-worker = { version = "0.0.12", optional = true }
+worker = { version = "0.0.13", optional = true }
 
 [features]
 with-worker = ["sentry-cf-worker", "worker"]
