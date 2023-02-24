@@ -164,7 +164,7 @@ importers:
       '@svgr/webpack': ^6.0.0
       '@testing-library/jest-dom': ^5.16.5
       '@testing-library/react': ^14.0.0
-      '@testing-library/user-event': ^13.5.0
+      '@testing-library/user-event': ^14.0.0
       '@types/jest': ^27.5.2
       '@types/node': ^18.0.0
       '@types/react': ^18.0.26
@@ -237,7 +237,7 @@ importers:
       '@svgr/webpack': 6.5.1
       '@testing-library/jest-dom': 5.16.5
       '@testing-library/react': 14.0.0_biqbaboplfbrettd7655fr4n2y
-      '@testing-library/user-event': 13.5.0
+      '@testing-library/user-event': 14.4.3
       '@types/jest': 27.5.2
       '@types/node': 18.11.18
       '@types/react': 18.0.26
@@ -3065,13 +3065,11 @@ packages:
       react-dom: 18.2.0_react@18.2.0
     dev: true
 
-  /@testing-library/user-event/13.5.0:
-    resolution: {integrity: sha512-5Kwtbo3Y/NowpkbRuSepbyMFkZmHgD+vPzYB/RJ4oxt5Gj/avFFBYjhw27cqSVPVw/3a67NK1PbiIr9k4Gwmdg==}
-    engines: {node: '>=10', npm: '>=6'}
+  /@testing-library/user-event/14.4.3:
+    resolution: {integrity: sha512-kCUc5MEwaEMakkO5x7aoD+DLi02ehmEM2QCGWvNqAS1dV/fAvORWEjnjsEIvml59M7Y5kCkWN6fCCyPOe8OL6Q==}
+    engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
-    dependencies:
-      '@babel/runtime': 7.20.6
     dev: true
 
   /@tootallnate/once/1.1.2:
