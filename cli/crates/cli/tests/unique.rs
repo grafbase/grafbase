@@ -168,7 +168,7 @@ pub const ACCOUNT_QUERY_PAGINATED: &str = include_str!("graphql/unique/multiple-
 
 #[test]
 fn unique_with_multiple_fields() {
-    let mut env = Environment::init(4017);
+    let mut env = Environment::init(4021);
 
     env.grafbase_init();
 
