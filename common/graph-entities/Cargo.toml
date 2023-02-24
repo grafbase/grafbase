@@ -17,7 +17,7 @@ serde_json = { workspace = true }
 serde = { workspace = true }
 sha2 = "0.10"
 thiserror = { workspace = true }
-ulid = "1"
+ulid = { workspace = true }
 
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
