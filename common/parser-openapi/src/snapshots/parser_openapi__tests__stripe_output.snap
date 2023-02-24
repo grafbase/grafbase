@@ -2,24 +2,9 @@
 source: common/parser-openapi/src/lib.rs
 expression: registry.export_sdl(false)
 ---
-type APIErrors {
-	type: String!
-	source: SourceOrCardOrBankAccountUnion!
-	setupIntent: SetupIntent!
-	requestLogUrl: String!
-	paymentMethodType: String!
-	paymentMethod: PaymentMethod!
-	paymentIntent: PaymentIntent!
-	param: String!
-	message: String!
-	docUrl: String!
-	declineCode: String!
-	code: String!
-	charge: String!
-}
 type Account {
 	type: String!
-	tosAcceptance: AccountTOSAcceptance!
+	tosAcceptance: AccountTosAcceptance!
 	settings: AccountSettingsUnion
 	requirements: AccountRequirements!
 	payoutsEnabled: Boolean!
@@ -60,6 +45,7 @@ type AccountBusinessProfile {
 	name: String
 	mcc: String
 }
+union AccountBusinessProfileUnion = AccountBusinessProfile
 type AccountCapabilities {
 	usBankAccountAchPayments: String!
 	treasury: String!
@@ -95,16 +81,6 @@ type AccountCapabilities {
 	afterpayClearpayPayments: String!
 	affirmPayments: String!
 	acssDebitPayments: String!
-}
-type AccountCapability {
-	status: String!
-	requirements: AccountCapabilityRequirements!
-	requestedAt: Int
-	requested: Boolean!
-	object: String!
-	id: String!
-	futureRequirements: AccountCapabilityFutureRequirements!
-	account: AccountUnion!
 }
 type AccountCapabilityFutureRequirements {
 	pendingVerification: [String!]!
@@ -206,14 +182,15 @@ type AccountSettings {
 	branding: AccountBrandingSettings!
 	bacsDebitPayments: AccountBacsDebitPaymentsSettings!
 }
-type AccountTOSAcceptance {
-	userAgent: String
-	serviceAgreement: String!
+union AccountSettingsUnion = AccountSettings
+type AccountTermsOfService {
+	userAgent: String!
 	ip: String
 	date: Int
 }
-type AccountTermsOfService {
-	userAgent: String!
+type AccountTosAcceptance {
+	userAgent: String
+	serviceAgreement: String!
 	ip: String
 	date: Int
 }
@@ -224,6 +201,7 @@ type AccountUnificationAccountController {
 	type: String!
 	isController: Boolean!
 }
+union AccountUnion = Account
 type Address {
 	state: String
 	postalCode: String
@@ -232,6 +210,23 @@ type Address {
 	country: String
 	city: String
 }
+union AddressUnion = Address
+type ApiErrors {
+	type: String!
+	source: SourceOrCardOrBankAccountUnion!
+	setupIntent: SetupIntent!
+	requestLogUrl: String!
+	paymentMethodType: String!
+	paymentMethod: PaymentMethod!
+	paymentIntent: PaymentIntent!
+	param: String!
+	message: String!
+	docUrl: String!
+	declineCode: String!
+	code: String!
+	charge: String!
+}
+union ApiErrorsUnion = ApiErrors
 type ApplePayDomain {
 	object: String!
 	livemode: Boolean!
@@ -243,6 +238,41 @@ type Application {
 	object: String!
 	name: String
 	id: String!
+}
+type ApplicationFee {
+	refunds: ApplicationFeeRefunds!
+	refunded: Boolean!
+	originatingTransaction: ChargeUnion
+	object: String!
+	livemode: Boolean!
+	id: String!
+	currency: String!
+	created: Int!
+	charge: ChargeUnion!
+	balanceTransaction: BalanceTransactionUnion
+	application: ApplicationUnion!
+	amountRefunded: Int!
+	amount: Int!
+	account: AccountUnion!
+}
+type ApplicationFeeRefunds {
+	url: String!
+	object: String!
+	hasMore: Boolean!
+	data: [FeeRefund!]!
+}
+union ApplicationFeeUnion = ApplicationFee
+union ApplicationUnion = Application
+type AppsSecret {
+	scope: SecretServiceResourceScope!
+	payload: String
+	object: String!
+	name: String!
+	livemode: Boolean!
+	id: String!
+	expiresAt: Int
+	deleted: Boolean!
+	created: Int!
 }
 type AutomaticTax {
 	status: String
@@ -273,7 +303,7 @@ type BalanceDetail {
 type BalanceTransaction {
 	type: String!
 	status: String!
-	source: TransferReversalOrTransferOrTopupOrTaxDeductedAtSourceOrReserveTransactionOrRefundOrPlatformTaxOrPayoutOrIssuingTransactionOrIssuingDisputeOrIssuingAuthorizationOrFeeRefundOrDisputeOrConnectCollectionTransferOrChargeOrPlatformFeeUnion
+	source: TransferReversalOrTransferOrTopupOrTaxDeductedAtSourceOrReserveTransactionOrRefundOrPlatformTaxFeeOrPayoutOrIssuingTransactionOrIssuingDisputeOrIssuingAuthorizationOrFeeRefundOrDisputeOrConnectCollectionTransferOrChargeOrApplicationFeeUnion
 	reportingCategory: String!
 	object: String!
 	net: Int!
@@ -287,6 +317,7 @@ type BalanceTransaction {
 	availableOn: Int!
 	amount: Int!
 }
+union BalanceTransactionUnion = BalanceTransaction
 type BankAccount {
 	status: String!
 	routingNumber: String
@@ -313,22 +344,23 @@ type BankConnectionsResourceAccountholder {
 	customer: CustomerUnion!
 	account: AccountUnion!
 }
+union BankConnectionsResourceAccountholderUnion = BankConnectionsResourceAccountholder
 type BankConnectionsResourceBalance {
 	type: String!
 	current: BankConnectionsResourceBalanceCurrent!
-	credit: BankConnectionsResourceBalanceAPIResourceCreditBalance!
-	cash: BankConnectionsResourceBalanceAPIResourceCashBalance!
+	credit: BankConnectionsResourceBalanceApiResourceCreditBalance!
+	cash: BankConnectionsResourceBalanceApiResourceCashBalance!
 	asOf: Int!
 }
-type BankConnectionsResourceBalanceAPIResourceCashBalance {
-	available: BankConnectionsResourceBalanceAPIResourceCashBalanceAvailable
+type BankConnectionsResourceBalanceApiResourceCashBalance {
+	available: BankConnectionsResourceBalanceApiResourceCashBalanceAvailable
 }
-type BankConnectionsResourceBalanceAPIResourceCashBalanceAvailable {
+type BankConnectionsResourceBalanceApiResourceCashBalanceAvailable {
 }
-type BankConnectionsResourceBalanceAPIResourceCreditBalance {
-	used: BankConnectionsResourceBalanceAPIResourceCreditBalanceUsed
+type BankConnectionsResourceBalanceApiResourceCreditBalance {
+	used: BankConnectionsResourceBalanceApiResourceCreditBalanceUsed
 }
-type BankConnectionsResourceBalanceAPIResourceCreditBalanceUsed {
+type BankConnectionsResourceBalanceApiResourceCreditBalanceUsed {
 }
 type BankConnectionsResourceBalanceCurrent {
 }
@@ -336,76 +368,48 @@ type BankConnectionsResourceBalanceRefresh {
 	status: String!
 	lastAttemptedAt: Int!
 }
-type BankConnectionsResourceLinkAccountSession {
-	returnUrl: String!
-	permissions: [String!]!
-	object: String!
-	livemode: Boolean!
-	id: String!
-	filters: BankConnectionsResourceLinkAccountSessionFilters!
-	clientSecret: String!
-	accounts: BankConnectionsResourceLinkAccountSessionAccounts!
-	accountHolder: BankConnectionsResourceAccountholderUnion
-}
-type BankConnectionsResourceLinkAccountSessionAccounts {
-	url: String!
-	object: String!
-	hasMore: Boolean!
-	data: [BankConnectionsResourceLinkedAccount!]!
-}
+union BankConnectionsResourceBalanceRefreshUnion = BankConnectionsResourceBalanceRefresh
+union BankConnectionsResourceBalanceUnion = BankConnectionsResourceBalance
 type BankConnectionsResourceLinkAccountSessionFilters {
 	countries: [String!]
-}
-type BankConnectionsResourceLinkedAccount {
-	supportedPaymentMethodTypes: [String!]!
-	subcategory: String!
-	status: String!
-	permissions: [String!]
-	ownershipRefresh: BankConnectionsResourceOwnershipRefreshUnion
-	ownership: BankConnectionsResourceOwnershipUnion
-	object: String!
-	livemode: Boolean!
-	last4: String
-	institutionName: String!
-	id: String!
-	displayName: String
-	created: Int!
-	category: String!
-	balanceRefresh: BankConnectionsResourceBalanceRefreshUnion
-	balance: BankConnectionsResourceBalanceUnion
-	accountHolder: BankConnectionsResourceAccountholderUnion
-}
-type BankConnectionsResourceOwner {
-	refreshedAt: Int
-	rawAddress: String
-	phone: String
-	ownership: String!
-	object: String!
-	name: String!
-	id: String!
-	email: String
-}
-type BankConnectionsResourceOwnership {
-	owners: BankConnectionsResourceOwnershipOwners!
-	object: String!
-	id: String!
-	created: Int!
-}
-type BankConnectionsResourceOwnershipOwners {
-	url: String!
-	object: String!
-	hasMore: Boolean!
-	data: [BankConnectionsResourceOwner!]!
 }
 type BankConnectionsResourceOwnershipRefresh {
 	status: String!
 	lastAttemptedAt: Int!
 }
+union BankConnectionsResourceOwnershipRefreshUnion = BankConnectionsResourceOwnershipRefresh
 type BillingDetails {
 	phone: String
 	name: String
 	email: String
 	address: AddressUnion
+}
+type BillingPortalConfiguration {
+	updated: Int!
+	object: String!
+	metadata: BillingPortalConfigurationMetadata
+	loginPage: PortalLoginPage!
+	livemode: Boolean!
+	isDefault: Boolean!
+	id: String!
+	features: PortalFeatures!
+	defaultReturnUrl: String
+	created: Int!
+	businessProfile: PortalBusinessProfile!
+	application: DeletedApplicationOrApplicationUnion
+	active: Boolean!
+}
+type BillingPortalConfigurationMetadata {
+}
+type Capability {
+	status: String!
+	requirements: AccountCapabilityRequirements!
+	requestedAt: Int
+	requested: Boolean!
+	object: String!
+	id: String!
+	futureRequirements: AccountCapabilityFutureRequirements!
+	account: AccountUnion!
 }
 type Card {
 	tokenizationMethod: String
@@ -441,6 +445,7 @@ type CardGeneratedFromPaymentMethodDetails {
 	type: String!
 	cardPresent: PaymentMethodDetailsCardPresent!
 }
+union CardGeneratedFromPaymentMethodDetailsUnion = CardGeneratedFromPaymentMethodDetails
 type CardIssuingAccountTermsOfService {
 	userAgent: String!
 	ip: String
@@ -450,6 +455,7 @@ type CardMandatePaymentMethodDetails {
 }
 type CardMetadata {
 }
+union CardOrBankAccountUnion = Card | BankAccount
 type CashBalance {
 	settings: CustomerBalanceCustomerBalanceSettings!
 	object: String!
@@ -459,6 +465,7 @@ type CashBalance {
 }
 type CashBalanceAvailable {
 }
+union CashBalanceUnion = CashBalance
 type Charge {
 	transferGroup: String
 	transferData: ChargeTransferDataUnion
@@ -468,7 +475,7 @@ type Charge {
 	statementDescriptor: String
 	sourceTransfer: TransferUnion
 	shipping: ShippingUnion
-	review: RadarReviewUnion
+	review: ReviewUnion
 	refunds: ChargeRefunds
 	refunded: Boolean!
 	receiptUrl: String
@@ -500,7 +507,7 @@ type Charge {
 	billingDetails: BillingDetails!
 	balanceTransaction: BalanceTransactionUnion
 	applicationFeeAmount: Int
-	applicationFee: PlatformFeeUnion
+	applicationFee: ApplicationFeeUnion
 	application: ApplicationUnion
 	amountRefunded: Int!
 	amountCaptured: Int!
@@ -510,17 +517,19 @@ type ChargeFraudDetails {
 	userReport: String!
 	stripeReport: String!
 }
+union ChargeFraudDetailsUnion = ChargeFraudDetails
 type ChargeMetadata {
 }
 type ChargeOutcome {
 	type: String!
 	sellerMessage: String
-	rule: RadarRuleUnion!
+	rule: RuleUnion!
 	riskScore: Int!
 	riskLevel: String!
 	reason: String
 	networkStatus: String
 }
+union ChargeOutcomeUnion = ChargeOutcome
 type ChargeRefunds {
 	url: String!
 	object: String!
@@ -531,6 +540,8 @@ type ChargeTransferData {
 	destination: AccountUnion!
 	amount: Int
 }
+union ChargeTransferDataUnion = ChargeTransferData
+union ChargeUnion = Charge
 type CheckoutAcssDebitMandateOptions {
 	transactionType: String
 	paymentSchedule: String
@@ -623,6 +634,63 @@ type CheckoutPixPaymentMethodOptions {
 type CheckoutSepaDebitPaymentMethodOptions {
 	setupFutureUsage: String!
 }
+type CheckoutSession {
+	url: String
+	totalDetails: PaymentPagesCheckoutSessionTotalDetailsUnion
+	taxIdCollection: PaymentPagesCheckoutSessionTaxIdCollection!
+	successUrl: String!
+	subscription: SubscriptionUnion
+	submitType: String
+	status: String
+	shippingOptions: [PaymentPagesCheckoutSessionShippingOption!]!
+	shippingDetails: ShippingUnion
+	shippingCost: PaymentPagesCheckoutSessionShippingCostUnion
+	shippingAddressCollection: PaymentPagesCheckoutSessionShippingAddressCollectionUnion
+	setupIntent: SetupIntentUnion
+	recoveredFrom: String
+	phoneNumberCollection: PaymentPagesCheckoutSessionPhoneNumberCollection!
+	paymentStatus: String!
+	paymentMethodTypes: [String!]!
+	paymentMethodOptions: CheckoutSessionPaymentMethodOptionsUnion
+	paymentMethodCollection: String
+	paymentLink: PaymentLinkUnion
+	paymentIntent: PaymentIntentUnion
+	object: String!
+	mode: String!
+	metadata: CheckoutSessionMetadata
+	locale: String
+	livemode: Boolean!
+	lineItems: CheckoutSessionLineItems!
+	invoiceCreation: PaymentPagesCheckoutSessionInvoiceCreationUnion
+	invoice: InvoiceUnion
+	id: String!
+	expiresAt: Int!
+	customerEmail: String
+	customerDetails: PaymentPagesCheckoutSessionCustomerDetailsUnion
+	customerCreation: String
+	customer: DeletedCustomerOrCustomerUnion
+	customText: PaymentPagesCheckoutSessionCustomText!
+	currency: String
+	created: Int!
+	consentCollection: PaymentPagesCheckoutSessionConsentCollectionUnion
+	consent: PaymentPagesCheckoutSessionConsentUnion
+	clientReferenceId: String
+	cancelUrl: String
+	billingAddressCollection: String
+	automaticTax: PaymentPagesCheckoutSessionAutomaticTax!
+	amountTotal: Int
+	amountSubtotal: Int
+	allowPromotionCodes: Boolean
+	afterExpiration: PaymentPagesCheckoutSessionAfterExpirationUnion
+}
+type CheckoutSessionLineItems {
+	url: String!
+	object: String!
+	hasMore: Boolean!
+	data: [Item!]!
+}
+type CheckoutSessionMetadata {
+}
 type CheckoutSessionPaymentMethodOptions {
 	usBankAccount: CheckoutUsBankAccountPaymentMethodOptions!
 	sofort: CheckoutSofortPaymentMethodOptions!
@@ -649,6 +717,7 @@ type CheckoutSessionPaymentMethodOptions {
 	affirm: CheckoutAffirmPaymentMethodOptions!
 	acssDebit: CheckoutAcssDebitPaymentMethodOptions!
 }
+union CheckoutSessionPaymentMethodOptionsUnion = CheckoutSessionPaymentMethodOptions
 type CheckoutSofortPaymentMethodOptions {
 	setupFutureUsage: String!
 }
@@ -773,13 +842,15 @@ type CreditNoteTaxAmount {
 	inclusive: Boolean!
 	amount: Int!
 }
+union CreditNoteUnion = CreditNote
 type CustomUnitAmount {
 	preset: Int
 	minimum: Int
 	maximum: Int
 }
+union CustomUnitAmountUnion = CustomUnitAmount
 type Customer {
-	testClock: TestClockUnion
+	testClock: TestHelpersTestClockUnion
 	taxIds: CustomerTaxIds!
 	taxExempt: String
 	tax: CustomerTax!
@@ -857,6 +928,7 @@ type CustomerBalanceTransaction {
 }
 type CustomerBalanceTransactionMetadata {
 }
+union CustomerBalanceTransactionUnion = CustomerBalanceTransaction
 type CustomerCashBalanceTransaction {
 	unappliedFromPayment: CustomerBalanceResourceCashBalanceTransactionResourceUnappliedFromPaymentTransaction!
 	type: String!
@@ -904,12 +976,15 @@ type CustomerTaxLocation {
 	source: String!
 	country: String!
 }
+union CustomerTaxLocationUnion = CustomerTaxLocation
+union CustomerUnion = Customer
 type DeletedApplication {
 	object: String!
 	name: String
 	id: String!
 	deleted: Boolean!
 }
+union DeletedApplicationOrApplicationUnion = DeletedApplication | Application
 type DeletedBankAccount {
 	object: String!
 	id: String!
@@ -922,16 +997,19 @@ type DeletedCard {
 	deleted: Boolean!
 	currency: String
 }
+union DeletedCardOrDeletedBankAccountOrCardOrBankAccountUnion = DeletedCard | DeletedBankAccount | Card | BankAccount
 type DeletedCoupon {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedCouponOrCouponUnion = DeletedCoupon | Coupon
 type DeletedCustomer {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedCustomerOrCustomerUnion = DeletedCustomer | Customer
 type DeletedDiscount {
 	subscription: String
 	start: Int!
@@ -945,26 +1023,49 @@ type DeletedDiscount {
 	coupon: Coupon!
 	checkoutSession: String
 }
+union DeletedDiscountOrDiscountUnion = DeletedDiscount | Discount
 type DeletedInvoice {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedInvoiceOrInvoiceUnion = DeletedInvoice | Invoice
 type DeletedPrice {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedPriceOrPriceUnion = DeletedPrice | Price
 type DeletedProduct {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedProductOrProductUnion = DeletedProduct | Product
 type DeletedTaxId {
 	object: String!
 	id: String!
 	deleted: Boolean!
 }
+union DeletedTaxIdOrTaxIdUnion = DeletedTaxId | TaxId
+type DeletedTerminalConfiguration {
+	object: String!
+	id: String!
+	deleted: Boolean!
+}
+union DeletedTerminalConfigurationOrTerminalConfigurationUnion = DeletedTerminalConfiguration | TerminalConfiguration
+type DeletedTerminalLocation {
+	object: String!
+	id: String!
+	deleted: Boolean!
+}
+union DeletedTerminalLocationOrTerminalLocationUnion = DeletedTerminalLocation | TerminalLocation
+type DeletedTerminalReader {
+	object: String!
+	id: String!
+	deleted: Boolean!
+}
+union DeletedTerminalReaderOrTerminalReaderUnion = DeletedTerminalReader | TerminalReader
 type Discount {
 	subscription: String
 	start: Int!
@@ -978,6 +1079,7 @@ type Discount {
 	coupon: Coupon!
 	checkoutSession: String
 }
+union DiscountUnion = Discount
 type DiscountsResourceDiscountAmount {
 	discount: DeletedDiscountOrDiscountUnion!
 	amount: Int!
@@ -1040,6 +1142,18 @@ type EmailSent {
 	emailSentTo: String!
 	emailSentAt: Int!
 }
+type Event {
+	type: String!
+	request: NotificationEventRequestUnion
+	pendingWebhooks: Int!
+	object: String!
+	livemode: Boolean!
+	id: String!
+	data: NotificationEventData!
+	created: Int!
+	apiVersion: String
+	account: String!
+}
 type ExchangeRate {
 	rates: ExchangeRateRates!
 	object: String!
@@ -1058,7 +1172,7 @@ type FeeRefund {
 	object: String!
 	metadata: FeeRefundMetadata
 	id: String!
-	fee: PlatformFeeUnion!
+	fee: ApplicationFeeUnion!
 	currency: String!
 	created: Int!
 	balanceTransaction: BalanceTransactionUnion
@@ -1097,6 +1211,66 @@ type FileLinks {
 	object: String!
 	hasMore: Boolean!
 	data: [FileLink!]!
+}
+union FileUnion = File
+type FinancialConnectionsAccount {
+	supportedPaymentMethodTypes: [String!]!
+	subcategory: String!
+	status: String!
+	permissions: [String!]
+	ownershipRefresh: BankConnectionsResourceOwnershipRefreshUnion
+	ownership: FinancialConnectionsAccountOwnershipUnion
+	object: String!
+	livemode: Boolean!
+	last4: String
+	institutionName: String!
+	id: String!
+	displayName: String
+	created: Int!
+	category: String!
+	balanceRefresh: BankConnectionsResourceBalanceRefreshUnion
+	balance: BankConnectionsResourceBalanceUnion
+	accountHolder: BankConnectionsResourceAccountholderUnion
+}
+type FinancialConnectionsAccountOwner {
+	refreshedAt: Int
+	rawAddress: String
+	phone: String
+	ownership: String!
+	object: String!
+	name: String!
+	id: String!
+	email: String
+}
+type FinancialConnectionsAccountOwnership {
+	owners: FinancialConnectionsAccountOwnershipOwners!
+	object: String!
+	id: String!
+	created: Int!
+}
+type FinancialConnectionsAccountOwnershipOwners {
+	url: String!
+	object: String!
+	hasMore: Boolean!
+	data: [FinancialConnectionsAccountOwner!]!
+}
+union FinancialConnectionsAccountOwnershipUnion = FinancialConnectionsAccountOwnership
+type FinancialConnectionsSession {
+	returnUrl: String!
+	permissions: [String!]!
+	object: String!
+	livemode: Boolean!
+	id: String!
+	filters: BankConnectionsResourceLinkAccountSessionFilters!
+	clientSecret: String!
+	accounts: FinancialConnectionsSessionAccounts!
+	accountHolder: BankConnectionsResourceAccountholderUnion
+}
+type FinancialConnectionsSessionAccounts {
+	url: String!
+	object: String!
+	hasMore: Boolean!
+	data: [FinancialConnectionsAccount!]!
 }
 type FinancialReportingFinanceReportRunRunParameters {
 	timezone: String!
@@ -1146,26 +1320,31 @@ type GelatoDataDocumentReportDateOfBirth {
 	month: Int
 	day: Int
 }
+union GelatoDataDocumentReportDateOfBirthUnion = GelatoDataDocumentReportDateOfBirth
 type GelatoDataDocumentReportExpirationDate {
 	year: Int
 	month: Int
 	day: Int
 }
+union GelatoDataDocumentReportExpirationDateUnion = GelatoDataDocumentReportExpirationDate
 type GelatoDataDocumentReportIssuedDate {
 	year: Int
 	month: Int
 	day: Int
 }
+union GelatoDataDocumentReportIssuedDateUnion = GelatoDataDocumentReportIssuedDate
 type GelatoDataIdNumberReportDate {
 	year: Int
 	month: Int
 	day: Int
 }
+union GelatoDataIdNumberReportDateUnion = GelatoDataIdNumberReportDate
 type GelatoDataVerifiedOutputsDate {
 	year: Int
 	month: Int
 	day: Int
 }
+union GelatoDataVerifiedOutputsDateUnion = GelatoDataVerifiedOutputsDate
 type GelatoDocumentReport {
 	type: String
 	status: String!
@@ -1184,6 +1363,7 @@ type GelatoDocumentReportError {
 	reason: String
 	code: String
 }
+union GelatoDocumentReportErrorUnion = GelatoDocumentReportError
 type GelatoIdNumberReport {
 	status: String!
 	lastName: String
@@ -1197,6 +1377,7 @@ type GelatoIdNumberReportError {
 	reason: String
 	code: String
 }
+union GelatoIdNumberReportErrorUnion = GelatoIdNumberReportError
 type GelatoReportDocumentOptions {
 	requireMatchingSelfie: Boolean!
 	requireLiveCapture: Boolean!
@@ -1215,6 +1396,7 @@ type GelatoSelfieReportError {
 	reason: String
 	code: String
 }
+union GelatoSelfieReportErrorUnion = GelatoSelfieReportError
 type GelatoSessionDocumentOptions {
 	requireMatchingSelfie: Boolean!
 	requireLiveCapture: Boolean!
@@ -1227,39 +1409,10 @@ type GelatoSessionLastError {
 	reason: String
 	code: String
 }
-type GelatoVerificationReport {
-	verificationSession: String
-	type: String!
-	selfie: GelatoSelfieReport!
-	options: GelatoVerificationReportOptions!
-	object: String!
-	livemode: Boolean!
-	idNumber: GelatoIdNumberReport!
-	id: String!
-	document: GelatoDocumentReport!
-	created: Int!
-}
+union GelatoSessionLastErrorUnion = GelatoSessionLastError
 type GelatoVerificationReportOptions {
 	idNumber: GelatoReportIdNumberOptions!
 	document: GelatoReportDocumentOptions!
-}
-type GelatoVerificationSession {
-	verifiedOutputs: GelatoVerifiedOutputsUnion
-	url: String
-	type: String!
-	status: String!
-	redaction: VerificationSessionRedactionUnion
-	options: GelatoVerificationSessionOptions!
-	object: String!
-	metadata: GelatoVerificationSessionMetadata!
-	livemode: Boolean!
-	lastVerificationReport: GelatoVerificationReportUnion
-	lastError: GelatoSessionLastErrorUnion
-	id: String!
-	created: Int!
-	clientSecret: String
-}
-type GelatoVerificationSessionMetadata {
 }
 type GelatoVerificationSessionOptions {
 	idNumber: GelatoSessionIdNumberOptions!
@@ -1273,6 +1426,7 @@ type GelatoVerifiedOutputs {
 	dob: GelatoDataVerifiedOutputsDateUnion
 	address: AddressUnion
 }
+union GelatoVerifiedOutputsUnion = GelatoVerifiedOutputs
 type GetAccounts {
 	url: String!
 	object: String!
@@ -1283,7 +1437,7 @@ type GetAccountsAccountCapabilities {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [AccountCapability!]!
+	data: [Capability!]!
 }
 type GetAccountsAccountExternalAccounts {
 	url: String!
@@ -1313,7 +1467,7 @@ type GetApplicationFees {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [PlatformFee!]!
+	data: [ApplicationFee!]!
 }
 type GetApplicationFeesIdRefunds {
 	url: String!
@@ -1325,7 +1479,7 @@ type GetAppsSecrets {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [SecretServiceResourceSecret!]!
+	data: [AppsSecret!]!
 }
 type GetBalanceHistory {
 	url: String!
@@ -1343,7 +1497,7 @@ type GetBillingPortalConfigurations {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [PortalConfiguration!]!
+	data: [BillingPortalConfiguration!]!
 }
 type GetCharges {
 	url: String!
@@ -1369,13 +1523,13 @@ type GetCheckoutSessions {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [Session!]!
+	data: [CheckoutSession!]!
 }
 type GetCheckoutSessionsSessionLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type GetCountrySpecs {
 	url: String!
@@ -1479,7 +1633,7 @@ type GetEvents {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [NotificationEvent!]!
+	data: [Event!]!
 }
 type GetExchangeRates {
 	url: String!
@@ -1503,31 +1657,31 @@ type GetFinancialConnectionsAccounts {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [BankConnectionsResourceLinkedAccount!]!
+	data: [FinancialConnectionsAccount!]!
 }
 type GetFinancialConnectionsAccountsAccountOwners {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [BankConnectionsResourceOwner!]!
+	data: [FinancialConnectionsAccountOwner!]!
 }
 type GetIdentityVerificationReports {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [GelatoVerificationReport!]!
+	data: [IdentityVerificationReport!]!
 }
 type GetIdentityVerificationSessions {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [GelatoVerificationSession!]!
+	data: [IdentityVerificationSession!]!
 }
 type GetInvoiceitems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [InvoiceItem!]!
+	data: [Invoiceitem!]!
 }
 type GetInvoices {
 	url: String!
@@ -1539,7 +1693,7 @@ type GetInvoicesInvoiceLines {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [InvoiceLineItem!]!
+	data: [LineItem!]!
 }
 type GetInvoicesSearch {
 	url: String!
@@ -1553,7 +1707,7 @@ type GetInvoicesUpcomingLines {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [InvoiceLineItem!]!
+	data: [LineItem!]!
 }
 type GetIssuingAuthorizations {
 	url: String!
@@ -1595,13 +1749,13 @@ type GetLinkedAccounts {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [BankConnectionsResourceLinkedAccount!]!
+	data: [FinancialConnectionsAccount!]!
 }
 type GetLinkedAccountsAccountOwners {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [BankConnectionsResourceOwner!]!
+	data: [FinancialConnectionsAccountOwner!]!
 }
 type GetPaymentIntents {
 	url: String!
@@ -1627,7 +1781,7 @@ type GetPaymentLinksPaymentLinkLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type GetPaymentMethods {
 	url: String!
@@ -1691,13 +1845,13 @@ type GetQuotesQuoteComputedUpfrontLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type GetQuotesQuoteLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type GetRadarEarlyFraudWarnings {
 	url: String!
@@ -1709,13 +1863,13 @@ type GetRadarValueListItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [RadarListListItem!]!
+	data: [RadarValueListItem!]!
 }
 type GetRadarValueLists {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [RadarListList!]!
+	data: [RadarValueList!]!
 }
 type GetRefunds {
 	url: String!
@@ -1739,13 +1893,13 @@ type GetReviews {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [RadarReview!]!
+	data: [Review!]!
 }
 type GetSetupAttempts {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [PaymentFlowsSetupIntentSetupAttempt!]!
+	data: [SetupAttempt!]!
 }
 type GetSetupIntents {
 	url: String!
@@ -1807,7 +1961,7 @@ type GetTaxCodes {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TaxProductResourceTaxCode!]!
+	data: [TaxCode!]!
 }
 type GetTaxRates {
 	url: String!
@@ -1819,25 +1973,25 @@ type GetTerminalConfigurations {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TerminalConfigurationConfiguration!]!
+	data: [TerminalConfiguration!]!
 }
 type GetTerminalLocations {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TerminalLocationLocation!]!
+	data: [TerminalLocation!]!
 }
 type GetTerminalReaders {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TerminalReaderReader!]!
+	data: [TerminalReader!]!
 }
 type GetTestHelpersTestClocks {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TestClock!]!
+	data: [TestHelpersTestClock!]!
 }
 type GetTopups {
 	url: String!
@@ -1861,67 +2015,98 @@ type GetTreasuryCreditReversals {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryReceivedCreditsResourceCreditReversal!]!
+	data: [TreasuryCreditReversal!]!
 }
 type GetTreasuryDebitReversals {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryReceivedDebitsResourceDebitReversal!]!
+	data: [TreasuryDebitReversal!]!
 }
 type GetTreasuryFinancialAccounts {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryFinancialAccountsResourceFinancialAccount!]!
+	data: [TreasuryFinancialAccount!]!
 }
 type GetTreasuryInboundTransfers {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryInboundTransfersResourceInboundTransfer!]!
+	data: [TreasuryInboundTransfer!]!
 }
 type GetTreasuryOutboundPayments {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryOutboundPaymentsResourceOutboundPayment!]!
+	data: [TreasuryOutboundPayment!]!
 }
 type GetTreasuryOutboundTransfers {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryOutboundTransfersResourceOutboundTransfer!]!
+	data: [TreasuryOutboundTransfer!]!
 }
 type GetTreasuryReceivedCredits {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryReceivedCreditsResourceReceivedCredit!]!
+	data: [TreasuryReceivedCredit!]!
 }
 type GetTreasuryReceivedDebits {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryReceivedDebitsResourceReceivedDebit!]!
+	data: [TreasuryReceivedDebit!]!
 }
 type GetTreasuryTransactionEntries {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryTransactionsResourceTransactionEntry!]!
+	data: [TreasuryTransactionEntry!]!
 }
 type GetTreasuryTransactions {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryTransactionsResourceTransaction!]!
+	data: [TreasuryTransaction!]!
 }
 type GetWebhookEndpoints {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [NotificationWebhookEndpoint!]!
+	data: [WebhookEndpoint!]!
+}
+type IdentityVerificationReport {
+	verificationSession: String
+	type: String!
+	selfie: GelatoSelfieReport!
+	options: GelatoVerificationReportOptions!
+	object: String!
+	livemode: Boolean!
+	idNumber: GelatoIdNumberReport!
+	id: String!
+	document: GelatoDocumentReport!
+	created: Int!
+}
+union IdentityVerificationReportUnion = IdentityVerificationReport
+type IdentityVerificationSession {
+	verifiedOutputs: GelatoVerifiedOutputsUnion
+	url: String
+	type: String!
+	status: String!
+	redaction: VerificationSessionRedactionUnion
+	options: GelatoVerificationSessionOptions!
+	object: String!
+	metadata: IdentityVerificationSessionMetadata!
+	livemode: Boolean!
+	lastVerificationReport: IdentityVerificationReportUnion
+	lastError: GelatoSessionLastErrorUnion
+	id: String!
+	created: Int!
+	clientSecret: String
+}
+type IdentityVerificationSessionMetadata {
 }
 type InboundTransfers {
 	usBankAccount: InboundTransfersPaymentMethodDetailsUsBankAccount!
@@ -1937,6 +2122,7 @@ type InboundTransfersPaymentMethodDetailsUsBankAccount {
 	accountType: String
 	accountHolderType: String
 }
+union InboundTransfersUnion = InboundTransfers
 type Invoice {
 	webhooksDeliveredAt: Int
 	transferData: InvoiceTransferDataUnion
@@ -1945,7 +2131,7 @@ type Invoice {
 	totalDiscountAmounts: [DiscountsResourceDiscountAmount!]
 	total: Int!
 	thresholdReason: InvoiceThresholdReason!
-	testClock: TestClockUnion
+	testClock: TestHelpersTestClockUnion
 	tax: Int
 	subtotalExcludingTax: Int
 	subtotal: Int!
@@ -1976,7 +2162,7 @@ type Invoice {
 	livemode: Boolean!
 	lines: InvoiceLines!
 	latestRevision: InvoiceUnion
-	lastFinalizationError: APIErrorsUnion
+	lastFinalizationError: ApiErrorsUnion
 	invoicePdf: String
 	id: String!
 	hostedInvoiceUrl: String
@@ -1990,7 +2176,7 @@ type Invoice {
 	defaultTaxRates: [TaxRate!]!
 	defaultSource: SourceOrCardOrBankAccountUnion
 	defaultPaymentMethod: PaymentMethodUnion
-	customerTaxIds: [InvoicesResourceInvoiceTaxID!]
+	customerTaxIds: [InvoicesResourceInvoiceTaxId!]
 	customerTaxExempt: String
 	customerShipping: ShippingUnion
 	customerPhone: String
@@ -2021,62 +2207,9 @@ type Invoice {
 type InvoiceInstallmentsCard {
 	enabled: Boolean
 }
-type InvoiceItem {
-	unitAmountDecimal: String
-	unitAmount: Int
-	testClock: TestClockUnion
-	taxRates: [TaxRate!]
-	subscriptionItem: String!
-	subscription: SubscriptionUnion
-	quantity: Int!
-	proration: Boolean!
-	price: PriceUnion
-	period: InvoiceLineItemPeriod!
-	object: String!
-	metadata: InvoiceItemMetadata
-	livemode: Boolean!
-	invoice: InvoiceUnion
-	id: String!
-	discounts: [DiscountUnion!]
-	discountable: Boolean!
-	description: String
-	date: Int!
-	customer: DeletedCustomerOrCustomerUnion!
-	currency: String!
-	amount: Int!
-}
-type InvoiceItemMetadata {
-}
 type InvoiceItemThresholdReason {
 	usageGte: Int!
 	lineItemIds: [String!]!
-}
-type InvoiceLineItem {
-	unitAmountExcludingTax: String
-	type: String!
-	taxRates: [TaxRate!]!
-	taxAmounts: [InvoiceTaxAmount!]!
-	subscriptionItem: String!
-	subscription: String
-	quantity: Int
-	prorationDetails: InvoicesLineItemsProrationDetailsUnion
-	proration: Boolean!
-	price: PriceUnion
-	period: InvoiceLineItemPeriod!
-	object: String!
-	metadata: InvoiceLineItemMetadata!
-	livemode: Boolean!
-	invoiceItem: String!
-	id: String!
-	discounts: [DiscountUnion!]
-	discountable: Boolean!
-	discountAmounts: [DiscountsResourceDiscountAmount!]
-	description: String
-	currency: String!
-	amountExcludingTax: Int
-	amount: Int!
-}
-type InvoiceLineItemMetadata {
 }
 type InvoiceLineItemPeriod {
 	start: Int!
@@ -2086,7 +2219,7 @@ type InvoiceLines {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [InvoiceLineItem!]!
+	data: [LineItem!]!
 }
 type InvoiceMandateOptionsCard {
 	description: String
@@ -2102,13 +2235,16 @@ type InvoicePaymentMethodOptionsAcssDebit {
 type InvoicePaymentMethodOptionsAcssDebitMandateOptions {
 	transactionType: String
 }
+union InvoicePaymentMethodOptionsAcssDebitUnion = InvoicePaymentMethodOptionsAcssDebit
 type InvoicePaymentMethodOptionsBancontact {
 	preferredLanguage: String!
 }
+union InvoicePaymentMethodOptionsBancontactUnion = InvoicePaymentMethodOptionsBancontact
 type InvoicePaymentMethodOptionsCard {
 	requestThreeDSecure: String
 	installments: InvoiceInstallmentsCard!
 }
+union InvoicePaymentMethodOptionsCardUnion = InvoicePaymentMethodOptionsCard
 type InvoicePaymentMethodOptionsCustomerBalance {
 	fundingType: String
 	bankTransfer: InvoicePaymentMethodOptionsCustomerBalanceBankTransfer!
@@ -2120,8 +2256,10 @@ type InvoicePaymentMethodOptionsCustomerBalanceBankTransfer {
 type InvoicePaymentMethodOptionsCustomerBalanceBankTransferEuBankTransfer {
 	country: String!
 }
+union InvoicePaymentMethodOptionsCustomerBalanceUnion = InvoicePaymentMethodOptionsCustomerBalance
 type InvoicePaymentMethodOptionsKonbini {
 }
+union InvoicePaymentMethodOptionsKonbiniUnion = InvoicePaymentMethodOptionsKonbini
 type InvoicePaymentMethodOptionsUsBankAccount {
 	verificationMethod: String!
 	financialConnections: InvoicePaymentMethodOptionsUsBankAccountLinkedAccountOptions!
@@ -2129,6 +2267,7 @@ type InvoicePaymentMethodOptionsUsBankAccount {
 type InvoicePaymentMethodOptionsUsBankAccountLinkedAccountOptions {
 	permissions: [String!]!
 }
+union InvoicePaymentMethodOptionsUsBankAccountUnion = InvoicePaymentMethodOptionsUsBankAccount
 type InvoiceSettingCustomField {
 	value: String!
 	name: String!
@@ -2142,12 +2281,15 @@ type InvoiceSettingCustomerSetting {
 type InvoiceSettingQuoteSetting {
 	daysUntilDue: Int
 }
+union InvoiceSettingQuoteSettingUnion = InvoiceSettingQuoteSetting
 type InvoiceSettingRenderingOptions {
 	amountTaxDisplay: String
 }
+union InvoiceSettingRenderingOptionsUnion = InvoiceSettingRenderingOptions
 type InvoiceSettingSubscriptionScheduleSetting {
 	daysUntilDue: Int
 }
+union InvoiceSettingSubscriptionScheduleSettingUnion = InvoiceSettingSubscriptionScheduleSetting
 type InvoiceTaxAmount {
 	taxRate: TaxRateUnion!
 	inclusive: Boolean!
@@ -2161,17 +2303,48 @@ type InvoiceTransferData {
 	destination: AccountUnion!
 	amount: Int
 }
+union InvoiceTransferDataUnion = InvoiceTransferData
+union InvoiceUnion = Invoice
+type Invoiceitem {
+	unitAmountDecimal: String
+	unitAmount: Int
+	testClock: TestHelpersTestClockUnion
+	taxRates: [TaxRate!]
+	subscriptionItem: String!
+	subscription: SubscriptionUnion
+	quantity: Int!
+	proration: Boolean!
+	price: PriceUnion
+	period: InvoiceLineItemPeriod!
+	object: String!
+	metadata: InvoiceitemMetadata
+	livemode: Boolean!
+	invoice: InvoiceUnion
+	id: String!
+	discounts: [DiscountUnion!]
+	discountable: Boolean!
+	description: String
+	date: Int!
+	customer: DeletedCustomerOrCustomerUnion!
+	currency: String!
+	amount: Int!
+}
+type InvoiceitemMetadata {
+}
 type InvoicesFromInvoice {
 	invoice: InvoiceUnion!
 	action: String!
 }
+union InvoicesFromInvoiceUnion = InvoicesFromInvoice
 type InvoicesLineItemsCreditedItems {
 	invoiceLineItems: [String!]!
 	invoice: String!
 }
+union InvoicesLineItemsCreditedItemsUnion = InvoicesLineItemsCreditedItems
 type InvoicesLineItemsProrationDetails {
 	creditedItems: InvoicesLineItemsCreditedItemsUnion
 }
+union InvoicesLineItemsProrationDetailsUnion = InvoicesLineItemsProrationDetails
 type InvoicesPaymentMethodOptions {
 	usBankAccount: InvoicePaymentMethodOptionsUsBankAccountUnion
 	konbini: InvoicePaymentMethodOptionsKonbiniUnion
@@ -2180,12 +2353,13 @@ type InvoicesPaymentMethodOptions {
 	bancontact: InvoicePaymentMethodOptionsBancontactUnion
 	acssDebit: InvoicePaymentMethodOptionsAcssDebitUnion
 }
+union InvoicesPaymentMethodOptionsUnion = InvoicesPaymentMethodOptions
 type InvoicesPaymentSettings {
 	paymentMethodTypes: [String!]
 	paymentMethodOptions: InvoicesPaymentMethodOptionsUnion
 	defaultMandate: String
 }
-type InvoicesResourceInvoiceTaxID {
+type InvoicesResourceInvoiceTaxId {
 	value: String
 	type: String!
 }
@@ -2196,6 +2370,7 @@ type InvoicesShippingCost {
 	amountTax: Int!
 	amountSubtotal: Int!
 }
+union InvoicesShippingCostUnion = InvoicesShippingCost
 type InvoicesStatusTransitions {
 	voidedAt: Int
 	paidAt: Int
@@ -2231,6 +2406,7 @@ type IssuingAuthorization {
 type IssuingAuthorizationAmountDetails {
 	atmFee: Int
 }
+union IssuingAuthorizationAmountDetailsUnion = IssuingAuthorizationAmountDetails
 type IssuingAuthorizationMerchantData {
 	state: String
 	postalCode: String
@@ -2246,6 +2422,7 @@ type IssuingAuthorizationMetadata {
 type IssuingAuthorizationNetworkData {
 	acquiringInstitutionId: String
 }
+union IssuingAuthorizationNetworkDataUnion = IssuingAuthorizationNetworkData
 type IssuingAuthorizationPendingRequest {
 	merchantCurrency: String!
 	merchantAmount: Int!
@@ -2254,6 +2431,7 @@ type IssuingAuthorizationPendingRequest {
 	amountDetails: IssuingAuthorizationAmountDetailsUnion
 	amount: Int!
 }
+union IssuingAuthorizationPendingRequestUnion = IssuingAuthorizationPendingRequest
 type IssuingAuthorizationRequest {
 	reasonMessage: String
 	reason: String!
@@ -2270,6 +2448,8 @@ type IssuingAuthorizationTreasury {
 	receivedDebits: [String!]!
 	receivedCredits: [String!]!
 }
+union IssuingAuthorizationTreasuryUnion = IssuingAuthorizationTreasury
+union IssuingAuthorizationUnion = IssuingAuthorization
 type IssuingAuthorizationVerificationData {
 	expiryCheck: String!
 	cvcCheck: String!
@@ -2334,16 +2514,20 @@ type IssuingCardShipping {
 type IssuingCardShippingCustoms {
 	eoriNumber: String
 }
+union IssuingCardShippingCustomsUnion = IssuingCardShippingCustoms
+union IssuingCardShippingUnion = IssuingCardShipping
 type IssuingCardSpendingLimit {
 	interval: String!
 	categories: [String!]
 	amount: Int!
 }
+union IssuingCardUnion = IssuingCard
 type IssuingCardWallets {
 	primaryAccountIdentifier: String
 	googlePay: IssuingCardGooglePay!
 	applePay: IssuingCardApplePay!
 }
+union IssuingCardWalletsUnion = IssuingCardWallets
 type IssuingCardholder {
 	type: String!
 	status: String!
@@ -2370,24 +2554,29 @@ type IssuingCardholderAuthorizationControls {
 	blockedCategories: [String!]
 	allowedCategories: [String!]
 }
+union IssuingCardholderAuthorizationControlsUnion = IssuingCardholderAuthorizationControls
 type IssuingCardholderCompany {
 	taxIdProvided: Boolean!
 }
+union IssuingCardholderCompanyUnion = IssuingCardholderCompany
 type IssuingCardholderIdDocument {
 	front: FileUnion
 	back: FileUnion
 }
+union IssuingCardholderIdDocumentUnion = IssuingCardholderIdDocument
 type IssuingCardholderIndividual {
 	verification: IssuingCardholderVerificationUnion
 	lastName: String
 	firstName: String
-	dob: IssuingCardholderIndividualDOBUnion
+	dob: IssuingCardholderIndividualDobUnion
 }
-type IssuingCardholderIndividualDOB {
+type IssuingCardholderIndividualDob {
 	year: Int
 	month: Int
 	day: Int
 }
+union IssuingCardholderIndividualDobUnion = IssuingCardholderIndividualDob
+union IssuingCardholderIndividualUnion = IssuingCardholderIndividual
 type IssuingCardholderMetadata {
 }
 type IssuingCardholderRequirements {
@@ -2399,9 +2588,11 @@ type IssuingCardholderSpendingLimit {
 	categories: [String!]
 	amount: Int!
 }
+union IssuingCardholderUnion = IssuingCardholder
 type IssuingCardholderVerification {
 	document: IssuingCardholderIdDocumentUnion
 }
+union IssuingCardholderVerificationUnion = IssuingCardholderVerification
 type IssuingDispute {
 	treasury: IssuingDisputeTreasuryUnion
 	transaction: IssuingTransactionUnion!
@@ -2484,6 +2675,8 @@ type IssuingDisputeTreasury {
 	receivedDebit: String!
 	debitReversal: String
 }
+union IssuingDisputeTreasuryUnion = IssuingDisputeTreasury
+union IssuingDisputeUnion = IssuingDispute
 type IssuingSettlement {
 	transactionVolume: Int!
 	transactionCount: Int!
@@ -2529,6 +2722,7 @@ type IssuingTransaction {
 type IssuingTransactionAmountDetails {
 	atmFee: Int
 }
+union IssuingTransactionAmountDetailsUnion = IssuingTransactionAmountDetails
 type IssuingTransactionFlightData {
 	travelAgency: String
 	segments: [IssuingTransactionFlightDataLeg!]
@@ -2544,16 +2738,19 @@ type IssuingTransactionFlightDataLeg {
 	carrier: String
 	arrivalAirportCode: String
 }
+union IssuingTransactionFlightDataUnion = IssuingTransactionFlightData
 type IssuingTransactionFuelData {
 	volumeDecimal: String
 	unitCostDecimal: String!
 	unit: String!
 	type: String!
 }
+union IssuingTransactionFuelDataUnion = IssuingTransactionFuelData
 type IssuingTransactionLodgingData {
 	nights: Int
 	checkInAt: Int
 }
+union IssuingTransactionLodgingDataUnion = IssuingTransactionLodgingData
 type IssuingTransactionMetadata {
 }
 type IssuingTransactionPurchaseDetails {
@@ -2563,6 +2760,7 @@ type IssuingTransactionPurchaseDetails {
 	fuel: IssuingTransactionFuelDataUnion
 	flight: IssuingTransactionFlightDataUnion
 }
+union IssuingTransactionPurchaseDetailsUnion = IssuingTransactionPurchaseDetails
 type IssuingTransactionReceiptData {
 	unitCost: Int
 	total: Int
@@ -2573,6 +2771,22 @@ type IssuingTransactionTreasury {
 	receivedDebit: String
 	receivedCredit: String
 }
+union IssuingTransactionTreasuryUnion = IssuingTransactionTreasury
+union IssuingTransactionUnion = IssuingTransaction
+type Item {
+	taxes: [LineItemsTaxAmount!]!
+	quantity: Int
+	price: PriceUnion
+	object: String!
+	id: String!
+	discounts: [LineItemsDiscountAmount!]!
+	description: String!
+	currency: String!
+	amountTotal: Int!
+	amountTax: Int!
+	amountSubtotal: Int!
+	amountDiscount: Int!
+}
 type LegalEntityCompany {
 	verification: LegalEntityCompanyVerificationUnion
 	vatIdProvided: Boolean!
@@ -2580,7 +2794,7 @@ type LegalEntityCompany {
 	taxIdProvided: Boolean!
 	structure: String!
 	phone: String
-	ownershipDeclaration: LegalEntityUBODeclarationUnion
+	ownershipDeclaration: LegalEntityUboDeclarationUnion
 	ownersProvided: Boolean!
 	nameKanji: String
 	nameKana: String
@@ -2600,7 +2814,8 @@ type LegalEntityCompanyVerificationDocument {
 	details: String
 	back: FileUnion
 }
-type LegalEntityDOB {
+union LegalEntityCompanyVerificationUnion = LegalEntityCompanyVerification
+type LegalEntityDob {
 	year: Int
 	month: Int
 	day: Int
@@ -2614,6 +2829,7 @@ type LegalEntityJapanAddress {
 	country: String
 	city: String
 }
+union LegalEntityJapanAddressUnion = LegalEntityJapanAddress
 type LegalEntityPersonVerification {
 	status: String!
 	document: LegalEntityPersonVerificationDocument!
@@ -2627,24 +2843,39 @@ type LegalEntityPersonVerificationDocument {
 	details: String
 	back: FileUnion
 }
-type LegalEntityUBODeclaration {
+union LegalEntityPersonVerificationDocumentUnion = LegalEntityPersonVerificationDocument
+type LegalEntityUboDeclaration {
 	userAgent: String
 	ip: String
 	date: Int
 }
+union LegalEntityUboDeclarationUnion = LegalEntityUboDeclaration
 type LineItem {
-	taxes: [LineItemsTaxAmount!]!
+	unitAmountExcludingTax: String
+	type: String!
+	taxRates: [TaxRate!]!
+	taxAmounts: [InvoiceTaxAmount!]!
+	subscriptionItem: String!
+	subscription: String
 	quantity: Int
+	prorationDetails: InvoicesLineItemsProrationDetailsUnion
+	proration: Boolean!
 	price: PriceUnion
+	period: InvoiceLineItemPeriod!
 	object: String!
+	metadata: LineItemMetadata!
+	livemode: Boolean!
+	invoiceItem: String!
 	id: String!
-	discounts: [LineItemsDiscountAmount!]!
-	description: String!
+	discounts: [DiscountUnion!]
+	discountable: Boolean!
+	discountAmounts: [DiscountsResourceDiscountAmount!]
+	description: String
 	currency: String!
-	amountTotal: Int!
-	amountTax: Int!
-	amountSubtotal: Int!
-	amountDiscount: Int!
+	amountExcludingTax: Int
+	amount: Int!
+}
+type LineItemMetadata {
 }
 type LineItemsDiscountAmount {
 	discount: Discount!
@@ -2718,24 +2949,14 @@ type MandateSingleUse {
 	currency: String!
 	amount: Int!
 }
+union MandateUnion = Mandate
 type MandateUsBankAccount {
 }
 type Networks {
 	preferred: String
 	available: [String!]!
 }
-type NotificationEvent {
-	type: String!
-	request: NotificationEventRequestUnion
-	pendingWebhooks: Int!
-	object: String!
-	livemode: Boolean!
-	id: String!
-	data: NotificationEventData!
-	created: Int!
-	apiVersion: String
-	account: String!
-}
+union NetworksUnion = Networks
 type NotificationEventData {
 	previousAttributes: NotificationEventDataPreviousAttributes!
 	object: NotificationEventDataObject!
@@ -2748,22 +2969,7 @@ type NotificationEventRequest {
 	idempotencyKey: String
 	id: String
 }
-type NotificationWebhookEndpoint {
-	url: String!
-	status: String!
-	secret: String!
-	object: String!
-	metadata: NotificationWebhookEndpointMetadata!
-	livemode: Boolean!
-	id: String!
-	enabledEvents: [String!]!
-	description: String
-	created: Int!
-	application: String
-	apiVersion: String
-}
-type NotificationWebhookEndpointMetadata {
-}
+union NotificationEventRequestUnion = NotificationEventRequest
 type OfflineAcceptance {
 }
 type OnlineAcceptance {
@@ -2780,6 +2986,7 @@ type OutboundPaymentsPaymentMethodDetailsFinancialAccount {
 	network: String!
 	id: String!
 }
+union OutboundPaymentsPaymentMethodDetailsUnion = OutboundPaymentsPaymentMethodDetails
 type OutboundPaymentsPaymentMethodDetailsUsBankAccount {
 	routingNumber: String
 	network: String!
@@ -2809,6 +3016,7 @@ type PackageDimensions {
 	length: Float!
 	height: Float!
 }
+union PackageDimensionsUnion = PackageDimensions
 type PaymentFlowsAmountDetails {
 	tip: PaymentFlowsAmountDetailsResourceTip!
 }
@@ -2818,6 +3026,7 @@ type PaymentFlowsAmountDetailsResourceTip {
 type PaymentFlowsAutomaticPaymentMethodsPaymentIntent {
 	enabled: Boolean!
 }
+union PaymentFlowsAutomaticPaymentMethodsPaymentIntentUnion = PaymentFlowsAutomaticPaymentMethodsPaymentIntent
 type PaymentFlowsInstallmentOptions {
 	plan: PaymentMethodDetailsCardInstallmentsPlan!
 	enabled: Boolean!
@@ -2829,28 +3038,12 @@ type PaymentFlowsPrivatePaymentMethodsAlipayDetails {
 	fingerprint: String
 	buyerId: String!
 }
-type PaymentFlowsPrivatePaymentMethodsKlarnaDOB {
+type PaymentFlowsPrivatePaymentMethodsKlarnaDob {
 	year: Int
 	month: Int
 	day: Int
 }
-type PaymentFlowsSetupIntentSetupAttempt {
-	usage: String!
-	status: String!
-	setupIntent: SetupIntentUnion!
-	setupError: APIErrorsUnion
-	paymentMethodDetails: SetupAttemptPaymentMethodDetails!
-	paymentMethod: PaymentMethodUnion!
-	onBehalfOf: AccountUnion
-	object: String!
-	livemode: Boolean!
-	id: String!
-	flowDirections: [String!]
-	customer: DeletedCustomerOrCustomerUnion
-	created: Int!
-	attachToSelf: Boolean!
-	application: ApplicationUnion
-}
+union PaymentFlowsPrivatePaymentMethodsKlarnaDobUnion = PaymentFlowsPrivatePaymentMethodsKlarnaDob
 type PaymentIntent {
 	transferGroup: String
 	transferData: TransferDataUnion
@@ -2859,7 +3052,7 @@ type PaymentIntent {
 	statementDescriptor: String
 	shipping: ShippingUnion
 	setupFutureUsage: String
-	review: RadarReviewUnion
+	review: ReviewUnion
 	receiptEmail: String
 	processing: PaymentIntentProcessingUnion
 	paymentMethodTypes: [String!]!
@@ -2871,7 +3064,7 @@ type PaymentIntent {
 	metadata: PaymentIntentMetadata!
 	livemode: Boolean!
 	latestCharge: ChargeUnion
-	lastPaymentError: APIErrorsUnion
+	lastPaymentError: ApiErrorsUnion
 	invoice: InvoiceUnion
 	id: String!
 	description: String
@@ -2897,7 +3090,7 @@ type PaymentIntentCardProcessing {
 type PaymentIntentMetadata {
 }
 type PaymentIntentNextAction {
-	wechatPayRedirectToIosApp: PaymentIntentNextActionWechatPayRedirectToIOSApp!
+	wechatPayRedirectToIosApp: PaymentIntentNextActionWechatPayRedirectToIosApp!
 	wechatPayRedirectToAndroidApp: PaymentIntentNextActionWechatPayRedirectToAndroidApp!
 	wechatPayDisplayQrCode: PaymentIntentNextActionWechatPayDisplayQrCode!
 	verifyWithMicrodeposits: PaymentIntentNextActionVerifyWithMicrodeposits!
@@ -2952,18 +3145,22 @@ type PaymentIntentNextActionKonbiniFamilymart {
 	paymentCode: String!
 	confirmationNumber: String!
 }
+union PaymentIntentNextActionKonbiniFamilymartUnion = PaymentIntentNextActionKonbiniFamilymart
 type PaymentIntentNextActionKonbiniLawson {
 	paymentCode: String!
 	confirmationNumber: String!
 }
+union PaymentIntentNextActionKonbiniLawsonUnion = PaymentIntentNextActionKonbiniLawson
 type PaymentIntentNextActionKonbiniMinistop {
 	paymentCode: String!
 	confirmationNumber: String!
 }
+union PaymentIntentNextActionKonbiniMinistopUnion = PaymentIntentNextActionKonbiniMinistop
 type PaymentIntentNextActionKonbiniSeicomart {
 	paymentCode: String!
 	confirmationNumber: String!
 }
+union PaymentIntentNextActionKonbiniSeicomartUnion = PaymentIntentNextActionKonbiniSeicomart
 type PaymentIntentNextActionKonbiniStores {
 	seicomart: PaymentIntentNextActionKonbiniSeicomartUnion
 	ministop: PaymentIntentNextActionKonbiniMinistopUnion
@@ -2993,6 +3190,7 @@ type PaymentIntentNextActionRedirectToUrl {
 	url: String
 	returnUrl: String
 }
+union PaymentIntentNextActionUnion = PaymentIntentNextAction
 type PaymentIntentNextActionUseStripeSdk {
 }
 type PaymentIntentNextActionVerifyWithMicrodeposits {
@@ -3016,7 +3214,7 @@ type PaymentIntentNextActionWechatPayRedirectToAndroidApp {
 	nonceStr: String!
 	appId: String!
 }
-type PaymentIntentNextActionWechatPayRedirectToIOSApp {
+type PaymentIntentNextActionWechatPayRedirectToIosApp {
 	nativeUrl: String!
 }
 type PaymentIntentPaymentMethodOptions {
@@ -3091,6 +3289,7 @@ type PaymentIntentPaymentMethodOptionsSepaDebit {
 	setupFutureUsage: String!
 	mandateOptions: PaymentIntentPaymentMethodOptionsMandateOptionsSepaDebit!
 }
+union PaymentIntentPaymentMethodOptionsUnion = PaymentIntentPaymentMethodOptions
 type PaymentIntentPaymentMethodOptionsUsBankAccount {
 	verificationMethod: String!
 	setupFutureUsage: String!
@@ -3104,12 +3303,44 @@ type PaymentIntentProcessingCustomerNotification {
 	completesAt: Int
 	approvalRequested: Boolean
 }
+union PaymentIntentProcessingUnion = PaymentIntentProcessing
 type PaymentIntentTypeSpecificPaymentMethodOptionsClient {
 	verificationMethod: String!
 	setupFutureUsage: String!
 	installments: PaymentFlowsInstallmentOptions!
 	captureMethod: String!
 }
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAcssDebitUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsAcssDebit
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAuBecsDebitUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsAuBecsDebit
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsBlikUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsBlik
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsCardUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsCard
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsEpsUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsEps
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsLinkUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsLink
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsSepaDebitUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsSepaDebit
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsUsBankAccountUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentIntentPaymentMethodOptionsUsBankAccount
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAffirmUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsAffirm
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAfterpayClearpayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsAfterpayClearpay
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAlipayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsAlipay
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBacsDebitUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsBacsDebit
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBancontactUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsBancontact
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBoletoUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsBoleto
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCardPresentUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsCardPresent
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCustomerBalanceUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsCustomerBalance
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsFpxUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsFpx
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGiropayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsGiropay
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGrabpayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsGrabpay
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsIdealUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsIdeal
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsInteracPresentUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsInteracPresent
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKlarnaUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsKlarna
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKonbiniUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsKonbini
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsOxxoUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsOxxo
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsP24Union = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsP24
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPaynowUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsPaynow
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPixUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsPix
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPromptpayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsPromptpay
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsSofortUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsSofort
+union PaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsWechatPayUnion = PaymentIntentTypeSpecificPaymentMethodOptionsClient | PaymentMethodOptionsWechatPay
+union PaymentIntentUnion = PaymentIntent
 type PaymentLink {
 	url: String!
 	transferData: PaymentLinksResourceTransferDataUnion
@@ -3145,10 +3376,11 @@ type PaymentLinkLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type PaymentLinkMetadata {
 }
+union PaymentLinkUnion = PaymentLink
 type PaymentLinksResourceAfterCompletion {
 	type: String!
 	redirect: PaymentLinksResourceCompletionBehaviorRedirect!
@@ -3167,6 +3399,7 @@ type PaymentLinksResourceConsentCollection {
 	termsOfService: String
 	promotions: String
 }
+union PaymentLinksResourceConsentCollectionUnion = PaymentLinksResourceConsentCollection
 type PaymentLinksResourceCustomText {
 	submit: PaymentLinksResourceCustomTextPositionUnion
 	shippingAddress: PaymentLinksResourceCustomTextPositionUnion
@@ -3174,10 +3407,12 @@ type PaymentLinksResourceCustomText {
 type PaymentLinksResourceCustomTextPosition {
 	message: String!
 }
+union PaymentLinksResourceCustomTextPositionUnion = PaymentLinksResourceCustomTextPosition
 type PaymentLinksResourceInvoiceCreation {
 	invoiceData: PaymentLinksResourceInvoiceSettingsUnion
 	enabled: Boolean!
 }
+union PaymentLinksResourceInvoiceCreationUnion = PaymentLinksResourceInvoiceCreation
 type PaymentLinksResourceInvoiceSettings {
 	renderingOptions: InvoiceSettingRenderingOptionsUnion
 	metadata: PaymentLinksResourceInvoiceSettingsMetadata
@@ -3188,16 +3423,19 @@ type PaymentLinksResourceInvoiceSettings {
 }
 type PaymentLinksResourceInvoiceSettingsMetadata {
 }
+union PaymentLinksResourceInvoiceSettingsUnion = PaymentLinksResourceInvoiceSettings
 type PaymentLinksResourcePaymentIntentData {
 	setupFutureUsage: String
 	captureMethod: String
 }
+union PaymentLinksResourcePaymentIntentDataUnion = PaymentLinksResourcePaymentIntentData
 type PaymentLinksResourcePhoneNumberCollection {
 	enabled: Boolean!
 }
 type PaymentLinksResourceShippingAddressCollection {
 	allowedCountries: [String!]!
 }
+union PaymentLinksResourceShippingAddressCollectionUnion = PaymentLinksResourceShippingAddressCollection
 type PaymentLinksResourceShippingOption {
 	shippingRate: ShippingRateUnion!
 	shippingAmount: Int!
@@ -3206,6 +3444,7 @@ type PaymentLinksResourceSubscriptionData {
 	trialPeriodDays: Int
 	description: String
 }
+union PaymentLinksResourceSubscriptionDataUnion = PaymentLinksResourceSubscriptionData
 type PaymentLinksResourceTaxIdCollection {
 	enabled: Boolean!
 }
@@ -3213,6 +3452,7 @@ type PaymentLinksResourceTransferData {
 	destination: AccountUnion!
 	amount: Int
 }
+union PaymentLinksResourceTransferDataUnion = PaymentLinksResourceTransferData
 type PaymentMethod {
 	wechatPay: PaymentMethodWechatPay!
 	usBankAccount: PaymentMethodUsBankAccount!
@@ -3301,11 +3541,13 @@ type PaymentMethodCardChecks {
 	addressPostalCodeCheck: String
 	addressLine1Check: String
 }
+union PaymentMethodCardChecksUnion = PaymentMethodCardChecks
 type PaymentMethodCardGeneratedCard {
-	setupAttempt: PaymentFlowsSetupIntentSetupAttemptUnion
+	setupAttempt: SetupAttemptUnion
 	paymentMethodDetails: CardGeneratedFromPaymentMethodDetailsUnion
 	charge: String
 }
+union PaymentMethodCardGeneratedCardUnion = PaymentMethodCardGeneratedCard
 type PaymentMethodCardPresent {
 }
 type PaymentMethodCardWallet {
@@ -3332,6 +3574,7 @@ type PaymentMethodCardWalletMasterpass {
 }
 type PaymentMethodCardWalletSamsungPay {
 }
+union PaymentMethodCardWalletUnion = PaymentMethodCardWallet
 type PaymentMethodCardWalletVisaCheckout {
 	shippingAddress: AddressUnion
 	name: String
@@ -3452,6 +3695,7 @@ type PaymentMethodDetailsCardChecks {
 	addressPostalCodeCheck: String
 	addressLine1Check: String
 }
+union PaymentMethodDetailsCardChecksUnion = PaymentMethodDetailsCardChecks
 type PaymentMethodDetailsCardInstallments {
 	plan: PaymentMethodDetailsCardInstallmentsPlanUnion
 }
@@ -3460,6 +3704,8 @@ type PaymentMethodDetailsCardInstallmentsPlan {
 	interval: String
 	count: Int
 }
+union PaymentMethodDetailsCardInstallmentsPlanUnion = PaymentMethodDetailsCardInstallmentsPlan
+union PaymentMethodDetailsCardInstallmentsUnion = PaymentMethodDetailsCardInstallments
 type PaymentMethodDetailsCardPresent {
 	receipt: PaymentMethodDetailsCardPresentReceiptUnion
 	readMethod: String
@@ -3490,6 +3736,7 @@ type PaymentMethodDetailsCardPresentReceipt {
 	applicationCryptogram: String
 	accountType: String!
 }
+union PaymentMethodDetailsCardPresentReceiptUnion = PaymentMethodDetailsCardPresentReceipt
 type PaymentMethodDetailsCardWallet {
 	visaCheckout: PaymentMethodDetailsCardWalletVisaCheckout!
 	type: String!
@@ -3514,6 +3761,7 @@ type PaymentMethodDetailsCardWalletMasterpass {
 }
 type PaymentMethodDetailsCardWalletSamsungPay {
 }
+union PaymentMethodDetailsCardWalletUnion = PaymentMethodDetailsCardWallet
 type PaymentMethodDetailsCardWalletVisaCheckout {
 	shippingAddress: AddressUnion
 	name: String
@@ -3574,6 +3822,7 @@ type PaymentMethodDetailsInteracPresentReceipt {
 	applicationCryptogram: String
 	accountType: String!
 }
+union PaymentMethodDetailsInteracPresentReceiptUnion = PaymentMethodDetailsInteracPresentReceipt
 type PaymentMethodDetailsKlarna {
 	preferredLocale: String
 	paymentMethodCategory: String
@@ -3584,6 +3833,7 @@ type PaymentMethodDetailsKonbini {
 type PaymentMethodDetailsKonbiniStore {
 	chain: String
 }
+union PaymentMethodDetailsKonbiniStoreUnion = PaymentMethodDetailsKonbiniStore
 type PaymentMethodDetailsLink {
 }
 type PaymentMethodDetailsMultibanco {
@@ -3628,6 +3878,7 @@ type PaymentMethodDetailsSofort {
 }
 type PaymentMethodDetailsStripeAccount {
 }
+union PaymentMethodDetailsUnion = PaymentMethodDetails
 type PaymentMethodDetailsUsBankAccount {
 	routingNumber: String
 	last4: String
@@ -3659,7 +3910,7 @@ type PaymentMethodIdeal {
 type PaymentMethodInteracPresent {
 }
 type PaymentMethodKlarna {
-	dob: PaymentFlowsPrivatePaymentMethodsKlarnaDOBUnion
+	dob: PaymentFlowsPrivatePaymentMethodsKlarnaDobUnion
 }
 type PaymentMethodKonbini {
 }
@@ -3697,6 +3948,7 @@ type PaymentMethodOptionsCardInstallments {
 	enabled: Boolean!
 	availablePlans: [PaymentMethodDetailsCardInstallmentsPlan!]
 }
+union PaymentMethodOptionsCardInstallmentsUnion = PaymentMethodOptionsCardInstallments
 type PaymentMethodOptionsCardMandateOptions {
 	supportedTypes: [String!]
 	startDate: Int!
@@ -3708,6 +3960,7 @@ type PaymentMethodOptionsCardMandateOptions {
 	amountType: String!
 	amount: Int!
 }
+union PaymentMethodOptionsCardMandateOptionsUnion = PaymentMethodOptionsCardMandateOptions
 type PaymentMethodOptionsCardPresent {
 	requestIncrementalAuthorizationSupport: Boolean
 	requestExtendedAuthorization: Boolean
@@ -3800,6 +4053,7 @@ type PaymentMethodSepaDebit {
 type PaymentMethodSofort {
 	country: String
 }
+union PaymentMethodUnion = PaymentMethod
 type PaymentMethodUsBankAccount {
 	routingNumber: String
 	networks: UsBankAccountNetworksUnion
@@ -3821,6 +4075,8 @@ type PaymentPagesCheckoutSessionAfterExpirationRecovery {
 	enabled: Boolean!
 	allowPromotionCodes: Boolean!
 }
+union PaymentPagesCheckoutSessionAfterExpirationRecoveryUnion = PaymentPagesCheckoutSessionAfterExpirationRecovery
+union PaymentPagesCheckoutSessionAfterExpirationUnion = PaymentPagesCheckoutSessionAfterExpiration
 type PaymentPagesCheckoutSessionAutomaticTax {
 	status: String
 	enabled: Boolean!
@@ -3833,6 +4089,8 @@ type PaymentPagesCheckoutSessionConsentCollection {
 	termsOfService: String
 	promotions: String
 }
+union PaymentPagesCheckoutSessionConsentCollectionUnion = PaymentPagesCheckoutSessionConsentCollection
+union PaymentPagesCheckoutSessionConsentUnion = PaymentPagesCheckoutSessionConsent
 type PaymentPagesCheckoutSessionCustomText {
 	submit: PaymentPagesCheckoutSessionCustomTextPositionUnion
 	shippingAddress: PaymentPagesCheckoutSessionCustomTextPositionUnion
@@ -3840,18 +4098,21 @@ type PaymentPagesCheckoutSessionCustomText {
 type PaymentPagesCheckoutSessionCustomTextPosition {
 	message: String!
 }
+union PaymentPagesCheckoutSessionCustomTextPositionUnion = PaymentPagesCheckoutSessionCustomTextPosition
 type PaymentPagesCheckoutSessionCustomerDetails {
-	taxIds: [PaymentPagesCheckoutSessionTaxID!]
+	taxIds: [PaymentPagesCheckoutSessionTaxId!]
 	taxExempt: String
 	phone: String
 	name: String
 	email: String
 	address: AddressUnion
 }
+union PaymentPagesCheckoutSessionCustomerDetailsUnion = PaymentPagesCheckoutSessionCustomerDetails
 type PaymentPagesCheckoutSessionInvoiceCreation {
 	invoiceData: PaymentPagesCheckoutSessionInvoiceSettings!
 	enabled: Boolean!
 }
+union PaymentPagesCheckoutSessionInvoiceCreationUnion = PaymentPagesCheckoutSessionInvoiceCreation
 type PaymentPagesCheckoutSessionInvoiceSettings {
 	renderingOptions: InvoiceSettingRenderingOptionsUnion
 	metadata: PaymentPagesCheckoutSessionInvoiceSettingsMetadata
@@ -3868,6 +4129,7 @@ type PaymentPagesCheckoutSessionPhoneNumberCollection {
 type PaymentPagesCheckoutSessionShippingAddressCollection {
 	allowedCountries: [String!]!
 }
+union PaymentPagesCheckoutSessionShippingAddressCollectionUnion = PaymentPagesCheckoutSessionShippingAddressCollection
 type PaymentPagesCheckoutSessionShippingCost {
 	taxes: [LineItemsTaxAmount!]!
 	shippingRate: ShippingRateUnion
@@ -3875,15 +4137,16 @@ type PaymentPagesCheckoutSessionShippingCost {
 	amountTax: Int!
 	amountSubtotal: Int!
 }
+union PaymentPagesCheckoutSessionShippingCostUnion = PaymentPagesCheckoutSessionShippingCost
 type PaymentPagesCheckoutSessionShippingOption {
 	shippingRate: ShippingRateUnion!
 	shippingAmount: Int!
 }
-type PaymentPagesCheckoutSessionTaxID {
+type PaymentPagesCheckoutSessionTaxId {
 	value: String
 	type: String!
 }
-type PaymentPagesCheckoutSessionTaxIDCollection {
+type PaymentPagesCheckoutSessionTaxIdCollection {
 	enabled: Boolean!
 }
 type PaymentPagesCheckoutSessionTotalDetails {
@@ -3896,6 +4159,7 @@ type PaymentPagesCheckoutSessionTotalDetailsResourceBreakdown {
 	taxes: [LineItemsTaxAmount!]!
 	discounts: [LineItemsDiscountAmount!]!
 }
+union PaymentPagesCheckoutSessionTotalDetailsUnion = PaymentPagesCheckoutSessionTotalDetails
 type Payout {
 	type: String!
 	status: String!
@@ -3922,6 +4186,7 @@ type Payout {
 }
 type PayoutMetadata {
 }
+union PayoutUnion = Payout
 type Period {
 	start: Int
 	end: Int
@@ -3951,7 +4216,7 @@ type Person {
 	firstNameKana: String
 	firstName: String
 	email: String
-	dob: LegalEntityDOB!
+	dob: LegalEntityDob!
 	created: Int!
 	addressKanji: LegalEntityJapanAddressUnion
 	addressKana: LegalEntityJapanAddressUnion
@@ -3966,6 +4231,7 @@ type PersonFutureRequirements {
 	currentlyDue: [String!]!
 	alternatives: [AccountRequirementsAlternative!]
 }
+union PersonFutureRequirementsUnion = PersonFutureRequirements
 type PersonMetadata {
 }
 type PersonRelationship {
@@ -3984,6 +4250,7 @@ type PersonRequirements {
 	currentlyDue: [String!]!
 	alternatives: [AccountRequirementsAlternative!]
 }
+union PersonRequirementsUnion = PersonRequirements
 type Plan {
 	usageType: String!
 	trialPeriodDays: Int
@@ -4015,29 +4282,7 @@ type PlanTier {
 	flatAmountDecimal: String
 	flatAmount: Int
 }
-type PlatformFee {
-	refunds: PlatformFeeRefunds!
-	refunded: Boolean!
-	originatingTransaction: ChargeUnion
-	object: String!
-	livemode: Boolean!
-	id: String!
-	currency: String!
-	created: Int!
-	charge: ChargeUnion!
-	balanceTransaction: BalanceTransactionUnion
-	application: ApplicationUnion!
-	amountRefunded: Int!
-	amount: Int!
-	account: AccountUnion!
-}
-type PlatformFeeRefunds {
-	url: String!
-	object: String!
-	hasMore: Boolean!
-	data: [FeeRefund!]!
-}
-type PlatformTax {
+type PlatformTaxFee {
 	type: String!
 	sourceTransaction: String!
 	object: String!
@@ -4048,23 +4293,6 @@ type PortalBusinessProfile {
 	termsOfServiceUrl: String
 	privacyPolicyUrl: String
 	headline: String
-}
-type PortalConfiguration {
-	updated: Int!
-	object: String!
-	metadata: PortalConfigurationMetadata
-	loginPage: PortalLoginPage!
-	livemode: Boolean!
-	isDefault: Boolean!
-	id: String!
-	features: PortalFeatures!
-	defaultReturnUrl: String
-	created: Int!
-	businessProfile: PortalBusinessProfile!
-	application: DeletedApplicationOrApplicationUnion
-	active: Boolean!
-}
-type PortalConfigurationMetadata {
 }
 type PortalCustomerUpdate {
 	enabled: Boolean!
@@ -4145,11 +4373,12 @@ type PriceTier {
 	flatAmountDecimal: String
 	flatAmount: Int
 }
+union PriceUnion = Price
 type Product {
 	url: String
 	updated: Int!
 	unitLabel: String
-	taxCode: TaxProductResourceTaxCodeUnion
+	taxCode: TaxCodeUnion
 	statementDescriptor: String
 	shippable: Boolean
 	packageDimensions: PackageDimensionsUnion
@@ -4183,6 +4412,7 @@ type PromotionCode {
 }
 type PromotionCodeMetadata {
 }
+union PromotionCodeUnion = PromotionCode
 type PromotionCodesResourceRestrictions {
 	minimumAmountCurrency: String
 	minimumAmount: Int
@@ -4195,11 +4425,11 @@ type Query {
 	getAccount: Account!
 	getAccounts: GetAccounts!
 	getAccountsAccount: Account!
-	getAccountsAccountBankAccountsId: Polymorphic!
+	getAccountsAccountBankAccountsId: ExternalAccount!
 	getAccountsAccountCapabilities: GetAccountsAccountCapabilities!
-	getAccountsAccountCapabilitiesCapability: AccountCapability!
+	getAccountsAccountCapabilitiesCapability: Capability!
 	getAccountsAccountExternalAccounts: GetAccountsAccountExternalAccounts!
-	getAccountsAccountExternalAccountsId: Polymorphic!
+	getAccountsAccountExternalAccountsId: ExternalAccount!
 	getAccountsAccountPeople: GetAccountsAccountPeople!
 	getAccountsAccountPeoplePerson: Person!
 	getAccountsAccountPersons: GetAccountsAccountPersons!
@@ -4208,17 +4438,17 @@ type Query {
 	getApplePayDomainsDomain: ApplePayDomain!
 	getApplicationFees: GetApplicationFees!
 	getApplicationFeesFeeRefundsId: FeeRefund!
-	getApplicationFeesId: PlatformFee!
+	getApplicationFeesId: ApplicationFee!
 	getApplicationFeesIdRefunds: GetApplicationFeesIdRefunds!
 	getAppsSecrets: GetAppsSecrets!
-	getAppsSecretsFind: SecretServiceResourceSecret!
+	getAppsSecretsFind: AppsSecret!
 	getBalance: Balance!
 	getBalanceHistory: GetBalanceHistory!
 	getBalanceHistoryId: BalanceTransaction!
 	getBalanceTransactions: GetBalanceTransactions!
 	getBalanceTransactionsId: BalanceTransaction!
 	getBillingPortalConfigurations: GetBillingPortalConfigurations!
-	getBillingPortalConfigurationsConfiguration: PortalConfiguration!
+	getBillingPortalConfigurationsConfiguration: BillingPortalConfiguration!
 	getCharges: GetCharges!
 	getChargesSearch: GetChargesSearch!
 	getChargesCharge: Charge!
@@ -4226,7 +4456,7 @@ type Query {
 	getChargesChargeRefunds: GetChargesChargeRefunds!
 	getChargesChargeRefundsRefund: Refund!
 	getCheckoutSessions: GetCheckoutSessions!
-	getCheckoutSessionsSession: Session!
+	getCheckoutSessionsSession: CheckoutSession!
 	getCheckoutSessionsSessionLineItems: GetCheckoutSessionsSessionLineItems!
 	getCountrySpecs: GetCountrySpecs!
 	getCountrySpecsCountry: CountrySpec!
@@ -4253,7 +4483,7 @@ type Query {
 	getCustomersCustomerPaymentMethods: GetCustomersCustomerPaymentMethods!
 	getCustomersCustomerPaymentMethodsPaymentMethod: PaymentMethod!
 	getCustomersCustomerSources: GetCustomersCustomerSources!
-	getCustomersCustomerSourcesId: Polymorphic!
+	getCustomersCustomerSourcesId: PaymentSource!
 	getCustomersCustomerSubscriptions: GetCustomersCustomerSubscriptions!
 	getCustomersCustomerSubscriptionsSubscriptionExposedId: Subscription!
 	getCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount: Discount!
@@ -4262,7 +4492,7 @@ type Query {
 	getDisputes: GetDisputes!
 	getDisputesDispute: Dispute!
 	getEvents: GetEvents!
-	getEventsId: NotificationEvent!
+	getEventsId: Event!
 	getExchangeRates: GetExchangeRates!
 	getExchangeRatesRateId: ExchangeRate!
 	getFileLinks: GetFileLinks!
@@ -4270,15 +4500,15 @@ type Query {
 	getFiles: GetFiles!
 	getFilesFile: File!
 	getFinancialConnectionsAccounts: GetFinancialConnectionsAccounts!
-	getFinancialConnectionsAccountsAccount: BankConnectionsResourceLinkedAccount!
+	getFinancialConnectionsAccountsAccount: FinancialConnectionsAccount!
 	getFinancialConnectionsAccountsAccountOwners: GetFinancialConnectionsAccountsAccountOwners!
-	getFinancialConnectionsSessionsSession: BankConnectionsResourceLinkAccountSession!
+	getFinancialConnectionsSessionsSession: FinancialConnectionsSession!
 	getIdentityVerificationReports: GetIdentityVerificationReports!
-	getIdentityVerificationReportsReport: GelatoVerificationReport!
+	getIdentityVerificationReportsReport: IdentityVerificationReport!
 	getIdentityVerificationSessions: GetIdentityVerificationSessions!
-	getIdentityVerificationSessionsSession: GelatoVerificationSession!
+	getIdentityVerificationSessionsSession: IdentityVerificationSession!
 	getInvoiceitems: GetInvoiceitems!
-	getInvoiceitemsInvoiceitem: InvoiceItem!
+	getInvoiceitemsInvoiceitem: Invoiceitem!
 	getInvoices: GetInvoices!
 	getInvoicesSearch: GetInvoicesSearch!
 	getInvoicesUpcoming: Invoice!
@@ -4297,9 +4527,9 @@ type Query {
 	getIssuingSettlementsSettlement: IssuingSettlement!
 	getIssuingTransactions: GetIssuingTransactions!
 	getIssuingTransactionsTransaction: IssuingTransaction!
-	getLinkAccountSessionsSession: BankConnectionsResourceLinkAccountSession!
+	getLinkAccountSessionsSession: FinancialConnectionsSession!
 	getLinkedAccounts: GetLinkedAccounts!
-	getLinkedAccountsAccount: BankConnectionsResourceLinkedAccount!
+	getLinkedAccountsAccount: FinancialConnectionsAccount!
 	getLinkedAccountsAccountOwners: GetLinkedAccountsAccountOwners!
 	getMandatesMandate: Mandate!
 	getPaymentIntents: GetPaymentIntents!
@@ -4330,9 +4560,9 @@ type Query {
 	getRadarEarlyFraudWarnings: GetRadarEarlyFraudWarnings!
 	getRadarEarlyFraudWarningsEarlyFraudWarning: RadarEarlyFraudWarning!
 	getRadarValueListItems: GetRadarValueListItems!
-	getRadarValueListItemsItem: RadarListListItem!
+	getRadarValueListItemsItem: RadarValueListItem!
 	getRadarValueLists: GetRadarValueLists!
-	getRadarValueListsValueList: RadarListList!
+	getRadarValueListsValueList: RadarValueList!
 	getRefunds: GetRefunds!
 	getRefundsRefund: Refund!
 	getReportingReportRuns: GetReportingReportRuns!
@@ -4340,7 +4570,7 @@ type Query {
 	getReportingReportTypes: GetReportingReportTypes!
 	getReportingReportTypesReportType: ReportingReportType!
 	getReviews: GetReviews!
-	getReviewsReview: RadarReview!
+	getReviewsReview: Review!
 	getSetupAttempts: GetSetupAttempts!
 	getSetupIntents: GetSetupIntents!
 	getSetupIntentsIntent: SetupIntent!
@@ -4361,17 +4591,17 @@ type Query {
 	getSubscriptionsSearch: GetSubscriptionsSearch!
 	getSubscriptionsSubscriptionExposedId: Subscription!
 	getTaxCodes: GetTaxCodes!
-	getTaxCodesId: TaxProductResourceTaxCode!
+	getTaxCodesId: TaxCode!
 	getTaxRates: GetTaxRates!
 	getTaxRatesTaxRate: TaxRate!
 	getTerminalConfigurations: GetTerminalConfigurations!
-	getTerminalConfigurationsConfiguration: TerminalConfigurationDeletedConfigurationOrTerminalConfigurationConfigurationUnion!
+	getTerminalConfigurationsConfiguration: DeletedTerminalConfigurationOrTerminalConfigurationUnion!
 	getTerminalLocations: GetTerminalLocations!
-	getTerminalLocationsLocation: TerminalLocationDeletedLocationOrTerminalLocationLocationUnion!
+	getTerminalLocationsLocation: DeletedTerminalLocationOrTerminalLocationUnion!
 	getTerminalReaders: GetTerminalReaders!
-	getTerminalReadersReader: TerminalReaderDeletedReaderOrTerminalReaderReaderUnion!
+	getTerminalReadersReader: DeletedTerminalReaderOrTerminalReaderUnion!
 	getTestHelpersTestClocks: GetTestHelpersTestClocks!
-	getTestHelpersTestClocksTestClock: TestClock!
+	getTestHelpersTestClocksTestClock: TestHelpersTestClock!
 	getTokensToken: Token!
 	getTopups: GetTopups!
 	getTopupsTopup: Topup!
@@ -4380,33 +4610,33 @@ type Query {
 	getTransfersTransfer: Transfer!
 	getTransfersTransferReversalsId: TransferReversal!
 	getTreasuryCreditReversals: GetTreasuryCreditReversals!
-	getTreasuryCreditReversalsCreditReversal: TreasuryReceivedCreditsResourceCreditReversal!
+	getTreasuryCreditReversalsCreditReversal: TreasuryCreditReversal!
 	getTreasuryDebitReversals: GetTreasuryDebitReversals!
-	getTreasuryDebitReversalsDebitReversal: TreasuryReceivedDebitsResourceDebitReversal!
+	getTreasuryDebitReversalsDebitReversal: TreasuryDebitReversal!
 	getTreasuryFinancialAccounts: GetTreasuryFinancialAccounts!
-	getTreasuryFinancialAccountsFinancialAccount: TreasuryFinancialAccountsResourceFinancialAccount!
-	getTreasuryFinancialAccountsFinancialAccountFeatures: TreasuryFinancialAccountsResourceFinancialAccountFeatures!
+	getTreasuryFinancialAccountsFinancialAccount: TreasuryFinancialAccount!
+	getTreasuryFinancialAccountsFinancialAccountFeatures: TreasuryFinancialAccountFeatures!
 	getTreasuryInboundTransfers: GetTreasuryInboundTransfers!
-	getTreasuryInboundTransfersId: TreasuryInboundTransfersResourceInboundTransfer!
+	getTreasuryInboundTransfersId: TreasuryInboundTransfer!
 	getTreasuryOutboundPayments: GetTreasuryOutboundPayments!
-	getTreasuryOutboundPaymentsId: TreasuryOutboundPaymentsResourceOutboundPayment!
+	getTreasuryOutboundPaymentsId: TreasuryOutboundPayment!
 	getTreasuryOutboundTransfers: GetTreasuryOutboundTransfers!
-	getTreasuryOutboundTransfersOutboundTransfer: TreasuryOutboundTransfersResourceOutboundTransfer!
+	getTreasuryOutboundTransfersOutboundTransfer: TreasuryOutboundTransfer!
 	getTreasuryReceivedCredits: GetTreasuryReceivedCredits!
-	getTreasuryReceivedCreditsId: TreasuryReceivedCreditsResourceReceivedCredit!
+	getTreasuryReceivedCreditsId: TreasuryReceivedCredit!
 	getTreasuryReceivedDebits: GetTreasuryReceivedDebits!
-	getTreasuryReceivedDebitsId: TreasuryReceivedDebitsResourceReceivedDebit!
+	getTreasuryReceivedDebitsId: TreasuryReceivedDebit!
 	getTreasuryTransactionEntries: GetTreasuryTransactionEntries!
-	getTreasuryTransactionEntriesId: TreasuryTransactionsResourceTransactionEntry!
+	getTreasuryTransactionEntriesId: TreasuryTransactionEntry!
 	getTreasuryTransactions: GetTreasuryTransactions!
-	getTreasuryTransactionsId: TreasuryTransactionsResourceTransaction!
+	getTreasuryTransactionsId: TreasuryTransaction!
 	getWebhookEndpoints: GetWebhookEndpoints!
-	getWebhookEndpointsWebhookEndpoint: NotificationWebhookEndpoint!
+	getWebhookEndpointsWebhookEndpoint: WebhookEndpoint!
 }
 type Quote {
 	transferData: QuotesResourceTransferDataUnion
 	totalDetails: QuotesResourceTotalDetails!
-	testClock: TestClockUnion
+	testClock: TestHelpersTestClockUnion
 	subscriptionSchedule: SubscriptionScheduleUnion
 	subscriptionData: QuotesResourceSubscriptionDataSubscriptionData!
 	subscription: SubscriptionUnion
@@ -4444,10 +4674,11 @@ type QuoteLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type QuoteMetadata {
 }
+union QuoteUnion = Quote
 type QuotesResourceAutomaticTax {
 	status: String
 	enabled: Boolean!
@@ -4460,6 +4691,7 @@ type QuotesResourceFromQuote {
 	quote: QuoteUnion!
 	isRevision: Boolean!
 }
+union QuotesResourceFromQuoteUnion = QuotesResourceFromQuote
 type QuotesResourceRecurring {
 	totalDetails: QuotesResourceTotalDetails!
 	intervalCount: Int!
@@ -4467,6 +4699,7 @@ type QuotesResourceRecurring {
 	amountTotal: Int!
 	amountSubtotal: Int!
 }
+union QuotesResourceRecurringUnion = QuotesResourceRecurring
 type QuotesResourceStatusTransitions {
 	finalizedAt: Int
 	canceledAt: Int
@@ -4492,6 +4725,7 @@ type QuotesResourceTransferData {
 	amountPercent: Float
 	amount: Int
 }
+union QuotesResourceTransferDataUnion = QuotesResourceTransferData
 type QuotesResourceUpfront {
 	totalDetails: QuotesResourceTotalDetails!
 	lineItems: QuotesResourceUpfrontLineItems!
@@ -4502,7 +4736,7 @@ type QuotesResourceUpfrontLineItems {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [LineItem!]!
+	data: [Item!]!
 }
 type RadarEarlyFraudWarning {
 	paymentIntent: PaymentIntentUnion!
@@ -4514,53 +4748,8 @@ type RadarEarlyFraudWarning {
 	charge: ChargeUnion!
 	actionable: Boolean!
 }
-type RadarListList {
-	object: String!
-	name: String!
-	metadata: RadarListListMetadata!
-	livemode: Boolean!
-	listItems: RadarListListListItems!
-	itemType: String!
-	id: String!
-	createdBy: String!
-	created: Int!
-	alias: String!
-}
-type RadarListListItem {
-	valueList: String!
-	value: String!
-	object: String!
-	livemode: Boolean!
-	id: String!
-	createdBy: String!
-	created: Int!
-}
-type RadarListListListItems {
-	url: String!
-	object: String!
-	hasMore: Boolean!
-	data: [RadarListListItem!]!
-}
-type RadarListListMetadata {
-}
 type RadarRadarOptions {
 	session: String!
-}
-type RadarReview {
-	session: RadarReviewResourceSessionUnion
-	reason: String!
-	paymentIntent: PaymentIntentUnion!
-	openedReason: String!
-	open: Boolean!
-	object: String!
-	livemode: Boolean!
-	ipAddressLocation: RadarReviewResourceLocationUnion
-	ipAddress: String
-	id: String!
-	created: Int!
-	closedReason: String
-	charge: ChargeUnion
-	billingZip: String
 }
 type RadarReviewResourceLocation {
 	region: String
@@ -4569,16 +4758,42 @@ type RadarReviewResourceLocation {
 	country: String
 	city: String
 }
+union RadarReviewResourceLocationUnion = RadarReviewResourceLocation
 type RadarReviewResourceSession {
 	version: String
 	platform: String
 	device: String
 	browser: String
 }
-type RadarRule {
-	predicate: String!
+union RadarReviewResourceSessionUnion = RadarReviewResourceSession
+type RadarValueList {
+	object: String!
+	name: String!
+	metadata: RadarValueListMetadata!
+	livemode: Boolean!
+	listItems: RadarValueListListItems!
+	itemType: String!
 	id: String!
-	action: String!
+	createdBy: String!
+	created: Int!
+	alias: String!
+}
+type RadarValueListItem {
+	valueList: String!
+	value: String!
+	object: String!
+	livemode: Boolean!
+	id: String!
+	createdBy: String!
+	created: Int!
+}
+type RadarValueListListItems {
+	url: String!
+	object: String!
+	hasMore: Boolean!
+	data: [RadarValueListItem!]!
+}
+type RadarValueListMetadata {
 }
 type ReceivedPaymentMethodDetailsFinancialAccount {
 	network: String!
@@ -4590,6 +4805,7 @@ type Recurring {
 	interval: String!
 	aggregateUsage: String
 }
+union RecurringUnion = Recurring
 type Refund {
 	transferReversal: TransferReversalUnion
 	status: String
@@ -4621,6 +4837,8 @@ type RefundNextActionDisplayDetails {
 	expiresAt: Int!
 	emailSent: EmailSent!
 }
+union RefundNextActionDisplayDetailsUnion = RefundNextActionDisplayDetails
+union RefundUnion = Refund
 type ReportingReportRun {
 	succeededAt: Int
 	status: String!
@@ -4651,6 +4869,29 @@ type ReserveTransaction {
 	currency: String!
 	amount: Int!
 }
+type Review {
+	session: RadarReviewResourceSessionUnion
+	reason: String!
+	paymentIntent: PaymentIntentUnion!
+	openedReason: String!
+	open: Boolean!
+	object: String!
+	livemode: Boolean!
+	ipAddressLocation: RadarReviewResourceLocationUnion
+	ipAddress: String
+	id: String!
+	created: Int!
+	closedReason: String
+	charge: ChargeUnion
+	billingZip: String
+}
+union ReviewUnion = Review
+type Rule {
+	predicate: String!
+	id: String!
+	action: String!
+}
+union RuleUnion = Rule
 type ScheduledQueryRun {
 	title: String!
 	status: String!
@@ -4671,77 +4912,27 @@ type SecretServiceResourceScope {
 	user: String!
 	type: String!
 }
-type SecretServiceResourceSecret {
-	scope: SecretServiceResourceScope!
-	payload: String
-	object: String!
-	name: String!
-	livemode: Boolean!
-	id: String!
-	expiresAt: Int
-	deleted: Boolean!
-	created: Int!
-}
 type SepaDebitGeneratedFrom {
-	setupAttempt: PaymentFlowsSetupIntentSetupAttemptUnion
+	setupAttempt: SetupAttemptUnion
 	charge: ChargeUnion
 }
-type Session {
-	url: String
-	totalDetails: PaymentPagesCheckoutSessionTotalDetailsUnion
-	taxIdCollection: PaymentPagesCheckoutSessionTaxIDCollection!
-	successUrl: String!
-	subscription: SubscriptionUnion
-	submitType: String
-	status: String
-	shippingOptions: [PaymentPagesCheckoutSessionShippingOption!]!
-	shippingDetails: ShippingUnion
-	shippingCost: PaymentPagesCheckoutSessionShippingCostUnion
-	shippingAddressCollection: PaymentPagesCheckoutSessionShippingAddressCollectionUnion
-	setupIntent: SetupIntentUnion
-	recoveredFrom: String
-	phoneNumberCollection: PaymentPagesCheckoutSessionPhoneNumberCollection!
-	paymentStatus: String!
-	paymentMethodTypes: [String!]!
-	paymentMethodOptions: CheckoutSessionPaymentMethodOptionsUnion
-	paymentMethodCollection: String
-	paymentLink: PaymentLinkUnion
-	paymentIntent: PaymentIntentUnion
+union SepaDebitGeneratedFromUnion = SepaDebitGeneratedFrom
+type SetupAttempt {
+	usage: String!
+	status: String!
+	setupIntent: SetupIntentUnion!
+	setupError: ApiErrorsUnion
+	paymentMethodDetails: SetupAttemptPaymentMethodDetails!
+	paymentMethod: PaymentMethodUnion!
+	onBehalfOf: AccountUnion
 	object: String!
-	mode: String!
-	metadata: SessionMetadata
-	locale: String
 	livemode: Boolean!
-	lineItems: SessionLineItems!
-	invoiceCreation: PaymentPagesCheckoutSessionInvoiceCreationUnion
-	invoice: InvoiceUnion
 	id: String!
-	expiresAt: Int!
-	customerEmail: String
-	customerDetails: PaymentPagesCheckoutSessionCustomerDetailsUnion
-	customerCreation: String
+	flowDirections: [String!]
 	customer: DeletedCustomerOrCustomerUnion
-	customText: PaymentPagesCheckoutSessionCustomText!
-	currency: String
 	created: Int!
-	consentCollection: PaymentPagesCheckoutSessionConsentCollectionUnion
-	consent: PaymentPagesCheckoutSessionConsentUnion
-	clientReferenceId: String
-	cancelUrl: String
-	billingAddressCollection: String
-	automaticTax: PaymentPagesCheckoutSessionAutomaticTax!
-	amountTotal: Int
-	amountSubtotal: Int
-	allowPromotionCodes: Boolean
-	afterExpiration: PaymentPagesCheckoutSessionAfterExpirationUnion
-}
-type SessionLineItems {
-	url: String!
-	object: String!
-	hasMore: Boolean!
-	data: [LineItem!]!
-}
-type SessionMetadata {
+	attachToSelf: Boolean!
+	application: ApplicationUnion
 }
 type SetupAttemptPaymentMethodDetails {
 	usBankAccount: SetupAttemptPaymentMethodDetailsUsBankAccount!
@@ -4812,6 +5003,7 @@ type SetupAttemptPaymentMethodDetailsSofort {
 }
 type SetupAttemptPaymentMethodDetailsUsBankAccount {
 }
+union SetupAttemptUnion = SetupAttempt
 type SetupIntent {
 	usage: String!
 	status: String!
@@ -4825,8 +5017,8 @@ type SetupIntent {
 	metadata: SetupIntentMetadata
 	mandate: MandateUnion
 	livemode: Boolean!
-	latestAttempt: PaymentFlowsSetupIntentSetupAttemptUnion
-	lastSetupError: APIErrorsUnion
+	latestAttempt: SetupAttemptUnion
+	lastSetupError: ApiErrorsUnion
 	id: String!
 	flowDirections: [String!]
 	description: String
@@ -4849,6 +5041,7 @@ type SetupIntentNextActionRedirectToUrl {
 	url: String
 	returnUrl: String
 }
+union SetupIntentNextActionUnion = SetupIntentNextAction
 type SetupIntentNextActionUseStripeSdk {
 }
 type SetupIntentNextActionVerifyWithMicrodeposits {
@@ -4889,6 +5082,7 @@ type SetupIntentPaymentMethodOptionsCardMandateOptions {
 	amountType: String!
 	amount: Int!
 }
+union SetupIntentPaymentMethodOptionsCardMandateOptionsUnion = SetupIntentPaymentMethodOptionsCardMandateOptions
 type SetupIntentPaymentMethodOptionsLink {
 	persistentToken: String
 }
@@ -4909,6 +5103,7 @@ type SetupIntentPaymentMethodOptionsMandateOptionsSepaDebit {
 type SetupIntentPaymentMethodOptionsSepaDebit {
 	mandateOptions: SetupIntentPaymentMethodOptionsMandateOptionsSepaDebit!
 }
+union SetupIntentPaymentMethodOptionsUnion = SetupIntentPaymentMethodOptions
 type SetupIntentPaymentMethodOptionsUsBankAccount {
 	verificationMethod: String!
 	financialConnections: LinkedAccountOptionsUsBankAccount!
@@ -4916,6 +5111,12 @@ type SetupIntentPaymentMethodOptionsUsBankAccount {
 type SetupIntentTypeSpecificPaymentMethodOptionsClient {
 	verificationMethod: String!
 }
+union SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsAcssDebitUnion = SetupIntentTypeSpecificPaymentMethodOptionsClient | SetupIntentPaymentMethodOptionsAcssDebit
+union SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsBlikUnion = SetupIntentTypeSpecificPaymentMethodOptionsClient | SetupIntentPaymentMethodOptionsBlik
+union SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsLinkUnion = SetupIntentTypeSpecificPaymentMethodOptionsClient | SetupIntentPaymentMethodOptionsLink
+union SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsSepaDebitUnion = SetupIntentTypeSpecificPaymentMethodOptionsClient | SetupIntentPaymentMethodOptionsSepaDebit
+union SetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsUsBankAccountUnion = SetupIntentTypeSpecificPaymentMethodOptionsClient | SetupIntentPaymentMethodOptionsUsBankAccount
+union SetupIntentUnion = SetupIntent
 type Shipping {
 	trackingNumber: String
 	phone: String
@@ -4925,7 +5126,7 @@ type Shipping {
 }
 type ShippingRate {
 	type: String!
-	taxCode: TaxProductResourceTaxCodeUnion
+	taxCode: TaxCodeUnion
 	taxBehavior: String
 	object: String!
 	metadata: ShippingRateMetadata!
@@ -4945,6 +5146,8 @@ type ShippingRateDeliveryEstimateBound {
 	value: Int!
 	unit: String!
 }
+union ShippingRateDeliveryEstimateBoundUnion = ShippingRateDeliveryEstimateBound
+union ShippingRateDeliveryEstimateUnion = ShippingRateDeliveryEstimate
 type ShippingRateFixedAmount {
 	currencyOptions: ShippingRateFixedAmountCurrencyOptions!
 	currency: String!
@@ -4954,6 +5157,8 @@ type ShippingRateFixedAmountCurrencyOptions {
 }
 type ShippingRateMetadata {
 }
+union ShippingRateUnion = ShippingRate
+union ShippingUnion = Shipping
 type SigmaScheduledQueryRunError {
 	message: String!
 }
@@ -5027,6 +5232,8 @@ type SourceMandateNotificationSepaDebitData {
 }
 type SourceMetadata {
 }
+union SourceOrCardOrBankAccountOrAccountUnion = Source | Card | BankAccount | Account
+union SourceOrCardOrBankAccountUnion = Source | Card | BankAccount
 type SourceOrder {
 	shipping: Shipping!
 	items: [SourceOrderItem!]
@@ -5052,6 +5259,7 @@ type SourceOwner {
 	email: String
 	address: AddressUnion
 }
+union SourceOwnerUnion = SourceOwner
 type SourceReceiverFlow {
 	refundAttributesStatus: String!
 	refundAttributesMethod: String!
@@ -5303,12 +5511,13 @@ type SourceTypeWechat {
 	qrCodeUrl: String
 	prepayId: String!
 }
+union SourceUnion = Source
 type Subscription {
 	trialStart: Int
 	trialSettings: SubscriptionsTrialsResourceTrialSettingsUnion
 	trialEnd: Int
 	transferData: SubscriptionTransferDataUnion
-	testClock: TestClockUnion
+	testClock: TestHelpersTestClockUnion
 	status: String!
 	startDate: Int!
 	schedule: SubscriptionScheduleUnion
@@ -5354,6 +5563,7 @@ type SubscriptionBillingThresholds {
 	resetBillingCycleAnchor: Boolean
 	amountGte: Int
 }
+union SubscriptionBillingThresholdsUnion = SubscriptionBillingThresholds
 type SubscriptionItem {
 	taxRates: [TaxRate!]
 	subscription: String!
@@ -5368,6 +5578,7 @@ type SubscriptionItem {
 type SubscriptionItemBillingThresholds {
 	usageGte: Int
 }
+union SubscriptionItemBillingThresholdsUnion = SubscriptionItemBillingThresholds
 type SubscriptionItemMetadata {
 }
 type SubscriptionItems {
@@ -5383,12 +5594,14 @@ type SubscriptionPaymentMethodOptionsCard {
 	network: String
 	mandateOptions: InvoiceMandateOptionsCard!
 }
+union SubscriptionPaymentMethodOptionsCardUnion = SubscriptionPaymentMethodOptionsCard
 type SubscriptionPendingInvoiceItemInterval {
 	intervalCount: Int!
 	interval: String!
 }
+union SubscriptionPendingInvoiceItemIntervalUnion = SubscriptionPendingInvoiceItemInterval
 type SubscriptionSchedule {
-	testClock: TestClockUnion
+	testClock: TestHelpersTestClockUnion
 	subscription: SubscriptionUnion
 	status: String!
 	releasedSubscription: String
@@ -5425,6 +5638,7 @@ type SubscriptionScheduleCurrentPhase {
 	startDate: Int!
 	endDate: Int!
 }
+union SubscriptionScheduleCurrentPhaseUnion = SubscriptionScheduleCurrentPhase
 type SubscriptionScheduleMetadata {
 }
 type SubscriptionSchedulePhaseConfiguration {
@@ -5451,6 +5665,7 @@ type SubscriptionSchedulePhaseConfiguration {
 }
 type SubscriptionSchedulePhaseConfigurationMetadata {
 }
+union SubscriptionScheduleUnion = SubscriptionSchedule
 type SubscriptionSchedulesResourceDefaultSettings {
 	transferData: SubscriptionTransferDataUnion
 	onBehalfOf: AccountUnion
@@ -5470,10 +5685,13 @@ type SubscriptionTransferData {
 	destination: AccountUnion!
 	amountPercent: Float
 }
+union SubscriptionTransferDataUnion = SubscriptionTransferData
+union SubscriptionUnion = Subscription
 type SubscriptionsResourcePauseCollection {
 	resumesAt: Int
 	behavior: String!
 }
+union SubscriptionsResourcePauseCollectionUnion = SubscriptionsResourcePauseCollection
 type SubscriptionsResourcePaymentMethodOptions {
 	usBankAccount: InvoicePaymentMethodOptionsUsBankAccountUnion
 	konbini: InvoicePaymentMethodOptionsKonbiniUnion
@@ -5482,11 +5700,13 @@ type SubscriptionsResourcePaymentMethodOptions {
 	bancontact: InvoicePaymentMethodOptionsBancontactUnion
 	acssDebit: InvoicePaymentMethodOptionsAcssDebitUnion
 }
+union SubscriptionsResourcePaymentMethodOptionsUnion = SubscriptionsResourcePaymentMethodOptions
 type SubscriptionsResourcePaymentSettings {
 	saveDefaultPaymentMethod: String
 	paymentMethodTypes: [String!]
 	paymentMethodOptions: SubscriptionsResourcePaymentMethodOptionsUnion
 }
+union SubscriptionsResourcePaymentSettingsUnion = SubscriptionsResourcePaymentSettings
 type SubscriptionsResourcePendingUpdate {
 	trialFromPlan: Boolean
 	trialEnd: Int
@@ -5494,12 +5714,21 @@ type SubscriptionsResourcePendingUpdate {
 	expiresAt: Int!
 	billingCycleAnchor: Int
 }
+union SubscriptionsResourcePendingUpdateUnion = SubscriptionsResourcePendingUpdate
 type SubscriptionsTrialsResourceEndBehavior {
 	missingPaymentMethod: String!
 }
 type SubscriptionsTrialsResourceTrialSettings {
 	endBehavior: SubscriptionsTrialsResourceEndBehavior!
 }
+union SubscriptionsTrialsResourceTrialSettingsUnion = SubscriptionsTrialsResourceTrialSettings
+type TaxCode {
+	object: String!
+	name: String!
+	id: String!
+	description: String!
+}
+union TaxCodeUnion = TaxCode
 type TaxDeductedAtSource {
 	taxDeductionAccountNumber: String!
 	periodStart: Int!
@@ -5523,12 +5752,7 @@ type TaxIdVerification {
 	verifiedAddress: String
 	status: String!
 }
-type TaxProductResourceTaxCode {
-	object: String!
-	name: String!
-	id: String!
-	description: String!
-}
+union TaxIdVerificationUnion = TaxIdVerification
 type TaxRate {
 	taxType: String
 	state: String
@@ -5547,7 +5771,8 @@ type TaxRate {
 }
 type TaxRateMetadata {
 }
-type TerminalConfigurationConfiguration {
+union TaxRateUnion = TaxRate
+type TerminalConfiguration {
 	verifoneP400: TerminalConfigurationConfigurationResourceDeviceTypeSpecificConfig!
 	tipping: TerminalConfigurationConfigurationResourceTipping!
 	object: String!
@@ -5580,38 +5805,24 @@ type TerminalConfigurationConfigurationResourceTipping {
 	cad: TerminalConfigurationConfigurationResourceCurrencySpecificConfig!
 	aud: TerminalConfigurationConfigurationResourceCurrencySpecificConfig!
 }
-type TerminalConfigurationDeletedConfiguration {
+type TerminalLocation {
 	object: String!
-	id: String!
-	deleted: Boolean!
-}
-type TerminalLocationDeletedLocation {
-	object: String!
-	id: String!
-	deleted: Boolean!
-}
-type TerminalLocationLocation {
-	object: String!
-	metadata: TerminalLocationLocationMetadata!
+	metadata: TerminalLocationMetadata!
 	livemode: Boolean!
 	id: String!
 	displayName: String!
 	configurationOverrides: String!
 	address: Address!
 }
-type TerminalLocationLocationMetadata {
+type TerminalLocationMetadata {
 }
-type TerminalReaderDeletedReader {
-	object: String!
-	id: String!
-	deleted: Boolean!
-}
-type TerminalReaderReader {
+union TerminalLocationUnion = TerminalLocation
+type TerminalReader {
 	status: String
 	serialNumber: String!
 	object: String!
-	metadata: TerminalReaderReaderMetadata!
-	location: TerminalLocationLocationUnion
+	metadata: TerminalReaderMetadata!
+	location: TerminalLocationUnion
 	livemode: Boolean!
 	label: String!
 	ipAddress: String
@@ -5620,7 +5831,7 @@ type TerminalReaderReader {
 	deviceSwVersion: String
 	action: TerminalReaderReaderResourceReaderActionUnion
 }
-type TerminalReaderReaderMetadata {
+type TerminalReaderMetadata {
 }
 type TerminalReaderReaderResourceCart {
 	total: Int!
@@ -5628,6 +5839,7 @@ type TerminalReaderReaderResourceCart {
 	lineItems: [TerminalReaderReaderResourceLineItem!]!
 	currency: String!
 }
+union TerminalReaderReaderResourceCartUnion = TerminalReaderReaderResourceCart
 type TerminalReaderReaderResourceLineItem {
 	quantity: Int!
 	description: String!
@@ -5654,6 +5866,7 @@ type TerminalReaderReaderResourceReaderAction {
 	failureMessage: String
 	failureCode: String
 }
+union TerminalReaderReaderResourceReaderActionUnion = TerminalReaderReaderResourceReaderAction
 type TerminalReaderReaderResourceSetReaderDisplayAction {
 	type: String!
 	cart: TerminalReaderReaderResourceCartUnion
@@ -5661,7 +5874,7 @@ type TerminalReaderReaderResourceSetReaderDisplayAction {
 type TerminalReaderReaderResourceTippingConfig {
 	amountEligible: Int!
 }
-type TestClock {
+type TestHelpersTestClock {
 	status: String!
 	object: String!
 	name: String
@@ -5671,15 +5884,18 @@ type TestClock {
 	deletesAfter: Int!
 	created: Int!
 }
+union TestHelpersTestClockUnion = TestHelpersTestClock
 type ThreeDSecureDetails {
 	version: String
 	resultReason: String
 	result: String
 	authenticationFlow: String
 }
+union ThreeDSecureDetailsUnion = ThreeDSecureDetails
 type ThreeDSecureUsage {
 	supported: Boolean!
 }
+union ThreeDSecureUsageUnion = ThreeDSecureUsage
 type Token {
 	used: Boolean!
 	type: String!
@@ -5734,6 +5950,7 @@ type TransferData {
 	destination: AccountUnion!
 	amount: Int!
 }
+union TransferDataUnion = TransferData
 type TransferMetadata {
 }
 type TransferReversal {
@@ -5750,6 +5967,8 @@ type TransferReversal {
 }
 type TransferReversalMetadata {
 }
+union TransferReversalOrTransferOrTopupOrTaxDeductedAtSourceOrReserveTransactionOrRefundOrPlatformTaxFeeOrPayoutOrIssuingTransactionOrIssuingDisputeOrIssuingAuthorizationOrFeeRefundOrDisputeOrConnectCollectionTransferOrChargeOrApplicationFeeUnion = TransferReversal | Transfer | Topup | TaxDeductedAtSource | ReserveTransaction | Refund | PlatformTaxFee | Payout | IssuingTransaction | IssuingDispute | IssuingAuthorization | FeeRefund | Dispute | ConnectCollectionTransfer | Charge | ApplicationFee
+union TransferReversalUnion = TransferReversal
 type TransferReversals {
 	url: String!
 	object: String!
@@ -5762,15 +5981,85 @@ type TransferSchedule {
 	interval: String!
 	delayDays: Int!
 }
+union TransferUnion = Transfer
 type TransformQuantity {
 	round: String!
 	divideBy: Int!
 }
+union TransformQuantityUnion = TransformQuantity
 type TransformUsage {
 	round: String!
 	divideBy: Int!
 }
-type TreasuryFinancialAccountsResourceABARecord {
+union TransformUsageUnion = TransformUsage
+type TreasuryCreditReversal {
+	transaction: TreasuryTransactionUnion
+	statusTransitions: TreasuryReceivedCreditsResourceStatusTransitions!
+	status: String!
+	receivedCredit: String!
+	object: String!
+	network: String!
+	metadata: TreasuryCreditReversalMetadata!
+	livemode: Boolean!
+	id: String!
+	hostedRegulatoryReceiptUrl: String
+	financialAccount: String!
+	currency: String!
+	created: Int!
+	amount: Int!
+}
+type TreasuryCreditReversalMetadata {
+}
+type TreasuryDebitReversal {
+	transaction: TreasuryTransactionUnion
+	statusTransitions: TreasuryReceivedDebitsResourceStatusTransitions!
+	status: String!
+	receivedDebit: String!
+	object: String!
+	network: String!
+	metadata: TreasuryDebitReversalMetadata!
+	livemode: Boolean!
+	linkedFlows: TreasuryReceivedDebitsResourceDebitReversalLinkedFlowsUnion
+	id: String!
+	hostedRegulatoryReceiptUrl: String
+	financialAccount: String
+	currency: String!
+	created: Int!
+	amount: Int!
+}
+type TreasuryDebitReversalMetadata {
+}
+type TreasuryFinancialAccount {
+	supportedCurrencies: [String!]!
+	statusDetails: TreasuryFinancialAccountsResourceStatusDetails!
+	status: String!
+	restrictedFeatures: [String!]!
+	platformRestrictions: TreasuryFinancialAccountsResourcePlatformRestrictionsUnion
+	pendingFeatures: [String!]!
+	object: String!
+	metadata: TreasuryFinancialAccountMetadata
+	livemode: Boolean!
+	id: String!
+	financialAddresses: [TreasuryFinancialAccountsResourceFinancialAddress!]!
+	features: TreasuryFinancialAccountFeatures!
+	created: Int!
+	country: String!
+	balance: TreasuryFinancialAccountsResourceBalance!
+	activeFeatures: [String!]!
+}
+type TreasuryFinancialAccountFeatures {
+	outboundTransfers: TreasuryFinancialAccountsResourceOutboundTransfers!
+	outboundPayments: TreasuryFinancialAccountsResourceOutboundPayments!
+	object: String!
+	intraStripeFlows: TreasuryFinancialAccountsResourceToggleSettings!
+	inboundTransfers: TreasuryFinancialAccountsResourceInboundTransfers!
+	financialAddresses: TreasuryFinancialAccountsResourceFinancialAddressesFeatures!
+	depositInsurance: TreasuryFinancialAccountsResourceToggleSettings!
+	cardIssuing: TreasuryFinancialAccountsResourceToggleSettings!
+}
+type TreasuryFinancialAccountMetadata {
+}
+type TreasuryFinancialAccountsResourceAbaRecord {
 	routingNumber: String!
 	bankName: String!
 	accountNumberLast4: String!
@@ -5796,40 +6085,11 @@ type TreasuryFinancialAccountsResourceBalanceOutboundPending {
 type TreasuryFinancialAccountsResourceClosedStatusDetails {
 	reasons: [String!]!
 }
-type TreasuryFinancialAccountsResourceFinancialAccount {
-	supportedCurrencies: [String!]!
-	statusDetails: TreasuryFinancialAccountsResourceStatusDetails!
-	status: String!
-	restrictedFeatures: [String!]!
-	platformRestrictions: TreasuryFinancialAccountsResourcePlatformRestrictionsUnion
-	pendingFeatures: [String!]!
-	object: String!
-	metadata: TreasuryFinancialAccountsResourceFinancialAccountMetadata
-	livemode: Boolean!
-	id: String!
-	financialAddresses: [TreasuryFinancialAccountsResourceFinancialAddress!]!
-	features: TreasuryFinancialAccountsResourceFinancialAccountFeatures!
-	created: Int!
-	country: String!
-	balance: TreasuryFinancialAccountsResourceBalance!
-	activeFeatures: [String!]!
-}
-type TreasuryFinancialAccountsResourceFinancialAccountFeatures {
-	outboundTransfers: TreasuryFinancialAccountsResourceOutboundTransfers!
-	outboundPayments: TreasuryFinancialAccountsResourceOutboundPayments!
-	object: String!
-	intraStripeFlows: TreasuryFinancialAccountsResourceToggleSettings!
-	inboundTransfers: TreasuryFinancialAccountsResourceInboundTransfers!
-	financialAddresses: TreasuryFinancialAccountsResourceFinancialAddressesFeatures!
-	depositInsurance: TreasuryFinancialAccountsResourceToggleSettings!
-	cardIssuing: TreasuryFinancialAccountsResourceToggleSettings!
-}
-type TreasuryFinancialAccountsResourceFinancialAccountMetadata {
-}
+union TreasuryFinancialAccountsResourceClosedStatusDetailsUnion = TreasuryFinancialAccountsResourceClosedStatusDetails
 type TreasuryFinancialAccountsResourceFinancialAddress {
 	type: String!
 	supportedNetworks: [String!]!
-	aba: TreasuryFinancialAccountsResourceABARecord!
+	aba: TreasuryFinancialAccountsResourceAbaRecord!
 }
 type TreasuryFinancialAccountsResourceFinancialAddressesFeatures {
 	aba: TreasuryFinancialAccountsResourceToggleSettings!
@@ -5849,6 +6109,7 @@ type TreasuryFinancialAccountsResourcePlatformRestrictions {
 	outboundFlows: String
 	inboundFlows: String
 }
+union TreasuryFinancialAccountsResourcePlatformRestrictionsUnion = TreasuryFinancialAccountsResourcePlatformRestrictions
 type TreasuryFinancialAccountsResourceStatusDetails {
 	closed: TreasuryFinancialAccountsResourceClosedStatusDetailsUnion
 }
@@ -5862,11 +6123,8 @@ type TreasuryFinancialAccountsResourceTogglesSettingStatusDetails {
 	resolution: String
 	code: String!
 }
-type TreasuryInboundTransfersResourceFailureDetails {
-	code: String!
-}
-type TreasuryInboundTransfersResourceInboundTransfer {
-	transaction: TreasuryTransactionsResourceTransactionUnion
+type TreasuryInboundTransfer {
+	transaction: TreasuryTransactionUnion
 	statusTransitions: TreasuryInboundTransfersResourceInboundTransferResourceStatusTransitions!
 	status: String!
 	statementDescriptor: String!
@@ -5874,7 +6132,7 @@ type TreasuryInboundTransfersResourceInboundTransfer {
 	originPaymentMethodDetails: InboundTransfersUnion
 	originPaymentMethod: String!
 	object: String!
-	metadata: TreasuryInboundTransfersResourceInboundTransferMetadata!
+	metadata: TreasuryInboundTransferMetadata!
 	livemode: Boolean!
 	linkedFlows: TreasuryInboundTransfersResourceInboundTransferResourceLinkedFlows!
 	id: String!
@@ -5887,8 +6145,12 @@ type TreasuryInboundTransfersResourceInboundTransfer {
 	cancelable: Boolean!
 	amount: Int!
 }
-type TreasuryInboundTransfersResourceInboundTransferMetadata {
+type TreasuryInboundTransferMetadata {
 }
+type TreasuryInboundTransfersResourceFailureDetails {
+	code: String!
+}
+union TreasuryInboundTransfersResourceFailureDetailsUnion = TreasuryInboundTransfersResourceFailureDetails
 type TreasuryInboundTransfersResourceInboundTransferResourceLinkedFlows {
 	receivedDebit: String
 }
@@ -5897,14 +6159,14 @@ type TreasuryInboundTransfersResourceInboundTransferResourceStatusTransitions {
 	failedAt: Int
 	canceledAt: Int
 }
-type TreasuryOutboundPaymentsResourceOutboundPayment {
-	transaction: TreasuryTransactionsResourceTransactionUnion!
+type TreasuryOutboundPayment {
+	transaction: TreasuryTransactionUnion!
 	statusTransitions: TreasuryOutboundPaymentsResourceOutboundPaymentResourceStatusTransitions!
 	status: String!
 	statementDescriptor: String!
 	returnedDetails: TreasuryOutboundPaymentsResourceReturnedStatusUnion
 	object: String!
-	metadata: TreasuryOutboundPaymentsResourceOutboundPaymentMetadata!
+	metadata: TreasuryOutboundPaymentMetadata!
 	livemode: Boolean!
 	id: String!
 	hostedRegulatoryReceiptUrl: String
@@ -5920,12 +6182,13 @@ type TreasuryOutboundPaymentsResourceOutboundPayment {
 	cancelable: Boolean!
 	amount: Int!
 }
-type TreasuryOutboundPaymentsResourceOutboundPaymentMetadata {
+type TreasuryOutboundPaymentMetadata {
 }
 type TreasuryOutboundPaymentsResourceOutboundPaymentResourceEndUserDetails {
 	present: Boolean!
 	ipAddress: String
 }
+union TreasuryOutboundPaymentsResourceOutboundPaymentResourceEndUserDetailsUnion = TreasuryOutboundPaymentsResourceOutboundPaymentResourceEndUserDetails
 type TreasuryOutboundPaymentsResourceOutboundPaymentResourceStatusTransitions {
 	returnedAt: Int
 	postedAt: Int
@@ -5933,17 +6196,18 @@ type TreasuryOutboundPaymentsResourceOutboundPaymentResourceStatusTransitions {
 	canceledAt: Int
 }
 type TreasuryOutboundPaymentsResourceReturnedStatus {
-	transaction: TreasuryTransactionsResourceTransactionUnion!
+	transaction: TreasuryTransactionUnion!
 	code: String!
 }
-type TreasuryOutboundTransfersResourceOutboundTransfer {
-	transaction: TreasuryTransactionsResourceTransactionUnion!
+union TreasuryOutboundPaymentsResourceReturnedStatusUnion = TreasuryOutboundPaymentsResourceReturnedStatus
+type TreasuryOutboundTransfer {
+	transaction: TreasuryTransactionUnion!
 	statusTransitions: TreasuryOutboundTransfersResourceStatusTransitions!
 	status: String!
 	statementDescriptor: String!
 	returnedDetails: TreasuryOutboundTransfersResourceReturnedDetailsUnion
 	object: String!
-	metadata: TreasuryOutboundTransfersResourceOutboundTransferMetadata!
+	metadata: TreasuryOutboundTransferMetadata!
 	livemode: Boolean!
 	id: String!
 	hostedRegulatoryReceiptUrl: String
@@ -5957,46 +6221,21 @@ type TreasuryOutboundTransfersResourceOutboundTransfer {
 	cancelable: Boolean!
 	amount: Int!
 }
-type TreasuryOutboundTransfersResourceOutboundTransferMetadata {
+type TreasuryOutboundTransferMetadata {
 }
 type TreasuryOutboundTransfersResourceReturnedDetails {
-	transaction: TreasuryTransactionsResourceTransactionUnion!
+	transaction: TreasuryTransactionUnion!
 	code: String!
 }
+union TreasuryOutboundTransfersResourceReturnedDetailsUnion = TreasuryOutboundTransfersResourceReturnedDetails
 type TreasuryOutboundTransfersResourceStatusTransitions {
 	returnedAt: Int
 	postedAt: Int
 	failedAt: Int
 	canceledAt: Int
 }
-type TreasuryReceivedCreditsResourceCreditReversal {
-	transaction: TreasuryTransactionsResourceTransactionUnion
-	statusTransitions: TreasuryReceivedCreditsResourceStatusTransitions!
-	status: String!
-	receivedCredit: String!
-	object: String!
-	network: String!
-	metadata: TreasuryReceivedCreditsResourceCreditReversalMetadata!
-	livemode: Boolean!
-	id: String!
-	hostedRegulatoryReceiptUrl: String
-	financialAccount: String!
-	currency: String!
-	created: Int!
-	amount: Int!
-}
-type TreasuryReceivedCreditsResourceCreditReversalMetadata {
-}
-type TreasuryReceivedCreditsResourceLinkedFlows {
-	sourceFlowType: String
-	sourceFlowDetails: TreasuryReceivedCreditsResourceSourceFlowsDetailsUnion
-	sourceFlow: String
-	issuingTransaction: String
-	issuingAuthorization: String
-	creditReversal: String
-}
-type TreasuryReceivedCreditsResourceReceivedCredit {
-	transaction: TreasuryTransactionsResourceTransactionUnion
+type TreasuryReceivedCredit {
+	transaction: TreasuryTransactionUnion
 	status: String!
 	reversalDetails: TreasuryReceivedCreditsResourceReversalDetailsUnion
 	object: String!
@@ -6013,49 +6252,31 @@ type TreasuryReceivedCreditsResourceReceivedCredit {
 	created: Int!
 	amount: Int!
 }
+type TreasuryReceivedCreditsResourceLinkedFlows {
+	sourceFlowType: String
+	sourceFlowDetails: TreasuryReceivedCreditsResourceSourceFlowsDetailsUnion
+	sourceFlow: String
+	issuingTransaction: String
+	issuingAuthorization: String
+	creditReversal: String
+}
 type TreasuryReceivedCreditsResourceReversalDetails {
 	restrictedReason: String
 	deadline: Int
 }
+union TreasuryReceivedCreditsResourceReversalDetailsUnion = TreasuryReceivedCreditsResourceReversalDetails
 type TreasuryReceivedCreditsResourceSourceFlowsDetails {
 	type: String!
 	payout: Payout!
-	outboundPayment: TreasuryOutboundPaymentsResourceOutboundPayment!
-	creditReversal: TreasuryReceivedCreditsResourceCreditReversal!
+	outboundPayment: TreasuryOutboundPayment!
+	creditReversal: TreasuryCreditReversal!
 }
+union TreasuryReceivedCreditsResourceSourceFlowsDetailsUnion = TreasuryReceivedCreditsResourceSourceFlowsDetails
 type TreasuryReceivedCreditsResourceStatusTransitions {
 	postedAt: Int
 }
-type TreasuryReceivedDebitsResourceDebitReversal {
-	transaction: TreasuryTransactionsResourceTransactionUnion
-	statusTransitions: TreasuryReceivedDebitsResourceStatusTransitions!
-	status: String!
-	receivedDebit: String!
-	object: String!
-	network: String!
-	metadata: TreasuryReceivedDebitsResourceDebitReversalMetadata!
-	livemode: Boolean!
-	linkedFlows: TreasuryReceivedDebitsResourceDebitReversalLinkedFlowsUnion
-	id: String!
-	hostedRegulatoryReceiptUrl: String
-	financialAccount: String
-	currency: String!
-	created: Int!
-	amount: Int!
-}
-type TreasuryReceivedDebitsResourceDebitReversalLinkedFlows {
-	issuingDispute: String
-}
-type TreasuryReceivedDebitsResourceDebitReversalMetadata {
-}
-type TreasuryReceivedDebitsResourceLinkedFlows {
-	issuingTransaction: String
-	issuingAuthorization: String
-	inboundTransfer: String
-	debitReversal: String
-}
-type TreasuryReceivedDebitsResourceReceivedDebit {
-	transaction: TreasuryTransactionsResourceTransactionUnion
+type TreasuryReceivedDebit {
+	transaction: TreasuryTransactionUnion
 	status: String!
 	reversalDetails: TreasuryReceivedDebitsResourceReversalDetailsUnion
 	object: String!
@@ -6072,10 +6293,21 @@ type TreasuryReceivedDebitsResourceReceivedDebit {
 	created: Int!
 	amount: Int!
 }
+type TreasuryReceivedDebitsResourceDebitReversalLinkedFlows {
+	issuingDispute: String
+}
+union TreasuryReceivedDebitsResourceDebitReversalLinkedFlowsUnion = TreasuryReceivedDebitsResourceDebitReversalLinkedFlows
+type TreasuryReceivedDebitsResourceLinkedFlows {
+	issuingTransaction: String
+	issuingAuthorization: String
+	inboundTransfer: String
+	debitReversal: String
+}
 type TreasuryReceivedDebitsResourceReversalDetails {
 	restrictedReason: String
 	deadline: Int
 }
+union TreasuryReceivedDebitsResourceReversalDetailsUnion = TreasuryReceivedDebitsResourceReversalDetails
 type TreasuryReceivedDebitsResourceStatusTransitions {
 	completedAt: Int
 }
@@ -6085,39 +6317,19 @@ type TreasurySharedResourceBillingDetails {
 	address: Address!
 }
 type TreasurySharedResourceInitiatingPaymentMethodDetailsInitiatingPaymentMethodDetails {
-	usBankAccount: TreasurySharedResourceInitiatingPaymentMethodDetailsUSBankAccount!
+	usBankAccount: TreasurySharedResourceInitiatingPaymentMethodDetailsUsBankAccount!
 	type: String!
 	issuingCard: String!
 	financialAccount: ReceivedPaymentMethodDetailsFinancialAccount!
 	billingDetails: TreasurySharedResourceBillingDetails!
 	balance: String!
 }
-type TreasurySharedResourceInitiatingPaymentMethodDetailsUSBankAccount {
+type TreasurySharedResourceInitiatingPaymentMethodDetailsUsBankAccount {
 	routingNumber: String
 	last4: String
 	bankName: String
 }
-type TreasuryTransactionsResourceAbstractTransactionResourceStatusTransitions {
-	voidAt: Int
-	postedAt: Int
-}
-type TreasuryTransactionsResourceBalanceImpact {
-	outboundPending: Int!
-	inboundPending: Int!
-	cash: Int!
-}
-type TreasuryTransactionsResourceFlowDetails {
-	type: String!
-	receivedDebit: TreasuryReceivedDebitsResourceReceivedDebit!
-	receivedCredit: TreasuryReceivedCreditsResourceReceivedCredit!
-	outboundTransfer: TreasuryOutboundTransfersResourceOutboundTransfer!
-	outboundPayment: TreasuryOutboundPaymentsResourceOutboundPayment!
-	issuingAuthorization: IssuingAuthorization!
-	inboundTransfer: TreasuryInboundTransfersResourceInboundTransfer!
-	debitReversal: TreasuryReceivedDebitsResourceDebitReversal!
-	creditReversal: TreasuryReceivedCreditsResourceCreditReversal!
-}
-type TreasuryTransactionsResourceTransaction {
+type TreasuryTransaction {
 	statusTransitions: TreasuryTransactionsResourceAbstractTransactionResourceStatusTransitions!
 	status: String!
 	object: String!
@@ -6127,22 +6339,22 @@ type TreasuryTransactionsResourceTransaction {
 	flowDetails: TreasuryTransactionsResourceFlowDetailsUnion
 	flow: String
 	financialAccount: String!
-	entries: TreasuryTransactionsResourceTransactionEntries
+	entries: TreasuryTransactionEntries
 	description: String!
 	currency: String!
 	created: Int!
 	balanceImpact: TreasuryTransactionsResourceBalanceImpact!
 	amount: Int!
 }
-type TreasuryTransactionsResourceTransactionEntries {
+type TreasuryTransactionEntries {
 	url: String!
 	object: String!
 	hasMore: Boolean!
-	data: [TreasuryTransactionsResourceTransactionEntry!]!
+	data: [TreasuryTransactionEntry!]!
 }
-type TreasuryTransactionsResourceTransactionEntry {
+type TreasuryTransactionEntry {
 	type: String!
-	transaction: TreasuryTransactionsResourceTransactionUnion!
+	transaction: TreasuryTransactionUnion!
 	object: String!
 	livemode: Boolean!
 	id: String!
@@ -6155,10 +6367,33 @@ type TreasuryTransactionsResourceTransactionEntry {
 	created: Int!
 	balanceImpact: TreasuryTransactionsResourceBalanceImpact!
 }
+union TreasuryTransactionUnion = TreasuryTransaction
+type TreasuryTransactionsResourceAbstractTransactionResourceStatusTransitions {
+	voidAt: Int
+	postedAt: Int
+}
+type TreasuryTransactionsResourceBalanceImpact {
+	outboundPending: Int!
+	inboundPending: Int!
+	cash: Int!
+}
+type TreasuryTransactionsResourceFlowDetails {
+	type: String!
+	receivedDebit: TreasuryReceivedDebit!
+	receivedCredit: TreasuryReceivedCredit!
+	outboundTransfer: TreasuryOutboundTransfer!
+	outboundPayment: TreasuryOutboundPayment!
+	issuingAuthorization: IssuingAuthorization!
+	inboundTransfer: TreasuryInboundTransfer!
+	debitReversal: TreasuryDebitReversal!
+	creditReversal: TreasuryCreditReversal!
+}
+union TreasuryTransactionsResourceFlowDetailsUnion = TreasuryTransactionsResourceFlowDetails
 type UsBankAccountNetworks {
 	supported: [String!]!
 	preferred: String
 }
+union UsBankAccountNetworksUnion = UsBankAccountNetworks
 type UsageRecordSummary {
 	totalUsage: Int!
 	subscriptionItem: String!
@@ -6170,6 +6405,23 @@ type UsageRecordSummary {
 }
 type VerificationSessionRedaction {
 	status: String!
+}
+union VerificationSessionRedactionUnion = VerificationSessionRedaction
+type WebhookEndpoint {
+	url: String!
+	status: String!
+	secret: String!
+	object: String!
+	metadata: WebhookEndpointMetadata!
+	livemode: Boolean!
+	id: String!
+	enabledEvents: [String!]!
+	description: String
+	created: Int!
+	application: String
+	apiVersion: String
+}
+type WebhookEndpointMetadata {
 }
 schema {
 	query: Query

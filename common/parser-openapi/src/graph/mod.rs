@@ -10,17 +10,18 @@ pub use query_types::{OutputType, QueryOperation};
 /// A graph representation of an OpenApi schema.
 ///
 /// Can be queried to determine what resources are linked to what models etc.
-#[derive(Default)]
 pub struct OpenApiGraph {
     graph: Graph<Node, Edge>,
     operation_indices: Vec<NodeIndex>,
+    pub metadata: crate::ApiMetadata,
 }
 
 impl OpenApiGraph {
-    pub fn new(parsed: crate::parsing::Context) -> Self {
+    pub fn new(parsed: crate::parsing::Context, metadata: crate::ApiMetadata) -> Self {
         OpenApiGraph {
             graph: parsed.graph,
             operation_indices: parsed.operation_indices,
+            metadata,
         }
     }
 }
@@ -84,13 +85,6 @@ impl Node {
     fn as_operation(&self) -> Option<&OperationDetails> {
         match self {
             Node::Operation(op) => Some(op),
-            _ => None,
-        }
-    }
-
-    fn as_object(&self) -> Option<()> {
-        match self {
-            Node::Object => Some(()),
             _ => None,
         }
     }

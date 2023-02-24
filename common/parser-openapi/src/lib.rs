@@ -8,17 +8,27 @@ mod graph;
 mod output;
 mod parsing;
 
-pub fn parse_spec(data: &str, format: Format, registry: &mut Registry) -> Result<(), Vec<Error>> {
+pub fn parse_spec(
+    data: &str,
+    format: Format,
+    metadata: ApiMetadata,
+    registry: &mut Registry,
+) -> Result<(), Vec<Error>> {
     let spec = match format {
         Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
         Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
 
-    let graph = OpenApiGraph::new(parsing::parse(spec)?);
+    let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata);
 
     output::output(&graph, registry);
 
     Ok(())
+}
+
+pub struct ApiMetadata {
+    pub name: String,
+    pub url: Url,
 }
 
 pub enum Format {
@@ -109,9 +119,16 @@ mod tests {
 
         let mut registry = default_registry();
 
-        parse_spec(&spec, Format::Json, &mut registry).unwrap();
+        parse_spec(&spec, Format::Json, metadata(), &mut registry).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
+    }
+
+    fn metadata() -> ApiMetadata {
+        ApiMetadata {
+            name: "example".into(),
+            url: Url::parse("http://example.com").unwrap(),
+        }
     }
 
     fn default_registry() -> Registry {

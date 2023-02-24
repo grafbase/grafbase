@@ -1,9 +1,12 @@
-use case::CaseExt;
 use dynaql::{
     indexmap::IndexMap,
-    registry::{MetaField, MetaType, Registry},
+    registry::{
+        resolvers::{context_data::ContextDataResolver, http::HttpResolver, Resolver, ResolverType},
+        MetaField, MetaType, Registry,
+    },
     CacheControl,
 };
+use inflector::Inflector;
 
 use crate::graph::{OpenApiGraph, OutputType, QueryOperation, WrappingType};
 
@@ -31,27 +34,39 @@ pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
 impl OutputType {
     fn as_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
-
-        Some(MetaType::Object {
-            name: name.clone(),
-            description: None,
-            fields: self
-                .fields(graph)
-                .into_iter()
-                .map(|field| (field.graphql_name(), field.as_meta_field()))
-                .collect(),
-            cache_control: CacheControl {
-                public: true,
-                max_age: 0,
-            },
-            extends: false,
-            keys: None,
-            visible: None,
-            is_subscription: false,
-            is_node: false,
-            rust_typename: name,
-            constraints: vec![],
-        })
+        match self {
+            OutputType::Object(_) => Some(MetaType::Object {
+                name: name.clone(),
+                description: None,
+                fields: self
+                    .fields(graph)
+                    .into_iter()
+                    .map(|field| (field.graphql_name(), field.as_meta_field()))
+                    .collect(),
+                cache_control: CacheControl {
+                    public: true,
+                    max_age: 0,
+                },
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: name,
+                constraints: vec![],
+            }),
+            OutputType::Union(_) => Some(MetaType::Union {
+                name: name.clone(),
+                description: None,
+                possible_types: self
+                    .possible_types(graph)
+                    .into_iter()
+                    .filter_map(|ty| ty.name(graph))
+                    .collect(),
+                visible: None,
+                rust_typename: name,
+            }),
+        }
     }
 }
 
@@ -66,12 +81,23 @@ impl Field {
     }
 
     pub fn graphql_name(&self) -> String {
-        self.api_name.to_camel_lowercase()
+        self.api_name.to_camel_case()
     }
 
     fn as_meta_field(&self) -> MetaField {
         let name = self.graphql_name();
-        meta_field(name, self.ty.to_string())
+
+        let resolve = Some(Resolver {
+            id: None,
+            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                key: self.api_name.clone(),
+            }),
+        });
+
+        MetaField {
+            resolve,
+            ..meta_field(name, self.ty.to_string())
+        }
     }
 }
 
@@ -103,7 +129,17 @@ impl std::fmt::Display for FieldType {
 
 impl QueryOperation {
     fn as_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
-        Some(meta_field(self.name(graph)?.to_string(), self.ty(graph)?.to_string()))
+        Some(MetaField {
+            resolve: Some(Resolver {
+                id: None,
+                r#type: ResolverType::Http(HttpResolver {
+                    method: "GET".to_string(),
+                    url: self.url(graph)?.to_string(),
+                    api_name: graph.metadata.name.clone(),
+                }),
+            }),
+            ..meta_field(self.name(graph)?.to_string(), self.ty(graph)?.to_string())
+        })
     }
 }
 
