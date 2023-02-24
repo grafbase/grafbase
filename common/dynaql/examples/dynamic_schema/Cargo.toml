@@ -11,5 +11,5 @@ async-graphql = { path = "../../../dynaql", features = ["tracing_worker"] }
 aws-region-nearby = { workspace = true }
 log = { path = "../../../log" }
 dynamodb = { path = "../../../dynamodb" }
-worker = "0.0.12"
+worker = "0.0.13"
 serde_json = { workspace = true }
