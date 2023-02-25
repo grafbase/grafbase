@@ -78,6 +78,8 @@ pub struct DynamoDBContext {
     pub dynamodb_client: rusoto_dynamodb::DynamoDbClient,
     pub dynamodb_table_name: String,
     pub closest_region: rusoto_core::Region,
+    // FIXME: Move this to `grafbase-runtime`!
+    pub resolver_binding_map: std::collections::HashMap<String, String>,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -201,6 +203,8 @@ impl DynamoDBContext {
         dynamodb_table_name: String,
         latitude: f32,
         longitude: f32,
+        // FIXME: Move this to `grafbase-runtime`!
+        resolver_binding_map: std::collections::HashMap<String, String>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
         let closest_region: rusoto_core::Region =
@@ -225,6 +229,7 @@ impl DynamoDBContext {
             dynamodb_client: client,
             dynamodb_table_name,
             closest_region,
+            resolver_binding_map,
         }
     }
 
@@ -292,7 +297,7 @@ impl DynamoDBBatchersData {
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone()),
             query_single_relation: get_loader_single_relation_query(Arc::clone(ctx), DynamoDBRequestedIndex::None),
-            custom_resolvers: get_custom_resolvers(),
+            custom_resolvers: get_custom_resolvers(Arc::clone(ctx)),
         })
     }
 }

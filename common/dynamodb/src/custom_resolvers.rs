@@ -1,3 +1,6 @@
+use crate::DynamoDBContext;
+use std::sync::Arc;
+
 pub struct CustomResolvers;
 
 #[derive(Debug, Clone, thiserror::Error)]
@@ -16,6 +19,6 @@ impl CustomResolvers {
     }
 }
 
-pub fn get_custom_resolvers() -> CustomResolvers {
+pub fn get_custom_resolvers(_ctx: Arc<DynamoDBContext>) -> CustomResolvers {
     CustomResolvers
 }
