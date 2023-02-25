@@ -193,7 +193,7 @@ impl DynamoDBContext {
     /// * `dynamodb_table_name` - The DynamoDB TableName.
     /// * `latitude` - Request latitude, to locate the closest region
     /// * `longitude` - Request longitude, to locate the closest region
-    #[cfg_attr(feature = "local", allow(clippy::too_many_arguments))]
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         // TODO: This should go away with tracing.
         trace_id: String,
