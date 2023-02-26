@@ -82,6 +82,7 @@ pub struct CustomerDeploymentConfig {
     /// Grafbase project ID this deployment belongs to
     pub project_id: String,
     /// Resolver service names
+    #[serde(default)]
     pub resolver_bindings: std::collections::HashMap<String, String>,
     #[serde(default)]
     /// Customer's dedicated subdomain
