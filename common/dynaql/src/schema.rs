@@ -293,6 +293,7 @@ impl Schema {
             federation_subscription: false,
             schemas: Default::default(),
             auth: Default::default(),
+            http_headers: Default::default(),
         };
 
         registry.add_directive(MetaDirective {
@@ -386,6 +387,7 @@ impl Schema {
             federation_subscription: false,
             schemas: Default::default(),
             auth: Default::default(),
+            http_headers: Default::default(),
         };
 
         registry.add_directive(MetaDirective {

@@ -1243,6 +1243,8 @@ pub struct Registry {
     /// Every schema is stored here and every references for a schema is inside a [`SchemaID`].
     #[serde(with = "vectorize", default)]
     pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
+    #[serde(default)]
+    pub http_headers: BTreeMap<String, Vec<(String, String)>>,
 }
 
 pub mod vectorize {

@@ -1005,6 +1005,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 ResolverType::CustomResolver(_) => Ok(LogicalPlanBuilder::empty()),
                 ResolverType::Composition(_) => Ok(LogicalPlanBuilder::empty()),
                 ResolverType::Query(_) => Ok(LogicalPlanBuilder::empty()),
+                ResolverType::Http(_) => Ok(LogicalPlanBuilder::empty()),
             }
             .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
             .build());

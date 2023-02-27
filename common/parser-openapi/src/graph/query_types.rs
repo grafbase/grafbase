@@ -1,19 +1,23 @@
-use case::CaseExt;
+use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,
     visit::{Dfs, EdgeFiltered, EdgeRef, Reversed, Walker},
 };
+use url::Url;
 
 use crate::{
     is_ok,
     output::{Field, FieldType},
-    parsing::operations::Verb,
+    parsing::operations::{OperationDetails, Verb},
 };
 
-use super::{Edge, ScalarKind};
+use super::{Edge, Node, ScalarKind};
 
-#[derive(Clone, Copy)]
-pub struct OutputType(NodeIndex);
+#[derive(Clone, Copy, Debug)]
+pub enum OutputType {
+    Object(NodeIndex),
+    Union(NodeIndex),
+}
 
 #[derive(Clone, Copy)]
 pub struct QueryOperation(NodeIndex);
@@ -25,7 +29,7 @@ impl super::OpenApiGraph {
         dfs.stack = self.query_operations().into_iter().map(|op| op.0).collect();
 
         dfs.iter(&self.graph)
-            .filter_map(|idx| self.graph[idx].as_object().map(|_| OutputType(idx)))
+            .filter_map(|idx| OutputType::from_index(idx, self))
     }
 
     /// Gets all the QueryOperations we'll need in the eventual schema
@@ -92,7 +96,7 @@ impl super::OpenApiGraph {
                 name_components.push(root_name.as_str());
 
                 name_components.reverse();
-                Some(name_components.join("_").to_camel())
+                Some(name_components.join("_").to_pascal_case())
             }
             super::Node::Scalar(kind) => Some(kind.type_name()),
             super::Node::Union => {
@@ -103,7 +107,7 @@ impl super::OpenApiGraph {
                     .graph
                     .edges(node)
                     .filter_map(|edge| match edge.weight() {
-                        Edge::HasUnionMember => self.graph[edge.target()].name(),
+                        Edge::HasUnionMember => OutputType::from_index(edge.target(), self)?.name(self),
                         _ => None,
                     })
                     .collect::<Vec<_>>()
@@ -117,13 +121,13 @@ impl super::OpenApiGraph {
 
 impl OutputType {
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<String> {
-        graph.type_name(self.0)
+        graph.type_name(self.index())
     }
 
     pub fn fields(self, graph: &super::OpenApiGraph) -> Vec<Field> {
         graph
             .graph
-            .edges(self.0)
+            .edges(self.index())
             .filter_map(|edge| match edge.weight() {
                 super::Edge::HasField { name, wrapping } => Some(Field::new(
                     name.clone(),
@@ -133,12 +137,56 @@ impl OutputType {
             })
             .collect()
     }
+
+    pub fn possible_types(self, graph: &super::OpenApiGraph) -> Vec<OutputType> {
+        graph
+            .graph
+            .edges(self.index())
+            .filter_map(|edge| match edge.weight() {
+                super::Edge::HasUnionMember => OutputType::from_index(edge.target(), graph),
+                _ => None,
+            })
+            .collect()
+    }
+
+    fn index(self) -> NodeIndex {
+        match self {
+            OutputType::Object(idx) | OutputType::Union(idx) => idx,
+        }
+    }
+
+    fn from_index(idx: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
+        match graph.graph[idx] {
+            Node::Object => Some(OutputType::Object(idx)),
+            Node::Union => Some(OutputType::Union(idx)),
+            Node::Schema(_) => {
+                let inner_index = graph
+                    .graph
+                    .edges(idx)
+                    .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))?
+                    .target();
+
+                OutputType::from_index(inner_index, graph)
+            }
+            _ => None,
+        }
+    }
 }
 
 impl QueryOperation {
+    pub fn url(self, graph: &super::OpenApiGraph) -> Option<Url> {
+        let path = &self.details(graph)?.path;
+
+        graph.metadata.url.join(path).ok()
+    }
+
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
+        Some(OperationName(self.details(graph)?.operation_id.clone()?))
+    }
+
+    fn details(self, graph: &super::OpenApiGraph) -> Option<&OperationDetails> {
         match &graph.graph[self.0] {
-            super::Node::Operation(op) => Some(OperationName(op.operation_id.clone()?)),
+            super::Node::Operation(op) => Some(op),
             _ => None,
         }
     }
@@ -162,14 +210,7 @@ pub struct OperationName(String);
 
 impl std::fmt::Display for OperationName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = self.0.to_camel_lowercase();
-
-        // Now actually lowercase the first letter since the above doesn't do that :|
-        let mut chars = name.chars();
-        let name = match chars.next() {
-            None => String::new(),
-            Some(c) => c.to_lowercase().collect::<String>() + chars.as_str(),
-        };
+        let name = self.0.to_camel_case();
 
         write!(f, "{name}")
     }
@@ -182,13 +223,18 @@ impl super::Node {
     fn name(&self) -> Option<String> {
         match self {
             super::Node::Schema(schema) => Some(
+                // There's a title property that we _could_ use for a name, but the spec doesn't
+                // enforce that it's unique and (certainly in stripes case) it is not.
+                // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+                // which stripe use or the name of the schema in components.
                 schema
                     .openapi
                     .schema_data
-                    .title
-                    .as_ref()
-                    .unwrap_or(&schema.openapi_name)
-                    .to_camel(),
+                    .extensions
+                    .get("x-resourceId")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(schema.openapi_name.as_str())
+                    .to_pascal_case(),
             ),
             super::Node::Operation(op) => op.operation_id.clone(),
             _ => None,

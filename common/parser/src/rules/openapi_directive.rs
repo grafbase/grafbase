@@ -1,3 +1,5 @@
+use url::Url;
+
 use crate::directive_de::parse_directive;
 
 use super::{directive::Directive, visitor::Visitor};
@@ -5,9 +7,10 @@ use super::{directive::Directive, visitor::Visitor};
 #[derive(Debug, serde::Deserialize)]
 pub struct OpenApiDirective {
     pub name: String,
-    pub url: String,
+    pub url: Url,
     #[serde(rename = "schema")]
     pub schema_url: String,
+    #[serde(default)]
     pub headers: Vec<Header>,
 }
 
@@ -92,7 +95,21 @@ mod tests {
         [
             OpenApiDirective {
                 name: "stripe",
-                url: "https://api.stripe.com",
+                url: Url {
+                    scheme: "https",
+                    cannot_be_a_base: false,
+                    username: "",
+                    password: None,
+                    host: Some(
+                        Domain(
+                            "api.stripe.com",
+                        ),
+                    ),
+                    port: None,
+                    path: "/",
+                    query: None,
+                    fragment: None,
+                },
                 schema_url: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [
                     Header {

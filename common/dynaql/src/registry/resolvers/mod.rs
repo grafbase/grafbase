@@ -31,6 +31,7 @@ pub mod custom;
 pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
+pub mod http;
 pub mod query;
 
 /// Resolver declarative struct to assign a Resolver for a Field.
@@ -336,6 +337,11 @@ impl ResolverType {
                 }
                 Ok(current)
             }
+            ResolverType::Http(resolver) => {
+                resolver
+                    .resolve(ctx, resolver_ctx, last_resolver_value)
+                    .await
+            }
         }
     }
 }
@@ -350,6 +356,7 @@ pub enum ResolverType {
     DebugResolver(DebugResolver),
     CustomResolver(CustomResolver),
     Composition(Vec<ResolverType>),
+    Http(http::HttpResolver),
 }
 
 impl Constraint {
