@@ -1,11 +1,12 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, DOT_ENV_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
-    SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, DOT_ENV_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
+    SCHEMA_PARSER_INDEX,
 };
 use crate::event::{wait_for_event, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
+use common::consts::EPHEMERAL_PORT_RANGE;
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
@@ -186,7 +187,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
 
     let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {
         false
-    } else if environment.user_dot_grafbase_path.is_dir() {
+    } else if version_path.exists() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
         current_version != asset_version

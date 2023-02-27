@@ -17,6 +17,7 @@ clap = { version = "4", features = ["cargo", "wrap_help"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
+indicatif = "0.17"
 exitcode = "1"
 hex-literal = "0.3"
 indoc = "2"
@@ -27,8 +28,10 @@ serde = "1"
 serde_derive = "1"
 thiserror = "1"
 toml = "0.7"
+tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+webbrowser = "0.8"
 
 backend = { package = "grafbase-local-backend", path = "../backend", version = "0.17.0" }
 common = { package = "grafbase-local-common", path = "../common", version = "0.17.0" }
