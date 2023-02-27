@@ -16,8 +16,8 @@
 		"@sveltejs/kit": "^1.5.6",
 		"@sveltejs/package": "^1.0.0",
 		"graphql": "^15.8.0",
-		"houdini-svelte": "^1.0.5",
 		"houdini": "^1.0.5",
+		"houdini-svelte": "^1.0.5",
 		"prettier": "^2.8.0",
 		"prettier-plugin-svelte": "^2.8.1",
 		"svelte": "^3.54.0",
@@ -30,6 +30,7 @@
 	"dependencies": {
 		"@zerodevx/svelte-toast": "^0.8.2",
 		"dotenv": "^10.0.0",
+		"jose": "^4.12.2",
 		"jsonpatch": "^3.1.0",
 		"reconnecting-eventsource": "^1.6.2",
 		"svelte-themes": "^0.0.98"

@@ -1,21 +1,12 @@
 schema
-  @auth(
-    providers: [
-      {
-        type: jwt
-        issuer: "{{ env.ISSUER_URL }}"
-        secret: "{{ env.JWT_SECRET }}"
-      }
-    ]
-    rules: [
-      { allow: private }
-    ]
-  ) {
-  query: Query
+	@auth(
+		providers: [{ type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" }]
+		rules: [{ allow: private }]
+	) {
+	query: Query
 }
 
 type Message @model {
-  id: ID!
-  author: String!
-  message: String!
+	author: String!
+	message: String!
 }

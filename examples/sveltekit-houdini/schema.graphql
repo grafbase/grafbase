@@ -21,24 +21,73 @@ For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-0
 """
 scalar DateTime
 
+type Message {
+  author: String!
+
+  """when the model was created"""
+  createdAt: DateTime!
+
+  """Unique identifier"""
+  id: ID!
+  message: String!
+
+  """when the model was updated"""
+  updatedAt: DateTime!
+}
+
+input MessageByInput {
+  id: ID
+}
+
+type MessageConnection {
+  edges: [MessageEdge]
+
+  """Information to aid in pagination"""
+  pageInfo: PageInfo!
+}
+
+"""Input to create a Message"""
+input MessageCreateInput {
+  author: String!
+  message: String!
+}
+
+type MessageCreatePayload {
+  message: Message
+}
+
+type MessageDeletePayload {
+  deletedId: ID!
+}
+
+type MessageEdge {
+  cursor: String!
+  node: Message!
+}
+
+input MessageOrderByInput {
+  createdAt: OrderByDirection
+}
+
+"""Input to update a Message"""
+input MessageUpdateInput {
+  author: String
+  message: String
+}
+
+type MessageUpdatePayload {
+  message: Message
+}
+
 type Mutation {
-  """Create a Todo"""
-  todoCreate(input: TodoCreateInput!): TodoCreatePayload
+  """Create a Message"""
+  messageCreate(input: MessageCreateInput!): MessageCreatePayload
 
-  """Delete a Todo by ID or unique field"""
-  todoDelete(by: TodoByInput!): TodoDeletePayload
+  """Delete a Message by ID or unique field"""
+  messageDelete(by: MessageByInput!): MessageDeletePayload
 
-  """Create a TodoList"""
-  todoListCreate(input: TodoListCreateInput!): TodoListCreatePayload
-
-  """Delete a TodoList by ID or unique field"""
-  todoListDelete(by: TodoListByInput!): TodoListDeletePayload
-
-  """Update a TodoList"""
-  todoListUpdate(by: TodoListByInput!, input: TodoListUpdateInput!): TodoListUpdatePayload
-
-  """Update a Todo"""
-  todoUpdate(by: TodoByInput!, input: TodoUpdateInput!): TodoUpdatePayload
+  """Update a Message"""
+  messageUpdate(by: MessageByInput!, input: MessageUpdateInput!): MessageUpdatePayload
 }
 
 enum OrderByDirection {
@@ -54,185 +103,12 @@ type PageInfo {
 }
 
 type Query {
-  """Query a single Todo by an ID or a unique field"""
-  todo(
-    """The field and value by which to query the Todo"""
-    by: TodoByInput!
-  ): Todo
+  """Query a single Message by an ID or a unique field"""
+  message(
+    """The field and value by which to query the Message"""
+    by: MessageByInput!
+  ): Message
 
-  """Paginated query to fetch the whole list of `Todo`."""
-  todoCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoOrderByInput): TodoConnection
-
-  """Query a single TodoList by an ID or a unique field"""
-  todoList(
-    """The field and value by which to query the TodoList"""
-    by: TodoListByInput!
-  ): TodoList
-
-  """Paginated query to fetch the whole list of `TodoList`."""
-  todoListCollection(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoListConnection
-}
-
-type Todo {
-  complete: Boolean!
-
-  """when the model was created"""
-  createdAt: DateTime!
-
-  """Unique identifier"""
-  id: ID!
-  list: TodoList
-  title: String!
-
-  """when the model was updated"""
-  updatedAt: DateTime!
-}
-
-input TodoByInput {
-  id: ID
-}
-
-type TodoConnection {
-  edges: [TodoEdge]
-
-  """Information to aid in pagination"""
-  pageInfo: PageInfo!
-}
-
-"""Input to create a Todo"""
-input TodoCreateInput {
-  complete: Boolean!
-  list: TodoToTodoListCreateTodoListRelation
-  title: String!
-}
-
-type TodoCreatePayload {
-  todo: Todo
-}
-
-type TodoDeletePayload {
-  deletedId: ID!
-}
-
-type TodoEdge {
-  cursor: String!
-  node: Todo!
-}
-
-type TodoList {
-  """when the model was created"""
-  createdAt: DateTime!
-
-  """Unique identifier"""
-  id: ID!
-  title: String!
-  todos(after: String, before: String, first: Int, last: Int, orderBy: TodoListOrderByInput): TodoConnection
-
-  """when the model was updated"""
-  updatedAt: DateTime!
-}
-
-input TodoListByInput {
-  id: ID
-}
-
-type TodoListConnection {
-  edges: [TodoListEdge]
-
-  """Information to aid in pagination"""
-  pageInfo: PageInfo!
-}
-
-"""Input to create a TodoList"""
-input TodoListCreateInput {
-  title: String!
-  todos: [TodoToTodoListCreateTodoRelation]
-}
-
-type TodoListCreatePayload {
-  todoList: TodoList
-}
-
-type TodoListDeletePayload {
-  deletedId: ID!
-}
-
-type TodoListEdge {
-  cursor: String!
-  node: TodoList!
-}
-
-input TodoListOrderByInput {
-  createdAt: OrderByDirection
-}
-
-"""Input to update a TodoList"""
-input TodoListUpdateInput {
-  title: String
-  todos: [TodoToTodoListUpdateTodoRelation]
-}
-
-type TodoListUpdatePayload {
-  todoList: TodoList
-}
-
-input TodoOrderByInput {
-  createdAt: OrderByDirection
-}
-
-"""Input to create a Todo for the TodoToTodoList relation of TodoList"""
-input TodoToTodoListCreateTodo {
-  complete: Boolean!
-  title: String!
-}
-
-"""Input to create a TodoList for the TodoToTodoList relation of Todo"""
-input TodoToTodoListCreateTodoList {
-  title: String!
-  todos: [TodoToTodoListCreateTodoRelation]
-}
-
-"""
-Input to link to or create a TodoList for the TodoToTodoList relation of Todo
-"""
-input TodoToTodoListCreateTodoListRelation {
-  create: TodoToTodoListCreateTodoList
-  link: ID
-}
-
-"""
-Input to link to or create a Todo for the TodoToTodoList relation of TodoList
-"""
-input TodoToTodoListCreateTodoRelation {
-  create: TodoToTodoListCreateTodo
-  link: ID
-}
-
-"""
-Input to link/unlink to or create a TodoList for the TodoToTodoList relation of Todo
-"""
-input TodoToTodoListUpdateTodoListRelation {
-  create: TodoToTodoListCreateTodoList
-  link: ID
-  unlink: ID
-}
-
-"""
-Input to link/unlink to or create a Todo for the TodoToTodoList relation of TodoList
-"""
-input TodoToTodoListUpdateTodoRelation {
-  create: TodoToTodoListCreateTodo
-  link: ID
-  unlink: ID
-}
-
-"""Input to update a Todo"""
-input TodoUpdateInput {
-  complete: Boolean
-  list: TodoToTodoListUpdateTodoListRelation
-  title: String
-}
-
-type TodoUpdatePayload {
-  todo: Todo
+  """Paginated query to fetch the whole list of `Message`."""
+  messageCollection(after: String, before: String, first: Int, last: Int, orderBy: MessageOrderByInput): MessageConnection
 }

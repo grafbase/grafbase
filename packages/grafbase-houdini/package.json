@@ -32,6 +32,7 @@
     }
   },
   "dependencies": {
+    "@grafbase/houdini": "^1.0.0",
     "houdini": "^1.0.4",
     "jsonpatch": "^3.1.0",
     "reconnecting-eventsource": "1.6.2"

@@ -1,5 +1,5 @@
-query GetAllMessages($first: Int!) @live {
-	messageCollection(first: $first) {
+query GetAllMessages @live {
+	messageCollection(first: 100) {
 		edges {
 			node {
 				id
