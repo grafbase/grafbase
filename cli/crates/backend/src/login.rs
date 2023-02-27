@@ -33,7 +33,7 @@ struct TokenQueryParams {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Credentials<'a> {
-    token: &'a str,
+    access_token: &'a str,
 }
 
 impl<'a> ToString for Credentials<'a> {
@@ -49,11 +49,11 @@ async fn token<'a>(
     }): State<LoginApiState>,
     query: Query<TokenQueryParams>,
 ) -> Result<Redirect, Redirect> {
-    let token = &query.token;
+    let access_token = &query.token;
 
     let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
 
-    let write_result = tokio::fs::write(&credentials_path, Credentials { token }.to_string()).await;
+    let write_result = tokio::fs::write(&credentials_path, Credentials { access_token }.to_string()).await;
 
     if write_result.is_ok() {
         // the current connection will still be redirected before closing the server
