@@ -50,6 +50,8 @@
             rustToolChain
             sccache
 
+            cargo-nextest
+
             # Miniflare
             nodejs
 
