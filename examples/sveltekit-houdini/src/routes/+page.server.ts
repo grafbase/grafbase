@@ -1,6 +1,7 @@
 import type { Actions } from './$types';
-
+import { fail } from '@sveltejs/kit';
 import { SignJWT } from 'jose';
+import { graphql } from '$houdini';
 
 const issuerUrl = 'https://grafbase.com';
 
@@ -17,7 +18,7 @@ const getToken = (role: string) => {
 };
 
 export const actions = {
-	default: async ({ cookies, request }) => {
+	auth: async ({ cookies, request }) => {
 		const data = await request.formData();
 		const role = data.get('role');
 
@@ -26,5 +27,34 @@ export const actions = {
 		}
 
 		return { success: true };
+	},
+	add: async (event) => {
+		const data = await event.request.formData();
+
+		const author = data.get('author')?.toString();
+		const message = data.get('message')?.toString();
+
+		if (!author) {
+			return fail(403, { author: '*' });
+		}
+
+		if (!message) {
+			return fail(403, { message: '*' });
+		}
+
+		const addMessage = graphql(`
+			mutation addMessage($author: String!, $message: String!) {
+				messageCreate(input: { author: $author, message: $message }) {
+					message {
+						id
+						author
+						message
+						createdAt
+					}
+				}
+			}
+		`);
+
+		return await addMessage.mutate({ author, message }, { event });
 	}
 } satisfies Actions;
