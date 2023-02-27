@@ -3,13 +3,13 @@
 
 	export let data: PageData;
 
-	$: ({ ExampleQuery } = data);
+	$: ({ GetAllMessages } = data);
 </script>
 
-{#if $ExampleQuery.fetching}
+{#if $GetAllMessages.fetching}
 	loading...
-{:else if $ExampleQuery.errors?.length}
-	{JSON.stringify($ExampleQuery)}
+{:else if $GetAllMessages.errors?.length}
+	{JSON.stringify($GetAllMessages)}
 {:else}
-	{JSON.stringify($ExampleQuery.data)}
+	{JSON.stringify($GetAllMessages.data)}
 {/if}

@@ -7,9 +7,9 @@ const config = {
 		'@grafbase/houdini': {}
 	},
 	watchSchema: {
-		url: 'env:PUBLIC_API_URL',
+		url: 'env:PUBLIC_GRAFBASE_API_URL',
 		headers: {
-			'x-api-key': 'env:PUBLIC_API_KEY'
+			'x-api-key': 'env:GRAFBASE_API_KEY'
 		}
 	}
 };

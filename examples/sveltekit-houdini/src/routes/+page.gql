@@ -1,5 +1,12 @@
-query ExampleQuery @live {
-	todoList(by: { id: "todolist_01GRHTKYNGGZCHSRTE9CP7T591" }) {
-		title
+query GetAllMessages($first: Int!) @live {
+	messageCollection(first: $first) {
+		edges {
+			node {
+				id
+				author
+				message
+				createdAt
+			}
+		}
 	}
 }
