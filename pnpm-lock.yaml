@@ -170,7 +170,7 @@ importers:
       '@types/react': ^18.0.26
       '@types/react-dom': ^18.0.10
       babel-jest: ^27.4.2
-      babel-loader: ^8.2.3
+      babel-loader: ^9.0.0
       babel-plugin-named-asset-import: ^0.3.8
       babel-preset-react-app: ^10.0.1
       bfj: ^7.0.2
@@ -243,7 +243,7 @@ importers:
       '@types/react': 18.0.26
       '@types/react-dom': 18.0.10
       babel-jest: 27.5.1_@babel+core@7.20.12
-      babel-loader: 8.3.0_la66t7xldg4uecmyawueag5wkm
+      babel-loader: 9.1.2_la66t7xldg4uecmyawueag5wkm
       babel-plugin-named-asset-import: 0.3.8_@babel+core@7.20.12
       babel-preset-react-app: 10.0.1
       browserslist: 4.21.4
@@ -4236,18 +4236,16 @@ packages:
       - supports-color
     dev: true
 
-  /babel-loader/8.3.0_la66t7xldg4uecmyawueag5wkm:
-    resolution: {integrity: sha512-H8SvsMF+m9t15HNLMipppzkC+Y2Yq+v3SonZyU70RBL/h1gxPkH08Ot8pEE9Z4Kd+czyWJClmFS8qzIP9OZ04Q==}
-    engines: {node: '>= 8.9'}
+  /babel-loader/9.1.2_la66t7xldg4uecmyawueag5wkm:
+    resolution: {integrity: sha512-mN14niXW43tddohGl8HPu5yfQq70iUThvFL/4QzESA7GcZoC0eVOhvWdQ8+3UlSjaDE9MVtsW9mxDY07W7VpVA==}
+    engines: {node: '>= 14.15.0'}
     peerDependencies:
-      '@babel/core': ^7.0.0
-      webpack: '>=2'
+      '@babel/core': ^7.12.0
+      webpack: '>=5'
     dependencies:
       '@babel/core': 7.20.12
       find-cache-dir: 3.3.2
-      loader-utils: 2.0.4
-      make-dir: 3.1.0
-      schema-utils: 2.7.1
+      schema-utils: 4.0.0
       webpack: 5.75.0
     dev: true
 
@@ -10426,15 +10424,6 @@ packages:
       ajv: 6.12.6
       ajv-keywords: 3.5.2_ajv@6.12.6
     dev: false
-
-  /schema-utils/2.7.1:
-    resolution: {integrity: sha512-SHiNtMOUGWBQJwzISiVYKu82GiV4QYGePp3odlY1tuKO7gPtphAT5R/py0fA6xtbgLL/RvtJZnU9b8s0F1q0Xg==}
-    engines: {node: '>= 8.9.0'}
-    dependencies:
-      '@types/json-schema': 7.0.11
-      ajv: 6.12.6
-      ajv-keywords: 3.5.2_ajv@6.12.6
-    dev: true
 
   /schema-utils/3.1.1:
     resolution: {integrity: sha512-Y5PQxS4ITlC+EahLuXaY86TXfR7Dc5lw294alXOq86JAHCihAIZfqv8nNCWvaEJvaC51uN9hbLGeV0cFBdH+Fw==}
