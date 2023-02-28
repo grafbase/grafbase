@@ -25,7 +25,7 @@ GRAFBASE_ISSUER_URL=https://grafbase.com
 GRAFBASE_JWT_SECRET=
 ```
 
-2. Update Houdini client
+3. Update Houdini client
 
 Inside `src/client.ts` you will want to add the `authorization` header
 
@@ -50,7 +50,7 @@ export default new HoudiniClient({
 
 You will need to authenticate users with a supported [auth provider](https://grafbase.com/docs/auth/providers) and pass that `token` with every request to your backend.
 
-3. Update `houdini.config.js` to include `@grafbase/houdini`:
+4. Update `houdini.config.js` to include `@grafbase/houdini`:
 
 ```js
 const config = {
@@ -69,7 +69,7 @@ const config = {
 export default config
 ```
 
-4. Subscribe to data changes with the `@live` directive inside `+page.gql`:
+5. Subscribe to data changes with the `@live` directive inside `+page.gql`:
 
 ```graphql
 # Query based on your grafbase/schema.graphql
@@ -88,7 +88,7 @@ query GetAllMessages @live {
 }
 ```
 
-5. Render `@live` query results inside `+page.svelte`:
+6. Render `@live` query results inside `+page.svelte`:
 
 ```svelte
 <script lang="ts">
