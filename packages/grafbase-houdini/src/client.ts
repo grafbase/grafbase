@@ -2,7 +2,7 @@
 // user's application
 import type { GraphQLObject, ClientPlugin } from 'houdini'
 import ReconnectingEventSource from 'reconnecting-eventsource'
-import { apply_patch } from 'jsonpatch'
+import { patch } from '@n1ru4l/json-patch-plus'
 
 // houdini client by the grafbase plugin.
 const plugin: ClientPlugin = () => {
@@ -116,7 +116,7 @@ function subscribe({
 
     // if we have a patch, apply it
     if (payload.patch) {
-      value = apply_patch(lastValue, payload.patch)
+      value = patch({ left: lastValue, delta: payload.patch })
     }
     // we could have errors
     else if (payload.errors) {
