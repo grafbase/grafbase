@@ -5,6 +5,11 @@
   "files": [
     "dist/**"
   ],
+  "repository": "https://github.com/grafbase/grafbase",
+  "homepage": "https://github.com/grafbase/grafbase/blob/main/packages/grafbase-houdini/README.md",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "pnpm build:plugin && pnpm build:client && pnpm build:config",
     "build:plugin": "tsup src/index.ts --format esm,cjs --dts",

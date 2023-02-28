@@ -92,9 +92,9 @@ query GetAllMessages @live {
 
 ```svelte
 <script lang="ts">
-	import type { PageData } from './$houdini';
-	export let data: PageData;
-	$: ({ GetAllMessages } = data);
+  import type { PageData } from './$houdini';
+  export let data: PageData;
+  $: ({ GetAllMessages } = data);
 </script>
 
 {#if $GetAllMessages.fetching}
