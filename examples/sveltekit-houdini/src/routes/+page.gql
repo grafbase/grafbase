@@ -1,6 +1,7 @@
 query GetAllMessages @live {
 	messageCollection(first: 100) {
 		edges {
+			cursor
 			node {
 				id
 				author
