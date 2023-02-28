@@ -1,6 +1,6 @@
 [package]
 name = "grafbase"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 description = "The Grafbase command line interface"
 license = "Apache-2.0"
@@ -17,6 +17,7 @@ clap = { version = "4", features = ["cargo", "wrap_help"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
+indicatif = "0.17"
 exitcode = "1"
 hex-literal = "0.3"
 indoc = "2"
@@ -27,11 +28,13 @@ serde = "1"
 serde_derive = "1"
 thiserror = "1"
 toml = "0.7"
+tokio = { version = "1", features = ["full"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.16.0" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.16.0" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.17.0" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.17.0" }
 
 [dev-dependencies]
 chrono = "0.4"
@@ -47,10 +50,11 @@ reqwest = { version = "0.11", features = [
 ], default-features = false }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sysinfo = "0.27"
+sysinfo = "0.28"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
+rstest = "0.16"
 
 [[bin]]
 name = "grafbase"

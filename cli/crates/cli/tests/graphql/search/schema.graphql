@@ -1,0 +1,41 @@
+type Fields @model {
+  ip: IPAddress @search
+  timestamp: Timestamp @search
+  url: URL @search
+  email: Email @search
+  phone: PhoneNumber @search
+  date: Date @search
+  datetime: DateTime @search
+  text: String @search
+  int: Int @search
+  float: Float @search
+  bool: Boolean @search
+}
+
+type RequiredFields @model {
+  ip: IPAddress! @search
+  timestamp: Timestamp! @search
+  url: URL! @search
+  email: Email! @search
+  phone: PhoneNumber! @search
+  date: Date! @search
+  datetime: DateTime! @search
+  text: String! @search
+  int: Int! @search
+  float: Float! @search
+  bool: Boolean! @search
+}
+
+type ListFields @model {
+  ip: [IPAddress!] @search
+  timestamp: [Timestamp!] @search
+  url: [URL!] @search
+  email: [Email!] @search
+  phone: [PhoneNumber!] @search
+  date: [Date!] @search
+  datetime: [DateTime!] @search
+  text: [String!] @search
+  int: [Int!] @search
+  float: [Float!] @search
+  bool: [Boolean!] @search
+}
