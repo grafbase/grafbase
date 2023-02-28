@@ -246,7 +246,7 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry
         .map_err(Error::SentryError)
 }
 
-/// [`std::dbg`] modified to use [`log::worker::console_debug`]
+/// [`std::dbg`] modified to use [`worker::console_debug`]
 #[macro_export]
 macro_rules! dbg {
     // NOTE: We cannot use `concat!` to make a static string as a format argument
