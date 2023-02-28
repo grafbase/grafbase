@@ -1,0 +1,12 @@
+schema
+	@auth(
+		providers: [{ type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" }]
+		rules: [{ allow: private }]
+	) {
+	query: Query
+}
+
+type Message @model {
+	author: String!
+	message: String!
+}
