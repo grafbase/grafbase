@@ -1,5 +1,7 @@
 use aws_region_nearby::AwsRegion;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use worker::js_sys::Uint8Array;
+use worker::{Headers, Method, RequestInit};
 
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct VersionedRegistry<'a> {
@@ -17,6 +19,32 @@ pub struct VersionedRegistrySerializable<'a> {
 pub struct ParserResult<'a> {
     pub versioned_registry: VersionedRegistry<'a>,
     pub required_resolvers: Vec<String>,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct GatewayRequest {
+    pub body: Option<Vec<u8>>,
+    pub customer_config: CustomerDeploymentConfig,
+    pub headers: HashMap<String, String>,
+    pub method: String,
+    pub url: String,
+}
+
+impl TryFrom<GatewayRequest> for worker::Request {
+    type Error = worker::Error;
+
+    fn try_from(value: GatewayRequest) -> Result<Self, Self::Error> {
+        let mut request_init = RequestInit::new();
+        request_init
+            .with_headers(Headers::from_iter(value.headers))
+            .with_method(Method::from(value.method));
+
+        if let Some(customer_body) = value.body {
+            request_init.with_body(Some(Uint8Array::from(customer_body.as_slice()).into()));
+        }
+
+        worker::Request::new_with_init(value.url.as_str(), &request_init)
+    }
 }
 
 /// Self-contained execution request
@@ -52,7 +80,7 @@ pub struct ExecutionHealthResponse {
 
 /// Encapsulates customer specific configuration
 /// Required for executing requests that target a customer deployment
-#[derive(Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct CustomerDeploymentConfig {
     /// Grafbase Gateway Version
     #[serde(default)]
