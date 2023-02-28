@@ -31,8 +31,6 @@
 		"@zerodevx/svelte-toast": "^0.8.2",
 		"dotenv": "^10.0.0",
 		"jose": "^4.12.2",
-		"jsonpatch": "^3.1.0",
-		"reconnecting-eventsource": "^1.6.2",
 		"svelte-themes": "^0.0.98"
 	}
 }
