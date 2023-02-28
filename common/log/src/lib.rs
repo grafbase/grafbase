@@ -245,3 +245,29 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry
         .map(|_| ())
         .map_err(Error::SentryError)
 }
+
+/// [`std::dbg`] modified to use [`log::worker::console_debug`]
+#[macro_export]
+macro_rules! dbg {
+    // NOTE: We cannot use `concat!` to make a static string as a format argument
+    // of `eprintln!` because `file!` could contain a `{` or
+    // `$val` expression could be a block (`{ .. }`), in which case the `eprintln!`
+    // will be malformed.
+    () => {
+        log::worker::console_debug!("[{}:{}]", std::file!(), std::line!())
+    };
+    ($val:expr $(,)?) => {
+        // Use of `match` here is intentional because it affects the lifetimes
+        // of temporaries - https://stackoverflow.com/a/48732525/1063961
+        match $val {
+            tmp => {
+                log::worker::console_debug!("[{}:{}] {} = {:#?}",
+                    std::file!(), std::line!(), std::stringify!($val), &tmp);
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($crate::dbg!($val)),+,)
+    };
+}
