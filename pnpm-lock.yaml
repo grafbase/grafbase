@@ -110,7 +110,6 @@ importers:
       eslint-config-grafbase: workspace:*
       graphql: ^16.6.0
       houdini: ^1.0.4
-      jsonpatch: ^3.1.0
       reconnecting-eventsource: 1.6.2
       tsconfig: workspace:*
       tsup: 6.5.0
@@ -118,7 +117,6 @@ importers:
     dependencies:
       '@n1ru4l/json-patch-plus': 0.2.0
       houdini: 1.0.4
-      jsonpatch: 3.1.0
       reconnecting-eventsource: 1.6.2
     devDependencies:
       eslint: 8.29.0
@@ -8101,11 +8099,6 @@ packages:
       universalify: 2.0.0
     optionalDependencies:
       graceful-fs: 4.2.10
-
-  /jsonpatch/3.1.0:
-    resolution: {integrity: sha512-rJa0FepwDzebgYAuT389AtziWfn3EZA4N5e/B8d50IC1glqlZ7njo7iAI/ph5MYw2GGH7lCE6DGqBGQ7TVa06w==}
-    engines: {node: '>=0.4.0'}
-    dev: false
 
   /jsonpointer/5.0.1:
     resolution: {integrity: sha512-p/nXbhSEcu3pZRdkW1OfJhpsVtW1gd4Wa1fnQc9YLiTfAjn0312eMKimbdIQzuZl9aa9xUGaRlP9T/CJE/ditQ==}
