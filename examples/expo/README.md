@@ -4,7 +4,9 @@
 
 ## Please note
 
-This example uses Expo (React-Native) &mdash; [learn more](https://expo.dev/)
+This example uses Expo (React-Native) &mdash; [learn more](https://expo.dev/).
+
+This example also uses the `x-api-key` header for auth. In production environments, you should switch to a supported [auth provider](https://grafbase.com/docs/auth/providers) using the `Authorization` header with requests to secure your data.
 
 ## Getting Started
 
