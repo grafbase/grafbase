@@ -46,7 +46,6 @@ const App = () => {
       });
 
       const result = await response.json() as Data;
-      console.log(result.data)
       setData(result)
     };
 

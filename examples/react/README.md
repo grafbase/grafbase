@@ -2,7 +2,7 @@
 
 [Join our Community](https://grafbase.com/community)
 
-This example uses the [React](https://reactjs.org/docs/getting-started.html) library.
+This example uses the [React](https://reactjs.org/docs/getting-started.html) library with [Vite](https://vitejs.dev/) and [Typescript](https://www.typescriptlang.org/). Grafbase recommends using an auth provider in a production environment.
 
 ## Getting Started
 
@@ -26,7 +26,7 @@ mutation {
 }
 ```
 
-8. In another terminal, run `npm run start` and visit [`http://localhost:8080/`](http://localhost:8080/)
+8. In another terminal, run `vite` and visit [`http://localhost:5174/`](http://localhost:5174/)
 
 ## Learn More About Grafbase
 
