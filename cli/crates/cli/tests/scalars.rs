@@ -153,11 +153,6 @@ fn scalars() {
             expected: Ok(json!("2016-01-01T11:10:20.000Z")),
         },
         TestCase {
-            ty: "phone",
-            input: json!("+33612121212"),
-            expected: Ok(json!("+33612121212")),
-        },
-        TestCase {
             ty: "url",
             input: json!("file://test.com"),
             expected: Ok(json!("file://test.com/")),

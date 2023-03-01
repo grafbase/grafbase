@@ -39,11 +39,8 @@ fn coercion() {
         (json!(1), Some(vec![vec![1]])),
         (Value::Null, None),
     ] {
-        let result = dot_get_opt!(
-            coerce(json!({ "matrix": value })),
-            "data.dummyCreate.dummy.matrix",
-            Vec<Vec<i32>>
-        );
+        let response = coerce(json!({ "matrix": value }));
+        let result = dot_get_opt!(response, "data.dummyCreate.dummy.matrix", Vec<Vec<i32>>);
         assert_eq!(result, expected, "Input was {value:?}");
     }
 
