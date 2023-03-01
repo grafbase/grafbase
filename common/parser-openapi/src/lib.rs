@@ -11,9 +11,12 @@ mod parsing;
 pub fn parse_spec(
     data: &str,
     format: Format,
-    metadata: ApiMetadata,
+    mut metadata: ApiMetadata,
     registry: &mut Registry,
 ) -> Result<(), Vec<Error>> {
+    // Make sure we have a trailing slash on metadata so that Url::join works correctly.
+    ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
+
     let spec = match format {
         Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
         Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
@@ -97,6 +100,8 @@ pub enum Error {
     AnySchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
     UnresolvedReference(Ref),
+    #[error("Received an invalid URL: {0} ")]
+    InvalidUrl(String),
 }
 
 fn is_ok(status: &openapiv3::StatusCode) -> bool {
@@ -105,6 +110,15 @@ fn is_ok(status: &openapiv3::StatusCode) -> bool {
         openapiv3::StatusCode::Range(_range) => todo!(),
         _ => false,
     }
+}
+
+fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
+    let mut segments = url.path_segments_mut()?;
+
+    segments.pop_if_empty();
+    segments.push("");
+
+    Ok(())
 }
 
 #[cfg(test)]

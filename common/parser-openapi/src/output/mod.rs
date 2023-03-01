@@ -11,6 +11,8 @@ use inflector::Inflector;
 use crate::graph::{OpenApiGraph, OutputType, QueryOperation, WrappingType};
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
+    register_scalars(registry);
+
     for output_type in graph.output_types() {
         let Some(metatype) = output_type.as_meta_type(graph) else { continue };
 
@@ -29,6 +31,8 @@ pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
             query_fields.insert(metafield.name.clone(), metafield);
         }
     }
+
+    registry.remove_unused_types();
 }
 
 impl OutputType {
@@ -167,4 +171,19 @@ fn meta_field(name: String, ty: String) -> MetaField {
         auth: None,
         plan: None,
     }
+}
+
+fn register_scalars(registry: &mut Registry) {
+    use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+
+    registry.types.insert(
+        JSONScalar::name().unwrap().to_string(),
+        MetaType::Scalar {
+            name: JSONScalar::name().unwrap().to_string(),
+            description: JSONScalar::description().map(ToString::to_string),
+            is_valid: None,
+            visible: None,
+            specified_by_url: JSONScalar::specified_by().map(ToString::to_string),
+        },
+    );
 }

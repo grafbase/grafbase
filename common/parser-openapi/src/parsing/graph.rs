@@ -212,6 +212,11 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Object(obj)) => {
+                if obj.properties.is_empty() {
+                    // If there's no explicit properties we make this a custom scalar
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    return;
+                }
                 let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
                 for (field_name, field_schema_or_ref) in &obj.properties {
                     let required = obj.required.contains(field_name);

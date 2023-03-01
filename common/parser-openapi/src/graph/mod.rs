@@ -98,6 +98,7 @@ pub enum ScalarKind {
     Boolean,
     #[allow(dead_code)]
     Id,
+    JsonObject,
 }
 
 impl std::fmt::Debug for Node {

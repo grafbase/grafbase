@@ -1,3 +1,4 @@
+use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
 use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,
@@ -177,6 +178,9 @@ impl QueryOperation {
     pub fn url(self, graph: &super::OpenApiGraph) -> Option<Url> {
         let path = &self.details(graph)?.path;
 
+        // Remove any leading `/` so that path is treated as a relative Url
+        let path = path.trim_start_matches('/');
+
         graph.metadata.url.join(path).ok()
     }
 
@@ -250,6 +254,7 @@ impl ScalarKind {
             ScalarKind::Float => "Float".to_string(),
             ScalarKind::Boolean => "Boolean".to_string(),
             ScalarKind::Id => "ID".to_string(),
+            ScalarKind::JsonObject => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
         }
     }
 }
