@@ -64,6 +64,7 @@ pub struct ExecutionRequest<'a> {
 pub struct ExecutionAuth {
     pub allowed_ops: dynaql::Operations,
     pub groups_from_token: Option<HashSet<String>>,
+    pub subject: Option<String>,
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment
