@@ -2,12 +2,12 @@
 
 [Join our Community](https://grafbase.com/community)
 
-This example uses the [React](https://reactjs.org/docs/getting-started.html) library, with `create-react-app`. In production environments, you should switch to a supported [auth provider](https://grafbase.com/docs/auth/providers) using the `Authorization` header with requests to secure your data.
+This example uses the [React](https://reactjs.org/docs/getting-started.html) library with [Vite](https://vitejs.dev/) and [Typescript](https://www.typescriptlang.org/). In production environments, you should switch to a supported [auth provider](https://grafbase.com/docs/auth/providers) using the `Authorization` header with requests to secure your data.
 
 ## Getting Started
 
-1. Run `npx degit grafbase/grafbase/examples/react grafbase-with-react` to clone this example
-2. Change directory into the new folder `cd grafbase-with-react`
+1. Run `npx degit grafbase/grafbase/examples/react grafbase-with-react-vite` to clone this example
+2. Change directory into the new folder `cd grafbase-with-react-vite`
 3. Run `cp .env.example .env`
 4. Open `.env` in your code editor and provide your Grafbase API endpoint and API key. Example should be fine for `npx grafbase dev`!
 5. Run `npm install`, or `yarn install` to install dependencies
@@ -26,7 +26,7 @@ mutation {
 }
 ```
 
-8. In another terminal, run `npm start` and visit [`http://localhost:3000/`](http://localhost:3000/)
+8. In another terminal, run `vite` and visit [`http://localhost:5174/`](http://localhost:5174/)
 
 ## Learn More About Grafbase
 
