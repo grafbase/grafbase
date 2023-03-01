@@ -2,7 +2,7 @@
 
 [Join our Community](https://grafbase.com/community)
 
-This example uses the [React](https://reactjs.org/docs/getting-started.html) library with [Vite](https://vitejs.dev/) and [Typescript](https://www.typescriptlang.org/). Grafbase recommends using an auth provider in a production environment.
+This example uses the [React](https://reactjs.org/docs/getting-started.html) library with [Vite](https://vitejs.dev/) and [Typescript](https://www.typescriptlang.org/). In production environments, you should switch to a supported [auth provider](https://grafbase.com/docs/auth/providers) using the `Authorization` header with requests to secure your data.
 
 ## Getting Started
 
