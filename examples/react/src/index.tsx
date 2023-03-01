@@ -1,7 +1,21 @@
 import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom';
+
+type Message = {
+  id: string
+  author: string
+  message: string
+  createdAt: string
+}
+
+type Data = {
+  data: {
+  messageCollection: { edges: { node: Message }[] }
+  }
+}
 
 const App = () => {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<Data>()
   
   const GetAllMessagesQuery = /* GraphQL */ `
     query GetAllMessages($first: Int!) {
@@ -31,13 +45,13 @@ const App = () => {
           } }),
       });
 
-      const result = await response.json();
+      const result = await response.json() as Data;
       console.log(result.data)
-      setData(result.data);
+      setData(result)
     };
 
     fetchData();
-  }, []);
+  });
 
   return (
     <div>
@@ -45,7 +59,7 @@ const App = () => {
       {data && (
         <>
         <ul>
-          {data.messageCollection?.edges?.map(({ node }) => (
+          {data.data.messageCollection?.edges?.map(({ node }) => (
             <li key={node.id}>{node.author} - {node.message} - {node.createdAt}</li>
           ))}
         </ul>
@@ -56,3 +70,6 @@ const App = () => {
 };
 
 export default App;
+
+
+ReactDOM.render(<App />, document.getElementById('root'));
