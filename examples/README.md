@@ -40,6 +40,7 @@ See how easy it is to use Grafbase with the frontend frameworks you already know
 | [SvelteKit](/examples/sveltekit)                              | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.                                              |
 | [SvelteKit (with Houdini)](/examples/sveltekit-houdini)       | Build and scale your [Houdini](https://grafbase.com/frameworks/sveltekit) application with Grafbase.                                         |
 | [Swift](/examples/swift)                                      | Build your iOS, iPadOS, macOS, tvOS, or watchOS app with [Swift](https://www.swift.org/) and GraphQL.                                        |
+| [Expo](/examples/expo)                                        | Build and scale your [Expo](https://docs.expo.dev/) mobile app with Grafbase.                                                     |
 
 ## Features & Integrations
 

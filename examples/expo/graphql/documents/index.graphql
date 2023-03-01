@@ -1,0 +1,17 @@
+query Emojis {
+  emojiCollection(first: 99) {
+    edges {
+      node {
+        id
+        char
+        tags(first: 99) {
+          edges {
+            node {
+              text
+            }
+          }
+        }
+      }
+    }
+  }
+}
