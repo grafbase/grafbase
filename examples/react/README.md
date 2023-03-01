@@ -17,7 +17,7 @@ This example uses the [React](https://reactjs.org/docs/getting-started.html) lib
 ```graphql
 mutation {
   messageCreate(
-    input: { author: "Grafbase Admin", message: "Grafbase is awesome!" }
+    input: { author: "Grafbase Admin", body: "Grafbase is awesome!" }
   ) {
     message {
       id
@@ -35,7 +35,6 @@ To learn more about Grafbase, take a look at the following resources:
 - [Grafbase](https://grafbase.com/) - learn about Grafbase features and API.
 
 - To learn more about React, take a look at the [React Beta Docs](https://beta.reactjs.org/)
-
 
 ### Run on Codesandbox
 

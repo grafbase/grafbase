@@ -1,22 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useEffect, useState } from 'react'
+import ReactDOM from 'react-dom'
 
 type Message = {
   id: string
   author: string
-  message: string
+  body: string
   createdAt: string
 }
 
 type Data = {
   data: {
-  messageCollection: { edges: { node: Message }[] }
+    messageCollection: { edges: { node: Message }[] }
   }
 }
 
 const App = () => {
   const [data, setData] = useState<Data>()
-  
+
   const GetAllMessagesQuery = /* GraphQL */ `
     query GetAllMessages($first: Int!) {
       messageCollection(first: $first) {
@@ -24,7 +24,7 @@ const App = () => {
           node {
             id
             author
-            message
+            body
             createdAt
           }
         }
@@ -37,38 +37,41 @@ const App = () => {
       const response = await fetch('http://localhost:4000/graphql', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ query: GetAllMessagesQuery,
+        body: JSON.stringify({
+          query: GetAllMessagesQuery,
           variables: {
             first: 100
-          } }),
-      });
+          }
+        })
+      })
 
-      const result = await response.json() as Data;
+      const result = (await response.json()) as Data
       setData(result)
-    };
+    }
 
-    fetchData();
-  });
+    fetchData()
+  })
 
   return (
     <div>
       <h3>Grafbase Messages</h3>
       {data && (
         <>
-        <ul>
-          {data.data.messageCollection?.edges?.map(({ node }) => (
-            <li key={node.id}>{node.author} - {node.message} - {node.createdAt}</li>
-          ))}
-        </ul>
+          <ul>
+            {data.data.messageCollection?.edges?.map(({ node }) => (
+              <li key={node.id}>
+                {node.author} - {node.body} - {node.createdAt}
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App
 
-
-ReactDOM.render(<App />, document.getElementById('root'));
+ReactDOM.render(<App />, document.getElementById('root'))
