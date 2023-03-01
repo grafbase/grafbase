@@ -3,3 +3,9 @@ type Author @model {
   age: Int!
   name: String! @unique
 }
+
+type Account @model {
+  id: ID!
+  email: String! @unique(fields: ["providerId"])
+  providerId: ID!
+}

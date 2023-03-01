@@ -5,6 +5,8 @@ mod completions;
 mod dev;
 mod errors;
 mod init;
+mod login;
+mod logout;
 mod output;
 mod panic_hook;
 mod reset;
@@ -13,15 +15,13 @@ mod watercolor;
 #[macro_use]
 extern crate log;
 
-use crate::reset::reset;
+use crate::{dev::dev, init::init, login::login, logout::logout, reset::reset};
 use cli_input::build_cli;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
     traits::ToExitCode,
 };
-use dev::dev;
 use errors::CliError;
-use init::init;
 use output::report;
 use std::{convert::AsRef, process};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -56,7 +56,9 @@ fn try_main() -> Result<(), CliError> {
 
     let subcommand = matches.subcommand();
 
-    if let Some(("dev" | "init" | "reset", ..)) = subcommand {
+    trace!("subcommand: {}", subcommand.expect("required").0);
+
+    if let Some(("dev" | "init" | "reset" | "login" | "logout", ..)) = subcommand {
         report::cli_header();
     }
 
@@ -85,6 +87,8 @@ fn try_main() -> Result<(), CliError> {
             init(name, template)
         }
         Some(("reset", _)) => reset(),
+        Some(("login", _)) => login(),
+        Some(("logout", _)) => logout(),
         _ => unreachable!(),
     }
 }

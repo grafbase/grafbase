@@ -78,4 +78,27 @@ pub mod report {
         #[cfg(target_family = "unix")]
         watercolor::output!(r#"if you have a running 'grafbase dev' instance in this project, it will need to be restarted for this change to take effect"#, @BrightBlue);
     }
+
+    pub fn login(url: &str) {
+        println!(
+            "please continue by opening the following URL:\n{}\n",
+            watercolor!("{url}", @BrightBlue)
+        );
+    }
+
+    pub fn login_success() {
+        watercolor::output_error!("\n\n✨ successfully logged in!", @BrightBlue);
+    }
+
+    // TODO: better handling of spinner position to avoid this extra function
+    pub fn login_error(error: &CliError) {
+        watercolor::output_error!("\n\nerror: {error}", @BrightRed);
+        if let Some(hint) = error.to_hint() {
+            watercolor::output_error!("hint: {hint}", @BrightBlue);
+        }
+    }
+
+    pub fn logout() {
+        watercolor::output_error!("✨ successfully logged out!", @BrightBlue);
+    }
 }
