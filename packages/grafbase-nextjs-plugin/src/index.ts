@@ -1,3 +1,6 @@
+// Thanks to Contentlayer for the experimental hack
+// inspiration with "plugins" hook to test this idea
+
 import type { NextConfig } from 'next'
 
 import { spawn } from 'child_process'
@@ -13,21 +16,23 @@ const runGrafbase = () => {
 const createGrafbasePlugin =
   () =>
   (nextConfig: Partial<NextConfig> = {}): Partial<NextConfig> => {
-    // could be either `next dev` or just `next`
     const isNextDev =
       process.argv.includes('dev') ||
       process.argv.some(
         (_) => _.endsWith('bin/next') || _.endsWith('bin\\next')
       )
 
+    const GRAFBASE_API_URL =
+      process.env['GRAFBASE_API_URL'] ||
+      process.env['NEXT_PUBLIC_GRAFBASE_API_URL']
+    const hasLocalApiUrl = /^http:\/\/(localhost|127\.0\.0\.1)/.test(
+      GRAFBASE_API_URL!
+    )
+
     return {
       ...nextConfig,
-      // Since Next.js doesn't provide some kind of real "plugin system" we're (ab)using the `redirects` option here
-      // in order to hook into and block the `next build` and initial `next dev` run.
       redirects: async () => {
-        // TODO: Check if process.env.GRAFBASE_API_URL is localhost and boot up...
-
-        if (isNextDev && !devServerStarted) {
+        if (hasLocalApiUrl && isNextDev && !devServerStarted) {
           devServerStarted = true
           runGrafbase()
         }
@@ -37,4 +42,18 @@ const createGrafbasePlugin =
     }
   }
 
+/**
+ * Grafbase CLI default runner.
+ * This will run the Grafbase CLI when the API url starts with http://localhost
+ *
+ * @example
+ * ```js
+ * // next.config.mjs
+ * import { withGrafbase } from '@grafbase/nextjs-plugin'
+ *
+ * export default withGrafbase({
+ *   // Next.js config
+ * })
+ * ```
+ */
 export const withGrafbase = createGrafbasePlugin()

@@ -20,7 +20,11 @@ impl Client {
         Self {
             endpoint,
             headers: HeaderMap::new(),
-            client: reqwest::blocking::Client::new(),
+            client: reqwest::blocking::Client::builder()
+                .connect_timeout(Duration::from_secs(1))
+                .timeout(Duration::from_secs(5))
+                .build()
+                .unwrap(),
             snapshot: None,
         }
     }

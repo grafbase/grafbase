@@ -1,0 +1,5 @@
+mutation DeleteAccount($by: AccountByInput!) {
+  accountDelete(by: $by) {
+    deletedId
+  }
+}

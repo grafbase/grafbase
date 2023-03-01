@@ -15,7 +15,11 @@ impl AsyncClient {
     pub fn new(endpoint: String) -> Self {
         Self {
             endpoint,
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(1))
+                .timeout(Duration::from_secs(5))
+                .build()
+                .unwrap(),
             snapshot: None,
         }
     }

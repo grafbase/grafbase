@@ -1,0 +1,16 @@
+query ListSearch($query: String!, $limit: Int!) {
+  listFieldsSearch(query: $query, limit: $limit) {
+    id
+    ip
+    timestamp
+    url
+    email
+    phone
+    datetime
+    date
+    text
+    int
+    float
+    bool
+  }
+}

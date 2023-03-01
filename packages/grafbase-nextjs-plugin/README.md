@@ -1,34 +1,49 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# @grafbase/nextjs-plugin
 
-## Getting Started
+A Next.js "plugin" that automatically starts the Grafbase CLI.
 
-First, run the development server:
+## Usage
+
+It's easy as 123!
+
+### Step 1
+
+Install `grafbase` as a `devDependency`:
 
 ```bash
-npm run dev
-# or
-yarn dev
+npm install -D grafbase @grafbase/nextjs-plugin
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Step 2
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+Add the following to `.env`:
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+```bash
+GRAFBASE_API_URL=http://localhost:4000/graphql
+# OR
+# NEXT_PUBLIC_GRAFBASE_API_URL=http://localhost:4000/graphql
+```
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+### Step 3
 
-## Learn More
+Then inside `next.config.js` import `withGrafbase`, and wrap your exported config:
 
-To learn more about Next.js, take a look at the following resources:
+```ts
+/** @type {import('next').NextConfig} */
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+const { withGrafbase } = require('@grafbase/nextjs-plugin')
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+const nextConfig = () =>
+  withGrafbase({
+    reactStrictMode: true,
+    swcMinify: true
+  })
 
-## Deploy on Vercel
+module.exports = nextConfig
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Finally run your Next.js app! The Grafbase CLI will be running with your backend.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Notes
+
+If there is no environment variable the [Grafbase CLI](https://grafbase.com/cli) will not start.
