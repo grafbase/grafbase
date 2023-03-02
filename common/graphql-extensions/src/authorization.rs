@@ -48,11 +48,14 @@ impl Extension for AuthExtension {
         let ExecutionAuth {
             allowed_ops: global_ops,
             groups_from_token,
-            subject,
+            subject_and_owner_ops,
         } = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        log::info!(self.trace_id, "auth: {global_ops}, {groups_from_token:?}, {subject:?}");
+        log::info!(
+            self.trace_id,
+            "auth: {global_ops}, {groups_from_token:?}, {subject_and_owner_ops:?}"
+        );
         let model_ops = info
             .auth
             .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
