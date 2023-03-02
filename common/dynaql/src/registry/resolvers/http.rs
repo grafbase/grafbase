@@ -39,7 +39,10 @@ impl HttpResolver {
 
         let mut url = self.url.clone();
         for param in &self.path_parameters {
-            url = param.apply_as_path_parameter(&url, ctx, last_resolver_value)?;
+            let variable = param
+                .variable_resolve_definition
+                .resolve(ctx, last_resolver_value)?;
+            url = url.apply_path_parameter(&param, variable)?;
         }
 
         let mut request = surf::get(&url);
@@ -59,19 +62,23 @@ impl HttpResolver {
     }
 }
 
-impl Parameter {
-    fn apply_as_path_parameter(
-        &self,
-        url: &str,
-        ctx: &Context<'_>,
-        last_resolver_value: Option<&serde_json::Value>,
-    ) -> Result<String, Error> {
-        let name = &self.name;
-        let variable = self
-            .variable_resolve_definition
-            .resolve::<serde_json::Value>(ctx, last_resolver_value)?;
+trait ParamApply {
+    fn apply_path_parameter(
+        self,
+        param: &Parameter,
+        variable: serde_json::Value,
+    ) -> Result<String, Error>;
+}
 
-        Ok(url.replace(&format!("{{{name}}}"), json_to_string(&variable)?.borrow()))
+impl ParamApply for String {
+    fn apply_path_parameter(
+        self,
+        param: &Parameter,
+        variable: serde_json::Value,
+    ) -> Result<String, Error> {
+        let name = &param.name;
+
+        Ok(self.replace(&format!("{{{name}}}"), json_to_string(&variable)?.borrow()))
     }
 }
 

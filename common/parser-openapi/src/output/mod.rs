@@ -142,9 +142,8 @@ impl QueryOperation {
 
         let mut args = IndexMap::new();
         args.extend(path_parameters.iter().map(|param| {
-            let name = param.name(graph).unwrap().to_string();
             let input_value = param.to_meta_input_value(graph).unwrap();
-            (name, input_value)
+            (input_value.name.clone(), input_value)
         }));
 
         Some(MetaField {
