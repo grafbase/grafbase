@@ -41,15 +41,6 @@ impl<'a> Visitor<'a> for SearchDirective {
                             format!("The @{SEARCH_DIRECTIVE} directive can only be used on @{MODEL_DIRECTIVE} types."),
                         );
                     }
-                    let field_base_type = field.node.ty.node.base.to_base_type_str();
-                    match field_base_type {
-                        "Int" | "Float" | "String" | "Email" | "PhoneNumber" | "URL" | "Date" | "DateTime"
-                        | "Timestamp" | "Boolean" | "IPAddress" => (),
-                        ty => ctx.report_error(
-                            vec![directive.pos],
-                            format!("The @{SEARCH_DIRECTIVE} directive cannot be used with the {ty} type."),
-                        ),
-                    }
                 }
             }
         }
