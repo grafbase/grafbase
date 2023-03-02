@@ -99,7 +99,6 @@ impl AuthConfig {
     }
 
     pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
-        // TODO: add owner based ops
         match groups_from_token {
             Some(groups) => self.private_and_group_based_ops(groups),
             None => self.api_key_ops(),
@@ -109,7 +108,7 @@ impl AuthConfig {
 
 bitflags::bitflags! {
     #[allow(clippy::unsafe_derive_deserialize)]
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Default)]
     #[serde(transparent)]
     pub struct Operations: u8 {
         const CREATE = 1 << 0;

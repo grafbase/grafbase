@@ -61,6 +61,14 @@ impl Extension for AuthExtension {
             .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
             .unwrap_or(*global_ops); // Fall back to global auth if model auth is not configured
 
+        // Merge with owner's global ops
+        let model_ops = model_ops.union(
+            subject_and_owner_ops
+                .as_ref()
+                .map(|subject_and_owner_ops| subject_and_owner_ops.1)
+                .unwrap_or_default(),
+        );
+
         log::info!(self.trace_id, "Resolved model ops: {model_ops}");
 
         if let Some(required_op) = info.required_operation {

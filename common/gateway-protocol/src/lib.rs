@@ -61,6 +61,7 @@ pub struct ExecutionRequest<'a> {
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
+// TODO: turn into an enumeration: ApiKey, Token
 pub struct ExecutionAuth {
     /// API key or group based operations that are enabled on the global level.
     pub allowed_ops: dynaql::Operations,
