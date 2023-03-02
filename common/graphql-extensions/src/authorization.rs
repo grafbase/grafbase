@@ -8,6 +8,7 @@ use dynaql::registry::Registry;
 use dynaql::{Operations, ServerError, ServerResult};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
 
+use gateway_protocol::ExecutionAuth;
 use log::warn;
 
 const INPUT_ARG: &str = "input";
@@ -44,76 +45,82 @@ impl Extension for AuthExtension {
         // global_ops and groups_from_token are set early on when authorizing
         // the API request. global_ops is based on the top-level auth directive
         // and may be overriden here on the model and field level.
-        if let (Ok(global_ops), Ok(groups_from_token)) =
-            (ctx.data::<Operations>(), ctx.data::<Option<HashSet<String>>>())
-        {
-            let model_ops = info
-                .auth
-                .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
-                .unwrap_or(*global_ops); // Fall back to global auth if model auth is not configured
+        let ExecutionAuth {
+            allowed_ops: global_ops,
+            groups_from_token,
+            subject,
+        } = ctx
+            .data::<ExecutionAuth>()
+            .expect("auth must be injected into the context");
+        log::info!(self.trace_id, "auth: {global_ops}, {groups_from_token:?}, {subject:?}");
+        let model_ops = info
+            .auth
+            .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
+            .unwrap_or(*global_ops); // Fall back to global auth if model auth is not configured
 
-            if let Some(required_op) = info.required_operation {
-                if !model_ops.contains(required_op) {
-                    let msg = format!(
-                        "Unauthorized to access {parent_type}.{name} (missing {required_op} operation)",
-                        parent_type = info.parent_type,
-                        name = info.name
-                    );
-                    warn!(self.trace_id, "{msg} auth={auth:?}", auth = info.auth);
-                    return Err(ServerError::new(msg, None));
-                }
+        log::info!(self.trace_id, "Resolved model ops: {model_ops}");
 
-                match (info.parent_type, required_op) {
-                    (MUTATION_TYPE, Operations::CREATE | Operations::UPDATE) => {
-                        let input_fields = info
-                            .input_values
-                            .iter()
-                            .find_map(|(name, val)| match name.node.as_str() {
-                                INPUT_ARG => match val.as_ref() {
-                                    Some(ConstValue::Object(obj)) => Some(obj),
-                                    _ => None,
-                                },
+        if let Some(required_op) = info.required_operation {
+            if !model_ops.contains(required_op) {
+                let msg = format!(
+                    "Unauthorized to access {parent_type}.{name} (missing {required_op} operation)",
+                    parent_type = info.parent_type,
+                    name = info.name
+                );
+                warn!(self.trace_id, "{msg} auth={auth:?}", auth = info.auth);
+                return Err(ServerError::new(msg, None));
+            }
+
+            match (info.parent_type, required_op) {
+                (MUTATION_TYPE, Operations::CREATE | Operations::UPDATE) => {
+                    let input_fields = info
+                        .input_values
+                        .iter()
+                        .find_map(|(name, val)| match name.node.as_str() {
+                            INPUT_ARG => match val.as_ref() {
+                                Some(ConstValue::Object(obj)) => Some(obj),
                                 _ => None,
-                            })
+                            },
+                            _ => None,
+                        })
                             .unwrap_or(&EMPTY_INDEX_MAP);
 
-                        self.check_input(CheckInputOptions {
-                            input_fields,
-                            type_name: guess_type_name(&info, required_op),
-                            mutation_name: info.name,
-                            registry: &ctx.schema_env.registry,
-                            required_op,
-                            model_ops,
-                            global_ops: *global_ops,
-                            groups_from_token: groups_from_token.as_ref(),
-                        })?;
-                    }
-                    (MUTATION_TYPE, Operations::DELETE) => {
-                        self.check_delete(
-                            guess_type_name(&info, required_op),
-                            info.name,
-                            &ctx.schema_env.registry,
-                            model_ops,
-                            groups_from_token.as_ref(),
-                        )?;
-                    }
-                    _ => {}
+                    self.check_input(CheckInputOptions {
+                        input_fields,
+                        type_name: guess_type_name(&info, required_op),
+                        mutation_name: info.name,
+                        registry: &ctx.schema_env.registry,
+                        required_op,
+                        model_ops,
+                        global_ops: *global_ops,
+                        groups_from_token: groups_from_token.as_ref(),
+                    })?;
                 }
-            // Assume we're resolving a field to be returned by a query or
-            // mutation when required_op is None (objects are agnostic to
-            // operations) and auth is set.
-            } else if let Some(auth) = info.auth {
-                let field_ops = auth.allowed_ops(groups_from_token.as_ref());
+                (MUTATION_TYPE, Operations::DELETE) => {
+                    self.check_delete(
+                        guess_type_name(&info, required_op),
+                        info.name,
+                        &ctx.schema_env.registry,
+                        model_ops,
+                        groups_from_token.as_ref(),
+                    )?;
+                }
+                _ => {}
+            }
+        // Assume we're resolving a field to be returned by a query or
+        // mutation when required_op is None (objects are agnostic to
+        // operations) and auth is set.
+        } else if let Some(auth) = info.auth {
+            let field_ops = auth.allowed_ops(groups_from_token.as_ref());
 
-                if !field_ops.intersects(Operations::READ) {
-                    let msg = format!(
-                        "Unauthorized to access {type_name}.{field_name}",
-                        type_name = info.parent_type,
-                        field_name = info.name,
-                    );
-                    warn!(self.trace_id, "{msg} field_ops={field_ops:?}");
-                    return Err(ServerError::new(msg, None));
-                }
+            if !field_ops.intersects(Operations::READ) {
+                let msg = format!(
+                    "Unauthorized to access {type_name}.{field_name}",
+                    type_name = info.parent_type,
+                    field_name = info.name,
+                );
+                warn!(self.trace_id, "{msg} field_ops={field_ops:?}");
+                return Err(ServerError::new(msg, None));
             }
         }
 
