@@ -4250,214 +4250,214 @@ type PromotionCodesResourceRestrictions {
 type Query {
 	getAccount: Account!
 	getAccounts: GetAccounts!
-	getAccountsAccount: Account!
-	getAccountsAccountBankAccountsId: ExternalAccount!
-	getAccountsAccountCapabilities: GetAccountsAccountCapabilities!
-	getAccountsAccountCapabilitiesCapability: Capability!
-	getAccountsAccountExternalAccounts: GetAccountsAccountExternalAccounts!
-	getAccountsAccountExternalAccountsId: ExternalAccount!
-	getAccountsAccountPeople: GetAccountsAccountPeople!
-	getAccountsAccountPeoplePerson: Person!
-	getAccountsAccountPersons: GetAccountsAccountPersons!
-	getAccountsAccountPersonsPerson: Person!
+	getAccountsAccount(account: String!): Account!
+	getAccountsAccountBankAccountsId(id: String!, account: String!): ExternalAccount!
+	getAccountsAccountCapabilities(account: String!): GetAccountsAccountCapabilities!
+	getAccountsAccountCapabilitiesCapability(capability: String!, account: String!): Capability!
+	getAccountsAccountExternalAccounts(account: String!): GetAccountsAccountExternalAccounts!
+	getAccountsAccountExternalAccountsId(id: String!, account: String!): ExternalAccount!
+	getAccountsAccountPeople(account: String!): GetAccountsAccountPeople!
+	getAccountsAccountPeoplePerson(person: String!, account: String!): Person!
+	getAccountsAccountPersons(account: String!): GetAccountsAccountPersons!
+	getAccountsAccountPersonsPerson(person: String!, account: String!): Person!
 	getApplePayDomains: GetApplePayDomains!
-	getApplePayDomainsDomain: ApplePayDomain!
+	getApplePayDomainsDomain(domain: String!): ApplePayDomain!
 	getApplicationFees: GetApplicationFees!
-	getApplicationFeesFeeRefundsId: FeeRefund!
-	getApplicationFeesId: ApplicationFee!
-	getApplicationFeesIdRefunds: GetApplicationFeesIdRefunds!
+	getApplicationFeesFeeRefundsId(id: String!, fee: String!): FeeRefund!
+	getApplicationFeesId(id: String!): ApplicationFee!
+	getApplicationFeesIdRefunds(id: String!): GetApplicationFeesIdRefunds!
 	getAppsSecrets: GetAppsSecrets!
 	getAppsSecretsFind: AppsSecret!
 	getBalance: Balance!
 	getBalanceHistory: GetBalanceHistory!
-	getBalanceHistoryId: BalanceTransaction!
+	getBalanceHistoryId(id: String!): BalanceTransaction!
 	getBalanceTransactions: GetBalanceTransactions!
-	getBalanceTransactionsId: BalanceTransaction!
+	getBalanceTransactionsId(id: String!): BalanceTransaction!
 	getBillingPortalConfigurations: GetBillingPortalConfigurations!
-	getBillingPortalConfigurationsConfiguration: BillingPortalConfiguration!
+	getBillingPortalConfigurationsConfiguration(configuration: String!): BillingPortalConfiguration!
 	getCharges: GetCharges!
 	getChargesSearch: GetChargesSearch!
-	getChargesCharge: Charge!
-	getChargesChargeDispute: Dispute!
-	getChargesChargeRefunds: GetChargesChargeRefunds!
-	getChargesChargeRefundsRefund: Refund!
+	getChargesCharge(charge: String!): Charge!
+	getChargesChargeDispute(charge: String!): Dispute!
+	getChargesChargeRefunds(charge: String!): GetChargesChargeRefunds!
+	getChargesChargeRefundsRefund(refund: String!, charge: String!): Refund!
 	getCheckoutSessions: GetCheckoutSessions!
-	getCheckoutSessionsSession: CheckoutSession!
-	getCheckoutSessionsSessionLineItems: GetCheckoutSessionsSessionLineItems!
+	getCheckoutSessionsSession(session: String!): CheckoutSession!
+	getCheckoutSessionsSessionLineItems(session: String!): GetCheckoutSessionsSessionLineItems!
 	getCountrySpecs: GetCountrySpecs!
-	getCountrySpecsCountry: CountrySpec!
+	getCountrySpecsCountry(country: String!): CountrySpec!
 	getCoupons: GetCoupons!
-	getCouponsCoupon: Coupon!
+	getCouponsCoupon(coupon: String!): Coupon!
 	getCreditNotes: GetCreditNotes!
 	getCreditNotesPreview: CreditNote!
 	getCreditNotesPreviewLines: GetCreditNotesPreviewLines!
-	getCreditNotesCreditNoteLines: GetCreditNotesCreditNoteLines!
-	getCreditNotesId: CreditNote!
+	getCreditNotesCreditNoteLines(creditNote: String!): GetCreditNotesCreditNoteLines!
+	getCreditNotesId(id: String!): CreditNote!
 	getCustomers: GetCustomers!
 	getCustomersSearch: GetCustomersSearch!
-	getCustomersCustomer: DeletedCustomerOrCustomerUnion!
-	getCustomersCustomerBalanceTransactions: GetCustomersCustomerBalanceTransactions!
-	getCustomersCustomerBalanceTransactionsTransaction: CustomerBalanceTransaction!
-	getCustomersCustomerBankAccounts: GetCustomersCustomerBankAccounts!
-	getCustomersCustomerBankAccountsId: BankAccount!
-	getCustomersCustomerCards: GetCustomersCustomerCards!
-	getCustomersCustomerCardsId: Card!
-	getCustomersCustomerCashBalance: CashBalance!
-	getCustomersCustomerCashBalanceTransactions: GetCustomersCustomerCashBalanceTransactions!
-	getCustomersCustomerCashBalanceTransactionsTransaction: CustomerCashBalanceTransaction!
-	getCustomersCustomerDiscount: Discount!
-	getCustomersCustomerPaymentMethods: GetCustomersCustomerPaymentMethods!
-	getCustomersCustomerPaymentMethodsPaymentMethod: PaymentMethod!
-	getCustomersCustomerSources: GetCustomersCustomerSources!
-	getCustomersCustomerSourcesId: PaymentSource!
-	getCustomersCustomerSubscriptions: GetCustomersCustomerSubscriptions!
-	getCustomersCustomerSubscriptionsSubscriptionExposedId: Subscription!
-	getCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount: Discount!
-	getCustomersCustomerTaxIds: GetCustomersCustomerTaxIds!
-	getCustomersCustomerTaxIdsId: TaxId!
+	getCustomersCustomer(customer: String!): DeletedCustomerOrCustomerUnion!
+	getCustomersCustomerBalanceTransactions(customer: String!): GetCustomersCustomerBalanceTransactions!
+	getCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!): CustomerBalanceTransaction!
+	getCustomersCustomerBankAccounts(customer: String!): GetCustomersCustomerBankAccounts!
+	getCustomersCustomerBankAccountsId(id: String!, customer: String!): BankAccount!
+	getCustomersCustomerCards(customer: String!): GetCustomersCustomerCards!
+	getCustomersCustomerCardsId(id: String!, customer: String!): Card!
+	getCustomersCustomerCashBalance(customer: String!): CashBalance!
+	getCustomersCustomerCashBalanceTransactions(customer: String!): GetCustomersCustomerCashBalanceTransactions!
+	getCustomersCustomerCashBalanceTransactionsTransaction(transaction: String!, customer: String!): CustomerCashBalanceTransaction!
+	getCustomersCustomerDiscount(customer: String!): Discount!
+	getCustomersCustomerPaymentMethods(customer: String!): GetCustomersCustomerPaymentMethods!
+	getCustomersCustomerPaymentMethodsPaymentMethod(paymentMethod: String!, customer: String!): PaymentMethod!
+	getCustomersCustomerSources(customer: String!): GetCustomersCustomerSources!
+	getCustomersCustomerSourcesId(id: String!, customer: String!): PaymentSource!
+	getCustomersCustomerSubscriptions(customer: String!): GetCustomersCustomerSubscriptions!
+	getCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!): Subscription!
+	getCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!): Discount!
+	getCustomersCustomerTaxIds(customer: String!): GetCustomersCustomerTaxIds!
+	getCustomersCustomerTaxIdsId(id: String!, customer: String!): TaxId!
 	getDisputes: GetDisputes!
-	getDisputesDispute: Dispute!
+	getDisputesDispute(dispute: String!): Dispute!
 	getEvents: GetEvents!
-	getEventsId: Event!
+	getEventsId(id: String!): Event!
 	getExchangeRates: GetExchangeRates!
-	getExchangeRatesRateId: ExchangeRate!
+	getExchangeRatesRateId(rateId: String!): ExchangeRate!
 	getFileLinks: GetFileLinks!
-	getFileLinksLink: FileLink!
+	getFileLinksLink(link: String!): FileLink!
 	getFiles: GetFiles!
-	getFilesFile: File!
+	getFilesFile(file: String!): File!
 	getFinancialConnectionsAccounts: GetFinancialConnectionsAccounts!
-	getFinancialConnectionsAccountsAccount: FinancialConnectionsAccount!
-	getFinancialConnectionsAccountsAccountOwners: GetFinancialConnectionsAccountsAccountOwners!
-	getFinancialConnectionsSessionsSession: FinancialConnectionsSession!
+	getFinancialConnectionsAccountsAccount(account: String!): FinancialConnectionsAccount!
+	getFinancialConnectionsAccountsAccountOwners(account: String!): GetFinancialConnectionsAccountsAccountOwners!
+	getFinancialConnectionsSessionsSession(session: String!): FinancialConnectionsSession!
 	getIdentityVerificationReports: GetIdentityVerificationReports!
-	getIdentityVerificationReportsReport: IdentityVerificationReport!
+	getIdentityVerificationReportsReport(report: String!): IdentityVerificationReport!
 	getIdentityVerificationSessions: GetIdentityVerificationSessions!
-	getIdentityVerificationSessionsSession: IdentityVerificationSession!
+	getIdentityVerificationSessionsSession(session: String!): IdentityVerificationSession!
 	getInvoiceitems: GetInvoiceitems!
-	getInvoiceitemsInvoiceitem: Invoiceitem!
+	getInvoiceitemsInvoiceitem(invoiceitem: String!): Invoiceitem!
 	getInvoices: GetInvoices!
 	getInvoicesSearch: GetInvoicesSearch!
 	getInvoicesUpcoming: Invoice!
 	getInvoicesUpcomingLines: GetInvoicesUpcomingLines!
-	getInvoicesInvoice: Invoice!
-	getInvoicesInvoiceLines: GetInvoicesInvoiceLines!
+	getInvoicesInvoice(invoice: String!): Invoice!
+	getInvoicesInvoiceLines(invoice: String!): GetInvoicesInvoiceLines!
 	getIssuingAuthorizations: GetIssuingAuthorizations!
-	getIssuingAuthorizationsAuthorization: IssuingAuthorization!
+	getIssuingAuthorizationsAuthorization(authorization: String!): IssuingAuthorization!
 	getIssuingCardholders: GetIssuingCardholders!
-	getIssuingCardholdersCardholder: IssuingCardholder!
+	getIssuingCardholdersCardholder(cardholder: String!): IssuingCardholder!
 	getIssuingCards: GetIssuingCards!
-	getIssuingCardsCard: IssuingCard!
+	getIssuingCardsCard(card: String!): IssuingCard!
 	getIssuingDisputes: GetIssuingDisputes!
-	getIssuingDisputesDispute: IssuingDispute!
+	getIssuingDisputesDispute(dispute: String!): IssuingDispute!
 	getIssuingSettlements: GetIssuingSettlements!
-	getIssuingSettlementsSettlement: IssuingSettlement!
+	getIssuingSettlementsSettlement(settlement: String!): IssuingSettlement!
 	getIssuingTransactions: GetIssuingTransactions!
-	getIssuingTransactionsTransaction: IssuingTransaction!
-	getLinkAccountSessionsSession: FinancialConnectionsSession!
+	getIssuingTransactionsTransaction(transaction: String!): IssuingTransaction!
+	getLinkAccountSessionsSession(session: String!): FinancialConnectionsSession!
 	getLinkedAccounts: GetLinkedAccounts!
-	getLinkedAccountsAccount: FinancialConnectionsAccount!
-	getLinkedAccountsAccountOwners: GetLinkedAccountsAccountOwners!
-	getMandatesMandate: Mandate!
+	getLinkedAccountsAccount(account: String!): FinancialConnectionsAccount!
+	getLinkedAccountsAccountOwners(account: String!): GetLinkedAccountsAccountOwners!
+	getMandatesMandate(mandate: String!): Mandate!
 	getPaymentIntents: GetPaymentIntents!
 	getPaymentIntentsSearch: GetPaymentIntentsSearch!
-	getPaymentIntentsIntent: PaymentIntent!
+	getPaymentIntentsIntent(intent: String!): PaymentIntent!
 	getPaymentLinks: GetPaymentLinks!
-	getPaymentLinksPaymentLink: PaymentLink!
-	getPaymentLinksPaymentLinkLineItems: GetPaymentLinksPaymentLinkLineItems!
+	getPaymentLinksPaymentLink(paymentLink: String!): PaymentLink!
+	getPaymentLinksPaymentLinkLineItems(paymentLink: String!): GetPaymentLinksPaymentLinkLineItems!
 	getPaymentMethods: GetPaymentMethods!
-	getPaymentMethodsPaymentMethod: PaymentMethod!
+	getPaymentMethodsPaymentMethod(paymentMethod: String!): PaymentMethod!
 	getPayouts: GetPayouts!
-	getPayoutsPayout: Payout!
+	getPayoutsPayout(payout: String!): Payout!
 	getPlans: GetPlans!
-	getPlansPlan: Plan!
+	getPlansPlan(plan: String!): Plan!
 	getPrices: GetPrices!
 	getPricesSearch: GetPricesSearch!
-	getPricesPrice: Price!
+	getPricesPrice(price: String!): Price!
 	getProducts: GetProducts!
 	getProductsSearch: GetProductsSearch!
-	getProductsId: Product!
+	getProductsId(id: String!): Product!
 	getPromotionCodes: GetPromotionCodes!
-	getPromotionCodesPromotionCode: PromotionCode!
+	getPromotionCodesPromotionCode(promotionCode: String!): PromotionCode!
 	getQuotes: GetQuotes!
-	getQuotesQuote: Quote!
-	getQuotesQuoteComputedUpfrontLineItems: GetQuotesQuoteComputedUpfrontLineItems!
-	getQuotesQuoteLineItems: GetQuotesQuoteLineItems!
-	getQuotesQuotePdf: String!
+	getQuotesQuote(quote: String!): Quote!
+	getQuotesQuoteComputedUpfrontLineItems(quote: String!): GetQuotesQuoteComputedUpfrontLineItems!
+	getQuotesQuoteLineItems(quote: String!): GetQuotesQuoteLineItems!
+	getQuotesQuotePdf(quote: String!): String!
 	getRadarEarlyFraudWarnings: GetRadarEarlyFraudWarnings!
-	getRadarEarlyFraudWarningsEarlyFraudWarning: RadarEarlyFraudWarning!
+	getRadarEarlyFraudWarningsEarlyFraudWarning(earlyFraudWarning: String!): RadarEarlyFraudWarning!
 	getRadarValueListItems: GetRadarValueListItems!
-	getRadarValueListItemsItem: RadarValueListItem!
+	getRadarValueListItemsItem(item: String!): RadarValueListItem!
 	getRadarValueLists: GetRadarValueLists!
-	getRadarValueListsValueList: RadarValueList!
+	getRadarValueListsValueList(valueList: String!): RadarValueList!
 	getRefunds: GetRefunds!
-	getRefundsRefund: Refund!
+	getRefundsRefund(refund: String!): Refund!
 	getReportingReportRuns: GetReportingReportRuns!
-	getReportingReportRunsReportRun: ReportingReportRun!
+	getReportingReportRunsReportRun(reportRun: String!): ReportingReportRun!
 	getReportingReportTypes: GetReportingReportTypes!
-	getReportingReportTypesReportType: ReportingReportType!
+	getReportingReportTypesReportType(reportType: String!): ReportingReportType!
 	getReviews: GetReviews!
-	getReviewsReview: Review!
+	getReviewsReview(review: String!): Review!
 	getSetupAttempts: GetSetupAttempts!
 	getSetupIntents: GetSetupIntents!
-	getSetupIntentsIntent: SetupIntent!
+	getSetupIntentsIntent(intent: String!): SetupIntent!
 	getShippingRates: GetShippingRates!
-	getShippingRatesShippingRateToken: ShippingRate!
+	getShippingRatesShippingRateToken(shippingRateToken: String!): ShippingRate!
 	getSigmaScheduledQueryRuns: GetSigmaScheduledQueryRuns!
-	getSigmaScheduledQueryRunsScheduledQueryRun: ScheduledQueryRun!
-	getSourcesSource: Source!
-	getSourcesSourceMandateNotificationsMandateNotification: SourceMandateNotification!
-	getSourcesSourceSourceTransactions: GetSourcesSourceSourceTransactions!
-	getSourcesSourceSourceTransactionsSourceTransaction: SourceTransaction!
+	getSigmaScheduledQueryRunsScheduledQueryRun(scheduledQueryRun: String!): ScheduledQueryRun!
+	getSourcesSource(source: String!): Source!
+	getSourcesSourceMandateNotificationsMandateNotification(source: String!, mandateNotification: String!): SourceMandateNotification!
+	getSourcesSourceSourceTransactions(source: String!): GetSourcesSourceSourceTransactions!
+	getSourcesSourceSourceTransactionsSourceTransaction(sourceTransaction: String!, source: String!): SourceTransaction!
 	getSubscriptionItems: GetSubscriptionItems!
-	getSubscriptionItemsItem: SubscriptionItem!
-	getSubscriptionItemsSubscriptionItemUsageRecordSummaries: GetSubscriptionItemsSubscriptionItemUsageRecordSummaries!
+	getSubscriptionItemsItem(item: String!): SubscriptionItem!
+	getSubscriptionItemsSubscriptionItemUsageRecordSummaries(subscriptionItem: String!): GetSubscriptionItemsSubscriptionItemUsageRecordSummaries!
 	getSubscriptionSchedules: GetSubscriptionSchedules!
-	getSubscriptionSchedulesSchedule: SubscriptionSchedule!
+	getSubscriptionSchedulesSchedule(schedule: String!): SubscriptionSchedule!
 	getSubscriptions: GetSubscriptions!
 	getSubscriptionsSearch: GetSubscriptionsSearch!
-	getSubscriptionsSubscriptionExposedId: Subscription!
+	getSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!): Subscription!
 	getTaxCodes: GetTaxCodes!
-	getTaxCodesId: TaxCode!
+	getTaxCodesId(id: String!): TaxCode!
 	getTaxRates: GetTaxRates!
-	getTaxRatesTaxRate: TaxRate!
+	getTaxRatesTaxRate(taxRate: String!): TaxRate!
 	getTerminalConfigurations: GetTerminalConfigurations!
-	getTerminalConfigurationsConfiguration: DeletedTerminalConfigurationOrTerminalConfigurationUnion!
+	getTerminalConfigurationsConfiguration(configuration: String!): DeletedTerminalConfigurationOrTerminalConfigurationUnion!
 	getTerminalLocations: GetTerminalLocations!
-	getTerminalLocationsLocation: DeletedTerminalLocationOrTerminalLocationUnion!
+	getTerminalLocationsLocation(location: String!): DeletedTerminalLocationOrTerminalLocationUnion!
 	getTerminalReaders: GetTerminalReaders!
-	getTerminalReadersReader: DeletedTerminalReaderOrTerminalReaderUnion!
+	getTerminalReadersReader(reader: String!): DeletedTerminalReaderOrTerminalReaderUnion!
 	getTestHelpersTestClocks: GetTestHelpersTestClocks!
-	getTestHelpersTestClocksTestClock: TestHelpersTestClock!
-	getTokensToken: Token!
+	getTestHelpersTestClocksTestClock(testClock: String!): TestHelpersTestClock!
+	getTokensToken(token: String!): Token!
 	getTopups: GetTopups!
-	getTopupsTopup: Topup!
+	getTopupsTopup(topup: String!): Topup!
 	getTransfers: GetTransfers!
-	getTransfersIdReversals: GetTransfersIdReversals!
-	getTransfersTransfer: Transfer!
-	getTransfersTransferReversalsId: TransferReversal!
+	getTransfersIdReversals(id: String!): GetTransfersIdReversals!
+	getTransfersTransfer(transfer: String!): Transfer!
+	getTransfersTransferReversalsId(transfer: String!, id: String!): TransferReversal!
 	getTreasuryCreditReversals: GetTreasuryCreditReversals!
-	getTreasuryCreditReversalsCreditReversal: TreasuryCreditReversal!
+	getTreasuryCreditReversalsCreditReversal(creditReversal: String!): TreasuryCreditReversal!
 	getTreasuryDebitReversals: GetTreasuryDebitReversals!
-	getTreasuryDebitReversalsDebitReversal: TreasuryDebitReversal!
+	getTreasuryDebitReversalsDebitReversal(debitReversal: String!): TreasuryDebitReversal!
 	getTreasuryFinancialAccounts: GetTreasuryFinancialAccounts!
-	getTreasuryFinancialAccountsFinancialAccount: TreasuryFinancialAccount!
-	getTreasuryFinancialAccountsFinancialAccountFeatures: TreasuryFinancialAccountFeatures!
+	getTreasuryFinancialAccountsFinancialAccount(financialAccount: String!): TreasuryFinancialAccount!
+	getTreasuryFinancialAccountsFinancialAccountFeatures(financialAccount: String!): TreasuryFinancialAccountFeatures!
 	getTreasuryInboundTransfers: GetTreasuryInboundTransfers!
-	getTreasuryInboundTransfersId: TreasuryInboundTransfer!
+	getTreasuryInboundTransfersId(id: String!): TreasuryInboundTransfer!
 	getTreasuryOutboundPayments: GetTreasuryOutboundPayments!
-	getTreasuryOutboundPaymentsId: TreasuryOutboundPayment!
+	getTreasuryOutboundPaymentsId(id: String!): TreasuryOutboundPayment!
 	getTreasuryOutboundTransfers: GetTreasuryOutboundTransfers!
-	getTreasuryOutboundTransfersOutboundTransfer: TreasuryOutboundTransfer!
+	getTreasuryOutboundTransfersOutboundTransfer(outboundTransfer: String!): TreasuryOutboundTransfer!
 	getTreasuryReceivedCredits: GetTreasuryReceivedCredits!
-	getTreasuryReceivedCreditsId: TreasuryReceivedCredit!
+	getTreasuryReceivedCreditsId(id: String!): TreasuryReceivedCredit!
 	getTreasuryReceivedDebits: GetTreasuryReceivedDebits!
-	getTreasuryReceivedDebitsId: TreasuryReceivedDebit!
+	getTreasuryReceivedDebitsId(id: String!): TreasuryReceivedDebit!
 	getTreasuryTransactionEntries: GetTreasuryTransactionEntries!
-	getTreasuryTransactionEntriesId: TreasuryTransactionEntry!
+	getTreasuryTransactionEntriesId(id: String!): TreasuryTransactionEntry!
 	getTreasuryTransactions: GetTreasuryTransactions!
-	getTreasuryTransactionsId: TreasuryTransaction!
+	getTreasuryTransactionsId(id: String!): TreasuryTransaction!
 	getWebhookEndpoints: GetWebhookEndpoints!
-	getWebhookEndpointsWebhookEndpoint: WebhookEndpoint!
+	getWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!): WebhookEndpoint!
 }
 type Quote {
 	transferData: QuotesResourceTransferDataUnion

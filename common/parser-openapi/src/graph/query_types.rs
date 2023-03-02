@@ -1,10 +1,10 @@
-use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+use std::borrow::Cow;
+
 use inflector::Inflector;
 use petgraph::{
-    graph::NodeIndex,
+    graph::{EdgeIndex, NodeIndex},
     visit::{Dfs, EdgeFiltered, EdgeRef, Reversed, Walker},
 };
-use url::Url;
 
 use crate::{
     is_ok,
@@ -12,7 +12,7 @@ use crate::{
     parsing::operations::{OperationDetails, Verb},
 };
 
-use super::{Edge, Node, ScalarKind};
+use super::{input_value::InputValue, Edge, Node};
 
 #[derive(Clone, Copy, Debug)]
 pub enum OutputType {
@@ -22,6 +22,9 @@ pub enum OutputType {
 
 #[derive(Clone, Copy)]
 pub struct QueryOperation(NodeIndex);
+
+#[derive(Clone, Copy)]
+pub struct PathParameter(EdgeIndex);
 
 impl super::OpenApiGraph {
     /// Gets an iterator of all the OutputTypes that we'll need in the eventual schema
@@ -175,17 +178,31 @@ impl OutputType {
 }
 
 impl QueryOperation {
-    pub fn url(self, graph: &super::OpenApiGraph) -> Option<Url> {
+    pub fn url(self, graph: &super::OpenApiGraph) -> Option<String> {
         let path = &self.details(graph)?.path;
 
-        // Remove any leading `/` so that path is treated as a relative Url
+        // Remove any leading `/` so we can join cleanly
+        // (graph.metadata.url should always have a trailing slash)
         let path = path.trim_start_matches('/');
 
-        graph.metadata.url.join(path).ok()
+        // Note that we can't use Url::join here as it'll escape any OpenAPI parameter
+        // placeholders.
+        Some(format!("{}{path}", graph.metadata.url))
     }
 
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
         Some(OperationName(self.details(graph)?.operation_id.clone()?))
+    }
+
+    pub fn path_parameters(self, graph: &super::OpenApiGraph) -> Vec<PathParameter> {
+        graph
+            .graph
+            .edges(self.0)
+            .filter_map(|edge| match edge.weight() {
+                Edge::HasPathParameter { .. } => Some(PathParameter(edge.id())),
+                _ => None,
+            })
+            .collect()
     }
 
     fn details(self, graph: &super::OpenApiGraph) -> Option<&OperationDetails> {
@@ -210,9 +227,36 @@ impl QueryOperation {
     }
 }
 
+impl PathParameter {
+    pub fn name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasPathParameter { name, .. } => Some(FieldName(Cow::Borrowed(name))),
+            _ => None,
+        }
+    }
+
+    pub fn input_value(self, graph: &super::OpenApiGraph) -> Option<InputValue> {
+        let (_, dest_index) = graph.graph.edge_endpoints(self.0)?;
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasPathParameter { wrapping, .. } => InputValue::from_index(dest_index, wrapping.clone(), graph),
+            _ => None,
+        }
+    }
+}
+
 pub struct OperationName(String);
 
 impl std::fmt::Display for OperationName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = self.0.to_camel_case();
+
+        write!(f, "{name}")
+    }
+}
+
+pub struct FieldName<'a>(Cow<'a, str>);
+
+impl<'a> std::fmt::Display for FieldName<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.0.to_camel_case();
 
@@ -242,19 +286,6 @@ impl super::Node {
             ),
             super::Node::Operation(op) => op.operation_id.clone(),
             _ => None,
-        }
-    }
-}
-
-impl ScalarKind {
-    fn type_name(&self) -> String {
-        match self {
-            ScalarKind::String => "String".to_string(),
-            ScalarKind::Integer => "Int".to_string(),
-            ScalarKind::Float => "Float".to_string(),
-            ScalarKind::Boolean => "Boolean".to_string(),
-            ScalarKind::Id => "ID".to_string(),
-            ScalarKind::JsonObject => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
         }
     }
 }

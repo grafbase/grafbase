@@ -1,6 +1,6 @@
 use std::{rc::Rc, str::FromStr};
 
-use openapiv3::{ReferenceOr, StatusCode};
+use openapiv3::{Parameter, ParameterSchemaOrContent, ReferenceOr, StatusCode};
 
 use crate::Error;
 
@@ -14,6 +14,7 @@ pub struct OperationDetails {
     pub operation_id: Option<String>,
     pub request_bodies: Rc<Vec<RequestBody>>,
     pub responses: Vec<Response>,
+    pub(super) path_parameters: Vec<PathParameter>,
 }
 
 impl std::fmt::Debug for OperationDetails {
@@ -77,12 +78,36 @@ impl OperationDetails {
             }
         }
 
+        let mut path_parameters = Vec::new();
+        for parameter in &operation.parameters {
+            let parameter = match parameter {
+                ReferenceOr::Reference { reference } => {
+                    let reference = Ref::absolute(reference);
+                    components
+                        .parameters
+                        .get(&reference)
+                        .ok_or(Error::UnresolvedReference(reference))?
+                }
+                ReferenceOr::Item(parameter) => parameter,
+            };
+            if let Parameter::Path { parameter_data, .. } = parameter {
+                path_parameters.push(PathParameter {
+                    name: parameter_data.name.clone(),
+                    schema: match &parameter_data.format {
+                        ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
+                        ParameterSchemaOrContent::Content(_) => None,
+                    },
+                });
+            }
+        }
+
         Ok(OperationDetails {
             path,
             verb,
             operation_id: operation.operation_id.clone(),
             request_bodies,
             responses,
+            path_parameters,
         })
     }
 }
@@ -133,5 +158,11 @@ impl RequestBody {
 pub struct Response {
     pub status_code: StatusCode,
     pub content_type: String,
+    pub schema: Option<ReferenceOr<openapiv3::Schema>>,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct PathParameter {
+    pub name: String,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
 }

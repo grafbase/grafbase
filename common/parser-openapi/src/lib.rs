@@ -7,6 +7,7 @@ use url::Url;
 mod graph;
 mod output;
 mod parsing;
+mod validation;
 
 pub fn parse_spec(
     data: &str,
@@ -23,6 +24,8 @@ pub fn parse_spec(
     };
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata);
+
+    validation::validate(&graph)?;
 
     output::output(&graph, registry);
 
@@ -86,6 +89,8 @@ pub enum Error {
     TopLevelResponseWasReference(String),
     #[error("The request body component {0} was a reference, which we don't currently support.")]
     TopLevelRequestBodyWasReference(String),
+    #[error("The parameter component {0} was a reference, which we don't currently support.")]
+    TopLevelParameterWasReference(String),
     #[error("Couldn't parse HTTP verb: {0}")]
     UnknownHttpVerb(String),
     #[error("The operation {0} didn't have a response schema")]
@@ -102,6 +107,10 @@ pub enum Error {
     UnresolvedReference(Ref),
     #[error("Received an invalid URL: {0} ")]
     InvalidUrl(String),
+    #[error("The path parameter {0} is an object, which is currently unsupported")]
+    PathParameterIsObject(String),
+    #[error("The path parameter {0} is a list, which is currently unsupported")]
+    PathParameterIsList(String),
 }
 
 fn is_ok(status: &openapiv3::StatusCode) -> bool {
