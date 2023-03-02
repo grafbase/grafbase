@@ -175,7 +175,6 @@ impl Row {
 pub enum BridgeUrl<'a> {
     Query(&'a str),
     Mutation(&'a str),
-    InvokeResolver(&'a str),
 }
 
 impl<'a> ToString for BridgeUrl<'a> {
@@ -183,7 +182,6 @@ impl<'a> ToString for BridgeUrl<'a> {
         let (endpoint, port) = match self {
             Self::Query(port) => ("query", port),
             Self::Mutation(port) => ("mutation", port),
-            Self::InvokeResolver(port) => ("invoke-resolver", port),
         };
 
         format!("{BRIDGE_PROTOCOL}://{}:{port}/{endpoint}", Ipv4Addr::LOCALHOST)
