@@ -132,6 +132,8 @@ async fn spawn_servers(
     trace!("spawning miniflare");
 
     let miniflare = Command::new("node")
+        // Unbounded worker limit
+        .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
         .args([
             // used by miniflare when running normally as well
             "--experimental-vm-modules",

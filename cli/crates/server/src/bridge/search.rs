@@ -1,10 +1,7 @@
-use std::borrow::Borrow;
 use std::net::{IpAddr, Ipv6Addr};
 
 use chrono::{DateTime, NaiveDate, NaiveTime, TimeZone, Utc};
 use futures_util::TryStreamExt;
-use once_cell::sync::OnceCell;
-use regex::Regex;
 use serde_json::Value;
 use sqlx::SqlitePool;
 
@@ -15,25 +12,12 @@ use tantivy::schema::{Field, Schema, INDEXED, STORED, STRING, TEXT};
 use tantivy::store::Compressor;
 use tantivy::{DocAddress, Document, IndexSettings, Score, TantivyError};
 
+use crate::bridge::types::SearchScalar;
+
 use super::errors::ApiError;
 use super::types::{RecordDocument, SearchField, SearchSchema};
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
-static BASE_TYPE_RE: OnceCell<regex::Regex> = OnceCell::new();
-
-mod scalars {
-    pub const URL: &str = "URL";
-    pub const EMAIL: &str = "Email";
-    pub const PHONE: &str = "PhoneNumber";
-    pub const STRING: &str = "String";
-    pub const DATE: &str = "Date";
-    pub const DATE_TIME: &str = "DateTime";
-    pub const TIMESTAMP: &str = "Timestamp";
-    pub const INT: &str = "Int";
-    pub const FLOAT: &str = "Float";
-    pub const BOOL: &str = "Boolean";
-    pub const IP: &str = "IPAddress";
-}
 
 impl From<TantivyError> for ApiError {
     fn from(error: TantivyError) -> Self {
@@ -95,40 +79,27 @@ impl Index {
         let (fields, default_fields) = {
             let mut all = vec![];
             let mut defaults = vec![];
-            let mut search = vec![];
 
-            for field in &search_schema.fields {
-                let base_type = BASE_TYPE_RE
-                    .get_or_init(|| Regex::new(r"[\[\]!]").unwrap())
-                    .replace_all(&field.r#type, "");
-                search.push(SearchField {
-                    r#type: base_type.to_string(),
-                    ..field.clone()
-                });
-                let field = match base_type.borrow() {
-                    scalars::URL | scalars::EMAIL | scalars::PHONE => {
-                        schema_builder.add_text_field(&field.name, STRING)
-                    }
-                    scalars::STRING => schema_builder.add_text_field(&field.name, TEXT),
-                    scalars::DATE | scalars::DATE_TIME | scalars::TIMESTAMP => {
-                        schema_builder.add_date_field(&field.name, INDEXED)
-                    }
-                    scalars::INT => schema_builder.add_i64_field(&field.name, INDEXED),
-                    scalars::FLOAT => schema_builder.add_f64_field(&field.name, INDEXED),
-                    scalars::BOOL => schema_builder.add_bool_field(&field.name, INDEXED),
-                    scalars::IP => schema_builder.add_ip_addr_field(&field.name, INDEXED),
-                    unknown_type => {
-                        error!("Unknown field type: '{unknown_type}'");
-                        return Err(ApiError::ServerError);
-                    }
+            for search_field in &search_schema.fields {
+                use SearchScalar::{
+                    Boolean, Date, DateTime, Email, Float, IPAddress, Int, PhoneNumber, String, Timestamp, URL,
                 };
-                all.push(field);
-                match base_type.borrow() {
-                    scalars::STRING | scalars::URL | scalars::EMAIL | scalars::PHONE => defaults.push(field),
+                let field = match search_field.scalar {
+                    URL | Email | PhoneNumber => schema_builder.add_text_field(&search_field.name, STRING),
+                    String => schema_builder.add_text_field(&search_field.name, TEXT),
+                    Date | DateTime | Timestamp => schema_builder.add_date_field(&search_field.name, INDEXED),
+                    Int => schema_builder.add_i64_field(&search_field.name, INDEXED),
+                    Float => schema_builder.add_f64_field(&search_field.name, INDEXED),
+                    Boolean => schema_builder.add_bool_field(&search_field.name, INDEXED),
+                    IPAddress => schema_builder.add_ip_addr_field(&search_field.name, INDEXED),
+                };
+                match search_field.scalar {
+                    String | URL | Email | PhoneNumber => defaults.push(field),
                     _ => (),
                 };
+                all.push((search_field, field));
             }
-            (search.into_iter().zip(all).collect::<Vec<_>>(), defaults)
+            (all, defaults)
         };
         let schema = schema_builder.build();
         let builder = tantivy::Index::builder()
@@ -180,30 +151,30 @@ impl Index {
 fn add_field(
     doc: &mut Document,
     field: Field,
-    SearchField {
-        name,
-        r#type: base_type,
-    }: &SearchField,
+    SearchField { name, scalar }: &SearchField,
     RecordDocument { document, .. }: &RecordDocument,
 ) -> Result<(), FieldError> {
     if let Some(value) = document.get(name) {
-        match base_type.as_str() {
-            scalars::URL | scalars::EMAIL | scalars::PHONE | scalars::STRING => {
+        use SearchScalar::{
+            Boolean, Date, DateTime, Email, Float, IPAddress, Int, PhoneNumber, String, Timestamp, URL,
+        };
+        match scalar {
+            URL | Email | PhoneNumber | String => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_text(field, DynamoItemExt::to_str(value)?);
                 }
             }
-            scalars::INT => {
+            Int => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_i64(field, DynamoItemExt::to_i64(value)?);
                 }
             }
-            scalars::FLOAT => {
+            Float => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_f64(field, DynamoItemExt::to_f64(value)?);
                 }
             }
-            scalars::DATE_TIME => {
+            DateTime => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_date(
                         field,
@@ -211,7 +182,7 @@ fn add_field(
                     );
                 }
             }
-            scalars::DATE => {
+            Date => {
                 for value in DynamoItemExt::flatten(value) {
                     let value = Utc.from_utc_datetime(
                         &DynamoItemExt::to_date(value)?.and_time(NaiveTime::from_hms_opt(0, 0, 0).expect("Valid time")),
@@ -222,7 +193,7 @@ fn add_field(
                     );
                 }
             }
-            scalars::TIMESTAMP => {
+            Timestamp => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_date(
                         field,
@@ -232,17 +203,16 @@ fn add_field(
                     );
                 }
             }
-            scalars::BOOL => {
+            Boolean => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_bool(field, DynamoItemExt::to_bool(value)?);
                 }
             }
-            scalars::IP => {
+            IPAddress => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_ip_addr(field, DynamoItemExt::to_ipaddr(value)?);
                 }
             }
-            _ => unreachable!("Field could not have been added to the schema."),
         };
     }
     Ok(())
