@@ -1,3 +1,5 @@
+use crate::constant::OWNED_BY;
+
 use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::AttributeValue;
@@ -35,6 +37,7 @@ pub struct Record {
     pub created_at: DateTime<Utc>,
     #[serde(serialize_with = "serialize_dt_to_rfc3339")]
     pub updated_at: DateTime<Utc>,
+    pub owned_by: Option<String>,
 }
 
 pub trait GetDocumentBuiltin {
@@ -96,6 +99,7 @@ pub enum Column {
     Document,
     CreatedAt,
     UpdatedAt,
+    OwnedBy,
 }
 
 impl Column {
@@ -112,6 +116,7 @@ impl Column {
             Self::Document => "document",
             Self::CreatedAt => "created_at",
             Self::UpdatedAt => "updated_at",
+            Self::OwnedBy => "owned_by",
         }
     }
 }
@@ -123,7 +128,7 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn from(array: [(Column, Option<String>); 11]) -> Self {
+    pub fn from(array: [(Column, Option<String>); 12]) -> Self {
         let keyed_values = array.iter().cloned().filter_map(|(column, value)| {
             value
                 .as_ref()
@@ -165,6 +170,7 @@ impl Row {
             (Column::CreatedAt, Some(created_at)),
             (Column::UpdatedAt, Some(updated_at)),
             (Column::RelationNames, Some(relation_names)),
+            (Column::OwnedBy, record.owned_by),
             (Column::Document, Some(document)),
         ];
 
@@ -250,12 +256,13 @@ pub enum Sql<'a> {
         is_nested: bool,
         ascending: bool,
         edges_count: usize,
+        filter_by_owner: bool,
     },
     /// values: entity_type
     SelectType,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum SqlValue {
     String(String),
     VecDeque(VecDeque<String>),
@@ -483,6 +490,7 @@ impl<'a> Sql<'a> {
                 is_nested,
                 ascending,
                 edges_count,
+                filter_by_owner,
             } => {
                 let mut r#where = vec!["entity_type=?entity_type".to_string()];
                 let select = if *is_nested {
@@ -499,6 +507,12 @@ impl<'a> Sql<'a> {
                 if *has_origin {
                     let op = if *ascending { ">" } else { "<" };
                     r#where.push(format!("sk {op} ?sk"));
+                }
+                if *filter_by_owner {
+                    r#where.push(format!(
+                        "{owned_by_column} = ?{OWNED_BY}",
+                        owned_by_column = Column::OwnedBy.as_str()
+                    ));
                 }
                 let ordering = if *ascending { "ASC" } else { "DESC" };
                 let page = format!(
@@ -594,6 +608,7 @@ fn test_serde_roundtrip_record() {
         updated_at: DateTime::<chrono::FixedOffset>::parse_from_rfc3339("1970-01-01T00:00:00.000Z")
             .unwrap()
             .with_timezone(&Utc),
+        owned_by: None,
     };
 
     let serialized = serde_json::to_string(&rec);
