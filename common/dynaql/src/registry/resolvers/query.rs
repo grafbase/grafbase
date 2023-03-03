@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, cmp, sync::Arc};
 
-use grafbase_runtime::{SearchEngine, SearchRequest};
+use grafbase_runtime::search::{SearchEngine, SearchRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -8,7 +8,7 @@ use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
 use super::{ResolvedValue, ResolverContext};
 
-pub use grafbase_runtime::{SearchField, SearchSchema};
+pub use grafbase_runtime::search;
 
 pub const MATCHING_RECORDS_ID_KEY: &str = "ids";
 
@@ -18,7 +18,7 @@ pub enum QueryResolver {
         query: VariableResolveDefinition,
         limit: VariableResolveDefinition,
         r#type: String,
-        schema: SearchSchema,
+        schema: search::Schema,
     },
 }
 
@@ -46,6 +46,7 @@ impl QueryResolver {
                             raw_query: query.resolve(ctx, last_resolver_value)?,
                             limit: cmp::max(0, limit.resolve::<i64>(ctx, last_resolver_value)?)
                                 .unsigned_abs(),
+                            database: String::new(),
                             // FIXME: At several places the lowercase for the id & entity_type is
                             // used. A single code path should handle that.
                             entity_type: r#type.to_lowercase().to_string(),

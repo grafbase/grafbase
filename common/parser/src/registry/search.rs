@@ -1,36 +1,62 @@
+use std::str::FromStr;
+
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::resolvers::query::{QueryResolver, SearchField, SearchSchema, MATCHING_RECORDS_ID_KEY};
+use dynaql::registry::resolvers::query::{search, QueryResolver, MATCHING_RECORDS_ID_KEY};
+use dynaql::registry::MetaTypeName;
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
-use dynaql::{AuthConfig, Operations};
+use dynaql::{AuthConfig, Operations, Positioned};
 use dynaql_parser::types::{ConstDirective, FieldDefinition, TypeDefinition};
+use itertools::Itertools;
 
 use crate::registry::names::MetaNames;
+use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
 
 const SEARCH_INPUT_ARG_QUERY: &str = "query";
 const SEARCH_INPUT_ARG_LIMIT: &str = "limit";
 
+fn convert_to_search_scalar(ty: &str) -> Result<search::Scalar, String> {
+    match MetaTypeName::create(ty) {
+        MetaTypeName::List(type_name) | MetaTypeName::NonNull(type_name) => convert_to_search_scalar(type_name),
+        MetaTypeName::Named(type_name) => search::Scalar::from_str(type_name).map_err(|_| type_name.to_string()),
+    }
+}
+
 pub fn add_query_search(
     ctx: &mut VisitorContext<'_>,
     model_type_definition: &TypeDefinition,
     model_auth: Option<&AuthConfig>,
-    search_fields: Vec<(&FieldDefinition, &ConstDirective)>,
+    search_fields: Vec<(&FieldDefinition, &Positioned<ConstDirective>)>,
 ) {
     assert!(!search_fields.is_empty());
     let type_name = MetaNames::model(model_type_definition);
     let field_name = MetaNames::search(model_type_definition);
 
-    let search_schema = SearchSchema {
-        fields: search_fields
-            .into_iter()
-            .map(|(field, _directive)| SearchField {
-                name: field.name.node.to_string(),
-                r#type: field.ty.node.to_string(),
-            })
-            .collect(),
+    let (fields, errors): (Vec<_>, Vec<_>) = search_fields
+        .into_iter()
+        .map(|(field, directive)| {
+            convert_to_search_scalar(&field.ty.node.to_string())
+                .map(|scalar| search::Field {
+                    name: field.name.node.to_string(),
+                    scalar,
+                })
+                .map_err(|unsupported_type_name| {
+                    ctx.report_error(
+                        vec![directive.pos],
+                        format!(
+                            "The @{SEARCH_DIRECTIVE} directive cannot be used with the {unsupported_type_name} type."
+                        ),
+                    );
+                })
+        })
+        .partition_result();
+    let search_schema = if errors.is_empty() {
+        search::Schema { fields }
+    } else {
+        return;
     };
 
     ctx.queries.push(MetaField {
