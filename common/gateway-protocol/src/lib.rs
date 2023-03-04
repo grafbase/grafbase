@@ -78,6 +78,11 @@ pub struct ExecutionHealthResponse {
     pub ready: bool,
 }
 
+#[derive(serde::Deserialize, serde::Serialize)]
+pub struct ResolverHealthResponse {
+    pub ready: bool,
+}
+
 /// Encapsulates customer specific configuration
 /// Required for executing requests that target a customer deployment
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
