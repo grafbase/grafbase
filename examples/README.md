@@ -28,6 +28,7 @@ See how easy it is to use Grafbase with the frontend frameworks you already know
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | [Eleventy](/examples/eleventy)                                | Build static sites using [11ty](https://www.11ty.dev) with data from Grafbase.                                                               |
 | [Fresh](/examples/fresh)                                      | Send no JavaScript to the client with [Fresh](https://grafbase.com/frameworks/fresh) and GraphQL.                                            |
+| [Kotlin](/examples/kotlin)                                    | Build cross-platform applications with Kotlin and GraphQL for Android.                                                                       |
 | [NextAuth.js Credentials](/examples/nextauthjs-credentials)   | Use Grafbase for your [NextAuth.js](https://nextauth.js.org) credentials provider.                                                           |
 | [NextAuth.js JWT Provider](/examples/nextauthjs-jwt-provider) | Use [NextAuth.js](https://nextauth.js.org) as your Grafbase JWT auth provider.                                                               |
 | [Next.js](/examples/nextjs)                                   | Build and scale your [Next.js](https://grafbase.com/frameworks/nextjs) backend with Grafbase.                                                |
@@ -40,7 +41,7 @@ See how easy it is to use Grafbase with the frontend frameworks you already know
 | [SvelteKit](/examples/sveltekit)                              | Build and scale your [Svelte](https://grafbase.com/frameworks/sveltekit) backend with Grafbase.                                              |
 | [SvelteKit (with Houdini)](/examples/sveltekit-houdini)       | Build and scale your [Houdini](https://grafbase.com/frameworks/sveltekit) application with Grafbase.                                         |
 | [Swift](/examples/swift)                                      | Build your iOS, iPadOS, macOS, tvOS, or watchOS app with [Swift](https://www.swift.org/) and GraphQL.                                        |
-| [Expo](/examples/expo)                                        | Build and scale your [Expo](https://docs.expo.dev/) mobile app with Grafbase.                                                     |
+| [Expo](/examples/expo)                                        | Build and scale your [Expo](https://docs.expo.dev/) mobile app with Grafbase.                                                                |
 
 ## Features & Integrations
 
