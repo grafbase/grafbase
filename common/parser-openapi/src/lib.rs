@@ -7,19 +7,25 @@ use url::Url;
 mod graph;
 mod output;
 mod parsing;
+mod validation;
 
 pub fn parse_spec(
     data: &str,
     format: Format,
-    metadata: ApiMetadata,
+    mut metadata: ApiMetadata,
     registry: &mut Registry,
 ) -> Result<(), Vec<Error>> {
+    // Make sure we have a trailing slash on metadata so that Url::join works correctly.
+    ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
+
     let spec = match format {
         Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
         Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata);
+
+    validation::validate(&graph)?;
 
     output::output(&graph, registry);
 
@@ -83,6 +89,8 @@ pub enum Error {
     TopLevelResponseWasReference(String),
     #[error("The request body component {0} was a reference, which we don't currently support.")]
     TopLevelRequestBodyWasReference(String),
+    #[error("The parameter component {0} was a reference, which we don't currently support.")]
+    TopLevelParameterWasReference(String),
     #[error("Couldn't parse HTTP verb: {0}")]
     UnknownHttpVerb(String),
     #[error("The operation {0} didn't have a response schema")]
@@ -97,6 +105,12 @@ pub enum Error {
     AnySchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
     UnresolvedReference(Ref),
+    #[error("Received an invalid URL: {0} ")]
+    InvalidUrl(String),
+    #[error("The path parameter {0} is an object, which is currently unsupported")]
+    PathParameterIsObject(String),
+    #[error("The path parameter {0} is a list, which is currently unsupported")]
+    PathParameterIsList(String),
 }
 
 fn is_ok(status: &openapiv3::StatusCode) -> bool {
@@ -105,6 +119,15 @@ fn is_ok(status: &openapiv3::StatusCode) -> bool {
         openapiv3::StatusCode::Range(_range) => todo!(),
         _ => false,
     }
+}
+
+fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
+    let mut segments = url.path_segments_mut()?;
+
+    segments.pop_if_empty();
+    segments.push("");
+
+    Ok(())
 }
 
 #[cfg(test)]

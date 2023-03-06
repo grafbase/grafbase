@@ -3,9 +3,13 @@ use petgraph::{graph::NodeIndex, Graph};
 
 use crate::parsing::operations::OperationDetails;
 
+mod input_value;
 mod query_types;
 
-pub use query_types::{OutputType, QueryOperation};
+pub use self::{
+    input_value::{InputValue, InputValueKind},
+    query_types::{OutputType, PathParameter, QueryOperation},
+};
 
 /// A graph representation of an OpenApi schema.
 ///
@@ -62,6 +66,9 @@ pub enum Edge {
     /// The edge between a schema and its underlying type
     HasType { wrapping: WrappingType },
 
+    /// An edge between an operation and the type/schema of one of its path parameters
+    HasPathParameter { name: String, wrapping: WrappingType },
+
     /// An edge bewteen an operation and it's request type
     #[allow(dead_code)]
     HasRequestType {
@@ -98,6 +105,22 @@ pub enum ScalarKind {
     Boolean,
     #[allow(dead_code)]
     Id,
+    JsonObject,
+}
+
+impl ScalarKind {
+    fn type_name(&self) -> String {
+        use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
+
+        match self {
+            ScalarKind::String => "String".to_string(),
+            ScalarKind::Integer => "Int".to_string(),
+            ScalarKind::Float => "Float".to_string(),
+            ScalarKind::Boolean => "Boolean".to_string(),
+            ScalarKind::Id => "ID".to_string(),
+            ScalarKind::JsonObject => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
+        }
+    }
 }
 
 impl std::fmt::Debug for Node {
@@ -117,9 +140,19 @@ impl std::fmt::Debug for Node {
 
 // The GraphQL spec calls the "NonNull"/"List" types "wrapping types" so I'm borrowing
 // that terminology here
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum WrappingType {
     NonNull(Box<WrappingType>),
     List(Box<WrappingType>),
     Named,
+}
+
+impl WrappingType {
+    pub fn contains_list(&self) -> bool {
+        match self {
+            WrappingType::NonNull(inner) => inner.contains_list(),
+            WrappingType::List(_) => true,
+            WrappingType::Named => false,
+        }
+    }
 }

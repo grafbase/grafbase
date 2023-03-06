@@ -1,6 +1,9 @@
-use std::sync::Arc;
+use std::{
+    borrow::{Borrow, Cow},
+    sync::Arc,
+};
 
-use crate::{Context, Error};
+use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
 use super::{ResolvedValue, ResolverContext};
 
@@ -9,6 +12,13 @@ pub struct HttpResolver {
     pub method: String,
     pub url: String,
     pub api_name: String,
+    pub path_parameters: Vec<Parameter>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub struct Parameter {
+    pub name: String,
+    pub variable_resolve_definition: VariableResolveDefinition,
 }
 
 impl HttpResolver {
@@ -16,8 +26,10 @@ impl HttpResolver {
         &self,
         ctx: &Context<'_>,
         _resolver_ctx: &ResolverContext<'_>,
-        _last_resolver_value: Option<&ResolvedValue>,
+        last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
+        let last_resolver_value = last_resolver_value.map(|val| val.data_resolved.borrow());
+
         let headers = ctx
             .registry()
             .http_headers
@@ -25,7 +37,15 @@ impl HttpResolver {
             .map(Vec::as_slice)
             .unwrap_or(&[]);
 
-        let mut request = surf::get(&self.url);
+        let mut url = self.url.clone();
+        for param in &self.path_parameters {
+            let variable = param
+                .variable_resolve_definition
+                .resolve(ctx, last_resolver_value)?;
+            url = url.apply_path_parameter(&param, variable)?;
+        }
+
+        let mut request = surf::get(&url);
 
         for (name, value) in headers {
             request = request.header(name.as_str(), value);
@@ -39,5 +59,37 @@ impl HttpResolver {
             .map_err(|e| Error::new(e.to_string()))?;
 
         Ok(ResolvedValue::new(Arc::new(data)))
+    }
+}
+
+trait ParamApply {
+    fn apply_path_parameter(
+        self,
+        param: &Parameter,
+        variable: serde_json::Value,
+    ) -> Result<String, Error>;
+}
+
+impl ParamApply for String {
+    fn apply_path_parameter(
+        self,
+        param: &Parameter,
+        variable: serde_json::Value,
+    ) -> Result<String, Error> {
+        let name = &param.name;
+
+        Ok(self.replace(&format!("{{{name}}}"), json_to_string(&variable)?.borrow()))
+    }
+}
+
+fn json_to_string(value: &serde_json::Value) -> Result<Cow<'_, str>, Error> {
+    use serde_json::Value;
+    match value {
+        Value::Bool(b) => Ok(Cow::Owned(b.to_string())),
+        Value::Number(number) => Ok(Cow::Owned(number.to_string())),
+        Value::String(string) => Ok(Cow::Borrowed(string)),
+        Value::Null => Err(Error::new("HTTP URL parameters cannot be null")),
+        Value::Array(_) => Err(Error::new("HTTP URL parameters cannot be arrays")),
+        Value::Object(_) => Err(Error::new("HTTP URL parameters cannot be objects")),
     }
 }

@@ -56,7 +56,21 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     continue;
                 }
             };
-            let index = ctx.graph.add_node(Node::Operation(operation.clone()));
+            let operation_index = ctx.graph.add_node(Node::Operation(operation.clone()));
+
+            for parameter in operation.path_parameters {
+                let parent = ParentNode::PathParameter {
+                    name: parameter.name,
+                    operation_index,
+                };
+                match parameter.schema {
+                    Some(schema) => extract_types(ctx, &schema, parent),
+                    None => {
+                        // If the parameter has no schema we just assume it's a string.
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
+                    }
+                }
+            }
 
             for response in operation.responses {
                 let Some(schema) = &response.schema else {
@@ -70,12 +84,12 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     ParentNode::OperationResponse {
                         status_code: response.status_code,
                         content_type: response.content_type,
-                        operation_index: index,
+                        operation_index,
                     },
                 );
             }
 
-            ctx.operation_indices.push(index);
+            ctx.operation_indices.push(operation_index);
         }
     }
 }
@@ -103,6 +117,10 @@ enum ParentNode {
         parent: Box<ParentNode>,
     },
     Union(NodeIndex),
+    PathParameter {
+        name: String,
+        operation_index: NodeIndex,
+    },
 }
 
 impl Context {
@@ -128,7 +146,8 @@ impl ParentNode {
         match self {
             ParentNode::Union(idx) | ParentNode::Schema(idx) => *idx,
             ParentNode::OperationResponse { operation_index, .. }
-            | ParentNode::OperationRequest { operation_index, .. } => *operation_index,
+            | ParentNode::OperationRequest { operation_index, .. }
+            | ParentNode::PathParameter { operation_index, .. } => *operation_index,
             ParentNode::Field { object_index, .. } => *object_index,
             ParentNode::List { parent, .. } => parent.node_index(),
         }
@@ -166,6 +185,10 @@ impl ParentNode {
                 parent.create_edge_weight(wrapping)
             }
             ParentNode::Union { .. } => Edge::HasUnionMember,
+            ParentNode::PathParameter { name, .. } => Edge::HasPathParameter {
+                name: name.clone(),
+                wrapping,
+            },
         }
     }
 }
@@ -212,6 +235,11 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable);
             }
             SchemaKind::Type(Type::Object(obj)) => {
+                if obj.properties.is_empty() {
+                    // If there's no explicit properties we make this a custom scalar
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    return;
+                }
                 let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
                 for (field_name, field_schema_or_ref) in &obj.properties {
                     let required = obj.required.contains(field_name);

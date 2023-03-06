@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, rc::Rc};
 
-use openapiv3::ReferenceOr;
+use openapiv3::{Parameter, ReferenceOr};
 
 use crate::Error;
 
@@ -11,6 +11,7 @@ use super::{operations::RequestBody, Context};
 pub struct Components {
     pub responses: BTreeMap<Ref, Vec<ResponseComponent>>,
     pub request_bodies: BTreeMap<Ref, Rc<Vec<RequestBody>>>,
+    pub parameters: BTreeMap<Ref, Parameter>,
 }
 
 pub struct ResponseComponent {
@@ -35,6 +36,14 @@ impl Components {
             };
             self.request_bodies
                 .insert(Ref::response(name), Rc::new(RequestBody::from_openapi(request_body)));
+        }
+
+        for (name, parameter) in &components.parameters {
+            let Some(parameter) = parameter.as_item() else {
+                ctx.errors.push(Error::TopLevelParameterWasReference(name.clone()));
+                continue;
+            };
+            self.parameters.insert(Ref::parameter(name), parameter.clone());
         }
     }
 }
@@ -74,5 +83,9 @@ impl Ref {
 
     pub fn request_body(name: &str) -> Ref {
         Ref(format!("#/components/request_bodies/{name}"))
+    }
+
+    pub fn parameter(name: &str) -> Ref {
+        Ref(format!("#/components/parameters/{name}"))
     }
 }
