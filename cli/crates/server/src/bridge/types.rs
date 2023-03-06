@@ -88,5 +88,21 @@ pub struct SearchSchema {
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub struct SearchField {
     pub name: String,
-    pub r#type: String,
+    pub scalar: SearchScalar,
+}
+
+#[allow(clippy::upper_case_acronyms)] // for URL which has the same name as the GraphQL scalar.
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+pub enum SearchScalar {
+    URL,
+    Email,
+    PhoneNumber,
+    String,
+    Date,
+    DateTime,
+    Timestamp,
+    Int,
+    Float,
+    Boolean,
+    IPAddress,
 }
