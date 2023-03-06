@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
+use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
 use inflector::Inflector;
 use petgraph::{
     graph::{EdgeIndex, NodeIndex},
-    visit::{Dfs, EdgeFiltered, EdgeRef, Reversed, Walker},
+    visit::{Dfs, EdgeFiltered, EdgeRef, Walker},
 };
 
 use crate::{
@@ -21,19 +22,31 @@ pub enum OutputType {
 }
 
 #[derive(Clone, Copy)]
-pub struct QueryOperation(NodeIndex);
+pub struct QueryOperation(pub(super) NodeIndex);
 
 #[derive(Clone, Copy)]
 pub struct PathParameter(EdgeIndex);
 
+#[derive(Clone, Copy)]
+pub struct QueryParameter(EdgeIndex);
+
 impl super::OpenApiGraph {
     /// Gets an iterator of all the OutputTypes that we'll need in the eventual schema
-    pub fn output_types(&self) -> impl Iterator<Item = OutputType> + '_ {
-        let mut dfs = Dfs::empty(&self.graph);
+    pub fn output_types(&self) -> Vec<OutputType> {
+        let filtered_graph = EdgeFiltered::from_fn(&self.graph, |edge| {
+            // Don't follow edges that lead to input types
+            !matches!(
+                edge.weight(),
+                Edge::HasPathParameter { .. } | Edge::HasQueryParameter { .. }
+            )
+        });
+
+        let mut dfs = Dfs::empty(&filtered_graph);
         dfs.stack = self.query_operations().into_iter().map(|op| op.0).collect();
 
-        dfs.iter(&self.graph)
+        dfs.iter(&filtered_graph)
             .filter_map(|idx| OutputType::from_index(idx, self))
+            .collect()
     }
 
     /// Gets all the QueryOperations we'll need in the eventual schema
@@ -49,77 +62,6 @@ impl super::OpenApiGraph {
             .copied()
             .map(QueryOperation)
             .collect()
-    }
-
-    fn type_name(&self, node: NodeIndex) -> Option<String> {
-        match &self.graph[node] {
-            schema @ super::Node::Schema { .. } => Some(schema.name()?),
-            super::Node::Operation(_) => None,
-            super::Node::Object => {
-                // OpenAPI objects are generally anonymous so we walk back up the graph to the
-                // nearest named thing, and construct a name based on the fields in-betweeen.
-                // Not ideal, but the best we can do.
-                let reversed_graph = Reversed(&self.graph);
-                let filtered_graph = EdgeFiltered::from_fn(reversed_graph, |edge| {
-                    matches!(
-                        edge.weight(),
-                        Edge::HasField { .. }
-                            | Edge::HasResponseType { .. }
-                            | Edge::HasType { .. }
-                            | Edge::HasUnionMember
-                    )
-                });
-
-                let (_, mut path) = petgraph::algo::astar(
-                    &filtered_graph,
-                    node,
-                    |current_node| self.graph[current_node].name().is_some(),
-                    |_| 0,
-                    |_| 0,
-                )?;
-
-                let named_node = path.pop()?;
-
-                // Reverse our path so we can look things up in the original graph.
-                path.reverse();
-
-                let mut name_components = Vec::new();
-                let mut path_iter = path.into_iter().peekable();
-                while let Some(src_node) = path_iter.next() {
-                    let Some(&dest_node) = path_iter.peek() else { break; };
-
-                    // I am sort of assuming there's only one edge here.
-                    // Should be the case at the moment but might need to update this to a loop if that changes
-                    let edge = self.graph.edges_connecting(src_node, dest_node).next().unwrap();
-                    if let Edge::HasField { name, .. } = edge.weight() {
-                        name_components.push(name.as_str());
-                    }
-                }
-
-                let root_name = self.graph[named_node].name().unwrap();
-                name_components.push(root_name.as_str());
-
-                name_components.reverse();
-                Some(name_components.join("_").to_pascal_case())
-            }
-            super::Node::Scalar(kind) => Some(kind.type_name()),
-            super::Node::Union => {
-                // Unions are named based on the names of their constituent types.
-                // Although it's perfectly possible for any of the members to be un-named
-                // so this will probably require a bit more work at some point.
-                let mut name = self
-                    .graph
-                    .edges(node)
-                    .filter_map(|edge| match edge.weight() {
-                        Edge::HasUnionMember => OutputType::from_index(edge.target(), self)?.name(self),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>()
-                    .join("Or");
-                name.push_str("Union");
-                Some(name)
-            }
-        }
     }
 }
 
@@ -159,7 +101,7 @@ impl OutputType {
         }
     }
 
-    fn from_index(idx: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
+    pub(super) fn from_index(idx: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
         match graph.graph[idx] {
             Node::Object => Some(OutputType::Object(idx)),
             Node::Union => Some(OutputType::Union(idx)),
@@ -205,6 +147,17 @@ impl QueryOperation {
             .collect()
     }
 
+    pub fn query_parameters(self, graph: &super::OpenApiGraph) -> Vec<QueryParameter> {
+        graph
+            .graph
+            .edges(self.0)
+            .filter_map(|edge| match edge.weight() {
+                Edge::HasQueryParameter { .. } => Some(QueryParameter(edge.id())),
+                _ => None,
+            })
+            .collect()
+    }
+
     fn details(self, graph: &super::OpenApiGraph) -> Option<&OperationDetails> {
         match &graph.graph[self.0] {
             super::Node::Operation(op) => Some(op),
@@ -244,6 +197,30 @@ impl PathParameter {
     }
 }
 
+impl QueryParameter {
+    pub fn name(self, graph: &super::OpenApiGraph) -> Option<&str> {
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasQueryParameter { name, .. } => Some(name),
+            _ => None,
+        }
+    }
+
+    pub fn input_value(self, graph: &super::OpenApiGraph) -> Option<InputValue> {
+        let (_, dest_index) = graph.graph.edge_endpoints(self.0)?;
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasQueryParameter { wrapping, .. } => InputValue::from_index(dest_index, wrapping.clone(), graph),
+            _ => None,
+        }
+    }
+
+    pub fn encoding_style(self, graph: &super::OpenApiGraph) -> Option<QueryParameterEncodingStyle> {
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasQueryParameter { encoding_style, .. } => Some(*encoding_style),
+            _ => None,
+        }
+    }
+}
+
 pub struct OperationName(String);
 
 impl std::fmt::Display for OperationName {
@@ -261,31 +238,5 @@ impl<'a> std::fmt::Display for FieldName<'a> {
         let name = self.0.to_camel_case();
 
         write!(f, "{name}")
-    }
-}
-
-impl super::Node {
-    // Used to determine whether this specific node type has a name.
-    // To generate the full name of a particular node you should use the OpenApiGraph::type_name
-    // function.
-    fn name(&self) -> Option<String> {
-        match self {
-            super::Node::Schema(schema) => Some(
-                // There's a title property that we _could_ use for a name, but the spec doesn't
-                // enforce that it's unique and (certainly in stripes case) it is not.
-                // Might do some stuff to work around htat, but for now it's either "x-resourceId"
-                // which stripe use or the name of the schema in components.
-                schema
-                    .openapi
-                    .schema_data
-                    .extensions
-                    .get("x-resourceId")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or(schema.openapi_name.as_str())
-                    .to_pascal_case(),
-            ),
-            super::Node::Operation(op) => op.operation_id.clone(),
-            _ => None,
-        }
     }
 }

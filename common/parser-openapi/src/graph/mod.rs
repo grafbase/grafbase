@@ -1,14 +1,22 @@
+use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use inflector::Inflector;
 use openapiv3::StatusCode;
-use petgraph::{graph::NodeIndex, Graph};
+use petgraph::{
+    graph::NodeIndex,
+    visit::{EdgeFiltered, EdgeRef, Reversed},
+    Graph,
+};
 
 use crate::parsing::operations::OperationDetails;
 
+mod enums;
 mod input_value;
 mod query_types;
 
 pub use self::{
+    enums::Enum,
     input_value::{InputValue, InputValueKind},
-    query_types::{OutputType, PathParameter, QueryOperation},
+    query_types::{OutputType, PathParameter, QueryOperation, QueryParameter},
 };
 
 /// A graph representation of an OpenApi schema.
@@ -55,6 +63,9 @@ pub enum Node {
 
     /// A union type that may be needed in the output.
     Union,
+
+    /// An enum type
+    Enum { values: Vec<String> },
 }
 
 #[derive(Debug)]
@@ -68,6 +79,13 @@ pub enum Edge {
 
     /// An edge between an operation and the type/schema of one of its path parameters
     HasPathParameter { name: String, wrapping: WrappingType },
+
+    /// An edge between an operation and the type/schema of one of its query parameters
+    HasQueryParameter {
+        name: String,
+        wrapping: WrappingType,
+        encoding_style: QueryParameterEncodingStyle,
+    },
 
     /// An edge bewteen an operation and it's request type
     #[allow(dead_code)]
@@ -133,6 +151,7 @@ impl std::fmt::Debug for Node {
             Self::Operation(details) => f.debug_tuple("Operation").field(details).finish(),
             Self::Object => write!(f, "Object"),
             Self::Scalar(kind) => f.debug_tuple("Scalar").field(kind).finish(),
+            Self::Enum { values } => f.debug_struct("Enum").field("values", values).finish(),
             Self::Union => write!(f, "Union"),
         }
     }
@@ -140,7 +159,7 @@ impl std::fmt::Debug for Node {
 
 // The GraphQL spec calls the "NonNull"/"List" types "wrapping types" so I'm borrowing
 // that terminology here
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum WrappingType {
     NonNull(Box<WrappingType>),
     List(Box<WrappingType>),
@@ -148,11 +167,167 @@ pub enum WrappingType {
 }
 
 impl WrappingType {
+    pub(super) fn wrap_list(self) -> WrappingType {
+        WrappingType::List(Box::new(self))
+    }
+
+    pub(super) fn wrap_required(self) -> WrappingType {
+        if matches!(self, WrappingType::NonNull(_)) {
+            // Don't double wrap things in required
+            self
+        } else {
+            WrappingType::NonNull(Box::new(self))
+        }
+    }
+
+    pub(super) fn wrap_with(self, other: WrappingType) -> WrappingType {
+        match other {
+            WrappingType::NonNull(other_inner) => {
+                if matches!(self, WrappingType::NonNull(_)) {
+                    // Don't double wrap in required
+                    self.wrap_with(*other_inner)
+                } else {
+                    WrappingType::NonNull(Box::new(self.wrap_with(*other_inner)))
+                }
+            }
+            WrappingType::List(other_inner) => WrappingType::List(Box::new(self.wrap_with(*other_inner))),
+            WrappingType::Named => self,
+        }
+    }
+
     pub fn contains_list(&self) -> bool {
         match self {
             WrappingType::NonNull(inner) => inner.contains_list(),
             WrappingType::List(_) => true,
             WrappingType::Named => false,
         }
+    }
+}
+
+impl OpenApiGraph {
+    fn type_name(&self, node: NodeIndex) -> Option<String> {
+        match &self.graph[node] {
+            schema @ Node::Schema { .. } => Some(schema.name()?),
+            Node::Operation(_) => None,
+            Node::Object | Node::Enum { .. } => {
+                // OpenAPI objects are generally anonymous so we walk back up the graph to the
+                // nearest named thing, and construct a name based on the fields in-betweeen.
+                // Not ideal, but the best we can do.
+                let reversed_graph = Reversed(&self.graph);
+                let filtered_graph = EdgeFiltered::from_fn(reversed_graph, |edge| {
+                    matches!(
+                        edge.weight(),
+                        Edge::HasField { .. }
+                            | Edge::HasResponseType { .. }
+                            | Edge::HasType { .. }
+                            | Edge::HasUnionMember
+                            | Edge::HasPathParameter { .. }
+                            | Edge::HasQueryParameter { .. }
+                    )
+                });
+
+                let (_, mut path) = petgraph::algo::astar(
+                    &filtered_graph,
+                    node,
+                    |current_node| self.graph[current_node].name().is_some(),
+                    |_| 0,
+                    |_| 0,
+                )?;
+
+                let named_node = path.pop()?;
+
+                // Reverse our path so we can look things up in the original graph.
+                path.reverse();
+
+                let mut name_components = Vec::new();
+                let mut path_iter = path.into_iter().peekable();
+                while let Some(src_node) = path_iter.next() {
+                    let Some(&dest_node) = path_iter.peek() else { break; };
+
+                    // I am sort of assuming there's only one edge here.
+                    // Should be the case at the moment but might need to update this to a loop if that changes
+                    let edge = self.graph.edges_connecting(src_node, dest_node).next().unwrap();
+                    if let Edge::HasField { name, .. } = edge.weight() {
+                        name_components.push(name.as_str());
+                    }
+                }
+
+                let root_name = self.graph[named_node].name().unwrap();
+                name_components.push(root_name.as_str());
+
+                name_components.reverse();
+                Some(name_components.join("_").to_pascal_case())
+            }
+            Node::Scalar(kind) => Some(kind.type_name()),
+            Node::Union => {
+                // Unions are named based on the names of their constituent types.
+                // Although it's perfectly possible for any of the members to be un-named
+                // so this will probably require a bit more work at some point.
+                let mut name = self
+                    .graph
+                    .edges(node)
+                    .filter_map(|edge| match edge.weight() {
+                        Edge::HasUnionMember => OutputType::from_index(edge.target(), self)?.name(self),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("Or");
+                name.push_str("Union");
+                Some(name)
+            }
+        }
+    }
+}
+
+impl Node {
+    // Used to determine whether this specific node type has a name.
+    // To generate the full name of a particular node you should use the OpenApiGraph::type_name
+    // function.
+    fn name(&self) -> Option<String> {
+        match self {
+            Node::Schema(schema) => Some(
+                // There's a title property that we _could_ use for a name, but the spec doesn't
+                // enforce that it's unique and (certainly in stripes case) it is not.
+                // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+                // which stripe use or the name of the schema in components.
+                schema
+                    .openapi
+                    .schema_data
+                    .extensions
+                    .get("x-resourceId")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(schema.openapi_name.as_str())
+                    .to_pascal_case(),
+            ),
+            Node::Operation(op) => op.operation_id.clone(),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[allow(clippy::redundant_clone)]
+    fn test_wrap_with() {
+        let named_type = WrappingType::Named;
+        let list = named_type.clone().wrap_list();
+        let required = named_type.clone().wrap_required();
+
+        let required_list = list.clone().wrap_required();
+
+        assert_eq!(&named_type.clone().wrap_with(list.clone()), &list);
+        assert_eq!(&named_type.clone().wrap_with(required.clone()), &required);
+
+        assert_eq!(&named_type.clone().wrap_with(required_list.clone()), &required_list);
+        assert_eq!(
+            &list.clone().wrap_with(required_list.clone()),
+            &list.wrap_list().wrap_required()
+        );
+
+        // Check that we can't double wrap things in required
+        assert_eq!(required.clone().wrap_with(required.clone()), required);
     }
 }

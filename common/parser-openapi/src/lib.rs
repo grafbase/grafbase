@@ -107,10 +107,16 @@ pub enum Error {
     UnresolvedReference(Ref),
     #[error("Received an invalid URL: {0} ")]
     InvalidUrl(String),
-    #[error("The path parameter {0} is an object, which is currently unsupported")]
-    PathParameterIsObject(String),
-    #[error("The path parameter {0} is a list, which is currently unsupported")]
-    PathParameterIsList(String),
+    #[error("The path parameter {0} on operation {1} is an object, which is currently unsupported")]
+    PathParameterIsObject(String, String),
+    #[error("The path parameter {0} on operation {1} is a list, which is currently unsupported")]
+    PathParameterIsList(String, String),
+    #[error("The query parameter {0} on operation {1} is an object, which is currently unsupported")]
+    QueryParameterIsObject(String, String),
+    #[error("The query parameter {0} on operation {1} is a list, which is currently unsupported")]
+    QueryParameterIsList(String, String),
+    #[error("The query parameter {0} on operation {1} has a style {2}, which is currently unsupported")]
+    UnsupportedQueryParameterStyle(String, String, String),
 }
 
 fn is_ok(status: &openapiv3::StatusCode) -> bool {

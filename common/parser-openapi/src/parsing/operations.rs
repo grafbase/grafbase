@@ -1,6 +1,7 @@
 use std::{rc::Rc, str::FromStr};
 
-use openapiv3::{Parameter, ParameterSchemaOrContent, ReferenceOr, StatusCode};
+use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use openapiv3::{Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
 use crate::Error;
 
@@ -15,6 +16,7 @@ pub struct OperationDetails {
     pub request_bodies: Rc<Vec<RequestBody>>,
     pub responses: Vec<Response>,
     pub(super) path_parameters: Vec<PathParameter>,
+    pub(super) query_parameters: Vec<QueryParameter>,
 }
 
 impl std::fmt::Debug for OperationDetails {
@@ -79,6 +81,7 @@ impl OperationDetails {
         }
 
         let mut path_parameters = Vec::new();
+        let mut query_parameters = Vec::new();
         for parameter in &operation.parameters {
             let parameter = match parameter {
                 ReferenceOr::Reference { reference } => {
@@ -90,14 +93,34 @@ impl OperationDetails {
                 }
                 ReferenceOr::Item(parameter) => parameter,
             };
-            if let Parameter::Path { parameter_data, .. } = parameter {
-                path_parameters.push(PathParameter {
+            match parameter {
+                Parameter::Path { parameter_data, .. } => {
+                    path_parameters.push(PathParameter {
+                        name: parameter_data.name.clone(),
+                        schema: match &parameter_data.format {
+                            ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
+                            ParameterSchemaOrContent::Content(_) => None,
+                        },
+                    });
+                }
+                Parameter::Query {
+                    parameter_data, style, ..
+                } => query_parameters.push(QueryParameter {
                     name: parameter_data.name.clone(),
                     schema: match &parameter_data.format {
                         ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
                         ParameterSchemaOrContent::Content(_) => None,
                     },
-                });
+                    encoding_style: query_param_encoding_style(style, parameter_data.explode.unwrap_or(true))
+                        .ok_or_else(|| {
+                            Error::UnsupportedQueryParameterStyle(
+                                parameter_data.name.clone(),
+                                operation.operation_id.clone().unwrap_or_default(),
+                                query_style_description(style).to_owned(),
+                            )
+                        })?,
+                }),
+                _ => {}
             }
         }
 
@@ -108,6 +131,7 @@ impl OperationDetails {
             request_bodies,
             responses,
             path_parameters,
+            query_parameters,
         })
     }
 }
@@ -165,4 +189,29 @@ pub struct Response {
 pub(super) struct PathParameter {
     pub name: String,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct QueryParameter {
+    pub name: String,
+    pub schema: Option<ReferenceOr<openapiv3::Schema>>,
+    pub encoding_style: QueryParameterEncodingStyle,
+}
+
+fn query_param_encoding_style(query_style: &QueryStyle, explode: bool) -> Option<QueryParameterEncodingStyle> {
+    match (query_style, explode) {
+        (QueryStyle::Form, true) => Some(QueryParameterEncodingStyle::FormExploded),
+        (QueryStyle::Form, false) => Some(QueryParameterEncodingStyle::Form),
+        (QueryStyle::DeepObject, _) => Some(QueryParameterEncodingStyle::DeepObject),
+        _ => None,
+    }
+}
+
+fn query_style_description(query_style: &QueryStyle) -> &str {
+    match query_style {
+        QueryStyle::Form => "form",
+        QueryStyle::SpaceDelimited => "spaceDelimited",
+        QueryStyle::PipeDelimited => "pipeDelimited",
+        QueryStyle::DeepObject => "deepObject",
+    }
 }
