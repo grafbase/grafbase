@@ -1,6 +1,6 @@
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
-use super::{Edge, Enum, Node, WrappingType};
+use super::{Edge, Enum, InputObject, Node, WrappingType};
 
 #[derive(Clone, Debug)]
 pub struct InputValue {
@@ -11,6 +11,8 @@ pub struct InputValue {
 pub enum InputValueKind {
     Scalar,
     InputObject,
+    Enum,
+    Union,
 }
 
 impl InputValue {
@@ -44,7 +46,9 @@ impl InputValue {
         match &graph.graph[self.index] {
             Node::Scalar(_) => Some(InputValueKind::Scalar),
             Node::Object => Some(InputValueKind::InputObject),
-            _ => None,
+            Node::Enum { .. } => Some(InputValueKind::Enum),
+            Node::Union => Some(InputValueKind::Union),
+            Node::Schema(_) | Node::Operation(_) => None,
         }
     }
 
@@ -58,6 +62,10 @@ impl InputValue {
                 None
             }
         }
+    }
+
+    pub fn as_input_object(&self, graph: &super::OpenApiGraph) -> Option<InputObject> {
+        InputObject::from_index(self.index, graph)
     }
 
     pub fn wrapping_type(&self) -> &WrappingType {

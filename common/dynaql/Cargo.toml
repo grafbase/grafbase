@@ -131,3 +131,4 @@ surf = { version = "2", default-features = false, features = [
 # futures-channel = "0.3"
 insta = { version = "1", features = ["json"] }
 once_cell = "1"
+urlencoding = "2.1"

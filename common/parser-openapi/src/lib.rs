@@ -117,6 +117,12 @@ pub enum Error {
     QueryParameterIsList(String, String),
     #[error("The query parameter {0} on operation {1} has a style {2}, which is currently unsupported")]
     UnsupportedQueryParameterStyle(String, String, String),
+    #[error("The query parameter {0} on operation {1} has an object nested inside a list, which is unsupported")]
+    ObjectNestedInsideListQueryParamter(String, String),
+    #[error("The query parameter {0} on operation {1} has a non-scalar nested inside an object, which is unsupported")]
+    NonScalarNestedInsideObjectQueryParameter(String, String),
+    #[error("The query parameter {0} on operation {1} has a non-scalar nested inside an object, which is unsupported")]
+    ListNestedInsideObjectQueryParameter(String, String),
 }
 
 fn is_ok(status: &openapiv3::StatusCode) -> bool {
