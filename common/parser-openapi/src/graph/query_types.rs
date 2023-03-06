@@ -13,7 +13,7 @@ use crate::{
     parsing::operations::{OperationDetails, Verb},
 };
 
-use super::{input_value::InputValue, Edge, Node};
+use super::{input_value::InputValue, Edge, FieldName, Node};
 
 #[derive(Clone, Copy, Debug)]
 pub enum OutputType {
@@ -224,16 +224,6 @@ impl QueryParameter {
 pub struct OperationName(String);
 
 impl std::fmt::Display for OperationName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let name = self.0.to_camel_case();
-
-        write!(f, "{name}")
-    }
-}
-
-pub struct FieldName<'a>(Cow<'a, str>);
-
-impl<'a> std::fmt::Display for FieldName<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = self.0.to_camel_case();
 

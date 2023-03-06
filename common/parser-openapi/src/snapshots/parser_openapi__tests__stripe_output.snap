@@ -2320,6 +2320,12 @@ type GetAccountsAccountPeople {
 	hasMore: Boolean!
 	data: [Person!]!
 }
+input GetAccountsAccountPeopleInput {
+	representative: Boolean!
+	owner: Boolean!
+	executive: Boolean!
+	director: Boolean!
+}
 enum GetAccountsAccountPeopleObject {
 	list
 }
@@ -2329,11 +2335,27 @@ type GetAccountsAccountPersons {
 	hasMore: Boolean!
 	data: [Person!]!
 }
+input GetAccountsAccountPersonsInput {
+	representative: Boolean!
+	owner: Boolean!
+	executive: Boolean!
+	director: Boolean!
+}
 enum GetAccountsAccountPersonsObject {
 	list
 }
+input GetAccountsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetAccountsObject {
 	list
+}
+input GetAccountsUnionInput {
+	int: Int
+	getAccountsInput: GetAccountsInput
 }
 type GetApplePayDomains {
 	url: String!
@@ -2359,8 +2381,18 @@ type GetApplicationFeesIdRefunds {
 enum GetApplicationFeesIdRefundsObject {
 	list
 }
+input GetApplicationFeesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetApplicationFeesObject {
 	list
+}
+input GetApplicationFeesUnionInput {
+	int: Int
+	getApplicationFeesInput: GetApplicationFeesInput
 }
 type GetAppsSecrets {
 	url: String!
@@ -2368,8 +2400,24 @@ type GetAppsSecrets {
 	hasMore: Boolean!
 	data: [AppsSecret!]!
 }
+input GetAppsSecretsFindInput {
+	user: String!
+	type: GetAppsSecretsFindType!
+}
+enum GetAppsSecretsFindType {
+	account
+	user
+}
+input GetAppsSecretsInput {
+	user: String!
+	type: GetAppsSecretsType!
+}
 enum GetAppsSecretsObject {
 	list
+}
+enum GetAppsSecretsType {
+	account
+	user
 }
 type GetBalanceHistory {
 	url: String!
@@ -2377,8 +2425,18 @@ type GetBalanceHistory {
 	hasMore: Boolean!
 	data: [BalanceTransaction!]!
 }
+input GetBalanceHistoryInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetBalanceHistoryObject {
 	list
+}
+input GetBalanceHistoryUnionInput {
+	int: Int
+	getBalanceHistoryInput: GetBalanceHistoryInput
 }
 type GetBalanceTransactions {
 	url: String!
@@ -2386,8 +2444,18 @@ type GetBalanceTransactions {
 	hasMore: Boolean!
 	data: [BalanceTransaction!]!
 }
+input GetBalanceTransactionsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetBalanceTransactionsObject {
 	list
+}
+input GetBalanceTransactionsUnionInput {
+	int: Int
+	getBalanceTransactionsInput: GetBalanceTransactionsInput
 }
 type GetBillingPortalConfigurations {
 	url: String!
@@ -2413,6 +2481,12 @@ type GetChargesChargeRefunds {
 enum GetChargesChargeRefundsObject {
 	list
 }
+input GetChargesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetChargesObject {
 	list
 }
@@ -2427,11 +2501,18 @@ type GetChargesSearch {
 enum GetChargesSearchObject {
 	search_result
 }
+input GetChargesUnionInput {
+	int: Int
+	getChargesInput: GetChargesInput
+}
 type GetCheckoutSessions {
 	url: String!
 	object: GetCheckoutSessionsObject!
 	hasMore: Boolean!
 	data: [CheckoutSession!]!
+}
+input GetCheckoutSessionsInput {
+	email: String!
 }
 enum GetCheckoutSessionsObject {
 	list
@@ -2460,8 +2541,18 @@ type GetCoupons {
 	hasMore: Boolean!
 	data: [Coupon!]!
 }
+input GetCouponsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetCouponsObject {
 	list
+}
+input GetCouponsUnionInput {
+	int: Int
+	getCouponsInput: GetCouponsInput
 }
 type GetCreditNotes {
 	url: String!
@@ -2487,11 +2578,20 @@ enum GetCreditNotesPreview {
 	order_change
 	product_unsatisfactory
 }
+input GetCreditNotesPreviewInput {
+	shippingRate: String!
+}
 enum GetCreditNotesPreviewLines {
 	duplicate
 	fraudulent
 	order_change
 	product_unsatisfactory
+}
+input GetCreditNotesPreviewLinesInput {
+	shippingRate: String!
+}
+enum GetCreditNotesPreviewTaxRates {
+	
 }
 type GetCustomers {
 	url: String!
@@ -2592,6 +2692,12 @@ type GetCustomersCustomerTaxIds {
 enum GetCustomersCustomerTaxIdsObject {
 	list
 }
+input GetCustomersInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetCustomersObject {
 	list
 }
@@ -2606,14 +2712,28 @@ type GetCustomersSearch {
 enum GetCustomersSearchObject {
 	search_result
 }
+input GetCustomersUnionInput {
+	int: Int
+	getCustomersInput: GetCustomersInput
+}
 type GetDisputes {
 	url: String!
 	object: GetDisputesObject!
 	hasMore: Boolean!
 	data: [Dispute!]!
 }
+input GetDisputesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetDisputesObject {
 	list
+}
+input GetDisputesUnionInput {
+	int: Int
+	getDisputesInput: GetDisputesInput
 }
 type GetEvents {
 	url: String!
@@ -2621,8 +2741,18 @@ type GetEvents {
 	hasMore: Boolean!
 	data: [Event!]!
 }
+input GetEventsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetEventsObject {
 	list
+}
+input GetEventsUnionInput {
+	int: Int
+	getEventsInput: GetEventsInput
 }
 type GetExchangeRates {
 	url: String!
@@ -2639,8 +2769,18 @@ type GetFileLinks {
 	hasMore: Boolean!
 	data: [FileLink!]!
 }
+input GetFileLinksInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetFileLinksObject {
 	list
+}
+input GetFileLinksUnionInput {
+	int: Int
+	getFileLinksInput: GetFileLinksInput
 }
 enum GetFiles {
 	account_requirement
@@ -2659,6 +2799,16 @@ enum GetFiles {
 	tax_document_user_upload
 	terminal_reader_splashscreen
 }
+input GetFilesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetFilesUnionInput {
+	int: Int
+	getFilesInput: GetFilesInput
+}
 type GetFinancialConnectionsAccounts {
 	url: String!
 	object: GetFinancialConnectionsAccountsObject!
@@ -2674,6 +2824,10 @@ type GetFinancialConnectionsAccountsAccountOwners {
 enum GetFinancialConnectionsAccountsAccountOwnersObject {
 	list
 }
+input GetFinancialConnectionsAccountsInput {
+	customer: String!
+	account: String!
+}
 enum GetFinancialConnectionsAccountsObject {
 	list
 }
@@ -2681,11 +2835,31 @@ enum GetIdentityVerificationReports {
 	document
 	id_number
 }
+input GetIdentityVerificationReportsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIdentityVerificationReportsUnionInput {
+	int: Int
+	getIdentityVerificationReportsInput: GetIdentityVerificationReportsInput
+}
 enum GetIdentityVerificationSessions {
 	canceled
 	processing
 	requires_input
 	verified
+}
+input GetIdentityVerificationSessionsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIdentityVerificationSessionsUnionInput {
+	int: Int
+	getIdentityVerificationSessionsInput: GetIdentityVerificationSessionsInput
 }
 type GetInvoiceitems {
 	url: String!
@@ -2693,8 +2867,18 @@ type GetInvoiceitems {
 	hasMore: Boolean!
 	data: [Invoiceitem!]!
 }
+input GetInvoiceitemsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetInvoiceitemsObject {
 	list
+}
+input GetInvoiceitemsUnionInput {
+	int: Int
+	getInvoiceitemsInput: GetInvoiceitemsInput
 }
 enum GetInvoices {
 	draft
@@ -2702,6 +2886,12 @@ enum GetInvoices {
 	paid
 	uncollectible
 	void
+}
+input GetInvoicesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
 }
 type GetInvoicesInvoiceLines {
 	url: String!
@@ -2723,24 +2913,154 @@ type GetInvoicesSearch {
 enum GetInvoicesSearchObject {
 	search_result
 }
+input GetInvoicesUnionInput {
+	int: Int
+	getInvoicesInput: GetInvoicesInput
+}
 enum GetInvoicesUpcoming {
 	now
 }
+enum GetInvoicesUpcomingBillingThresholds {
+	
+}
+input GetInvoicesUpcomingBillingThresholdsInput {
+	usageGte: Int!
+}
+input GetInvoicesUpcomingBillingThresholdsUnionInput {
+	getInvoicesUpcomingBillingThresholds: GetInvoicesUpcomingBillingThresholds
+	getInvoicesUpcomingBillingThresholdsInput: GetInvoicesUpcomingBillingThresholdsInput
+}
+input GetInvoicesUpcomingInput {
+	taxRates: UnionInput!
+	quantity: Int!
+	priceData: GetInvoicesUpcomingPriceDataInput!
+	price: String!
+	metadata: UnionInput!
+	id: String!
+	deleted: Boolean!
+	clearUsage: Boolean!
+	billingThresholds: GetInvoicesUpcomingBillingThresholdsUnionInput!
+}
+enum GetInvoicesUpcomingIntervalRecurringPriceData {
+	day
+	month
+	week
+	year
+}
 enum GetInvoicesUpcomingLines {
 	now
+}
+enum GetInvoicesUpcomingLinesBillingThresholds {
+	
+}
+input GetInvoicesUpcomingLinesBillingThresholdsInput {
+	usageGte: Int!
+}
+input GetInvoicesUpcomingLinesBillingThresholdsUnionInput {
+	getInvoicesUpcomingLinesBillingThresholds: GetInvoicesUpcomingLinesBillingThresholds
+	getInvoicesUpcomingLinesBillingThresholdsInput: GetInvoicesUpcomingLinesBillingThresholdsInput
+}
+input GetInvoicesUpcomingLinesInput {
+	taxRates: UnionInput!
+	quantity: Int!
+	priceData: GetInvoicesUpcomingLinesPriceDataInput!
+	price: String!
+	metadata: UnionInput!
+	id: String!
+	deleted: Boolean!
+	clearUsage: Boolean!
+	billingThresholds: GetInvoicesUpcomingLinesBillingThresholdsUnionInput!
+}
+enum GetInvoicesUpcomingLinesIntervalRecurringPriceData {
+	day
+	month
+	week
+	year
+}
+input GetInvoicesUpcomingLinesPriceDataInput {
+	unitAmountDecimal: String!
+	unitAmount: Int!
+	taxBehavior: GetInvoicesUpcomingLinesTaxBehaviorPriceData!
+	recurring: GetInvoicesUpcomingLinesRecurringPriceDataInput!
+	product: String!
+	currency: String!
+}
+input GetInvoicesUpcomingLinesRecurringPriceDataInput {
+	intervalCount: Int!
+	interval: GetInvoicesUpcomingLinesIntervalRecurringPriceData!
+}
+enum GetInvoicesUpcomingLinesTaxBehaviorPriceData {
+	exclusive
+	inclusive
+	unspecified
+}
+input GetInvoicesUpcomingLinesUnionInput {
+	getInvoicesUpcomingLines: GetInvoicesUpcomingLines
+	getInvoicesUpcomingLinesInput: GetInvoicesUpcomingLinesInput
+}
+input GetInvoicesUpcomingPriceDataInput {
+	unitAmountDecimal: String!
+	unitAmount: Int!
+	taxBehavior: GetInvoicesUpcomingTaxBehaviorPriceData!
+	recurring: GetInvoicesUpcomingRecurringPriceDataInput!
+	product: String!
+	currency: String!
+}
+input GetInvoicesUpcomingRecurringPriceDataInput {
+	intervalCount: Int!
+	interval: GetInvoicesUpcomingIntervalRecurringPriceData!
+}
+enum GetInvoicesUpcomingTaxBehaviorPriceData {
+	exclusive
+	inclusive
+	unspecified
+}
+input GetInvoicesUpcomingUnionInput {
+	getInvoicesUpcoming: GetInvoicesUpcoming
+	getInvoicesUpcomingInput: GetInvoicesUpcomingInput
 }
 enum GetIssuingAuthorizations {
 	closed
 	pending
 	reversed
 }
+input GetIssuingAuthorizationsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIssuingAuthorizationsUnionInput {
+	int: Int
+	getIssuingAuthorizationsInput: GetIssuingAuthorizationsInput
+}
 enum GetIssuingCardholders {
 	company
 	individual
 }
+input GetIssuingCardholdersInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIssuingCardholdersUnionInput {
+	int: Int
+	getIssuingCardholdersInput: GetIssuingCardholdersInput
+}
 enum GetIssuingCards {
 	physical
 	virtual
+}
+input GetIssuingCardsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIssuingCardsUnionInput {
+	int: Int
+	getIssuingCardsInput: GetIssuingCardsInput
 }
 enum GetIssuingDisputes {
 	expired
@@ -2749,18 +3069,48 @@ enum GetIssuingDisputes {
 	unsubmitted
 	won
 }
+input GetIssuingDisputesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIssuingDisputesUnionInput {
+	int: Int
+	getIssuingDisputesInput: GetIssuingDisputesInput
+}
 type GetIssuingSettlements {
 	url: String!
 	object: GetIssuingSettlementsObject!
 	hasMore: Boolean!
 	data: [IssuingSettlement!]!
 }
+input GetIssuingSettlementsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetIssuingSettlementsObject {
 	list
+}
+input GetIssuingSettlementsUnionInput {
+	int: Int
+	getIssuingSettlementsInput: GetIssuingSettlementsInput
 }
 enum GetIssuingTransactions {
 	capture
 	refund
+}
+input GetIssuingTransactionsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetIssuingTransactionsUnionInput {
+	int: Int
+	getIssuingTransactionsInput: GetIssuingTransactionsInput
 }
 type GetLinkedAccounts {
 	url: String!
@@ -2777,6 +3127,10 @@ type GetLinkedAccountsAccountOwners {
 enum GetLinkedAccountsAccountOwnersObject {
 	list
 }
+input GetLinkedAccountsInput {
+	customer: String!
+	account: String!
+}
 enum GetLinkedAccountsObject {
 	list
 }
@@ -2785,6 +3139,12 @@ type GetPaymentIntents {
 	object: GetPaymentIntentsObject!
 	hasMore: Boolean!
 	data: [PaymentIntent!]!
+}
+input GetPaymentIntentsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
 }
 enum GetPaymentIntentsObject {
 	list
@@ -2799,6 +3159,10 @@ type GetPaymentIntentsSearch {
 }
 enum GetPaymentIntentsSearchObject {
 	search_result
+}
+input GetPaymentIntentsUnionInput {
+	int: Int
+	getPaymentIntentsInput: GetPaymentIntentsInput
 }
 type GetPaymentLinks {
 	url: String!
@@ -2854,8 +3218,18 @@ type GetPayouts {
 	hasMore: Boolean!
 	data: [Payout!]!
 }
+input GetPayoutsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetPayoutsObject {
 	list
+}
+input GetPayoutsUnionInput {
+	int: Int
+	getPayoutsInput: GetPayoutsInput
 }
 type GetPlans {
 	url: String!
@@ -2863,12 +3237,32 @@ type GetPlans {
 	hasMore: Boolean!
 	data: [Plan!]!
 }
+input GetPlansInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetPlansObject {
 	list
+}
+input GetPlansUnionInput {
+	int: Int
+	getPlansInput: GetPlansInput
 }
 enum GetPrices {
 	one_time
 	recurring
+}
+input GetPricesInput {
+	usageType: GetPricesUsageType!
+	interval: GetPricesInterval!
+}
+enum GetPricesInterval {
+	day
+	month
+	week
+	year
 }
 type GetPricesSearch {
 	url: String!
@@ -2881,11 +3275,25 @@ type GetPricesSearch {
 enum GetPricesSearchObject {
 	search_result
 }
+input GetPricesUnionInput {
+	int: Int
+	getPricesInput: GetPricesInput
+}
+enum GetPricesUsageType {
+	licensed
+	metered
+}
 type GetProducts {
 	url: String!
 	object: GetProductsObject!
 	hasMore: Boolean!
 	data: [Product!]!
+}
+input GetProductsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
 }
 enum GetProductsObject {
 	list
@@ -2901,14 +3309,28 @@ type GetProductsSearch {
 enum GetProductsSearchObject {
 	search_result
 }
+input GetProductsUnionInput {
+	int: Int
+	getProductsInput: GetProductsInput
+}
 type GetPromotionCodes {
 	url: String!
 	object: GetPromotionCodesObject!
 	hasMore: Boolean!
 	data: [PromotionCode!]!
 }
+input GetPromotionCodesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetPromotionCodesObject {
 	list
+}
+input GetPromotionCodesUnionInput {
+	int: Int
+	getPromotionCodesInput: GetPromotionCodesInput
 }
 enum GetQuotes {
 	accepted
@@ -2949,8 +3371,18 @@ type GetRadarValueListItems {
 	hasMore: Boolean!
 	data: [RadarValueListItem!]!
 }
+input GetRadarValueListItemsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetRadarValueListItemsObject {
 	list
+}
+input GetRadarValueListItemsUnionInput {
+	int: Int
+	getRadarValueListItemsInput: GetRadarValueListItemsInput
 }
 type GetRadarValueLists {
 	url: String!
@@ -2958,8 +3390,18 @@ type GetRadarValueLists {
 	hasMore: Boolean!
 	data: [RadarValueList!]!
 }
+input GetRadarValueListsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetRadarValueListsObject {
 	list
+}
+input GetRadarValueListsUnionInput {
+	int: Int
+	getRadarValueListsInput: GetRadarValueListsInput
 }
 type GetRefunds {
 	url: String!
@@ -2967,8 +3409,18 @@ type GetRefunds {
 	hasMore: Boolean!
 	data: [Refund!]!
 }
+input GetRefundsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetRefundsObject {
 	list
+}
+input GetRefundsUnionInput {
+	int: Int
+	getRefundsInput: GetRefundsInput
 }
 type GetReportingReportRuns {
 	url: String!
@@ -2976,8 +3428,18 @@ type GetReportingReportRuns {
 	hasMore: Boolean!
 	data: [ReportingReportRun!]!
 }
+input GetReportingReportRunsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetReportingReportRunsObject {
 	list
+}
+input GetReportingReportRunsUnionInput {
+	int: Int
+	getReportingReportRunsInput: GetReportingReportRunsInput
 }
 type GetReportingReportTypes {
 	url: String!
@@ -2994,8 +3456,18 @@ type GetReviews {
 	hasMore: Boolean!
 	data: [Review!]!
 }
+input GetReviewsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetReviewsObject {
 	list
+}
+input GetReviewsUnionInput {
+	int: Int
+	getReviewsInput: GetReviewsInput
 }
 type GetSetupAttempts {
 	url: String!
@@ -3003,8 +3475,18 @@ type GetSetupAttempts {
 	hasMore: Boolean!
 	data: [SetupAttempt!]!
 }
+input GetSetupAttemptsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetSetupAttemptsObject {
 	list
+}
+input GetSetupAttemptsUnionInput {
+	int: Int
+	getSetupAttemptsInput: GetSetupAttemptsInput
 }
 type GetSetupIntents {
 	url: String!
@@ -3012,8 +3494,18 @@ type GetSetupIntents {
 	hasMore: Boolean!
 	data: [SetupIntent!]!
 }
+input GetSetupIntentsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetSetupIntentsObject {
 	list
+}
+input GetSetupIntentsUnionInput {
+	int: Int
+	getSetupIntentsInput: GetSetupIntentsInput
 }
 type GetShippingRates {
 	url: String!
@@ -3021,8 +3513,18 @@ type GetShippingRates {
 	hasMore: Boolean!
 	data: [ShippingRate!]!
 }
+input GetShippingRatesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetShippingRatesObject {
 	list
+}
+input GetShippingRatesUnionInput {
+	int: Int
+	getShippingRatesInput: GetShippingRatesInput
 }
 type GetSigmaScheduledQueryRuns {
 	url: String!
@@ -3066,8 +3568,18 @@ type GetSubscriptionSchedules {
 	hasMore: Boolean!
 	data: [SubscriptionSchedule!]!
 }
+input GetSubscriptionSchedulesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetSubscriptionSchedulesObject {
 	list
+}
+input GetSubscriptionSchedulesUnionInput {
+	int: Int
+	getSubscriptionSchedulesInput: GetSubscriptionSchedulesInput
 }
 enum GetSubscriptions {
 	active
@@ -3081,6 +3593,12 @@ enum GetSubscriptions {
 	trialing
 	unpaid
 }
+input GetSubscriptionsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 type GetSubscriptionsSearch {
 	url: String!
 	totalCount: Int!
@@ -3091,6 +3609,10 @@ type GetSubscriptionsSearch {
 }
 enum GetSubscriptionsSearchObject {
 	search_result
+}
+input GetSubscriptionsUnionInput {
+	int: Int
+	getSubscriptionsInput: GetSubscriptionsInput
 }
 type GetTaxCodes {
 	url: String!
@@ -3107,8 +3629,18 @@ type GetTaxRates {
 	hasMore: Boolean!
 	data: [TaxRate!]!
 }
+input GetTaxRatesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetTaxRatesObject {
 	list
+}
+input GetTaxRatesUnionInput {
+	int: Int
+	getTaxRatesInput: GetTaxRatesInput
 }
 type GetTerminalConfigurations {
 	url: String!
@@ -3147,6 +3679,16 @@ enum GetTopups {
 	pending
 	succeeded
 }
+input GetTopupsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetTopupsUnionInput {
+	int: Int
+	getTopupsInput: GetTopupsInput
+}
 type GetTransfers {
 	url: String!
 	object: GetTransfersObject!
@@ -3162,8 +3704,18 @@ type GetTransfersIdReversals {
 enum GetTransfersIdReversalsObject {
 	list
 }
+input GetTransfersInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetTransfersObject {
 	list
+}
+input GetTransfersUnionInput {
+	int: Int
+	getTransfersInput: GetTransfersInput
 }
 enum GetTreasuryCreditReversals {
 	canceled
@@ -3181,8 +3733,18 @@ type GetTreasuryFinancialAccounts {
 	hasMore: Boolean!
 	data: [TreasuryFinancialAccount!]!
 }
+input GetTreasuryFinancialAccountsInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
 enum GetTreasuryFinancialAccountsObject {
 	list
+}
+input GetTreasuryFinancialAccountsUnionInput {
+	int: Int
+	getTreasuryFinancialAccountsInput: GetTreasuryFinancialAccountsInput
 }
 enum GetTreasuryInboundTransfers {
 	canceled
@@ -3208,6 +3770,15 @@ enum GetTreasuryReceivedCredits {
 	failed
 	succeeded
 }
+input GetTreasuryReceivedCreditsInput {
+	sourceFlowType: GetTreasuryReceivedCreditsSourceFlowType!
+}
+enum GetTreasuryReceivedCreditsSourceFlowType {
+	credit_reversal
+	other
+	outbound_payment
+	payout
+}
 enum GetTreasuryReceivedDebits {
 	failed
 	succeeded
@@ -3216,10 +3787,37 @@ enum GetTreasuryTransactionEntries {
 	created
 	effective_at
 }
+input GetTreasuryTransactionEntriesInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetTreasuryTransactionEntriesUnionInput {
+	int: Int
+	getTreasuryTransactionEntriesInput: GetTreasuryTransactionEntriesInput
+}
 enum GetTreasuryTransactions {
 	open
 	posted
 	void
+}
+input GetTreasuryTransactionsInput {
+	postedAt: GetTreasuryTransactionsPostedAtUnionInput!
+}
+input GetTreasuryTransactionsPostedAtInput {
+	lte: Int!
+	lt: Int!
+	gte: Int!
+	gt: Int!
+}
+input GetTreasuryTransactionsPostedAtUnionInput {
+	int: Int
+	getTreasuryTransactionsPostedAtInput: GetTreasuryTransactionsPostedAtInput
+}
+input GetTreasuryTransactionsUnionInput {
+	int: Int
+	getTreasuryTransactionsInput: GetTreasuryTransactionsInput
 }
 type GetWebhookEndpoints {
 	url: String!
@@ -11872,6 +12470,10 @@ enum TreasuryTransactionsResourceFlowDetailsType {
 }
 union TreasuryTransactionsResourceFlowDetailsUnion = TreasuryTransactionsResourceFlowDetails
 union Union =
+input UnionInput {
+	getCreditNotesPreviewTaxRates: GetCreditNotesPreviewTaxRates
+	string: String
+}
 type UsBankAccountNetworks {
 	supported: [UsBankAccountNetworksSupported!]!
 	preferred: String

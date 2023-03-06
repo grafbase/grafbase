@@ -56,7 +56,7 @@ impl InputValue {
         match &graph.graph[self.index] {
             Node::Scalar(s) => Some(s.type_name()),
             Node::Enum { .. } => Enum::from_index(self.index, graph)?.name(graph),
-            Node::Object | Node::Union => Some(format!("{}Input", graph.type_name(self.index)?)),
+            Node::Object | Node::Union => InputObject::from_index(self.index, graph)?.name(graph),
             Node::Schema(_) | Node::Operation(_) => {
                 // These shouldn't really happen
                 None
