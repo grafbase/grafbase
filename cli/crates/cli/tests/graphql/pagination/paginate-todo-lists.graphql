@@ -1,15 +1,16 @@
 query PaginateTodoLists($first: Int, $last: Int, $before: String, $after: String) {
-  todoListCollection(first: $first, last: $last, before: $before, after: $after) {
-    pageInfo {
-      hasNextPage
-      hasPreviousPage
-    }
+  todoListCollection(first: $first, last: $last) {
     edges {
       node {
-        id
-        title
         todos(first: $first, last: $last, before: $before, after: $after) {
+          pageInfo {
+            hasNextPage
+            hasPreviousPage
+            startCursor
+            endCursor
+          }
           edges {
+            cursor
             node {
               id
               title

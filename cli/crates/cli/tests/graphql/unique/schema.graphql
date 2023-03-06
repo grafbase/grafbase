@@ -2,5 +2,10 @@ type Author @model {
   id: ID!
   age: Int!
   name: String! @unique
-  age: Int!
+}
+
+type Account @model {
+  id: ID!
+  email: String! @unique(fields: ["providerId"])
+  providerId: ID!
 }

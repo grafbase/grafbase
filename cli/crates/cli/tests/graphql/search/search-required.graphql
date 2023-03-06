@@ -1,0 +1,16 @@
+query ReqSearch($query: String!, $limit: Int!) {
+  requiredFieldsSearch(query: $query, limit: $limit) {
+    id
+    ip
+    timestamp
+    url
+    email
+    phone
+    datetime
+    date
+    text
+    int
+    float
+    bool
+  }
+}

@@ -1,0 +1,12 @@
+schema
+  @auth(
+    providers: [{ type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}" }]
+    rules: [{ allow: groups, groups: ["backend"] }]
+  ) {
+  query: Query
+}
+
+type Todo @model {
+  id: ID!
+  title: String!
+}

@@ -1,7 +1,7 @@
 use crate::errors::BackendError;
 use crate::types::ServerMessage;
+use common::types::LocalAddressType;
 use common::utils::find_available_port;
-use common::{consts::DEFAULT_PORT, types::LocalAddressType};
 use server::errors::ServerError;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -15,8 +15,7 @@ type ServerInfo = (thread::JoinHandle<Result<(), ServerError>>, Receiver<ServerM
 /// returns [`BackendError::AvailablePort`] if no available port can  be found
 ///
 /// returns [`BackendError::PortInUse`] if search is off and the supplied port is in use
-pub fn start_server(external_port: Option<u16>, search: bool, watch: bool) -> Result<ServerInfo, BackendError> {
-    let start_port = external_port.unwrap_or(DEFAULT_PORT);
+pub fn start_server(start_port: u16, search: bool, watch: bool) -> Result<ServerInfo, BackendError> {
     match find_available_port(search, start_port, LocalAddressType::Localhost) {
         Some(port) => {
             let (handle, receiver) = server::start(port, watch);

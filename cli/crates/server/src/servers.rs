@@ -1,16 +1,17 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, DOT_ENV_FILE, EPHEMERAL_PORT_RANGE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION,
-    SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, DOT_ENV_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
+    SCHEMA_PARSER_INDEX,
 };
 use crate::event::{wait_for_event, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
+use common::consts::EPHEMERAL_PORT_RANGE;
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
+use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
-use std::{env, process};
 use std::{
     fs,
     process::Stdio,
@@ -43,14 +44,14 @@ const EVENT_BUS_BOUND: usize = 5;
 pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
-    let environemnt = Environment::get();
+    let environment = Environment::get();
 
     let handle = thread::spawn(move || {
         export_embedded_files()?;
 
         create_project_dot_grafbase_directory()?;
 
-        let bridge_port = get_bridge_port()?;
+        let bridge_port = get_bridge_port(port)?;
 
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
@@ -64,7 +65,7 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
                     let watch_event_bus = event_bus.clone();
 
                      tokio::select! {
-                        result = start_watcher(environemnt.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
+                        result = start_watcher(environment.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone()) => { result }
                     }
                 } else {
@@ -115,7 +116,7 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, bridge_sender).await });
+    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await });
 
     trace!("waiting for bridge ready");
 
@@ -128,21 +129,22 @@ async fn spawn_servers(
         .to_str()
         .ok_or(ServerError::ProjectPath)?;
 
-    trace!("spawining miniflare");
+    trace!("spawning miniflare");
 
     let miniflare = Command::new("node")
         .args([
             // used by miniflare when running normally as well
             "--experimental-vm-modules",
-            "./node_modules/miniflare/dist/src/cli.js",
+            "./packages/miniflare/dist/src/cli.js",
             "--host",
             "127.0.0.1",
             "--port",
             &worker_port.to_string(),
             "--no-update-check",
             "--no-cf-fetch",
+            "--do-persist",
             "--wrangler-config",
-            "wrangler.toml",
+            "../wrangler.toml",
             "--binding",
             &format!("BRIDGE_PORT={bridge_port}"),
             "--text-blob",
@@ -150,7 +152,7 @@ async fn spawn_servers(
         ])
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .current_dir(&environment.user_dot_grafbase_path)
+        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;
@@ -160,7 +162,7 @@ async fn spawn_servers(
     let miniflare_output_result = miniflare.wait_with_output();
 
     tokio::select! {
-        _ = bridge_handle => {}
+        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
         result = miniflare_output_result => {
             let output = result.map_err(ServerError::MiniflareCommandError)?;
 
@@ -184,7 +186,9 @@ fn export_embedded_files() -> Result<(), ServerError> {
 
     let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {
         false
-    } else if environment.user_dot_grafbase_path.is_dir() {
+    } else if env::var("GRAFBASE_FORCE_EXPORT_FILES").is_ok() {
+        true
+    } else if version_path.exists() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
 
         current_version != asset_version
@@ -245,7 +249,7 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
         fs::create_dir_all(&project_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
-        fs::write(&project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
+        fs::write(project_dot_grafbase_path.join(GIT_IGNORE_FILE), "*\n").map_err(|_| ServerError::CreateCacheDir)?;
     }
 
     Ok(())
@@ -286,6 +290,10 @@ async fn run_schema_parser() -> Result<(), ServerError> {
                 &parser_path.to_str().ok_or(ServerError::CachePath)?,
                 &environment
                     .project_grafbase_schema_path
+                    .to_str()
+                    .ok_or(ServerError::ProjectPath)?,
+                &environment
+                    .project_grafbase_registry_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
             ])
@@ -366,10 +374,10 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 // to avoid issues when starting multiple CLIs simultainiously,
 // we segment the ephemeral port range into 100 segments and select a segment based on the last two digits of the process ID.
 // this allows for simultainious start of up to 100 CLIs
-fn get_bridge_port() -> Result<u16, ServerError> {
+fn get_bridge_port(http_port: u16) -> Result<u16, ServerError> {
     // must be 0-99, will fit in u16
     #[allow(clippy::cast_possible_truncation)]
-    let segment = (process::id() % 100) as u16;
+    let segment = http_port % 100;
     // since the size is `max - min` in a u16 range, will fit in u16
     #[allow(clippy::cast_possible_truncation)]
     let size = EPHEMERAL_PORT_RANGE.len() as u16;

@@ -43,8 +43,8 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("init")
                 .args(&[
-                    arg!([name] "the name of the project to create"),
-                    // arg!(-t --template "the name of the template to use for the new project"),
+                    arg!([name] "The name of the project to create"),
+                    arg!(-t --template <name> "The name or GitHub URL of the template to use for the new project"),
                 ])
                 .about(indoc! {"
                     Sets up the current or a new project for Grafbase
@@ -53,7 +53,8 @@ pub fn build_cli() -> Command {
         .subcommand(Command::new("reset").about(indoc! {"
             Resets the local data for the current project by removing the .grafbase directory
         "}))
-    // .subcommand(Command::new("login").about("TBD"))
+        .subcommand(Command::new("login").about("Logs into your Grafbase account"))
+        .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view

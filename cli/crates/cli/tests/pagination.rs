@@ -1,304 +1,356 @@
-#![allow(clippy::too_many_lines)]
+#![allow(clippy::too_many_lines, clippy::panic)]
 
 mod utils;
 
 use serde_json::{json, Value};
+use utils::client::Client;
 use utils::consts::{
-    PAGINATION_MUTATION, PAGINATION_PAGINATE_TODOS, PAGINATION_PAGINATE_TODO_LISTS, PAGINATION_SCHEMA,
+    PAGINATION_CREATE_TODO, PAGINATION_CREATE_TODO_LIST, PAGINATION_PAGINATE_TODOS, PAGINATION_PAGINATE_TODO_LISTS,
+    PAGINATION_SCHEMA,
 };
 use utils::environment::Environment;
 
-#[test]
+#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Collection<N> {
+    page_info: PageInfo,
+    edges: Vec<Edge<N>>,
+}
 
+#[derive(Debug, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PageInfo {
+    has_next_page: bool,
+    has_previous_page: bool,
+    start_cursor: Option<String>,
+    end_cursor: Option<String>,
+}
+
+#[derive(Debug, serde::Deserialize)]
+struct Edge<N> {
+    cursor: String,
+    node: N,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Deserialize)]
+struct Todo {
+    id: String,
+    title: String,
+    complete: bool,
+}
+
+fn generate_todos(client: &Client, n: usize) -> Vec<Todo> {
+    (0..n).fold(Vec::new(), |mut buffer, number| {
+        let response = client.gql::<Value>(
+            json!({
+                "query": PAGINATION_CREATE_TODO,
+                "variables": { "title": format!("Todo#{number}") }
+            })
+            .to_string(),
+        );
+        buffer.push(dot_get!(response, "data.todoCreate.todo", Todo));
+        buffer
+    })
+}
+
+#[test]
 fn pagination() {
     let mut env = Environment::init(4010);
-
     env.grafbase_init();
-
     env.write_schema(PAGINATION_SCHEMA);
-
     env.grafbase_dev();
-
     let client = env.create_client();
-
     client.poll_endpoint(30, 300);
 
-    client.gql::<Value>(
-        json!({
-            "query": PAGINATION_MUTATION,
-            "variables": { "title": "1" }
-        })
-        .to_string(),
-    );
+    let todos = generate_todos(&client, 3);
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODOS,
-            "variables": {
-                "last": 1
+    for number in 0..3 {
+        client.gql::<Value>(
+            json!({
+                "query": PAGINATION_CREATE_TODO_LIST,
+                "variables": {
+                "title": (number + 1).to_string() ,
+                "todo0": todos[0].id,
+                "todo1": todos[1].id,
+                "todo2": todos[2].id,
             }
-        })
-        .to_string(),
-    );
+            })
+            .to_string(),
+        );
+    }
 
-    let last_todo: Value = dot_get!(response, "data.todoCollection.edges.0.node");
+    for (query, path) in &[
+        (PAGINATION_PAGINATE_TODOS, "data.todoCollection"),
+        (
+            PAGINATION_PAGINATE_TODO_LISTS,
+            "data.todoListCollection.edges.0.node.todos",
+        ),
+    ] {
+        let todo_collection = |variables: Value| {
+            let response = client.gql::<Value>(
+                json!({
+                    "query": query,
+                    "variables": variables
+                })
+                .to_string(),
+            );
+            dot_get!(response, path, Collection<Todo>)
+        };
 
-    let last_todo_id: String = dot_get!(last_todo, "id");
-    let last_todo_title: String = dot_get!(last_todo, "title");
-
-    assert!(last_todo_id.starts_with("todo_"));
-    assert_eq!(last_todo_title, "1");
-
-    let has_next_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(has_previous_page);
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODOS,
-            "variables": {
-                "last": 10,
-                "before": last_todo_id
+        //
+        // last
+        //
+        let Collection { page_info, edges } = todo_collection(json!({"last": 1}));
+        let [Edge {
+            cursor: last_cursor,
+            node: last_todo,
+        }] = &edges[..] else {
+                panic!("Expected exactly one edge {edges:?}");
+            };
+        assert_eq!(last_todo, &todos[2]);
+        assert_eq!(
+            page_info,
+            PageInfo {
+                has_next_page: false,
+                has_previous_page: true,
+                start_cursor: Some(last_cursor.clone()),
+                end_cursor: Some(last_cursor.clone())
             }
-        })
-        .to_string(),
-    );
+        );
 
-    let next_todo: Value = dot_get!(response, "data.todoCollection.edges.0.node");
+        //
+        // last, before
+        //
+        let Collection { page_info, edges } = todo_collection(json!({"last": 10, "before": last_cursor}));
+        let [Edge {
+            cursor: first_cursor,
+            node: first_todo,
+        }, Edge {
+            cursor: middle_cursor,
+            node: middle_todo,
+        }] = &edges[..] else {
+                panic!("Expected exactly one edge {edges:?}");
+            };
 
-    let next_todo_id: String = dot_get!(next_todo, "id");
-    let next_todo_title: String = dot_get!(next_todo, "title");
-
-    assert!(next_todo_id != last_todo_id);
-    assert_eq!(next_todo_title, "2");
-
-    let has_next_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(!has_previous_page);
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODOS,
-            "variables": {
-                "first": 1
+        assert_eq!(first_todo, &todos[0]);
+        assert_eq!(middle_todo, &todos[1]);
+        assert_eq!(
+            page_info,
+            PageInfo {
+                has_next_page: false,
+                has_previous_page: false,
+                start_cursor: Some(first_cursor.clone()),
+                end_cursor: Some(middle_cursor.clone())
             }
-        })
-        .to_string(),
-    );
+        );
 
-    let first_todo: Value = dot_get!(response, "data.todoCollection.edges.0.node");
-
-    let first_todo_id: String = dot_get!(first_todo, "id");
-    let first_todo_title: String = dot_get!(first_todo, "title");
-
-    assert!(first_todo_id.starts_with("todo_"));
-    assert_eq!(first_todo_title, "3");
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODOS,
-            "variables": {
-                "first": 1,
-                "after": first_todo_id
+        //
+        // first
+        //
+        let Collection { page_info, edges } = todo_collection(json!({"first": 1}));
+        let [Edge {
+            cursor: first_cursor,
+            node: first_todo,
+        }] = &edges[..] else {
+                panic!("Expected exactly one edge {edges:?}");
+            };
+        assert_eq!(first_todo, &todos[0]);
+        assert_eq!(
+            page_info,
+            PageInfo {
+                has_next_page: true,
+                has_previous_page: false,
+                start_cursor: Some(first_cursor.clone()),
+                end_cursor: Some(first_cursor.clone())
             }
-        })
-        .to_string(),
-    );
+        );
 
-    let next_todo: Value = dot_get!(response, "data.todoCollection.edges.0.node");
-
-    let has_next_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasPreviousPage");
-
-    assert!(has_next_page);
-    assert!(!has_previous_page);
-
-    let next_todo_id: String = dot_get!(next_todo, "id");
-    let next_todo_title: String = dot_get!(next_todo, "title");
-
-    assert!(next_todo_id != first_todo_id);
-    assert_eq!(next_todo_title, "2");
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODOS,
-            "variables": {
-                "first": 10,
-                "after": first_todo_id
+        //
+        // first, after
+        //
+        let Collection { page_info, edges } = todo_collection(json!({"first": 1, "after": first_cursor}));
+        let [Edge {
+            cursor: middle_cursor,
+            node: middle_todo,
+        }] = &edges[..] else {
+                panic!("Expected exactly one edge {edges:?}");
+            };
+        assert_eq!(middle_todo, &todos[1]);
+        assert_eq!(
+            page_info,
+            PageInfo {
+                has_next_page: true,
+                // The Relay spec: https://relay.dev/graphql/connections.htm#sec-Connection-Types.Fields.PageInfo
+                // defines that has_previous_page is set "If the server can efficiently determine that elements
+                // exist prior to after, return true." Currently we don't, so we don't test the
+                // value.
+                has_previous_page: page_info.has_previous_page,
+                start_cursor: Some(middle_cursor.clone()),
+                end_cursor: Some(middle_cursor.clone())
             }
-        })
-        .to_string(),
-    );
+        );
 
-    let next_todo: Value = dot_get!(response, "data.todoCollection.edges.0.node");
-
-    let next_todo_id: String = dot_get!(next_todo, "id");
-    let next_todo_title: String = dot_get!(next_todo, "title");
-
-    assert!(next_todo_id != first_todo_id);
-    assert_eq!(next_todo_title, "2");
-
-    let has_next_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(!has_previous_page);
-
-    client.gql::<Value>(
-        json!({
-            "query": PAGINATION_MUTATION,
-            "variables": { "title": "2" }
-        })
-        .to_string(),
-    );
-
-    client.gql::<Value>(
-        json!({
-            "query": PAGINATION_MUTATION,
-            "variables": { "title": "3" }
-        })
-        .to_string(),
-    );
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "first": 1
+        let Collection { page_info, edges } = todo_collection(json!({"first": 1, "after": middle_cursor}));
+        let [Edge {
+            cursor: last_cursor,
+            node: last_todo,
+        }] = &edges[..] else {
+                panic!("Expected exactly one edge {edges:?}");
+            };
+        assert_eq!(last_todo, &todos[2]);
+        assert_eq!(
+            page_info,
+            PageInfo {
+                has_next_page: false,
+                // See previous comment for the previous test.
+                has_previous_page: page_info.has_previous_page,
+                start_cursor: Some(last_cursor.clone()),
+                end_cursor: Some(last_cursor.clone())
             }
-        })
-        .to_string(),
+        );
+    }
+}
+
+macro_rules! assert_same_todos {
+    ($collection: expr, $expected: expr) => {{
+        let result = $collection
+            .edges
+            .iter()
+            .map(|edge| edge.node.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(result, Vec::from($expected));
+    }};
+}
+
+#[test]
+fn pagination_order() {
+    let mut env = Environment::init(4019);
+    env.grafbase_init();
+    env.write_schema(PAGINATION_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client();
+    client.poll_endpoint(30, 300);
+
+    let todos = generate_todos(&client, 5);
+    let reversed_todos = {
+        let mut tmp = todos.clone();
+        tmp.reverse();
+        tmp
+    };
+
+    let todo_collection = |variables: Value| {
+        let response = client.gql::<Value>(
+            json!({
+                "query": PAGINATION_PAGINATE_TODOS,
+                "variables": variables
+            })
+            .to_string(),
+        );
+        dot_get!(response, "data.todoCollection", Collection<Todo>)
+    };
+
+    /////////
+    // ASC //
+    /////////
+    let all_asc = todo_collection(json!({
+        "first": 100,
+        "orderBy": { "createdAt": "ASC" }
+    }));
+    assert_same_todos!(all_asc, &todos[..]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 100,
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[..]
     );
 
-    let last_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
-
-    let last_todo_list_id: String = dot_get!(last_todo_list, "id");
-    let last_todo_list_title: String = dot_get!(last_todo_list, "title");
-
-    assert!(last_todo_list_id.starts_with("todolist_"));
-    assert_eq!(last_todo_list_title, "3");
-
-    let has_next_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasPreviousPage");
-
-    assert!(has_next_page);
-    assert!(!has_previous_page);
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "first": 10,
-                "after": last_todo_list_id
-            }
-        })
-        .to_string(),
+    // FIRST
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 3,
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[..3]
+    );
+    let first_cursor = all_asc.edges.first().unwrap().cursor.clone();
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 2,
+            "after": first_cursor,
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[1..3]
     );
 
-    let next_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
-
-    let next_todo_list_id: String = dot_get!(next_todo_list, "id");
-    let next_todo_list_title: String = dot_get!(next_todo_list, "title");
-
-    assert!(next_todo_list_id != last_todo_list_id);
-    assert_eq!(next_todo_list_title, "2");
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "first": 10,
-                "after": last_todo_list_id
-            }
-        })
-        .to_string(),
+    // LAST
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 3,
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[2..]
+    );
+    let last_cursor = all_asc.edges.last().unwrap().cursor.clone();
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 2,
+            "before": last_cursor,
+            "orderBy": { "createdAt": "ASC" }
+        })),
+        &todos[2..4]
     );
 
-    let next_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
-
-    let next_todo_list_id: String = dot_get!(next_todo_list, "id");
-    let next_todo_list_title: String = dot_get!(next_todo_list, "title");
-
-    assert!(next_todo_list_id != last_todo_list_id);
-    assert_eq!(next_todo_list_title, "2");
-
-    let has_next_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(!has_previous_page);
-
-    //3
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "last": 1
-            }
-        })
-        .to_string(),
+    //////////
+    // DESC //
+    //////////
+    let all_desc = todo_collection(json!({
+        "first": 100,
+        "orderBy": { "createdAt": "DESC" }
+    }));
+    assert_same_todos!(all_desc, &reversed_todos[..]);
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 100,
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &reversed_todos[..]
     );
 
-    let last_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
-
-    let last_todo_list_id: String = dot_get!(last_todo_list, "id");
-    let last_todo_list_title: String = dot_get!(last_todo_list, "title");
-
-    assert!(last_todo_list_id.starts_with("todolist_"));
-    assert_eq!(last_todo_list_title, "1");
-
-    let has_next_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(has_previous_page);
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "last": 1,
-                "before": last_todo_list_id
-            }
-        })
-        .to_string(),
+    // FIRST
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 3,
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &reversed_todos[..3]
+    );
+    let first_cursor = all_desc.edges.first().unwrap().cursor.clone();
+    assert_same_todos!(
+        todo_collection(json!({
+            "first": 2,
+            "after": first_cursor,
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &reversed_todos[1..3]
     );
 
-    let next_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
+    // LAST
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 3,
+            "orderBy": { "createdAt": "DESC" }
 
-    let next_todo_list_id: String = dot_get!(next_todo_list, "id");
-    let next_todo_list_title: String = dot_get!(next_todo_list, "title");
-
-    assert!(next_todo_list_id != last_todo_list_id);
-    assert_eq!(next_todo_list_title, "2");
-
-    let response = client.gql::<Value>(
-        json!({
-            "query": PAGINATION_PAGINATE_TODO_LISTS,
-            "variables": {
-                "last": 10,
-                "before": last_todo_list_id
-            }
-        })
-        .to_string(),
+        })),
+        &reversed_todos[2..]
     );
-
-    let next_todo_list: Value = dot_get!(response, "data.todoListCollection.edges.0.node");
-
-    let next_todo_list_id: String = dot_get!(next_todo_list, "id");
-    let next_todo_list_title: String = dot_get!(next_todo_list, "title");
-
-    assert!(next_todo_list_id != last_todo_list_id);
-    assert_eq!(next_todo_list_title, "2");
-
-    let has_next_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasNextPage");
-    let has_previous_page: bool = dot_get!(response, "data.todoListCollection.pageInfo.hasPreviousPage");
-
-    assert!(!has_next_page);
-    assert!(!has_previous_page);
+    let last_cursor = all_desc.edges.last().unwrap().cursor.clone();
+    assert_same_todos!(
+        todo_collection(json!({
+            "last": 2,
+            "before": last_cursor,
+            "orderBy": { "createdAt": "DESC" }
+        })),
+        &reversed_todos[2..4]
+    );
 }
