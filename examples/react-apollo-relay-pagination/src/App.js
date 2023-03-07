@@ -1,7 +1,7 @@
 import { gql, useQuery } from '@apollo/client'
 
 const POSTS_QUERY = gql`
-  query Comments($cursor: String) {
+  query GetPostsAfterCursor($cursor: String) {
     postCollection(first: 1, after: $cursor) {
       edges {
         node {
