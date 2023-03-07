@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
 use inflector::Inflector;
 use openapiv3::StatusCode;
@@ -16,7 +18,7 @@ mod query_types;
 
 pub use self::{
     enums::Enum,
-    input_object::InputObject,
+    input_object::{InputField, InputObject},
     input_value::{InputValue, InputValueKind},
     query_types::{OutputType, PathParameter, QueryOperation, QueryParameter},
 };
@@ -304,6 +306,16 @@ impl Node {
             Node::Operation(op) => op.operation_id.clone(),
             _ => None,
         }
+    }
+}
+
+pub struct FieldName<'a>(Cow<'a, str>);
+
+impl<'a> std::fmt::Display for FieldName<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = self.0.to_camel_case();
+
+        write!(f, "{name}")
     }
 }
 

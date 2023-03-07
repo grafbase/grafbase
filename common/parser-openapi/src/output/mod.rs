@@ -14,13 +14,22 @@ use dynaql::{
 };
 use inflector::Inflector;
 
-use crate::graph::{Enum, OpenApiGraph, OutputType, PathParameter, QueryOperation, QueryParameter, WrappingType};
+use crate::graph::{
+    Enum, InputField, InputObject, OpenApiGraph, OutputType, PathParameter, QueryOperation, QueryParameter,
+    WrappingType,
+};
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
     register_scalars(registry);
 
     for output_type in graph.output_types() {
         let Some(metatype) = output_type.to_meta_type(graph) else { continue };
+
+        registry.types.insert(metatype.name().to_string(), metatype);
+    }
+
+    for input_object in graph.input_objects() {
+        let Some(metatype) = input_object.to_meta_type(graph) else { continue };
 
         registry.types.insert(metatype.name().to_string(), metatype);
     }
@@ -57,7 +66,7 @@ impl OutputType {
                 fields: self
                     .fields(graph)
                     .into_iter()
-                    .map(|field| (field.graphql_name(), field.as_meta_field()))
+                    .map(|field| (field.graphql_name(), field.to_meta_field()))
                     .collect(),
                 cache_control: CacheControl {
                     public: true,
@@ -86,6 +95,28 @@ impl OutputType {
     }
 }
 
+impl InputObject {
+    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+        let name = self.name(graph)?;
+
+        Some(MetaType::InputObject {
+            name: name.clone(),
+            description: None,
+            input_fields: self
+                .fields(graph)
+                .into_iter()
+                .filter_map(|field| {
+                    let meta_input_value = field.to_meta_input_value(graph)?;
+                    Some((meta_input_value.name.clone(), meta_input_value))
+                })
+                .collect(),
+            visible: None,
+            rust_typename: name,
+            oneof: self.one_of(),
+        })
+    }
+}
+
 pub struct Field {
     pub api_name: String,
     pub ty: FieldType,
@@ -100,7 +131,7 @@ impl Field {
         self.api_name.to_camel_case()
     }
 
-    fn as_meta_field(&self) -> MetaField {
+    fn to_meta_field(&self) -> MetaField {
         let name = self.graphql_name();
 
         let resolve = Some(Resolver {
@@ -215,6 +246,21 @@ impl QueryParameter {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue {
             name: self.name(graph)?.to_owned(),
+            description: None,
+            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            default_value: None,
+            visible: None,
+            validators: None,
+            is_secret: false,
+        })
+    }
+}
+
+impl InputField<'_> {
+    fn to_meta_input_value(&self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
+        let input_value = &self.value_type;
+        Some(MetaInputValue {
+            name: self.name.to_string(),
             description: None,
             ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
             default_value: None,
