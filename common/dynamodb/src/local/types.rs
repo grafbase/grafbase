@@ -1,5 +1,3 @@
-use crate::constant::OWNED_BY;
-
 use super::{consts::BRIDGE_PROTOCOL, utils::joined_repeating};
 use chrono::{DateTime, SecondsFormat, Utc};
 use dynomite::AttributeValue;
@@ -120,6 +118,7 @@ impl Column {
         }
     }
 }
+pub const OWNED_BY_KEY: &str = "owned_by";
 
 pub struct Row {
     pub columns: String,
@@ -242,7 +241,7 @@ pub enum Sql<'a> {
     /// values: pk, sk, to_remove[], document, updated_at
     DeleteRelations(usize),
     /// values: pk, sk
-    DeleteByIds,
+    DeleteByIds { filter_by_owner: bool },
     /// values: partition_keys[], sorting_keys[]
     SelectIdPairs(usize),
     /// values: pk, entity_type, edges[]
@@ -420,8 +419,15 @@ impl<'a> Sql<'a> {
                     to_remove = to_remove,
                 )
             }
-            Self::DeleteByIds => {
-                format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE)
+            Self::DeleteByIds { filter_by_owner } => {
+                let mut sql = format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE);
+                if *filter_by_owner {
+                    sql.push_str(&format!(
+                        " AND {owned_by_column}=?{OWNED_BY_KEY}",
+                        owned_by_column = Column::OwnedBy.as_str()
+                    ));
+                }
+                sql
             }
             Self::SelectIdPairs(pair_count) => {
                 format!(
@@ -510,7 +516,7 @@ impl<'a> Sql<'a> {
                 }
                 if *filter_by_owner {
                     r#where.push(format!(
-                        "{owned_by_column} = ?{OWNED_BY}",
+                        "{owned_by_column} = ?{OWNED_BY_KEY}",
                         owned_by_column = Column::OwnedBy.as_str()
                     ));
                 }

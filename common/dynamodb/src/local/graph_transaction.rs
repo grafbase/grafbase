@@ -195,15 +195,22 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+            let mut map = hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
-            });
+            };
+            if let Some(user_id) = &ctx.user_id {
+                map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+            }
+            let (query, values) = Sql::DeleteByIds {
+                filter_by_owner: ctx.user_id.is_some(),
+            }
+            .compile(map);
             Ok((query, values, None))
         })
     }
@@ -310,15 +317,22 @@ impl ExecuteChangesOnDatabase for DeleteAllRelationsInternalInput {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+            let mut map = hashmap! {
                 "pk"=> SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
-            });
+            };
+            if let Some(user_id) = &ctx.user_id {
+                map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+            }
+            let (query, values) = Sql::DeleteByIds {
+                filter_by_owner: ctx.user_id.is_some(),
+            }
+            .compile(map);
             Ok((query, values, None))
         })
     }
@@ -476,15 +490,22 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
-            let (query, values) = Sql::DeleteByIds.compile(hashmap! {
+            let mut map = hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk)
-            });
+            };
+            if let Some(user_id) = &ctx.user_id {
+                map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+            }
+            let (query, values) = Sql::DeleteByIds {
+                filter_by_owner: ctx.user_id.is_some(),
+            }
+            .compile(map);
 
             Ok((query, values, None))
         })

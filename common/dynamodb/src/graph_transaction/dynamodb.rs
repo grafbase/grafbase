@@ -168,6 +168,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
         })
     }
 }
+
 impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
     fn to_transaction<'a>(
         self,
@@ -182,16 +183,23 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
                     constant::SK => sk.clone(),
             };
 
-            let exp_att_names = HashMap::from([
+            let mut exp_att_names = HashMap::from([
                 ("#pk".to_string(), constant::PK.to_string()),
                 ("#sk".to_string(), constant::SK.to_string()),
             ]);
-
+            let mut exp_att_values = HashMap::new();
+            let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
+            if let Some(user_id) = &ctx.user_id {
+                cond_expr.push_str(" AND #owner_attr_name = :owner_val_name");
+                exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
+                exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
+            }
             let delete_transaction = Delete {
                 table_name: ctx.dynamodb_table_name.clone(),
-                condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                condition_expression: Some(cond_expr),
                 key,
                 expression_attribute_names: Some(exp_att_names),
+                expression_attribute_values: Some(exp_att_values),
                 ..Default::default()
             };
 
@@ -528,16 +536,23 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
                     constant::SK => sk.clone(),
             };
 
-            let exp_att_names = HashMap::from([
+            let mut exp_att_names = HashMap::from([
                 ("#pk".to_string(), constant::PK.to_string()),
                 ("#sk".to_string(), constant::SK.to_string()),
             ]);
-
+            let mut exp_att_values = HashMap::new();
+            let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
+            if let Some(user_id) = &ctx.user_id {
+                cond_expr.push_str(" AND #owner_attr_name = :owner_val_name");
+                exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
+                exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
+            }
             let delete_transaction = Delete {
                 table_name: ctx.dynamodb_table_name.clone(),
-                condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                condition_expression: Some(cond_expr),
                 key,
                 expression_attribute_names: Some(exp_att_names),
+                expression_attribute_values: Some(exp_att_values),
                 ..Default::default()
             };
 

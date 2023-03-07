@@ -7,7 +7,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::constant::OWNED_BY;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
@@ -228,7 +227,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
             }
             if let Some(user_id) = self.ctx.user_id.as_ref() {
-                value_map.insert(OWNED_BY, SqlValue::String(user_id.to_string()));
+                value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
             }
 
             let (query, values) = Sql::SelectTypePaginated {
@@ -376,8 +375,8 @@ pub fn get_loader_paginated_query_type(
     DataLoader::with_cache(
         QueryTypePaginatedLoader {
             local_context,
-            index,
             ctx,
+            index,
         },
         |f| Runtime::locate().spawn(f),
         LruCache::new(256),
