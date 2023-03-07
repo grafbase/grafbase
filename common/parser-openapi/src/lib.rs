@@ -95,6 +95,8 @@ pub enum Error {
     UnknownHttpVerb(String),
     #[error("The operation {0} didn't have a response schema")]
     OperationMissingResponseSchema(String),
+    #[error("The operation {0} didn't have a response schema")]
+    OperationMissingRequestSchema(String),
     #[error("Encountered an array without items, which we don't currently support")]
     ArrayWithoutItems,
     #[error("Encountered a not schema, which we don't currently support")]
@@ -151,6 +153,17 @@ mod tests {
     #[test]
     fn test_stripe_output() {
         let spec = std::fs::read_to_string("test_data/stripe.openapi.json").unwrap();
+
+        let mut registry = default_registry();
+
+        parse_spec(&spec, Format::Json, metadata(), &mut registry).unwrap();
+
+        insta::assert_snapshot!(registry.export_sdl(false));
+    }
+
+    #[test]
+    fn test_petstore_output() {
+        let spec = std::fs::read_to_string("test_data/petstore.openapi.json").unwrap();
 
         let mut registry = default_registry();
 

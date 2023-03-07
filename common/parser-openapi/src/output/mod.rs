@@ -15,7 +15,7 @@ use dynaql::{
 use inflector::Inflector;
 
 use crate::graph::{
-    Enum, InputField, InputObject, OpenApiGraph, OutputType, PathParameter, QueryOperation, QueryParameter,
+    Enum, InputField, InputObject, OpenApiGraph, Operation, OutputType, PathParameter, QueryParameter, RequestBody,
     WrappingType,
 };
 
@@ -53,6 +53,27 @@ pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
         }
     }
 
+    let mutation_operations = graph.mutation_operations();
+    if !mutation_operations.is_empty() {
+        if registry.mutation_type.is_none() {
+            registry.mutation_type = Some("Mutation".to_string());
+            registry
+                .types
+                .insert("Mutation".to_string(), object("Mutation".to_string(), vec![]));
+        }
+
+        let mutation_fields = registry
+            .mutation_root_mut()
+            .fields_mut()
+            .expect("MutationRoot to be an Object");
+
+        for op in mutation_operations {
+            let Some(metafield) = op.as_meta_field(graph) else { continue };
+
+            mutation_fields.insert(metafield.name.clone(), metafield);
+        }
+    }
+
     registry.remove_unused_types();
 }
 
@@ -60,26 +81,10 @@ impl OutputType {
     fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
         match self {
-            OutputType::Object(_) => Some(MetaType::Object {
-                name: name.clone(),
-                description: None,
-                fields: self
-                    .fields(graph)
-                    .into_iter()
-                    .map(|field| (field.graphql_name(), field.to_meta_field()))
-                    .collect(),
-                cache_control: CacheControl {
-                    public: true,
-                    max_age: 0,
-                },
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: name,
-                constraints: vec![],
-            }),
+            OutputType::Object(_) => Some(object(
+                name,
+                self.fields(graph).into_iter().map(|field| field.to_meta_field()),
+            )),
             OutputType::Union(_) => Some(MetaType::Union {
                 name: name.clone(),
                 description: None,
@@ -174,10 +179,11 @@ impl std::fmt::Display for FieldType {
     }
 }
 
-impl QueryOperation {
+impl Operation {
     fn as_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let path_parameters = self.path_parameters(graph);
         let query_parameters = self.query_parameters(graph);
+        let request_body = self.request_body(graph);
 
         let mut args = IndexMap::new();
         args.extend(path_parameters.iter().map(|param| {
@@ -185,9 +191,12 @@ impl QueryOperation {
             (input_value.name.clone(), input_value)
         }));
         args.extend(query_parameters.iter().map(|param| {
-            let name = param.name(graph).unwrap().to_owned();
             let input_value = param.to_meta_input_value(graph).unwrap();
-            (name, input_value)
+            (input_value.name.clone(), input_value)
+        }));
+        args.extend(request_body.iter().map(|body| {
+            let input_value = body.to_meta_input_value(graph).unwrap();
+            (input_value.name.clone(), input_value)
         }));
 
         Some(MetaField {
@@ -246,6 +255,21 @@ impl QueryParameter {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue {
             name: self.name(graph)?.to_owned(),
+            description: None,
+            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            default_value: None,
+            visible: None,
+            validators: None,
+            is_secret: false,
+        })
+    }
+}
+
+impl RequestBody {
+    fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
+        let input_value = self.input_value(graph)?;
+        Some(MetaInputValue {
+            name: self.argument_name().to_owned(),
             description: None,
             ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
             default_value: None,
@@ -322,6 +346,25 @@ fn meta_field(name: String, ty: String) -> MetaField {
         required_operation: None,
         auth: None,
         plan: None,
+    }
+}
+
+fn object(name: String, fields: impl IntoIterator<Item = MetaField>) -> MetaType {
+    MetaType::Object {
+        name: name.clone(),
+        description: None,
+        fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
+        cache_control: CacheControl {
+            public: true,
+            max_age: 0,
+        },
+        extends: false,
+        keys: None,
+        visible: None,
+        is_subscription: false,
+        is_node: false,
+        rust_typename: name,
+        constraints: vec![],
     }
 }
 

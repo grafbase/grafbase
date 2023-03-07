@@ -78,7 +78,7 @@ impl super::OpenApiGraph {
             !matches!(edge.weight(), Edge::HasResponseType { .. })
         });
         let mut dfs = Dfs::empty(&filtered_graph);
-        dfs.stack = self.query_operations().into_iter().map(|op| op.0).collect();
+        dfs.stack = self.operations().into_iter().map(|op| op.node_index()).collect();
 
         dfs.iter(&filtered_graph)
             .filter_map(|idx| InputObject::from_index(idx, self))

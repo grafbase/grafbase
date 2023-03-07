@@ -1,9 +1,10 @@
 use std::{rc::Rc, str::FromStr};
 
 use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
-use openapiv3::{Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
+use indexmap::IndexMap;
+use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
-use crate::Error;
+use crate::{graph::RequestBodyContentType, Error};
 
 use super::components::{Components, Ref};
 
@@ -161,7 +162,7 @@ impl FromStr for Verb {
 
 #[derive(Clone, Debug)]
 pub struct RequestBody {
-    pub content_type: String,
+    pub content_type: RequestBodyContentType,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
 }
 
@@ -170,9 +171,11 @@ impl RequestBody {
         request_body
             .content
             .iter()
-            .map(|(content_type, content)| RequestBody {
-                schema: content.schema.clone(),
-                content_type: content_type.clone(),
+            .filter_map(|(content_type, content)| {
+                Some(RequestBody {
+                    schema: content.schema.clone(),
+                    content_type: request_body_content_type(content_type, &content.encoding)?,
+                })
             })
             .collect()
     }
@@ -213,5 +216,26 @@ fn query_style_description(query_style: &QueryStyle) -> &str {
         QueryStyle::SpaceDelimited => "spaceDelimited",
         QueryStyle::PipeDelimited => "pipeDelimited",
         QueryStyle::DeepObject => "deepObject",
+    }
+}
+
+fn request_body_content_type(
+    content_type: &str,
+    encoding: &IndexMap<String, Encoding>,
+) -> Option<RequestBodyContentType> {
+    match content_type {
+        "application/json" => Some(RequestBodyContentType::Json),
+        "application/x-www-form-urlencoded" => Some(RequestBodyContentType::FormEncoded(
+            encoding
+                .iter()
+                .filter_map(|(field, encoding)| {
+                    Some((
+                        field.clone(),
+                        query_param_encoding_style(encoding.style.as_ref()?, encoding.explode)?,
+                    ))
+                })
+                .collect(),
+        )),
+        _ => None,
     }
 }

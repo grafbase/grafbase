@@ -1,11 +1,11 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::HashMap};
 
 use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
 use inflector::Inflector;
 use openapiv3::StatusCode;
 use petgraph::{
     graph::NodeIndex,
-    visit::{EdgeFiltered, EdgeRef, Reversed},
+    visit::{EdgeRef, Reversed},
     Graph,
 };
 
@@ -14,13 +14,17 @@ use crate::parsing::operations::OperationDetails;
 mod enums;
 mod input_object;
 mod input_value;
-mod query_types;
+mod operations;
+mod output_type;
+mod parameters;
 
 pub use self::{
     enums::Enum,
     input_object::{InputField, InputObject},
     input_value::{InputValue, InputValueKind},
-    query_types::{OutputType, PathParameter, QueryOperation, QueryParameter},
+    operations::Operation,
+    output_type::OutputType,
+    parameters::{PathParameter, QueryParameter, RequestBody},
 };
 
 /// A graph representation of an OpenApi schema.
@@ -92,9 +96,8 @@ pub enum Edge {
     },
 
     /// An edge bewteen an operation and it's request type
-    #[allow(dead_code)]
     HasRequestType {
-        content_type: String,
+        content_type: RequestBodyContentType,
         wrapping: WrappingType,
     },
 
@@ -218,20 +221,9 @@ impl OpenApiGraph {
                 // nearest named thing, and construct a name based on the fields in-betweeen.
                 // Not ideal, but the best we can do.
                 let reversed_graph = Reversed(&self.graph);
-                let filtered_graph = EdgeFiltered::from_fn(reversed_graph, |edge| {
-                    matches!(
-                        edge.weight(),
-                        Edge::HasField { .. }
-                            | Edge::HasResponseType { .. }
-                            | Edge::HasType { .. }
-                            | Edge::HasUnionMember
-                            | Edge::HasPathParameter { .. }
-                            | Edge::HasQueryParameter { .. }
-                    )
-                });
 
                 let (_, mut path) = petgraph::algo::astar(
-                    &filtered_graph,
+                    &reversed_graph,
                     node,
                     |current_node| self.graph[current_node].name().is_some(),
                     |_| 0,
@@ -317,6 +309,12 @@ impl<'a> std::fmt::Display for FieldName<'a> {
 
         write!(f, "{name}")
     }
+}
+
+#[derive(Clone, Debug)]
+pub enum RequestBodyContentType {
+    Json,
+    FormEncoded(HashMap<String, QueryParameterEncodingStyle>),
 }
 
 #[cfg(test)]

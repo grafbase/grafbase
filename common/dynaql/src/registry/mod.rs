@@ -1290,6 +1290,12 @@ impl Registry {
             .unwrap()
     }
 
+    pub fn mutation_root_mut(&mut self) -> &mut MetaType {
+        self.types
+            .get_mut(self.mutation_type.as_deref().unwrap())
+            .unwrap()
+    }
+
     pub fn find_ty_with_id<'a>(&self, node_id: &NodeID<'a>) -> Option<&MetaType> {
         let ty = node_id.ty();
         self.types
