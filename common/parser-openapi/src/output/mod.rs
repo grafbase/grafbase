@@ -7,19 +7,26 @@ use dynaql::{
             Resolver, ResolverType,
         },
         variables::VariableResolveDefinition,
-        MetaField, MetaInputValue, MetaType, Registry,
+        Deprecation::NoDeprecated,
+        MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
     },
     CacheControl,
 };
 use inflector::Inflector;
 
-use crate::graph::{OpenApiGraph, OutputType, PathParameter, QueryOperation, WrappingType};
+use crate::graph::{Enum, OpenApiGraph, OutputType, PathParameter, QueryOperation, QueryParameter, WrappingType};
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
     register_scalars(registry);
 
     for output_type in graph.output_types() {
-        let Some(metatype) = output_type.as_meta_type(graph) else { continue };
+        let Some(metatype) = output_type.to_meta_type(graph) else { continue };
+
+        registry.types.insert(metatype.name().to_string(), metatype);
+    }
+
+    for en in graph.enums() {
+        let Some(metatype) = en.to_meta_type(graph) else { continue };
 
         registry.types.insert(metatype.name().to_string(), metatype);
     }
@@ -41,7 +48,7 @@ pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
 }
 
 impl OutputType {
-    fn as_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
         match self {
             OutputType::Object(_) => Some(MetaType::Object {
@@ -139,11 +146,17 @@ impl std::fmt::Display for FieldType {
 impl QueryOperation {
     fn as_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let path_parameters = self.path_parameters(graph);
+        let query_parameters = self.query_parameters(graph);
 
         let mut args = IndexMap::new();
         args.extend(path_parameters.iter().map(|param| {
             let input_value = param.to_meta_input_value(graph).unwrap();
             (input_value.name.clone(), input_value)
+        }));
+        args.extend(query_parameters.iter().map(|param| {
+            let name = param.name(graph).unwrap().to_owned();
+            let input_value = param.to_meta_input_value(graph).unwrap();
+            (name, input_value)
         }));
 
         Some(MetaField {
@@ -157,9 +170,20 @@ impl QueryOperation {
                         .iter()
                         .map(|param| {
                             let name = param.name(graph).unwrap().to_string();
-                            http::Parameter {
+                            http::PathParameter {
                                 name: name.clone(),
                                 variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                            }
+                        })
+                        .collect(),
+                    query_parameters: query_parameters
+                        .iter()
+                        .map(|param| {
+                            let name = param.name(graph).unwrap().to_owned();
+                            http::QueryParameter {
+                                name: name.clone(),
+                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                                encoding_style: param.encoding_style(graph).unwrap(),
                             }
                         })
                         .collect(),
@@ -177,7 +201,7 @@ impl PathParameter {
         Some(MetaInputValue {
             name: self.name(graph)?.to_string(),
             description: None,
-            ty: FieldType::new(input_value.wrapping_type(), input_value.name(graph)?).to_string(),
+            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
             default_value: None,
             visible: None,
             validators: None,
@@ -185,13 +209,57 @@ impl PathParameter {
         })
     }
 }
+
+impl QueryParameter {
+    fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
+        let input_value = self.input_value(graph)?;
+        Some(MetaInputValue {
+            name: self.name(graph)?.to_owned(),
+            description: None,
+            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            default_value: None,
+            visible: None,
+            validators: None,
+            is_secret: false,
+        })
+    }
+}
+
+impl Enum {
+    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+        let name = self.name(graph)?;
+        let values = self.values(graph)?;
+        Some(MetaType::Enum {
+            name: name.clone(),
+            description: None,
+            enum_values: values
+                .iter()
+                .map(|value| {
+                    // TODO: Need to screaming snake case these somehow
+                    (
+                        value.clone(),
+                        MetaEnumValue {
+                            name: value.clone(),
+                            description: None,
+                            deprecation: NoDeprecated,
+                            visible: None,
+                        },
+                    )
+                })
+                .collect(),
+            visible: None,
+            rust_typename: name,
+        })
+    }
+}
+
 fn meta_field(name: String, ty: String) -> MetaField {
     MetaField {
         name,
         description: None,
         args: IndexMap::new(),
         ty,
-        deprecation: dynaql::registry::Deprecation::NoDeprecated,
+        deprecation: NoDeprecated,
         cache_control: CacheControl {
             public: true,
             max_age: 0,

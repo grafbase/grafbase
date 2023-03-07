@@ -1,3 +1,4 @@
+use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
 use openapiv3::{ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
 
@@ -72,6 +73,21 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                 }
             }
 
+            for parameter in operation.query_parameters {
+                let parent = ParentNode::QueryParameter {
+                    name: parameter.name,
+                    operation_index,
+                    encoding_style: parameter.encoding_style,
+                };
+                match parameter.schema {
+                    Some(schema) => extract_types(ctx, &schema, parent),
+                    None => {
+                        // If the parameter has no schema we just assume it's a string.
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
+                    }
+                }
+            }
+
             for response in operation.responses {
                 let Some(schema) = &response.schema else {
                     ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {verb:?} {path}"))));
@@ -121,6 +137,11 @@ enum ParentNode {
         name: String,
         operation_index: NodeIndex,
     },
+    QueryParameter {
+        name: String,
+        operation_index: NodeIndex,
+        encoding_style: QueryParameterEncodingStyle,
+    },
 }
 
 impl Context {
@@ -147,7 +168,8 @@ impl ParentNode {
             ParentNode::Union(idx) | ParentNode::Schema(idx) => *idx,
             ParentNode::OperationResponse { operation_index, .. }
             | ParentNode::OperationRequest { operation_index, .. }
-            | ParentNode::PathParameter { operation_index, .. } => *operation_index,
+            | ParentNode::PathParameter { operation_index, .. }
+            | ParentNode::QueryParameter { operation_index, .. } => *operation_index,
             ParentNode::Field { object_index, .. } => *object_index,
             ParentNode::List { parent, .. } => parent.node_index(),
         }
@@ -189,21 +211,13 @@ impl ParentNode {
                 name: name.clone(),
                 wrapping,
             },
-        }
-    }
-}
-
-impl WrappingType {
-    fn wrap_list(self) -> WrappingType {
-        WrappingType::List(Box::new(self))
-    }
-
-    fn wrap_required(self) -> WrappingType {
-        if matches!(self, WrappingType::NonNull(_)) {
-            // Don't double wrap things in required
-            self
-        } else {
-            WrappingType::NonNull(Box::new(self))
+            ParentNode::QueryParameter {
+                name, encoding_style, ..
+            } => Edge::HasQueryParameter {
+                name: name.clone(),
+                wrapping,
+                encoding_style: *encoding_style,
+            },
         }
     }
 }
@@ -222,8 +236,18 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
             ctx.add_type_edge(parent, *schema, false);
         }
         ReferenceOr::Item(schema) => match &schema.schema_kind {
-            SchemaKind::Type(Type::String(_)) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
+            SchemaKind::Type(Type::String(ty)) => {
+                if ty.enumeration.is_empty() {
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
+                } else {
+                    ctx.add_type_node(
+                        parent,
+                        Node::Enum {
+                            values: ty.enumeration.iter().flatten().cloned().collect(),
+                        },
+                        schema.schema_data.nullable,
+                    );
+                }
             }
             SchemaKind::Type(Type::Boolean {}) => {
                 ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable);
