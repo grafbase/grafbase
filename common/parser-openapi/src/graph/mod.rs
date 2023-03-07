@@ -10,11 +10,13 @@ use petgraph::{
 use crate::parsing::operations::OperationDetails;
 
 mod enums;
+mod input_object;
 mod input_value;
 mod query_types;
 
 pub use self::{
     enums::Enum,
+    input_object::InputObject,
     input_value::{InputValue, InputValueKind},
     query_types::{OutputType, PathParameter, QueryOperation, QueryParameter},
 };
