@@ -16,9 +16,9 @@ input CategoryInput {
 	id: Int!
 }
 enum FindPetsByStatus {
-	available
-	pending
-	sold
+	AVAILABLE
+	PENDING
+	SOLD
 }
 """
 A JSON Value
@@ -48,9 +48,9 @@ input OrderInput {
 	id: Int!
 }
 enum OrderStatus {
-	placed
-	approved
-	delivered
+	PLACED
+	APPROVED
+	DELIVERED
 }
 type Pet {
 	status: PetStatus!
@@ -69,9 +69,9 @@ input PetInput {
 	id: Int!
 }
 enum PetStatus {
-	available
-	pending
-	sold
+	AVAILABLE
+	PENDING
+	SOLD
 }
 type Query {
 	findPetsByStatus(status: FindPetsByStatus!): [Pet!]!

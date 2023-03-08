@@ -221,6 +221,20 @@ impl ConstValue {
         let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(len));
         decoder.next_batch(&mut value)
     }
+
+    /// Returns a str of the kind of value this is.  Useful for error messages.
+    pub fn kind_str(&self) -> &'static str {
+        match self {
+            ConstValue::Null => "null",
+            ConstValue::Number(_) => "number",
+            ConstValue::String(_) => "string",
+            ConstValue::Boolean(_) => "boolean",
+            ConstValue::Binary(_) => "binary",
+            ConstValue::Enum(_) => "enum",
+            ConstValue::List(_) => "list",
+            ConstValue::Object(_) => "object",
+        }
+    }
 }
 
 impl PartialEq for ConstValue {
