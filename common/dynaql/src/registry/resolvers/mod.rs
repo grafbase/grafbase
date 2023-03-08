@@ -352,7 +352,7 @@ impl Constraint {
     ///
     /// If the constraint has one field we expect the value to just be a string.
     /// If the constraint has multiple it should be an Object of fieldName: value
-    fn extract_id_from_by_input_field(
+    pub fn extract_id_from_by_input_field(
         &self,
         ty: &str,
         value: &ConstValue,

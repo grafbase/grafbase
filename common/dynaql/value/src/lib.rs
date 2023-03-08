@@ -19,6 +19,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
+use arrow_schema::Field;
 use bytes::Bytes;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -156,6 +157,28 @@ pub enum ConstValue {
     Object(IndexMap<Name, ConstValue>),
 }
 
+fn mandatory_fields(fields: Vec<Field>) -> Vec<Field> {
+    fields
+        .into_iter()
+        .map(|x| x.with_nullable(false))
+        .map(|x| match x.data_type() {
+            arrow_schema::DataType::Struct(fields) => Field::new(
+                x.name(),
+                arrow_schema::DataType::Struct(mandatory_fields(
+                    fields.iter().map(Clone::clone).collect(),
+                )),
+                false,
+            ),
+            datatype => Field::new(x.name(), datatype.clone(), false),
+        })
+        .collect::<Vec<Field>>()
+}
+
+fn mandatory(schema: Schema) -> Schema {
+    let fields = mandatory_fields(schema.fields);
+    Schema::new(fields)
+}
+
 #[cfg(feature = "query-planning")]
 impl ConstValue {
     /// Wrap the [`ConstValue`] into an Object, when dealing with an ArrowSchema we need to have an
@@ -172,7 +195,7 @@ impl ConstValue {
             .clone()
             .into_json()
             .map_err(|err| ArrowError::JsonError(err.to_string()));
-        infer_json_schema_from_iterator(std::iter::once(value))
+        infer_json_schema_from_iterator(std::iter::once(value)).map(mandatory)
     }
 
     /// Give the associated schema for a list

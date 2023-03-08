@@ -28,6 +28,8 @@ use crate::{
     BatchRequest, BatchResponse, CacheControl, ContextBase, InputType, ObjectType, OutputType,
     QueryEnv, Request, Response, ServerError, SubscriptionType, Variables, ID,
 };
+#[cfg(feature = "query-planning")]
+use query_planning::execution_query::context::ExecutionContext;
 
 #[cfg(feature = "query-planning")]
 use query_planning::logical_query::{LogicalQuery, QueryOperationDefinition};
@@ -645,12 +647,87 @@ impl Schema {
         resp
     }
 
+    #[cfg(feature = "query-planning")]
+    async fn logical_query_execute_once(
+        &self,
+        env: QueryEnv,
+        exec_context: Arc<ExecutionContext>,
+    ) -> Response {
+        use query_planning::execution_query::context::{Context, ExecutionContext};
+        use query_planning::execution_query::planner::PhysicalQueryPlanner;
+        use query_planning::execution_query::ExecuteStream;
+        use query_planning::logical_query::QueryOperations;
+
+        let ctx = ContextBase {
+            path_node: None,
+            resolver_node: None,
+            item: &env.operation.node.selection_set,
+            schema_env: &self.env,
+            query_env: &env,
+            resolvers_cache: Arc::new(RwLock::new(UnboundCache::with_capacity(32))),
+            resolvers_data: Default::default(),
+            response_graph: Arc::new(RwLock::new(QueryResponse::default())),
+        };
+
+        let query = ctx.registry().query_root();
+
+        let res =
+            match &env.operation.node.ty {
+                OperationType::Query => resolve_logical_plan_container(&ctx, query, None)
+                    .await
+                    .map(|x| QueryOperationDefinition {
+                        ty: OperationType::Query,
+                        selection_set: x,
+                    }),
+                OperationType::Mutation => {
+                    resolve_logical_plan_container(&ctx, ctx.registry().mutation_root(), None)
+                        .await
+                        .map(|x| QueryOperationDefinition {
+                            ty: OperationType::Mutation,
+                            selection_set: x,
+                        })
+                }
+                OperationType::Subscription => Err(ServerError::new(
+                    "Subscriptions are not supported on this transport.",
+                    None,
+                )),
+            };
+
+        let mut resp = match res {
+            Ok(value) => {
+                let query = LogicalQuery {
+                    operations: QueryOperations::Single(value),
+                };
+                let planner = PhysicalQueryPlanner::default();
+                let exec = planner.create_execution_query(&query).unwrap();
+                let ctx = Context::new(exec_context);
+                let a = exec.execute(&ctx).unwrap().fuse();
+                let b = a.into_future();
+                #[cfg(feature = "tracing_worker")]
+                logworker::info!("", "Execution",);
+                let (c, rest) = b.await;
+
+                #[cfg(feature = "tracing_worker")]
+                logworker::info!("", "{c:?}",);
+
+                return Response::from_logical_query(query);
+            }
+            Err(err) => Response::from_errors(vec![err]),
+        };
+
+        resp.errors
+            .extend(std::mem::take(&mut *env.errors.lock().unwrap()));
+        resp
+    }
+
     /// Execute a GraphQL query.
     pub async fn execute(&self, request: impl Into<Request>) -> Response {
         let request = request.into();
         #[cfg(feature = "query-planning")]
         let is_logical_plan = request.logic_plan;
         let extensions = self.create_extensions(Default::default());
+        #[cfg(feature = "query-planning")]
+        let exec_context = Arc::new(ExecutionContext::sample().unwrap());
         let request_fut = {
             let extensions = extensions.clone();
             async move {
@@ -663,7 +740,9 @@ impl Schema {
                         #[cfg(feature = "query-planning")]
                         {
                             if is_logical_plan {
-                                return self.logical_query_once(env.clone()).await;
+                                return self
+                                    .logical_query_execute_once(env.clone(), exec_context.clone())
+                                    .await;
                             }
                         }
 

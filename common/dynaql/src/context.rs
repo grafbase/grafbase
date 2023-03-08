@@ -879,6 +879,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
             .map_err(|err| ServerError::new(err.to_string(), Some(pos)))
             .map(query_planning::logical_plan::builder::LogicalPlanBuilder::build),
             VariableResolveDefinition::InputTypeName(value) => {
+                // The issue here is: we should be able to infer if the value will be nullable or
+                // not, but we don't do it right now, so TODO.
                 let resolved_value = self.param_value_dynamic(&value)?.prepare_container(value);
                 let schema = resolved_value.to_schema().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
                 let values = resolved_value.arrow().map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?;
@@ -913,6 +915,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
+        use query_planning::logical_plan::schema::ExprSchema;
         use query_planning::logical_plan::Datasource;
 
         use crate::registry::plan::{PlanProjection, PlanRelated};
@@ -977,17 +980,49 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     .get_entity_by_id(&schema, Datasource::gb())
                 }
                 ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
-                    let by = self.from_variable_resolution(previous_plan, by)?;
-                    // TODO: We should resolve the Variable definition here to know if it's an ID
-                    // or something else and fill the LogicPlan by this data.
-                    // Either GetById or GetByUnique
-                    //
+                    let by =
+                        LogicalPlanBuilder::from(self.from_variable_resolution(previous_plan, by)?)
+                            .flatten()
+                            .map_err(|err| {
+                                Error::new_with_source(err).into_server_error(self.item.pos)
+                            })?
+                            .build();
+                    let by_schema = by.schema();
+
+                    #[cfg(feature = "tracing_worker")]
+                    logworker::info!("", "{by_schema:?}",);
+
                     let schema = self
                         .get_schema_id(schema.ok_or_else(|| {
                             ServerError::new("No schema id", Some(self.item.pos))
                         })?)?;
 
-                    LogicalPlanBuilder::from(by).get_entity_by_unique(&schema, Datasource::gb())
+                    let first_field = by_schema.fields().iter().next();
+                    #[cfg(feature = "tracing_worker")]
+                    logworker::info!("", "{first_field:?}",);
+                    match first_field {
+                        Some(field) => {
+                            let name = field.name();
+
+                            if name == "id" {
+                                // GetByID
+                                LogicalPlanBuilder::from(by)
+                                    .get_entity_by_id(&schema, Datasource::gb())
+                            } else {
+                                // GetByUnique
+
+                                //TODO: Need to propagate constraints too and flatten the type here
+                                LogicalPlanBuilder::from(by)
+                                    .get_entity_by_unique(&schema, Datasource::gb())
+                            }
+                        }
+                        _ => {
+                            return Err(ServerError::new(
+                                "By should be a struct",
+                                Some(self.item.pos),
+                            ));
+                        }
+                    }
                 }
                 // We don't need it to implement it as we implemented the Plan over every node
                 // using it.
