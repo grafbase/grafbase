@@ -23,7 +23,7 @@ use std::sync::{Arc, Weak};
 use std::time::Duration;
 
 cfg_if::cfg_if! {
-    if #[cfg(not(feature = "local"))] {
+    if #[cfg(not(feature = "sqlite"))] {
         use crate::TxItem;
 
         mod dynamodb;
@@ -758,10 +758,10 @@ impl GetIds for PossibleChanges {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(not(feature = "sqlite"))]
 pub type TransactionOutput = HashMap<TxItem, AttributeValue>;
 
-#[cfg(feature = "local")]
+#[cfg(feature = "sqlite")]
 pub type TransactionOutput = (String, Vec<String>, Option<crate::local::types::OperationKind>);
 
 pub type ToTransactionFuture<'a> =
@@ -1463,7 +1463,7 @@ impl InternalNodeConstraintChanges {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(not(feature = "sqlite"))]
 async fn execute(
     batchers: &'_ DynamoDBBatchersData,
     ctx: &'_ DynamoDBContext,
@@ -1514,7 +1514,7 @@ async fn execute(
     Ok(merged)
 }
 
-#[cfg(feature = "local")]
+#[cfg(feature = "sqlite")]
 async fn execute(
     batchers: &'_ DynamoDBBatchersData,
     ctx: &'_ DynamoDBContext,
@@ -1575,7 +1575,7 @@ async fn load_keys(
     batcher: &DynamoDBBatchersData,
     ctx: &DynamoDBContext,
     tx: Vec<PossibleChanges>,
-    #[cfg(feature = "local")] local_ctx: &LocalContext,
+    #[cfg(feature = "sqlite")] local_ctx: &LocalContext,
 ) -> Result<HashMap<PossibleChanges, AttributeValue>, ToTransactionError> {
     info!(ctx.trace_id, "Execute");
     let mut result = HashMap::with_capacity(tx.len());
@@ -1583,10 +1583,10 @@ async fn load_keys(
         result.insert(x.clone(), AttributeValue { ..Default::default() });
     }
 
-    #[cfg(not(feature = "local"))]
+    #[cfg(not(feature = "sqlite"))]
     let _a = execute(batcher, ctx, tx).await?;
 
-    #[cfg(feature = "local")]
+    #[cfg(feature = "sqlite")]
     {
         use crate::local::types::Constraint;
         use bridge_api::{mutation, ApiErrorKind, MutationError};
@@ -1618,7 +1618,7 @@ async fn load_keys(
 pub struct NewTransactionLoader {
     ctx: Arc<DynamoDBContext>,
     parent_ctx: Weak<DynamoDBBatchersData>,
-    #[cfg(feature = "local")]
+    #[cfg(feature = "sqlite")]
     local_ctx: Arc<LocalContext>,
 }
 
@@ -1632,7 +1632,7 @@ impl Loader<PossibleChanges> for NewTransactionLoader {
             &self.parent_ctx.upgrade().expect("can't fail"),
             &self.ctx,
             keys.to_vec(),
-            #[cfg(feature = "local")]
+            #[cfg(feature = "sqlite")]
             &self.local_ctx,
         )
         .await
@@ -1642,13 +1642,13 @@ impl Loader<PossibleChanges> for NewTransactionLoader {
 pub fn get_loader_transaction_new(
     ctx: Arc<DynamoDBContext>,
     parent_ctx: Weak<DynamoDBBatchersData>,
-    #[cfg(feature = "local")] local_ctx: Arc<LocalContext>,
+    #[cfg(feature = "sqlite")] local_ctx: Arc<LocalContext>,
 ) -> DataLoader<NewTransactionLoader, LruCache> {
     DataLoader::with_cache(
         NewTransactionLoader {
             ctx,
             parent_ctx,
-            #[cfg(feature = "local")]
+            #[cfg(feature = "sqlite")]
             local_ctx,
         },
         |f| Runtime::locate().spawn(f),

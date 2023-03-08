@@ -1,5 +1,5 @@
 cfg_if::cfg_if! {
-    if #[cfg(not(feature = "local"))] {
+    if #[cfg(not(feature = "sqlite"))] {
         mod batch_getitem;
         mod query;
         mod query_by_type;
@@ -101,7 +101,7 @@ impl DynamoDBRequestedIndex {
     }
 
     cfg_if::cfg_if! {
-        if #[cfg(not(feature = "local"))] {
+        if #[cfg(not(feature = "sqlite"))] {
             fn pk(&self) -> String {
                 match self {
                     Self::None => "__pk".to_string(),
@@ -280,7 +280,7 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(not(feature = "sqlite"))]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
@@ -300,7 +300,7 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(feature = "local")]
+#[cfg(feature = "sqlite")]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: &Arc<LocalContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
