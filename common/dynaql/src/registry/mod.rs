@@ -1376,6 +1376,7 @@ impl Registry {
                 .position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
                     name: field.node.response_key().clone().map(|x| x.to_string()),
                     logic_plan: LogicalPlanBuilder::empty().build(),
+                    nullable: false,
                     selection_set: Positioned::new(
                         introspection_to_selection_plan_set(resolution_schema, ctx_obj.item.pos),
                         ctx.item.pos,
@@ -1385,15 +1386,16 @@ impl Registry {
         }
 
         let actual_logic_plan = ctx.to_logic_plan(root, previous_logical_plan)?;
+        let associated_meta_field = root
+            .field_by_name(field.node.name.node.as_str())
+            .ok_or_else(|| {
+                ServerError::new(
+                    format!("Can't find the associated field: {}", field.node.name),
+                    Some(field.node.name.pos),
+                )
+            })?;
+
         let selection_set = if !field.node.selection_set.node.items.is_empty() {
-            let associated_meta_field = root
-                .field_by_name(field.node.name.node.as_str())
-                .ok_or_else(|| {
-                    ServerError::new(
-                        format!("Can't find the associated field: {}", field.node.name),
-                        Some(field.node.name.pos),
-                    )
-                })?;
             let associated_meta_ty = ctx
                 .registry()
                 .types
@@ -1419,13 +1421,23 @@ impl Registry {
             ctx.item.position_node(SelectionPlanSet::default())
         };
 
-        let plan = ctx
-            .item
-            .position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
-                name: field.node.response_key().clone().map(|x| x.to_string()),
-                logic_plan: actual_logic_plan,
-                selection_set,
-            })));
+        use dynaql_parser::types::Type;
+        let ty = Type::new(&associated_meta_field.ty).ok_or_else(|| {
+            ServerError::new(
+                format!(
+                    "Can't find the associated type for field: {}",
+                    field.node.name
+                ),
+                Some(field.node.name.pos),
+            )
+        })?;
+
+        let plan = field.position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
+            nullable: ty.nullable,
+            name: field.node.response_key().clone().map(|x| x.to_string()),
+            logic_plan: actual_logic_plan,
+            selection_set,
+        })));
 
         Ok(plan)
     }

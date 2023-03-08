@@ -710,7 +710,15 @@ impl Schema {
                 #[cfg(feature = "tracing_worker")]
                 logworker::info!("", "{c:?}",);
 
-                return Response::from_logical_query(query);
+                let mut c: serde_json::Value = c.unwrap().to_json();
+                let c = c.get_mut("data").unwrap().take();
+                #[cfg(feature = "tracing_worker")]
+                logworker::info!("", "{}", c.to_string());
+                let mut root = QueryResponse::default();
+                let id = root.from_serde_value(c);
+                root.set_root_unchecked(id);
+
+                return Response::new(root);
             }
             Err(err) => Response::from_errors(vec![err]),
         };

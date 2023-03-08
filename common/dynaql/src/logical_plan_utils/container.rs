@@ -78,6 +78,7 @@ impl FieldsGraph {
 
                                 let plan = ctx.item.position_node(SelectionPlan::Field(
                                     ctx.item.position_node(FieldPlan {
+                                        nullable: false,
                                         name: field
                                             .node
                                             .response_key()
@@ -108,6 +109,7 @@ impl FieldsGraph {
 
                                 let plan = ctx.item.position_node(SelectionPlan::Field(
                                     ctx.item.position_node(FieldPlan {
+                                        nullable: false,
                                         name: field
                                             .node
                                             .response_key()

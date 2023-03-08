@@ -157,6 +157,12 @@ pub enum ConstValue {
     Object(IndexMap<Name, ConstValue>),
 }
 
+impl ConstValue {
+    pub fn is_null(&self) -> bool {
+        matches!(self, ConstValue::Null)
+    }
+}
+
 fn mandatory_fields(fields: Vec<Field>) -> Vec<Field> {
     fields
         .into_iter()
