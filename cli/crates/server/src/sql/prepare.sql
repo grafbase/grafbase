@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS records (
     document JSON not NULL,
     created_at TEXT not NULL,
     updated_at TEXT not NULL,
+    owned_by TEXT,
     PRIMARY KEY(pk, sk)
 );
 
