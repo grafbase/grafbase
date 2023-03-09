@@ -4,6 +4,8 @@ use surf::Url;
 
 use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
+use self::parameters::ParamApply;
+
 use super::{ResolvedValue, ResolverContext};
 
 mod parameters;
@@ -83,9 +85,10 @@ impl HttpResolver {
 
             match &request_body.content_type {
                 RequestBodyContentType::Json => request = request.body_json(dbg!(&variable))?,
-                RequestBodyContentType::FormEncoded(_encoding_styles) => {
-                    // Work for a future PR
-                    todo!("Do this somehow");
+                RequestBodyContentType::FormEncoded(encoding_styles) => {
+                    request = request.body_string(
+                        String::new().apply_body_parameters(encoding_styles, variable)?,
+                    );
                 }
             }
         }
@@ -105,8 +108,6 @@ impl HttpResolver {
         ctx: &Context<'_>,
         last_resolver_value: Option<&serde_json::Value>,
     ) -> Result<String, Error> {
-        use parameters::ParamApply;
-
         let mut url = self.url.clone();
 
         for param in &self.path_parameters {
