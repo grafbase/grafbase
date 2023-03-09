@@ -1,6 +1,9 @@
+use super::api_counterfeit::registry::Registry;
+use super::api_counterfeit::search::{QueryExecutionRequest, QueryExecutionResponse};
 use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
 use super::search::Index;
-use super::types::{Mutation, Operation, Record, SearchRequest, SearchResponse};
+use super::types::{Mutation, Operation, Record};
+use crate::bridge::api_counterfeit::registry::VersionedRegistry;
 use crate::bridge::errors::ApiError;
 use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
@@ -14,6 +17,8 @@ use common::environment::Environment;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
+use std::fs::File;
+use std::io::BufReader;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
@@ -85,16 +90,26 @@ async fn mutation_endpoint(
 
 async fn search_endpoint(
     State(pool): State<Arc<SqlitePool>>,
-    Json(query): Json<SearchRequest>,
-) -> Result<Json<SearchResponse>, ApiError> {
-    // Good enough for any sane limit.
-    #[allow(clippy::cast_possible_truncation)]
-    let limit = query.limit as usize;
+    Json(request): Json<QueryExecutionRequest>,
+) -> Result<Json<QueryExecutionResponse>, ApiError> {
+    let registry: Registry = {
+        let path = &Environment::get().project_grafbase_registry_path;
+        let file = File::open(path).map_err(|err| {
+            error!("Failed to open {path:?}: {err:?}");
+            ApiError::ServerError
+        })?;
+        let reader = BufReader::new(file);
+        let versioned: VersionedRegistry = serde_json::from_reader(reader).map_err(|err| {
+            error!("Failed to deserialize registry: {err:?}");
+            ApiError::ServerError
+        })?;
+        versioned.registry
+    };
 
-    let matching_records = Index::build(pool.as_ref(), &query.entity_type, &query.schema)
+    let response = Index::build(pool.as_ref(), &request.entity_type, &registry.search_config)
         .await?
-        .search_top_records(&query.raw_query, limit)?;
-    Ok(Json(SearchResponse { matching_records }))
+        .search(request.query, request.pagination)?;
+    Ok(Json(response))
 }
 
 pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {

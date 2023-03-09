@@ -5,19 +5,20 @@ use futures_util::TryStreamExt;
 use serde_json::Value;
 use sqlx::SqlitePool;
 
-use tantivy::collector::TopDocs;
-use tantivy::directory::RamDirectory;
-use tantivy::query::{QueryParser, QueryParserError};
-use tantivy::schema::{Field, Schema, INDEXED, STORED, STRING, TEXT};
-use tantivy::store::Compressor;
-use tantivy::{DocAddress, Document, IndexSettings, Score, TantivyError};
+use tantivy::query::QueryParserError;
+use tantivy::schema::Field;
 
-use crate::bridge::types::SearchScalar;
+use tantivy::{Document, TantivyError};
 
+use super::api_counterfeit::search::{
+    self, PaginatedHits, Pagination, Query, TantivyQueryBuilder, TopDocsPaginatedSearcher,
+};
 use super::errors::ApiError;
-use super::types::{RecordDocument, SearchField, SearchSchema};
+use super::types::RecordDocument;
 
 const DATE_FORMAT: &str = "%Y-%m-%d";
+const DOCUMENT_FIELD_CREATED_AT: &str = "__created_at";
+const DOCUMENT_FIELD_UPDATED_AT: &str = "__updated_at";
 
 impl From<TantivyError> for ApiError {
     fn from(error: TantivyError) -> Self {
@@ -33,85 +34,57 @@ impl From<QueryParserError> for ApiError {
     }
 }
 
-pub struct Index {
+pub struct Index<'a> {
     inner: tantivy::Index,
-    default_fields: Vec<Field>,
+    schema: &'a search::Schema,
     id_field: Field,
 }
 
-impl Index {
-    pub fn search_top_records(&self, query: &str, limit: usize) -> Result<Vec<String>, ApiError> {
-        let searcher = self.inner.reader()?.searcher();
-        let query_parser = QueryParser::for_index(&self.inner, self.default_fields.clone());
-        let tantivy_query = query_parser.parse_query(query)?;
-
-        let top_docs: Vec<(Score, DocAddress)> = searcher.search(&tantivy_query, &TopDocs::with_limit(limit))?;
-
-        let mut matching_records = vec![];
-        for (_score, doc_address) in top_docs {
-            // Retrieve the actual content of documents given its `doc_address`.
-            let retrieved_doc = searcher.doc(doc_address)?;
-            matching_records.push(
-                String::from_utf8(
-                    retrieved_doc
-                        .get_first(self.id_field)
-                        .and_then(tantivy::schema::Value::as_bytes)
-                        .expect("Id is always present")
-                        .to_vec(),
-                )
-                .expect("Id is a valid string"),
-            );
-        }
-
-        trace!(
-            "Found {} top documents:\n{:?}",
-            matching_records.len(),
-            matching_records
-        );
-        Ok(matching_records)
+impl<'a> Index<'a> {
+    // needless_pass_by_value: Complains about pagination argument which has no other purpose anyway
+    // cast_possible_truncation: Complains about u64 -> usize, which shouldn't matter for anything sensible.
+    #[allow(clippy::needless_pass_by_value, clippy::cast_possible_truncation)]
+    pub fn search(&self, query: Query, pagination: Pagination) -> Result<PaginatedHits<String>, ApiError> {
+        trace!("Executing query: {query:?}");
+        let query = TantivyQueryBuilder::new(&self.inner, self.schema).build(query)?;
+        let searcher = TopDocsPaginatedSearcher {
+            searcher: self.inner.reader()?.searcher(),
+            query,
+            id_field: self.id_field,
+            pagination_limit: 1000,
+        };
+        let hits: PaginatedHits<Vec<u8>> = match pagination {
+            Pagination::Forward { first, after: None } => searcher.search_forward(first as usize)?,
+            Pagination::Forward {
+                first,
+                after: Some(after),
+            } => searcher.search_forward_after(first as usize, &after.try_into()?)?,
+            Pagination::Backward { last, before } => {
+                searcher.search_backward_before(last as usize, &before.try_into()?)?
+            }
+        };
+        Ok(hits.map_id(|id| String::from_utf8(id).unwrap()))
     }
 
-    pub async fn build(pool: &SqlitePool, entity_type: &str, search_schema: &SearchSchema) -> Result<Index, ApiError> {
-        trace!("Building index for {entity_type} and schema:\n{search_schema:?}");
+    pub async fn build(
+        pool: &SqlitePool,
+        entity_type: &str,
+        config: &'a search::Config,
+    ) -> Result<Index<'a>, ApiError> {
+        let schema = &config
+            .indices
+            .get(entity_type)
+            .ok_or_else(|| {
+                error!("Unknown index: {entity_type}");
+                ApiError::ServerError
+            })?
+            .schema;
 
-        let mut schema_builder = Schema::builder();
-        let id_field = schema_builder.add_bytes_field("id", STORED);
-        let (fields, default_fields) = {
-            let mut all = vec![];
-            let mut defaults = vec![];
+        trace!("Building index for {entity_type} and schema:\n{schema:?}");
+        let (index, fields) = search::open_index(schema)?;
+        let id_field = index.schema().get_field(search::ID_FIELD).unwrap();
 
-            for search_field in &search_schema.fields {
-                use SearchScalar::{
-                    Boolean, Date, DateTime, Email, Float, IPAddress, Int, PhoneNumber, String, Timestamp, URL,
-                };
-                let field = match search_field.scalar {
-                    URL | Email | PhoneNumber => schema_builder.add_text_field(&search_field.name, STRING),
-                    String => schema_builder.add_text_field(&search_field.name, TEXT),
-                    Date | DateTime | Timestamp => schema_builder.add_date_field(&search_field.name, INDEXED),
-                    Int => schema_builder.add_i64_field(&search_field.name, INDEXED),
-                    Float => schema_builder.add_f64_field(&search_field.name, INDEXED),
-                    Boolean => schema_builder.add_bool_field(&search_field.name, INDEXED),
-                    IPAddress => schema_builder.add_ip_addr_field(&search_field.name, INDEXED),
-                };
-                match search_field.scalar {
-                    String | URL | Email | PhoneNumber => defaults.push(field),
-                    _ => (),
-                };
-                all.push((search_field, field));
-            }
-            (all, defaults)
-        };
-        let schema = schema_builder.build();
-        let builder = tantivy::Index::builder()
-            .schema(schema.clone())
-            .settings(IndexSettings {
-                docstore_compression: Compressor::None,
-                ..Default::default()
-            });
-
-        let index = builder.open_or_create(RamDirectory::create())?;
-        let mut index_writer = index.writer_with_num_threads(1, 20_000_000)?;
-
+        let mut writer = index.writer_with_num_threads(1, 20_000_000)?;
         let mut fut = sqlx::query_as(
             r#"
         SELECT pk AS id, document
@@ -126,23 +99,20 @@ impl Index {
             record_count += 1;
             let mut doc = Document::default();
             doc.add_bytes(id_field, record.id.as_bytes());
-            for (search_field, field) in &fields {
-                add_field(&mut doc, *field, search_field, &record).map_err(|err| {
-                    error!(
-                        "{:?} for record '{}' on field '{}'",
-                        err, &record.id, &search_field.name
-                    );
+            for field in &fields {
+                add_field(&mut doc, field, &record).map_err(|err| {
+                    error!("{:?} for record '{}' on field '{}'", err, &record.id, &field.name);
                     ApiError::ServerError
                 })?;
             }
-            index_writer.add_document(doc)?;
+            writer.add_document(doc)?;
         }
-        index_writer.commit()?;
+        writer.commit()?;
         trace!("Indexed {record_count} documents.");
 
         Ok(Index {
             inner: index,
-            default_fields,
+            schema,
             id_field,
         })
     }
@@ -150,31 +120,49 @@ impl Index {
 
 fn add_field(
     doc: &mut Document,
-    field: Field,
-    SearchField { name, scalar }: &SearchField,
+    search::IndexedField {
+        name,
+        doc_key,
+        tokenized_doc_key,
+        ty,
+    }: &search::IndexedField,
     RecordDocument { document, .. }: &RecordDocument,
 ) -> Result<(), FieldError> {
-    if let Some(value) = document.get(name) {
-        use SearchScalar::{
+    let document_field_name = match name.as_str() {
+        "createdAt" => DOCUMENT_FIELD_CREATED_AT,
+        "updatedAt" => DOCUMENT_FIELD_UPDATED_AT,
+        name => name,
+    };
+    if let Some(value) = document.get(document_field_name) {
+        use search::FieldType::{
             Boolean, Date, DateTime, Email, Float, IPAddress, Int, PhoneNumber, String, Timestamp, URL,
         };
-        match scalar {
-            URL | Email | PhoneNumber | String => {
+        let field = *doc_key;
+        match ty {
+            URL { .. } | Email { .. } | String { .. } => {
+                let tokenized_doc_key = tokenized_doc_key.unwrap();
+                for value in DynamoItemExt::flatten(value) {
+                    let value = DynamoItemExt::to_str(value)?;
+                    doc.add_text(field, value);
+                    doc.add_text(tokenized_doc_key, value);
+                }
+            }
+            PhoneNumber { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_text(field, DynamoItemExt::to_str(value)?);
                 }
             }
-            Int => {
+            Int { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_i64(field, DynamoItemExt::to_i64(value)?);
                 }
             }
-            Float => {
+            Float { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_f64(field, DynamoItemExt::to_f64(value)?);
                 }
             }
-            DateTime => {
+            DateTime { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_date(
                         field,
@@ -182,7 +170,7 @@ fn add_field(
                     );
                 }
             }
-            Date => {
+            Date { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     let value = Utc.from_utc_datetime(
                         &DynamoItemExt::to_date(value)?.and_time(NaiveTime::from_hms_opt(0, 0, 0).expect("Valid time")),
@@ -193,7 +181,7 @@ fn add_field(
                     );
                 }
             }
-            Timestamp => {
+            Timestamp { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_date(
                         field,
@@ -203,12 +191,12 @@ fn add_field(
                     );
                 }
             }
-            Boolean => {
+            Boolean { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_bool(field, DynamoItemExt::to_bool(value)?);
                 }
             }
-            IPAddress => {
+            IPAddress { .. } => {
                 for value in DynamoItemExt::flatten(value) {
                     doc.add_ip_addr(field, DynamoItemExt::to_ipaddr(value)?);
                 }
