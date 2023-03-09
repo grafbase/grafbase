@@ -41,7 +41,7 @@ const EVENT_BUS_BOUND: usize = 5;
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
+pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
     let environment = Environment::get();
@@ -66,10 +66,10 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
 
                      tokio::select! {
                         result = start_watcher(environment.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
-                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone()) => { result }
+                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
                 } else {
-                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus).await?)
+                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, tracing).await?)
                 }
             })
     });
@@ -83,11 +83,12 @@ async fn server_loop(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    tracing: bool,
 ) -> Result<(), ServerError> {
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone()) => {
+            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), tracing) => {
                 result?;
             }
             _ = wait_for_event(receiver, Event::Reload) => {
@@ -105,6 +106,7 @@ async fn spawn_servers(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_sender = event_bus.clone();
 
@@ -152,8 +154,8 @@ async fn spawn_servers(
             "--text-blob",
             &format!("REGISTRY={registry_path}"),
         ])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
+        .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
