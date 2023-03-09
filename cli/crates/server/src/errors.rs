@@ -6,6 +6,7 @@ use common::traits::ToExitCode;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
+use sqlx::migrate::MigrateError;
 use sqlx::Error as SqlxError;
 use std::io::Error as IoError;
 use std::path::PathBuf;
@@ -97,6 +98,9 @@ pub enum ServerError {
     /// returned if a file watcher could not be initialized
     #[error("Could not initialize a file watcher: {0}")]
     FileWatcherInit(NotifyError),
+
+    #[error("Migration failed: {0}")]
+    MigrateError(#[from] MigrateError),
 }
 
 impl ToExitCode for ServerError {
@@ -119,7 +123,8 @@ impl ToExitCode for ServerError {
             | Self::MiniflareError(_)
             | Self::SpawnedTaskPanic(_)
             | Self::SchemaParserError(_)
-            | Self::CheckNodeVersion => exitcode::SOFTWARE,
+            | Self::CheckNodeVersion
+            | Self::MigrateError(_) => exitcode::SOFTWARE,
             Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }

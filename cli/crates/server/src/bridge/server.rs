@@ -1,7 +1,6 @@
 use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
 use super::search::Index;
 use super::types::{Mutation, Operation, Record, SearchRequest, SearchResponse};
-use crate::bridge::consts::MIGRATION_001;
 use crate::bridge::errors::ApiError;
 use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
@@ -20,6 +19,8 @@ use std::sync::Arc;
 
 use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
+
+static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("src/sql");
 
 async fn query_endpoint(
     State(pool): State<Arc<SqlitePool>>,
@@ -115,10 +116,9 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
     }
 
     let pool = SqlitePoolOptions::new().connect(&db_url).await?;
-
     query(PREPARE).execute(&pool).await?;
-    let _ = query(MIGRATION_001).execute(&pool).await; // Ignore error when `owned_by` column already exists.
-
+    trace!("executing db migrations");
+    MIGRATOR.run(&pool).await?;
     let pool = Arc::new(pool);
 
     let router = Router::new()
