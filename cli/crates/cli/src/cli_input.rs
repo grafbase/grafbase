@@ -7,7 +7,7 @@ use indoc::indoc;
 pub fn build_cli() -> Command {
     cfg_if! {
         if #[cfg(debug_assertions)] {
-            let command_builder = command!().arg(arg!(-t --trace "Activate tracing").action(ArgAction::SetTrue));
+            let command_builder = command!().arg(arg!(-t --trace <level> "Set tracing level").default_value("0").value_parser(value_parser!(u16)));
         } else {
             let command_builder = command!();
         }
@@ -31,7 +31,7 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("completions")
                 .arg(Arg::new("shell").help(indoc! {"
-                        The shell to generate completions for. 
+                        The shell to generate completions for.
                         Supported: bash, fish, zsh, elvish, powershell
                     "}))
                 .arg_required_else_help(true)
