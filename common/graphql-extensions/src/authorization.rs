@@ -37,6 +37,10 @@ impl Extension for AuthExtension {
         info: ResolveInfo<'_>,
         next: NextResolve<'_>,
     ) -> ServerResult<Option<ResponseNodeId>> {
+        lazy_static::lazy_static! {
+            static ref EMPTY_INDEX_MAP: IndexMap<dynaql_value::Name, ConstValue> = IndexMap::new();
+        }
+
         // global_ops and groups_from_token are set early on when authorizing
         // the API request. global_ops is based on the top-level auth directive
         // and may be overriden here on the model and field level.
@@ -71,7 +75,7 @@ impl Extension for AuthExtension {
                                 },
                                 _ => None,
                             })
-                            .expect("input argument must exist");
+                            .unwrap_or(&EMPTY_INDEX_MAP);
 
                         self.check_input(CheckInputOptions {
                             input_fields,

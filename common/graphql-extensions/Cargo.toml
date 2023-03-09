@@ -8,4 +8,5 @@ edition = "2021"
 async-trait = "0.1"
 dynaql = { path = "../../common/dynaql", default-features = false }
 dynaql-value = { path = "../../common/dynaql/value" }
+lazy_static = "1"
 log = { path = "../../common/log", features = ["with-worker"] }
