@@ -49,6 +49,7 @@ fn register_dynaql_enum<T: DynaqlEnum>(registry: &mut Registry) -> BaseType {
                                 description: None,
                                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
                                 visible: None,
+                                value: None,
                             },
                         )
                     })

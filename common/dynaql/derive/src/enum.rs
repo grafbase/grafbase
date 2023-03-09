@@ -66,6 +66,7 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 description: #item_desc,
                 deprecation: #item_deprecation,
                 visible: #visible,
+                value: None
             });
         });
     }

@@ -3,9 +3,9 @@ use petgraph::{
     visit::{Dfs, EdgeFiltered, EdgeRef, Walker},
 };
 
-use crate::output::{Field, FieldType};
+use crate::output::{FieldType, OutputField, OutputFieldKind};
 
-use super::{Edge, Node};
+use super::{Edge, Enum, Node};
 
 #[derive(Clone, Copy, Debug)]
 pub enum OutputType {
@@ -38,14 +38,15 @@ impl OutputType {
         graph.type_name(self.index())
     }
 
-    pub fn fields(self, graph: &super::OpenApiGraph) -> Vec<Field> {
+    pub fn fields(self, graph: &super::OpenApiGraph) -> Vec<OutputField> {
         graph
             .graph
             .edges(self.index())
             .filter_map(|edge| match edge.weight() {
-                super::Edge::HasField { name, wrapping } => Some(Field::new(
+                super::Edge::HasField { name, wrapping } => Some(OutputField::new(
                     name.clone(),
                     FieldType::new(wrapping, graph.type_name(edge.target())?),
+                    OutputFieldKind::from_index(edge.target(), graph),
                 )),
                 _ => None,
             })
@@ -83,6 +84,16 @@ impl OutputType {
                 OutputType::from_index(inner_index, graph)
             }
             _ => None,
+        }
+    }
+}
+
+impl OutputFieldKind {
+    fn from_index(index: NodeIndex, graph: &super::OpenApiGraph) -> OutputFieldKind {
+        if Enum::from_index(index, graph).is_some() {
+            OutputFieldKind::Enum
+        } else {
+            OutputFieldKind::Other
         }
     }
 }

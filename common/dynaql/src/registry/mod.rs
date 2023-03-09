@@ -631,6 +631,11 @@ pub struct MetaEnumValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
+
+    // The value that will be used for this MetaEnumValue when sent to a
+    // non-GraphQL downstream API
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl Eq for MetaEnumValue {}

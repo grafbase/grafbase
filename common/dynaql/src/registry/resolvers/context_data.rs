@@ -1,10 +1,13 @@
 #![allow(deprecated)]
 
+use indexmap::IndexMap;
+
 use super::dynamo_querying::DynamoResolver;
 use super::{ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::Transformer;
 use crate::registry::variables::VariableResolveDefinition;
+use crate::registry::{MetaEnumValue, MetaType};
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
 use std::hash::Hash;
 use std::sync::Arc;
@@ -63,6 +66,8 @@ pub enum ContextDataResolver {
     },
     /// This resolver get the PaginationData
     PaginationData,
+    /// Resolves the correct values of a remote enum using the given enum name
+    RemoteEnum,
 }
 
 #[async_trait::async_trait]
@@ -81,6 +86,19 @@ impl ResolverTrait for ContextDataResolver {
                     .cloned()
                     .unwrap_or(serde_json::Value::Null),
             ))),
+            ContextDataResolver::RemoteEnum => {
+                let enum_values = ctx
+                    .current_enum_values()
+                    .ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
+
+                let resolved_value = last_resolver_value
+                    .ok_or_else(|| Error::new("Internal error resolving remote enum"))?;
+
+                Ok(ResolvedValue::new(Arc::new(resolve_enum_value(
+                    &resolved_value.data_resolved,
+                    enum_values,
+                )?)))
+            }
             #[allow(deprecated)]
             ContextDataResolver::Key { key } => {
                 let store = ctx
@@ -207,4 +225,52 @@ impl ResolverTrait for ContextDataResolver {
             }
         }
     }
+}
+
+impl Context<'_> {
+    fn current_enum_values(&self) -> Option<&IndexMap<String, MetaEnumValue>> {
+        match self.resolver_node.as_ref()?.ty? {
+            MetaType::Enum { enum_values, .. } => Some(enum_values),
+            _ => None,
+        }
+    }
+}
+
+/// Resolves an Enum value from a remote server where the actual value of each enum doesn't
+/// match that presented by our API.
+fn resolve_enum_value(
+    remote_value: &serde_json::Value,
+    enum_values: &IndexMap<String, MetaEnumValue>,
+) -> Result<serde_json::Value, Error> {
+    use serde_json::Value;
+
+    match remote_value {
+        Value::String(remote_string) => Ok(Value::String(
+            enum_values
+                .values()
+                .find(|meta_value| meta_value.value.as_ref() == Some(remote_string))
+                .map(|meta_value| meta_value.name.clone())
+                .ok_or_else(|| {
+                    Error::new(format!(
+                        "Expected a valid enum value from the remote API but got {remote_value}"
+                    ))
+                })?,
+        )),
+        Value::Array(array) => Ok(Value::Array(
+            array
+                .iter()
+                .map(|value| resolve_enum_value(value, enum_values))
+                .collect::<Result<Vec<_>, _>>()?,
+        )),
+        Value::Null => Ok(remote_value.clone()),
+        Value::Bool(_) => Err(enum_type_mismatch_error("bool")),
+        Value::Number(_) => Err(enum_type_mismatch_error("number")),
+        Value::Object(_) => Err(enum_type_mismatch_error("object")),
+    }
+}
+
+fn enum_type_mismatch_error(received: &str) -> Error {
+    Error::new(format!(
+        "Received an unexpected type from the remote API.  Expected a string but received {received}"
+    ))
 }

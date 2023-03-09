@@ -122,14 +122,28 @@ impl InputObject {
     }
 }
 
-pub struct Field {
+pub struct OutputField {
     pub api_name: String,
     pub ty: FieldType,
+
+    // The kind of type inside ty
+    pub inner_kind: OutputFieldKind,
 }
 
-impl Field {
-    pub fn new(api_name: String, ty: FieldType) -> Self {
-        Field { api_name, ty }
+pub enum OutputFieldKind {
+    Enum,
+
+    // For now we only really care about enums here
+    Other,
+}
+
+impl OutputField {
+    pub fn new(api_name: String, ty: FieldType, inner_kind: OutputFieldKind) -> Self {
+        OutputField {
+            api_name,
+            ty,
+            inner_kind,
+        }
     }
 
     pub fn graphql_name(&self) -> String {
@@ -139,11 +153,20 @@ impl Field {
     fn to_meta_field(&self) -> MetaField {
         let name = self.graphql_name();
 
+        let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+            key: self.api_name.clone(),
+        });
+
+        if let OutputFieldKind::Enum = &self.inner_kind {
+            resolver_type = ResolverType::Composition(vec![
+                resolver_type,
+                ResolverType::ContextDataResolver(ContextDataResolver::RemoteEnum),
+            ]);
+        }
+
         let resolve = Some(Resolver {
             id: None,
-            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                key: self.api_name.clone(),
-            }),
+            r#type: resolver_type,
         });
 
         MetaField {
@@ -305,14 +328,15 @@ impl Enum {
             enum_values: values
                 .iter()
                 .map(|value| {
-                    // TODO: Need to screaming snake case these somehow
+                    let name = value.to_screaming_snake_case();
                     (
-                        value.clone(),
+                        name.clone(),
                         MetaEnumValue {
-                            name: value.clone(),
+                            name,
                             description: None,
                             deprecation: NoDeprecated,
                             visible: None,
+                            value: Some(value.clone()),
                         },
                     )
                 })

@@ -170,6 +170,7 @@ mod tests {
         parse_spec(&spec, Format::Json, metadata(), &mut registry).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
+        insta::assert_debug_snapshot!(registry);
     }
 
     fn metadata() -> ApiMetadata {
