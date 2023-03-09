@@ -170,16 +170,13 @@ pub enum ComplexityType {
     Fn(ComputeComplexityFn),
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq, Default)]
 pub enum Deprecation {
+    #[default]
     NoDeprecated,
-    Deprecated { reason: Option<String> },
-}
-
-impl Default for Deprecation {
-    fn default() -> Self {
-        Deprecation::NoDeprecated
-    }
+    Deprecated {
+        reason: Option<String>,
+    },
 }
 
 impl Deprecation {

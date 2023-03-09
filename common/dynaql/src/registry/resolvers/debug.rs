@@ -1,4 +1,4 @@
-#![allow(clippy::derive_hash_xor_eq)]
+#![allow(clippy::derived_hash_with_manual_eq)]
 use super::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::{Context, Error};
 use std::sync::Arc;
