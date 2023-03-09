@@ -124,9 +124,9 @@ async fn spawn_servers(
 
     trace!("waiting for bridge ready");
     tokio::select! {
-        _result = wait_for_event(receiver, Event::BridgeReady) => (),
-        result = &mut bridge_handle => result??
-    }
+        _ = wait_for_event(receiver, Event::BridgeReady) => (),
+        result = &mut bridge_handle => {result??; return Ok(());}
+    };
     trace!("bridge ready");
 
     let registry_path = environment
