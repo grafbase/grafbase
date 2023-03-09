@@ -45,11 +45,7 @@ fn main() {
 
 fn try_main() -> Result<(), CliError> {
     let matches = build_cli().get_matches();
-    let tracing = if let Ok(Some(true)) = matches.try_get_one("trace") {
-        true
-    } else {
-        false
-    };
+    let tracing = matches!(matches.try_get_one("trace"), Ok(Some(true)));
     let filter = EnvFilter::builder().parse_lossy(if tracing { TRACE_LOG_FILTER } else { DEFAULT_LOG_FILTER });
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
