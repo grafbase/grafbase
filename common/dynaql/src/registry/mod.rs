@@ -153,6 +153,31 @@ pub struct MetaInputValue {
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub validators: Option<Vec<DynValidator>>,
     pub is_secret: bool,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rename: Option<String>,
+}
+
+impl MetaInputValue {
+    pub fn new(name: impl Into<String>, ty: impl Into<String>) -> MetaInputValue {
+        MetaInputValue {
+            name: name.into(),
+            description: None,
+            ty: ty.into(),
+            default_value: None,
+            visible: None,
+            validators: None,
+            is_secret: false,
+            rename: None,
+        }
+    }
+
+    pub fn with_description(self, description: impl Into<String>) -> MetaInputValue {
+        MetaInputValue {
+            description: Some(description.into()),
+            ..self
+        }
+    }
 }
 
 impl Eq for MetaInputValue {}
@@ -1700,15 +1725,7 @@ impl Registry {
                             let mut args = IndexMap::new();
                             args.insert(
                                 "representations".to_string(),
-                                MetaInputValue {
-                                    name: "representations".to_string(),
-                                    description: None,
-                                    ty: "[_Any!]!".to_string(),
-                                    default_value: None,
-                                    validators: None,
-                                    visible: None,
-                                    is_secret: false,
-                                },
+                                MetaInputValue::new("representations", "[_Any!]!"),
                             );
                             args
                         },

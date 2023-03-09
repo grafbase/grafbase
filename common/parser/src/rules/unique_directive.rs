@@ -131,15 +131,7 @@ impl UniqueDirective {
             &nested_type_name,
         );
 
-        MetaInputValue {
-            name: self.name(),
-            description: Some(nested_type_description),
-            ty: nested_type_name,
-            default_value: None,
-            validators: None,
-            visible: None,
-            is_secret: false,
-        }
+        MetaInputValue::new(self.name(), nested_type_name).with_description(nested_type_description)
     }
 
     /// The description of our nested input type
@@ -206,15 +198,7 @@ impl UniqueDirectiveField {
             ty.push('!');
         }
 
-        MetaInputValue {
-            name: self.name.clone(),
-            description: None,
-            ty,
-            default_value: None,
-            validators: None,
-            visible: None,
-            is_secret: false,
-        }
+        MetaInputValue::new(self.name.clone(), ty)
     }
 }
 

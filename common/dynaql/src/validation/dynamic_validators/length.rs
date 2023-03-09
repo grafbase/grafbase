@@ -110,15 +110,7 @@ fn test_length_validator() {
 
     let doc = parse_query(query).unwrap();
 
-    let meta = MetaInputValue {
-        name: "test".to_string(),
-        description: None,
-        ty: "String".to_string(),
-        default_value: None,
-        validators: None,
-        visible: None,
-        is_secret: false,
-    };
+    let meta = MetaInputValue::new("test", "String");
 
     let mut ctx = VisitorContext::new(&registry, &doc, None);
     let custom_validator = DynValidator::length(Some(0), None);
@@ -167,13 +159,8 @@ fn test_length_validator() {
     // Test nested validation via the visitor
     let custom_validator = DynValidator::length(Some(10), Some(15));
     let meta = MetaInputValue {
-        name: "test".to_string(),
-        description: None,
-        ty: "[String]".to_string(),
-        default_value: None,
         validators: Some(vec![custom_validator]),
-        visible: None,
-        is_secret: false,
+        ..MetaInputValue::new("test", "[String]")
     };
     let mut visitor = VisitorNil;
     let mut ctx = VisitorContext::new(&registry, &doc, None);
@@ -192,13 +179,8 @@ fn test_length_validator() {
     // Test list length validation via the visitor
     let custom_validator = DynValidator::length(None, Some(3));
     let meta = MetaInputValue {
-        name: "test".to_string(),
-        description: None,
-        ty: "[String]".to_string(),
-        default_value: None,
         validators: Some(vec![custom_validator]),
-        visible: None,
-        is_secret: false,
+        ..MetaInputValue::new("test", "[String]")
     };
     let mut visitor = VisitorNil;
     let mut ctx = VisitorContext::new(&registry, &doc, None);

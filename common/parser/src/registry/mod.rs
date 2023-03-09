@@ -83,13 +83,11 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
                     input_fields.insert(
                         name.clone().to_string(),
                         MetaInputValue {
-                            name: name.to_string(),
                             description: field.node.description.clone().map(|x| x.node),
-                            ty: to_input_type(&ctx.types, field.node.ty.clone().node).to_string(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
+                            ..MetaInputValue::new(
+                                name.to_string(),
+                                to_input_type(&ctx.types, field.node.ty.clone().node),
+                            )
                         },
                     );
                 }
@@ -170,15 +168,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
             let mut args = IndexMap::new();
             args.insert(
                 "by".to_owned(),
-                MetaInputValue {
-                    name: "by".to_owned(),
-                    description: None,
-                    ty: format!("{type_name}ByInput!"),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                },
+                MetaInputValue::new("by", format!("{type_name}ByInput!")),
             );
             args
         },

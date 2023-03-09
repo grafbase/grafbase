@@ -121,7 +121,10 @@ fn resolve_input_inner(
                                 // TODO: Keep NULL, they might be relevant in the future. Currently
                                 // it's just not ideal with how we manipulate @oneof inputs
                                 if field_value != ConstValue::Null {
-                                    map.insert(Name::new(name), field_value);
+                                    map.insert(
+                                        Name::new(meta_input_value.rename.as_ref().unwrap_or(name)),
+                                        field_value,
+                                    );
                                 }
                             }
                             if *oneof && map.len() != 1 {

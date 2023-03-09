@@ -179,7 +179,7 @@ pub fn generate(
                     if is_key {
                         get_federation_key.push(quote! {
                             if let Some(fields) = <#ty as #crate_name::InputType>::federation_fields() {
-                                key_str.push(format!("{} {}", #name, fields));                                
+                                key_str.push(format!("{} {}", #name, fields));
                             } else {
                                 key_str.push(#name.to_string());
                             }
@@ -383,6 +383,7 @@ pub fn generate(
                             validators: None,
                             visible: #visible,
                             is_secret: #secret,
+                            rename: None
                         });
                     });
 

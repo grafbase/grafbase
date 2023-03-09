@@ -296,71 +296,7 @@ impl Schema {
             http_headers: Default::default(),
         };
 
-        registry.add_directive(MetaDirective {
-            name: "include".to_string(),
-            description: Some("Directs the executor to include this field or fragment only when the `if` argument is true.".to_string()),
-            locations: vec![
-                __DirectiveLocation::FIELD,
-                __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT
-            ],
-            args: {
-                let mut args = IndexMap::new();
-                args.insert("if".to_string(), MetaInputValue {
-                    name: "if".to_string(),
-                    description: Some("Included when true.".to_string()),
-                    ty: "Boolean!".to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                });
-                args
-            },
-            is_repeatable: false,
-            visible: None,
-        });
-
-        registry.add_directive(MetaDirective {
-            name: "skip".to_string(),
-            description: Some("Directs the executor to skip this field or fragment when the `if` argument is true.".to_string()),
-            locations: vec![
-                __DirectiveLocation::FIELD,
-                __DirectiveLocation::FRAGMENT_SPREAD,
-                __DirectiveLocation::INLINE_FRAGMENT
-            ],
-            args: {
-                let mut args = IndexMap::new();
-                args.insert("if".to_string(), MetaInputValue {
-                    name: "if".to_string(),
-                    description: Some("Skipped when true.".to_string()),
-                    ty: "Boolean!".to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                });
-                args
-            },
-            is_repeatable: false,
-            visible: None,
-        });
-
-        registry.add_directive(MetaDirective {
-            name: "oneOf".to_string(),
-            description: Some("Indicates that an input object is a oneOf input object".to_string()),
-            locations: vec![__DirectiveLocation::INPUT_OBJECT],
-            args: IndexMap::new(),
-            is_repeatable: false,
-            visible: Some(|_| true),
-        });
-
-        // register scalars
-        <bool as InputType>::create_type_info(&mut registry);
-        <i32 as InputType>::create_type_info(&mut registry);
-        <f32 as InputType>::create_type_info(&mut registry);
-        <String as InputType>::create_type_info(&mut registry);
-        <ID as InputType>::create_type_info(&mut registry);
+        Schema::add_builtins_to_registry(&mut registry);
 
         QueryRoot::<Query>::create_type_info(&mut registry);
         if !Mutation::is_empty() {
@@ -390,6 +326,13 @@ impl Schema {
             http_headers: Default::default(),
         };
 
+        Schema::add_builtins_to_registry(&mut registry);
+
+        registry.remove_unused_types();
+        registry
+    }
+
+    fn add_builtins_to_registry(registry: &mut Registry) {
         registry.add_directive(MetaDirective {
             name: "include".to_string(),
             description: Some("Directs the executor to include this field or fragment only when the `if` argument is true.".to_string()),
@@ -400,15 +343,11 @@ impl Schema {
             ],
             args: {
                 let mut args = IndexMap::new();
-                args.insert("if".to_string(), MetaInputValue {
-                    name: "if".to_string(),
-                    description: Some("Included when true.".to_string()),
-                    ty: "Boolean!".to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                });
+                args.insert(
+                    "if".to_string(),
+                    MetaInputValue::new("if".to_string(), "Boolean!")
+                        .with_description("Included when true.")
+                );
                 args
             },
             is_repeatable: false,
@@ -425,15 +364,10 @@ impl Schema {
             ],
             args: {
                 let mut args = IndexMap::new();
-                args.insert("if".to_string(), MetaInputValue {
-                    name: "if".to_string(),
-                    description: Some("Skipped when true.".to_string()),
-                    ty: "Boolean!".to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                });
+                args.insert(
+                    "if".to_string(),
+                    MetaInputValue::new( "if", "Boolean!")
+                        .with_description("Skipped when true."));
                 args
             },
             is_repeatable: false,
@@ -461,14 +395,11 @@ impl Schema {
         });
 
         // register scalars
-        <bool as InputType>::create_type_info(&mut registry);
-        <i32 as InputType>::create_type_info(&mut registry);
-        <f32 as InputType>::create_type_info(&mut registry);
-        <String as InputType>::create_type_info(&mut registry);
-        <ID as InputType>::create_type_info(&mut registry);
-
-        registry.remove_unused_types();
-        registry
+        <bool as InputType>::create_type_info(registry);
+        <i32 as InputType>::create_type_info(registry);
+        <f32 as InputType>::create_type_info(registry);
+        <String as InputType>::create_type_info(registry);
+        <ID as InputType>::create_type_info(registry);
     }
 
     /// Create a schema

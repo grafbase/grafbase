@@ -172,6 +172,7 @@ pub fn generate(object_args: &args::InputObject) -> GeneratorResult<TokenStream>
                 validators: None,
                 visible: #visible,
                 is_secret: #secret,
+                rename: None
             });
         });
     }

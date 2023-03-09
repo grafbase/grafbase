@@ -95,15 +95,10 @@ pub fn add_mutation_create<'a>(
         name: MetaNames::mutation_create(model_type_definition),
         description: Some(format!("Create a {type_name}")),
         args: indexmap! {
-            INPUT_ARG_INPUT.to_owned() => MetaInputValue {
-                    name: INPUT_ARG_INPUT.to_owned(),
-                    description: None,
-                    ty: Type::required(input_base_type).to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                }
+            INPUT_ARG_INPUT.to_owned() => MetaInputValue::new(
+                INPUT_ARG_INPUT.to_owned(),
+                Type::required(input_base_type)
+            )
         },
         ty: Type::nullable(payload_base_type).to_string(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
@@ -200,24 +195,14 @@ pub fn add_mutation_update<'a>(
         name: MetaNames::mutation_update(model_type_definition),
         description: Some(format!("Update a {type_name}")),
         args: indexmap! {
-            INPUT_ARG_BY.to_owned() => MetaInputValue {
-                    name: INPUT_ARG_BY.to_owned(),
-                    description: None,
-                    ty: format!("{type_name}ByInput!"),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                },
-            INPUT_ARG_INPUT.to_owned() => MetaInputValue {
-                    name: INPUT_ARG_INPUT.to_owned(),
-                    description: None,
-                    ty: Type::required(input_base_type).to_string(),
-                    default_value: None,
-                    validators: None,
-                    visible: None,
-                    is_secret: false,
-                },
+            INPUT_ARG_BY.to_owned() => MetaInputValue::new(
+                    INPUT_ARG_BY,
+                    format!("{type_name}ByInput!"),
+                ),
+            INPUT_ARG_INPUT.to_owned() => MetaInputValue::new(
+                    INPUT_ARG_INPUT,
+                    Type::required(input_base_type),
+                )
         },
         ty: Type::nullable(payload_base_type).to_string(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
@@ -391,6 +376,7 @@ fn register_mutation_input_type(
                             visible: None,
                             default_value: DefaultDirective::default_value_of(&field.node),
                             is_secret: false,
+                            rename: None,
                         },
                     );
                 };
@@ -433,33 +419,15 @@ fn register_mutation_input_type(
                     )),
                     oneof: true,
                     input_fields: indexmap! {
-                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue {
-                            name: INPUT_FIELD_RELATION_CREATE.to_string(),
-                            description: None,
-                            ty: input_type_name.clone(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
-                        },
-                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue {
-                            name: INPUT_FIELD_RELATION_LINK.to_string(),
-                            description: None,
-                            ty: "ID".to_string(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
-                        },
-                        INPUT_FIELD_RELATION_UNLINK.to_string() => MetaInputValue {
-                            name: INPUT_FIELD_RELATION_UNLINK.to_string(),
-                            description: None,
-                            ty: "ID".to_string(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
-                        },
+                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue::new(
+                            INPUT_FIELD_RELATION_CREATE, input_type_name
+                        ),
+                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue::new(
+                            INPUT_FIELD_RELATION_LINK, "ID"
+                        ),
+                        INPUT_FIELD_RELATION_UNLINK.to_string() => MetaInputValue::new(
+                            INPUT_FIELD_RELATION_UNLINK, "ID"
+                        ),
                     },
                     visible: None,
                     rust_typename: relation_input_type_name.clone(),
@@ -484,24 +452,14 @@ fn register_mutation_input_type(
                     )),
                     oneof: true,
                     input_fields: indexmap! {
-                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue {
-                            name: INPUT_FIELD_RELATION_CREATE.to_string(),
-                            description: None,
-                            ty: input_type_name.clone(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
-                        },
-                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue {
-                            name: INPUT_FIELD_RELATION_LINK.to_string(),
-                            description: None,
-                            ty: "ID".to_string(),
-                            validators: None,
-                            visible: None,
-                            default_value: None,
-                            is_secret: false,
-                        },
+                        INPUT_FIELD_RELATION_CREATE.to_string() => MetaInputValue::new(
+                            INPUT_FIELD_RELATION_CREATE,
+                            input_type_name.clone(),
+                        ),
+                        INPUT_FIELD_RELATION_LINK.to_string() => MetaInputValue::new(
+                            INPUT_FIELD_RELATION_LINK,
+                            "ID",
+                        ),
                     },
                     visible: None,
                     rust_typename: relation_input_type_name.clone(),
@@ -625,39 +583,15 @@ pub fn register_numerical_operations(registry: &mut Registry, numerical_field_ki
             input_fields: IndexMap::from([
                 (
                     INPUT_FIELD_NUM_OP_SET.to_string(),
-                    MetaInputValue {
-                        name: INPUT_FIELD_NUM_OP_SET.to_string(),
-                        description: None,
-                        ty: numerical_field_kind.to_type_name(),
-                        validators: None,
-                        visible: None,
-                        default_value: None,
-                        is_secret: false,
-                    },
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_SET, numerical_field_kind.to_type_name()),
                 ),
                 (
                     INPUT_FIELD_NUM_OP_INCREMENT.to_string(),
-                    MetaInputValue {
-                        name: INPUT_FIELD_NUM_OP_INCREMENT.to_string(),
-                        description: None,
-                        ty: numerical_field_kind.to_type_name(),
-                        validators: None,
-                        visible: None,
-                        default_value: None,
-                        is_secret: false,
-                    },
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_INCREMENT, numerical_field_kind.to_type_name()),
                 ),
                 (
                     INPUT_FIELD_NUM_OP_DECREMENT.to_string(),
-                    MetaInputValue {
-                        name: INPUT_FIELD_NUM_OP_DECREMENT.to_string(),
-                        description: None,
-                        ty: numerical_field_kind.to_type_name(),
-                        validators: None,
-                        visible: None,
-                        default_value: None,
-                        is_secret: false,
-                    },
+                    MetaInputValue::new(INPUT_FIELD_NUM_OP_DECREMENT, numerical_field_kind.to_type_name()),
                 ),
             ]),
             visible: None,

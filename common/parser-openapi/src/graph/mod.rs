@@ -1,6 +1,6 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::borrow::Cow;
 
-use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use openapiv3::StatusCode;
 use petgraph::{
@@ -309,12 +309,6 @@ impl<'a> std::fmt::Display for FieldName<'a> {
 
         write!(f, "{name}")
     }
-}
-
-#[derive(Clone, Debug)]
-pub enum RequestBodyContentType {
-    Json,
-    FormEncoded(HashMap<String, QueryParameterEncodingStyle>),
 }
 
 #[cfg(test)]

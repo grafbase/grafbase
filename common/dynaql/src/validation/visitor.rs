@@ -734,6 +734,7 @@ fn visit_input_value<'a, V: Visitor<'a>>(
                         visible: meta.visible,
                         validators: None,
                         is_secret: meta.is_secret,
+                        rename: None,
                     });
                     for value in values.iter() {
                         visit_input_value(

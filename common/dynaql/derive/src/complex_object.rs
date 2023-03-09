@@ -249,6 +249,7 @@ pub fn generate(
                         default_value: #schema_default,
                         visible: #visible,
                         is_secret: #secret,
+                        rename: None
                     });
                 });
 
