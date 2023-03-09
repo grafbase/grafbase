@@ -1,4 +1,4 @@
-use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
+use super::consts::{DB_FILE, DB_URL_PREFIX};
 use super::search::Index;
 use super::types::{Mutation, Operation, Record, SearchRequest, SearchResponse};
 use crate::bridge::errors::ApiError;
@@ -116,7 +116,6 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
     }
 
     let pool = SqlitePoolOptions::new().connect(&db_url).await?;
-    query(PREPARE).execute(&pool).await?;
     trace!("executing db migrations");
     MIGRATOR.run(&pool).await?;
     let pool = Arc::new(pool);
