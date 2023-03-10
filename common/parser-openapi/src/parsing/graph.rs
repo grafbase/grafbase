@@ -1,7 +1,9 @@
 use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
+use once_cell::sync::Lazy;
 use openapiv3::{ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
+use regex::Regex;
 
 use crate::{
     graph::{ScalarKind, SchemaDetails, WrappingType},
@@ -270,7 +272,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         }
         ReferenceOr::Item(schema) => match &schema.schema_kind {
             SchemaKind::Type(Type::String(ty)) => {
-                if ty.enumeration.is_empty() || !ty.enumeration.iter().all(valid_enum_value) {
+                if ty.enumeration.is_empty() || !ty.enumeration.iter().all(is_valid_enum_value) {
                     ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
                 } else {
                     ctx.add_type_node(
@@ -355,27 +357,13 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
 
 /// OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
-fn valid_enum_value(value: &Option<String>) -> bool {
+fn is_valid_enum_value(value: &Option<String>) -> bool {
     let Some(string) = value else {
         return false;
     };
 
     let screaming_string = string.to_screaming_snake_case();
 
-    if screaming_string.is_empty() {
-        return false;
-    }
-
-    fn is_valid_char(c: char) -> bool {
-        c.is_alphanumeric() || c == '_'
-    }
-
-    let mut chars = screaming_string.chars();
-    let first_char = chars.next().unwrap();
-
-    if first_char.is_numeric() || !is_valid_char(first_char) {
-        return false;
-    }
-
-    chars.all(is_valid_char)
+    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Za-z_][A-Za-z0-9_]*$").unwrap());
+    REGEX.is_match(&screaming_string)
 }

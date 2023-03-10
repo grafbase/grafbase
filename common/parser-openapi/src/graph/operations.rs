@@ -71,7 +71,7 @@ impl Operation {
     }
 
     pub fn http_method(self, graph: &super::OpenApiGraph) -> Option<String> {
-        return Some(self.details(graph)?.http_method.to_string());
+        Some(self.details(graph)?.http_method.to_string())
     }
 
     pub fn url(self, graph: &super::OpenApiGraph) -> Option<String> {
