@@ -1,10 +1,10 @@
-use std::{rc::Rc, str::FromStr};
+use std::rc::Rc;
 
-use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
-use crate::{graph::RequestBodyContentType, Error};
+use crate::Error;
 
 use super::components::{Components, Ref};
 
@@ -12,7 +12,7 @@ use super::components::{Components, Ref};
 #[derive(Clone)]
 pub struct OperationDetails {
     pub path: String,
-    pub verb: Verb,
+    pub http_method: HttpMethod,
     pub operation_id: Option<String>,
     pub request_bodies: Rc<Vec<RequestBody>>,
     pub responses: Vec<Response>,
@@ -24,7 +24,7 @@ impl std::fmt::Debug for OperationDetails {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("OperationDetails")
             .field("path", &self.path)
-            .field("verb", &self.verb)
+            .field("http_method", &self.http_method)
             .field("operation_id", &self.operation_id)
             .finish_non_exhaustive()
     }
@@ -33,7 +33,7 @@ impl std::fmt::Debug for OperationDetails {
 impl OperationDetails {
     pub fn new(
         path: String,
-        verb: Verb,
+        http_method: HttpMethod,
         operation: &openapiv3::Operation,
         components: &Components,
     ) -> Result<Self, Error> {
@@ -127,7 +127,7 @@ impl OperationDetails {
 
         Ok(OperationDetails {
             path,
-            verb,
+            http_method,
             operation_id: operation.operation_id.clone(),
             request_bodies,
             responses,
@@ -137,27 +137,13 @@ impl OperationDetails {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Verb {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "lowercase")]
+pub enum HttpMethod {
     Get,
     Post,
     Put,
     Delete,
-    Unknown,
-}
-
-impl FromStr for Verb {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.to_lowercase().as_ref() {
-            "get" => Verb::Get,
-            "post" => Verb::Post,
-            "put" => Verb::Put,
-            "delete" => Verb::Delete,
-            _ => Verb::Unknown,
-        })
-    }
 }
 
 #[derive(Clone, Debug)]

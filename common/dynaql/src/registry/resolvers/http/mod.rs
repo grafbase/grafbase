@@ -1,4 +1,6 @@
-use std::{borrow::Borrow, sync::Arc};
+use std::{borrow::Borrow, collections::BTreeMap, sync::Arc};
+
+use surf::Url;
 
 use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
@@ -13,6 +15,7 @@ pub struct HttpResolver {
     pub api_name: String,
     pub path_parameters: Vec<PathParameter>,
     pub query_parameters: Vec<QueryParameter>,
+    pub request_body: Option<RequestBody>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
@@ -28,11 +31,23 @@ pub struct QueryParameter {
     pub encoding_style: QueryParameterEncodingStyle,
 }
 
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub struct RequestBody {
+    pub variable_resolve_definition: VariableResolveDefinition,
+    pub content_type: RequestBodyContentType,
+}
+
 #[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum QueryParameterEncodingStyle {
     Form,
     FormExploded,
     DeepObject,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub enum RequestBodyContentType {
+    Json,
+    FormEncoded(BTreeMap<String, QueryParameterEncodingStyle>),
 }
 
 impl HttpResolver {
@@ -52,10 +67,27 @@ impl HttpResolver {
             .unwrap_or(&[]);
 
         let url = self.build_url(ctx, last_resolver_value)?;
-        let mut request = surf::get(&url);
+        let mut request = dbg!(surf::RequestBuilder::new(
+            self.method.parse()?,
+            Url::parse(&url)?
+        ));
 
         for (name, value) in headers {
             request = request.header(name.as_str(), value);
+        }
+
+        if let Some(request_body) = &self.request_body {
+            let variable = request_body
+                .variable_resolve_definition
+                .resolve::<serde_json::Value>(ctx, last_resolver_value)?;
+
+            match &request_body.content_type {
+                RequestBodyContentType::Json => request = request.body_json(dbg!(&variable))?,
+                RequestBodyContentType::FormEncoded(_encoding_styles) => {
+                    // Work for a future PR
+                    todo!("Do this somehow");
+                }
+            }
         }
 
         let mut response = request.await.map_err(|e| Error::new(e.to_string()))?;
@@ -65,7 +97,7 @@ impl HttpResolver {
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
-        Ok(ResolvedValue::new(Arc::new(data)))
+        Ok(ResolvedValue::new(Arc::new(dbg!(data))))
     }
 
     fn build_url(

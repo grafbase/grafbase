@@ -109,6 +109,12 @@ impl Display for Type {
     }
 }
 
+impl From<Type> for String {
+    fn from(val: Type) -> Self {
+        format!("{val}")
+    }
+}
+
 /// A GraphQL base type, for example `String` or `[String!]`. This does not include whether the
 /// type is nullable; for that see [Type](struct.Type.html).
 #[derive(Debug, PartialEq, Eq, Clone)]

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use petgraph::graph::EdgeIndex;
 
 use super::{input_value::InputValue, Edge, FieldName};
@@ -65,6 +65,15 @@ impl RequestBody {
         match graph.graph.edge_weight(self.0)? {
             Edge::HasRequestType { wrapping, .. } => InputValue::from_index(dest_index, wrapping.clone(), graph),
             _ => None,
+        }
+    }
+
+    pub fn content_type(self, graph: &super::OpenApiGraph) -> RequestBodyContentType {
+        match graph.graph.edge_weight(self.0).unwrap() {
+            Edge::HasRequestType { content_type, .. } => content_type.clone(),
+            _ => {
+                unreachable!()
+            }
         }
     }
 }

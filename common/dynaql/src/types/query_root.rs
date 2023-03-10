@@ -155,15 +155,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
                             let mut args = IndexMap::new();
                             args.insert(
                                 "name".to_string(),
-                                registry::MetaInputValue {
-                                    name: "name".to_string(),
-                                    description: None,
-                                    ty: "String!".to_string(),
-                                    default_value: None,
-                                    validators: None,
-                                    visible: None,
-                                    is_secret: false,
-                                },
+                                registry::MetaInputValue::new("name", "String!"),
                             );
                             args
                         },

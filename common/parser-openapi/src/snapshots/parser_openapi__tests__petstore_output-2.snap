@@ -196,6 +196,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "id": MetaInputValue {
                     name: "id",
@@ -203,6 +204,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
             },
             rust_typename: "CategoryInput",
@@ -260,6 +262,7 @@ Registry {
                             ty: "PetInput!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "Pet!",
@@ -279,11 +282,19 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "put",
                                     url: "http://example.com/pet",
                                     api_name: "example",
                                     path_parameters: [],
                                     query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: InputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
                                 },
                             ),
                         },
@@ -302,6 +313,7 @@ Registry {
                             ty: "PetInput!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "Pet!",
@@ -321,11 +333,19 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "post",
                                     url: "http://example.com/pet",
                                     api_name: "example",
                                     path_parameters: [],
                                     query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: InputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
                                 },
                             ),
                         },
@@ -344,6 +364,7 @@ Registry {
                             ty: "Int!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                         "additionalMetadata": MetaInputValue {
                             name: "additionalMetadata",
@@ -351,6 +372,7 @@ Registry {
                             ty: "String!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "ApiResponse!",
@@ -370,7 +392,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "post",
                                     url: "http://example.com/pet/{petId}/uploadImage",
                                     api_name: "example",
                                     path_parameters: [
@@ -390,6 +412,7 @@ Registry {
                                             encoding_style: FormExploded,
                                         },
                                     ],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -408,6 +431,7 @@ Registry {
                             ty: "OrderInput!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "Order!",
@@ -427,11 +451,19 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "post",
                                     url: "http://example.com/store/order",
                                     api_name: "example",
                                     path_parameters: [],
                                     query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: InputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
                                 },
                             ),
                         },
@@ -450,6 +482,7 @@ Registry {
                             ty: "[UserInput!]!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "User!",
@@ -469,11 +502,19 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "post",
                                     url: "http://example.com/user/createWithList",
                                     api_name: "example",
                                     path_parameters: [],
                                     query_parameters: [],
+                                    request_body: Some(
+                                        RequestBody {
+                                            variable_resolve_definition: InputTypeName(
+                                                "input",
+                                            ),
+                                            content_type: Json,
+                                        },
+                                    ),
                                 },
                             ),
                         },
@@ -707,6 +748,7 @@ Registry {
                     ty: "Boolean!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "status": MetaInputValue {
                     name: "status",
@@ -714,6 +756,7 @@ Registry {
                     ty: "OrderStatus!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "shipDate": MetaInputValue {
                     name: "shipDate",
@@ -721,6 +764,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "quantity": MetaInputValue {
                     name: "quantity",
@@ -728,6 +772,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "petId": MetaInputValue {
                     name: "petId",
@@ -735,6 +780,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "id": MetaInputValue {
                     name: "id",
@@ -742,6 +788,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
             },
             rust_typename: "OrderInput",
@@ -991,6 +1038,7 @@ Registry {
                     ty: "PetStatus!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "tags": MetaInputValue {
                     name: "tags",
@@ -998,6 +1046,7 @@ Registry {
                     ty: "[TagInput!]!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "photoUrls": MetaInputValue {
                     name: "photoUrls",
@@ -1005,6 +1054,7 @@ Registry {
                     ty: "[String!]!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "category": MetaInputValue {
                     name: "category",
@@ -1012,6 +1062,7 @@ Registry {
                     ty: "CategoryInput!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "name": MetaInputValue {
                     name: "name",
@@ -1019,6 +1070,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "id": MetaInputValue {
                     name: "id",
@@ -1026,6 +1078,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
             },
             rust_typename: "PetInput",
@@ -1076,6 +1129,7 @@ Registry {
                             ty: "FindPetsByStatus!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "[Pet!]!",
@@ -1095,7 +1149,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/pet/findByStatus",
                                     api_name: "example",
                                     path_parameters: [],
@@ -1108,6 +1162,7 @@ Registry {
                                             encoding_style: FormExploded,
                                         },
                                     ],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1126,6 +1181,7 @@ Registry {
                             ty: "[String!]!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "[Pet!]!",
@@ -1145,7 +1201,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/pet/findByTags",
                                     api_name: "example",
                                     path_parameters: [],
@@ -1158,6 +1214,7 @@ Registry {
                                             encoding_style: FormExploded,
                                         },
                                     ],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1176,6 +1233,7 @@ Registry {
                             ty: "Int!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "Pet!",
@@ -1195,7 +1253,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/pet/{petId}",
                                     api_name: "example",
                                     path_parameters: [
@@ -1207,6 +1265,7 @@ Registry {
                                         },
                                     ],
                                     query_parameters: [],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1236,11 +1295,12 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/store/inventory",
                                     api_name: "example",
                                     path_parameters: [],
                                     query_parameters: [],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1259,6 +1319,7 @@ Registry {
                             ty: "Int!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "Order!",
@@ -1278,7 +1339,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/store/order/{orderId}",
                                     api_name: "example",
                                     path_parameters: [
@@ -1290,6 +1351,7 @@ Registry {
                                         },
                                     ],
                                     query_parameters: [],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1308,6 +1370,7 @@ Registry {
                             ty: "String!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                         "username": MetaInputValue {
                             name: "username",
@@ -1315,6 +1378,7 @@ Registry {
                             ty: "String!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "String!",
@@ -1334,7 +1398,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/user/login",
                                     api_name: "example",
                                     path_parameters: [],
@@ -1354,6 +1418,7 @@ Registry {
                                             encoding_style: FormExploded,
                                         },
                                     ],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1372,6 +1437,7 @@ Registry {
                             ty: "String!",
                             default_value: None,
                             is_secret: false,
+                            rename: None,
                         },
                     },
                     ty: "User!",
@@ -1391,7 +1457,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "GET",
+                                    method: "get",
                                     url: "http://example.com/user/{username}",
                                     api_name: "example",
                                     path_parameters: [
@@ -1403,6 +1469,7 @@ Registry {
                                         },
                                     ],
                                     query_parameters: [],
+                                    request_body: None,
                                 },
                             ),
                         },
@@ -1509,6 +1576,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "id": MetaInputValue {
                     name: "id",
@@ -1516,6 +1584,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
             },
             rust_typename: "TagInput",
@@ -1787,6 +1856,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "phone": MetaInputValue {
                     name: "phone",
@@ -1794,6 +1864,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "password": MetaInputValue {
                     name: "password",
@@ -1801,6 +1872,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "email": MetaInputValue {
                     name: "email",
@@ -1808,6 +1880,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "lastName": MetaInputValue {
                     name: "lastName",
@@ -1815,6 +1888,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "firstName": MetaInputValue {
                     name: "firstName",
@@ -1822,6 +1896,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "username": MetaInputValue {
                     name: "username",
@@ -1829,6 +1904,7 @@ Registry {
                     ty: "String!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
                 "id": MetaInputValue {
                     name: "id",
@@ -1836,6 +1912,7 @@ Registry {
                     ty: "Int!",
                     default_value: None,
                     is_secret: false,
+                    rename: None,
                 },
             },
             rust_typename: "UserInput",

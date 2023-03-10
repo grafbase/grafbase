@@ -226,7 +226,7 @@ impl Operation {
             resolve: Some(Resolver {
                 id: None,
                 r#type: ResolverType::Http(HttpResolver {
-                    method: "GET".to_string(),
+                    method: self.http_method(graph)?,
                     url: self.url(graph)?,
                     api_name: graph.metadata.name.clone(),
                     path_parameters: path_parameters
@@ -250,6 +250,14 @@ impl Operation {
                             }
                         })
                         .collect(),
+                    request_body: self.request_body(graph).map(|request_body| {
+                        dynaql::registry::resolvers::http::RequestBody {
+                            variable_resolve_definition: VariableResolveDefinition::InputTypeName(
+                                request_body.argument_name().to_owned(),
+                            ),
+                            content_type: request_body.content_type(graph),
+                        }
+                    }),
                 }),
             }),
             args,
@@ -261,60 +269,40 @@ impl Operation {
 impl PathParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
-        Some(MetaInputValue {
-            name: self.name(graph)?.to_string(),
-            description: None,
-            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-            default_value: None,
-            visible: None,
-            validators: None,
-            is_secret: false,
-        })
+        Some(MetaInputValue::new(
+            self.name(graph)?.to_string(),
+            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+        ))
     }
 }
 
 impl QueryParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
-        Some(MetaInputValue {
-            name: self.name(graph)?.to_owned(),
-            description: None,
-            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-            default_value: None,
-            visible: None,
-            validators: None,
-            is_secret: false,
-        })
+        Some(MetaInputValue::new(
+            self.name(graph)?,
+            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+        ))
     }
 }
 
 impl RequestBody {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
-        Some(MetaInputValue {
-            name: self.argument_name().to_owned(),
-            description: None,
-            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-            default_value: None,
-            visible: None,
-            validators: None,
-            is_secret: false,
-        })
+        Some(MetaInputValue::new(
+            self.argument_name().to_owned(),
+            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+        ))
     }
 }
 
 impl InputField<'_> {
     fn to_meta_input_value(&self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = &self.value_type;
-        Some(MetaInputValue {
-            name: self.name.to_string(),
-            description: None,
-            ty: FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-            default_value: None,
-            visible: None,
-            validators: None,
-            is_secret: false,
-        })
+        Some(MetaInputValue::new(
+            self.name.to_string(),
+            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+        ))
     }
 }
 

@@ -412,63 +412,23 @@ pub fn generate_pagination_args(
     IndexMap::from([
         (
             PAGINATION_INPUT_ARG_AFTER.to_string(),
-            MetaInputValue {
-                name: PAGINATION_INPUT_ARG_AFTER.to_string(),
-                description: None,
-                ty: "String".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
+            MetaInputValue::new(PAGINATION_INPUT_ARG_AFTER, "String"),
         ),
         (
             PAGINATION_INPUT_ARG_BEFORE.to_string(),
-            MetaInputValue {
-                name: PAGINATION_INPUT_ARG_BEFORE.to_string(),
-                description: None,
-                ty: "String".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
+            MetaInputValue::new(PAGINATION_INPUT_ARG_BEFORE, "String"),
         ),
         (
             PAGINATION_INPUT_ARG_FIRST.to_string(),
-            MetaInputValue {
-                name: PAGINATION_INPUT_ARG_FIRST.to_string(),
-                description: None,
-                ty: "Int".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
+            MetaInputValue::new(PAGINATION_INPUT_ARG_FIRST, "Int"),
         ),
         (
             PAGINATION_INPUT_ARG_LAST.to_string(),
-            MetaInputValue {
-                name: PAGINATION_INPUT_ARG_LAST.to_string(),
-                description: None,
-                ty: "Int".to_string(),
-                default_value: None,
-                validators: None,
-                visible: None,
-                is_secret: false,
-            },
+            MetaInputValue::new(PAGINATION_INPUT_ARG_LAST, "Int"),
         ),
         (
             PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
-            MetaInputValue {
-                name: PAGINATION_INPUT_ARG_ORDER_BY.to_string(),
-                description: None,
-                ty: Type::nullable(orderby_input_type).to_string(),
-                default_value: None,
-                visible: None,
-                validators: None,
-                is_secret: false,
-            },
+            MetaInputValue::new(PAGINATION_INPUT_ARG_ORDER_BY, Type::nullable(orderby_input_type)),
         ),
     ])
 }
@@ -483,15 +443,7 @@ fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeD
                 description: None,
                 input_fields: IndexMap::from([(
                     RESERVED_FIELD_CREATED_AT.to_string(),
-                    MetaInputValue {
-                        name: RESERVED_FIELD_CREATED_AT.to_string(),
-                        description: None,
-                        ty: Type::nullable(order_by_direction_type).to_string(),
-                        default_value: None,
-                        visible: None,
-                        validators: None,
-                        is_secret: false,
-                    },
+                    MetaInputValue::new(RESERVED_FIELD_CREATED_AT, Type::nullable(order_by_direction_type)),
                 )]),
                 oneof: true,
                 visible: None,

@@ -229,6 +229,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                     validators: None,
                     visible: #visible,
                     is_secret: #secret,
+                    rename: None
                 });
             });
         }

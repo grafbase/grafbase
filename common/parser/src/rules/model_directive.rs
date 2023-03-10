@@ -407,15 +407,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                         let mut input_fields = IndexMap::new();
                         input_fields.insert(
                             RESERVED_FIELD_ID.to_string(),
-                            MetaInputValue {
-                                name: RESERVED_FIELD_ID.to_string(),
-                                description: None,
-                                ty: "ID".to_string(),
-                                default_value: None,
-                                validators: None,
-                                visible: None,
-                                is_secret: false,
-                            },
+                            MetaInputValue::new(RESERVED_FIELD_ID, "ID".to_string()),
                         );
                         for unique_directive in &unique_directives {
                             input_fields.insert(unique_directive.name(), unique_directive.lookup_by_field(registry));
@@ -436,15 +428,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                     let mut args = IndexMap::new();
                     args.insert(
                         "by".to_owned(),
-                        MetaInputValue {
-                            name: "by".to_owned(),
-                            ty: format!("{one_of_type_name}!"),
-                            description: Some(format!("The field and value by which to query the {type_name}")),
-                            validators: None,
-                            visible: None,
-                            is_secret: false,
-                            default_value: None,
-                        },
+                        MetaInputValue::new("by", format!("{one_of_type_name}!"))
+                            .with_description(format!("The field and value by which to query the {type_name}")),
                     );
                     args
                 },

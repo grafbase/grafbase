@@ -89,6 +89,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
                     validators: None,
                     visible: #visible,
                     is_secret: #secret,
+                    rename: None
                 });
             });
 

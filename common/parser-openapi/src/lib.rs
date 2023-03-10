@@ -91,8 +91,8 @@ pub enum Error {
     TopLevelRequestBodyWasReference(String),
     #[error("The parameter component {0} was a reference, which we don't currently support.")]
     TopLevelParameterWasReference(String),
-    #[error("Couldn't parse HTTP verb: {0}")]
-    UnknownHttpVerb(String),
+    #[error("Couldn't parse HTTP method: {0}")]
+    UnknownHttpMethod(String),
     #[error("The operation {0} didn't have a response schema")]
     OperationMissingResponseSchema(String),
     #[error("The operation {0} didn't have a response schema")]

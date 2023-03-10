@@ -1,9 +1,9 @@
-use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
+use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
 use openapiv3::{ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
 
 use crate::{
-    graph::{RequestBodyContentType, ScalarKind, SchemaDetails, WrappingType},
+    graph::{ScalarKind, SchemaDetails, WrappingType},
     parsing::{
         components::{Components, Ref},
         operations::OperationDetails,
@@ -44,13 +44,13 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
             continue;
         };
 
-        for (verb, operation) in item.iter() {
-            let Ok(verb) = verb.parse() else {
-                ctx.errors.push(Error::UnknownHttpVerb(verb.to_string()));
+        for (method, operation) in item.iter() {
+            let Ok(method) = method.parse() else {
+                ctx.errors.push(Error::UnknownHttpMethod(method.to_string()));
                 continue;
             };
 
-            let operation = match OperationDetails::new(path.clone(), verb, operation, &components) {
+            let operation = match OperationDetails::new(path.clone(), method, operation, &components) {
                 Ok(operation) => operation,
                 Err(e) => {
                     ctx.errors.push(e);
@@ -90,7 +90,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
 
             for response in operation.responses {
                 let Some(schema) = &response.schema else {
-                    ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {verb:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingResponseSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
                     continue;
                 };
 
@@ -107,7 +107,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
 
             for request in operation.request_bodies.iter() {
                 let Some(schema) = &request.schema else {
-                    ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {verb:?} {path}"))));
+                    ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {method:?} {path}"))));
                     continue;
                 };
                 extract_types(

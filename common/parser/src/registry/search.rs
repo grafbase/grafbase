@@ -65,27 +65,12 @@ pub fn add_query_search(
         args: IndexMap::from([
             (
                 SEARCH_INPUT_ARG_QUERY.to_string(),
-                MetaInputValue {
-                    name: SEARCH_INPUT_ARG_QUERY.to_string(),
-                    description: Some("Raw search query".to_string()),
-                    ty: "String!".to_string(),
-                    default_value: None,
-                    visible: None,
-                    validators: None,
-                    is_secret: false,
-                },
+                MetaInputValue::new(SEARCH_INPUT_ARG_QUERY, "String!").with_description("Raw search query"),
             ),
             (
                 SEARCH_INPUT_ARG_LIMIT.to_string(),
-                MetaInputValue {
-                    name: SEARCH_INPUT_ARG_LIMIT.to_string(),
-                    description: Some("Maximum number of documents to retrieve (defaults to 10)".to_string()),
-                    ty: "Int!".to_string(),
-                    default_value: Some(10.into()),
-                    visible: None,
-                    validators: None,
-                    is_secret: false,
-                },
+                MetaInputValue::new(SEARCH_INPUT_ARG_LIMIT, "Int!")
+                    .with_description("Maximum number of documents to retrieve (defaults to 10)"),
             ),
         ]),
         ty: format!("[{type_name}!]!"),

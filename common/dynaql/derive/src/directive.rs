@@ -90,6 +90,7 @@ pub fn generate(
                 validators: None,
                 visible: #visible,
                 is_secret: #secret,
+                rename: None
             });
         });
 

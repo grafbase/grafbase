@@ -4,7 +4,7 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 use crate::{
     is_ok,
     output::FieldType,
-    parsing::operations::{OperationDetails, Verb},
+    parsing::operations::{HttpMethod, OperationDetails},
 };
 
 use super::{Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType};
@@ -31,7 +31,7 @@ impl super::OpenApiGraph {
             .filter(|&&idx| {
                 self.graph[idx]
                     .as_operation()
-                    .map(|op| op.verb == Verb::Get)
+                    .map(|op| op.http_method == HttpMethod::Get)
                     .unwrap_or_default()
             })
             .copied()
@@ -45,7 +45,7 @@ impl super::OpenApiGraph {
             .filter(|&&idx| {
                 self.graph[idx]
                     .as_operation()
-                    .map(|op| op.verb != Verb::Get)
+                    .map(|op| op.http_method != HttpMethod::Get)
                     .unwrap_or_default()
             })
             .copied()
@@ -57,7 +57,7 @@ impl super::OpenApiGraph {
 impl Operation {
     fn from_index(index: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
         match &graph.graph[index] {
-            Node::Operation(details) if details.verb == Verb::Get => Some(Operation::Query(index)),
+            Node::Operation(details) if details.http_method == HttpMethod::Get => Some(Operation::Query(index)),
             Node::Operation(_) => Some(Operation::Mutation(index)),
             _ => None,
         }
@@ -67,6 +67,10 @@ impl Operation {
         match self {
             Operation::Query(index) | Operation::Mutation(index) => index,
         }
+    }
+
+    pub fn http_method(self, graph: &super::OpenApiGraph) -> Option<String> {
+        return Some(self.details(graph)?.http_method.to_string());
     }
 
     pub fn url(self, graph: &super::OpenApiGraph) -> Option<String> {

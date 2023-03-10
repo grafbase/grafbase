@@ -58,15 +58,7 @@ impl<'a> Visitor<'a> for OneOfDirective {
                         for field in &input.fields {
                             input_fields.insert(
                                 field.node.name.to_string(),
-                                MetaInputValue {
-                                    name: field.node.name.to_string(),
-                                    description: None,
-                                    ty: field.node.ty.to_string(),
-                                    default_value: None,
-                                    validators: None,
-                                    visible: None,
-                                    is_secret: false
-                                }
+                                MetaInputValue::new(field.node.name.to_string(), field.node.ty.to_string())
                             );
                         }
                         input_fields
