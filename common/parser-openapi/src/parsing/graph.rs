@@ -364,6 +364,6 @@ fn is_valid_enum_value(value: &Option<String>) -> bool {
 
     let screaming_string = string.to_screaming_snake_case();
 
-    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Za-z_][A-Za-z0-9_]*$").unwrap());
+    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
     REGEX.is_match(&screaming_string)
 }
