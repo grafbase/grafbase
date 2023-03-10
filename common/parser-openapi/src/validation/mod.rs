@@ -3,7 +3,7 @@
 use dynaql::registry::resolvers::http::QueryParameterEncodingStyle;
 
 use crate::{
-    graph::{InputValueKind, OpenApiGraph, QueryOperation},
+    graph::{InputValueKind, OpenApiGraph, Operation},
     Error,
 };
 
@@ -21,7 +21,7 @@ pub fn validate(graph: &OpenApiGraph) -> Result<(), Vec<Error>> {
     Ok(())
 }
 
-fn validate_operation(operation: QueryOperation, graph: &OpenApiGraph) -> Result<(), Vec<Error>> {
+fn validate_operation(operation: Operation, graph: &OpenApiGraph) -> Result<(), Vec<Error>> {
     let operation_name = operation.name(graph).map(|name| name.to_string()).unwrap_or_default();
 
     let mut errors = operation

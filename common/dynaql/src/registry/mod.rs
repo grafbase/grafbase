@@ -628,6 +628,11 @@ pub struct MetaEnumValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
+
+    // The value that will be used for this MetaEnumValue when sent to a
+    // non-GraphQL downstream API
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub value: Option<String>,
 }
 
 impl Eq for MetaEnumValue {}
@@ -1284,6 +1289,12 @@ impl Registry {
         // TODO: Fix this.
         self.types
             .get(self.mutation_type.as_deref().unwrap())
+            .unwrap()
+    }
+
+    pub fn mutation_root_mut(&mut self) -> &mut MetaType {
+        self.types
+            .get_mut(self.mutation_type.as_deref().unwrap())
             .unwrap()
     }
 

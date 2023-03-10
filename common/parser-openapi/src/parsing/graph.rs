@@ -3,7 +3,7 @@ use openapiv3::{ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
 
 use crate::{
-    graph::{ScalarKind, SchemaDetails, WrappingType},
+    graph::{RequestBodyContentType, ScalarKind, SchemaDetails, WrappingType},
     parsing::{
         components::{Components, Ref},
         operations::OperationDetails,
@@ -105,6 +105,21 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                 );
             }
 
+            for request in operation.request_bodies.iter() {
+                let Some(schema) = &request.schema else {
+                    ctx.errors.push(Error::OperationMissingRequestSchema(operation.operation_id.clone().unwrap_or_else(|| format!("HTTP {verb:?} {path}"))));
+                    continue;
+                };
+                extract_types(
+                    ctx,
+                    schema,
+                    ParentNode::OperationRequest {
+                        content_type: request.content_type.clone(),
+                        operation_index,
+                    },
+                );
+            }
+
             ctx.operation_indices.push(operation_index);
         }
     }
@@ -112,9 +127,8 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
 
 enum ParentNode {
     Schema(NodeIndex),
-    #[allow(dead_code)]
     OperationRequest {
-        content_type: String,
+        content_type: RequestBodyContentType,
         operation_index: NodeIndex,
     },
     OperationResponse {

@@ -2,7 +2,7 @@ use dynaql_value::{ConstValue, Name};
 use indexmap::IndexMap;
 
 use crate::registry::scalars::{DynamicScalar, PossibleScalar};
-use crate::registry::{MetaInputValue, MetaType, MetaTypeName, Registry};
+use crate::registry::{MetaEnumValue, MetaInputValue, MetaType, MetaTypeName, Registry};
 
 use crate::{Context, Error, ServerResult};
 
@@ -139,7 +139,9 @@ fn resolve_input_inner(
                             Err(input_error("Expected an Object", path))
                         }
                     }
-                    MetaType::Enum { .. } => Ok(value),
+                    MetaType::Enum { enum_values, .. } => {
+                        resolve_input_enum(value, enum_values, path)
+                    }
                     // TODO: this conversion ConstValue -> serde_json -> ConstValue is sad...
                     // we need an intermediate representation between the database & dynaql
                     MetaType::Scalar { .. } => Ok(ConstValue::from_json(
@@ -162,6 +164,32 @@ fn resolve_input_inner(
             },
         }
     }
+}
+
+fn resolve_input_enum(
+    value: ConstValue,
+    values: &IndexMap<String, MetaEnumValue>,
+    path: &[String],
+) -> Result<ConstValue, Error> {
+    let str_value = match &value {
+        ConstValue::Enum(name) => name.as_str(),
+        ConstValue::String(string) => string.as_str(),
+        _ => {
+            return Err(input_error(
+                &format!("Expected an enum, not a {}", value.kind_str()),
+                path,
+            ))
+        }
+    };
+    let meta_value = values
+        .get(str_value)
+        .ok_or_else(|| input_error("Unknown enum value: {name}", path))?;
+
+    if let Some(value) = &meta_value.value {
+        return Ok(ConstValue::String(value.clone()));
+    }
+
+    Ok(value)
 }
 
 fn input_error(expected: &str, path: &[String]) -> Error {

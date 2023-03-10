@@ -26,8 +26,7 @@ impl InputValue {
                     .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))?;
 
                 let Edge::HasType { wrapping: edge_wrapping } = type_edge.weight() else {
-                    // This should never happen
-                    return None;
+                    unreachable!()
                 };
 
                 // The HasType edge can introduce more wrapping so we need to make sure to account

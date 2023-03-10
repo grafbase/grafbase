@@ -38,6 +38,7 @@ impl<'a> Visitor<'a> for EnumType {
                                     description: v.node.description.clone().map(|x| x.node),
                                     deprecation: dynaql::registry::Deprecation::NoDeprecated,
                                     visible: None,
+                                    value: None
                                 }
                                 );
                         }
