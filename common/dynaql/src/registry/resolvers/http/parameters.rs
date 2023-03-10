@@ -1,9 +1,11 @@
 use std::{
     borrow::{Borrow, Cow},
+    collections::BTreeMap,
     fmt::Write,
 };
 
 use surf::Url;
+use url::form_urlencoded;
 
 use crate::Error;
 
@@ -20,6 +22,12 @@ pub trait ParamApply {
         self,
         params: &[QueryParameter],
         values: &[serde_json::Value],
+    ) -> Result<String, Error>;
+
+    fn apply_body_parameters(
+        self,
+        encoding_styles: &BTreeMap<String, QueryParameterEncodingStyle>,
+        variable: serde_json::Value,
     ) -> Result<String, Error>;
 }
 
@@ -42,78 +50,11 @@ impl ParamApply for String {
         params: &[QueryParameter],
         values: &[serde_json::Value],
     ) -> Result<String, Error> {
-        use serde_json::Value;
-
         let mut url = Url::parse(&self).unwrap();
         let mut serializer = url.query_pairs_mut();
 
         for (param, value) in params.iter().zip(values.iter()) {
-            let name = &param.name;
-
-            // Scalars get serialized the same regardless.
-            match value {
-                Value::Null => continue,
-                Value::Bool(_) | Value::Number(_) | Value::String(_) => {
-                    serializer.append_pair(name, json_scalar_to_query_string(value)?.borrow());
-                    continue;
-                }
-                _ => {}
-            }
-
-            // Query parameter encoding is a  pain.  I've handled three common styles here
-            // but there's 5 other styles I'm just ignoring for now (can add them later, but
-            // I'm kind of hoping nobody uses them)
-            match param.encoding_style {
-                QueryParameterEncodingStyle::Form => {
-                    let string_value = match value {
-                        Value::Array(values) => Cow::Owned(
-                            values
-                                .iter()
-                                .map(json_scalar_to_query_string)
-                                .collect::<Result<Vec<_>, _>>()?
-                                .join(","),
-                        ),
-                        Value::Object(obj) => Cow::Owned(
-                            obj.iter()
-                                .map(|(key, value)| {
-                                    Ok(vec![
-                                        Cow::Borrowed(key.as_str()),
-                                        json_scalar_to_query_string(value)?,
-                                    ])
-                                })
-                                .collect::<Result<Vec<_>, Error>>()?
-                                .into_iter()
-                                .flatten()
-                                .collect::<Vec<_>>()
-                                .join(", "),
-                        ),
-                        _ => {
-                            unreachable!()
-                        }
-                    };
-                    serializer.append_pair(name, &string_value);
-                }
-                QueryParameterEncodingStyle::FormExploded => match value {
-                    Value::Array(values) => {
-                        for value in values {
-                            serializer
-                                .append_pair(name, json_scalar_to_query_string(value)?.borrow());
-                        }
-                    }
-                    Value::Object(obj) => {
-                        for (key, value) in obj.iter() {
-                            serializer
-                                .append_pair(key, json_scalar_to_query_string(value)?.borrow());
-                        }
-                    }
-                    _ => {
-                        unreachable!()
-                    }
-                },
-                QueryParameterEncodingStyle::DeepObject => {
-                    serializer.extend_pairs(DeepObjectIter::new(name, value));
-                }
-            }
+            urlencode_value(&param.name, value, param.encoding_style, &mut serializer)?;
         }
 
         serializer.finish();
@@ -121,6 +62,100 @@ impl ParamApply for String {
 
         Ok(url.to_string())
     }
+
+    fn apply_body_parameters(
+        mut self,
+        encoding_styles: &BTreeMap<String, QueryParameterEncodingStyle>,
+        variable: serde_json::Value,
+    ) -> Result<String, Error> {
+        let mut serializer = url::form_urlencoded::Serializer::new(&mut self);
+
+        for (key, style) in encoding_styles {
+            if let Some(value) = variable.get(key) {
+                urlencode_value(key, value, *style, &mut serializer)?
+            }
+        }
+        serializer.finish();
+
+        Ok(self)
+    }
+}
+
+fn urlencode_value<T>(
+    name: &str,
+    value: &serde_json::Value,
+    encoding_style: QueryParameterEncodingStyle,
+    serializer: &mut form_urlencoded::Serializer<T>,
+) -> Result<(), Error>
+where
+    T: form_urlencoded::Target,
+{
+    use serde_json::Value;
+
+    // Scalars get serialized the same regardless.
+    match value {
+        Value::Null => return Ok(()),
+        Value::Bool(_) | Value::Number(_) | Value::String(_) => {
+            serializer.append_pair(name, json_scalar_to_query_string(value)?.borrow());
+            return Ok(());
+        }
+        _ => {}
+    }
+
+    // Query parameter encoding is a  pain.  I've handled three common styles here
+    // but there's 5 other styles I'm just ignoring for now (can add them later, but
+    // I'm kind of hoping nobody uses them)
+    match encoding_style {
+        QueryParameterEncodingStyle::Form => {
+            let string_value = match value {
+                Value::Array(values) => Cow::Owned(
+                    values
+                        .iter()
+                        .map(json_scalar_to_query_string)
+                        .collect::<Result<Vec<_>, _>>()?
+                        .join(","),
+                ),
+                Value::Object(obj) => Cow::Owned(
+                    obj.iter()
+                        .map(|(key, value)| {
+                            Ok(vec![
+                                Cow::Borrowed(key.as_str()),
+                                json_scalar_to_query_string(value)?,
+                            ])
+                        })
+                        .collect::<Result<Vec<_>, Error>>()?
+                        .into_iter()
+                        .flatten()
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ),
+                _ => {
+                    unreachable!()
+                }
+            };
+            serializer.append_pair(name, &string_value);
+        }
+        QueryParameterEncodingStyle::FormExploded => match value {
+            Value::Array(values) => {
+                for value in values {
+                    serializer.append_pair(name, json_scalar_to_query_string(value)?.borrow());
+                }
+            }
+            Value::Object(obj) => {
+                for (key, value) in obj.iter() {
+                    serializer.append_pair(key, json_scalar_to_query_string(value)?.borrow());
+                }
+            }
+            _ => {
+                unreachable!()
+            }
+        },
+        QueryParameterEncodingStyle::DeepObject => {
+            serializer.extend_pairs(DeepObjectIter::new(name, value));
+        }
+    }
+
+    Ok(())
 }
 
 fn json_scalar_to_path_string(value: &serde_json::Value) -> Result<Cow<'_, str>, Error> {
