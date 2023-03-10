@@ -3,11 +3,12 @@ use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
 use crate::{
     is_ok,
-    output::FieldType,
     parsing::operations::{HttpMethod, OperationDetails},
 };
 
-use super::{Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType};
+use super::{
+    output_type::OutputFieldType, Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType,
+};
 
 #[derive(Clone, Copy)]
 pub enum Operation {
@@ -138,7 +139,7 @@ impl Operation {
         }
     }
 
-    pub fn ty(self, graph: &super::OpenApiGraph) -> Option<FieldType> {
+    pub fn ty(self, graph: &super::OpenApiGraph) -> Option<OutputFieldType> {
         // A query operation can have a lot of different types: successes/fails,
         // and different content types for each of those scenarios.
         //
@@ -150,7 +151,7 @@ impl Operation {
             .find_map(|edge| match edge.weight() {
                 super::Edge::HasResponseType {
                     status_code, wrapping, ..
-                } if is_ok(status_code) => Some(FieldType::new(wrapping, graph.type_name(edge.target())?)),
+                } if is_ok(status_code) => Some(OutputFieldType::from_index(edge.target(), wrapping)),
                 _ => None,
             })
     }

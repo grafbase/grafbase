@@ -11,6 +11,7 @@ pub struct Enum(NodeIndex);
 impl Enum {
     pub(super) fn from_index(index: NodeIndex, graph: &super::OpenApiGraph) -> Option<Self> {
         match graph.graph[index] {
+            Node::Schema(_) => Enum::from_index(graph.schema_target(index)?, graph),
             Node::Enum { .. } => Some(Enum(index)),
             _ => None,
         }

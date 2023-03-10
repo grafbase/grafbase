@@ -120,6 +120,7 @@ impl OperationDetails {
                                 query_style_description(style).to_owned(),
                             )
                         })?,
+                    required: parameter_data.required,
                 }),
                 _ => {}
             }
@@ -150,6 +151,7 @@ pub enum HttpMethod {
 pub struct RequestBody {
     pub content_type: RequestBodyContentType,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
+    pub required: bool,
 }
 
 impl RequestBody {
@@ -161,6 +163,7 @@ impl RequestBody {
                 Some(RequestBody {
                     schema: content.schema.clone(),
                     content_type: request_body_content_type(content_type, &content.encoding)?,
+                    required: request_body.required,
                 })
             })
             .collect()
@@ -185,6 +188,7 @@ pub(super) struct QueryParameter {
     pub name: String,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
     pub encoding_style: QueryParameterEncodingStyle,
+    pub required: bool,
 }
 
 fn query_param_encoding_style(query_style: &QueryStyle, explode: bool) -> Option<QueryParameterEncodingStyle> {

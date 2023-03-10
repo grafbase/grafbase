@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use dynaql::{
     indexmap::IndexMap,
     registry::{
@@ -15,8 +17,8 @@ use dynaql::{
 use inflector::Inflector;
 
 use crate::graph::{
-    Enum, InputField, InputObject, OpenApiGraph, Operation, OutputType, PathParameter, QueryParameter, RequestBody,
-    WrappingType,
+    Enum, InputField, InputObject, OpenApiGraph, Operation, OutputField, OutputFieldType, OutputType, PathParameter,
+    QueryParameter, RequestBody, WrappingType,
 };
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
@@ -83,7 +85,10 @@ impl OutputType {
         match self {
             OutputType::Object(_) => Some(object(
                 name,
-                self.fields(graph).into_iter().map(|field| field.to_meta_field()),
+                self.fields(graph)
+                    .into_iter()
+                    .map(|field| field.to_meta_field(graph))
+                    .collect::<Option<Vec<_>>>()?,
             )),
             OutputType::Union(_) => Some(MetaType::Union {
                 name: name.clone(),
@@ -122,14 +127,6 @@ impl InputObject {
     }
 }
 
-pub struct OutputField {
-    pub api_name: String,
-    pub ty: FieldType,
-
-    // The kind of type inside ty
-    pub inner_kind: OutputFieldKind,
-}
-
 pub enum OutputFieldKind {
     Enum,
 
@@ -138,26 +135,15 @@ pub enum OutputFieldKind {
 }
 
 impl OutputField {
-    pub fn new(api_name: String, ty: FieldType, inner_kind: OutputFieldKind) -> Self {
-        OutputField {
-            api_name,
-            ty,
-            inner_kind,
-        }
-    }
-
-    pub fn graphql_name(&self) -> String {
-        self.api_name.to_camel_case()
-    }
-
-    fn to_meta_field(&self) -> MetaField {
-        let name = self.graphql_name();
+    fn to_meta_field(&self, graph: &OpenApiGraph) -> Option<MetaField> {
+        let api_name = &self.name;
+        let graphql_name = api_name.to_camel_case();
 
         let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-            key: self.api_name.clone(),
+            key: api_name.to_string(),
         });
 
-        if let OutputFieldKind::Enum = &self.inner_kind {
+        if let OutputFieldKind::Enum = &self.ty.inner_kind(graph) {
             resolver_type = ResolverType::Composition(vec![
                 resolver_type,
                 ResolverType::ContextDataResolver(ContextDataResolver::RemoteEnum),
@@ -169,35 +155,54 @@ impl OutputField {
             r#type: resolver_type,
         });
 
-        MetaField {
+        Some(MetaField {
             resolve,
-            ..meta_field(name, self.ty.to_string())
-        }
+            ..meta_field(
+                graphql_name,
+                TypeDisplay::from_output_field_type(&self.ty, graph)?.to_string(),
+            )
+        })
     }
 }
 
-pub enum FieldType {
-    NonNull(Box<FieldType>),
-    List(Box<FieldType>),
-    Named(String),
+pub struct TypeDisplay<'a> {
+    wrapping: &'a WrappingType,
+    name: Cow<'a, str>,
 }
 
-impl FieldType {
-    pub fn new(wrapping: &WrappingType, name: String) -> FieldType {
-        match wrapping {
-            WrappingType::NonNull(inner) => FieldType::NonNull(Box::new(FieldType::new(inner.as_ref(), name))),
-            WrappingType::List(inner) => FieldType::List(Box::new(FieldType::new(inner.as_ref(), name))),
-            WrappingType::Named => FieldType::Named(name),
+impl<'a> TypeDisplay<'a> {
+    pub fn new(wrapping: &'a WrappingType, name: String) -> TypeDisplay<'a> {
+        TypeDisplay {
+            wrapping,
+            name: Cow::Owned(name),
         }
+    }
+
+    fn from_output_field_type(ty: &'a OutputFieldType, graph: &OpenApiGraph) -> Option<TypeDisplay<'a>> {
+        Some(TypeDisplay::new(&ty.wrapping, ty.type_name(graph)?))
     }
 }
 
-impl std::fmt::Display for FieldType {
+impl std::fmt::Display for TypeDisplay<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FieldType::NonNull(inner) => write!(f, "{inner}!"),
-            FieldType::List(inner) => write!(f, "[{inner}]"),
-            FieldType::Named(name) => write!(f, "{name}"),
+        match self.wrapping {
+            WrappingType::NonNull(inner) => write!(
+                f,
+                "{}!",
+                TypeDisplay {
+                    wrapping: inner.as_ref(),
+                    name: Cow::Borrowed(&self.name)
+                }
+            ),
+            WrappingType::List(inner) => write!(
+                f,
+                "[{}]",
+                TypeDisplay {
+                    wrapping: inner.as_ref(),
+                    name: Cow::Borrowed(&self.name)
+                }
+            ),
+            WrappingType::Named => write!(f, "{}", self.name),
         }
     }
 }
@@ -221,6 +226,9 @@ impl Operation {
             let input_value = body.to_meta_input_value(graph).unwrap();
             (input_value.name.clone(), input_value)
         }));
+
+        let output_type = self.ty(graph)?;
+        let type_string = TypeDisplay::from_output_field_type(&output_type, graph)?.to_string();
 
         Some(MetaField {
             resolve: Some(Resolver {
@@ -261,7 +269,7 @@ impl Operation {
                 }),
             }),
             args,
-            ..meta_field(self.name(graph)?.to_string(), self.ty(graph)?.to_string())
+            ..meta_field(self.name(graph)?.to_string(), type_string)
         })
     }
 }
@@ -271,7 +279,7 @@ impl PathParameter {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
             self.name(graph)?.to_string(),
-            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
 }
@@ -281,7 +289,7 @@ impl QueryParameter {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
             self.name(graph)?,
-            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
 }
@@ -291,7 +299,7 @@ impl RequestBody {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
             self.argument_name().to_owned(),
-            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
 }
@@ -301,7 +309,7 @@ impl InputField<'_> {
         let input_value = &self.value_type;
         Some(MetaInputValue::new(
             self.name.to_string(),
-            FieldType::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
+            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
 }

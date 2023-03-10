@@ -23,15 +23,7 @@ impl InputObject {
         match graph.graph[index] {
             Node::Object => Some(InputObject { index, one_of: false }),
             Node::Union => Some(InputObject { index, one_of: true }),
-            Node::Schema(_) => {
-                let inner_index = graph
-                    .graph
-                    .edges(index)
-                    .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))?
-                    .target();
-
-                InputObject::from_index(inner_index, graph)
-            }
+            Node::Schema(_) => InputObject::from_index(graph.schema_target(index)?, graph),
             Node::Operation(_) | Node::Scalar(_) | Node::Enum { .. } => None,
         }
     }

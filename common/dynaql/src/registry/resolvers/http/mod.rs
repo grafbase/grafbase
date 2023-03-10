@@ -86,6 +86,7 @@ impl HttpResolver {
             match &request_body.content_type {
                 RequestBodyContentType::Json => request = request.body_json(dbg!(&variable))?,
                 RequestBodyContentType::FormEncoded(encoding_styles) => {
+                    request = request.content_type(surf::http::mime::FORM);
                     request = request.body_string(
                         String::new().apply_body_parameters(encoding_styles, variable)?,
                     );

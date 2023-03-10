@@ -23,18 +23,22 @@ pub fn parse_spec(
         Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
 
-    let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata);
+    let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata.clone());
 
     validation::validate(&graph)?;
 
     output::output(&graph, registry);
 
+    registry.http_headers.insert(metadata.name, metadata.headers);
+
     Ok(())
 }
 
+#[derive(Clone, Debug)]
 pub struct ApiMetadata {
     pub name: String,
     pub url: Url,
+    pub headers: Vec<(String, String)>,
 }
 
 pub enum Format {
@@ -177,6 +181,7 @@ mod tests {
         ApiMetadata {
             name: "example".into(),
             url: Url::parse("http://example.com").unwrap(),
+            headers: vec![],
         }
     }
 
