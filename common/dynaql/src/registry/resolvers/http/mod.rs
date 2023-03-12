@@ -1,6 +1,6 @@
 use std::{borrow::Borrow, collections::BTreeMap, sync::Arc};
 
-use surf::Url;
+use reqwest::Url;
 
 use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
@@ -69,13 +69,11 @@ impl HttpResolver {
             .unwrap_or(&[]);
 
         let url = self.build_url(ctx, last_resolver_value)?;
-        let mut request = dbg!(surf::RequestBuilder::new(
-            self.method.parse()?,
-            Url::parse(&url)?
-        ));
+        let mut request_builder =
+            dbg!(reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?));
 
         for (name, value) in headers {
-            request = request.header(name.as_str(), value);
+            request_builder = request_builder.header(name, value);
         }
 
         if let Some(request_body) = &self.request_body {
@@ -84,19 +82,23 @@ impl HttpResolver {
                 .resolve::<serde_json::Value>(ctx, last_resolver_value)?;
 
             match &request_body.content_type {
-                RequestBodyContentType::Json => request = request.body_json(dbg!(&variable))?,
+                RequestBodyContentType::Json => {
+                    request_builder = request_builder.json(&variable);
+                }
                 RequestBodyContentType::FormEncoded(encoding_styles) => {
-                    request = request.body_string(
-                        String::new().apply_body_parameters(encoding_styles, variable)?,
-                    );
+                    request_builder = request_builder
+                        .body(String::new().apply_body_parameters(encoding_styles, variable)?);
                 }
             }
         }
 
-        let mut response = request.await.map_err(|e| Error::new(e.to_string()))?;
+        let response = request_builder
+            .send()
+            .await
+            .map_err(|e| Error::new(e.to_string()))?;
 
         let data = response
-            .body_json::<serde_json::Value>()
+            .json::<serde_json::Value>()
             .await
             .map_err(|e| Error::new(e.to_string()))?;
 
