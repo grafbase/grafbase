@@ -52,6 +52,12 @@ once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 serde = { workspace = true, optional = true }
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+reqwest = { version = "0.11", default-features = false, optional = true, features = ["json"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.11", default-features = false, optional = true, features = ["json", "__rustls"] }
+
 [dev-dependencies]
 tokio = { version = "1", features = [
   "macros",
@@ -60,19 +66,9 @@ tokio = { version = "1", features = [
   "time",
 ] }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2", default-features = false, optional = true, features = [
-  "wasm-client",
-] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, optional = true, features = [
-  "h1-client-rustls",
-] }
-
 [features]
 default = ["wasm_runtime"]
-local = ["indoc", "maplit", "once_cell", "regex", "serde", "surf"]
+local = ["indoc", "maplit", "once_cell", "regex", "reqwest", "serde"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]

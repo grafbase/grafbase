@@ -1,19 +1,20 @@
+use reqwest::StatusCode;
 use serde::Deserialize;
-use surf::StatusCode;
 
 use super::types::Record;
 use super::types::{BridgeUrl, Constraint, Mutation, Operation};
 
 pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, QueryError> {
-    let mut response = surf::client()
+    let response = reqwest::Client::new()
         .post(BridgeUrl::Query(port).to_string())
-        .body_json(&operaton)?
+        .json(&operaton)
+        .send()
         .await?;
 
-    if response.status() == StatusCode::InternalServerError {
+    if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
         Err(QueryError::InternalServerError)
     } else {
-        Ok(response.body_json::<Vec<Record>>().await?)
+        Ok(response.json::<Vec<Record>>().await?)
     }
 }
 
@@ -24,26 +25,26 @@ pub enum ApiErrorKind {
 
 #[allow(dead_code)]
 pub enum QueryError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     InternalServerError,
 }
 
-impl From<surf::Error> for QueryError {
-    fn from(error: surf::Error) -> Self {
-        Self::Surf(error)
+impl From<reqwest::Error> for QueryError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::Reqwest(error)
     }
 }
 
 #[allow(dead_code)]
 pub enum MutationError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     InternalServerError,
     Api(ApiError),
 }
 
-impl From<surf::Error> for MutationError {
-    fn from(error: surf::Error) -> Self {
-        Self::Surf(error)
+impl From<reqwest::Error> for MutationError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::Reqwest(error)
     }
 }
 
@@ -55,18 +56,19 @@ pub struct ApiError {
 }
 
 pub async fn mutation<'a>(mutations: Vec<Operation>, port: &str) -> Result<(), MutationError> {
-    let client = surf::client();
-    let mut response = client
+    let client = reqwest::Client::new();
+    let response = client
         .post(BridgeUrl::Mutation(port).to_string())
-        .body_json(&Mutation { mutations })?
+        .json(&Mutation { mutations })
+        .send()
         .await?;
 
     match response.status() {
-        StatusCode::Conflict => {
-            let error = response.body_json::<ApiError>().await?;
+        StatusCode::CONFLICT => {
+            let error = response.json::<ApiError>().await?;
             return Err(MutationError::Api(error));
         }
-        StatusCode::InternalServerError => {
+        StatusCode::INTERNAL_SERVER_ERROR => {
             return Err(MutationError::InternalServerError);
         }
         _ => {}

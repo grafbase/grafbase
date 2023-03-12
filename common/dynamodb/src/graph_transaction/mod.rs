@@ -1597,7 +1597,7 @@ async fn load_keys(
             mutation(operations, &local_ctx.bridge_port)
                 .await
                 .map_err(|error| match error {
-                    MutationError::Surf(_) | MutationError::InternalServerError => ToTransactionError::Unknown,
+                    MutationError::Reqwest(_) | MutationError::InternalServerError => ToTransactionError::Unknown,
                     MutationError::Api(api_error) => match api_error.error_kind {
                         ApiErrorKind::ConstraintViolation(Constraint::Unique { values, fields }) => {
                             ToTransactionError::UniqueCondition {
