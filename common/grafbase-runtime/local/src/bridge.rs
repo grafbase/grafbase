@@ -8,22 +8,22 @@ pub(crate) struct Bridge {
 
 #[derive(Debug)]
 pub(crate) enum BridgeError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     UnexpectedResponseError(String),
 }
 
 impl Error for BridgeError {}
 
-impl From<surf::Error> for BridgeError {
-    fn from(value: surf::Error) -> Self {
-        Self::Surf(value)
+impl From<reqwest::Error> for BridgeError {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Reqwest(value)
     }
 }
 
 impl Display for BridgeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BridgeError::Surf(error) => write!(f, "Surf Error: {error:?}"),
+            BridgeError::Reqwest(error) => write!(f, "reqwest Error: {error:?}"),
             BridgeError::UnexpectedResponseError(response) => write!(f, "Unexpected Response Error: {response:?}"),
         }
     }
@@ -40,15 +40,13 @@ impl Bridge {
         body: B,
     ) -> Result<R, BridgeError> {
         let url = format!("http://{}:{}{endpoint}", Ipv4Addr::LOCALHOST, self.port);
-        let mut response = surf::client().post(url).body_json(&body)?.await?;
-        if response.status().is_success() {
-            Ok(response.body_json().await?)
+        let response = reqwest::Client::new().post(url).json(&body).send().await?;
+        let status = response.status();
+        if status.is_success() {
+            Ok(response.json().await?)
         } else {
             Err(BridgeError::UnexpectedResponseError(
-                response
-                    .body_string()
-                    .await
-                    .unwrap_or(format!("Status: {}", response.status())),
+                response.text().await.unwrap_or(format!("Status: {}", status)),
             ))
         }
     }
