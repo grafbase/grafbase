@@ -3,7 +3,7 @@ use quick_error::quick_error;
 quick_error! {
     #[derive(Debug)]
     pub enum VerificationError {
-        HttpRequest(err: surf::Error) {
+        HttpRequest(err: reqwest::Error) {
             display("{err}")
         }
         Integrity(err: jwt_compact::ValidationError) {

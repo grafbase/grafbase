@@ -21,12 +21,10 @@ worker = "0.0.13"
 log = { path = "../log" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2", default-features = false, features = ["wasm-client"] }
+reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, features = [
-    "h1-client-rustls",
-] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "__rustls"] }
 
 [dev-dependencies]
 chrono = "0.4"

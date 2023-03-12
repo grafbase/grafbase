@@ -62,7 +62,7 @@ struct CustomClaims {
 #[derive(Default)]
 pub struct Client<'a> {
     pub trace_id: &'a str,
-    pub http_client: surf::Client,
+    pub http_client: reqwest::Client,
     pub time_opts: TimeOptions, // used for testing
     pub ignore_iss_claim: bool, // used for testing
     pub groups_claim: Option<&'a str>,
@@ -112,7 +112,10 @@ impl<'a> Client<'a> {
             let oidc_config: OidcConfig = self
                 .http_client
                 .get(discovery_url)
-                .recv_json()
+                .send()
+                .await
+                .map_err(VerificationError::HttpRequest)?
+                .json()
                 .await
                 .map_err(VerificationError::HttpRequest)?;
 
@@ -127,7 +130,10 @@ impl<'a> Client<'a> {
             let jwks: JsonWebKeySet<'_> = self
                 .http_client
                 .get(oidc_config.jwks_uri)
-                .recv_json()
+                .send()
+                .await
+                .map_err(VerificationError::HttpRequest)?
+                .json()
                 .await
                 .map_err(VerificationError::HttpRequest)?;
 
