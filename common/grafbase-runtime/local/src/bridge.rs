@@ -46,7 +46,7 @@ impl Bridge {
             Ok(response.json().await?)
         } else {
             Err(BridgeError::UnexpectedResponseError(
-                response.text().await.unwrap_or(format!("Status: {}", status)),
+                response.text().await.unwrap_or(format!("Status: {status}")),
             ))
         }
     }
