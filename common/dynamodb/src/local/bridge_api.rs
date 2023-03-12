@@ -45,7 +45,7 @@ pub struct ApiError {
     pub error_kind: ApiErrorKind,
 }
 
-pub fn query<'a>(
+pub fn query(
     operaton: Operation,
     port: &str,
 ) -> Pin<Box<dyn Future<Output = Result<Vec<Record>, QueryError>> + Send + '_>> {
@@ -63,7 +63,7 @@ pub fn query<'a>(
     }))
 }
 
-pub fn mutation<'a>(
+pub fn mutation(
     mutations: Vec<Operation>,
     port: &str,
 ) -> Pin<Box<dyn Future<Output = Result<(), MutationError>> + Send + '_>> {
