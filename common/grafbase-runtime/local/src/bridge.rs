@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, net::Ipv4Addr};
+use std::{error::Error, fmt::Display, future::Future, net::Ipv4Addr, pin::Pin};
 
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -34,20 +34,23 @@ impl Bridge {
         Bridge { port }
     }
 
-    pub(crate) async fn request<B: Serialize, R: DeserializeOwned>(
+    pub(crate) fn request<B: Serialize, R: DeserializeOwned>(
         &self,
         endpoint: &str,
         body: B,
-    ) -> Result<R, BridgeError> {
+    ) -> Pin<Box<dyn Future<Output = Result<R, BridgeError>> + Send + '_>> {
         let url = format!("http://{}:{}{endpoint}", Ipv4Addr::LOCALHOST, self.port);
-        let response = reqwest::Client::new().post(url).json(&body).send().await?;
-        let status = response.status();
-        if status.is_success() {
-            Ok(response.json().await?)
-        } else {
-            Err(BridgeError::UnexpectedResponseError(
-                response.text().await.unwrap_or(format!("Status: {status}")),
-            ))
-        }
+        let request = reqwest::Client::new().post(url).json(&body);
+        Box::pin(send_wrapper::SendWrapper::new(async move {
+            let response = request.send().await?;
+            let status = response.status();
+            if status.is_success() {
+                Ok(response.json().await?)
+            } else {
+                Err(BridgeError::UnexpectedResponseError(
+                    response.text().await.unwrap_or(format!("Status: {status}")),
+                ))
+            }
+        }))
     }
 }
