@@ -5,9 +5,9 @@ use std::borrow::Cow;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("HTTP: {0}")]
-    DatadogRequest(surf::Error),
+    DatadogRequest(reqwest::Error),
     #[error("Datadog: [status = {0}] {1:?}")]
-    DatadogPushFailed(surf::StatusCode, Option<String>),
+    DatadogPushFailed(reqwest::StatusCode, Option<String>),
     #[cfg(feature = "sentry-cf-worker")]
     #[error("Sentry: {0}")]
     SentryError(sentry_cf_worker::SentryError),
