@@ -1,9 +1,19 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
+use chrono::{DateTime, TimeZone, Utc};
 use dynaql_value::ConstValue;
 
 // TODO: Input coercion to accept either ms or a date
 pub struct TimestampScalar;
+
+impl TimestampScalar {
+    pub fn parse_value(value: serde_json::Value) -> Result<DateTime<Utc>, Error> {
+        match Utc.timestamp_millis_opt(serde_json::from_value(value)?) {
+            chrono::LocalResult::Single(dt) => Ok(dt),
+            _ => Err(Error::new("Invalid milliseconds")),
+        }
+    }
+}
 
 impl<'a> SDLDefinitionScalar<'a> for TimestampScalar {
     fn name() -> Option<&'a str> {

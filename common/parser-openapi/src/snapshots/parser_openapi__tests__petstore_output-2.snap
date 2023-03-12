@@ -1941,4 +1941,7 @@ Registry {
     http_headers: {
         "example": [],
     },
+    search_config: Config {
+        indices: {},
+    },
 }

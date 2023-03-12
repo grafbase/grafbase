@@ -128,6 +128,9 @@ expression: req_string_a
       }
     ]
   ],
+  "search_config": {
+    "indices": {}
+  },
   "subscription_type": null,
   "types": {
     "Boolean": {

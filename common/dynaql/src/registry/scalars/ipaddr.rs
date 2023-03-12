@@ -6,6 +6,16 @@ use std::net::IpAddr;
 
 pub struct IPAddressScalar;
 
+impl IPAddressScalar {
+    pub fn parse_value(value: serde_json::Value) -> Result<IpAddr, Error> {
+        let ip = serde_json::from_value::<String>(value)?;
+        Ok(ip
+            .parse::<IpNet>()
+            .map(|ip| ip.addr())
+            .or_else(|_| ip.parse::<IpAddr>())?)
+    }
+}
+
 impl<'a> SDLDefinitionScalar<'a> for IPAddressScalar {
     fn name() -> Option<&'a str> {
         Some("IPAddress")

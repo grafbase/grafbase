@@ -291,9 +291,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
-            schemas: Default::default(),
-            auth: Default::default(),
-            http_headers: Default::default(),
+            ..Default::default()
         };
 
         Schema::add_builtins_to_registry(&mut registry);
@@ -321,9 +319,7 @@ impl Schema {
             disable_introspection: false,
             enable_federation: false,
             federation_subscription: false,
-            schemas: Default::default(),
-            auth: Default::default(),
-            http_headers: Default::default(),
+            ..Default::default()
         };
 
         Schema::add_builtins_to_registry(&mut registry);

@@ -1,7 +1,8 @@
 use grafbase_runtime::{
-    search::{SearchEngine, SearchEngineInner, SearchError, SearchRequest, SearchResponse},
+    search::{Request, Response, SearchEngine, SearchEngineInner, SearchError},
     ExecutionContext,
 };
+use search_protocol::{QueryExecutionRequest, QueryExecutionResponse};
 
 use crate::bridge::Bridge;
 
@@ -20,9 +21,12 @@ impl LocalSearchEngine {
 
 #[async_trait::async_trait]
 impl SearchEngineInner for LocalSearchEngine {
-    async fn search(&self, ctx: &ExecutionContext, request: SearchRequest) -> Result<SearchResponse, SearchError> {
+    async fn search(&self, ctx: &ExecutionContext, request: Request) -> Result<Response, SearchError> {
         self.bridge
-            .request::<SearchRequest, SearchResponse>("/search", request)
+            .request::<QueryExecutionRequest, QueryExecutionResponse>(
+                "/search",
+                TryFrom::try_from(request).map_err(|_| SearchError::ServerError)?,
+            )
             .await
             .map_err(|error| {
                 log::error!(ctx.request_id, "Search Request failed with: {}", error);

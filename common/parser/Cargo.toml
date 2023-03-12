@@ -9,6 +9,7 @@ dynaql-parser = { path = "../dynaql/parser" }
 dynaql-value = { path = "../dynaql/value" }
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 dynamodb = { path = "../dynamodb" }
+grafbase-runtime = { path = "../grafbase-runtime" }
 case = "1"
 if_chain = "1"
 itertools = "0.10"

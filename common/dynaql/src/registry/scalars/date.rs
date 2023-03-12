@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
 use chrono::NaiveDate;
@@ -6,6 +8,14 @@ use dynaql_value::ConstValue;
 const DATE_FORMAT: &str = "%Y-%m-%d";
 
 pub struct DateScalar;
+
+impl DateScalar {
+    pub fn parse_value(value: serde_json::Value) -> Result<NaiveDate, Error> {
+        Ok(NaiveDate::from_str(&serde_json::from_value::<String>(
+            value,
+        )?)?)
+    }
+}
 
 impl<'a> SDLDefinitionScalar<'a> for DateScalar {
     fn name() -> Option<&'a str> {

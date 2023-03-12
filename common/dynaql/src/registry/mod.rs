@@ -280,7 +280,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
     }
 }
 
-#[derive(Clone, derivative::Derivative, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
     pub name: String,
@@ -1272,6 +1272,8 @@ pub struct Registry {
     pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
     #[serde(default)]
     pub http_headers: BTreeMap<String, Vec<(String, String)>>,
+    #[serde(default)]
+    pub search_config: grafbase_runtime::search::Config,
 }
 
 pub mod vectorize {

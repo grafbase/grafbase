@@ -21,6 +21,8 @@ use std::collections::HashSet;
 use std::hash::Hash;
 use std::sync::Arc;
 
+pub(crate) const PAGINATION_LIMIT: usize = 100;
+
 #[non_exhaustive]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum DynamoResolver {
@@ -57,6 +59,7 @@ pub enum DynamoResolver {
     },
     QueryIds {
         ids: VariableResolveDefinition,
+        type_name: String,
     },
     /// A Paginated Query based on the type of the entity.
     ///
@@ -156,8 +159,6 @@ impl ResolverTrait for DynamoResolver {
         resolver_ctx: &ResolverContext<'_>,
         last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
-        const PAGINATION_LIMIT: usize = 100;
-
         let batchers = &ctx.data::<Arc<DynamoDBBatchersData>>()?;
         let loader_item = &batchers.loader;
         let query_loader = &batchers.query;
@@ -333,7 +334,7 @@ impl ResolverTrait for DynamoResolver {
                         .with_pagination(pagination),
                 )
             }
-            DynamoResolver::QueryIds { ids } => {
+            DynamoResolver::QueryIds { ids, type_name } => {
                 let ids: Vec<String> = ids.resolve(
                     ctx,
                     last_resolver_value.map(|resolved| resolved.data_resolved.borrow()),
@@ -352,7 +353,8 @@ impl ResolverTrait for DynamoResolver {
                     .filter_map(|key| {
                         db_result
                             .remove(&key)
-                            .map(|record| serde_json::json!({ current_ty: record }))
+                            // Resolvers on the model expect the type name...
+                            .map(|record| serde_json::json!({ type_name: record }))
                     })
                     .collect::<Vec<_>>();
 

@@ -5,6 +5,12 @@ use dynaql_value::ConstValue;
 
 pub struct DateTimeScalar;
 
+impl DateTimeScalar {
+    pub fn parse_value(value: serde_json::Value) -> Result<DateTime<Utc>, Error> {
+        Ok(serde_json::from_value::<String>(value)?.parse::<DateTime<Utc>>()?)
+    }
+}
+
 impl<'a> SDLDefinitionScalar<'a> for DateTimeScalar {
     fn name() -> Option<&'a str> {
         Some("DateTime")

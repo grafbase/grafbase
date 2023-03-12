@@ -502,22 +502,22 @@ fn should_pick_up_required_resolvers() {
 }
 
 #[test]
+#[named]
 fn should_support_search_directive() {
-    assert!(
-        super::to_registry(
-            r#"
+    let simple = super::to_registry(
+        r#"
             type Product @model {
                 title: String @search
             }
-            "#
-        )
-        .is_ok(),
-        "Search should be supported on @model type"
+            "#,
     );
+    assert!(simple.is_ok(), "Search should be supported on @model type");
+    let simple = simple.unwrap();
+    assert_registry_schema_generation(&simple);
+    assert_snapshot(&format!("{}-simple", function_name!()), simple);
 
-    assert!(
-        super::to_registry(
-            r#"
+    let complex = super::to_registry(
+        r#"
             type Product @model {
               ip: IPAddress @search
               timestamp: Timestamp! @search
@@ -531,11 +531,13 @@ fn should_support_search_directive() {
               float: Float @search
               bool: Boolean @search
             }
-            "#
-        )
-        .is_ok(),
-        "Search should support various field types."
+            "#,
     );
+
+    assert!(complex.is_ok(), "Search should support various field types.");
+    let complex = complex.unwrap();
+    assert_registry_schema_generation(&complex);
+    assert_snapshot(&format!("{}-complex", function_name!()), complex);
 
     assert_validation_error!(
         r#"

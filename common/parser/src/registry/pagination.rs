@@ -113,7 +113,7 @@ fn register_edge_type(
     BaseType::named(&type_name)
 }
 
-fn register_page_info_type(registry: &mut Registry) -> BaseType {
+pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
     registry.create_type(
         |_| MetaType::Object {
             name: PAGE_INFO_TYPE.to_string(),

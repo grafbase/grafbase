@@ -1,5 +1,6 @@
 use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 use case::CaseExt;
+pub use dynaql::names::*;
 use dynaql_parser::types::TypeDefinition;
 
 use super::NumericFieldKind;
@@ -10,10 +11,16 @@ pub const PAGINATION_INPUT_ARG_BEFORE: &str = "before";
 pub const PAGINATION_INPUT_ARG_AFTER: &str = "after";
 pub const PAGINATION_INPUT_ARG_ORDER_BY: &str = "orderBy";
 
+// Pagination must be consistent for every query/mutation hence the search fields
 pub const PAGINATION_FIELD_EDGES: &str = "edges";
+pub const PAGINATION_FIELD_SEARCH_INFO: &str = "searchInfo";
 pub const PAGINATION_FIELD_PAGE_INFO: &str = "pageInfo";
 pub const PAGINATION_FIELD_EDGE_NODE: &str = "node";
 pub const PAGINATION_FIELD_EDGE_CURSOR: &str = "cursor";
+pub const PAGINATION_FIELD_EDGE_SEARCH_SCORE: &str = "score";
+
+pub const SEARCH_INFO_TYPE: &str = "SearchInfo";
+pub const SEARCH_INFO_FIELD_TOTAL_HITS: &str = "totalHits";
 
 pub const PAGE_INFO_TYPE: &str = "PageInfo";
 pub const PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE: &str = "hasPreviousPage";
@@ -23,6 +30,9 @@ pub const PAGE_INFO_FIELD_END_CURSOR: &str = "endCursor";
 
 pub const INPUT_ARG_BY: &str = "by";
 pub const INPUT_ARG_INPUT: &str = "input";
+pub const INPUT_ARG_FILTER: &str = "filter";
+pub const INPUT_ARG_QUERY: &str = "query";
+pub const INPUT_ARG_FIELDS: &str = "fields";
 
 pub const INPUT_FIELD_RELATION_CREATE: &str = "create";
 pub const INPUT_FIELD_RELATION_LINK: &str = "link";
@@ -42,8 +52,27 @@ impl MetaNames {
         model_type_definition.name.node.to_camel()
     }
 
-    pub fn search(model_type_definition: &TypeDefinition) -> String {
+    //
+    // SEARCH
+    //
+    pub fn query_search(model_type_definition: &TypeDefinition) -> String {
         to_lower_camelcase(format!("{}Search", Self::model(model_type_definition)))
+    }
+
+    pub fn search_filter_input(model_type_definition: &TypeDefinition) -> String {
+        format!("{}SearchFilterInput", Self::model(model_type_definition))
+    }
+
+    pub fn search_scalar_filter_input(scalar: &str) -> String {
+        format!("{scalar}SearchFilterInput")
+    }
+
+    pub fn search_connection_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}SearchConnection", Self::model(model_type_definition))
+    }
+
+    pub fn search_edge_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}SearchEdge", Self::model(model_type_definition))
     }
 
     //
@@ -53,12 +82,12 @@ impl MetaNames {
         to_lower_camelcase(format!("{}Collection", Self::model(model_type_definition)))
     }
 
-    pub fn pagination_edge_type(model_type_definition: &TypeDefinition) -> String {
-        format!("{}Edge", Self::model(model_type_definition))
-    }
-
     pub fn pagination_connection_type(model_type_definition: &TypeDefinition) -> String {
         format!("{}Connection", Self::model(model_type_definition))
+    }
+
+    pub fn pagination_edge_type(model_type_definition: &TypeDefinition) -> String {
+        format!("{}Edge", Self::model(model_type_definition))
     }
 
     pub fn pagination_orderby_input(model_type_definition: &TypeDefinition) -> String {

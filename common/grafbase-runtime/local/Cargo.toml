@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 grafbase-runtime = { path = ".." }
+search-protocol = { path = "../../search/protocol" }
 send_wrapper = "0.6"
 serde = { workspace = true }
 log = { path = "../../log", features = ["with-worker"] }
