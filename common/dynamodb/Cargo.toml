@@ -50,7 +50,7 @@ indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
-send_wrapper = "0.6"
+send_wrapper = { version = "0.6", optional = true }
 serde = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
@@ -69,7 +69,7 @@ tokio = { version = "1", features = [
 
 [features]
 default = ["wasm_runtime"]
-local = ["indoc", "maplit", "once_cell", "regex", "reqwest", "serde"]
+local = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper", "serde"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]
