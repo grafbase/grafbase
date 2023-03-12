@@ -107,8 +107,6 @@ pub enum Error {
     NotSchema,
     #[error("Encountered an allOf schema, which we don't currently support")]
     AllOfSchema,
-    #[error("Encountered an any schema, which we don't currently support")]
-    AnySchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
     UnresolvedReference(Ref),
     #[error("Received an invalid URL: {0} ")]

@@ -348,14 +348,32 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
             SchemaKind::Not { .. } => {
                 ctx.errors.push(Error::NotSchema);
             }
-            SchemaKind::Any(_) => {
-                ctx.errors.push(Error::AnySchema);
+            SchemaKind::Any(any) => {
+                // We treat an any very similar to an object
+                if any.properties.is_empty() {
+                    // If there's no explicit properties we make this a custom scalar
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    return;
+                }
+                let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
+                for (field_name, field_schema_or_ref) in &any.properties {
+                    let required = any.required.contains(field_name);
+                    extract_types(
+                        ctx,
+                        &field_schema_or_ref.clone().unbox(),
+                        ParentNode::Field {
+                            object_index,
+                            field_name: field_name.clone(),
+                            required,
+                        },
+                    );
+                }
             }
         },
     }
 }
 
-/// OpenAPI enums can be basically any string, but we're much more limited
+// OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
 fn is_valid_enum_value(value: &Option<String>) -> bool {
     let Some(string) = value else {
