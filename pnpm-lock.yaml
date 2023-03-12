@@ -198,7 +198,7 @@ importers:
       babel-preset-react-app: ^10.0.1
       bfj: ^7.0.2
       browserslist: ^4.18.1
-      camelcase: ^6.2.1
+      camelcase: ^7.0.0
       case-sensitive-paths-webpack-plugin: ^2.4.0
       css-loader: ^6.5.1
       css-minimizer-webpack-plugin: ^3.2.0
@@ -270,7 +270,7 @@ importers:
       babel-plugin-named-asset-import: 0.3.8_@babel+core@7.20.12
       babel-preset-react-app: 10.0.1
       browserslist: 4.21.4
-      camelcase: 6.3.0
+      camelcase: 7.0.1
       case-sensitive-paths-webpack-plugin: 2.4.0
       css-loader: 6.7.3_webpack@5.75.0
       css-minimizer-webpack-plugin: 3.4.1_webpack@5.75.0
@@ -4696,6 +4696,11 @@ packages:
   /camelcase/6.3.0:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
+    dev: true
+
+  /camelcase/7.0.1:
+    resolution: {integrity: sha512-xlx1yCK2Oc1APsPXDL2LdlNP6+uu8OCDdhOBSVT279M/S+y75O30C2VuD8T2ogdePBBl7PfPF4504tnLgX3zfw==}
+    engines: {node: '>=14.16'}
     dev: true
 
   /caniuse-api/3.0.0:
