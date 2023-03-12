@@ -1,22 +1,12 @@
 use reqwest::StatusCode;
+use send_wrapper::SendWrapper;
 use serde::Deserialize;
+
+use std::future::Future;
+use std::pin::Pin;
 
 use super::types::Record;
 use super::types::{BridgeUrl, Constraint, Mutation, Operation};
-
-pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, QueryError> {
-    let response = reqwest::Client::new()
-        .post(BridgeUrl::Query(port).to_string())
-        .json(&operaton)
-        .send()
-        .await?;
-
-    if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
-        Err(QueryError::InternalServerError)
-    } else {
-        Ok(response.json::<Vec<Record>>().await?)
-    }
-}
 
 #[derive(Deserialize, Debug)]
 pub enum ApiErrorKind {
@@ -55,24 +45,44 @@ pub struct ApiError {
     pub error_kind: ApiErrorKind,
 }
 
-pub async fn mutation<'a>(mutations: Vec<Operation>, port: &str) -> Result<(), MutationError> {
+pub fn query<'a>(
+    operaton: Operation,
+    port: &str,
+) -> Pin<Box<dyn Future<Output = Result<Vec<Record>, QueryError>> + Send + '_>> {
+    let request = reqwest::Client::new()
+        .post(BridgeUrl::Query(port).to_string())
+        .json(&operaton);
+    Box::pin(SendWrapper::new(async move {
+        let response = request.send().await?;
+
+        if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
+            Err(QueryError::InternalServerError)
+        } else {
+            Ok(response.json::<Vec<Record>>().await?)
+        }
+    }))
+}
+
+pub fn mutation<'a>(
+    mutations: Vec<Operation>,
+    port: &str,
+) -> Pin<Box<dyn Future<Output = Result<(), MutationError>> + Send + '_>> {
     let client = reqwest::Client::new();
-    let response = client
+    let request = client
         .post(BridgeUrl::Mutation(port).to_string())
-        .json(&Mutation { mutations })
-        .send()
-        .await?;
-
-    match response.status() {
-        StatusCode::CONFLICT => {
-            let error = response.json::<ApiError>().await?;
-            return Err(MutationError::Api(error));
+        .json(&Mutation { mutations });
+    Box::pin(SendWrapper::new(async move {
+        let response = request.send().await?;
+        match response.status() {
+            StatusCode::CONFLICT => {
+                let error = response.json::<ApiError>().await?;
+                return Err(MutationError::Api(error));
+            }
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                return Err(MutationError::InternalServerError);
+            }
+            _ => {}
         }
-        StatusCode::INTERNAL_SERVER_ERROR => {
-            return Err(MutationError::InternalServerError);
-        }
-        _ => {}
-    }
-
-    Ok(())
+        Ok(())
+    }))
 }

@@ -50,6 +50,7 @@ indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
+send_wrapper = "0.6"
 serde = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
