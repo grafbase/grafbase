@@ -70,11 +70,20 @@ impl ParamApply for String {
     ) -> Result<String, Error> {
         let mut serializer = url::form_urlencoded::Serializer::new(&mut self);
 
-        for (key, style) in encoding_styles {
-            if let Some(value) = variable.get(key) {
-                urlencode_value(key, value, *style, &mut serializer)?
-            }
+        let object = match variable {
+            serde_json::Value::Object(object) => object,
+            serde_json::Value::Null => return Ok(self),
+            _ => return Err(Error::new("Internal error encoding body parameter")),
+        };
+
+        for (key, value) in object {
+            let style = encoding_styles
+                .get(&key)
+                .unwrap_or(&QueryParameterEncodingStyle::FormExploded);
+
+            urlencode_value(&key, &value, *style, &mut serializer)?;
         }
+
         serializer.finish();
 
         Ok(self)

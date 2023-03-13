@@ -14,7 +14,7 @@ pub struct OpenApiDirective {
     pub headers: Vec<Header>,
 }
 
-#[derive(Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct Header {
     pub name: String,
     pub value: String,

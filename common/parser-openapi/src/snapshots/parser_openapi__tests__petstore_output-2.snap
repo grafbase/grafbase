@@ -12,7 +12,7 @@ Registry {
                     name: "message",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -42,7 +42,7 @@ Registry {
                     name: "type",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -72,7 +72,7 @@ Registry {
                     name: "code",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -118,7 +118,7 @@ Registry {
                     name: "name",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -148,7 +148,7 @@ Registry {
                     name: "id",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -193,7 +193,7 @@ Registry {
                 "name": MetaInputValue {
                     name: "name",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -201,7 +201,7 @@ Registry {
                 "id": MetaInputValue {
                     name: "id",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -369,7 +369,7 @@ Registry {
                         "additionalMetadata": MetaInputValue {
                             name: "additionalMetadata",
                             description: None,
-                            ty: "String!",
+                            ty: "String",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -543,7 +543,7 @@ Registry {
                     name: "complete",
                     description: None,
                     args: {},
-                    ty: "Boolean!",
+                    ty: "Boolean",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -573,7 +573,7 @@ Registry {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "OrderStatus!",
+                    ty: "OrderStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -610,7 +610,7 @@ Registry {
                     name: "shipDate",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -640,7 +640,7 @@ Registry {
                     name: "quantity",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -670,7 +670,7 @@ Registry {
                     name: "petId",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -700,7 +700,7 @@ Registry {
                     name: "id",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -745,7 +745,7 @@ Registry {
                 "complete": MetaInputValue {
                     name: "complete",
                     description: None,
-                    ty: "Boolean!",
+                    ty: "Boolean",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -753,7 +753,7 @@ Registry {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "OrderStatus!",
+                    ty: "OrderStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -761,7 +761,7 @@ Registry {
                 "shipDate": MetaInputValue {
                     name: "shipDate",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -769,7 +769,7 @@ Registry {
                 "quantity": MetaInputValue {
                     name: "quantity",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -777,7 +777,7 @@ Registry {
                 "petId": MetaInputValue {
                     name: "petId",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -785,7 +785,7 @@ Registry {
                 "id": MetaInputValue {
                     name: "id",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -833,7 +833,7 @@ Registry {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "PetStatus!",
+                    ty: "PetStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -870,7 +870,7 @@ Registry {
                     name: "tags",
                     description: None,
                     args: {},
-                    ty: "[Tag!]!",
+                    ty: "[Tag!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -930,7 +930,7 @@ Registry {
                     name: "category",
                     description: None,
                     args: {},
-                    ty: "Category!",
+                    ty: "Category",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -990,7 +990,7 @@ Registry {
                     name: "id",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1035,7 +1035,7 @@ Registry {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "PetStatus!",
+                    ty: "PetStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1075,7 +1075,7 @@ Registry {
                 "id": MetaInputValue {
                     name: "id",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1126,7 +1126,7 @@ Registry {
                         "status": MetaInputValue {
                             name: "status",
                             description: None,
-                            ty: "FindPetsByStatus!",
+                            ty: "FindPetsByStatus",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -1178,7 +1178,7 @@ Registry {
                         "tags": MetaInputValue {
                             name: "tags",
                             description: None,
-                            ty: "[String!]!",
+                            ty: "[String!]",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -1367,7 +1367,7 @@ Registry {
                         "password": MetaInputValue {
                             name: "password",
                             description: None,
-                            ty: "String!",
+                            ty: "String",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -1375,7 +1375,7 @@ Registry {
                         "username": MetaInputValue {
                             name: "username",
                             description: None,
-                            ty: "String!",
+                            ty: "String",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -1498,7 +1498,7 @@ Registry {
                     name: "name",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1528,7 +1528,7 @@ Registry {
                     name: "id",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1573,7 +1573,7 @@ Registry {
                 "name": MetaInputValue {
                     name: "name",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1581,7 +1581,7 @@ Registry {
                 "id": MetaInputValue {
                     name: "id",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1598,7 +1598,7 @@ Registry {
                     name: "userStatus",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1628,7 +1628,7 @@ Registry {
                     name: "phone",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1658,7 +1658,7 @@ Registry {
                     name: "password",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1688,7 +1688,7 @@ Registry {
                     name: "email",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1718,7 +1718,7 @@ Registry {
                     name: "lastName",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1748,7 +1748,7 @@ Registry {
                     name: "firstName",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1778,7 +1778,7 @@ Registry {
                     name: "username",
                     description: None,
                     args: {},
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1808,7 +1808,7 @@ Registry {
                     name: "id",
                     description: None,
                     args: {},
-                    ty: "Int!",
+                    ty: "Int",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1853,7 +1853,7 @@ Registry {
                 "userStatus": MetaInputValue {
                     name: "userStatus",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1861,7 +1861,7 @@ Registry {
                 "phone": MetaInputValue {
                     name: "phone",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1869,7 +1869,7 @@ Registry {
                 "password": MetaInputValue {
                     name: "password",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1877,7 +1877,7 @@ Registry {
                 "email": MetaInputValue {
                     name: "email",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1885,7 +1885,7 @@ Registry {
                 "lastName": MetaInputValue {
                     name: "lastName",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1893,7 +1893,7 @@ Registry {
                 "firstName": MetaInputValue {
                     name: "firstName",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1901,7 +1901,7 @@ Registry {
                 "username": MetaInputValue {
                     name: "username",
                     description: None,
-                    ty: "String!",
+                    ty: "String",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1909,7 +1909,7 @@ Registry {
                 "id": MetaInputValue {
                     name: "id",
                     description: None,
-                    ty: "Int!",
+                    ty: "Int",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1938,5 +1938,7 @@ Registry {
         jwt_providers: [],
     },
     schemas: {},
-    http_headers: {},
+    http_headers: {
+        "example": [],
+    },
 }

@@ -1,6 +1,9 @@
 use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
-use openapiv3::{ReferenceOr, StatusCode, Type};
+use inflector::Inflector;
+use once_cell::sync::Lazy;
+use openapiv3::{AdditionalProperties, ReferenceOr, StatusCode, Type};
 use petgraph::graph::NodeIndex;
+use regex::Regex;
 
 use crate::{
     graph::{ScalarKind, SchemaDetails, WrappingType},
@@ -78,6 +81,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     name: parameter.name,
                     operation_index,
                     encoding_style: parameter.encoding_style,
+                    required: parameter.required,
                 };
                 match parameter.schema {
                     Some(schema) => extract_types(ctx, &schema, parent),
@@ -116,6 +120,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     ParentNode::OperationRequest {
                         content_type: request.content_type.clone(),
                         operation_index,
+                        required: request.required,
                     },
                 );
             }
@@ -130,6 +135,7 @@ enum ParentNode {
     OperationRequest {
         content_type: RequestBodyContentType,
         operation_index: NodeIndex,
+        required: bool,
     },
     OperationResponse {
         status_code: StatusCode,
@@ -155,6 +161,7 @@ enum ParentNode {
         name: String,
         operation_index: NodeIndex,
         encoding_style: QueryParameterEncodingStyle,
+        required: bool,
     },
 }
 
@@ -192,9 +199,13 @@ impl ParentNode {
     fn create_edge_weight(&self, wrapping: WrappingType) -> Edge {
         match self {
             ParentNode::Schema(_) => Edge::HasType { wrapping },
-            ParentNode::OperationRequest { content_type, .. } => Edge::HasRequestType {
+            ParentNode::OperationRequest {
+                content_type, required, ..
+            } => Edge::HasRequestType {
                 content_type: content_type.clone(),
-                wrapping,
+                // If a parameter is marked as not required, we need to make sure that we
+                // don't record it as required, regardless of what the schema says.
+                wrapping: wrapping.set_required(*required),
             },
             ParentNode::OperationResponse {
                 status_code,
@@ -209,7 +220,11 @@ impl ParentNode {
                 field_name, required, ..
             } => Edge::HasField {
                 name: field_name.clone(),
-                wrapping: if *required { wrapping.wrap_required() } else { wrapping },
+                // wrapping will have had the nullability of a field applied at this
+                // point.  But OpenAPI schemas often don't bother specifying the
+                // nullability of object fields and just use required, so we're better
+                // off ignoring `nullable` and just relying on `required` here.
+                wrapping: wrapping.set_required(*required),
             },
             ParentNode::List { nullable, parent } => {
                 // Ok, so call parent.to_edge_weight and then modifiy the wrapping in it.
@@ -223,13 +238,19 @@ impl ParentNode {
             ParentNode::Union { .. } => Edge::HasUnionMember,
             ParentNode::PathParameter { name, .. } => Edge::HasPathParameter {
                 name: name.clone(),
-                wrapping,
+                // Path parameters are always required, so lets make sure they are here too.
+                wrapping: wrapping.wrap_required(),
             },
             ParentNode::QueryParameter {
-                name, encoding_style, ..
+                name,
+                encoding_style,
+                required,
+                ..
             } => Edge::HasQueryParameter {
                 name: name.clone(),
-                wrapping,
+                // If a parameter is marked as not required, we need to make sure that we
+                // don't record it as required, regardless of what the schema says.
+                wrapping: wrapping.set_required(*required),
                 encoding_style: *encoding_style,
             },
         }
@@ -251,7 +272,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         }
         ReferenceOr::Item(schema) => match &schema.schema_kind {
             SchemaKind::Type(Type::String(ty)) => {
-                if ty.enumeration.is_empty() {
+                if ty.enumeration.is_empty() || !ty.enumeration.iter().all(is_valid_enum_value) {
                     ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
                 } else {
                     ctx.add_type_node(
@@ -274,8 +295,12 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
             }
             SchemaKind::Type(Type::Object(obj)) => {
                 if obj.properties.is_empty() {
-                    // If there's no explicit properties we make this a custom scalar
-                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    // If the object is empty _and_ there's no additionalProperties we don't bother
+                    // emiting an object for it.  Not sure if this is a good idea - could be some APIs
+                    // that _require_ an empty object.  But lets see what happens
+                    if obj.additional_properties != Some(AdditionalProperties::Any(false)) {
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    }
                     return;
                 }
                 let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
@@ -309,6 +334,13 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 );
             }
             SchemaKind::OneOf { one_of: schemas } | SchemaKind::AnyOf { any_of: schemas } => {
+                if schemas.len() == 1 {
+                    // The Stripe API has anyOfs containing a single item.
+                    // For ease of use we simplify this to just point direct at the underlying type.
+                    extract_types(ctx, schemas.first().unwrap(), parent);
+                    return;
+                }
+
                 let union_index = ctx.add_type_node(parent, Node::Union, schema.schema_data.nullable);
                 for schema in schemas {
                     extract_types(ctx, schema, ParentNode::Union(union_index));
@@ -320,9 +352,38 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
             SchemaKind::Not { .. } => {
                 ctx.errors.push(Error::NotSchema);
             }
-            SchemaKind::Any(_) => {
-                ctx.errors.push(Error::AnySchema);
+            SchemaKind::Any(any) => {
+                // We treat an any very similar to an object
+                if any.properties.is_empty() {
+                    // If there's no explicit properties we make this a custom scalar
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    return;
+                }
+                let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
+                for (field_name, field_schema_or_ref) in &any.properties {
+                    let required = any.required.contains(field_name);
+                    extract_types(
+                        ctx,
+                        &field_schema_or_ref.clone().unbox(),
+                        ParentNode::Field {
+                            object_index,
+                            field_name: field_name.clone(),
+                            required,
+                        },
+                    );
+                }
             }
         },
     }
+}
+
+// OpenAPI enums can be basically any string, but we're much more limited
+/// in GraphQL.  This checks if this value is valid in GraphQL or not.
+fn is_valid_enum_value(value: &Option<String>) -> bool {
+    static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
+    value
+        .as_deref()
+        .map(|value| value.to_screaming_snake_case())
+        .filter(|value| REGEX.is_match(value))
+        .is_some()
 }

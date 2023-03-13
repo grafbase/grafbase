@@ -89,6 +89,10 @@ impl HttpResolver {
                         request_builder = request_builder.json(&variable);
                     }
                     RequestBodyContentType::FormEncoded(encoding_styles) => {
+                        request_builder = request_builder.header(
+                            reqwest::header::CONTENT_TYPE,
+                            "application/x-www-form-urlencoded",
+                        );
                         request_builder = request_builder
                             .body(String::new().apply_body_parameters(encoding_styles, variable)?);
                     }

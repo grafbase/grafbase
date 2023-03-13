@@ -5,7 +5,7 @@ use inflector::Inflector;
 use openapiv3::StatusCode;
 use petgraph::{
     graph::NodeIndex,
-    visit::{EdgeRef, Reversed},
+    visit::{EdgeRef, IntoEdges, Reversed},
     Graph,
 };
 
@@ -17,14 +17,16 @@ mod input_value;
 mod operations;
 mod output_type;
 mod parameters;
+mod scalar;
 
 pub use self::{
     enums::Enum,
     input_object::{InputField, InputObject},
     input_value::{InputValue, InputValueKind},
     operations::Operation,
-    output_type::OutputType,
+    output_type::{OutputField, OutputFieldType, OutputType},
     parameters::{PathParameter, QueryParameter, RequestBody},
+    scalar::Scalar,
 };
 
 /// A graph representation of an OpenApi schema.
@@ -202,6 +204,21 @@ impl WrappingType {
         }
     }
 
+    pub(super) fn set_required(self, required: bool) -> WrappingType {
+        if required {
+            self.wrap_required()
+        } else {
+            self.unwrap_required()
+        }
+    }
+
+    pub(super) fn unwrap_required(self) -> WrappingType {
+        match self {
+            WrappingType::NonNull(inner) => *inner,
+            _ => self,
+        }
+    }
+
     pub fn contains_list(&self) -> bool {
         match self {
             WrappingType::NonNull(inner) => inner.contains_list(),
@@ -256,6 +273,17 @@ impl OpenApiGraph {
             }
             Node::Scalar(kind) => Some(kind.type_name()),
             Node::Union => {
+                // First we check if this union has an immediate schema parent.
+                // If so we use it's name for the union
+                let reversed_graph = Reversed(&self.graph);
+                if let Some(name) = reversed_graph
+                    .edges(node)
+                    .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))
+                    .and_then(|edge| self.graph[edge.target()].name())
+                {
+                    return Some(name);
+                }
+
                 // Unions are named based on the names of their constituent types.
                 // Although it's perfectly possible for any of the members to be un-named
                 // so this will probably require a bit more work at some point.
@@ -272,6 +300,16 @@ impl OpenApiGraph {
                 Some(name)
             }
         }
+    }
+
+    // Finds the type node of a schema node
+    fn schema_target(&self, schema_index: NodeIndex) -> Option<NodeIndex> {
+        Some(
+            self.graph
+                .edges(schema_index)
+                .find(|edge| matches!(edge.weight(), Edge::HasType { .. }))?
+                .target(),
+        )
     }
 }
 
