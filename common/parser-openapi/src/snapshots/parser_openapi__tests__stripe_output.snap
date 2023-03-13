@@ -7056,24 +7056,24 @@ type Mutation {
 	postAccountLinks(input: PostAccountLinksInput!): AccountLink!
 	postAccounts(input: PostAccountsInput): Account!
 	postAccountsAccount(account: String!, input: PostAccountsAccountInput): Account!
-	deleteAccountsAccount(account: String!, input: JSON): DeletedAccount!
+	deleteAccountsAccount(account: String!): DeletedAccount!
 	postAccountsAccountBankAccounts(account: String!, input: PostAccountsAccountBankAccountsInput): ExternalAccount!
 	postAccountsAccountBankAccountsId(id: String!, account: String!, input: PostAccountsAccountBankAccountsIdInput): ExternalAccount!
-	deleteAccountsAccountBankAccountsId(id: String!, account: String!, input: JSON): DeletedExternalAccount!
+	deleteAccountsAccountBankAccountsId(id: String!, account: String!): DeletedExternalAccount!
 	postAccountsAccountCapabilitiesCapability(capability: String!, account: String!, input: PostAccountsAccountCapabilitiesCapabilityInput): Capability!
 	postAccountsAccountExternalAccounts(account: String!, input: PostAccountsAccountExternalAccountsInput): ExternalAccount!
 	postAccountsAccountExternalAccountsId(id: String!, account: String!, input: PostAccountsAccountExternalAccountsIdInput): ExternalAccount!
-	deleteAccountsAccountExternalAccountsId(id: String!, account: String!, input: JSON): DeletedExternalAccount!
+	deleteAccountsAccountExternalAccountsId(id: String!, account: String!): DeletedExternalAccount!
 	postAccountsAccountLoginLinks(account: String!, input: PostAccountsAccountLoginLinksInput): LoginLink!
 	postAccountsAccountPeople(account: String!, input: PostAccountsAccountPeopleInput): Person!
 	postAccountsAccountPeoplePerson(person: String!, account: String!, input: PostAccountsAccountPeoplePersonInput): Person!
-	deleteAccountsAccountPeoplePerson(person: String!, account: String!, input: JSON): DeletedPerson!
+	deleteAccountsAccountPeoplePerson(person: String!, account: String!): DeletedPerson!
 	postAccountsAccountPersons(account: String!, input: PostAccountsAccountPersonsInput): Person!
 	postAccountsAccountPersonsPerson(person: String!, account: String!, input: PostAccountsAccountPersonsPersonInput): Person!
-	deleteAccountsAccountPersonsPerson(person: String!, account: String!, input: JSON): DeletedPerson!
+	deleteAccountsAccountPersonsPerson(person: String!, account: String!): DeletedPerson!
 	postAccountsAccountReject(account: String!, input: PostAccountsAccountRejectInput!): Account!
 	postApplePayDomains(input: PostApplePayDomainsInput!): ApplePayDomain!
-	deleteApplePayDomainsDomain(domain: String!, input: JSON): DeletedApplePayDomain!
+	deleteApplePayDomainsDomain(domain: String!): DeletedApplePayDomain!
 	postApplicationFeesFeeRefundsId(id: String!, fee: String!, input: PostApplicationFeesFeeRefundsIdInput): FeeRefund!
 	postApplicationFeesIdRefund(id: String!, input: PostApplicationFeesIdRefundInput): ApplicationFee!
 	postApplicationFeesIdRefunds(id: String!, input: PostApplicationFeesIdRefundsInput): FeeRefund!
@@ -7094,13 +7094,13 @@ type Mutation {
 	postCheckoutSessionsSessionExpire(session: String!, input: PostCheckoutSessionsSessionExpireInput): CheckoutSession!
 	postCoupons(input: PostCouponsInput): Coupon!
 	postCouponsCoupon(coupon: String!, input: PostCouponsCouponInput): Coupon!
-	deleteCouponsCoupon(coupon: String!, input: JSON): DeletedCoupon!
+	deleteCouponsCoupon(coupon: String!): DeletedCoupon!
 	postCreditNotes(input: PostCreditNotesInput!): CreditNote!
 	postCreditNotesId(id: String!, input: PostCreditNotesIdInput): CreditNote!
 	postCreditNotesIdVoid(id: String!, input: PostCreditNotesIdVoidInput): CreditNote!
 	postCustomers(input: PostCustomersInput): Customer!
 	postCustomersCustomer(customer: String!, input: PostCustomersCustomerInput): Customer!
-	deleteCustomersCustomer(customer: String!, input: JSON): DeletedCustomer!
+	deleteCustomersCustomer(customer: String!): DeletedCustomer!
 	postCustomersCustomerBalanceTransactions(customer: String!, input: PostCustomersCustomerBalanceTransactionsInput!): CustomerBalanceTransaction!
 	postCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!, input: PostCustomersCustomerBalanceTransactionsTransactionInput): CustomerBalanceTransaction!
 	postCustomersCustomerBankAccounts(customer: String!, input: PostCustomersCustomerBankAccountsInput): PaymentSource!
@@ -7111,7 +7111,7 @@ type Mutation {
 	postCustomersCustomerCardsId(id: String!, customer: String!, input: PostCustomersCustomerCardsIdInput): SourceOrBankAccountOrCardUnion!
 	deleteCustomersCustomerCardsId(id: String!, customer: String!, input: DeleteCustomersCustomerCardsIdInput): DeletedPaymentSourceOrPaymentSourceUnion!
 	postCustomersCustomerCashBalance(customer: String!, input: PostCustomersCustomerCashBalanceInput): CashBalance!
-	deleteCustomersCustomerDiscount(customer: String!, input: JSON): DeletedDiscount!
+	deleteCustomersCustomerDiscount(customer: String!): DeletedDiscount!
 	postCustomersCustomerFundingInstructions(customer: String!, input: PostCustomersCustomerFundingInstructionsInput!): FundingInstructions!
 	postCustomersCustomerSources(customer: String!, input: PostCustomersCustomerSourcesInput): PaymentSource!
 	postCustomersCustomerSourcesId(id: String!, customer: String!, input: PostCustomersCustomerSourcesIdInput): SourceOrBankAccountOrCardUnion!
@@ -7120,9 +7120,9 @@ type Mutation {
 	postCustomersCustomerSubscriptions(customer: String!, input: PostCustomersCustomerSubscriptionsInput): Subscription!
 	postCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: PostCustomersCustomerSubscriptionsSubscriptionExposedIdInput): Subscription!
 	deleteCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: DeleteCustomersCustomerSubscriptionsSubscriptionExposedIdInput): Subscription!
-	deleteCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!, input: JSON): DeletedDiscount!
+	deleteCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!): DeletedDiscount!
 	postCustomersCustomerTaxIds(customer: String!, input: PostCustomersCustomerTaxIdsInput!): TaxId!
-	deleteCustomersCustomerTaxIdsId(id: String!, customer: String!, input: JSON): DeletedTaxId!
+	deleteCustomersCustomerTaxIdsId(id: String!, customer: String!): DeletedTaxId!
 	postDisputesDispute(dispute: String!, input: PostDisputesDisputeInput): Dispute!
 	postDisputesDisputeClose(dispute: String!, input: PostDisputesDisputeCloseInput): Dispute!
 	postEphemeralKeys(input: PostEphemeralKeysInput): EphemeralKey!
@@ -7139,10 +7139,10 @@ type Mutation {
 	postIdentityVerificationSessionsSessionRedact(session: String!, input: PostIdentityVerificationSessionsSessionRedactInput): IdentityVerificationSession!
 	postInvoiceitems(input: PostInvoiceitemsInput!): Invoiceitem!
 	postInvoiceitemsInvoiceitem(invoiceitem: String!, input: PostInvoiceitemsInvoiceitemInput): Invoiceitem!
-	deleteInvoiceitemsInvoiceitem(invoiceitem: String!, input: JSON): DeletedInvoiceitem!
+	deleteInvoiceitemsInvoiceitem(invoiceitem: String!): DeletedInvoiceitem!
 	postInvoices(input: PostInvoicesInput): Invoice!
 	postInvoicesInvoice(invoice: String!, input: PostInvoicesInvoiceInput): Invoice!
-	deleteInvoicesInvoice(invoice: String!, input: JSON): DeletedInvoice!
+	deleteInvoicesInvoice(invoice: String!): DeletedInvoice!
 	postInvoicesInvoiceFinalize(invoice: String!, input: PostInvoicesInvoiceFinalizeInput): Invoice!
 	postInvoicesInvoiceMarkUncollectible(invoice: String!, input: PostInvoicesInvoiceMarkUncollectibleInput): Invoice!
 	postInvoicesInvoicePay(invoice: String!, input: PostInvoicesInvoicePayInput): Invoice!
@@ -7183,12 +7183,12 @@ type Mutation {
 	postPayoutsPayoutReverse(payout: String!, input: PostPayoutsPayoutReverseInput): Payout!
 	postPlans(input: PostPlansInput!): Plan!
 	postPlansPlan(plan: String!, input: PostPlansPlanInput): Plan!
-	deletePlansPlan(plan: String!, input: JSON): DeletedPlan!
+	deletePlansPlan(plan: String!): DeletedPlan!
 	postPrices(input: PostPricesInput!): Price!
 	postPricesPrice(price: String!, input: PostPricesPriceInput): Price!
 	postProducts(input: PostProductsInput!): Product!
 	postProductsId(id: String!, input: PostProductsIdInput): Product!
-	deleteProductsId(id: String!, input: JSON): DeletedProduct!
+	deleteProductsId(id: String!): DeletedProduct!
 	postPromotionCodes(input: PostPromotionCodesInput!): PromotionCode!
 	postPromotionCodesPromotionCode(promotionCode: String!, input: PostPromotionCodesPromotionCodeInput): PromotionCode!
 	postQuotes(input: PostQuotesInput): Quote!
@@ -7197,10 +7197,10 @@ type Mutation {
 	postQuotesQuoteCancel(quote: String!, input: PostQuotesQuoteCancelInput): Quote!
 	postQuotesQuoteFinalize(quote: String!, input: PostQuotesQuoteFinalizeInput): Quote!
 	postRadarValueListItems(input: PostRadarValueListItemsInput!): RadarValueListItem!
-	deleteRadarValueListItemsItem(item: String!, input: JSON): DeletedRadarValueListItem!
+	deleteRadarValueListItemsItem(item: String!): DeletedRadarValueListItem!
 	postRadarValueLists(input: PostRadarValueListsInput!): RadarValueList!
 	postRadarValueListsValueList(valueList: String!, input: PostRadarValueListsValueListInput): RadarValueList!
-	deleteRadarValueListsValueList(valueList: String!, input: JSON): DeletedRadarValueList!
+	deleteRadarValueListsValueList(valueList: String!): DeletedRadarValueList!
 	postRefunds(input: PostRefundsInput): Refund!
 	postRefundsRefund(refund: String!, input: PostRefundsRefundInput): Refund!
 	postRefundsRefundCancel(refund: String!, input: PostRefundsRefundCancelInput): Refund!
@@ -7227,20 +7227,20 @@ type Mutation {
 	postSubscriptions(input: PostSubscriptionsInput!): Subscription!
 	postSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: PostSubscriptionsSubscriptionExposedIdInput): Subscription!
 	deleteSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: DeleteSubscriptionsSubscriptionExposedIdInput): Subscription!
-	deleteSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, input: JSON): DeletedDiscount!
+	deleteSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!): DeletedDiscount!
 	postSubscriptionsSubscriptionResume(subscription: String!, input: PostSubscriptionsSubscriptionResumeInput): Subscription!
 	postTaxRates(input: PostTaxRatesInput!): TaxRate!
 	postTaxRatesTaxRate(taxRate: String!, input: PostTaxRatesTaxRateInput): TaxRate!
 	postTerminalConfigurations(input: PostTerminalConfigurationsInput): TerminalConfiguration!
 	postTerminalConfigurationsConfiguration(configuration: String!, input: PostTerminalConfigurationsConfigurationInput): DeletedTerminalConfigurationOrTerminalConfigurationUnion!
-	deleteTerminalConfigurationsConfiguration(configuration: String!, input: JSON): DeletedTerminalConfiguration!
+	deleteTerminalConfigurationsConfiguration(configuration: String!): DeletedTerminalConfiguration!
 	postTerminalConnectionTokens(input: PostTerminalConnectionTokensInput): TerminalConnectionToken!
 	postTerminalLocations(input: PostTerminalLocationsInput!): TerminalLocation!
 	postTerminalLocationsLocation(location: String!, input: PostTerminalLocationsLocationInput): DeletedTerminalLocationOrTerminalLocationUnion!
-	deleteTerminalLocationsLocation(location: String!, input: JSON): DeletedTerminalLocation!
+	deleteTerminalLocationsLocation(location: String!): DeletedTerminalLocation!
 	postTerminalReaders(input: PostTerminalReadersInput!): TerminalReader!
 	postTerminalReadersReader(reader: String!, input: PostTerminalReadersReaderInput): DeletedTerminalReaderOrTerminalReaderUnion!
-	deleteTerminalReadersReader(reader: String!, input: JSON): DeletedTerminalReader!
+	deleteTerminalReadersReader(reader: String!): DeletedTerminalReader!
 	postTerminalReadersReaderCancelAction(reader: String!, input: PostTerminalReadersReaderCancelActionInput): TerminalReader!
 	postTerminalReadersReaderProcessPaymentIntent(reader: String!, input: PostTerminalReadersReaderProcessPaymentIntentInput!): TerminalReader!
 	postTerminalReadersReaderProcessSetupIntent(reader: String!, input: PostTerminalReadersReaderProcessSetupIntentInput!): TerminalReader!
@@ -7253,7 +7253,7 @@ type Mutation {
 	postTestHelpersRefundsRefundExpire(refund: String!, input: PostTestHelpersRefundsRefundExpireInput): Refund!
 	postTestHelpersTerminalReadersReaderPresentPaymentMethod(reader: String!, input: PostTestHelpersTerminalReadersReaderPresentPaymentMethodInput): TerminalReader!
 	postTestHelpersTestClocks(input: PostTestHelpersTestClocksInput!): TestHelpersTestClock!
-	deleteTestHelpersTestClocksTestClock(testClock: String!, input: JSON): DeletedTestHelpersTestClock!
+	deleteTestHelpersTestClocksTestClock(testClock: String!): DeletedTestHelpersTestClock!
 	postTestHelpersTestClocksTestClockAdvance(testClock: String!, input: PostTestHelpersTestClocksTestClockAdvanceInput!): TestHelpersTestClock!
 	postTestHelpersTreasuryInboundTransfersIdFail(id: String!, input: PostTestHelpersTreasuryInboundTransfersIdFailInput): TreasuryInboundTransfer!
 	postTestHelpersTreasuryInboundTransfersIdReturn(id: String!, input: PostTestHelpersTreasuryInboundTransfersIdReturnInput): TreasuryInboundTransfer!
@@ -7287,7 +7287,7 @@ type Mutation {
 	postTreasuryOutboundTransfersOutboundTransferCancel(outboundTransfer: String!, input: PostTreasuryOutboundTransfersOutboundTransferCancelInput): TreasuryOutboundTransfer!
 	postWebhookEndpoints(input: PostWebhookEndpointsInput!): WebhookEndpoint!
 	postWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, input: PostWebhookEndpointsWebhookEndpointInput): WebhookEndpoint!
-	deleteWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, input: JSON): DeletedWebhookEndpoint!
+	deleteWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!): DeletedWebhookEndpoint!
 }
 type Networks {
 	preferred: String
@@ -27344,216 +27344,216 @@ type PromotionCodesResourceRestrictions {
 	currencyOptions: JSON
 }
 type Query {
-	getAccount(expand: [String!], input: JSON): Account!
-	getAccounts(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetAccountsUnionInput, input: JSON): GetAccounts!
-	getAccountsAccount(account: String!, expand: [String!], input: JSON): Account!
-	getAccountsAccountBankAccountsId(id: String!, account: String!, expand: [String!], input: JSON): ExternalAccount!
-	getAccountsAccountCapabilities(account: String!, expand: [String!], input: JSON): GetAccountsAccountCapabilities!
-	getAccountsAccountCapabilitiesCapability(capability: String!, account: String!, expand: [String!], input: JSON): Capability!
-	getAccountsAccountExternalAccounts(account: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetAccountsAccountExternalAccounts!
-	getAccountsAccountExternalAccountsId(id: String!, account: String!, expand: [String!], input: JSON): ExternalAccount!
-	getAccountsAccountPeople(account: String!, starting_after: String, relationship: GetAccountsAccountPeopleInput, limit: Int, expand: [String!], ending_before: String, input: JSON): GetAccountsAccountPeople!
-	getAccountsAccountPeoplePerson(person: String!, account: String!, expand: [String!], input: JSON): Person!
-	getAccountsAccountPersons(account: String!, starting_after: String, relationship: GetAccountsAccountPersonsInput, limit: Int, expand: [String!], ending_before: String, input: JSON): GetAccountsAccountPersons!
-	getAccountsAccountPersonsPerson(person: String!, account: String!, expand: [String!], input: JSON): Person!
-	getApplePayDomains(starting_after: String, limit: Int, expand: [String!], ending_before: String, domain_name: String, input: JSON): GetApplePayDomains!
-	getApplePayDomainsDomain(domain: String!, expand: [String!], input: JSON): ApplePayDomain!
-	getApplicationFees(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetApplicationFeesUnionInput, charge: String, input: JSON): GetApplicationFees!
-	getApplicationFeesFeeRefundsId(id: String!, fee: String!, expand: [String!], input: JSON): FeeRefund!
-	getApplicationFeesId(id: String!, expand: [String!], input: JSON): ApplicationFee!
-	getApplicationFeesIdRefunds(id: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetApplicationFeesIdRefunds!
-	getAppsSecrets(starting_after: String, scope: GetAppsSecretsInput!, limit: Int, expand: [String!], ending_before: String, input: JSON): GetAppsSecrets!
-	getAppsSecretsFind(scope: GetAppsSecretsFindInput!, name: String!, expand: [String!], input: JSON): AppsSecret!
-	getBalance(expand: [String!], input: JSON): Balance!
-	getBalanceHistory(type: String, starting_after: String, source: String, payout: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetBalanceHistoryUnionInput, input: JSON): GetBalanceHistory!
-	getBalanceHistoryId(id: String!, expand: [String!], input: JSON): BalanceTransaction!
-	getBalanceTransactions(type: String, starting_after: String, source: String, payout: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetBalanceTransactionsUnionInput, input: JSON): GetBalanceTransactions!
-	getBalanceTransactionsId(id: String!, expand: [String!], input: JSON): BalanceTransaction!
-	getBillingPortalConfigurations(starting_after: String, limit: Int, is_default: Boolean, expand: [String!], ending_before: String, active: Boolean, input: JSON): GetBillingPortalConfigurations!
-	getBillingPortalConfigurationsConfiguration(configuration: String!, expand: [String!], input: JSON): BillingPortalConfiguration!
-	getCharges(transfer_group: String, starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetChargesUnionInput, input: JSON): GetCharges!
-	getChargesSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetChargesSearch!
-	getChargesCharge(charge: String!, expand: [String!], input: JSON): Charge!
-	getChargesChargeDispute(charge: String!, expand: [String!], input: JSON): Dispute!
-	getChargesChargeRefunds(charge: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetChargesChargeRefunds!
-	getChargesChargeRefundsRefund(refund: String!, charge: String!, expand: [String!], input: JSON): Refund!
-	getCheckoutSessions(subscription: String, starting_after: String, payment_link: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, customer_details: GetCheckoutSessionsInput, customer: String, input: JSON): GetCheckoutSessions!
-	getCheckoutSessionsSession(session: String!, expand: [String!], input: JSON): CheckoutSession!
-	getCheckoutSessionsSessionLineItems(session: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCheckoutSessionsSessionLineItems!
-	getCountrySpecs(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCountrySpecs!
-	getCountrySpecsCountry(country: String!, expand: [String!], input: JSON): CountrySpec!
-	getCoupons(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetCouponsUnionInput, input: JSON): GetCoupons!
-	getCouponsCoupon(coupon: String!, expand: [String!], input: JSON): Coupon!
-	getCreditNotes(starting_after: String, limit: Int, invoice: String, expand: [String!], ending_before: String, customer: String, input: JSON): GetCreditNotes!
-	getCreditNotesPreview(shipping_cost: GetCreditNotesPreviewInput, refund_amount: Int, refund: String, reason: GetCreditNotesPreview, out_of_band_amount: Int, metadata: JSON, memo: String, lines: [GetCreditNotesPreviewInput!], invoice: String!, expand: [String!], credit_amount: Int, amount: Int, input: JSON): CreditNote!
-	getCreditNotesPreviewLines(starting_after: String, shipping_cost: GetCreditNotesPreviewLinesInput, refund_amount: Int, refund: String, reason: GetCreditNotesPreviewLines, out_of_band_amount: Int, metadata: JSON, memo: String, lines: [GetCreditNotesPreviewLinesInput!], limit: Int, invoice: String!, expand: [String!], ending_before: String, credit_amount: Int, amount: Int, input: JSON): GetCreditNotesPreviewLines!
-	getCreditNotesCreditNoteLines(creditNote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCreditNotesCreditNoteLines!
-	getCreditNotesId(id: String!, expand: [String!], input: JSON): CreditNote!
-	getCustomers(test_clock: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, email: String, created: GetCustomersUnionInput, input: JSON): GetCustomers!
-	getCustomersSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetCustomersSearch!
-	getCustomersCustomer(customer: String!, expand: [String!], input: JSON): DeletedCustomerOrCustomerUnion!
-	getCustomersCustomerBalanceTransactions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerBalanceTransactions!
-	getCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!, expand: [String!], input: JSON): CustomerBalanceTransaction!
-	getCustomersCustomerBankAccounts(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerBankAccounts!
-	getCustomersCustomerBankAccountsId(id: String!, customer: String!, expand: [String!], input: JSON): BankAccount!
-	getCustomersCustomerCards(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerCards!
-	getCustomersCustomerCardsId(id: String!, customer: String!, expand: [String!], input: JSON): Card!
-	getCustomersCustomerCashBalance(customer: String!, expand: [String!], input: JSON): CashBalance!
-	getCustomersCustomerCashBalanceTransactions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerCashBalanceTransactions!
-	getCustomersCustomerCashBalanceTransactionsTransaction(transaction: String!, customer: String!, expand: [String!], input: JSON): CustomerCashBalanceTransaction!
-	getCustomersCustomerDiscount(customer: String!, expand: [String!], input: JSON): Discount!
-	getCustomersCustomerPaymentMethods(customer: String!, type: GetCustomersCustomerPaymentMethods, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerPaymentMethods!
-	getCustomersCustomerPaymentMethodsPaymentMethod(paymentMethod: String!, customer: String!, expand: [String!], input: JSON): PaymentMethod!
-	getCustomersCustomerSources(customer: String!, starting_after: String, object: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerSources!
-	getCustomersCustomerSourcesId(id: String!, customer: String!, expand: [String!], input: JSON): PaymentSource!
-	getCustomersCustomerSubscriptions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerSubscriptions!
-	getCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, expand: [String!], input: JSON): Subscription!
-	getCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!, expand: [String!], input: JSON): Discount!
-	getCustomersCustomerTaxIds(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetCustomersCustomerTaxIds!
-	getCustomersCustomerTaxIdsId(id: String!, customer: String!, expand: [String!], input: JSON): TaxId!
-	getDisputes(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, created: GetDisputesUnionInput, charge: String, input: JSON): GetDisputes!
-	getDisputesDispute(dispute: String!, expand: [String!], input: JSON): Dispute!
-	getEvents(types: [String!], type: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, delivery_success: Boolean, created: GetEventsUnionInput, input: JSON): GetEvents!
-	getEventsId(id: String!, expand: [String!], input: JSON): Event!
-	getExchangeRates(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetExchangeRates!
-	getExchangeRatesRateId(rateId: String!, expand: [String!], input: JSON): ExchangeRate!
-	getFileLinks(starting_after: String, limit: Int, file: String, expired: Boolean, expand: [String!], ending_before: String, created: GetFileLinksUnionInput, input: JSON): GetFileLinks!
-	getFileLinksLink(link: String!, expand: [String!], input: JSON): FileLink!
-	getFiles(starting_after: String, purpose: GetFiles, limit: Int, expand: [String!], ending_before: String, created: GetFilesUnionInput, input: JSON): GetFiles!
-	getFilesFile(file: String!, expand: [String!], input: JSON): File!
-	getFinancialConnectionsAccounts(starting_after: String, session: String, limit: Int, expand: [String!], ending_before: String, account_holder: GetFinancialConnectionsAccountsInput, input: JSON): GetFinancialConnectionsAccounts!
-	getFinancialConnectionsAccountsAccount(account: String!, expand: [String!], input: JSON): FinancialConnectionsAccount!
-	getFinancialConnectionsAccountsAccountOwners(account: String!, starting_after: String, ownership: String!, limit: Int, expand: [String!], ending_before: String, input: JSON): GetFinancialConnectionsAccountsAccountOwners!
-	getFinancialConnectionsSessionsSession(session: String!, expand: [String!], input: JSON): FinancialConnectionsSession!
-	getIdentityVerificationReports(verification_session: String, type: GetIdentityVerificationReports, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIdentityVerificationReportsUnionInput, input: JSON): GetIdentityVerificationReports!
-	getIdentityVerificationReportsReport(report: String!, expand: [String!], input: JSON): IdentityVerificationReport!
-	getIdentityVerificationSessions(status: GetIdentityVerificationSessions, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIdentityVerificationSessionsUnionInput, input: JSON): GetIdentityVerificationSessions!
-	getIdentityVerificationSessionsSession(session: String!, expand: [String!], input: JSON): IdentityVerificationSession!
-	getInvoiceitems(starting_after: String, pending: Boolean, limit: Int, invoice: String, expand: [String!], ending_before: String, customer: String, created: GetInvoiceitemsUnionInput, input: JSON): GetInvoiceitems!
-	getInvoiceitemsInvoiceitem(invoiceitem: String!, expand: [String!], input: JSON): Invoiceitem!
-	getInvoices(subscription: String, status: GetInvoices, starting_after: String, limit: Int, expand: [String!], ending_before: String, due_date: GetInvoicesUnionInput, customer: String, created: GetInvoicesUnionInput, collection_method: GetInvoices, input: JSON): GetInvoices!
-	getInvoicesSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetInvoicesSearch!
-	getInvoicesUpcoming(subscription_trial_from_plan: Boolean, subscription_trial_end: UnionInput, subscription_start_date: Int, subscription_resume_at: GetInvoicesUpcoming, subscription_proration_date: Int, subscription_proration_behavior: GetInvoicesUpcoming, subscription_items: [GetInvoicesUpcomingInput!], subscription_default_tax_rates: UnionInput, subscription_cancel_now: Boolean, subscription_cancel_at_period_end: Boolean, subscription_cancel_at: UnionInput, subscription_billing_cycle_anchor: UnionInput, subscription: String, schedule: String, invoice_items: [GetInvoicesUpcomingInput!], expand: [String!], discounts: GetInvoicesUpcomingUnionInput, customer_details: GetInvoicesUpcomingInput, customer: String, currency: String, coupon: String, automatic_tax: GetInvoicesUpcomingInput, input: JSON): Invoice!
-	getInvoicesUpcomingLines(subscription_trial_from_plan: Boolean, subscription_trial_end: UnionInput, subscription_start_date: Int, subscription_resume_at: GetInvoicesUpcomingLines, subscription_proration_date: Int, subscription_proration_behavior: GetInvoicesUpcomingLines, subscription_items: [GetInvoicesUpcomingLinesInput!], subscription_default_tax_rates: UnionInput, subscription_cancel_now: Boolean, subscription_cancel_at_period_end: Boolean, subscription_cancel_at: UnionInput, subscription_billing_cycle_anchor: UnionInput, subscription: String, starting_after: String, schedule: String, limit: Int, invoice_items: [GetInvoicesUpcomingLinesInput!], expand: [String!], ending_before: String, discounts: GetInvoicesUpcomingLinesUnionInput, customer_details: GetInvoicesUpcomingLinesInput, customer: String, currency: String, coupon: String, automatic_tax: GetInvoicesUpcomingLinesInput, input: JSON): GetInvoicesUpcomingLines!
-	getInvoicesInvoice(invoice: String!, expand: [String!], input: JSON): Invoice!
-	getInvoicesInvoiceLines(invoice: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetInvoicesInvoiceLines!
-	getIssuingAuthorizations(status: GetIssuingAuthorizations, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingAuthorizationsUnionInput, cardholder: String, card: String, input: JSON): GetIssuingAuthorizations!
-	getIssuingAuthorizationsAuthorization(authorization: String!, expand: [String!], input: JSON): IssuingAuthorization!
-	getIssuingCardholders(type: GetIssuingCardholders, status: GetIssuingCardholders, starting_after: String, phone_number: String, limit: Int, expand: [String!], ending_before: String, email: String, created: GetIssuingCardholdersUnionInput, input: JSON): GetIssuingCardholders!
-	getIssuingCardholdersCardholder(cardholder: String!, expand: [String!], input: JSON): IssuingCardholder!
-	getIssuingCards(type: GetIssuingCards, status: GetIssuingCards, starting_after: String, limit: Int, last4: String, expand: [String!], exp_year: Int, exp_month: Int, ending_before: String, created: GetIssuingCardsUnionInput, cardholder: String, input: JSON): GetIssuingCards!
-	getIssuingCardsCard(card: String!, expand: [String!], input: JSON): IssuingCard!
-	getIssuingDisputes(transaction: String, status: GetIssuingDisputes, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingDisputesUnionInput, input: JSON): GetIssuingDisputes!
-	getIssuingDisputesDispute(dispute: String!, expand: [String!], input: JSON): IssuingDispute!
-	getIssuingSettlements(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingSettlementsUnionInput, input: JSON): GetIssuingSettlements!
-	getIssuingSettlementsSettlement(settlement: String!, expand: [String!], input: JSON): IssuingSettlement!
-	getIssuingTransactions(type: GetIssuingTransactions, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingTransactionsUnionInput, cardholder: String, card: String, input: JSON): GetIssuingTransactions!
-	getIssuingTransactionsTransaction(transaction: String!, expand: [String!], input: JSON): IssuingTransaction!
-	getLinkAccountSessionsSession(session: String!, expand: [String!], input: JSON): FinancialConnectionsSession!
-	getLinkedAccounts(starting_after: String, session: String, limit: Int, expand: [String!], ending_before: String, account_holder: GetLinkedAccountsInput, input: JSON): GetLinkedAccounts!
-	getLinkedAccountsAccount(account: String!, expand: [String!], input: JSON): FinancialConnectionsAccount!
-	getLinkedAccountsAccountOwners(account: String!, starting_after: String, ownership: String!, limit: Int, expand: [String!], ending_before: String, input: JSON): GetLinkedAccountsAccountOwners!
-	getMandatesMandate(mandate: String!, expand: [String!], input: JSON): Mandate!
-	getPaymentIntents(starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetPaymentIntentsUnionInput, input: JSON): GetPaymentIntents!
-	getPaymentIntentsSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetPaymentIntentsSearch!
-	getPaymentIntentsIntent(intent: String!, expand: [String!], client_secret: String, input: JSON): PaymentIntent!
-	getPaymentLinks(starting_after: String, limit: Int, expand: [String!], ending_before: String, active: Boolean, input: JSON): GetPaymentLinks!
-	getPaymentLinksPaymentLink(paymentLink: String!, expand: [String!], input: JSON): PaymentLink!
-	getPaymentLinksPaymentLinkLineItems(paymentLink: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetPaymentLinksPaymentLinkLineItems!
-	getPaymentMethods(type: GetPaymentMethods, starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, input: JSON): GetPaymentMethods!
-	getPaymentMethodsPaymentMethod(paymentMethod: String!, expand: [String!], input: JSON): PaymentMethod!
-	getPayouts(status: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, destination: String, created: GetPayoutsUnionInput, arrival_date: GetPayoutsUnionInput, input: JSON): GetPayouts!
-	getPayoutsPayout(payout: String!, expand: [String!], input: JSON): Payout!
-	getPlans(starting_after: String, product: String, limit: Int, expand: [String!], ending_before: String, created: GetPlansUnionInput, active: Boolean, input: JSON): GetPlans!
-	getPlansPlan(plan: String!, expand: [String!], input: JSON): Plan!
-	getPrices(type: GetPrices, starting_after: String, recurring: GetPricesInput, product: String, lookup_keys: [String!], limit: Int, expand: [String!], ending_before: String, currency: String, created: GetPricesUnionInput, active: Boolean, input: JSON): GetPrices!
-	getPricesSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetPricesSearch!
-	getPricesPrice(price: String!, expand: [String!], input: JSON): Price!
-	getProducts(url: String, starting_after: String, shippable: Boolean, limit: Int, ids: [String!], expand: [String!], ending_before: String, created: GetProductsUnionInput, active: Boolean, input: JSON): GetProducts!
-	getProductsSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetProductsSearch!
-	getProductsId(id: String!, expand: [String!], input: JSON): Product!
-	getPromotionCodes(starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetPromotionCodesUnionInput, coupon: String, code: String, active: Boolean, input: JSON): GetPromotionCodes!
-	getPromotionCodesPromotionCode(promotionCode: String!, expand: [String!], input: JSON): PromotionCode!
-	getQuotes(test_clock: String, status: GetQuotes, starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, input: JSON): GetQuotes!
-	getQuotesQuote(quote: String!, expand: [String!], input: JSON): Quote!
-	getQuotesQuoteComputedUpfrontLineItems(quote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetQuotesQuoteComputedUpfrontLineItems!
-	getQuotesQuoteLineItems(quote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetQuotesQuoteLineItems!
-	getQuotesQuotePdf(quote: String!, expand: [String!], input: JSON): String!
-	getRadarEarlyFraudWarnings(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, charge: String, input: JSON): GetRadarEarlyFraudWarnings!
-	getRadarEarlyFraudWarningsEarlyFraudWarning(earlyFraudWarning: String!, expand: [String!], input: JSON): RadarEarlyFraudWarning!
-	getRadarValueListItems(value_list: String!, value: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetRadarValueListItemsUnionInput, input: JSON): GetRadarValueListItems!
-	getRadarValueListItemsItem(item: String!, expand: [String!], input: JSON): RadarValueListItem!
-	getRadarValueLists(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetRadarValueListsUnionInput, contains: String, alias: String, input: JSON): GetRadarValueLists!
-	getRadarValueListsValueList(valueList: String!, expand: [String!], input: JSON): RadarValueList!
-	getRefunds(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, created: GetRefundsUnionInput, charge: String, input: JSON): GetRefunds!
-	getRefundsRefund(refund: String!, expand: [String!], input: JSON): Refund!
-	getReportingReportRuns(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetReportingReportRunsUnionInput, input: JSON): GetReportingReportRuns!
-	getReportingReportRunsReportRun(reportRun: String!, expand: [String!], input: JSON): ReportingReportRun!
-	getReportingReportTypes(expand: [String!], input: JSON): GetReportingReportTypes!
-	getReportingReportTypesReportType(reportType: String!, expand: [String!], input: JSON): ReportingReportType!
-	getReviews(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetReviewsUnionInput, input: JSON): GetReviews!
-	getReviewsReview(review: String!, expand: [String!], input: JSON): Review!
-	getSetupAttempts(starting_after: String, setup_intent: String!, limit: Int, expand: [String!], ending_before: String, created: GetSetupAttemptsUnionInput, input: JSON): GetSetupAttempts!
-	getSetupIntents(starting_after: String, payment_method: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetSetupIntentsUnionInput, attach_to_self: Boolean, input: JSON): GetSetupIntents!
-	getSetupIntentsIntent(intent: String!, expand: [String!], client_secret: String, input: JSON): SetupIntent!
-	getShippingRates(starting_after: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetShippingRatesUnionInput, active: Boolean, input: JSON): GetShippingRates!
-	getShippingRatesShippingRateToken(shippingRateToken: String!, expand: [String!], input: JSON): ShippingRate!
-	getSigmaScheduledQueryRuns(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetSigmaScheduledQueryRuns!
-	getSigmaScheduledQueryRunsScheduledQueryRun(scheduledQueryRun: String!, expand: [String!], input: JSON): ScheduledQueryRun!
-	getSourcesSource(source: String!, expand: [String!], client_secret: String, input: JSON): Source!
-	getSourcesSourceMandateNotificationsMandateNotification(source: String!, mandateNotification: String!, expand: [String!], input: JSON): SourceMandateNotification!
-	getSourcesSourceSourceTransactions(source: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetSourcesSourceSourceTransactions!
-	getSourcesSourceSourceTransactionsSourceTransaction(sourceTransaction: String!, source: String!, expand: [String!], input: JSON): SourceTransaction!
-	getSubscriptionItems(subscription: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetSubscriptionItems!
-	getSubscriptionItemsItem(item: String!, expand: [String!], input: JSON): SubscriptionItem!
-	getSubscriptionItemsSubscriptionItemUsageRecordSummaries(subscriptionItem: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetSubscriptionItemsSubscriptionItemUsageRecordSummaries!
-	getSubscriptionSchedules(starting_after: String, scheduled: Boolean, released_at: GetSubscriptionSchedulesUnionInput, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetSubscriptionSchedulesUnionInput, completed_at: GetSubscriptionSchedulesUnionInput, canceled_at: GetSubscriptionSchedulesUnionInput, input: JSON): GetSubscriptionSchedules!
-	getSubscriptionSchedulesSchedule(schedule: String!, expand: [String!], input: JSON): SubscriptionSchedule!
-	getSubscriptions(test_clock: String, status: GetSubscriptions, starting_after: String, price: String, limit: Int, expand: [String!], ending_before: String, customer: String, current_period_start: GetSubscriptionsUnionInput, current_period_end: GetSubscriptionsUnionInput, created: GetSubscriptionsUnionInput, collection_method: GetSubscriptions, input: JSON): GetSubscriptions!
-	getSubscriptionsSearch(query: String!, page: String, limit: Int, expand: [String!], input: JSON): GetSubscriptionsSearch!
-	getSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, expand: [String!], input: JSON): Subscription!
-	getTaxCodes(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetTaxCodes!
-	getTaxCodesId(id: String!, expand: [String!], input: JSON): TaxCode!
-	getTaxRates(starting_after: String, limit: Int, inclusive: Boolean, expand: [String!], ending_before: String, created: GetTaxRatesUnionInput, active: Boolean, input: JSON): GetTaxRates!
-	getTaxRatesTaxRate(taxRate: String!, expand: [String!], input: JSON): TaxRate!
-	getTerminalConfigurations(starting_after: String, limit: Int, is_account_default: Boolean, expand: [String!], ending_before: String, input: JSON): GetTerminalConfigurations!
-	getTerminalConfigurationsConfiguration(configuration: String!, expand: [String!], input: JSON): DeletedTerminalConfigurationOrTerminalConfigurationUnion!
-	getTerminalLocations(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetTerminalLocations!
-	getTerminalLocationsLocation(location: String!, expand: [String!], input: JSON): DeletedTerminalLocationOrTerminalLocationUnion!
-	getTerminalReaders(status: GetTerminalReaders, starting_after: String, location: String, limit: Int, expand: [String!], ending_before: String, device_type: GetTerminalReaders, input: JSON): GetTerminalReaders!
-	getTerminalReadersReader(reader: String!, expand: [String!], input: JSON): DeletedTerminalReaderOrTerminalReaderUnion!
-	getTestHelpersTestClocks(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetTestHelpersTestClocks!
-	getTestHelpersTestClocksTestClock(testClock: String!, expand: [String!], input: JSON): TestHelpersTestClock!
-	getTokensToken(token: String!, expand: [String!], input: JSON): Token!
-	getTopups(status: GetTopups, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetTopupsUnionInput, amount: GetTopupsUnionInput, input: JSON): GetTopups!
-	getTopupsTopup(topup: String!, expand: [String!], input: JSON): Topup!
-	getTransfers(transfer_group: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, destination: String, created: GetTransfersUnionInput, input: JSON): GetTransfers!
-	getTransfersIdReversals(id: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetTransfersIdReversals!
-	getTransfersTransfer(transfer: String!, expand: [String!], input: JSON): Transfer!
-	getTransfersTransferReversalsId(transfer: String!, id: String!, expand: [String!], input: JSON): TransferReversal!
-	getTreasuryCreditReversals(status: GetTreasuryCreditReversals, starting_after: String, received_credit: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryCreditReversals!
-	getTreasuryCreditReversalsCreditReversal(creditReversal: String!, expand: [String!], input: JSON): TreasuryCreditReversal!
-	getTreasuryDebitReversals(status: GetTreasuryDebitReversals, starting_after: String, resolution: GetTreasuryDebitReversals, received_debit: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryDebitReversals!
-	getTreasuryDebitReversalsDebitReversal(debitReversal: String!, expand: [String!], input: JSON): TreasuryDebitReversal!
-	getTreasuryFinancialAccounts(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetTreasuryFinancialAccountsUnionInput, input: JSON): GetTreasuryFinancialAccounts!
-	getTreasuryFinancialAccountsFinancialAccount(financialAccount: String!, expand: [String!], input: JSON): TreasuryFinancialAccount!
-	getTreasuryFinancialAccountsFinancialAccountFeatures(financialAccount: String!, expand: [String!], input: JSON): TreasuryFinancialAccountFeatures!
-	getTreasuryInboundTransfers(status: GetTreasuryInboundTransfers, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryInboundTransfers!
-	getTreasuryInboundTransfersId(id: String!, expand: [String!], input: JSON): TreasuryInboundTransfer!
-	getTreasuryOutboundPayments(status: GetTreasuryOutboundPayments, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, customer: String, input: JSON): GetTreasuryOutboundPayments!
-	getTreasuryOutboundPaymentsId(id: String!, expand: [String!], input: JSON): TreasuryOutboundPayment!
-	getTreasuryOutboundTransfers(status: GetTreasuryOutboundTransfers, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryOutboundTransfers!
-	getTreasuryOutboundTransfersOutboundTransfer(outboundTransfer: String!, expand: [String!], input: JSON): TreasuryOutboundTransfer!
-	getTreasuryReceivedCredits(status: GetTreasuryReceivedCredits, starting_after: String, linked_flows: GetTreasuryReceivedCreditsInput, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryReceivedCredits!
-	getTreasuryReceivedCreditsId(id: String!, expand: [String!], input: JSON): TreasuryReceivedCredit!
-	getTreasuryReceivedDebits(status: GetTreasuryReceivedDebits, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, input: JSON): GetTreasuryReceivedDebits!
-	getTreasuryReceivedDebitsId(id: String!, expand: [String!], input: JSON): TreasuryReceivedDebit!
-	getTreasuryTransactionEntries(transaction: String, starting_after: String, order_by: GetTreasuryTransactionEntries, limit: Int, financial_account: String!, expand: [String!], ending_before: String, effective_at: GetTreasuryTransactionEntriesUnionInput, created: GetTreasuryTransactionEntriesUnionInput, input: JSON): GetTreasuryTransactionEntries!
-	getTreasuryTransactionEntriesId(id: String!, expand: [String!], input: JSON): TreasuryTransactionEntry!
-	getTreasuryTransactions(status_transitions: GetTreasuryTransactionsInput, status: GetTreasuryTransactions, starting_after: String, order_by: GetTreasuryTransactions, limit: Int, financial_account: String!, expand: [String!], ending_before: String, created: GetTreasuryTransactionsUnionInput, input: JSON): GetTreasuryTransactions!
-	getTreasuryTransactionsId(id: String!, expand: [String!], input: JSON): TreasuryTransaction!
-	getWebhookEndpoints(starting_after: String, limit: Int, expand: [String!], ending_before: String, input: JSON): GetWebhookEndpoints!
-	getWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, expand: [String!], input: JSON): WebhookEndpoint!
+	getAccount(expand: [String!]): Account!
+	getAccounts(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetAccountsUnionInput): GetAccounts!
+	getAccountsAccount(account: String!, expand: [String!]): Account!
+	getAccountsAccountBankAccountsId(id: String!, account: String!, expand: [String!]): ExternalAccount!
+	getAccountsAccountCapabilities(account: String!, expand: [String!]): GetAccountsAccountCapabilities!
+	getAccountsAccountCapabilitiesCapability(capability: String!, account: String!, expand: [String!]): Capability!
+	getAccountsAccountExternalAccounts(account: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetAccountsAccountExternalAccounts!
+	getAccountsAccountExternalAccountsId(id: String!, account: String!, expand: [String!]): ExternalAccount!
+	getAccountsAccountPeople(account: String!, starting_after: String, relationship: GetAccountsAccountPeopleInput, limit: Int, expand: [String!], ending_before: String): GetAccountsAccountPeople!
+	getAccountsAccountPeoplePerson(person: String!, account: String!, expand: [String!]): Person!
+	getAccountsAccountPersons(account: String!, starting_after: String, relationship: GetAccountsAccountPersonsInput, limit: Int, expand: [String!], ending_before: String): GetAccountsAccountPersons!
+	getAccountsAccountPersonsPerson(person: String!, account: String!, expand: [String!]): Person!
+	getApplePayDomains(starting_after: String, limit: Int, expand: [String!], ending_before: String, domain_name: String): GetApplePayDomains!
+	getApplePayDomainsDomain(domain: String!, expand: [String!]): ApplePayDomain!
+	getApplicationFees(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetApplicationFeesUnionInput, charge: String): GetApplicationFees!
+	getApplicationFeesFeeRefundsId(id: String!, fee: String!, expand: [String!]): FeeRefund!
+	getApplicationFeesId(id: String!, expand: [String!]): ApplicationFee!
+	getApplicationFeesIdRefunds(id: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetApplicationFeesIdRefunds!
+	getAppsSecrets(starting_after: String, scope: GetAppsSecretsInput!, limit: Int, expand: [String!], ending_before: String): GetAppsSecrets!
+	getAppsSecretsFind(scope: GetAppsSecretsFindInput!, name: String!, expand: [String!]): AppsSecret!
+	getBalance(expand: [String!]): Balance!
+	getBalanceHistory(type: String, starting_after: String, source: String, payout: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetBalanceHistoryUnionInput): GetBalanceHistory!
+	getBalanceHistoryId(id: String!, expand: [String!]): BalanceTransaction!
+	getBalanceTransactions(type: String, starting_after: String, source: String, payout: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetBalanceTransactionsUnionInput): GetBalanceTransactions!
+	getBalanceTransactionsId(id: String!, expand: [String!]): BalanceTransaction!
+	getBillingPortalConfigurations(starting_after: String, limit: Int, is_default: Boolean, expand: [String!], ending_before: String, active: Boolean): GetBillingPortalConfigurations!
+	getBillingPortalConfigurationsConfiguration(configuration: String!, expand: [String!]): BillingPortalConfiguration!
+	getCharges(transfer_group: String, starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetChargesUnionInput): GetCharges!
+	getChargesSearch(query: String!, page: String, limit: Int, expand: [String!]): GetChargesSearch!
+	getChargesCharge(charge: String!, expand: [String!]): Charge!
+	getChargesChargeDispute(charge: String!, expand: [String!]): Dispute!
+	getChargesChargeRefunds(charge: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetChargesChargeRefunds!
+	getChargesChargeRefundsRefund(refund: String!, charge: String!, expand: [String!]): Refund!
+	getCheckoutSessions(subscription: String, starting_after: String, payment_link: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, customer_details: GetCheckoutSessionsInput, customer: String): GetCheckoutSessions!
+	getCheckoutSessionsSession(session: String!, expand: [String!]): CheckoutSession!
+	getCheckoutSessionsSessionLineItems(session: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCheckoutSessionsSessionLineItems!
+	getCountrySpecs(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCountrySpecs!
+	getCountrySpecsCountry(country: String!, expand: [String!]): CountrySpec!
+	getCoupons(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetCouponsUnionInput): GetCoupons!
+	getCouponsCoupon(coupon: String!, expand: [String!]): Coupon!
+	getCreditNotes(starting_after: String, limit: Int, invoice: String, expand: [String!], ending_before: String, customer: String): GetCreditNotes!
+	getCreditNotesPreview(shipping_cost: GetCreditNotesPreviewInput, refund_amount: Int, refund: String, reason: GetCreditNotesPreview, out_of_band_amount: Int, metadata: JSON, memo: String, lines: [GetCreditNotesPreviewInput!], invoice: String!, expand: [String!], credit_amount: Int, amount: Int): CreditNote!
+	getCreditNotesPreviewLines(starting_after: String, shipping_cost: GetCreditNotesPreviewLinesInput, refund_amount: Int, refund: String, reason: GetCreditNotesPreviewLines, out_of_band_amount: Int, metadata: JSON, memo: String, lines: [GetCreditNotesPreviewLinesInput!], limit: Int, invoice: String!, expand: [String!], ending_before: String, credit_amount: Int, amount: Int): GetCreditNotesPreviewLines!
+	getCreditNotesCreditNoteLines(creditNote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCreditNotesCreditNoteLines!
+	getCreditNotesId(id: String!, expand: [String!]): CreditNote!
+	getCustomers(test_clock: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, email: String, created: GetCustomersUnionInput): GetCustomers!
+	getCustomersSearch(query: String!, page: String, limit: Int, expand: [String!]): GetCustomersSearch!
+	getCustomersCustomer(customer: String!, expand: [String!]): DeletedCustomerOrCustomerUnion!
+	getCustomersCustomerBalanceTransactions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerBalanceTransactions!
+	getCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!, expand: [String!]): CustomerBalanceTransaction!
+	getCustomersCustomerBankAccounts(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerBankAccounts!
+	getCustomersCustomerBankAccountsId(id: String!, customer: String!, expand: [String!]): BankAccount!
+	getCustomersCustomerCards(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerCards!
+	getCustomersCustomerCardsId(id: String!, customer: String!, expand: [String!]): Card!
+	getCustomersCustomerCashBalance(customer: String!, expand: [String!]): CashBalance!
+	getCustomersCustomerCashBalanceTransactions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerCashBalanceTransactions!
+	getCustomersCustomerCashBalanceTransactionsTransaction(transaction: String!, customer: String!, expand: [String!]): CustomerCashBalanceTransaction!
+	getCustomersCustomerDiscount(customer: String!, expand: [String!]): Discount!
+	getCustomersCustomerPaymentMethods(customer: String!, type: GetCustomersCustomerPaymentMethods, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerPaymentMethods!
+	getCustomersCustomerPaymentMethodsPaymentMethod(paymentMethod: String!, customer: String!, expand: [String!]): PaymentMethod!
+	getCustomersCustomerSources(customer: String!, starting_after: String, object: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerSources!
+	getCustomersCustomerSourcesId(id: String!, customer: String!, expand: [String!]): PaymentSource!
+	getCustomersCustomerSubscriptions(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerSubscriptions!
+	getCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, expand: [String!]): Subscription!
+	getCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!, expand: [String!]): Discount!
+	getCustomersCustomerTaxIds(customer: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetCustomersCustomerTaxIds!
+	getCustomersCustomerTaxIdsId(id: String!, customer: String!, expand: [String!]): TaxId!
+	getDisputes(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, created: GetDisputesUnionInput, charge: String): GetDisputes!
+	getDisputesDispute(dispute: String!, expand: [String!]): Dispute!
+	getEvents(types: [String!], type: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, delivery_success: Boolean, created: GetEventsUnionInput): GetEvents!
+	getEventsId(id: String!, expand: [String!]): Event!
+	getExchangeRates(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetExchangeRates!
+	getExchangeRatesRateId(rateId: String!, expand: [String!]): ExchangeRate!
+	getFileLinks(starting_after: String, limit: Int, file: String, expired: Boolean, expand: [String!], ending_before: String, created: GetFileLinksUnionInput): GetFileLinks!
+	getFileLinksLink(link: String!, expand: [String!]): FileLink!
+	getFiles(starting_after: String, purpose: GetFiles, limit: Int, expand: [String!], ending_before: String, created: GetFilesUnionInput): GetFiles!
+	getFilesFile(file: String!, expand: [String!]): File!
+	getFinancialConnectionsAccounts(starting_after: String, session: String, limit: Int, expand: [String!], ending_before: String, account_holder: GetFinancialConnectionsAccountsInput): GetFinancialConnectionsAccounts!
+	getFinancialConnectionsAccountsAccount(account: String!, expand: [String!]): FinancialConnectionsAccount!
+	getFinancialConnectionsAccountsAccountOwners(account: String!, starting_after: String, ownership: String!, limit: Int, expand: [String!], ending_before: String): GetFinancialConnectionsAccountsAccountOwners!
+	getFinancialConnectionsSessionsSession(session: String!, expand: [String!]): FinancialConnectionsSession!
+	getIdentityVerificationReports(verification_session: String, type: GetIdentityVerificationReports, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIdentityVerificationReportsUnionInput): GetIdentityVerificationReports!
+	getIdentityVerificationReportsReport(report: String!, expand: [String!]): IdentityVerificationReport!
+	getIdentityVerificationSessions(status: GetIdentityVerificationSessions, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIdentityVerificationSessionsUnionInput): GetIdentityVerificationSessions!
+	getIdentityVerificationSessionsSession(session: String!, expand: [String!]): IdentityVerificationSession!
+	getInvoiceitems(starting_after: String, pending: Boolean, limit: Int, invoice: String, expand: [String!], ending_before: String, customer: String, created: GetInvoiceitemsUnionInput): GetInvoiceitems!
+	getInvoiceitemsInvoiceitem(invoiceitem: String!, expand: [String!]): Invoiceitem!
+	getInvoices(subscription: String, status: GetInvoices, starting_after: String, limit: Int, expand: [String!], ending_before: String, due_date: GetInvoicesUnionInput, customer: String, created: GetInvoicesUnionInput, collection_method: GetInvoices): GetInvoices!
+	getInvoicesSearch(query: String!, page: String, limit: Int, expand: [String!]): GetInvoicesSearch!
+	getInvoicesUpcoming(subscription_trial_from_plan: Boolean, subscription_trial_end: UnionInput, subscription_start_date: Int, subscription_resume_at: GetInvoicesUpcoming, subscription_proration_date: Int, subscription_proration_behavior: GetInvoicesUpcoming, subscription_items: [GetInvoicesUpcomingInput!], subscription_default_tax_rates: UnionInput, subscription_cancel_now: Boolean, subscription_cancel_at_period_end: Boolean, subscription_cancel_at: UnionInput, subscription_billing_cycle_anchor: UnionInput, subscription: String, schedule: String, invoice_items: [GetInvoicesUpcomingInput!], expand: [String!], discounts: GetInvoicesUpcomingUnionInput, customer_details: GetInvoicesUpcomingInput, customer: String, currency: String, coupon: String, automatic_tax: GetInvoicesUpcomingInput): Invoice!
+	getInvoicesUpcomingLines(subscription_trial_from_plan: Boolean, subscription_trial_end: UnionInput, subscription_start_date: Int, subscription_resume_at: GetInvoicesUpcomingLines, subscription_proration_date: Int, subscription_proration_behavior: GetInvoicesUpcomingLines, subscription_items: [GetInvoicesUpcomingLinesInput!], subscription_default_tax_rates: UnionInput, subscription_cancel_now: Boolean, subscription_cancel_at_period_end: Boolean, subscription_cancel_at: UnionInput, subscription_billing_cycle_anchor: UnionInput, subscription: String, starting_after: String, schedule: String, limit: Int, invoice_items: [GetInvoicesUpcomingLinesInput!], expand: [String!], ending_before: String, discounts: GetInvoicesUpcomingLinesUnionInput, customer_details: GetInvoicesUpcomingLinesInput, customer: String, currency: String, coupon: String, automatic_tax: GetInvoicesUpcomingLinesInput): GetInvoicesUpcomingLines!
+	getInvoicesInvoice(invoice: String!, expand: [String!]): Invoice!
+	getInvoicesInvoiceLines(invoice: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetInvoicesInvoiceLines!
+	getIssuingAuthorizations(status: GetIssuingAuthorizations, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingAuthorizationsUnionInput, cardholder: String, card: String): GetIssuingAuthorizations!
+	getIssuingAuthorizationsAuthorization(authorization: String!, expand: [String!]): IssuingAuthorization!
+	getIssuingCardholders(type: GetIssuingCardholders, status: GetIssuingCardholders, starting_after: String, phone_number: String, limit: Int, expand: [String!], ending_before: String, email: String, created: GetIssuingCardholdersUnionInput): GetIssuingCardholders!
+	getIssuingCardholdersCardholder(cardholder: String!, expand: [String!]): IssuingCardholder!
+	getIssuingCards(type: GetIssuingCards, status: GetIssuingCards, starting_after: String, limit: Int, last4: String, expand: [String!], exp_year: Int, exp_month: Int, ending_before: String, created: GetIssuingCardsUnionInput, cardholder: String): GetIssuingCards!
+	getIssuingCardsCard(card: String!, expand: [String!]): IssuingCard!
+	getIssuingDisputes(transaction: String, status: GetIssuingDisputes, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingDisputesUnionInput): GetIssuingDisputes!
+	getIssuingDisputesDispute(dispute: String!, expand: [String!]): IssuingDispute!
+	getIssuingSettlements(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingSettlementsUnionInput): GetIssuingSettlements!
+	getIssuingSettlementsSettlement(settlement: String!, expand: [String!]): IssuingSettlement!
+	getIssuingTransactions(type: GetIssuingTransactions, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetIssuingTransactionsUnionInput, cardholder: String, card: String): GetIssuingTransactions!
+	getIssuingTransactionsTransaction(transaction: String!, expand: [String!]): IssuingTransaction!
+	getLinkAccountSessionsSession(session: String!, expand: [String!]): FinancialConnectionsSession!
+	getLinkedAccounts(starting_after: String, session: String, limit: Int, expand: [String!], ending_before: String, account_holder: GetLinkedAccountsInput): GetLinkedAccounts!
+	getLinkedAccountsAccount(account: String!, expand: [String!]): FinancialConnectionsAccount!
+	getLinkedAccountsAccountOwners(account: String!, starting_after: String, ownership: String!, limit: Int, expand: [String!], ending_before: String): GetLinkedAccountsAccountOwners!
+	getMandatesMandate(mandate: String!, expand: [String!]): Mandate!
+	getPaymentIntents(starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetPaymentIntentsUnionInput): GetPaymentIntents!
+	getPaymentIntentsSearch(query: String!, page: String, limit: Int, expand: [String!]): GetPaymentIntentsSearch!
+	getPaymentIntentsIntent(intent: String!, expand: [String!], client_secret: String): PaymentIntent!
+	getPaymentLinks(starting_after: String, limit: Int, expand: [String!], ending_before: String, active: Boolean): GetPaymentLinks!
+	getPaymentLinksPaymentLink(paymentLink: String!, expand: [String!]): PaymentLink!
+	getPaymentLinksPaymentLinkLineItems(paymentLink: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetPaymentLinksPaymentLinkLineItems!
+	getPaymentMethods(type: GetPaymentMethods, starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String): GetPaymentMethods!
+	getPaymentMethodsPaymentMethod(paymentMethod: String!, expand: [String!]): PaymentMethod!
+	getPayouts(status: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, destination: String, created: GetPayoutsUnionInput, arrival_date: GetPayoutsUnionInput): GetPayouts!
+	getPayoutsPayout(payout: String!, expand: [String!]): Payout!
+	getPlans(starting_after: String, product: String, limit: Int, expand: [String!], ending_before: String, created: GetPlansUnionInput, active: Boolean): GetPlans!
+	getPlansPlan(plan: String!, expand: [String!]): Plan!
+	getPrices(type: GetPrices, starting_after: String, recurring: GetPricesInput, product: String, lookup_keys: [String!], limit: Int, expand: [String!], ending_before: String, currency: String, created: GetPricesUnionInput, active: Boolean): GetPrices!
+	getPricesSearch(query: String!, page: String, limit: Int, expand: [String!]): GetPricesSearch!
+	getPricesPrice(price: String!, expand: [String!]): Price!
+	getProducts(url: String, starting_after: String, shippable: Boolean, limit: Int, ids: [String!], expand: [String!], ending_before: String, created: GetProductsUnionInput, active: Boolean): GetProducts!
+	getProductsSearch(query: String!, page: String, limit: Int, expand: [String!]): GetProductsSearch!
+	getProductsId(id: String!, expand: [String!]): Product!
+	getPromotionCodes(starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetPromotionCodesUnionInput, coupon: String, code: String, active: Boolean): GetPromotionCodes!
+	getPromotionCodesPromotionCode(promotionCode: String!, expand: [String!]): PromotionCode!
+	getQuotes(test_clock: String, status: GetQuotes, starting_after: String, limit: Int, expand: [String!], ending_before: String, customer: String): GetQuotes!
+	getQuotesQuote(quote: String!, expand: [String!]): Quote!
+	getQuotesQuoteComputedUpfrontLineItems(quote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetQuotesQuoteComputedUpfrontLineItems!
+	getQuotesQuoteLineItems(quote: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetQuotesQuoteLineItems!
+	getQuotesQuotePdf(quote: String!, expand: [String!]): String!
+	getRadarEarlyFraudWarnings(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, charge: String): GetRadarEarlyFraudWarnings!
+	getRadarEarlyFraudWarningsEarlyFraudWarning(earlyFraudWarning: String!, expand: [String!]): RadarEarlyFraudWarning!
+	getRadarValueListItems(value_list: String!, value: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetRadarValueListItemsUnionInput): GetRadarValueListItems!
+	getRadarValueListItemsItem(item: String!, expand: [String!]): RadarValueListItem!
+	getRadarValueLists(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetRadarValueListsUnionInput, contains: String, alias: String): GetRadarValueLists!
+	getRadarValueListsValueList(valueList: String!, expand: [String!]): RadarValueList!
+	getRefunds(starting_after: String, payment_intent: String, limit: Int, expand: [String!], ending_before: String, created: GetRefundsUnionInput, charge: String): GetRefunds!
+	getRefundsRefund(refund: String!, expand: [String!]): Refund!
+	getReportingReportRuns(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetReportingReportRunsUnionInput): GetReportingReportRuns!
+	getReportingReportRunsReportRun(reportRun: String!, expand: [String!]): ReportingReportRun!
+	getReportingReportTypes(expand: [String!]): GetReportingReportTypes!
+	getReportingReportTypesReportType(reportType: String!, expand: [String!]): ReportingReportType!
+	getReviews(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetReviewsUnionInput): GetReviews!
+	getReviewsReview(review: String!, expand: [String!]): Review!
+	getSetupAttempts(starting_after: String, setup_intent: String!, limit: Int, expand: [String!], ending_before: String, created: GetSetupAttemptsUnionInput): GetSetupAttempts!
+	getSetupIntents(starting_after: String, payment_method: String, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetSetupIntentsUnionInput, attach_to_self: Boolean): GetSetupIntents!
+	getSetupIntentsIntent(intent: String!, expand: [String!], client_secret: String): SetupIntent!
+	getShippingRates(starting_after: String, limit: Int, expand: [String!], ending_before: String, currency: String, created: GetShippingRatesUnionInput, active: Boolean): GetShippingRates!
+	getShippingRatesShippingRateToken(shippingRateToken: String!, expand: [String!]): ShippingRate!
+	getSigmaScheduledQueryRuns(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetSigmaScheduledQueryRuns!
+	getSigmaScheduledQueryRunsScheduledQueryRun(scheduledQueryRun: String!, expand: [String!]): ScheduledQueryRun!
+	getSourcesSource(source: String!, expand: [String!], client_secret: String): Source!
+	getSourcesSourceMandateNotificationsMandateNotification(source: String!, mandateNotification: String!, expand: [String!]): SourceMandateNotification!
+	getSourcesSourceSourceTransactions(source: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetSourcesSourceSourceTransactions!
+	getSourcesSourceSourceTransactionsSourceTransaction(sourceTransaction: String!, source: String!, expand: [String!]): SourceTransaction!
+	getSubscriptionItems(subscription: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetSubscriptionItems!
+	getSubscriptionItemsItem(item: String!, expand: [String!]): SubscriptionItem!
+	getSubscriptionItemsSubscriptionItemUsageRecordSummaries(subscriptionItem: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetSubscriptionItemsSubscriptionItemUsageRecordSummaries!
+	getSubscriptionSchedules(starting_after: String, scheduled: Boolean, released_at: GetSubscriptionSchedulesUnionInput, limit: Int, expand: [String!], ending_before: String, customer: String, created: GetSubscriptionSchedulesUnionInput, completed_at: GetSubscriptionSchedulesUnionInput, canceled_at: GetSubscriptionSchedulesUnionInput): GetSubscriptionSchedules!
+	getSubscriptionSchedulesSchedule(schedule: String!, expand: [String!]): SubscriptionSchedule!
+	getSubscriptions(test_clock: String, status: GetSubscriptions, starting_after: String, price: String, limit: Int, expand: [String!], ending_before: String, customer: String, current_period_start: GetSubscriptionsUnionInput, current_period_end: GetSubscriptionsUnionInput, created: GetSubscriptionsUnionInput, collection_method: GetSubscriptions): GetSubscriptions!
+	getSubscriptionsSearch(query: String!, page: String, limit: Int, expand: [String!]): GetSubscriptionsSearch!
+	getSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, expand: [String!]): Subscription!
+	getTaxCodes(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetTaxCodes!
+	getTaxCodesId(id: String!, expand: [String!]): TaxCode!
+	getTaxRates(starting_after: String, limit: Int, inclusive: Boolean, expand: [String!], ending_before: String, created: GetTaxRatesUnionInput, active: Boolean): GetTaxRates!
+	getTaxRatesTaxRate(taxRate: String!, expand: [String!]): TaxRate!
+	getTerminalConfigurations(starting_after: String, limit: Int, is_account_default: Boolean, expand: [String!], ending_before: String): GetTerminalConfigurations!
+	getTerminalConfigurationsConfiguration(configuration: String!, expand: [String!]): DeletedTerminalConfigurationOrTerminalConfigurationUnion!
+	getTerminalLocations(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetTerminalLocations!
+	getTerminalLocationsLocation(location: String!, expand: [String!]): DeletedTerminalLocationOrTerminalLocationUnion!
+	getTerminalReaders(status: GetTerminalReaders, starting_after: String, location: String, limit: Int, expand: [String!], ending_before: String, device_type: GetTerminalReaders): GetTerminalReaders!
+	getTerminalReadersReader(reader: String!, expand: [String!]): DeletedTerminalReaderOrTerminalReaderUnion!
+	getTestHelpersTestClocks(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetTestHelpersTestClocks!
+	getTestHelpersTestClocksTestClock(testClock: String!, expand: [String!]): TestHelpersTestClock!
+	getTokensToken(token: String!, expand: [String!]): Token!
+	getTopups(status: GetTopups, starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetTopupsUnionInput, amount: GetTopupsUnionInput): GetTopups!
+	getTopupsTopup(topup: String!, expand: [String!]): Topup!
+	getTransfers(transfer_group: String, starting_after: String, limit: Int, expand: [String!], ending_before: String, destination: String, created: GetTransfersUnionInput): GetTransfers!
+	getTransfersIdReversals(id: String!, starting_after: String, limit: Int, expand: [String!], ending_before: String): GetTransfersIdReversals!
+	getTransfersTransfer(transfer: String!, expand: [String!]): Transfer!
+	getTransfersTransferReversalsId(transfer: String!, id: String!, expand: [String!]): TransferReversal!
+	getTreasuryCreditReversals(status: GetTreasuryCreditReversals, starting_after: String, received_credit: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryCreditReversals!
+	getTreasuryCreditReversalsCreditReversal(creditReversal: String!, expand: [String!]): TreasuryCreditReversal!
+	getTreasuryDebitReversals(status: GetTreasuryDebitReversals, starting_after: String, resolution: GetTreasuryDebitReversals, received_debit: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryDebitReversals!
+	getTreasuryDebitReversalsDebitReversal(debitReversal: String!, expand: [String!]): TreasuryDebitReversal!
+	getTreasuryFinancialAccounts(starting_after: String, limit: Int, expand: [String!], ending_before: String, created: GetTreasuryFinancialAccountsUnionInput): GetTreasuryFinancialAccounts!
+	getTreasuryFinancialAccountsFinancialAccount(financialAccount: String!, expand: [String!]): TreasuryFinancialAccount!
+	getTreasuryFinancialAccountsFinancialAccountFeatures(financialAccount: String!, expand: [String!]): TreasuryFinancialAccountFeatures!
+	getTreasuryInboundTransfers(status: GetTreasuryInboundTransfers, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryInboundTransfers!
+	getTreasuryInboundTransfersId(id: String!, expand: [String!]): TreasuryInboundTransfer!
+	getTreasuryOutboundPayments(status: GetTreasuryOutboundPayments, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String, customer: String): GetTreasuryOutboundPayments!
+	getTreasuryOutboundPaymentsId(id: String!, expand: [String!]): TreasuryOutboundPayment!
+	getTreasuryOutboundTransfers(status: GetTreasuryOutboundTransfers, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryOutboundTransfers!
+	getTreasuryOutboundTransfersOutboundTransfer(outboundTransfer: String!, expand: [String!]): TreasuryOutboundTransfer!
+	getTreasuryReceivedCredits(status: GetTreasuryReceivedCredits, starting_after: String, linked_flows: GetTreasuryReceivedCreditsInput, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryReceivedCredits!
+	getTreasuryReceivedCreditsId(id: String!, expand: [String!]): TreasuryReceivedCredit!
+	getTreasuryReceivedDebits(status: GetTreasuryReceivedDebits, starting_after: String, limit: Int, financial_account: String!, expand: [String!], ending_before: String): GetTreasuryReceivedDebits!
+	getTreasuryReceivedDebitsId(id: String!, expand: [String!]): TreasuryReceivedDebit!
+	getTreasuryTransactionEntries(transaction: String, starting_after: String, order_by: GetTreasuryTransactionEntries, limit: Int, financial_account: String!, expand: [String!], ending_before: String, effective_at: GetTreasuryTransactionEntriesUnionInput, created: GetTreasuryTransactionEntriesUnionInput): GetTreasuryTransactionEntries!
+	getTreasuryTransactionEntriesId(id: String!, expand: [String!]): TreasuryTransactionEntry!
+	getTreasuryTransactions(status_transitions: GetTreasuryTransactionsInput, status: GetTreasuryTransactions, starting_after: String, order_by: GetTreasuryTransactions, limit: Int, financial_account: String!, expand: [String!], ending_before: String, created: GetTreasuryTransactionsUnionInput): GetTreasuryTransactions!
+	getTreasuryTransactionsId(id: String!, expand: [String!]): TreasuryTransaction!
+	getWebhookEndpoints(starting_after: String, limit: Int, expand: [String!], ending_before: String): GetWebhookEndpoints!
+	getWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, expand: [String!]): WebhookEndpoint!
 }
 type Quote {
 	transferData: QuotesResourceTransferData
