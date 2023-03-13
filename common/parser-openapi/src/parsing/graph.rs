@@ -380,12 +380,10 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
 // OpenAPI enums can be basically any string, but we're much more limited
 /// in GraphQL.  This checks if this value is valid in GraphQL or not.
 fn is_valid_enum_value(value: &Option<String>) -> bool {
-    let Some(string) = value else {
-        return false;
-    };
-
-    let screaming_string = string.to_screaming_snake_case();
-
     static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Z_][A-Z0-9_]*$").unwrap());
-    REGEX.is_match(&screaming_string)
+    value
+        .as_deref()
+        .map(|value| value.to_screaming_snake_case())
+        .filter(|value| REGEX.is_match(value))
+        .is_some()
 }
