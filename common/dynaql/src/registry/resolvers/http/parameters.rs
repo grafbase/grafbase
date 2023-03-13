@@ -4,7 +4,7 @@ use std::{
     fmt::Write,
 };
 
-use surf::Url;
+use reqwest::Url;
 use url::form_urlencoded;
 
 use crate::Error;

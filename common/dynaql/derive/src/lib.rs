@@ -3,6 +3,7 @@
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::trivially_copy_pass_by_ref)]
 #![allow(clippy::use_self)]
+#![allow(clippy::if_not_else)]
 #![allow(clippy::vec_init_then_push)]
 #![forbid(unsafe_code)]
 

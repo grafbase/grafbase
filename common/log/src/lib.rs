@@ -186,19 +186,20 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
         })
         .collect();
 
-    let mut res = surf::post(constants::DATADOG_INTAKE_URL)
+    let response = reqwest::Client::new()
+        .post(constants::DATADOG_INTAKE_URL)
         .header("DD-API-KEY", datadog_api_key)
-        .body_json(&entries)
-        .map_err(Error::DatadogRequest)?
+        .json(&entries)
         .send()
         .await
         .map_err(Error::DatadogRequest)?;
 
-    if res.status().is_success() {
+    if response.status().is_success() {
         Ok(())
     } else {
-        let response = res.body_string().await.ok();
-        Err(Error::DatadogPushFailed(res.status(), response))
+        let response_status = response.status();
+        let response_text = response.text().await.ok();
+        Err(Error::DatadogPushFailed(response_status, response_text))
     }
 }
 

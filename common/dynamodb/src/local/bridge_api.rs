@@ -1,21 +1,12 @@
+use reqwest::StatusCode;
+use send_wrapper::SendWrapper;
 use serde::Deserialize;
-use surf::StatusCode;
+
+use std::future::Future;
+use std::pin::Pin;
 
 use super::types::Record;
 use super::types::{BridgeUrl, Constraint, Mutation, Operation};
-
-pub async fn query<'a>(operaton: Operation, port: &str) -> Result<Vec<Record>, QueryError> {
-    let mut response = surf::client()
-        .post(BridgeUrl::Query(port).to_string())
-        .body_json(&operaton)?
-        .await?;
-
-    if response.status() == StatusCode::InternalServerError {
-        Err(QueryError::InternalServerError)
-    } else {
-        Ok(response.body_json::<Vec<Record>>().await?)
-    }
-}
 
 #[derive(Deserialize, Debug)]
 pub enum ApiErrorKind {
@@ -24,26 +15,26 @@ pub enum ApiErrorKind {
 
 #[allow(dead_code)]
 pub enum QueryError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     InternalServerError,
 }
 
-impl From<surf::Error> for QueryError {
-    fn from(error: surf::Error) -> Self {
-        Self::Surf(error)
+impl From<reqwest::Error> for QueryError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::Reqwest(error)
     }
 }
 
 #[allow(dead_code)]
 pub enum MutationError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     InternalServerError,
     Api(ApiError),
 }
 
-impl From<surf::Error> for MutationError {
-    fn from(error: surf::Error) -> Self {
-        Self::Surf(error)
+impl From<reqwest::Error> for MutationError {
+    fn from(error: reqwest::Error) -> Self {
+        Self::Reqwest(error)
     }
 }
 
@@ -54,23 +45,44 @@ pub struct ApiError {
     pub error_kind: ApiErrorKind,
 }
 
-pub async fn mutation<'a>(mutations: Vec<Operation>, port: &str) -> Result<(), MutationError> {
-    let client = surf::client();
-    let mut response = client
+pub fn query(
+    operaton: Operation,
+    port: &str,
+) -> Pin<Box<dyn Future<Output = Result<Vec<Record>, QueryError>> + Send + '_>> {
+    let request = reqwest::Client::new()
+        .post(BridgeUrl::Query(port).to_string())
+        .json(&operaton);
+    Box::pin(SendWrapper::new(async move {
+        let response = request.send().await?;
+
+        if response.status() == StatusCode::INTERNAL_SERVER_ERROR {
+            Err(QueryError::InternalServerError)
+        } else {
+            Ok(response.json::<Vec<Record>>().await?)
+        }
+    }))
+}
+
+pub fn mutation(
+    mutations: Vec<Operation>,
+    port: &str,
+) -> Pin<Box<dyn Future<Output = Result<(), MutationError>> + Send + '_>> {
+    let client = reqwest::Client::new();
+    let request = client
         .post(BridgeUrl::Mutation(port).to_string())
-        .body_json(&Mutation { mutations })?
-        .await?;
-
-    match response.status() {
-        StatusCode::Conflict => {
-            let error = response.body_json::<ApiError>().await?;
-            return Err(MutationError::Api(error));
+        .json(&Mutation { mutations });
+    Box::pin(SendWrapper::new(async move {
+        let response = request.send().await?;
+        match response.status() {
+            StatusCode::CONFLICT => {
+                let error = response.json::<ApiError>().await?;
+                return Err(MutationError::Api(error));
+            }
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                return Err(MutationError::InternalServerError);
+            }
+            _ => {}
         }
-        StatusCode::InternalServerError => {
-            return Err(MutationError::InternalServerError);
-        }
-        _ => {}
-    }
-
-    Ok(())
+        Ok(())
+    }))
 }

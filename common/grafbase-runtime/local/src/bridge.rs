@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, net::Ipv4Addr};
+use std::{error::Error, fmt::Display, future::Future, net::Ipv4Addr, pin::Pin};
 
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -8,22 +8,22 @@ pub(crate) struct Bridge {
 
 #[derive(Debug)]
 pub(crate) enum BridgeError {
-    Surf(surf::Error),
+    Reqwest(reqwest::Error),
     UnexpectedResponseError(String),
 }
 
 impl Error for BridgeError {}
 
-impl From<surf::Error> for BridgeError {
-    fn from(value: surf::Error) -> Self {
-        Self::Surf(value)
+impl From<reqwest::Error> for BridgeError {
+    fn from(value: reqwest::Error) -> Self {
+        Self::Reqwest(value)
     }
 }
 
 impl Display for BridgeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            BridgeError::Surf(error) => write!(f, "Surf Error: {error:?}"),
+            BridgeError::Reqwest(error) => write!(f, "reqwest Error: {error:?}"),
             BridgeError::UnexpectedResponseError(response) => write!(f, "Unexpected Response Error: {response:?}"),
         }
     }
@@ -34,22 +34,23 @@ impl Bridge {
         Bridge { port }
     }
 
-    pub(crate) async fn request<B: Serialize, R: DeserializeOwned>(
+    pub(crate) fn request<B: Serialize, R: DeserializeOwned>(
         &self,
         endpoint: &str,
         body: B,
-    ) -> Result<R, BridgeError> {
+    ) -> Pin<Box<dyn Future<Output = Result<R, BridgeError>> + Send + '_>> {
         let url = format!("http://{}:{}{endpoint}", Ipv4Addr::LOCALHOST, self.port);
-        let mut response = surf::client().post(url).body_json(&body)?.await?;
-        if response.status().is_success() {
-            Ok(response.body_json().await?)
-        } else {
-            Err(BridgeError::UnexpectedResponseError(
-                response
-                    .body_string()
-                    .await
-                    .unwrap_or(format!("Status: {}", response.status())),
-            ))
-        }
+        let request = reqwest::Client::new().post(url).json(&body);
+        Box::pin(send_wrapper::SendWrapper::new(async move {
+            let response = request.send().await?;
+            let status = response.status();
+            if status.is_success() {
+                Ok(response.json().await?)
+            } else {
+                Err(BridgeError::UnexpectedResponseError(
+                    response.text().await.unwrap_or(format!("Status: {status}")),
+                ))
+            }
+        }))
     }
 }

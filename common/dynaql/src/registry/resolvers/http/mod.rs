@@ -1,6 +1,8 @@
-use std::{borrow::Borrow, collections::BTreeMap, sync::Arc};
+use std::{borrow::Borrow, collections::BTreeMap, pin::Pin, sync::Arc};
 
-use surf::Url;
+use futures_util::Future;
+use reqwest::Url;
+use send_wrapper::SendWrapper;
 
 use crate::{registry::variables::VariableResolveDefinition, Context, Error};
 
@@ -53,12 +55,12 @@ pub enum RequestBodyContentType {
 }
 
 impl HttpResolver {
-    pub async fn resolve(
-        &self,
-        ctx: &Context<'_>,
-        _resolver_ctx: &ResolverContext<'_>,
-        last_resolver_value: Option<&ResolvedValue>,
-    ) -> Result<ResolvedValue, Error> {
+    pub fn resolve<'a>(
+        &'a self,
+        ctx: &'a Context<'_>,
+        _resolver_ctx: &ResolverContext<'a>,
+        last_resolver_value: Option<&'a ResolvedValue>,
+    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let last_resolver_value = last_resolver_value.map(|val| val.data_resolved.borrow());
 
         let headers = ctx
@@ -68,40 +70,46 @@ impl HttpResolver {
             .map(Vec::as_slice)
             .unwrap_or(&[]);
 
-        let url = self.build_url(ctx, last_resolver_value)?;
-        let mut request = dbg!(surf::RequestBuilder::new(
-            self.method.parse()?,
-            Url::parse(&url)?
-        ));
+        Box::pin(SendWrapper::new(async move {
+            let url = self.build_url(ctx, last_resolver_value)?;
+            let mut request_builder =
+                dbg!(reqwest::Client::new().request(self.method.parse()?, Url::parse(&url)?));
 
-        for (name, value) in headers {
-            request = request.header(name.as_str(), value);
-        }
+            for (name, value) in headers {
+                request_builder = request_builder.header(name, value);
+            }
 
-        if let Some(request_body) = &self.request_body {
-            let variable = request_body
-                .variable_resolve_definition
-                .resolve::<serde_json::Value>(ctx, last_resolver_value)?;
+            if let Some(request_body) = &self.request_body {
+                let variable = request_body
+                    .variable_resolve_definition
+                    .resolve::<serde_json::Value>(ctx, last_resolver_value)?;
 
-            match &request_body.content_type {
-                RequestBodyContentType::Json => request = request.body_json(dbg!(&variable))?,
-                RequestBodyContentType::FormEncoded(encoding_styles) => {
-                    request = request.content_type(surf::http::mime::FORM);
-                    request = request.body_string(
-                        String::new().apply_body_parameters(encoding_styles, variable)?,
-                    );
+                match &request_body.content_type {
+                    RequestBodyContentType::Json => {
+                        request_builder = request_builder.json(&variable);
+                    }
+                    RequestBodyContentType::FormEncoded(encoding_styles) => {
+                        request_builder = request_builder.header(
+                            reqwest::header::CONTENT_TYPE,
+                            "application/x-www-form-urlencoded",
+                        );
+                        request_builder = request_builder
+                            .body(String::new().apply_body_parameters(encoding_styles, variable)?);
+                    }
                 }
             }
-        }
 
-        let mut response = request.await.map_err(|e| Error::new(e.to_string()))?;
+            let response = request_builder
+                .send()
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
 
-        let data = response
-            .body_json::<serde_json::Value>()
-            .await
-            .map_err(|e| Error::new(e.to_string()))?;
-
-        Ok(ResolvedValue::new(Arc::new(dbg!(data))))
+            let data = response
+                .json::<serde_json::Value>()
+                .await
+                .map_err(|e| Error::new(e.to_string()))?;
+            Ok(ResolvedValue::new(Arc::new(dbg!(data))))
+        }))
     }
 
     fn build_url(

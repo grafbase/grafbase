@@ -35,7 +35,7 @@ dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
-async-lock = "2.6"
+async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
@@ -113,18 +113,16 @@ futures-channel = { version = "0.3", optional = true }
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }
-lru = { version = "0.9", optional = true }
+lru = { version = "0.10", optional = true }
 sha2 = { version = "0.10", optional = true }
 serde_cbor = { workspace = true, optional = true }
 zxcvbn = { version = "2", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2", default-features = false, features = ["wasm-client"] }
+reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, features = [
-    "h1-client-rustls",
-] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "__rustls"] }
 
 [dev-dependencies]
 # tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }

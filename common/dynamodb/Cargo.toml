@@ -29,7 +29,7 @@ graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = "0.10"
 log = { path = "../log", features = ["with-worker"] }
-lru = { version = "0.9" }
+lru = { version = "0.10" }
 quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
@@ -50,7 +50,14 @@ indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
+send_wrapper = { version = "0.6", optional = true }
 serde = { workspace = true, optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+reqwest = { version = "0.11", default-features = false, optional = true, features = ["json"] }
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { version = "0.11", default-features = false, optional = true, features = ["json", "__rustls"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = [
@@ -60,19 +67,9 @@ tokio = { version = "1", features = [
   "time",
 ] }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-surf = { version = "2", default-features = false, optional = true, features = [
-  "wasm-client",
-] }
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-surf = { version = "2", default-features = false, optional = true, features = [
-  "h1-client-rustls",
-] }
-
 [features]
 default = ["wasm_runtime"]
-local = ["indoc", "maplit", "once_cell", "regex", "serde", "surf"]
+local = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper", "serde"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]
