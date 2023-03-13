@@ -1,3 +1,5 @@
+mod namespacing;
+
 use std::borrow::Cow;
 
 use dynaql::{
@@ -21,73 +23,68 @@ use crate::graph::{
     QueryParameter, RequestBody, WrappingType,
 };
 
+use self::namespacing::RegistryExt;
+
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
     register_scalars(registry);
 
-    for output_type in graph.output_types() {
-        let Some(metatype) = output_type.to_meta_type(graph) else { continue };
-
-        registry.types.insert(metatype.name().to_string(), metatype);
-    }
-
-    for input_object in graph.input_objects() {
-        let Some(metatype) = input_object.to_meta_type(graph) else { continue };
-
-        registry.types.insert(metatype.name().to_string(), metatype);
-    }
-
-    for en in graph.enums() {
-        let Some(metatype) = en.to_meta_type(graph) else { continue };
-
-        registry.types.insert(metatype.name().to_string(), metatype);
-    }
+    registry.types.extend(types_to_metatypes(graph.output_types(), graph));
+    registry.types.extend(types_to_metatypes(graph.input_objects(), graph));
+    registry.types.extend(types_to_metatypes(graph.enums(), graph));
 
     let query_operations = graph.query_operations();
     if !query_operations.is_empty() {
-        let query_fields = registry
-            .query_root_mut()
-            .fields_mut()
-            .expect("QueryRoot to be an Object");
-
-        for op in query_operations {
-            let Some(metafield) = op.as_meta_field(graph) else { continue };
-            query_fields.insert(metafield.name.clone(), metafield);
-        }
+        registry
+            .query_fields(&graph.metadata)
+            .extend(operations_to_fields(query_operations, graph));
     }
 
     let mutation_operations = graph.mutation_operations();
     if !mutation_operations.is_empty() {
-        if registry.mutation_type.is_none() {
-            registry.mutation_type = Some("Mutation".to_string());
-            registry
-                .types
-                .insert("Mutation".to_string(), object("Mutation".to_string(), vec![]));
-        }
-
-        let mutation_fields = registry
-            .mutation_root_mut()
-            .fields_mut()
-            .expect("MutationRoot to be an Object");
-
-        for op in mutation_operations {
-            let Some(metafield) = op.as_meta_field(graph) else { continue };
-
-            mutation_fields.insert(metafield.name.clone(), metafield);
-        }
+        registry
+            .mutation_fields(&graph.metadata)
+            .extend(operations_to_fields(mutation_operations, graph));
     }
 
     registry.remove_unused_types();
 }
 
-impl OutputType {
-    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+fn operations_to_fields<'a>(
+    operations: impl IntoIterator<Item = Operation> + 'a,
+    graph: &'a OpenApiGraph,
+) -> impl Iterator<Item = (String, MetaField)> + 'a {
+    operations
+        .into_iter()
+        .filter_map(|op| op.into_meta_field(graph))
+        .map(|meta_field| (meta_field.name.clone(), meta_field))
+}
+
+fn types_to_metatypes<'a, T>(
+    types: impl IntoIterator<Item = T> + 'a,
+    graph: &'a OpenApiGraph,
+) -> impl Iterator<Item = (String, MetaType)> + 'a
+where
+    T: IntoMetaType,
+{
+    types
+        .into_iter()
+        .filter_map(|ty| ty.into_meta_type(graph))
+        .map(|meta_type| (meta_type.name().to_string(), meta_type))
+}
+
+trait IntoMetaType {
+    fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType>;
+}
+
+impl IntoMetaType for OutputType {
+    fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
         match self {
             OutputType::Object(_) => Some(object(
                 name,
                 self.fields(graph)
                     .into_iter()
-                    .map(|field| field.to_meta_field(graph))
+                    .map(|field| field.into_meta_field(graph))
                     .collect::<Option<Vec<_>>>()?,
             )),
             OutputType::Union(_) => Some(MetaType::Union {
@@ -105,8 +102,8 @@ impl OutputType {
     }
 }
 
-impl InputObject {
-    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+impl IntoMetaType for InputObject {
+    fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
 
         Some(MetaType::InputObject {
@@ -135,7 +132,7 @@ pub enum OutputFieldKind {
 }
 
 impl OutputField {
-    fn to_meta_field(&self, graph: &OpenApiGraph) -> Option<MetaField> {
+    fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let api_name = &self.name;
         let graphql_name = api_name.to_camel_case();
 
@@ -208,7 +205,7 @@ impl std::fmt::Display for TypeDisplay<'_> {
 }
 
 impl Operation {
-    fn as_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
+    fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let path_parameters = self.path_parameters(graph);
         let query_parameters = self.query_parameters(graph);
         let request_body = self.request_body(graph);
@@ -314,8 +311,8 @@ impl InputField<'_> {
     }
 }
 
-impl Enum {
-    fn to_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
+impl IntoMetaType for Enum {
+    fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
         let values = self.values(graph)?;
         Some(MetaType::Enum {

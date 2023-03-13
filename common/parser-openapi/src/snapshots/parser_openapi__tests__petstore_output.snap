@@ -7,11 +7,7 @@ A JSON Value
 """
 scalar JSON
 type Mutation {
-	updatePet(input: PetstorePetInput!): PetstorePet!
-	addPet(input: PetstorePetInput!): PetstorePet!
-	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse!
-	placeOrder(input: PetstoreOrderInput!): PetstoreOrder!
-	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser!
+	petstore: PetstoreMutations
 }
 type PetstoreApiResponse {
 	message: String
@@ -30,6 +26,13 @@ enum PetstoreFindPetsByStatus {
 	AVAILABLE
 	PENDING
 	SOLD
+}
+type PetstoreMutations {
+	updatePet(input: PetstorePetInput!): PetstorePet!
+	addPet(input: PetstorePetInput!): PetstorePet!
+	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse!
+	placeOrder(input: PetstoreOrderInput!): PetstoreOrder!
+	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser!
 }
 type PetstoreOrder {
 	complete: Boolean
@@ -73,6 +76,15 @@ enum PetstorePetStatus {
 	PENDING
 	SOLD
 }
+type PetstoreQueries {
+	findPetsByStatus(status: PetstoreFindPetsByStatus): [PetstorePet!]!
+	findPetsByTags(tags: [String!]): [PetstorePet!]!
+	getPetById(petId: Int!): PetstorePet!
+	getInventory: JSON!
+	getOrderById(orderId: Int!): PetstoreOrder!
+	loginUser(password: String, username: String): String!
+	getUserByName(username: String!): PetstoreUser!
+}
 type PetstoreTag {
 	name: String
 	id: Int
@@ -102,13 +114,7 @@ input PetstoreUserInput {
 	id: Int
 }
 type Query {
-	findPetsByStatus(status: PetstoreFindPetsByStatus): [PetstorePet!]!
-	findPetsByTags(tags: [String!]): [PetstorePet!]!
-	getPetById(petId: Int!): PetstorePet!
-	getInventory: JSON!
-	getOrderById(orderId: Int!): PetstoreOrder!
-	loginUser(password: String, username: String): String!
-	getUserByName(username: String!): PetstoreUser!
+	petstore: PetstoreQueries
 }
 schema {
 	query: Query

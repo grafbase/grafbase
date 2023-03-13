@@ -4,8 +4,52 @@ expression: registry
 ---
 Registry {
     types: {
-        "ApiResponse": Object {
-            name: "ApiResponse",
+        "JSON": Scalar {
+            name: "JSON",
+            description: Some(
+                "A JSON Value",
+            ),
+            specified_by_url: None,
+        },
+        "Mutation": Object {
+            name: "Mutation",
+            description: None,
+            fields: {
+                "petstore": MetaField {
+                    name: "petstore",
+                    description: None,
+                    args: {},
+                    ty: "PetstoreMutations",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: true,
+                        max_age: 0,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: None,
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+            },
+            cache_control: CacheControl {
+                public: true,
+                max_age: 0,
+            },
+            extends: false,
+            keys: None,
+            is_subscription: false,
+            is_node: false,
+            rust_typename: "Mutation",
+            constraints: [],
+        },
+        "PetstoreApiResponse": Object {
+            name: "PetstoreApiResponse",
             description: None,
             fields: {
                 "message": MetaField {
@@ -107,11 +151,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "ApiResponse",
+            rust_typename: "PetstoreApiResponse",
             constraints: [],
         },
-        "Category": Object {
-            name: "Category",
+        "PetstoreCategory": Object {
+            name: "PetstoreCategory",
             description: None,
             fields: {
                 "name": MetaField {
@@ -183,11 +227,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Category",
+            rust_typename: "PetstoreCategory",
             constraints: [],
         },
-        "CategoryInput": InputObject {
-            name: "CategoryInput",
+        "PetstoreCategoryInput": InputObject {
+            name: "PetstoreCategoryInput",
             description: None,
             input_fields: {
                 "name": MetaInputValue {
@@ -207,11 +251,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "CategoryInput",
+            rust_typename: "PetstoreCategoryInput",
             oneof: false,
         },
-        "FindPetsByStatus": Enum {
-            name: "FindPetsByStatus",
+        "PetstoreFindPetsByStatus": Enum {
+            name: "PetstoreFindPetsByStatus",
             description: None,
             enum_values: {
                 "AVAILABLE": MetaEnumValue {
@@ -239,17 +283,10 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "FindPetsByStatus",
+            rust_typename: "PetstoreFindPetsByStatus",
         },
-        "JSON": Scalar {
-            name: "JSON",
-            description: Some(
-                "A JSON Value",
-            ),
-            specified_by_url: None,
-        },
-        "Mutation": Object {
-            name: "Mutation",
+        "PetstoreMutations": Object {
+            name: "PetstoreMutations",
             description: None,
             fields: {
                 "updatePet": MetaField {
@@ -259,13 +296,13 @@ Registry {
                         "input": MetaInputValue {
                             name: "input",
                             description: None,
-                            ty: "PetInput!",
+                            ty: "PetstorePetInput!",
                             default_value: None,
                             is_secret: false,
                             rename: None,
                         },
                     },
-                    ty: "Pet!",
+                    ty: "PetstorePet!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -284,7 +321,7 @@ Registry {
                                 HttpResolver {
                                     method: "put",
                                     url: "http://example.com/pet",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: Some(
@@ -310,13 +347,13 @@ Registry {
                         "input": MetaInputValue {
                             name: "input",
                             description: None,
-                            ty: "PetInput!",
+                            ty: "PetstorePetInput!",
                             default_value: None,
                             is_secret: false,
                             rename: None,
                         },
                     },
-                    ty: "Pet!",
+                    ty: "PetstorePet!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -335,7 +372,7 @@ Registry {
                                 HttpResolver {
                                     method: "post",
                                     url: "http://example.com/pet",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: Some(
@@ -375,7 +412,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "ApiResponse!",
+                    ty: "PetstoreApiResponse!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -394,7 +431,7 @@ Registry {
                                 HttpResolver {
                                     method: "post",
                                     url: "http://example.com/pet/{petId}/uploadImage",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [
                                         PathParameter {
                                             name: "petId",
@@ -428,13 +465,13 @@ Registry {
                         "input": MetaInputValue {
                             name: "input",
                             description: None,
-                            ty: "OrderInput!",
+                            ty: "PetstoreOrderInput!",
                             default_value: None,
                             is_secret: false,
                             rename: None,
                         },
                     },
-                    ty: "Order!",
+                    ty: "PetstoreOrder!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -453,7 +490,7 @@ Registry {
                                 HttpResolver {
                                     method: "post",
                                     url: "http://example.com/store/order",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: Some(
@@ -479,13 +516,13 @@ Registry {
                         "input": MetaInputValue {
                             name: "input",
                             description: None,
-                            ty: "[UserInput!]!",
+                            ty: "[PetstoreUserInput!]!",
                             default_value: None,
                             is_secret: false,
                             rename: None,
                         },
                     },
-                    ty: "User!",
+                    ty: "PetstoreUser!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -504,7 +541,7 @@ Registry {
                                 HttpResolver {
                                     method: "post",
                                     url: "http://example.com/user/createWithList",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: Some(
@@ -532,11 +569,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Mutation",
+            rust_typename: "PetstoreMutations",
             constraints: [],
         },
-        "Order": Object {
-            name: "Order",
+        "PetstoreOrder": Object {
+            name: "PetstoreOrder",
             description: None,
             fields: {
                 "complete": MetaField {
@@ -573,7 +610,7 @@ Registry {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "OrderStatus",
+                    ty: "PetstoreOrderStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -735,11 +772,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Order",
+            rust_typename: "PetstoreOrder",
             constraints: [],
         },
-        "OrderInput": InputObject {
-            name: "OrderInput",
+        "PetstoreOrderInput": InputObject {
+            name: "PetstoreOrderInput",
             description: None,
             input_fields: {
                 "complete": MetaInputValue {
@@ -753,7 +790,7 @@ Registry {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "OrderStatus",
+                    ty: "PetstoreOrderStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -791,11 +828,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "OrderInput",
+            rust_typename: "PetstoreOrderInput",
             oneof: false,
         },
-        "OrderStatus": Enum {
-            name: "OrderStatus",
+        "PetstoreOrderStatus": Enum {
+            name: "PetstoreOrderStatus",
             description: None,
             enum_values: {
                 "PLACED": MetaEnumValue {
@@ -823,17 +860,17 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "OrderStatus",
+            rust_typename: "PetstoreOrderStatus",
         },
-        "Pet": Object {
-            name: "Pet",
+        "PetstorePet": Object {
+            name: "PetstorePet",
             description: None,
             fields: {
                 "status": MetaField {
                     name: "status",
                     description: None,
                     args: {},
-                    ty: "PetStatus",
+                    ty: "PetstorePetStatus",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -870,7 +907,7 @@ Registry {
                     name: "tags",
                     description: None,
                     args: {},
-                    ty: "[Tag!]",
+                    ty: "[PetstoreTag!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -930,7 +967,7 @@ Registry {
                     name: "category",
                     description: None,
                     args: {},
-                    ty: "Category",
+                    ty: "PetstoreCategory",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1025,17 +1062,17 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Pet",
+            rust_typename: "PetstorePet",
             constraints: [],
         },
-        "PetInput": InputObject {
-            name: "PetInput",
+        "PetstorePetInput": InputObject {
+            name: "PetstorePetInput",
             description: None,
             input_fields: {
                 "status": MetaInputValue {
                     name: "status",
                     description: None,
-                    ty: "PetStatus",
+                    ty: "PetstorePetStatus",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1043,7 +1080,7 @@ Registry {
                 "tags": MetaInputValue {
                     name: "tags",
                     description: None,
-                    ty: "[TagInput!]!",
+                    ty: "[PetstoreTagInput!]!",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1059,7 +1096,7 @@ Registry {
                 "category": MetaInputValue {
                     name: "category",
                     description: None,
-                    ty: "CategoryInput!",
+                    ty: "PetstoreCategoryInput!",
                     default_value: None,
                     is_secret: false,
                     rename: None,
@@ -1081,11 +1118,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "PetInput",
+            rust_typename: "PetstorePetInput",
             oneof: false,
         },
-        "PetStatus": Enum {
-            name: "PetStatus",
+        "PetstorePetStatus": Enum {
+            name: "PetstorePetStatus",
             description: None,
             enum_values: {
                 "AVAILABLE": MetaEnumValue {
@@ -1113,10 +1150,10 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "PetStatus",
+            rust_typename: "PetstorePetStatus",
         },
-        "Query": Object {
-            name: "Query",
+        "PetstoreQueries": Object {
+            name: "PetstoreQueries",
             description: None,
             fields: {
                 "findPetsByStatus": MetaField {
@@ -1126,13 +1163,13 @@ Registry {
                         "status": MetaInputValue {
                             name: "status",
                             description: None,
-                            ty: "FindPetsByStatus",
+                            ty: "PetstoreFindPetsByStatus",
                             default_value: None,
                             is_secret: false,
                             rename: None,
                         },
                     },
-                    ty: "[Pet!]!",
+                    ty: "[PetstorePet!]!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1151,7 +1188,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/pet/findByStatus",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [
                                         QueryParameter {
@@ -1184,7 +1221,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "[Pet!]!",
+                    ty: "[PetstorePet!]!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1203,7 +1240,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/pet/findByTags",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [
                                         QueryParameter {
@@ -1236,7 +1273,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "Pet!",
+                    ty: "PetstorePet!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1255,7 +1292,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/pet/{petId}",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [
                                         PathParameter {
                                             name: "petId",
@@ -1297,7 +1334,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/store/inventory",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: None,
@@ -1322,7 +1359,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "Order!",
+                    ty: "PetstoreOrder!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1341,7 +1378,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/store/order/{orderId}",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [
                                         PathParameter {
                                             name: "orderId",
@@ -1400,7 +1437,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/user/login",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [],
                                     query_parameters: [
                                         QueryParameter {
@@ -1440,7 +1477,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "User!",
+                    ty: "PetstoreUser!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1459,7 +1496,7 @@ Registry {
                                 HttpResolver {
                                     method: "get",
                                     url: "http://example.com/user/{username}",
-                                    api_name: "example",
+                                    api_name: "petstore",
                                     path_parameters: [
                                         PathParameter {
                                             name: "username",
@@ -1487,11 +1524,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Query",
+            rust_typename: "PetstoreQueries",
             constraints: [],
         },
-        "Tag": Object {
-            name: "Tag",
+        "PetstoreTag": Object {
+            name: "PetstoreTag",
             description: None,
             fields: {
                 "name": MetaField {
@@ -1563,11 +1600,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "Tag",
+            rust_typename: "PetstoreTag",
             constraints: [],
         },
-        "TagInput": InputObject {
-            name: "TagInput",
+        "PetstoreTagInput": InputObject {
+            name: "PetstoreTagInput",
             description: None,
             input_fields: {
                 "name": MetaInputValue {
@@ -1587,11 +1624,11 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "TagInput",
+            rust_typename: "PetstoreTagInput",
             oneof: false,
         },
-        "User": Object {
-            name: "User",
+        "PetstoreUser": Object {
+            name: "PetstoreUser",
             description: None,
             fields: {
                 "userStatus": MetaField {
@@ -1843,11 +1880,11 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "User",
+            rust_typename: "PetstoreUser",
             constraints: [],
         },
-        "UserInput": InputObject {
-            name: "UserInput",
+        "PetstoreUserInput": InputObject {
+            name: "PetstoreUserInput",
             description: None,
             input_fields: {
                 "userStatus": MetaInputValue {
@@ -1915,8 +1952,45 @@ Registry {
                     rename: None,
                 },
             },
-            rust_typename: "UserInput",
+            rust_typename: "PetstoreUserInput",
             oneof: false,
+        },
+        "Query": Object {
+            name: "Query",
+            description: None,
+            fields: {
+                "petstore": MetaField {
+                    name: "petstore",
+                    description: None,
+                    args: {},
+                    ty: "PetstoreQueries",
+                    deprecation: NoDeprecated,
+                    cache_control: CacheControl {
+                        public: true,
+                        max_age: 0,
+                    },
+                    external: false,
+                    requires: None,
+                    provides: None,
+                    edges: [],
+                    relation: None,
+                    plan: None,
+                    resolve: None,
+                    transformer: None,
+                    required_operation: None,
+                    auth: None,
+                },
+            },
+            cache_control: CacheControl {
+                public: true,
+                max_age: 0,
+            },
+            extends: false,
+            keys: None,
+            is_subscription: false,
+            is_node: false,
+            rust_typename: "Query",
+            constraints: [],
         },
     },
     directives: {},
@@ -1939,7 +2013,7 @@ Registry {
     },
     schemas: {},
     http_headers: {
-        "example": [],
+        "petstore": [],
     },
     search_config: Config {
         indices: {},
