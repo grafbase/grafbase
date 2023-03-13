@@ -100,7 +100,7 @@ type ProductSearchEdge {
 
 """
 input ProductSearchFilterInput {
-	title: StringSearchFilterInput
+	title: StringOrNullSearchFilterInput
 	_all: [ProductSearchFilterInput!]
 	_any: [ProductSearchFilterInput!]
 	_not: ProductSearchFilterInput
@@ -134,7 +134,7 @@ type SearchInfo {
 """
 
 """
-input StringSearchFilterInput {
+input StringOrNullSearchFilterInput {
 	eq: String
 	neq: String
 	gt: String

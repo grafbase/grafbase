@@ -5,9 +5,10 @@ expression: sdl
 """
 
 """
-input BooleanSearchFilterInput {
+input BooleanOrNullSearchFilterInput {
 	eq: Boolean
 	neq: Boolean
+	isNull: Boolean
 }
 """
 A date string, such as 2007-12-03, is compliant with the full-date format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for the representation of dates and times using the Gregorian calendar.
@@ -18,7 +19,7 @@ scalar Date
 """
 
 """
-input DateSearchFilterInput {
+input DateOrNullSearchFilterInput {
 	eq: Date
 	neq: Date
 	gt: Date
@@ -48,7 +49,7 @@ scalar DateTime
 """
 
 """
-input DateTimeSearchFilterInput {
+input DateTimeOrNullSearchFilterInput {
 	eq: DateTime
 	neq: DateTime
 	gt: DateTime
@@ -66,7 +67,7 @@ scalar Email
 """
 
 """
-input EmailSearchFilterInput {
+input EmailOrNullSearchFilterInput {
 	eq: Email
 	neq: Email
 	gt: Email
@@ -88,7 +89,7 @@ input FloatOperationsInput {
 """
 
 """
-input FloatSearchFilterInput {
+input FloatOrNullSearchFilterInput {
 	eq: Float
 	neq: Float
 	gt: Float
@@ -108,7 +109,7 @@ scalar IPAddress
 """
 
 """
-input IPAddressSearchFilterInput {
+input IPAddressOrNullSearchFilterInput {
 	eq: IPAddress
 	neq: IPAddress
 	gt: IPAddress
@@ -130,7 +131,7 @@ input IntOperationsInput {
 """
 
 """
-input IntSearchFilterInput {
+input IntOrNullSearchFilterInput {
 	eq: Int
 	neq: Int
 	gt: Int
@@ -172,7 +173,7 @@ scalar PhoneNumber
 """
 
 """
-input PhoneNumberSearchFilterInput {
+input PhoneNumberOrNullSearchFilterInput {
 	eq: PhoneNumber
 	neq: PhoneNumber
 	gt: PhoneNumber
@@ -261,17 +262,17 @@ type ProductSearchEdge {
 
 """
 input ProductSearchFilterInput {
-	bool: BooleanSearchFilterInput
-	date: DateSearchFilterInput
-	datetime: DateTimeSearchFilterInput
-	email: EmailSearchFilterInput
-	float: FloatSearchFilterInput
-	int: IntSearchFilterInput
-	ip: IPAddressSearchFilterInput
-	phone: PhoneNumberSearchFilterInput
-	text: StringSearchFilterInput
+	bool: BooleanOrNullSearchFilterInput
+	date: DateOrNullSearchFilterInput
+	datetime: DateTimeOrNullSearchFilterInput
+	email: EmailOrNullSearchFilterInput
+	float: FloatOrNullSearchFilterInput
+	int: IntOrNullSearchFilterInput
+	ip: IPAddressOrNullSearchFilterInput
+	phone: PhoneNumberOrNullSearchFilterInput
+	text: StringOrNullSearchFilterInput
 	timestamp: TimestampSearchFilterInput
-	url: URLSearchFilterInput
+	url: URLOrNullSearchFilterInput
 	_all: [ProductSearchFilterInput!]
 	_any: [ProductSearchFilterInput!]
 	_not: ProductSearchFilterInput
@@ -315,7 +316,7 @@ type SearchInfo {
 """
 
 """
-input StringSearchFilterInput {
+input StringOrNullSearchFilterInput {
 	eq: String
 	neq: String
 	gt: String
@@ -342,7 +343,6 @@ input TimestampSearchFilterInput {
 	lt: Timestamp
 	in: [Timestamp!]
 	notIn: [Timestamp!]
-	isNull: Boolean
 }
 """
 An URL as defined by RFC1738. For example, `https://grafbase.com/foo/` or `mailto:example@grafbase.com`.
@@ -351,7 +351,7 @@ scalar URL
 """
 
 """
-input URLSearchFilterInput {
+input URLOrNullSearchFilterInput {
 	eq: URL
 	neq: URL
 	gt: URL

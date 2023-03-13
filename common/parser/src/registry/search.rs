@@ -28,39 +28,29 @@ use crate::registry::names::{
 use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
 
-fn convert_to_search_scalar(ty: &str) -> Result<search::FieldType, String> {
+fn convert_to_search_field_type(ty: &str, is_nullable: Option<bool>) -> Result<search::FieldType, String> {
     match MetaTypeName::create(ty) {
-        MetaTypeName::List(type_name) | MetaTypeName::NonNull(type_name) => convert_to_search_scalar(type_name),
-        MetaTypeName::Named(type_name) => Ok(match type_name {
-            "URL" => search::FieldType::url(),
-            "Email" => search::FieldType::email(),
-            "PhoneNumber" => search::FieldType::phone(),
-            "String" => search::FieldType::string(),
-            "Date" => search::FieldType::date(),
-            "DateTime" => search::FieldType::datetime(),
-            "Timestamp" => search::FieldType::timestamp(),
-            "Int" => search::FieldType::int(),
-            "Float" => search::FieldType::float(),
-            "Boolean" => search::FieldType::bool(),
-            "IPAddress" => search::FieldType::ip(),
-            _ => return Err(type_name.to_string()),
-        }),
-    }
-}
-
-fn scalar_name(ty: &search::FieldType) -> &'static str {
-    match ty {
-        search::FieldType::URL { .. } => "URL",
-        search::FieldType::Email { .. } => "Email",
-        search::FieldType::PhoneNumber { .. } => "PhoneNumber",
-        search::FieldType::String { .. } => "String",
-        search::FieldType::Date { .. } => "Date",
-        search::FieldType::DateTime { .. } => "DateTime",
-        search::FieldType::Timestamp { .. } => "Timestamp",
-        search::FieldType::Int { .. } => "Int",
-        search::FieldType::Float { .. } => "Float",
-        search::FieldType::Boolean { .. } => "Boolean",
-        search::FieldType::IPAddress { .. } => "IPAddress",
+        MetaTypeName::NonNull(type_name) => convert_to_search_field_type(type_name, is_nullable.or(Some(false))),
+        MetaTypeName::List(type_name) => convert_to_search_field_type(type_name, Some(true)),
+        MetaTypeName::Named(type_name) => {
+            let opts = search::FieldOptions {
+                nullable: is_nullable.unwrap_or(true),
+            };
+            Ok(match type_name {
+                "URL" => search::FieldType::URL(opts),
+                "Email" => search::FieldType::Email(opts),
+                "PhoneNumber" => search::FieldType::PhoneNumber(opts),
+                "String" => search::FieldType::String(opts),
+                "Date" => search::FieldType::Date(opts),
+                "DateTime" => search::FieldType::DateTime(opts),
+                "Timestamp" => search::FieldType::Timestamp(opts),
+                "Int" => search::FieldType::Int(opts),
+                "Float" => search::FieldType::Float(opts),
+                "Boolean" => search::FieldType::Boolean(opts),
+                "IPAddress" => search::FieldType::IPAddress(opts),
+                _ => return Err(type_name.to_string()),
+            })
+        }
     }
 }
 
@@ -80,7 +70,7 @@ pub fn add_query_search(
     let (fields, errors): (HashMap<_, _>, Vec<_>) = search_fields
         .into_iter()
         .map(|(field, directive)| {
-            convert_to_search_scalar(&field.ty.node.to_string())
+            convert_to_search_field_type(&field.ty.node.to_string(), None)
                 .map(|ty| (field.name.node.to_string(), search::FieldEntry { ty }))
                 .map_err(|unsupported_type_name| {
                     ctx.report_error(
@@ -371,8 +361,8 @@ fn register_model_filter(
 }
 
 fn register_scalar_filter(registry: &mut Registry, ty: &search::FieldType) -> String {
-    let scalar = scalar_name(ty);
-    let input_type_name = MetaNames::search_scalar_filter_input(scalar);
+    let scalar = ty.scalar_name();
+    let input_type_name = MetaNames::search_scalar_filter_input(scalar, ty.is_nullable());
     registry.create_type(
         |_| MetaType::InputObject {
             name: input_type_name.clone(),
@@ -382,7 +372,6 @@ fn register_scalar_filter(registry: &mut Registry, ty: &search::FieldType) -> St
                     MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
                 ];
-
                 if scalar != "Boolean" {
                     args.extend([
                         MetaInputValue::new(INPUT_FIELD_FILTER_GT, scalar),
@@ -391,10 +380,11 @@ fn register_scalar_filter(registry: &mut Registry, ty: &search::FieldType) -> St
                         MetaInputValue::new(INPUT_FIELD_FILTER_LT, scalar),
                         MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
                         MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"),
                     ]);
                 }
-
+                if ty.is_nullable() {
+                    args.push(MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"));
+                }
                 args.into_iter().map(|input| (input.name.clone(), input)).collect()
             },
             visible: None,

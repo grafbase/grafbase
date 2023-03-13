@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{registry::ParentRelation, utils::to_lower_camelcase};
 use case::CaseExt;
 pub use dynaql::names::*;
@@ -63,7 +65,12 @@ impl MetaNames {
         format!("{}SearchFilterInput", Self::model(model_type_definition))
     }
 
-    pub fn search_scalar_filter_input(scalar: &str) -> String {
+    pub fn search_scalar_filter_input(scalar: &str, nullable: bool) -> String {
+        let scalar = if nullable {
+            Cow::Owned(format!("{scalar}OrNull"))
+        } else {
+            Cow::Borrowed(scalar)
+        };
         format!("{scalar}SearchFilterInput")
     }
 
