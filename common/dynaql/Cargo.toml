@@ -35,7 +35,7 @@ dynaql-derive = { path = "derive", version = "3" }
 dynaql-value = { path = "value", version = "3" }
 dynaql-parser = { path = "parser", version = "3" }
 
-async-lock = "2.7"
+async-lock = "2"
 async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
