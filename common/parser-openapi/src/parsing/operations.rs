@@ -139,7 +139,7 @@ impl OperationDetails {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::Display)]
-#[strum(serialize_all = "lowercase")]
+#[strum(serialize_all = "UPPERCASE", ascii_case_insensitive)]
 pub enum HttpMethod {
     Get,
     Post,

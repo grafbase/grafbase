@@ -319,7 +319,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "put",
+                                    method: "PUT",
                                     url: "http://example.com/pet",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -370,7 +370,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "post",
+                                    method: "POST",
                                     url: "http://example.com/pet",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -429,7 +429,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "post",
+                                    method: "POST",
                                     url: "http://example.com/pet/{petId}/uploadImage",
                                     api_name: "petstore",
                                     path_parameters: [
@@ -488,7 +488,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "post",
+                                    method: "POST",
                                     url: "http://example.com/store/order",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -539,7 +539,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "post",
+                                    method: "POST",
                                     url: "http://example.com/user/createWithList",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -1186,7 +1186,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/pet/findByStatus",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -1238,7 +1238,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/pet/findByTags",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -1290,7 +1290,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/pet/{petId}",
                                     api_name: "petstore",
                                     path_parameters: [
@@ -1332,7 +1332,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/store/inventory",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -1376,7 +1376,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/store/order/{orderId}",
                                     api_name: "petstore",
                                     path_parameters: [
@@ -1435,7 +1435,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/user/login",
                                     api_name: "petstore",
                                     path_parameters: [],
@@ -1494,7 +1494,7 @@ Registry {
                             id: None,
                             type: Http(
                                 HttpResolver {
-                                    method: "get",
+                                    method: "GET",
                                     url: "http://example.com/user/{username}",
                                     api_name: "petstore",
                                     path_parameters: [
