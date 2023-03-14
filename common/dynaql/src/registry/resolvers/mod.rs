@@ -18,7 +18,8 @@ use dynamo_querying::DynamoResolver;
 use dynamodb::PaginatedCursor;
 use dynaql_parser::types::SelectionSet;
 use dynaql_value::{ConstValue, Name};
-use graph_entities::{cursor::PaginationCursor, ConstraintID};
+use grafbase_runtime::cursor::Cursor;
+use graph_entities::ConstraintID;
 use query::QueryResolver;
 
 use std::sync::Arc;
@@ -129,51 +130,37 @@ impl ResolvedPaginationDirection {
 
 #[derive(Debug, Hash, Clone)]
 pub struct ResolvedPaginationInfo {
-    pub direction: ResolvedPaginationDirection,
-    pub end_cursor: Option<PaginationCursor>,
-    pub start_cursor: Option<PaginationCursor>,
-    pub more_data: bool,
+    pub start_cursor: Option<Cursor>,
+    pub end_cursor: Option<Cursor>,
+    pub has_next_page: bool,
+    pub has_previous_page: bool,
 }
 
 impl ResolvedPaginationInfo {
-    pub fn new(direction: ResolvedPaginationDirection) -> Self {
+    pub fn of<C: Into<Cursor>>(
+        direction: ResolvedPaginationDirection,
+        start_cursor: Option<C>,
+        end_cursor: Option<C>,
+        more_data: bool,
+    ) -> Self {
         Self {
-            direction,
-            end_cursor: None,
-            start_cursor: None,
-            more_data: false,
+            start_cursor: start_cursor.map(Into::into),
+            end_cursor: end_cursor.map(Into::into),
+            has_next_page: matches!(
+                (&direction, more_data),
+                (&ResolvedPaginationDirection::Forward, true)
+            ),
+            has_previous_page: matches!(
+                (&direction, more_data),
+                (&ResolvedPaginationDirection::Backward, true)
+            ),
         }
     }
 
-    pub fn with_start(mut self, start_cursor: Option<PaginationCursor>) -> Self {
-        self.start_cursor = start_cursor;
-        self
-    }
-
-    pub fn with_end(mut self, end_cursor: Option<PaginationCursor>) -> Self {
-        self.end_cursor = end_cursor;
-        self
-    }
-
-    pub fn with_more_data(mut self, data: bool) -> Self {
-        self.more_data = data;
-        self
-    }
-
     pub fn output(&self) -> serde_json::Value {
-        let has_next_page = matches!(
-            (&self.direction, self.more_data),
-            (&ResolvedPaginationDirection::Forward, true)
-        );
-
-        let has_previous_page = matches!(
-            (&self.direction, self.more_data),
-            (&ResolvedPaginationDirection::Backward, true)
-        );
-
         serde_json::json!({
-            "has_next_page": has_next_page,
-            "has_previous_page": has_previous_page,
+            "has_next_page": self.has_next_page,
+            "has_previous_page": self.has_previous_page,
             "start_cursor": self.start_cursor,
             "end_cursor": self.end_cursor,
         })

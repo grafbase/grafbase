@@ -295,7 +295,7 @@ fn register_mutation_input_type(
             for field in object
                 .fields
                 .iter()
-                .filter(|field| ModelDirective::is_not_reserved_field(field))
+                .filter(|field| ModelDirective::is_not_metadata_field(field))
                 .filter(|field| ResolverDirective::resolver_name(&field.node).is_none())
             {
                 let maybe_type = match RelationEngine::get(ctx, &model_type_definition.name.node, &field.node) {

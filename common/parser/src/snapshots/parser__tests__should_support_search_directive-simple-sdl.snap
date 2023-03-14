@@ -101,9 +101,10 @@ type ProductSearchEdge {
 """
 input ProductSearchFilterInput {
 	title: StringOrNullSearchFilterInput
-	_all: [ProductSearchFilterInput!]
-	_any: [ProductSearchFilterInput!]
-	_not: ProductSearchFilterInput
+	ALL: [ProductSearchFilterInput!]
+	ANY: [ProductSearchFilterInput!]
+	NONE: [ProductSearchFilterInput!]
+	NOT: ProductSearchFilterInput
 }
 """
 Input to update a Product

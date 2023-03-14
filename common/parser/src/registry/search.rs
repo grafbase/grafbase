@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use dynaql::registry::resolvers::debug::DebugResolver;
 use itertools::Itertools;
 
-use dynaql::names::INPUT_FIELD_FILTER_IS_NULL;
 use dynaql::registry::resolvers::context_data::ContextDataResolver;
-use dynaql::registry::resolvers::dynamo_querying::DynamoResolver;
-use dynaql::registry::resolvers::query::{QueryResolver, SEARCH_RESOLVER_HIT_IDS, SEARCH_RESOLVER_TOTAL_HITS};
+use dynaql::registry::resolvers::query::{
+    QueryResolver, SEARCH_RESOLVER_EDGES, SEARCH_RESOLVER_EDGE_CURSOR, SEARCH_RESOLVER_EDGE_SCORE,
+    SEARCH_RESOLVER_TOTAL_HITS,
+};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
@@ -18,15 +18,42 @@ use grafbase_runtime::search;
 use crate::registry::generate_pagination_args;
 use crate::registry::names::{
     MetaNames, INPUT_ARG_FIELDS, INPUT_ARG_FILTER, INPUT_ARG_QUERY, INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY,
-    INPUT_FIELD_FILTER_EQ, INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN, INPUT_FIELD_FILTER_LT,
-    INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
-    PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR, PAGINATION_FIELD_EDGE_NODE,
-    PAGINATION_FIELD_EDGE_SEARCH_SCORE, PAGINATION_FIELD_PAGE_INFO, PAGINATION_FIELD_SEARCH_INFO,
-    PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE, PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST,
-    SEARCH_INFO_FIELD_TOTAL_HITS, SEARCH_INFO_TYPE,
+    INPUT_FIELD_FILTER_EQ, INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN,
+    INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_HAS_ANY, INPUT_FIELD_FILTER_LIST_HAS_NONE,
+    INPUT_FIELD_FILTER_LIST_IS_EMPTY, INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ,
+    INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN, PAGINATION_FIELD_EDGES,
+    PAGINATION_FIELD_EDGE_CURSOR, PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_EDGE_SEARCH_SCORE,
+    PAGINATION_FIELD_PAGE_INFO, PAGINATION_FIELD_SEARCH_INFO, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE,
+    PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST, SEARCH_INFO_FIELD_TOTAL_HITS, SEARCH_INFO_TYPE,
 };
 use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
+
+enum FilterKind {
+    Single { scalar: String, is_nullable: bool },
+    List { scalar: String },
+}
+
+impl From<&str> for FilterKind {
+    fn from(ty: &str) -> Self {
+        match MetaTypeName::create(ty) {
+            MetaTypeName::List(ty) => FilterKind::List {
+                scalar: MetaTypeName::concrete_typename(ty).to_string(),
+            },
+            MetaTypeName::NonNull(ty) => match FilterKind::from(ty) {
+                FilterKind::Single { scalar: ty, .. } => FilterKind::Single {
+                    scalar: ty,
+                    is_nullable: false,
+                },
+                kind => kind,
+            },
+            MetaTypeName::Named(ty) => FilterKind::Single {
+                scalar: ty.to_string(),
+                is_nullable: true,
+            },
+        }
+    }
+}
 
 fn convert_to_search_field_type(ty: &str, is_nullable: Option<bool>) -> Result<search::FieldType, String> {
     match MetaTypeName::create(ty) {
@@ -62,13 +89,11 @@ pub fn add_query_search(
 ) {
     assert!(!search_fields.is_empty());
     let type_name = MetaNames::model(model_type_definition);
-    // FIXME: At several places the lowercase for the id & entity_type is
-    // used. A single code path should handle that.
-    let entity_type = type_name.to_lowercase();
+    let entity_type = MetaNames::entity_type(model_type_definition);
     let field_name = MetaNames::query_search(model_type_definition);
 
     let (fields, errors): (HashMap<_, _>, Vec<_>) = search_fields
-        .into_iter()
+        .iter()
         .map(|(field, directive)| {
             convert_to_search_field_type(&field.ty.node.to_string(), None)
                 .map(|ty| (field.name.node.to_string(), search::FieldEntry { ty }))
@@ -85,9 +110,12 @@ pub fn add_query_search(
     if !errors.is_empty() {
         return;
     }
-    let config = search::IndexConfig {
-        schema: search::Schema { fields },
-    };
+    ctx.registry.get_mut().search_config.indices.insert(
+        entity_type.clone(),
+        search::IndexConfig {
+            schema: search::Schema { fields },
+        },
+    );
 
     let connection_type = register_connection_type(ctx.registry.get_mut(), model_type_definition, model_auth);
     ctx.queries.push(MetaField {
@@ -95,6 +123,16 @@ pub fn add_query_search(
         description: Some(format!("Search `{type_name}`")),
         args: {
             let mut pagination_args = generate_pagination_args(ctx.registry.get_mut(), model_type_definition);
+            let search_filters: HashMap<String, FilterKind> = search_fields
+                .into_iter()
+                .map(|(field, _)| {
+                    (
+                        field.name.node.to_string(),
+                        FilterKind::from(field.ty.node.to_string().as_str()),
+                    )
+                })
+                .collect();
+
             let args = vec![
                 MetaInputValue::new(INPUT_ARG_QUERY, "String").with_description("Text to search."),
                 MetaInputValue::new(INPUT_ARG_FIELDS, "[String!]").with_description(concat!(
@@ -104,7 +142,7 @@ pub fn add_query_search(
                 )),
                 MetaInputValue::new(
                     INPUT_ARG_FILTER,
-                    register_model_filter(ctx.registry.get_mut(), model_type_definition, &config.schema),
+                    register_model_filter(ctx.registry.get_mut(), model_type_definition, search_filters),
                 ),
                 pagination_args
                     .remove(PAGINATION_INPUT_ARG_FIRST)
@@ -146,15 +184,14 @@ pub fn add_query_search(
                 after: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_AFTER.to_string()),
                 before: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_BEFORE.to_string()),
                 last: VariableResolveDefinition::InputTypeName(PAGINATION_INPUT_ARG_LAST.to_string()),
-                entity_type: entity_type.clone(),
+                type_name,
+                entity_type,
             }),
         }),
         transformer: None,
         required_operation: Some(Operations::LIST),
         auth: model_auth.cloned(),
     });
-
-    ctx.registry.get_mut().search_config.indices.insert(entity_type, config);
 }
 
 fn register_connection_type(
@@ -194,9 +231,8 @@ fn register_connection_type(
                         auth: model_auth.cloned(),
                         resolve: Some(Resolver {
                             id: None,
-                            r#type: ResolverType::DynamoResolver(DynamoResolver::QueryIds {
-                                ids: VariableResolveDefinition::LocalData(SEARCH_RESOLVER_HIT_IDS.to_string()),
-                                type_name: MetaNames::model(model_type_definition),
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                key: SEARCH_RESOLVER_EDGES.to_string(),
                             }),
                         }),
                         ..Default::default()
@@ -283,8 +319,8 @@ fn register_edge_type(
                     auth: model_auth.cloned(),
                     resolve: Some(Resolver {
                         id: None,
-                        r#type: ResolverType::DebugResolver(DebugResolver::Value {
-                            inner: serde_json::Value::String(String::new()),
+                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                            key: SEARCH_RESOLVER_EDGE_CURSOR.to_string(),
                         }),
                     }),
                     ..Default::default()
@@ -296,8 +332,8 @@ fn register_edge_type(
                     auth: model_auth.cloned(),
                     resolve: Some(Resolver {
                         id: None,
-                        r#type: ResolverType::DebugResolver(DebugResolver::Value {
-                            inner: serde_json::json!(0.0),
+                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                            key: SEARCH_RESOLVER_EDGE_SCORE.to_string(),
                         }),
                     }),
                     ..Default::default()
@@ -325,7 +361,7 @@ fn register_edge_type(
 fn register_model_filter(
     registry: &mut Registry,
     model_type_definition: &TypeDefinition,
-    schema: &search::Schema,
+    filters: HashMap<String, FilterKind>,
 ) -> String {
     let input_type_name = MetaNames::search_filter_input(model_type_definition);
     registry.create_type(
@@ -333,10 +369,19 @@ fn register_model_filter(
             name: input_type_name.clone(),
             description: Some(String::new()),
             input_fields: {
-                let mut args = schema
-                    .fields
-                    .iter()
-                    .map(|(name, field)| MetaInputValue::new(name, register_scalar_filter(registry, &field.ty)))
+                let mut args = filters
+                    .into_iter()
+                    .map(|(name, kind)| {
+                        MetaInputValue::new(
+                            name,
+                            match kind {
+                                FilterKind::Single { scalar, is_nullable } => {
+                                    register_scalar_filter(registry, &scalar, is_nullable)
+                                }
+                                FilterKind::List { scalar } => register_scalar_list_filter(registry, &scalar),
+                            },
+                        )
+                    })
                     .collect::<Vec<_>>();
                 // Stable schema
                 args.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
@@ -344,6 +389,7 @@ fn register_model_filter(
                 args.extend([
                     MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
                 ]);
 
@@ -360,9 +406,73 @@ fn register_model_filter(
     input_type_name
 }
 
-fn register_scalar_filter(registry: &mut Registry, ty: &search::FieldType) -> String {
-    let scalar = ty.scalar_name();
-    let input_type_name = MetaNames::search_scalar_filter_input(scalar, ty.is_nullable());
+fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String {
+    let item_input_type_name = MetaNames::search_scalar_list_item_filter_input(scalar);
+    registry.create_type(
+        |_| MetaType::InputObject {
+            name: item_input_type_name.clone(),
+            description: Some(String::new()),
+            input_fields: {
+                let mut args = vec![
+                    MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{item_input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{item_input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{item_input_type_name}!]")),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                ];
+                if scalar != "Boolean" {
+                    let range_scalar = match scalar {
+                        "Email" | "PhoneNumber" | "URL" => "String",
+                        _ => scalar,
+                    };
+                    args.extend([
+                        MetaInputValue::new(INPUT_FIELD_FILTER_GT, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_GTE, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_LTE, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_LT, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
+                    ]);
+                }
+                args.into_iter().map(|input| (input.name.clone(), input)).collect()
+            },
+            visible: None,
+            rust_typename: item_input_type_name.clone(),
+            oneof: scalar == "Boolean",
+        },
+        &item_input_type_name,
+        &item_input_type_name,
+    );
+
+    let list_input_type_name = MetaNames::search_scalar_list_filter_input(scalar);
+    registry.create_type(
+        |_| MetaType::InputObject {
+            name: list_input_type_name.clone(),
+            description: Some(String::new()),
+            input_fields: {
+                vec![
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_HAS_ANY, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_HAS_NONE, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_IS_EMPTY, "Boolean"),
+                ]
+                .into_iter()
+                .map(|input| (input.name.clone(), input))
+                .collect()
+            },
+            visible: None,
+            rust_typename: list_input_type_name.clone(),
+            oneof: scalar == "Boolean",
+        },
+        &list_input_type_name,
+        &list_input_type_name,
+    );
+
+    list_input_type_name
+}
+
+fn register_scalar_filter(registry: &mut Registry, scalar: &str, is_nullable: bool) -> String {
+    let input_type_name = MetaNames::search_scalar_filter_input(scalar, is_nullable);
     registry.create_type(
         |_| MetaType::InputObject {
             name: input_type_name.clone(),
@@ -373,16 +483,20 @@ fn register_scalar_filter(registry: &mut Registry, ty: &search::FieldType) -> St
                     MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
                 ];
                 if scalar != "Boolean" {
+                    let range_scalar = match scalar {
+                        "Email" | "PhoneNumber" | "URL" => "String",
+                        _ => scalar,
+                    };
                     args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GT, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GTE, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LTE, scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LT, scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_GT, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_GTE, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_LTE, range_scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_LT, range_scalar),
                         MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
                         MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
                     ]);
                 }
-                if ty.is_nullable() {
+                if is_nullable {
                     args.push(MetaInputValue::new(INPUT_FIELD_FILTER_IS_NULL, "Boolean"));
                 }
                 args.into_iter().map(|input| (input.name.clone(), input)).collect()

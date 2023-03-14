@@ -11,14 +11,16 @@ use dynamodb::{
     DynamoDBBatchersData, PaginatedCursor, PaginationOrdering, ParentEdge, QueryKey,
     QuerySingleRelationKey, QueryTypePaginatedKey,
 };
-use graph_entities::cursor::PaginationCursor;
+use grafbase_runtime::search::Cursor;
 use graph_entities::NodeID;
 use indexmap::IndexMap;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use serde_json::Map;
 use std::borrow::Borrow;
 use std::collections::HashSet;
 use std::hash::Hash;
+use std::string::FromUtf8Error;
 use std::sync::Arc;
 
 pub(crate) const PAGINATION_LIMIT: usize = 100;
@@ -58,7 +60,10 @@ pub enum DynamoResolver {
         schema: Option<SchemaID>,
     },
     QueryIds {
-        ids: VariableResolveDefinition,
+        // TODO: This should be VariableResolveDefinition but currently it never used as such
+        // and makes passing ids quite akward as one cannot pass directly arbitrary
+        // serde_json::Value in a VariableResolveDefinition because it's not hashable.
+        ids: Vec<String>,
         type_name: String,
     },
     /// A Paginated Query based on the type of the entity.
@@ -151,6 +156,27 @@ pub enum DynamoResolver {
     },
 }
 
+// Cursor "implementation" for DynamoDB collections
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(try_from = "Cursor", into = "Cursor")]
+pub struct IdCursor {
+    pub id: String,
+}
+
+impl From<IdCursor> for Cursor {
+    fn from(value: IdCursor) -> Self {
+        Cursor::from(value.id.as_bytes())
+    }
+}
+
+impl TryFrom<Cursor> for IdCursor {
+    type Error = FromUtf8Error;
+
+    fn try_from(value: Cursor) -> Result<Self, Self::Error> {
+        String::from_utf8(value.to_bytes()).map(|id| IdCursor { id })
+    }
+}
+
 #[async_trait::async_trait]
 impl ResolverTrait for DynamoResolver {
     async fn resolve(
@@ -210,28 +236,13 @@ impl ResolverTrait for DynamoResolver {
                     .unique()
                     .collect();
 
-                let first = first.expect_opt_int(
-                    ctx,
-                    last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    Some(PAGINATION_LIMIT),
-                )?;
-                let after = after.expect_opt_cursor(
-                    ctx,
-                    last_resolver_value.map(|x| x.data_resolved.borrow()),
-                )?;
-                let before = before.expect_opt_cursor(
-                    ctx,
-                    last_resolver_value.map(|x| x.data_resolved.borrow()),
-                )?;
-                let last = last.expect_opt_int(
-                    ctx,
-                    last_resolver_value.map(|x| x.data_resolved.borrow()),
-                    Some(PAGINATION_LIMIT),
-                )?;
-
+                let last_val = last_resolver_value.map(|x| x.data_resolved.borrow());
+                let first = first.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
+                let after: Option<IdCursor> = after.resolve(ctx, last_val)?;
+                let before: Option<IdCursor> = before.resolve(ctx, last_val)?;
+                let last = last.expect_opt_int(ctx, last_val, Some(PAGINATION_LIMIT))?;
                 let order_by: Option<OneOf<OrderByDirection>> = match order_by {
-                    Some(order_by) => order_by
-                        .resolve(ctx, last_resolver_value.map(|x| x.data_resolved.borrow()))?,
+                    Some(order_by) => order_by.resolve(ctx, last_val)?,
                     None => None,
                 };
                 let ordering = match order_by
@@ -246,8 +257,8 @@ impl ResolverTrait for DynamoResolver {
                 let cursor = PaginatedCursor::from_graphql(
                     first,
                     last,
-                    after,
-                    before,
+                    after.map(|cursor| cursor.id),
+                    before.map(|cursor| cursor.id),
                     nested.clone().map(|(relation_name, parent_id)| ParentEdge {
                         relation_name,
                         parent_id,
@@ -265,24 +276,20 @@ impl ResolverTrait for DynamoResolver {
                         Error::new("Internal Error: Failed to fetch the associated nodes.")
                     })?;
 
-                let pagination = ResolvedPaginationInfo::new(
+                let pagination = ResolvedPaginationInfo::of(
                     ResolvedPaginationDirection::from_paginated_cursor(&cursor),
-                )
-                .with_start(
                     result
                         .values
                         .iter()
                         .next()
-                        .map(|(id, _)| PaginationCursor { id: id.to_string() }),
-                )
-                .with_end(
+                        .map(|(id, _)| IdCursor { id: id.to_string() }),
                     result
                         .values
                         .iter()
                         .last()
-                        .map(|(id, _)| PaginationCursor { id: id.to_string() }),
-                )
-                .with_more_data(result.last_evaluated_key.is_some());
+                        .map(|(id, _)| IdCursor { id: id.to_string() }),
+                    result.last_evaluated_key.is_some(),
+                );
 
                 let result: Vec<serde_json::Value> = result
                     .values
@@ -335,13 +342,9 @@ impl ResolverTrait for DynamoResolver {
                 )
             }
             DynamoResolver::QueryIds { ids, type_name } => {
-                let ids: Vec<String> = ids.resolve(
-                    ctx,
-                    last_resolver_value.map(|resolved| resolved.data_resolved.borrow()),
-                )?;
                 let keys = ids
-                    .into_iter()
-                    .map(|id| (id.clone(), id))
+                    .iter()
+                    .map(|id| (id.clone(), id.clone()))
                     .collect::<Vec<_>>();
                 let mut db_result = ctx
                     .data::<Arc<DynamoDBBatchersData>>()?
@@ -665,5 +668,22 @@ impl ResolverTrait for DynamoResolver {
                 ))))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cursor_serde_check() {
+        let cursor = IdCursor {
+            id: "My shiny new cursor".to_string(),
+        };
+
+        let s = serde_json::to_string(&cursor).unwrap();
+        // Should be serialized as a String.
+        assert!(serde_json::from_str::<String>(&s).is_ok());
+        assert_eq!(serde_json::from_str::<IdCursor>(&s).unwrap(), cursor);
     }
 }

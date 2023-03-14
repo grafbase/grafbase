@@ -17,6 +17,7 @@
 //! TODO: Should have either: an ID or a PK
 
 use case::CaseExt;
+use dynaql::names::{INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT};
 use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use if_chain::if_chain;
@@ -54,15 +55,21 @@ use super::visitor::{Visitor, VisitorContext};
 
 pub struct ModelDirective;
 
-pub const RESERVED_FIELD_ID: &str = "id";
-pub const RESERVED_FIELD_CREATED_AT: &str = "createdAt";
-pub const RESERVED_FIELD_UPDATED_AT: &str = "updatedAt";
-pub const RESERVED_FIELDS: [&str; 3] = [RESERVED_FIELD_ID, RESERVED_FIELD_UPDATED_AT, RESERVED_FIELD_CREATED_AT];
+pub const METADATA_FIELD_ID: &str = "id";
+pub const METADATA_FIELD_CREATED_AT: &str = "createdAt";
+pub const METADATA_FIELD_UPDATED_AT: &str = "updatedAt";
+pub const METADATA_FIELDS: [&str; 3] = [METADATA_FIELD_ID, METADATA_FIELD_UPDATED_AT, METADATA_FIELD_CREATED_AT];
+pub const RESERVED_FIELDS: [&str; 4] = [
+    INPUT_FIELD_FILTER_ALL,
+    INPUT_FIELD_FILTER_ANY,
+    INPUT_FIELD_FILTER_NONE,
+    INPUT_FIELD_FILTER_NOT,
+];
 pub const MODEL_DIRECTIVE: &str = "model";
 
 impl ModelDirective {
-    pub fn is_not_reserved_field(field: &Positioned<FieldDefinition>) -> bool {
-        !RESERVED_FIELDS.contains(&field.node.name.node.as_str())
+    pub fn is_not_metadata_field(field: &Positioned<FieldDefinition>) -> bool {
+        !METADATA_FIELDS.contains(&field.node.name.node.as_str())
     }
 
     pub fn is_model(ctx: &'_ VisitorContext<'_>, ty: &Type) -> bool {
@@ -155,7 +162,7 @@ impl<'a> Visitor<'a> for ModelDirective {
         }
         if let TypeKind::Object(object) = &type_definition.node.kind {
             let type_name = MetaNames::model(&type_definition.node);
-            if has_any_invalid_reserved_fields(ctx, &type_name, object) {
+            if has_any_invalid_metadata_fields(ctx, &type_name, object) {
                 return;
             }
 
@@ -193,6 +200,16 @@ impl<'a> Visitor<'a> for ModelDirective {
             // Add typename schema
             let schema_id = ctx.get_schema_id(&type_name);
 
+            for field in &object.fields {
+                let name = field.node.name.node.to_string();
+                if RESERVED_FIELDS.contains(&name.as_str()) {
+                    ctx.report_error(
+                        vec![field.pos],
+                        format!("Field name '{name}' is reserved and cannot be used."),
+                    );
+                }
+            }
+
             //
             // CREATE ACTUAL TYPE
             //
@@ -208,8 +225,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                         for field in &object.fields {
                             let name = field.node.name.node.to_string();
 
-                            // Will be added later.
-                            if RESERVED_FIELDS.contains(&name.as_str()) {
+                            // Will be added later or ignored (error was already reported)
+                            if METADATA_FIELDS.contains(&name.as_str()) || RESERVED_FIELDS.contains(&name.as_str()) {
                                 continue;
                             }
 
@@ -333,39 +350,39 @@ impl<'a> Visitor<'a> for ModelDirective {
                         insert_metadata_field(
                             &mut fields,
                             &type_name,
-                            RESERVED_FIELD_ID,
+                            METADATA_FIELD_ID,
                             Some("Unique identifier".to_owned()),
                             "ID!",
                             dynamodb::constant::SK,
                             "id",
                             field_auth
-                                .get(RESERVED_FIELD_ID)
+                                .get(METADATA_FIELD_ID)
                                 .map(|e| e.as_ref())
                                 .unwrap_or(model_auth.as_ref()),
                         );
                         insert_metadata_field(
                             &mut fields,
                             &type_name,
-                            RESERVED_FIELD_UPDATED_AT,
+                            METADATA_FIELD_UPDATED_AT,
                             Some("when the model was updated".to_owned()),
                             "DateTime!",
                             dynamodb::constant::UPDATED_AT,
                             "updatedAt",
                             field_auth
-                                .get(RESERVED_FIELD_UPDATED_AT)
+                                .get(METADATA_FIELD_UPDATED_AT)
                                 .map(|e| e.as_ref())
                                 .unwrap_or(model_auth.as_ref()),
                         );
                         insert_metadata_field(
                             &mut fields,
                             &type_name,
-                            RESERVED_FIELD_CREATED_AT,
+                            METADATA_FIELD_CREATED_AT,
                             Some("when the model was created".to_owned()),
                             "DateTime!",
                             dynamodb::constant::CREATED_AT,
                             "createdAt",
                             field_auth
-                                .get(RESERVED_FIELD_CREATED_AT)
+                                .get(METADATA_FIELD_CREATED_AT)
                                 .map(|e| e.as_ref())
                                 .unwrap_or(model_auth.as_ref()),
                         );
@@ -406,8 +423,8 @@ impl<'a> Visitor<'a> for ModelDirective {
                     input_fields: {
                         let mut input_fields = IndexMap::new();
                         input_fields.insert(
-                            RESERVED_FIELD_ID.to_string(),
-                            MetaInputValue::new(RESERVED_FIELD_ID, "ID".to_string()),
+                            METADATA_FIELD_ID.to_string(),
+                            MetaInputValue::new(METADATA_FIELD_ID, "ID".to_string()),
                         );
                         for unique_directive in &unique_directives {
                             input_fields.insert(unique_directive.name(), unique_directive.lookup_by_field(registry));
@@ -489,13 +506,13 @@ impl<'a> Visitor<'a> for ModelDirective {
     }
 }
 
-fn has_any_invalid_reserved_fields(ctx: &mut VisitorContext<'_>, object_name: &str, object: &ObjectType) -> bool {
+fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &str, object: &ObjectType) -> bool {
     let mut has_invalid_field = false;
     for field in &object.fields {
         let field_name = field.node.name.node.as_str();
         let expected_type_name = match field_name {
-            RESERVED_FIELD_CREATED_AT | RESERVED_FIELD_UPDATED_AT => DateTimeScalar::name(),
-            RESERVED_FIELD_ID => IDScalar::name(),
+            METADATA_FIELD_CREATED_AT | METADATA_FIELD_UPDATED_AT => DateTimeScalar::name(),
+            METADATA_FIELD_ID => IDScalar::name(),
             // Field is not reserved.
             _ => continue,
         }

@@ -309,9 +309,45 @@ fn should_ensure_lowercase() {
 }
 
 #[test]
+fn should_forbid_use_of_reserved_fields() {
+    assert_validation_error!(
+        r#"
+        type Product @model {
+            ALL: Int
+        }
+        "#,
+        "Field name 'ALL' is reserved and cannot be used."
+    );
+    assert_validation_error!(
+        r#"
+        type Product @model {
+            ANY: Int
+        }
+        "#,
+        "Field name 'ANY' is reserved and cannot be used."
+    );
+    assert_validation_error!(
+        r#"
+        type Product @model {
+            NONE: Int
+        }
+        "#,
+        "Field name 'NONE' is reserved and cannot be used."
+    );
+    assert_validation_error!(
+        r#"
+        type Product @model {
+            NOT: Int
+        }
+        "#,
+        "Field name 'NOT' is reserved and cannot be used."
+    );
+}
+
+#[test]
 #[named]
 fn test_model_reserved_fields() {
-    let with_reserved_fields = super::to_registry(
+    let with_metadata_fields = super::to_registry(
         r#"
         type Product @model {
             title: String
@@ -323,7 +359,7 @@ fn test_model_reserved_fields() {
     )
     .unwrap();
 
-    let without_reserved_fields = super::to_registry(
+    let without_metadata_fields = super::to_registry(
         r#"
         type Product @model {
             title: String
@@ -332,11 +368,11 @@ fn test_model_reserved_fields() {
     )
     .unwrap();
 
-    let req_string_a = serde_json::to_value(&with_reserved_fields).unwrap();
-    let sdl_a = Schema::new(with_reserved_fields).sdl();
+    let req_string_a = serde_json::to_value(&with_metadata_fields).unwrap();
+    let sdl_a = Schema::new(with_metadata_fields).sdl();
 
-    let req_string_b = serde_json::to_value(&without_reserved_fields).unwrap();
-    let sdl_b = Schema::new(without_reserved_fields).sdl();
+    let req_string_b = serde_json::to_value(&without_metadata_fields).unwrap();
+    let sdl_b = Schema::new(without_metadata_fields).sdl();
 
     // Comparing snaphots for better test errors first
     insta::assert_json_snapshot!(format!("{}-req-a", function_name!()), req_string_a);

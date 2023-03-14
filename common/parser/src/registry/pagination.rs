@@ -17,7 +17,7 @@ use crate::registry::names::{
     PAGE_INFO_FIELD_START_CURSOR, PAGE_INFO_TYPE, PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR,
     PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_PAGE_INFO,
 };
-use crate::rules::model_directive::RESERVED_FIELD_CREATED_AT;
+use crate::rules::model_directive::METADATA_FIELD_CREATED_AT;
 use crate::rules::visitor::VisitorContext;
 
 use super::names::{
@@ -442,8 +442,8 @@ fn register_orderby_input(registry: &mut Registry, model_type_definition: &TypeD
                 name: input_type_name.clone(),
                 description: None,
                 input_fields: IndexMap::from([(
-                    RESERVED_FIELD_CREATED_AT.to_string(),
-                    MetaInputValue::new(RESERVED_FIELD_CREATED_AT, Type::nullable(order_by_direction_type)),
+                    METADATA_FIELD_CREATED_AT.to_string(),
+                    MetaInputValue::new(METADATA_FIELD_CREATED_AT, Type::nullable(order_by_direction_type)),
                 )]),
                 oneof: true,
                 visible: None,
