@@ -16,7 +16,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
 url = { workspace = true }
-worker = "0.0.13"
+worker = { workspace = true }
 
 log = { path = "../log" }
 
