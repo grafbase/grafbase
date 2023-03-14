@@ -60,11 +60,10 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .into_iter()
             .filter(|item| {
                 if let Some(user_id) = self.ctx.user_id.as_ref() {
-                    let expected_owner = user_id.to_string().into_attr();
                     item.document
                         .get(OWNED_BY)
-                        .and_then(|item| item.l.as_ref())
-                        .map(|owners| owners.contains(&expected_owner))
+                        .and_then(|item| item.ss.as_ref())
+                        .map(|owners| owners.contains(user_id))
                         .unwrap_or_default()
                 } else {
                     true

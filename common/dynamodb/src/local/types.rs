@@ -314,8 +314,8 @@ impl<'a> Sql<'a> {
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         updated AS (SELECT DISTINCT * FROM {to_add})
 
-                    INSERT INTO 
-                        {table} ({columns}) 
+                    INSERT INTO
+                        {table} ({columns})
                     VALUES ({placeholders})
                     ON CONFLICT (pk,sk)
                     DO
@@ -343,7 +343,7 @@ impl<'a> Sql<'a> {
                 format!(
                     indoc::indoc! {"
                     UPDATE {table}
-                    SET 
+                    SET
                         document={document_update},
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
@@ -377,8 +377,8 @@ impl<'a> Sql<'a> {
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove}),
                         updated AS (SELECT DISTINCT * FROM {to_add})
-                
-                    UPDATE {table} SET 
+
+                    UPDATE {table} SET
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
                         document=json_patch(document, ?document),
                         updated_at=?updated_at
@@ -404,8 +404,8 @@ impl<'a> Sql<'a> {
                     WITH
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove})
-                
-                    UPDATE {table} SET 
+
+                    UPDATE {table} SET
                         relation_names=(SELECT json_group_array(removed.value) FROM removed),
                         document=json_patch(document, ?document),
                         updated_at=?updated_at
@@ -419,7 +419,7 @@ impl<'a> Sql<'a> {
                 let mut sql = format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE);
                 if *filter_by_owner {
                     sql.push_str(&format!(
-                        " AND json_extract(document, '$.__owned_by.L[0].S') = ?{OWNED_BY_KEY}" // FIXME: Refactor once more than one owner is supported.
+                        " AND json_extract(document, '$.__owned_by.SS[0]') = ?{OWNED_BY_KEY}" // FIXME: Refactor once more than one owner is supported.
                     ));
                 }
                 sql
@@ -463,12 +463,12 @@ impl<'a> Sql<'a> {
             Self::SelectSingleRelation(pk_index) => {
                 format!(
                     indoc::indoc! {"
-                        SELECT 
-                            * 
-                        FROM 
+                        SELECT
+                            *
+                        FROM
                             {table},
-                            json_each({table}.relation_names) 
-                        WHERE 
+                            json_each({table}.relation_names)
+                        WHERE
                             {table}.{pk_index}=?parent_pk
                             AND json_each.value=?relation_name
                     "},
@@ -511,10 +511,10 @@ impl<'a> Sql<'a> {
                 }
                 if *filter_by_owner {
                     select.push_str(&format!(
-                        ", json_each({table}.document,'$.__owned_by.L') AS owner",
+                        ", json_each({table}.document,'$.__owned_by.SS') AS owner",
                         table = Self::TABLE
                     ));
-                    r#where.push(format!("json_extract(owner.value, '$.S') = ?{OWNED_BY_KEY}"));
+                    r#where.push(format!("owner.value = ?{OWNED_BY_KEY}"));
                 }
                 let ordering = if *ascending { "ASC" } else { "DESC" };
                 let page = format!(
