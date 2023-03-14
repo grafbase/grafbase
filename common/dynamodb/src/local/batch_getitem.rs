@@ -4,7 +4,7 @@ use crate::constant::OWNED_BY;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, LocalContext};
-use dynomite::AttributeValue;
+use dynomite::{Attribute, AttributeValue};
 use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
@@ -60,7 +60,12 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .into_iter()
             .filter(|item| {
                 if let Some(user_id) = self.ctx.user_id.as_ref() {
-                    item.document.get(OWNED_BY).and_then(|item| item.s.as_ref()) == Some(user_id)
+                    let expected_owner = user_id.to_string().into_attr();
+                    item.document
+                        .get(OWNED_BY)
+                        .and_then(|item| item.l.as_ref())
+                        .map(|owners| owners.contains(&expected_owner))
+                        .unwrap_or_default()
                 } else {
                     true
                 }

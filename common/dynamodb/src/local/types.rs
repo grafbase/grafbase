@@ -35,7 +35,6 @@ pub struct Record {
     pub created_at: DateTime<Utc>,
     #[serde(serialize_with = "serialize_dt_to_rfc3339")]
     pub updated_at: DateTime<Utc>,
-    pub owned_by: Option<String>,
 }
 
 pub trait GetDocumentBuiltin {
@@ -97,7 +96,6 @@ pub enum Column {
     Document,
     CreatedAt,
     UpdatedAt,
-    OwnedBy,
 }
 
 impl Column {
@@ -114,7 +112,6 @@ impl Column {
             Self::Document => "document",
             Self::CreatedAt => "created_at",
             Self::UpdatedAt => "updated_at",
-            Self::OwnedBy => "owned_by",
         }
     }
 }
@@ -127,7 +124,7 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn from(array: [(Column, Option<String>); 12]) -> Self {
+    pub fn from(array: [(Column, Option<String>); 11]) -> Self {
         let keyed_values = array.iter().cloned().filter_map(|(column, value)| {
             value
                 .as_ref()
@@ -169,7 +166,6 @@ impl Row {
             (Column::CreatedAt, Some(created_at)),
             (Column::UpdatedAt, Some(updated_at)),
             (Column::RelationNames, Some(relation_names)),
-            (Column::OwnedBy, record.owned_by),
             (Column::Document, Some(document)),
         ];
 
@@ -423,8 +419,7 @@ impl<'a> Sql<'a> {
                 let mut sql = format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE);
                 if *filter_by_owner {
                     sql.push_str(&format!(
-                        " AND {owned_by_column}=?{OWNED_BY_KEY}",
-                        owned_by_column = Column::OwnedBy.as_str()
+                        " AND json_extract(document, '$.__owned_by.L[0].S') = ?{OWNED_BY_KEY}" // FIXME: Refactor once more than one owner is supported.
                     ));
                 }
                 sql
@@ -499,7 +494,7 @@ impl<'a> Sql<'a> {
                 filter_by_owner,
             } => {
                 let mut r#where = vec!["entity_type=?entity_type".to_string()];
-                let select = if *is_nested {
+                let mut select = if *is_nested {
                     r#where.push("pk=?pk".to_string());
                     r#where.push("json_each.value=?relation_name".to_string());
                     format!(
@@ -515,10 +510,11 @@ impl<'a> Sql<'a> {
                     r#where.push(format!("sk {op} ?sk"));
                 }
                 if *filter_by_owner {
-                    r#where.push(format!(
-                        "{owned_by_column} = ?{OWNED_BY_KEY}",
-                        owned_by_column = Column::OwnedBy.as_str()
+                    select.push_str(&format!(
+                        ", json_each({table}.document,'$.__owned_by.L') AS owner",
+                        table = Self::TABLE
                     ));
+                    r#where.push(format!("json_extract(owner.value, '$.S') = ?{OWNED_BY_KEY}"));
                 }
                 let ordering = if *ascending { "ASC" } else { "DESC" };
                 let page = format!(
@@ -614,7 +610,6 @@ fn test_serde_roundtrip_record() {
         updated_at: DateTime::<chrono::FixedOffset>::parse_from_rfc3339("1970-01-01T00:00:00.000Z")
             .unwrap()
             .with_timezone(&Utc),
-        owned_by: None,
     };
 
     let serialized = serde_json::to_string(&rec);
