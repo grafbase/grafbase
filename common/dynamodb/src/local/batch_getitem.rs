@@ -4,7 +4,7 @@ use crate::constant::OWNED_BY;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, LocalContext};
-use dynomite::{Attribute, AttributeValue};
+use dynomite::AttributeValue;
 use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
