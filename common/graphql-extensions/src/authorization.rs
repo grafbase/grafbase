@@ -94,7 +94,7 @@ impl Extension for AuthExtension {
                             },
                             _ => None,
                         })
-                            .unwrap_or(&EMPTY_INDEX_MAP);
+                        .unwrap_or(&EMPTY_INDEX_MAP);
 
                     self.check_input(CheckInputOptions {
                         input_fields,
