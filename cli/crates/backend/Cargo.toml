@@ -10,13 +10,14 @@ readme = "README.md"
 repository = "https://github.com/grafbase/grafbase"
 
 [dependencies]
-
 axum = "0.6"
 async-compression = { version = "0.3", features = ["gzip", "tokio"] }
 async-tar = "0.4"
+const_format = { version = "0.2", features = ["rust_1_64"] }
+cynic = { version = "2", features = ["http-reqwest"] }
 dirs = "4"
 exitcode = "1"
-http-cache-reqwest = "0.7"
+http-cache-reqwest = "0.8"
 reqwest = { version = "0.11", features = [
     "rustls-tls",
     "stream",

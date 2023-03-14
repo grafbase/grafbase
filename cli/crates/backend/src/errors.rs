@@ -1,8 +1,7 @@
-use common::traits::ToExitCode;
+use cynic::http::CynicReqwestError;
+pub use server::errors::ServerError;
 use std::{io, path::PathBuf};
 use thiserror::Error;
-
-pub use server::errors::ServerError;
 
 #[derive(Error, Debug)]
 pub enum BackendError {
@@ -133,45 +132,102 @@ pub enum BackendError {
     #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
     ReadCredentialsFile(io::Error),
 
+    /// returned if .grafbase/project.json could not be read
+    #[error("could not read '.grafbase/project.json'\ncaused by: {0}")]
+    ReadProjectMetadataFile(io::Error),
+
     /// returned if ~/.grafbase could not be read
     #[error("could not read '~/.grafbase'\ncaused by: {0}")]
     ReadUserDotGrafbaseFolder(io::Error),
+
+    /// returned if an operation failed due to the user being logged out
+    #[error("could not complete the action as you are logged out")]
+    LoggedOut,
+
+    /// returned if the contents of the credential file are corrupt
+    #[error("could not complete the action as your credential file is corrupt")]
+    CorruptCredentialsFile,
+
+    /// returned if the contents of the project metadata file are corrupt
+    #[error("could not complete the action as your project metadata file are corrupt")]
+    CorruptProjectMetadataFile,
+
+    /// returned if an operation failed due to a token being unauthorized or the user previously being deleted
+    #[error("unauthorized or deleted user")]
+    UnauthorizedOrDeletedUser,
+
+    /// returned if a token does not have access to a user's personal account
+    #[error("incorrectly scoped token")]
+    IncorrectlyScopedToken,
+
+    /// returned if a project schema could not be read
+    #[error("could not read the project graphql schema")]
+    ReadSchema,
+
+    /// returned if the project metadata file could not be written
+    #[error("could not write the project metadata file\ncaused by: {0}")]
+    WriteProjectMetadataFile(io::Error),
+
+    /// TODO hint regarding CLI version
+    /// returned if a cynic request could not be completed
+    #[error("could not complete a request")]
+    RequestError,
+
+    /// returned if a cynic request could not be completed (due to connection issues)
+    #[error("could not complete a request")]
+    ConnectionError,
+
+    /// returned if a project being created has already been created
+    #[error("could not create a new project as this local project has already been linked to a remote project")]
+    ProjectAlreadyLinked,
+
+    /// wraps a [`CreateApiError`]
+    #[error("{0}")]
+    CreateApiError(CreateApiError),
 }
 
-impl ToExitCode for BackendError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::AvailablePort
-            | Self::PortInUse(_)
-            | Self::StartDownloadRepoArchive(_, _)
-            | Self::StartGetRepositoryInformation(_)
-            | Self::ReadRepositoryInformation(_)
-            | Self::DownloadRepoArchive(_)
-            | Self::ReadArchiveEntries
-            | Self::GetRepositoryInformation(_)
-            | Self::StartLoginServer => exitcode::UNAVAILABLE,
-            Self::AlreadyAProject(_) | Self::ProjectDirectoryExists(_) | Self::NotLoggedIn => exitcode::USAGE,
-            Self::UnsupportedTemplateURL(_) | Self::MalformedTemplateURL(_) | Self::TemplateNotFound => {
-                exitcode::DATAERR
-            }
-            Self::ReadCurrentDirectory
-            | Self::MoveExtractedFiles(_)
-            | Self::DeleteDotGrafbaseDirectory(_)
-            | Self::DeleteGrafbaseDirectory(_)
-            | Self::WriteSchema(_)
-            | Self::CreateGrafbaseDirectory(_)
-            | Self::ExtractArchiveEntry(_)
-            | Self::CleanExtractedFiles(_)
-            | Self::CreateProjectDirectory(_)
-            | Self::FindUserDotGrafbaseFolder
-            | Self::CreateUserDotGrafbaseFolder(_)
-            | Self::FindAvailablePort
-            | Self::DeleteCredentialsFile(_)
-            | Self::ReadCredentialsFile(_)
-            | Self::ReadUserDotGrafbaseFolder(_) => exitcode::IOERR,
+#[derive(Error, Debug)]
+pub enum CreateApiError {
+    /// returned if the given slug for a new project is already in use
+    #[error("could not create a new project as the provided slug is already in use")]
+    SlugAlreadyExists,
 
-            Self::ServerError(inner) => inner.to_exit_code(),
-        }
+    /// returned if the given slug for a new project is invalid
+    #[error("could not create a new project as the provided slug is invalid")]
+    SlugInvalid,
+
+    /// returned if the given slug for a new project was too long
+    #[error("could not create a new project as the provided slug is longer than {max_length} characters")]
+    SlugTooLong { max_length: i32 },
+
+    /// returned if the account ID used does not exist
+    #[error("could not create a new project as the specified account ID does not exist")]
+    AccountDoesNotExist,
+
+    /// returned if the user has reached the current plan limit
+    #[error("could not create a new project as the current plan limit of {max} projects has been reached")]
+    CurrentPlanLimitReached { max: i32 },
+
+    /// returned if
+    #[error("could not create a new project as duplicate database regions were selected")]
+    DuplicateDatabaseRegions { duplicates: Vec<String> },
+
+    /// returned if no database regions are selected
+    #[error("could not create a new project as no database regions were selected")]
+    EmptyDatabaseRegions,
+
+    /// returned if invalid database regions are used
+    #[error("could not create a new project as invalid regions were selected")]
+    InvalidDatabaseRegions { invalid: Vec<String> },
+
+    /// returned if an unknown error occurs
+    #[error("could not create a new project, encountered an unknown error")]
+    Unknown,
+}
+
+impl From<CreateApiError> for BackendError {
+    fn from(error: CreateApiError) -> BackendError {
+        BackendError::CreateApiError(error)
     }
 }
 
@@ -181,10 +237,11 @@ pub enum LoginApiError {
     WriteCredentialFile(PathBuf),
 }
 
-impl ToExitCode for LoginApiError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::WriteCredentialFile(_) => exitcode::IOERR,
+impl From<CynicReqwestError> for BackendError {
+    fn from(error: CynicReqwestError) -> Self {
+        match error {
+            CynicReqwestError::ReqwestError(error) if error.is_connect() => BackendError::ConnectionError,
+            CynicReqwestError::ReqwestError(_) | CynicReqwestError::ErrorResponse(_, _) => BackendError::RequestError,
         }
     }
 }

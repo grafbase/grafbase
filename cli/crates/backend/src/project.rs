@@ -1,11 +1,11 @@
-use crate::consts::DEFAULT_SCHEMA;
+use crate::consts::{DEFAULT_SCHEMA, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
 use common::consts::{GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA};
 use common::environment::Environment;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
-use reqwest::Client;
+use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
 use std::env;
@@ -169,12 +169,10 @@ struct RepoInfo {
 async fn get_default_branch(org: &str, repo: &str) -> Result<String, BackendError> {
     let client = Client::new();
 
-    let cargo_version = env!("CARGO_PKG_VERSION");
-
     let response = client
         .get(format!("https://api.github.com/repos/{org}/{repo}"))
         // api.github.com requires a user agent header to be present
-        .header("User-Agent", format!("Grafbase-CLI-{cargo_version}"))
+        .header(header::USER_AGENT, USER_AGENT)
         .send()
         .await
         .map_err(|_| BackendError::StartGetRepositoryInformation(format!("{org}/{repo}")))?;

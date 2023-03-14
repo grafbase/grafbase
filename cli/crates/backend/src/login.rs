@@ -1,7 +1,7 @@
 use crate::{
     consts::{AUTH_URL, CREDENTIALS_FILE},
     errors::{BackendError, LoginApiError},
-    types::LoginMessage,
+    types::{Credentials, LoginMessage},
 };
 use axum::{
     extract::{Query, State},
@@ -13,7 +13,7 @@ use common::{
     consts::EPHEMERAL_PORT_RANGE, environment::get_user_dot_grafbase_path, types::LocalAddressType,
     utils::find_available_port_in_range,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     fs::create_dir_all,
     net::{Ipv4Addr, SocketAddr},
@@ -28,18 +28,6 @@ use urlencoding::encode;
 #[serde(rename_all = "camelCase")]
 struct TokenQueryParams {
     token: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Credentials<'a> {
-    access_token: &'a str,
-}
-
-impl<'a> ToString for Credentials<'a> {
-    fn to_string(&self) -> String {
-        serde_json::to_string(&self).expect("must parse")
-    }
 }
 
 async fn token<'a>(

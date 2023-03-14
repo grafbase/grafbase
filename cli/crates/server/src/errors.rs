@@ -2,7 +2,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
-use common::traits::ToExitCode;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
@@ -97,33 +96,6 @@ pub enum ServerError {
     /// returned if a file watcher could not be initialized
     #[error("Could not initialize a file watcher: {0}")]
     FileWatcherInit(NotifyError),
-}
-
-impl ToExitCode for ServerError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::CreateDir(_)
-            | Self::CreateCacheDir
-            | Self::WriteFile(_)
-            | Self::ReadVersion
-            | Self::ParseSchema(_)
-            | Self::NodeInPath
-            | Self::OutdatedNode(_, _)
-            | Self::FileWatcherInit(_) => exitcode::DATAERR,
-            Self::CreateDatabase(_)
-            | Self::QueryDatabase(_)
-            | Self::BridgeApi(_)
-            | Self::ConnectToDatabase(_)
-            | Self::UnknownSqliteError(_)
-            | Self::MiniflareCommandError(_)
-            | Self::MiniflareError(_)
-            | Self::SpawnedTaskPanic(_)
-            | Self::SchemaParserError(_)
-            | Self::CheckNodeVersion => exitcode::SOFTWARE,
-            Self::ProjectPath | Self::CachePath => exitcode::CANTCREAT,
-            Self::AvailablePort => exitcode::UNAVAILABLE,
-        }
-    }
 }
 
 impl From<SqlxError> for ServerError {

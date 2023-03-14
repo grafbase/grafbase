@@ -1,6 +1,6 @@
 use backend::errors::{BackendError, LoginApiError, ServerError};
-use common::{errors::CommonError, traits::ToExitCode};
-use std::io::ErrorKind;
+use common::errors::CommonError;
+use std::io::{self, ErrorKind};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -28,18 +28,12 @@ pub enum CliError {
     /// returned if the login server panics
     #[error("{0}")]
     LoginPanic(String),
-}
-
-impl ToExitCode for CliError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::UnsupportedShellForCompletions(_) => exitcode::USAGE,
-            Self::ServerPanic(_) | Self::ServerError(_) | Self::LoginPanic(_) => exitcode::SOFTWARE,
-            Self::BackendError(inner) => inner.to_exit_code(),
-            Self::CommonError(inner) => inner.to_exit_code(),
-            Self::LoginApiError(inner) => inner.to_exit_code(),
-        }
-    }
+    /// returned if an interactive prompt fails due to the input device not being a TTY
+    #[error("could not show an interactive prompt due to the input device not being a TTY")]
+    PromptNotTTY,
+    /// returned if an IO error is encountered when trying to display an interactive prompt
+    #[error("encountered an IO error while showing an interactive prompt\ncaused by: {0}")]
+    PromptIoError(io::Error),
 }
 
 #[cfg(target_family = "windows")]
