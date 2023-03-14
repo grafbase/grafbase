@@ -395,7 +395,7 @@ impl<'a> FieldsGraph<'a> {
                                 let type_name = root.name();
                                 #[cfg(feature = "tracing_worker")]
                                 {
-                                    logworker::info!(
+                                    logworker::debug!(
                                         "",
                                         "Resolving {field} on {type_name}",
                                         field = field.node.name.node.as_str()
