@@ -35,14 +35,14 @@ pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
     let query_operations = graph.query_operations();
     if !query_operations.is_empty() {
         registry
-            .query_fields(&graph.metadata)
+            .query_fields_mut(&graph.metadata)
             .extend(operations_to_fields(query_operations, graph));
     }
 
     let mutation_operations = graph.mutation_operations();
     if !mutation_operations.is_empty() {
         registry
-            .mutation_fields(&graph.metadata)
+            .mutation_fields_mut(&graph.metadata)
             .extend(operations_to_fields(mutation_operations, graph));
     }
 
