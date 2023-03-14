@@ -305,9 +305,9 @@ where
         };
 
         if let Some(owned_by) = owned_by {
-            exp_att_name.insert("#owned_by".to_string(), OWNED_BY.to_string());
-            exp.insert(":owned_by".to_string(), owned_by.to_string().into_attr());
-            filter_expression += " AND #owned_by = :owned_by";
+            exp_att_name.insert("#owned_by_name".to_string(), OWNED_BY.to_string());
+            exp.insert(":owned_by_value".to_string(), owned_by.to_string().into_attr());
+            filter_expression += " AND contains(#owned_by_name, :owned_by_value)";
         }
 
         log::debug!(trace_id, "FilterExpression: {filter_expression}");

@@ -14,7 +14,7 @@ use crate::{DynamoDBBatchersData, DynamoDBContext};
 use dynomite::Attribute;
 use graph_entities::{ConstraintID, NodeID};
 use rusoto_dynamodb::{Delete, Put, TransactWriteItem, Update};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
     fn to_transaction<'a>(
@@ -46,7 +46,10 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
             if let Some(user_id) = &ctx.user_id {
-                user_defined_item.insert(constant::OWNED_BY.to_string(), user_id.clone().into_attr());
+                user_defined_item.insert(
+                    constant::OWNED_BY.to_string(),
+                    HashSet::from([user_id.clone()]).into_attr(),
+                );
             }
 
             user_defined_item.insert(constant::TYPE_INDEX_PK.to_string(), ty_attr);
@@ -113,7 +116,10 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
             if let Some(user_id) = &ctx.user_id {
-                user_defined_item.insert(constant::OWNED_BY.to_string(), user_id.clone().into_attr());
+                user_defined_item.insert(
+                    constant::OWNED_BY.to_string(),
+                    HashSet::from([user_id.clone()]).into_attr(),
+                );
             }
 
             user_defined_item.insert(constant::TYPE_INDEX_PK.to_string(), ty_attr);
@@ -190,7 +196,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
             let mut exp_att_values = HashMap::new();
             let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
             if let Some(user_id) = &ctx.user_id {
-                cond_expr.push_str(" AND #owner_attr_name = :owner_val_name");
+                cond_expr.push_str(" AND contains(#owner_attr_name, :owner_val_name)");
                 exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
                 exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
             }
@@ -543,7 +549,7 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
             let mut exp_att_values = HashMap::new();
             let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
             if let Some(user_id) = &ctx.user_id {
-                cond_expr.push_str(" AND #owner_attr_name = :owner_val_name");
+                cond_expr.push_str(" AND contains(#owner_attr_name, :owner_val_name)");
                 exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
                 exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
             }

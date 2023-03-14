@@ -90,16 +90,14 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .into_iter()
             .filter(|item| {
                 // BatchGetItem doesn't support filtering, so do it manually
-                self.ctx
-                    .user_id
-                    .as_ref()
-                    .map(|user_id| {
-                        item.get(OWNED_BY)
-                            .and_then(|av| av.s.as_ref())
-                            .map(|owner| owner == user_id)
-                            .unwrap_or(true)
-                    })
-                    .unwrap_or(true)
+                if let Some(user_id) = self.ctx.user_id.as_ref() {
+                    item.get(OWNED_BY)
+                        .and_then(|av| av.ss.as_ref())
+                        .map(|owners| owners.contains(user_id))
+                        .unwrap_or(false)
+                } else {
+                    true
+                }
             })
             .fold(HashMap::new(), |mut acc, cur| {
                 let pk = cur.get(PK).and_then(|x| x.s.clone()).unwrap();
