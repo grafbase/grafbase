@@ -84,6 +84,7 @@ impl<'a> Client<'a> {
         token: S,
         issuer: &'a Url,
     ) -> Result<VerifiedToken, VerificationError> {
+        use futures_util::TryFutureExt;
         use jwt_compact::alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey};
 
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
@@ -92,7 +93,11 @@ impl<'a> Client<'a> {
             "RS256" => Rsa::rs256(),
             "RS384" => Rsa::rs384(),
             "RS512" => Rsa::rs512(),
-            other => return Err(VerificationError::UnsupportedAlgorithm(other.to_string())),
+            other => {
+                return Err(VerificationError::UnsupportedAlgorithm {
+                    algorithm: other.to_string(),
+                })
+            }
         };
 
         let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
@@ -100,8 +105,10 @@ impl<'a> Client<'a> {
         // Use JWK from cache if available
         let cached_jwk = self
             .get_jwk_from_cache(kid)
+            .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
             .await
-            .map_err(VerificationError::CacheError)?;
+            .ok()
+            .flatten();
 
         let jwk = if let Some(cached_jwk) = cached_jwk {
             log::debug!(self.trace_id, "Found JWK {kid} in cache");
@@ -142,13 +149,14 @@ impl<'a> Client<'a> {
                 .keys
                 .into_iter()
                 .find(|key| &key.id == kid)
-                .ok_or_else(|| VerificationError::JwkNotFound(kid.to_string()))?;
+                .ok_or_else(|| VerificationError::JwkNotFound { kid: kid.to_string() })?;
 
             // Add JWK to cache
             log::debug!(self.trace_id, "Adding JWK {kid} to cache");
-            self.add_jwk_to_cache(&jwk)
-                .await
-                .map_err(VerificationError::CacheError)?;
+            let _ = self
+                .add_jwk_to_cache(&jwk)
+                .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
+                .await;
 
             jwk
         };
@@ -188,7 +196,11 @@ impl<'a> Client<'a> {
             "HS512" => Hs512
                 .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(key))
                 .map_err(VerificationError::Integrity),
-            other => return Err(VerificationError::UnsupportedAlgorithm(other.to_string())),
+            other => {
+                return Err(VerificationError::UnsupportedAlgorithm {
+                    algorithm: other.to_string(),
+                })
+            }
         }?;
 
         self.verify_claims(token.claims(), issuer)
@@ -233,13 +245,14 @@ impl<'a> Client<'a> {
         // Extract groups from custom claim if present
         let groups = self
             .groups_claim
-            .as_ref()
             .map(|claim| {
                 claims
                     .custom
                     .extra
                     .dot_get_or_default::<HashSet<String>>(claim)
-                    .map_err(|_| VerificationError::InvalidGroups((*claim).to_string()))
+                    .map_err(|_| VerificationError::InvalidGroups {
+                        claim: claim.to_owned(),
+                    })
             })
             .transpose()?
             .unwrap_or_default();
