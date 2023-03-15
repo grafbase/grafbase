@@ -135,6 +135,10 @@ impl BaseType {
     pub fn list(ty: Type) -> BaseType {
         BaseType::List(Box::new(ty))
     }
+
+    pub fn is_list(&self) -> bool {
+        matches!(self, BaseType::List(_))
+    }
 }
 
 impl BaseType {

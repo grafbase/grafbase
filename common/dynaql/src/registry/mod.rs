@@ -1371,16 +1371,21 @@ impl Registry {
             )
             .await?;
 
+            let json = resolution_schema.clone().into_json().unwrap().to_string();
+            #[cfg(feature = "tracing_worker")]
+            logworker::info!("", "aaa: {json}");
+
+            let a = introspection_to_selection_plan_set(resolution_schema, ctx_obj.item.pos);
+            #[cfg(feature = "tracing_worker")]
+            logworker::info!("", "bbb: {a:?}");
             let plan = ctx
                 .item
                 .position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
                     name: field.node.response_key().clone().map(|x| x.to_string()),
                     logic_plan: LogicalPlanBuilder::empty().build(),
                     nullable: false,
-                    selection_set: Positioned::new(
-                        introspection_to_selection_plan_set(resolution_schema, ctx_obj.item.pos),
-                        ctx.item.pos,
-                    ),
+                    array: false,
+                    selection_set: Positioned::new(a, ctx.item.pos),
                 })));
             return Ok(plan);
         }
@@ -1434,6 +1439,7 @@ impl Registry {
 
         let plan = field.position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
             nullable: ty.nullable,
+            array: ty.base.is_list(),
             name: field.node.response_key().clone().map(|x| x.to_string()),
             logic_plan: actual_logic_plan,
             selection_set,

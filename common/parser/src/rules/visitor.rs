@@ -147,6 +147,50 @@ impl<'a> VisitorContext<'a> {
 
         registry.create_type(
             |registry| {
+                /*
+                registry.create_type(|_reg|
+                    dynaql::registry::MetaType::Object {
+                        name: "__Schema".to_string(),
+                        description: Some("A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.".to_string()),
+                        fields: {
+                            let mut map = IndexMap::new();
+                            let field = MetaField {
+                                name: "queryType".to_string(),
+                                description: Some("The type that query operations will be rooted at.".to_string()),
+                                args: IndexMap::new(),
+                                ty: "__Type!".to_string(),
+                                deprecation: dynaql::registry::Deprecation::NoDeprecated,
+                                cache_control: Default::default(),
+                                external: false,
+                                requires: None,
+                                provides: None,
+                                visible: None,
+                                compute_complexity: None,
+                                edges: Vec::new(),
+                                relation: None,
+                                plan: todo!(),
+                                resolve: None,
+                                transformer: None,
+                                required_operation: None,
+                                auth: None,
+                            };
+
+                            map.insert("queryType".to_string(), field);
+                            map
+                        },
+                        cache_control: Default::default(),
+                        extends: false,
+                        keys: None,
+                        visible: None,
+                        is_subscription: false,
+                        is_node: false,
+                        rust_typename: String::new(),
+                        constraints: Vec::new(),
+                    },
+                    "__Schema",
+                    "__Schema",
+                );
+                */
                 let schema_type = __Schema::create_type_info(registry);
                 dynaql::registry::MetaType::Object {
                     name: "Query".to_owned(),
@@ -159,7 +203,7 @@ impl<'a> VisitorContext<'a> {
                                 name: "__schema".to_string(),
                                 description: Some("Access the current type schema of this server.".to_string()),
                                 args: Default::default(),
-                                ty: schema_type,
+                                ty: "__Schema!".to_string(),
                                 deprecation: Default::default(),
                                 cache_control: Default::default(),
                                 external: false,

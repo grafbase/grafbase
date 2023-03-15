@@ -1036,7 +1036,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 // Will be removed when we enable the query planning
                 ResolverType::DynamoResolver(DynamoResolver::ListResultByTypePaginated {
                     ..
-                }) => Ok(LogicalPlanBuilder::empty()),
+                }) => {
+                    // Pagination
+                    Ok(LogicalPlanBuilder::empty())
+                }
                 ResolverType::DynamoResolver(DynamoResolver::QueryIds { .. }) => {
                     Ok(LogicalPlanBuilder::empty())
                 }

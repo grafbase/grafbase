@@ -161,6 +161,10 @@ impl ConstValue {
     pub fn is_null(&self) -> bool {
         matches!(self, ConstValue::Null)
     }
+
+    pub fn is_array(&self) -> bool {
+        matches!(self, ConstValue::List(_))
+    }
 }
 
 fn mandatory_fields(fields: Vec<Field>) -> Vec<Field> {

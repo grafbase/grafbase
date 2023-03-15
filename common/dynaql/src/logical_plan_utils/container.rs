@@ -79,6 +79,7 @@ impl FieldsGraph {
                                 let plan = ctx.item.position_node(SelectionPlan::Field(
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
+                                        array: false,
                                         name: field
                                             .node
                                             .response_key()
@@ -110,15 +111,33 @@ impl FieldsGraph {
                                 let plan = ctx.item.position_node(SelectionPlan::Field(
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
+                                        array: false,
                                         name: field
                                             .node
                                             .response_key()
                                             .clone()
                                             .map(|x| x.to_string()),
-                                        logic_plan: LogicalPlanBuilder::values(
-                                            vec![Field::new("__type", DataType::Utf8, false)],
-                                            vec![vec![ScalarValue::new_utf8(typename)]],
+                                        logic_plan: LogicalPlanBuilder::from(
+                                            parent_logical_plan.clone().unwrap_or_else(|| {
+                                                LogicalPlanBuilder::values(
+                                                    vec![Field::new(
+                                                        "__type",
+                                                        DataType::Utf8,
+                                                        false,
+                                                    )],
+                                                    vec![vec![ScalarValue::new_utf8(
+                                                        typename.clone(),
+                                                    )]],
+                                                )
+                                                .expect("can't fail")
+                                                .build()
+                                            }),
                                         )
+                                        .projection_default(vec![(
+                                            "__type",
+                                            Some(ScalarValue::new_utf8(typename)),
+                                            true,
+                                        )])
                                         .expect("can't fail")
                                         .build(),
                                         selection_set: Default::default(),

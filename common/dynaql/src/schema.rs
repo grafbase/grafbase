@@ -710,7 +710,15 @@ impl Schema {
                 #[cfg(feature = "tracing_worker")]
                 logworker::info!("", "{c:?}",);
 
-                let mut c: serde_json::Value = c.unwrap().to_json();
+                let mut c: serde_json::Value = c
+                    .unwrap()
+                    .map_err(|x| {
+                        #[cfg(feature = "tracing_worker")]
+                        logworker::info!("", "{x:?}");
+                        x
+                    })
+                    .unwrap()
+                    .to_json();
                 let c = c.get_mut("data").unwrap().take();
                 #[cfg(feature = "tracing_worker")]
                 logworker::info!("", "{}", c.to_string());
