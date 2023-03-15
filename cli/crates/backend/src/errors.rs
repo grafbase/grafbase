@@ -200,7 +200,7 @@ pub enum CreateApiError {
     #[error("could not create a new project as the provided slug is longer than {max_length} characters")]
     SlugTooLong { max_length: i32 },
 
-    /// returned if the account ID used does not exist
+    /// returned if a given account ID does not exist
     #[error("could not create a new project as the specified account ID does not exist")]
     AccountDoesNotExist,
 
