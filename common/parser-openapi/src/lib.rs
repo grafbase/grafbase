@@ -150,7 +150,7 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 
 #[cfg(test)]
 mod tests {
-    use dynaql::{indexmap::IndexMap, CacheControl};
+    use dynaql::indexmap::IndexMap;
 
     use super::*;
 
@@ -196,10 +196,7 @@ mod tests {
                 name: "Query".to_string(),
                 description: None,
                 fields: IndexMap::new(),
-                cache_control: CacheControl {
-                    public: true,
-                    max_age: 0,
-                },
+                cache_control: Default::default(),
                 extends: false,
                 keys: None,
                 visible: None,

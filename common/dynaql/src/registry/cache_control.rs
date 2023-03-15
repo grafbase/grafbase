@@ -34,6 +34,10 @@ pub struct CacheControl {
 
     /// Cache max age, default is 0.
     pub max_age: usize,
+
+    /// Cache stale_while_revalidate, default is 0.
+    #[serde(default)]
+    pub stale_while_revalidate: usize,
 }
 
 impl Default for CacheControl {
@@ -41,22 +45,7 @@ impl Default for CacheControl {
         Self {
             public: true,
             max_age: 0,
-        }
-    }
-}
-
-impl CacheControl {
-    /// Get 'Cache-Control' header value.
-    #[must_use]
-    pub fn value(&self) -> Option<String> {
-        if self.max_age > 0 {
-            Some(format!(
-                "max-age={}{}",
-                self.max_age,
-                if self.public { "" } else { ", private" }
-            ))
-        } else {
-            None
+            stale_while_revalidate: 0,
         }
     }
 }
@@ -72,6 +61,14 @@ impl CacheControl {
                 self.max_age
             } else {
                 self.max_age.min(other.max_age)
+            },
+            stale_while_revalidate: if self.stale_while_revalidate == 0 {
+                other.stale_while_revalidate
+            } else if other.stale_while_revalidate == 0 {
+                self.stale_while_revalidate
+            } else {
+                self.stale_while_revalidate
+                    .min(other.stale_while_revalidate)
             },
         }
     }

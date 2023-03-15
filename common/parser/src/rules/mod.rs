@@ -1,5 +1,6 @@
 pub mod auth_directive;
 pub mod basic_type;
+pub mod cache_directive;
 pub mod check_field_lowercase;
 pub mod check_known_directives;
 pub mod check_type_collision;

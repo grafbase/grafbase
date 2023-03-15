@@ -42,6 +42,7 @@ use crate::registry::generate_pagination_args;
 use crate::registry::names::MetaNames;
 use crate::registry::{add_mutation_create, add_mutation_update};
 use crate::registry::{add_query_paginated_collection, add_query_search};
+use crate::rules::cache_directive::CacheDirective;
 use crate::utils::to_base_type_str;
 use crate::utils::to_lower_camelcase;
 
@@ -229,7 +230,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 continue;
                             }
 
-                            let (resolver, relation, transformer, edges, args, ty) =
+                            let (resolver, relation, transformer, edges, args, ty, cache_control) =
                                 ResolverDirective::resolver_name(&field.node)
                                     .map(|resolver_name| {
                                         (
@@ -257,6 +258,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 })
                                                 .collect(),
                                             field.node.ty.clone().node.to_string(),
+                                            CacheDirective::parse(&field.node.directives),
                                         )
                                     })
                                     .or_else(|| {
@@ -301,6 +303,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 edges,
                                                 args,
                                                 ty,
+                                                CacheDirective::parse(&field.node.directives),
                                             )
                                         })
                                     })
@@ -319,6 +322,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             vec![],
                                             Default::default(),
                                             field.node.ty.clone().node.to_string(),
+                                            CacheDirective::parse(&field.node.directives),
                                         )
                                     });
 
@@ -339,7 +343,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     args,
                                     ty,
                                     deprecation: Default::default(),
-                                    cache_control: Default::default(),
+                                    cache_control,
                                     external: false,
                                     requires: None,
                                     provides: None,
@@ -397,10 +401,7 @@ impl<'a> Visitor<'a> for ModelDirective {
 
                         fields
                     },
-                    cache_control: dynaql::CacheControl {
-                        public: true,
-                        max_age: 0usize,
-                    },
+                    cache_control: CacheDirective::parse(&type_definition.node.directives),
                     extends: false,
                     keys: None,
                     visible: None,
@@ -460,10 +461,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                 },
                 ty: type_name.clone(),
                 deprecation: dynaql::registry::Deprecation::NoDeprecated,
-                cache_control: dynaql::CacheControl {
-                    public: true,
-                    max_age: 0usize,
-                },
+                cache_control: CacheDirective::parse(&type_definition.node.directives),
                 external: false,
                 provides: None,
                 requires: None,

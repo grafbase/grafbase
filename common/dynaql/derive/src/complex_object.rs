@@ -180,10 +180,12 @@ pub fn generate(
             let cache_control = {
                 let public = method_args.cache_control.is_public();
                 let max_age = method_args.cache_control.max_age;
+                let stale_while_revalidate = method_args.cache_control.stale_while_revalidate;
                 quote! {
                     #crate_name::CacheControl {
                         public: #public,
                         max_age: #max_age,
+                        stale_while_revalidate: #stale_while_revalidate,
                     }
                 }
             };

@@ -6,6 +6,7 @@
 use super::model_directive::MODEL_DIRECTIVE;
 use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
+use crate::rules::cache_directive::CacheDirective;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{MetaField, MetaType};
@@ -61,10 +62,7 @@ impl<'a> Visitor<'a> for BasicType {
                         };
                         fields
                     },
-                    cache_control: dynaql::CacheControl {
-                        public: true,
-                        max_age: 0usize,
-                    },
+                    cache_control: CacheDirective::parse(&type_definition.node.directives),
                     extends: false,
                     keys: None,
                     visible: None,

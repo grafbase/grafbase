@@ -144,10 +144,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
                 );
                 fields
             },
-            cache_control: dynaql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
+            cache_control: Default::default(),
             extends: false,
             keys: None,
             is_node: false,
@@ -174,10 +171,7 @@ pub fn add_remove_mutation(ctx: &mut VisitorContext<'_>, type_name: &str, auth: 
         },
         ty: delete_payload_name,
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: dynaql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
+        cache_control: Default::default(),
         external: false,
         provides: None,
         requires: None,

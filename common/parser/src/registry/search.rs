@@ -26,6 +26,7 @@ use crate::registry::names::{
     PAGINATION_FIELD_PAGE_INFO, PAGINATION_FIELD_SEARCH_INFO, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE,
     PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST, SEARCH_INFO_FIELD_TOTAL_HITS, SEARCH_INFO_TYPE,
 };
+use crate::rules::cache_directive::CacheDirective;
 use crate::rules::model_directive::{METADATA_FIELD_CREATED_AT, METADATA_FIELD_UPDATED_AT};
 use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
@@ -229,10 +230,7 @@ pub fn add_query_search(
         },
         ty: connection_type,
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: dynaql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
+        cache_control: CacheDirective::parse(&model_type_definition.directives),
         external: false,
         provides: None,
         requires: None,
@@ -308,7 +306,7 @@ fn register_connection_type(
                 .into_iter()
                 .map(|input| (input.name.clone(), input))
                 .collect(),
-                cache_control: Default::default(),
+                cache_control: CacheDirective::parse(&model_type_definition.directives),
                 extends: false,
                 keys: None,
                 visible: None,
@@ -409,7 +407,7 @@ fn register_edge_type(
             .into_iter()
             .map(|input| (input.name.clone(), input))
             .collect(),
-            cache_control: Default::default(),
+            cache_control: CacheDirective::parse(&model_type_definition.directives),
             extends: false,
             keys: None,
             visible: None,

@@ -16,6 +16,7 @@ pub struct CacheControl {
     public: bool,
     private: bool,
     pub max_age: usize,
+    pub stale_while_revalidate: usize,
 }
 
 impl Default for CacheControl {
@@ -24,6 +25,7 @@ impl Default for CacheControl {
             public: true,
             private: false,
             max_age: 0,
+            stale_while_revalidate: 0,
         }
     }
 }

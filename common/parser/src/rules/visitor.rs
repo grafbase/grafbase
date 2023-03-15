@@ -17,6 +17,7 @@ use std::sync::{Arc, RwLock};
 
 use crate::dynamic_string::DynamicString;
 use crate::models::from_meta_type;
+use crate::rules::cache_directive::CacheDirective;
 
 use super::openapi_directive::OpenApiDirective;
 
@@ -42,6 +43,7 @@ pub struct VisitorContext<'a> {
     variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
     pub(crate) openapi_directives: Vec<OpenApiDirective>,
+    pub(crate) global_cache_directive: CacheDirective,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -135,6 +137,7 @@ impl<'a> VisitorContext<'a> {
             variables,
             required_resolvers: Default::default(),
             openapi_directives: Vec::new(),
+            global_cache_directive: Default::default(),
         }
     }
 
@@ -181,10 +184,7 @@ impl<'a> VisitorContext<'a> {
                         }
                         fields
                     },
-                    cache_control: dynaql::CacheControl {
-                        public: true,
-                        max_age: 0usize,
-                    },
+                    cache_control: self.global_cache_directive.into(),
                     extends: false,
                     keys: ::std::option::Option::None,
                     visible: ::std::option::Option::None,
@@ -210,10 +210,7 @@ impl<'a> VisitorContext<'a> {
                         }
                         fields
                     },
-                    cache_control: dynaql::CacheControl {
-                        public: true,
-                        max_age: 0usize,
-                    },
+                    cache_control: Default::default(),
                     extends: false,
                     keys: ::std::option::Option::None,
                     visible: ::std::option::Option::None,

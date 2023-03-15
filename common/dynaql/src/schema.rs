@@ -527,6 +527,12 @@ impl Schema {
         // Or just print it for now.
         // LogicalQuery::build(document, registry);
 
+        // cache only queries
+        let cache_control = match operation.node.ty {
+            OperationType::Query => validation_result.cache_control,
+            _ => CacheControl::default(),
+        };
+
         let env = QueryEnvInner {
             extensions,
             variables: request.variables,
@@ -541,7 +547,7 @@ impl Schema {
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
         };
-        Ok((QueryEnv::new(env), validation_result.cache_control))
+        Ok((QueryEnv::new(env), cache_control))
     }
 
     async fn execute_once(&self, env: QueryEnv) -> Response {

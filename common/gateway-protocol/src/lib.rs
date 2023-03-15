@@ -72,8 +72,8 @@ pub struct ExecutionAuth {
 }
 
 impl ExecutionAuth {
-    pub fn hash<HB: Fn() -> Box<dyn Hasher>>(&self, hasher_builder: HB) -> u64 {
-        let mut hasher = hasher_builder();
+    pub fn hash<H: Hasher + Default>(&self) -> u64 {
+        let mut hasher = H::default();
         self.allowed_ops.hash(&mut hasher);
         self.subject_and_owner_ops.hash(&mut hasher);
         if let Some(groups) = &self.groups_from_token {
@@ -81,7 +81,7 @@ impl ExecutionAuth {
             let mut h: u64 = 0;
             // opted for XORing the hashes of the elements instead of sorting
             for group in groups {
-                let mut hasher = hasher_builder();
+                let mut hasher = H::default();
                 group.hash(&mut hasher);
                 h ^= hasher.finish();
             }

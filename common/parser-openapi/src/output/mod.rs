@@ -14,7 +14,6 @@ use dynaql::{
         Deprecation::NoDeprecated,
         MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
     },
-    CacheControl,
 };
 use inflector::Inflector;
 
@@ -354,10 +353,7 @@ fn meta_field(name: String, ty: String) -> MetaField {
         args: IndexMap::new(),
         ty,
         deprecation: NoDeprecated,
-        cache_control: CacheControl {
-            public: true,
-            max_age: 0,
-        },
+        cache_control: Default::default(),
         external: false,
         requires: None,
         provides: None,
@@ -378,10 +374,7 @@ fn object(name: String, fields: impl IntoIterator<Item = MetaField>) -> MetaType
         name: name.clone(),
         description: None,
         fields: fields.into_iter().map(|field| (field.name.clone(), field)).collect(),
-        cache_control: CacheControl {
-            public: true,
-            max_age: 0,
-        },
+        cache_control: Default::default(),
         extends: false,
         keys: None,
         visible: None,
