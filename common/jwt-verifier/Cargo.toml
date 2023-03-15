@@ -5,6 +5,7 @@ description = "Verify JSON Web Tokens"
 edition = "2021"
 
 [dependencies]
+futures-util = "0.3"
 json_dotpath = "1"
 jwt-compact = { version = "0.6", default-features = false, features = [
     "clock",

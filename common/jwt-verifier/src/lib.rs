@@ -84,6 +84,7 @@ impl<'a> Client<'a> {
         token: S,
         issuer: &'a Url,
     ) -> Result<VerifiedToken, VerificationError> {
+        use futures_util::TryFutureExt;
         use jwt_compact::alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey};
 
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
@@ -100,8 +101,10 @@ impl<'a> Client<'a> {
         // Use JWK from cache if available
         let cached_jwk = self
             .get_jwk_from_cache(kid)
+            .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
             .await
-            .map_err(VerificationError::CacheError)?;
+            .ok()
+            .flatten();
 
         let jwk = if let Some(cached_jwk) = cached_jwk {
             log::debug!(self.trace_id, "Found JWK {kid} in cache");
@@ -146,9 +149,10 @@ impl<'a> Client<'a> {
 
             // Add JWK to cache
             log::debug!(self.trace_id, "Adding JWK {kid} to cache");
-            self.add_jwk_to_cache(&jwk)
-                .await
-                .map_err(VerificationError::CacheError)?;
+            let _ = self
+                .add_jwk_to_cache(&jwk)
+                .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
+                .await;
 
             jwk
         };
