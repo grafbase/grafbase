@@ -11,11 +11,11 @@ jwt-compact = { version = "0.6", default-features = false, features = [
     "clock",
     "with_rsa",
 ] }
-quick-error = "2"
 secrecy = "0.8"
 serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
+thiserror = "1"
 url = { workspace = true }
 worker = { workspace = true }
 
