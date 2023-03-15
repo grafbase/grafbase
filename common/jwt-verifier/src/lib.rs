@@ -22,6 +22,8 @@ const JWKS_CACHE_TTL: u64 = 60 * 60; // 1h
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
+    // FIXME: Issuer should be stored and handled as a string. See StringOrURI definition in https://www.rfc-editor.org/rfc/rfc7519#section-2 .
+    // Converting string to Url and back alters the string representation, so for now compare `Url`-s.
     issuer: Url,
     jwks_uri: Url,
 }
@@ -645,7 +647,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXBwMSIsImFwcDIiXSwiZXhwIjoxNjczMzY5MzYzLCJncm91cHMiOlsiYWRtaW4iLCJiYWNrZW5kIl0sImlhdCI6MTY3MzM2ODc2MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5iNzR2MC41eTZoai5sY2wuZGV2IiwianRpIjoiMDY5NmJlNDJiZTNmYzNiMjIxMmQiLCJuYmYiOjE2NzMzNjg3NTgsInN1YiI6InVzZXJfMkU3bldheTNmRlhoME1SZ3pCSlpVeDU5VXpQIn0.x6eAgltLZqhUjT1Lr9sPLItiv0hJ4dvhuoIPMYZM4_eEB-hmmqIxxS5tdZddvDzh5jPAkwGjuynfM-WJ3Xgxcg";
-        let issuer = Url::parse("https://clerk.b74v0.5y6hj.lcl.dev").unwrap();
+        let issuer = "https://clerk.b74v0.5y6hj.lcl.dev";
         let secret = SecretString::new("topsecret".to_string());
 
         assert_eq!(
@@ -671,7 +673,7 @@ mod tests {
 
         assert_eq!(
             new_client
-                .verify_rs_token(token, &issuer)
+                .verify_rs_token(token, &Url::parse(issuer).unwrap())
                 .await
                 .unwrap_err()
                 .to_string(),
