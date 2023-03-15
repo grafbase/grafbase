@@ -220,6 +220,7 @@ pub enum CreateApiError {
     #[error("could not create a new project as invalid regions were selected")]
     InvalidDatabaseRegions { invalid: Vec<String> },
 
+    // TODO add hint regarding CLI version
     /// returned if an unknown error occurs
     #[error("could not create a new project, encountered an unknown error")]
     Unknown,
