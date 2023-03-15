@@ -81,13 +81,21 @@ pub enum Node {
 #[allow(clippy::enum_variant_names)]
 pub enum Edge {
     /// Links an object with the types of it's fields.
-    HasField { name: String, wrapping: WrappingType },
+    HasField {
+        name: String,
+        wrapping: WrappingType,
+    },
 
     /// The edge between a schema and its underlying type
-    HasType { wrapping: WrappingType },
+    HasType {
+        wrapping: WrappingType,
+    },
 
     /// An edge between an operation and the type/schema of one of its path parameters
-    HasPathParameter { name: String, wrapping: WrappingType },
+    HasPathParameter {
+        name: String,
+        wrapping: WrappingType,
+    },
 
     /// An edge between an operation and the type/schema of one of its query parameters
     HasQueryParameter {
@@ -112,6 +120,19 @@ pub enum Edge {
 
     /// An edge between a union and it's constituent members
     HasUnionMember,
+
+    // This edge goes between an Operation and the Schema that represents
+    // its primary resource.  This edge will only be present on Operations
+    // where we can actually determine this.
+    ForResource {
+        arity: Arity,
+    },
+}
+
+#[derive(Clone, Debug)]
+pub enum Arity {
+    One,
+    Many,
 }
 
 impl Node {
@@ -223,6 +244,31 @@ impl WrappingType {
             WrappingType::NonNull(inner) => inner.contains_list(),
             WrappingType::List(_) => true,
             WrappingType::Named => false,
+        }
+    }
+
+    // Returns the arity of this WrappingType if it is either obviously a many
+    // or obviously a one, otherwise returns none
+    pub fn arity(&self) -> Option<Arity> {
+        let mut found_list = false;
+        let mut current = self;
+        loop {
+            match current {
+                WrappingType::NonNull(inner) => {
+                    current = inner.as_ref();
+                }
+                WrappingType::List(_) if found_list => {
+                    // If we've got a nested list we return None because that's not a _simple_ many
+                    // and I do not know how we'd handle that.
+                    return None;
+                }
+                WrappingType::List(inner) => {
+                    found_list = true;
+                    current = inner.as_ref();
+                }
+                WrappingType::Named if found_list => return Some(Arity::Many),
+                WrappingType::Named => return Some(Arity::One),
+            }
         }
     }
 }
