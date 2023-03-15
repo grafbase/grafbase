@@ -20,6 +20,7 @@ worker = { workspace = true, optional = true }
 
 [features]
 with-worker = ["sentry-cf-worker", "worker"]
+local = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
