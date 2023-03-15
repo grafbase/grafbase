@@ -1,5 +1,6 @@
 use aws_region_nearby::AwsRegion;
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 use worker::js_sys::Uint8Array;
 use worker::{Headers, Method, RequestInit};
 
@@ -60,7 +61,7 @@ pub struct ExecutionRequest<'a> {
     pub auth: ExecutionAuth,
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
 // TODO: turn into an enumeration: ApiKey, Token
 pub struct ExecutionAuth {
     /// API key or group based operations that are enabled on the global level.
@@ -68,6 +69,26 @@ pub struct ExecutionAuth {
     pub groups_from_token: Option<HashSet<String>>,
     /// Owner's subject and enabled operations on the global level.
     pub subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+}
+
+impl ExecutionAuth {
+    pub fn hash<HB: Fn() -> Box<dyn Hasher>>(&self, hasher_builder: HB) -> u64 {
+        let mut hasher = hasher_builder();
+        self.allowed_ops.hash(&mut hasher);
+        self.subject_and_owner_ops.hash(&mut hasher);
+        if let Some(groups) = &self.groups_from_token {
+            hasher.write_usize(groups.len());
+            let mut h: u64 = 0;
+            // opted for XORing the hashes of the elements instead of sorting
+            for group in groups {
+                let mut hasher = hasher_builder();
+                group.hash(&mut hasher);
+                h ^= hasher.finish();
+            }
+            hasher.write_u64(h);
+        }
+        hasher.finish()
+    }
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment
