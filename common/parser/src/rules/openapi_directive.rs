@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::directive_de::parse_directive;
+use crate::{directive_de::parse_directive, dynamic_string::DynamicString};
 
 use super::{directive::Directive, visitor::Visitor};
 
@@ -11,13 +11,31 @@ pub struct OpenApiDirective {
     #[serde(rename = "schema")]
     pub schema_url: String,
     #[serde(default)]
-    pub headers: Vec<Header>,
+    headers: Vec<Header>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+impl OpenApiDirective {
+    pub fn headers(&self) -> Vec<(String, String)> {
+        self.headers
+            .iter()
+            .map(|header| {
+                (
+                    header.name.clone(),
+                    header
+                        .value
+                        .as_fully_evaluated_str()
+                        .expect("OpenAPIDirective headers to be fully evaluated while parsing")
+                        .to_string(),
+                )
+            })
+            .collect()
+    }
+}
+
+#[derive(Debug, serde::Deserialize)]
 pub struct Header {
-    pub name: String,
-    pub value: String,
+    name: String,
+    value: DynamicString,
 }
 
 const OPENAPI_DIRECTIVE_NAME: &str = "openapi";
@@ -60,8 +78,14 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
 
         for directive in directives {
             match parse_directive::<OpenApiDirective>(&directive.node) {
-                Ok(directive) => {
-                    ctx.openapi_directives.push(directive);
+                Ok(mut parsed_directive) => {
+                    for header in &mut parsed_directive.headers {
+                        if let Err(error) = ctx.partially_evaluate_literal(&mut header.value) {
+                            ctx.report_error(vec![directive.pos], error.to_string());
+                        }
+                    }
+
+                    ctx.openapi_directives.push(parsed_directive);
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
@@ -71,8 +95,6 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-
     use crate::rules::visitor::RuleError;
 
     #[test]
@@ -84,10 +106,12 @@ mod tests {
                 name: "stripe",
                 url: "https://api.stripe.com",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
-                headers: [{ name: "authorization", value: "{{ env.STRIPE_API_KEY }}" }],
+                headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
               )
             "#,
-            &HashMap::new(),
+            &maplit::hashmap! {
+                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
+            },
         )
         .unwrap();
 
@@ -114,7 +138,13 @@ mod tests {
                 headers: [
                     Header {
                         name: "authorization",
-                        value: "{{ env.STRIPE_API_KEY }}",
+                        value: DynamicString(
+                            [
+                                Literal(
+                                    "Bearer i_am_a_key",
+                                ),
+                            ],
+                        ),
                     },
                 ],
             },
