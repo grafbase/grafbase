@@ -44,7 +44,7 @@ struct JsonWebKeySet<'a> {
 #[derive(Serialize, Deserialize, Debug)]
 struct CustomClaims {
     #[serde(rename = "iss")]
-    issuer: Url,
+    issuer: String,
 
     #[serde(rename = "sub")]
     subject: Option<String>,
@@ -169,7 +169,7 @@ impl<'a> Client<'a> {
             .validate_integrity::<CustomClaims>(&token, &pub_key)
             .map_err(VerificationError::Integrity)?;
 
-        self.verify_claims(token.claims(), issuer)
+        self.verify_claims(token.claims(), issuer.as_ref())
     }
 
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
@@ -177,7 +177,7 @@ impl<'a> Client<'a> {
     pub fn verify_hs_token<S: AsRef<str>>(
         &self,
         token: S,
-        issuer: &'a Url,
+        issuer: &'a str,
         signing_key: &'a SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
@@ -209,10 +209,10 @@ impl<'a> Client<'a> {
     fn verify_claims(
         &self,
         claims: &'a Claims<CustomClaims>,
-        issuer: &'a Url,
+        issuer: &'a str,
     ) -> Result<VerifiedToken, VerificationError> {
         // Check "iss" claim
-        if !self.ignore_iss_claim && claims.custom.issuer != *issuer {
+        if !self.ignore_iss_claim && claims.custom.issuer != issuer {
             return Err(VerificationError::InvalidIssuerUrl);
         }
 
@@ -649,7 +649,7 @@ mod tests {
         let secret = SecretString::new("topsecret".to_string());
 
         assert_eq!(
-            client.verify_hs_token(token, &issuer, &secret).unwrap(),
+            client.verify_hs_token(token, issuer.as_ref(), &secret).unwrap(),
             VerifiedToken {
                 identity: Some("user_2E7nWay3fFXh0MRgzBJZUx59UzP".to_string()),
                 groups: vec!["admin", "backend"].into_iter().map(String::from).collect(),
@@ -663,7 +663,7 @@ mod tests {
 
         assert_eq!(
             new_client
-                .verify_hs_token(token, &issuer, &secret)
+                .verify_hs_token(token, issuer.as_ref(), &secret)
                 .unwrap_err()
                 .to_string(),
             "audience does not match client ID"
