@@ -63,10 +63,10 @@ struct CustomClaims {
 pub struct Client<'a> {
     pub trace_id: &'a str,
     pub http_client: reqwest::Client,
-    pub time_opts: TimeOptions, // used for testing
-    pub ignore_iss_claim: bool, // used for testing
-    pub groups_claim: Option<&'a str>,
-    pub client_id: Option<&'a str>,
+    pub time_opts: TimeOptions,        // used for testing
+    pub ignore_iss_claim: bool,        // used for testing
+    pub groups_claim: Option<&'a str>, // The name of the claim (json attribute) that stores groups.
+    pub client_id: Option<&'a str>,    // The name of the application that must be present in the "aud" claim.
     pub jwks_cache: Option<worker::kv::KvStore>,
 }
 
@@ -245,14 +245,21 @@ impl<'a> Client<'a> {
         // Extract groups from custom claim if present
         let groups = self
             .groups_claim
-            .map(|claim| {
-                claims
-                    .custom
-                    .extra
-                    .dot_get_or_default::<HashSet<String>>(claim)
-                    .map_err(|_| VerificationError::InvalidGroups {
-                        claim: claim.to_owned(),
+            .map(|claim| match claims.custom.extra.dot_get::<Value>(claim) {
+                Ok(None | Some(Value::Null)) => Ok(HashSet::default()),
+                Ok(Some(Value::Array(vec))) if vec == vec![Value::Null] => Ok(HashSet::default()),
+                Ok(Some(Value::Array(vec))) => vec
+                    .into_iter()
+                    .map(|val| match val {
+                        Value::String(group) => Ok(group),
+                        _ => Err(VerificationError::InvalidGroups {
+                            claim: (*claim).to_string(),
+                        }),
                     })
+                    .collect(),
+                _ => Err(VerificationError::InvalidGroups {
+                    claim: (*claim).to_string(),
+                }),
             })
             .transpose()?
             .unwrap_or_default();
@@ -676,6 +683,170 @@ mod tests {
                 .unwrap_err()
                 .to_string(),
             "unsupported algorithm: HS512"
+        );
+    }
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "HS256",
+      },
+      "payload": {
+        "iss": "https://idp.example.com",
+        "groups": [
+            null
+        ],
+        "exp": 1700000000,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30",
+        "iat": 1516239022
+      }
+    }
+    */
+    #[test]
+    fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                groups_claim: Some("groups"),
+                client_id: None,
+                ..Default::default()
+            }
+        };
+
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6W251bGxdLCJleHAiOjE3MDAwMDAwMDAsInN1YiI6InVzZXJfMjVzWVNWRFhDcldXNThPdXNSRVh5bDR6cDMwIiwiaWF0IjoxNTE2MjM5MDIyfQ.xG8XKXz_CmyPYfWE44m91DVsgZcNULr2GrjzkQZreac";
+        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let secret = SecretString::new("abc123".to_string());
+
+        assert_eq!(
+            client.verify_hs_token(token, &issuer, &secret).unwrap(),
+            VerifiedToken {
+                identity: Some(TOKEN_SUB.to_string()),
+                groups: HashSet::default(),
+            }
+        );
+    }
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "HS256",
+      },
+      "payload": {
+        "iss": "https://idp.example.com",
+        "groups": "wrong",
+        "exp": 1700000000,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30",
+        "iat": 1516239022
+      }
+    }
+    */
+    #[test]
+    fn token_with_invalid_groups_set_to_string_should_fail() {
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                groups_claim: Some("groups"),
+                client_id: None,
+                ..Default::default()
+            }
+        };
+
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6Indyb25nIiwiZXhwIjoxNzAwMDAwMDAwLCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCIsImlhdCI6MTUxNjIzOTAyMn0.0_KXw7LOmVCfQxoQeKk1tgxNb8asQWCA0VDOAENG134";
+        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let secret = SecretString::new("abc123".to_string());
+
+        assert_eq!(
+            client.verify_hs_token(token, &issuer, &secret).unwrap_err().to_string(),
+            "invalid groups claim groups"
+        );
+    }
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "HS256",
+      },
+      "payload": {
+        "iss": "https://idp.example.com",
+        "groups": ["g1", 0],
+        "exp": 1700000000,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30",
+        "iat": 1516239022
+      }
+    }
+    */
+    #[test]
+    fn token_with_invalid_groups_set_to_array_of_wrong_type_should_fail() {
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                groups_claim: Some("groups"),
+                client_id: None,
+                ..Default::default()
+            }
+        };
+
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6WyJnMSIsMF0sImV4cCI6MTcwMDAwMDAwMCwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAiLCJpYXQiOjE1MTYyMzkwMjJ9.JYjqAYk6OLARIU6qtoUYG4NffVgidOJCXJlOIV7yEJw";
+        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let secret = SecretString::new("abc123".to_string());
+
+        assert_eq!(
+            client.verify_hs_token(token, &issuer, &secret).unwrap_err().to_string(),
+            "invalid groups claim groups"
+        );
+    }
+
+    /*
+    {
+      "header": {
+        "typ": "JWT",
+        "alg": "HS256",
+      },
+      "payload": {
+        "iss": "https://idp.example.com",
+        "groups": null,
+        "exp": 1700000000,
+        "sub": "user_25sYSVDXCrWW58OusREXyl4zp30",
+        "iat": 1516239022
+      }
+    }
+    */
+    #[test]
+    fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
+        let client = {
+            let leeway = Duration::seconds(5);
+            let clock_fn =
+                || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_673_368_763, 0).unwrap(), Utc);
+            Client {
+                time_opts: TimeOptions::new(leeway, clock_fn),
+                groups_claim: Some("groups"),
+                client_id: None,
+                ..Default::default()
+            }
+        };
+
+        let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6bnVsbCwiZXhwIjoxNzAwMDAwMDAwLCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCIsImlhdCI6MTUxNjIzOTAyMn0.VuCT7GRY01ph_4xWlK1mqIFFx6F9Jijj4HptGajXRoU";
+        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let secret = SecretString::new("abc123".to_string());
+
+        assert_eq!(
+            client.verify_hs_token(token, &issuer, &secret).unwrap(),
+            VerifiedToken {
+                identity: Some(TOKEN_SUB.to_string()),
+                groups: HashSet::default(),
+            }
         );
     }
 }
