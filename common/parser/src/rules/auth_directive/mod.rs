@@ -521,7 +521,7 @@ mod tests {
         ]),
         dynaql::AuthConfig {
             jwt_providers: vec![dynaql::JwtProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
@@ -531,7 +531,7 @@ mod tests {
     );
 
     parse_test!(
-        jwt_provider_with_client_id,
+        jwt_provider_with_client_id_and_issuer_url,
         r#"
         schema @auth(
           providers: [ { type: jwt, issuer: "https://my.idp.com", secret: "s3cr3t", clientId: "some-id" } ]
@@ -541,9 +541,29 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             jwt_providers: vec![dynaql::JwtProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
+                secret: secrecy::SecretString::new("s3cr3t".to_string()),
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwt_provider_with_issuer_string,
+        r#"
+      schema @auth(
+        providers: [ { type: jwt, issuer: "myidp", secret: "s3cr3t" } ]
+      ){
+        query: Query
+      }
+      "#,
+        dynaql::AuthConfig {
+            jwt_providers: vec![dynaql::JwtProvider {
+                issuer: "myidp".to_string(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
             }],
             ..Default::default()

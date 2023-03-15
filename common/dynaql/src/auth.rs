@@ -31,7 +31,7 @@ pub struct OidcProvider {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtProvider {
-    pub issuer: url::Url,
+    pub issuer: String,
 
     pub groups_claim: String,
 
