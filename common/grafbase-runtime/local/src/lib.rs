@@ -1,4 +1,5 @@
 mod bridge;
+pub mod registry;
 pub mod search;
 pub use search::LocalSearchEngine;
 
