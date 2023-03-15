@@ -158,7 +158,7 @@ mod tests {
 
         let mut registry = default_registry();
 
-        parse_spec(&spec, Format::Json, metadata(), &mut registry).unwrap();
+        parse_spec(&spec, Format::Json, metadata("stripe"), &mut registry).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
     }
@@ -169,15 +169,15 @@ mod tests {
 
         let mut registry = default_registry();
 
-        parse_spec(&spec, Format::Json, metadata(), &mut registry).unwrap();
+        parse_spec(&spec, Format::Json, metadata("petstore"), &mut registry).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
         insta::assert_debug_snapshot!(registry);
     }
 
-    fn metadata() -> ApiMetadata {
+    fn metadata(name: &str) -> ApiMetadata {
         ApiMetadata {
-            name: "example".into(),
+            name: name.into(),
             url: Url::parse("http://example.com").unwrap(),
             headers: vec![],
         }
