@@ -208,7 +208,7 @@ pub enum CreateApiError {
     #[error("could not create a new project as the current plan limit of {max} projects has been reached")]
     CurrentPlanLimitReached { max: i32 },
 
-    /// returned if
+    /// returned if duplicate database regions were selected
     #[error("could not create a new project as duplicate database regions were selected")]
     DuplicateDatabaseRegions { duplicates: Vec<String> },
 
