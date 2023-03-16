@@ -10,6 +10,7 @@ use common::consts::EPHEMERAL_PORT_RANGE;
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
+use futures_util::FutureExt;
 use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -118,12 +119,14 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await });
+    let mut bridge_handle =
+        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
 
     trace!("waiting for bridge ready");
-
-    wait_for_event(receiver, Event::BridgeReady).await;
-
+    tokio::select! {
+        _ = wait_for_event(receiver, Event::BridgeReady) => (),
+        result = &mut bridge_handle => {result??; return Ok(());}
+    };
     trace!("bridge ready");
 
     let registry_path = environment
