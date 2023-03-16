@@ -1354,7 +1354,7 @@ impl Registry {
         previous_logical_plan: Option<ArcIntern<LogicalPlan>>,
     ) -> ServerResult<Positioned<SelectionPlan>> {
         use query_planning::logical_plan::builder::LogicalPlanBuilder;
-        use query_planning::logical_query::dynaql::introspection_to_selection_plan_set;
+        use query_planning::logical_query::dynaql::to_selection_plan;
 
         let field = ctx.item;
 
@@ -1375,18 +1375,14 @@ impl Registry {
             #[cfg(feature = "tracing_worker")]
             logworker::info!("", "aaa: {json}");
 
-            let a = introspection_to_selection_plan_set(resolution_schema, ctx_obj.item.pos);
+            let a = to_selection_plan(
+                field.node.response_key().node.as_str(),
+                resolution_schema,
+                ctx_obj.item.pos,
+            );
             #[cfg(feature = "tracing_worker")]
             logworker::info!("", "bbb: {a:?}");
-            let plan = ctx
-                .item
-                .position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
-                    name: field.node.response_key().clone().map(|x| x.to_string()),
-                    logic_plan: LogicalPlanBuilder::empty().build(),
-                    nullable: false,
-                    array: false,
-                    selection_set: Positioned::new(a, ctx.item.pos),
-                })));
+            let plan = a;
             return Ok(plan);
         }
 

@@ -19,7 +19,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use arrow_schema::Field;
+use arrow_schema::{Field, SchemaRef};
 use bytes::Bytes;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -158,8 +158,13 @@ pub enum ConstValue {
 }
 
 impl ConstValue {
+    /// Check if this is neither a null or a list of null
     pub fn is_null(&self) -> bool {
-        matches!(self, ConstValue::Null)
+        match self {
+            ConstValue::Null => true,
+            ConstValue::List(vals) => !vals.iter().any(|x| !x.is_null()),
+            _ => false,
+        }
     }
 
     pub fn is_array(&self) -> bool {
@@ -205,7 +210,7 @@ impl ConstValue {
             .clone()
             .into_json()
             .map_err(|err| ArrowError::JsonError(err.to_string()));
-        infer_json_schema_from_iterator(std::iter::once(value)).map(mandatory)
+        infer_json_schema_from_iterator(std::iter::once(value))
     }
 
     /// Give the associated schema for a list
@@ -267,6 +272,35 @@ impl ConstValue {
             ConstValue::List(_) => "list",
             ConstValue::Object(_) => "object",
         }
+    }
+
+    /// Give the RecordBatch for the Value if it's an object
+    pub fn arrow_list_hack(self, len: usize) -> Result<Option<RecordBatch>, ArrowError> {
+        use arrow_json::reader::{Decoder, DecoderOptions};
+        let schema = Arc::new(self.to_schema_list()?);
+        let mut value = match self {
+            ConstValue::List(list) => list.into_iter().map(|x| {
+                x.into_json()
+                    .map_err(|err| ArrowError::JsonError(err.to_string()))
+                    .map(|x| serde_json::json!({ "item": x }))
+            }),
+            _ => return Err(ArrowError::JsonError("Should be a list".to_string())),
+        };
+
+        let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(len));
+        decoder.next_batch(&mut value)
+    }
+
+    /// Give the RecordBatch for the Value if it's an object
+    pub fn arrow_with_schema(self, schema: SchemaRef) -> Result<Option<RecordBatch>, ArrowError> {
+        use arrow_json::reader::{Decoder, DecoderOptions};
+        let mut value = std::iter::once(
+            self.into_json()
+                .map_err(|err| ArrowError::JsonError(err.to_string())),
+        );
+
+        let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(1));
+        decoder.next_batch(&mut value)
     }
 }
 
