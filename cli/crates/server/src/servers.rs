@@ -277,6 +277,13 @@ fn environment_variables() -> impl Iterator<Item = (String, String)> {
     )
 }
 
+#[derive(serde::Deserialize)]
+struct SchemaParserResult {
+    #[allow(dead_code)]
+    required_resolvers: Vec<String>,
+    versioned_registry: serde_json::Value,
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser() -> Result<(), ServerError> {
@@ -291,18 +298,25 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
 
+    let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
+        .await?
+        .map_err(ServerError::CreateTemporaryFile)?
+        .into_temp_path();
+
+    trace!(
+        "using a temporary file for the parser output: {parser_result_path}",
+        parser_result_path = parser_result_path.display()
+    );
+
     let output = {
         let mut node_command = Command::new("node")
             .args([
-                &parser_path.to_str().ok_or(ServerError::CachePath)?,
-                &environment
+                parser_path.to_str().ok_or(ServerError::CachePath)?,
+                environment
                     .project_grafbase_schema_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
-                &environment
-                    .project_grafbase_registry_path
-                    .to_str()
-                    .ok_or(ServerError::ProjectPath)?,
+                parser_result_path.to_str().expect("must be a valid path"),
             ])
             .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
@@ -322,11 +336,27 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .map_err(ServerError::SchemaParserError)?
     };
 
-    output
-        .status
-        .success()
-        .then_some(())
-        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))
+    if !output.status.success() {
+        return Err(ServerError::ParseSchema(
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        ));
+    }
+
+    let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
+        .await
+        .map_err(ServerError::SchemaParserResultRead)?;
+    let parser_result: SchemaParserResult =
+        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+
+    tokio::fs::write(
+        &environment.project_grafbase_registry_path,
+        serde_json::to_string(&parser_result.versioned_registry)
+            .expect("serde_json::Value serialises just fine for sure"),
+    )
+    .await
+    .map_err(ServerError::SchemaRegistryWrite)?;
+
+    Ok(())
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {
