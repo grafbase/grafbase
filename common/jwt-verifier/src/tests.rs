@@ -418,7 +418,7 @@ fn token_with_groups_containing_null_should_be_interpreted_as_empty_groups() {
     let secret = SecretString::new("abc123".to_string());
 
     assert_eq!(
-        client.verify_hs_token(token, &issuer, &secret).unwrap(),
+        client.verify_hs_token(token, issuer, &secret).unwrap(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
             groups: HashSet::default(),
@@ -459,7 +459,7 @@ fn token_with_invalid_groups_set_to_string_should_fail() {
     let secret = SecretString::new("abc123".to_string());
 
     assert_eq!(
-        client.verify_hs_token(token, &issuer, &secret).unwrap_err().to_string(),
+        client.verify_hs_token(token, issuer, &secret).unwrap_err().to_string(),
         "invalid groups claim groups"
     );
 }
@@ -497,7 +497,7 @@ fn token_with_invalid_groups_set_to_array_of_wrong_type_should_fail() {
     let secret = SecretString::new("abc123".to_string());
 
     assert_eq!(
-        client.verify_hs_token(token, &issuer, &secret).unwrap_err().to_string(),
+        client.verify_hs_token(token, issuer, &secret).unwrap_err().to_string(),
         "invalid groups claim groups"
     );
 }
@@ -535,7 +535,7 @@ fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
     let secret = SecretString::new("abc123".to_string());
 
     assert_eq!(
-        client.verify_hs_token(token, &issuer, &secret).unwrap(),
+        client.verify_hs_token(token, issuer, &secret).unwrap(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
             groups: HashSet::default(),
