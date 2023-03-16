@@ -173,7 +173,7 @@ impl<'a> Client<'a> {
             .validate_integrity::<CustomClaims<Url>>(&token, &pub_key)
             .map_err(VerificationError::Integrity)?;
 
-        self.verify_claims::<Url>(token.claims(), issuer)
+        self.verify_claims(token.claims(), issuer)
     }
 
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
@@ -181,7 +181,7 @@ impl<'a> Client<'a> {
     pub fn verify_hs_token<S: AsRef<str>>(
         &self,
         token: S,
-        issuer: &String,
+        issuer: &str,
         signing_key: &SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
@@ -207,14 +207,18 @@ impl<'a> Client<'a> {
             }
         }?;
 
-        self.verify_claims::<String>(token.claims(), issuer)
+        self.verify_claims::<String, str>(token.claims(), issuer)
     }
 
-    fn verify_claims<ISS: PartialEq>(
+    fn verify_claims<ISS, C>(
         &self,
         claims: &Claims<CustomClaims<ISS>>,
-        issuer: &ISS,
-    ) -> Result<VerifiedToken, VerificationError> {
+        issuer: &C,
+    ) -> Result<VerifiedToken, VerificationError>
+    where
+        C: ?Sized,
+        ISS: std::borrow::Borrow<C> + PartialEq<C>,
+    {
         // Check "iss" claim
         if !self.ignore_iss_claim && claims.custom.issuer != *issuer {
             return Err(VerificationError::InvalidIssuerUrl);
@@ -722,7 +726,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6W251bGxdLCJleHAiOjE3MDAwMDAwMDAsInN1YiI6InVzZXJfMjVzWVNWRFhDcldXNThPdXNSRVh5bDR6cDMwIiwiaWF0IjoxNTE2MjM5MDIyfQ.xG8XKXz_CmyPYfWE44m91DVsgZcNULr2GrjzkQZreac";
-        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let issuer = "https://idp.example.com";
         let secret = SecretString::new("abc123".to_string());
 
         assert_eq!(
@@ -764,7 +768,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6Indyb25nIiwiZXhwIjoxNzAwMDAwMDAwLCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCIsImlhdCI6MTUxNjIzOTAyMn0.0_KXw7LOmVCfQxoQeKk1tgxNb8asQWCA0VDOAENG134";
-        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let issuer = "https://idp.example.com";
         let secret = SecretString::new("abc123".to_string());
 
         assert_eq!(
@@ -803,7 +807,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6WyJnMSIsMF0sImV4cCI6MTcwMDAwMDAwMCwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAiLCJpYXQiOjE1MTYyMzkwMjJ9.JYjqAYk6OLARIU6qtoUYG4NffVgidOJCXJlOIV7yEJw";
-        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let issuer = "https://idp.example.com";
         let secret = SecretString::new("abc123".to_string());
 
         assert_eq!(
@@ -842,7 +846,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6bnVsbCwiZXhwIjoxNzAwMDAwMDAwLCJzdWIiOiJ1c2VyXzI1c1lTVkRYQ3JXVzU4T3VzUkVYeWw0enAzMCIsImlhdCI6MTUxNjIzOTAyMn0.VuCT7GRY01ph_4xWlK1mqIFFx6F9Jijj4HptGajXRoU";
-        let issuer = Url::parse("https://idp.example.com").unwrap();
+        let issuer = "https://idp.example.com";
         let secret = SecretString::new("abc123".to_string());
 
         assert_eq!(
