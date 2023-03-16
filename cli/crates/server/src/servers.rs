@@ -344,9 +344,9 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
         .await
-        .map_err(ServerError::SchemaParserResultReadError)?;
+        .map_err(ServerError::SchemaParserResultRead)?;
     let parser_result: SchemaParserResult =
-        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJsonError)?;
+        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
 
     tokio::fs::write(
         &environment.project_grafbase_registry_path,
@@ -354,7 +354,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .expect("serde_json::Value serialises just fine for sure"),
     )
     .await
-    .map_err(ServerError::SchemaRegistryWriteError)?;
+    .map_err(ServerError::SchemaRegistryWrite)?;
 
     Ok(())
 }

@@ -60,15 +60,15 @@ pub enum ServerError {
 
     /// returned if reading the parser result fails
     #[error(transparent)]
-    SchemaParserResultReadError(IoError),
+    SchemaParserResultRead(IoError),
 
     /// returned if the schema parser result is invalid JSON
     #[error("schema parser result is malformed JSON:\n{0}")]
-    SchemaParserResultJsonError(serde_json::Error),
+    SchemaParserResultJson(serde_json::Error),
 
     /// returned if writing the schema registry fails
     #[error(transparent)]
-    SchemaRegistryWriteError(IoError),
+    SchemaRegistryWrite(IoError),
 
     /// returned if `tempfile::NamedTempFile::new()` fails.
     #[error("could not create a temporary file for the parser result: {0}")]
@@ -126,9 +126,9 @@ impl ToExitCode for ServerError {
             | Self::NodeInPath
             | Self::OutdatedNode(_, _)
             | Self::FileWatcherInit(_)
-            | Self::SchemaParserResultJsonError(_)
-            | Self::SchemaParserResultReadError(_)
-            | Self::SchemaRegistryWriteError(_) => exitcode::DATAERR,
+            | Self::SchemaParserResultJson(_)
+            | Self::SchemaParserResultRead(_)
+            | Self::SchemaRegistryWrite(_) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
