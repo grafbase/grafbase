@@ -74,9 +74,28 @@ pub enum ServerError {
     #[error("could not create a temporary file for the parser result: {0}")]
     CreateTemporaryFile(IoError),
 
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not create an output artifact file during a resolver build")]
+    CreateResolverArtifactFile(IoError),
+
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("could not extract the resolver wrapper worker contents")]
+    ExtractResolverWrapperWorkerContents(String),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}")]
+    ResolverDoesNotExist(PathBuf),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm encountered an error: {0}")]
+    NpmCommandError(IoError),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm failed with output:\n{0}")]
+    NpmCommand(String),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
@@ -118,28 +137,35 @@ pub enum ServerError {
 impl ToExitCode for ServerError {
     fn to_exit_code(&self) -> i32 {
         match &self {
-            Self::CreateDir(_)
-            | Self::CreateCacheDir
-            | Self::WriteFile(_)
-            | Self::ReadVersion
-            | Self::ParseSchema(_)
+            Self::FileWatcherInit(_)
             | Self::NodeInPath
+            | Self::NpmCommand(_)
+            | Self::NpmCommandError(_)
             | Self::OutdatedNode(_, _)
-            | Self::FileWatcherInit(_)
-            | Self::SchemaParserResultJson(_)
-            | Self::SchemaParserResultRead(_)
-            | Self::SchemaRegistryWrite(_) => exitcode::DATAERR,
-            Self::CreateDatabase(_)
-            | Self::QueryDatabase(_)
-            | Self::BridgeApi(_)
+            | Self::ParseSchema(_)
+            | Self::ReadVersion
+            | Self::SchemaParserError(_)
+            | Self::WriteFile(_) => exitcode::DATAERR,
+            Self::BridgeApi(_)
+            | Self::CheckNodeVersion
             | Self::ConnectToDatabase(_)
-            | Self::UnknownSqliteError(_)
+            | Self::CreateDatabase(_)
+            | Self::ExtractResolverWrapperWorkerContents(_)
             | Self::MiniflareCommandError(_)
             | Self::MiniflareError(_)
+            | Self::QueryDatabase(_)
+            | Self::ResolverDoesNotExist(_)
+            | Self::SchemaParserResultJson(_)
+            | Self::SchemaParserResultRead(_)
             | Self::SpawnedTaskPanic(_)
-            | Self::SchemaParserError(_)
-            | Self::CheckNodeVersion => exitcode::SOFTWARE,
-            Self::ProjectPath | Self::CachePath | Self::CreateTemporaryFile(_) => exitcode::CANTCREAT,
+            | Self::UnknownSqliteError(_) => exitcode::SOFTWARE,
+            Self::CachePath
+            | Self::CreateCacheDir
+            | Self::CreateDir(_)
+            | Self::CreateResolverArtifactFile(_)
+            | Self::CreateTemporaryFile(_)
+            | Self::ProjectPath
+            | Self::SchemaRegistryWrite(_) => exitcode::CANTCREAT,
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }
     }

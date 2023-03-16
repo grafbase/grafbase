@@ -134,6 +134,8 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     let pool = Arc::new(pool);
 
+    let _environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
+
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
@@ -145,7 +147,9 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     let server = axum::Server::bind(&socket_address)
         .serve(router.into_make_service())
-        .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), Event::Reload));
+        .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
+            matches!(event, Event::Reload(_, _))
+        }));
 
     event_bus.send(Event::BridgeReady).expect("cannot fail");
 
