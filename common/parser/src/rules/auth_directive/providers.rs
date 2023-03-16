@@ -82,13 +82,6 @@ impl AuthProvider {
                 ..
             } => {
                 ctx.partially_evaluate_literal(issuer)?;
-                if let Err(err) = issuer
-                    .as_fully_evaluated_str()
-                    .map(|s| s.parse::<url::Url>())
-                    .transpose()
-                {
-                    return Err(ServerError::new(format!("JWT provider: {err}"), None));
-                }
 
                 if let Some(client_id) = client_id {
                     ctx.partially_evaluate_literal(client_id)?;
