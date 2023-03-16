@@ -350,7 +350,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     tokio::fs::write(
         &environment.project_grafbase_registry_path,
-        serde_json::to_string_pretty(&parser_result.versioned_registry)
+        serde_json::to_string(&parser_result.versioned_registry)
             .expect("serde_json::Value serialises just fine for sure"),
     )
     .await
