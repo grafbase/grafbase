@@ -298,7 +298,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
 
-    let parser_result_path = tokio::task::spawn_blocking(|| tempfile::NamedTempFile::new())
+    let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
         .map_err(ServerError::CreateTemporaryFile)?
         .into_temp_path();
@@ -311,8 +311,8 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     let output = {
         let mut node_command = Command::new("node")
             .args([
-                &parser_path.to_str().ok_or(ServerError::CachePath)?,
-                &environment
+                parser_path.to_str().ok_or(ServerError::CachePath)?,
+                environment
                     .project_grafbase_schema_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
