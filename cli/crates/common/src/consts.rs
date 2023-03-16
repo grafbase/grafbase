@@ -14,6 +14,8 @@ pub const GRAFBASE_SCHEMA: &str = "schema.graphql";
 pub const DOT_GRAFBASE_DIRECTORY: &str = ".grafbase";
 /// the registry.json file generated from schema.graphql
 pub const REGISTRY_FILE: &str = "registry.json";
+/// the /resolvers directory containing resolver implementations
+pub const RESOLVERS_DIRECTORY_NAME: &str = "resolvers";
 /// the tracing filter to be used when tracing is on
 pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,tower_http=debug";
 /// the tracing filter to be used when tracing is off

@@ -23,6 +23,8 @@ extern crate log;
 
 mod bridge;
 mod consts;
+mod custom_resolvers;
+mod environment;
 mod event;
 mod file_watcher;
 mod servers;

@@ -1,5 +1,6 @@
 mod consts;
 mod listener;
+mod resolvers;
 mod search;
 mod server;
 mod sqlite;

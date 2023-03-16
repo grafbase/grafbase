@@ -17,7 +17,7 @@ where
     let (notify_sender, notify_receiver) = mpsc::channel();
 
     let mut watcher: RecommendedWatcher = Watcher::new(notify_sender, FILE_WATCHER_INTERVAL)?;
-    watcher.watch(&file, RecursiveMode::NonRecursive)?;
+    watcher.watch(&file, RecursiveMode::Recursive)?;
 
     tokio::task::spawn_blocking(move || -> Result<(), ServerError> {
         loop {

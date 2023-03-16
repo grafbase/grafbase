@@ -1,7 +1,7 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, DOT_ENV_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
-    SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
+use crate::custom_resolvers::build_resolvers;
 use crate::event::{wait_for_event, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
@@ -11,6 +11,7 @@ use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
+
 use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -66,7 +67,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                     let watch_event_bus = event_bus.clone();
 
                      tokio::select! {
-                        result = start_watcher(environment.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
+                        result = start_watcher(environment.project_grafbase_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
                 } else {
@@ -115,9 +116,10 @@ async fn spawn_servers(
 
     validate_dependencies().await?;
 
-    run_schema_parser().await?;
-
+    let resolvers = run_schema_parser().await?;
     let environment = Environment::get();
+
+    let resolver_paths = build_resolvers(environment, worker_port, resolvers, tracing).await?;
 
     let mut bridge_handle =
         tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
@@ -134,29 +136,51 @@ async fn spawn_servers(
         .to_str()
         .ok_or(ServerError::ProjectPath)?;
 
-    trace!("spawning miniflare");
+    trace!("spawning miniflare for the main worker");
+
+    let worker_port_string = worker_port.to_string();
+    let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
+    let registry_text_blob_string = format!("REGISTRY={registry_path}");
+
+    let mut miniflare_arguments: Vec<_> = [
+        // used by miniflare when running normally as well
+        "--experimental-vm-modules",
+        "./packages/miniflare/dist/src/cli.js",
+        "--modules",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        &worker_port_string,
+        "--no-update-check",
+        "--no-cf-fetch",
+        "--do-persist",
+        "--wrangler-config",
+        "../wrangler.toml",
+        "--binding",
+        &bridge_port_binding_string,
+        "--text-blob",
+        &registry_text_blob_string,
+        "--mount",
+        "stream-router=../stream-router",
+    ]
+    .into_iter()
+    .map(std::borrow::Cow::Borrowed)
+    .collect();
+    miniflare_arguments.extend(resolver_paths.into_iter().flat_map(|(resolver_name, resolver_path)| {
+        [
+            "--mount".into(),
+            format!(
+                "{resolver_name}={}",
+                resolver_path.to_str().expect("correct at this point")
+            )
+            .into(),
+        ]
+    }));
 
     let miniflare = Command::new("node")
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args([
-            // used by miniflare when running normally as well
-            "--experimental-vm-modules",
-            "./packages/miniflare/dist/src/cli.js",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            &worker_port.to_string(),
-            "--no-update-check",
-            "--no-cf-fetch",
-            "--do-persist",
-            "--wrangler-config",
-            "../wrangler.toml",
-            "--binding",
-            &format!("BRIDGE_PORT={bridge_port}"),
-            "--text-blob",
-            &format!("REGISTRY={registry_path}"),
-        ])
+        .args(miniflare_arguments.iter().map(|argument| argument.as_ref()))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
@@ -197,7 +221,6 @@ fn export_embedded_files() -> Result<(), ServerError> {
         true
     } else if version_path.exists() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
-
         current_version != asset_version
     } else {
         true
@@ -262,21 +285,6 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
-#[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
-fn environment_variables() -> impl Iterator<Item = (String, String)> {
-    let environment = Environment::get();
-    let dot_env_file_path = environment.project_grafbase_path.join(DOT_ENV_FILE);
-    // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
-    // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
-    // changes which is something we may want to do in the future.
-    env::vars().chain(
-        dotenv::from_path_iter(dot_env_file_path)
-            .into_iter()
-            .flatten()
-            .filter_map(Result::ok),
-    )
-}
-
 #[derive(serde::Deserialize)]
 struct SchemaParserResult {
     #[allow(dead_code)]
@@ -286,7 +294,7 @@ struct SchemaParserResult {
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
-async fn run_schema_parser() -> Result<(), ServerError> {
+async fn run_schema_parser() -> Result<Vec<String>, ServerError> {
     trace!("parsing schema");
 
     let environment = Environment::get();
@@ -296,7 +304,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
 
-    let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
+    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
     let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
@@ -312,6 +320,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
         let mut node_command = Command::new("node")
             .args([
                 parser_path.to_str().ok_or(ServerError::CachePath)?,
+                "parse",
                 environment
                     .project_grafbase_schema_path
                     .to_str()
@@ -321,6 +330,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
             .spawn()
             .map_err(ServerError::SchemaParserError)?;
 
@@ -356,7 +366,7 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     .await
     .map_err(ServerError::SchemaRegistryWrite)?;
 
-    Ok(())
+    Ok(parser_result.required_resolvers)
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {

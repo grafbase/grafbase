@@ -75,8 +75,23 @@ pub enum ServerError {
     CreateTemporaryFile(IoError),
 
     /// returned if the schema parser command exits unsuccessfully
+    #[error("could not extract the resolver wrapper worker contents")]
+    ExtractResolverWrapperWorkerContents(String),
+
+    /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}")]
+    ResolverDoesNotExist(PathBuf),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm encountered an error: {0}")]
+    NpmCommandError(IoError),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm failed with output:\n{0}")]
+    NpmCommand(String),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
@@ -126,9 +141,9 @@ impl ToExitCode for ServerError {
             | Self::NodeInPath
             | Self::OutdatedNode(_, _)
             | Self::FileWatcherInit(_)
-            | Self::SchemaParserResultJson(_)
-            | Self::SchemaParserResultRead(_)
-            | Self::SchemaRegistryWrite(_) => exitcode::DATAERR,
+            | Self::SchemaParserError(_)
+            | Self::NpmCommandError(_)
+            | Self::NpmCommand(_) => exitcode::DATAERR,
             Self::CreateDatabase(_)
             | Self::QueryDatabase(_)
             | Self::BridgeApi(_)
@@ -137,9 +152,14 @@ impl ToExitCode for ServerError {
             | Self::MiniflareCommandError(_)
             | Self::MiniflareError(_)
             | Self::SpawnedTaskPanic(_)
-            | Self::SchemaParserError(_)
-            | Self::CheckNodeVersion => exitcode::SOFTWARE,
-            Self::ProjectPath | Self::CachePath | Self::CreateTemporaryFile(_) => exitcode::CANTCREAT,
+            | Self::SchemaParserResultJson(_)
+            | Self::SchemaParserResultRead(_)
+            | Self::ResolverDoesNotExist(_)
+            | Self::CheckNodeVersion
+            | Self::ExtractResolverWrapperWorkerContents(_) => exitcode::SOFTWARE,
+            Self::ProjectPath | Self::CachePath | Self::CreateTemporaryFile(_) | Self::SchemaRegistryWrite(_) => {
+                exitcode::CANTCREAT
+            }
             Self::AvailablePort => exitcode::UNAVAILABLE,
         }
     }

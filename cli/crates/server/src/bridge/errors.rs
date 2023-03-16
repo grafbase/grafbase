@@ -18,9 +18,12 @@ pub enum ApiError {
     /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
     SqlError(SqlxError),
-
     #[error("server error")]
     ServerError,
+    #[error("resolver {0} does not exist")]
+    ResolverDoesNotExist(String),
+    #[error("resolver {0} is invalid")]
+    ResolverInvalid(String),
 }
 
 #[derive(Serialize, Debug)]
@@ -45,7 +48,11 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
-            ApiError::SqlError(_) | ApiError::ServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+
+            ApiError::SqlError(_)
+            | ApiError::ServerError
+            | ApiError::ResolverDoesNotExist(_)
+            | ApiError::ResolverInvalid(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }
 }

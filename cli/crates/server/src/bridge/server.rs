@@ -1,6 +1,6 @@
 use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
 use super::search::Index;
-use super::types::{Mutation, Operation, Record, SearchRequest, SearchResponse};
+use super::types::{Mutation, Operation, Record, ResolverInvocation, SearchRequest, SearchResponse};
 use crate::bridge::errors::ApiError;
 use crate::bridge::listener;
 use crate::bridge::types::{Constraint, ConstraintKind, OperationKind};
@@ -14,6 +14,7 @@ use common::environment::Environment;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
+use std::collections::HashMap;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 
@@ -21,7 +22,7 @@ use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
 async fn query_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State((_port, _environment_variables, pool)): State<(u16, HashMap<String, String>, Arc<SqlitePool>)>,
     Json(payload): Json<Operation>,
 ) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
@@ -44,7 +45,7 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State((_port, _environment_variables, pool)): State<(u16, HashMap<String, String>, Arc<SqlitePool>)>,
     Json(payload): Json<Mutation>,
 ) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
@@ -84,7 +85,7 @@ async fn mutation_endpoint(
 }
 
 async fn search_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State((_port, _environment_variables, pool)): State<(u16, HashMap<String, String>, Arc<SqlitePool>)>,
     Json(query): Json<SearchRequest>,
 ) -> Result<Json<SearchResponse>, ApiError> {
     // Good enough for any sane limit.
@@ -95,6 +96,17 @@ async fn search_endpoint(
         .await?
         .search_top_records(&query.raw_query, limit)?;
     Ok(Json(SearchResponse { matching_records }))
+}
+
+async fn invoke_resolver_endpoint(
+    State((port, environment_variables, _pool)): State<(u16, HashMap<String, String>, Arc<SqlitePool>)>,
+    Json(payload): Json<ResolverInvocation>,
+) -> Result<Json<serde_json::Value>, ApiError> {
+    trace!("resolver invocation\n\n{:#?}\n", payload);
+    super::resolvers::invoke_resolver(port, &payload.resolver_name, &environment_variables)
+        .await
+        .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
+        .map(Json)
 }
 
 pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
@@ -119,11 +131,14 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     let pool = Arc::new(pool);
 
+    let environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
+
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
         .route("/search", post(search_endpoint))
-        .with_state(Arc::clone(&pool))
+        .route("/invoke-resolver", post(invoke_resolver_endpoint))
+        .with_state((worker_port, environment_variables, Arc::clone(&pool)))
         .layer(TraceLayer::new_for_http());
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));

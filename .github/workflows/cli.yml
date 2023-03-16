@@ -144,6 +144,8 @@ jobs:
           lint: false
 
       - name: Build release
+        env:
+          V8_FROM_SOURCE: 1
         run: |
           cd cli
           cargo build --release --target x86_64-unknown-linux-musl
