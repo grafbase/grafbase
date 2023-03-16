@@ -15,10 +15,10 @@ type ServerInfo = (thread::JoinHandle<Result<(), ServerError>>, Receiver<ServerM
 /// returns [`BackendError::AvailablePort`] if no available port can  be found
 ///
 /// returns [`BackendError::PortInUse`] if search is off and the supplied port is in use
-pub fn start_server(start_port: u16, search: bool, watch: bool) -> Result<ServerInfo, BackendError> {
+pub fn start_server(start_port: u16, search: bool, watch: bool, tracing: bool) -> Result<ServerInfo, BackendError> {
     match find_available_port(search, start_port, LocalAddressType::Localhost) {
         Some(port) => {
-            let (handle, receiver) = server::start(port, watch);
+            let (handle, receiver) = server::start(port, watch, tracing);
             Ok((handle, receiver))
         }
         None => {
