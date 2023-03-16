@@ -22,6 +22,9 @@ const JWKS_CACHE_TTL: u64 = 60 * 60; // 1h
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
+    // FIXME: Issuer should be stored and handled as a string. See StringOrURI definition in https://www.rfc-editor.org/rfc/rfc7519#section-2 .
+    // Converting string to Url and back alters the string representation, so for now compare `Url`-s.
+    // https://linear.app/grafbase/issue/GB-3298/fix-issuer-comparison-in-oidcconfig-as-stated-by-the-fixme
     issuer: Url,
     jwks_uri: Url,
 }
@@ -42,9 +45,10 @@ struct JsonWebKeySet<'a> {
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
-struct CustomClaims {
+// FIXME: Get rid of <ISS> https://linear.app/grafbase/issue/GB-3298/fix-issuer-comparison-in-oidcconfig-as-stated-by-the-fixme
+struct CustomClaims<ISS> {
     #[serde(rename = "iss")]
-    issuer: Url,
+    issuer: ISS,
 
     #[serde(rename = "sub")]
     subject: Option<String>,
@@ -166,10 +170,10 @@ impl<'a> Client<'a> {
         let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
         let rsa = StrongAlg(rsa);
         let token = rsa
-            .validate_integrity::<CustomClaims>(&token, &pub_key)
+            .validate_integrity::<CustomClaims<Url>>(&token, &pub_key)
             .map_err(VerificationError::Integrity)?;
 
-        self.verify_claims(token.claims(), issuer)
+        self.verify_claims::<Url>(token.claims(), issuer)
     }
 
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
@@ -177,8 +181,8 @@ impl<'a> Client<'a> {
     pub fn verify_hs_token<S: AsRef<str>>(
         &self,
         token: S,
-        issuer: &'a Url,
-        signing_key: &'a SecretString,
+        issuer: &String,
+        signing_key: &SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
         use secrecy::ExposeSecret;
@@ -188,13 +192,13 @@ impl<'a> Client<'a> {
 
         let token = match token.algorithm() {
             "HS256" => Hs256
-                .validate_integrity::<CustomClaims>(&token, &Hs256Key::from(key))
+                .validate_integrity::<CustomClaims<String>>(&token, &Hs256Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS384" => Hs384
-                .validate_integrity::<CustomClaims>(&token, &Hs384Key::from(key))
+                .validate_integrity::<CustomClaims<String>>(&token, &Hs384Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS512" => Hs512
-                .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(key))
+                .validate_integrity::<CustomClaims<String>>(&token, &Hs512Key::from(key))
                 .map_err(VerificationError::Integrity),
             other => {
                 return Err(VerificationError::UnsupportedAlgorithm {
@@ -203,13 +207,13 @@ impl<'a> Client<'a> {
             }
         }?;
 
-        self.verify_claims(token.claims(), issuer)
+        self.verify_claims::<String>(token.claims(), issuer)
     }
 
-    fn verify_claims(
+    fn verify_claims<ISS: PartialEq>(
         &self,
-        claims: &'a Claims<CustomClaims>,
-        issuer: &'a Url,
+        claims: &Claims<CustomClaims<ISS>>,
+        issuer: &ISS,
     ) -> Result<VerifiedToken, VerificationError> {
         // Check "iss" claim
         if !self.ignore_iss_claim && claims.custom.issuer != *issuer {
@@ -652,7 +656,7 @@ mod tests {
         };
 
         let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXBwMSIsImFwcDIiXSwiZXhwIjoxNjczMzY5MzYzLCJncm91cHMiOlsiYWRtaW4iLCJiYWNrZW5kIl0sImlhdCI6MTY3MzM2ODc2MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5iNzR2MC41eTZoai5sY2wuZGV2IiwianRpIjoiMDY5NmJlNDJiZTNmYzNiMjIxMmQiLCJuYmYiOjE2NzMzNjg3NTgsInN1YiI6InVzZXJfMkU3bldheTNmRlhoME1SZ3pCSlpVeDU5VXpQIn0.x6eAgltLZqhUjT1Lr9sPLItiv0hJ4dvhuoIPMYZM4_eEB-hmmqIxxS5tdZddvDzh5jPAkwGjuynfM-WJ3Xgxcg";
-        let issuer = Url::parse("https://clerk.b74v0.5y6hj.lcl.dev").unwrap();
+        let issuer = "https://clerk.b74v0.5y6hj.lcl.dev".to_string();
         let secret = SecretString::new("topsecret".to_string());
 
         assert_eq!(
@@ -678,7 +682,7 @@ mod tests {
 
         assert_eq!(
             new_client
-                .verify_rs_token(token, &issuer)
+                .verify_rs_token(token, &Url::parse(&issuer).unwrap())
                 .await
                 .unwrap_err()
                 .to_string(),
