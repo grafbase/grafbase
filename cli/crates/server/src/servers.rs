@@ -10,6 +10,7 @@ use common::consts::EPHEMERAL_PORT_RANGE;
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
+use futures_util::FutureExt;
 use std::env;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
@@ -41,7 +42,7 @@ const EVENT_BUS_BOUND: usize = 5;
 ///
 /// The spawned server and miniflare thread can panic if either of the two inner spawned threads panic
 #[must_use]
-pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
+pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
     let environment = Environment::get();
@@ -66,10 +67,10 @@ pub fn start(port: u16, watch: bool) -> (JoinHandle<Result<(), ServerError>>, Re
 
                      tokio::select! {
                         result = start_watcher(environment.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
-                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone()) => { result }
+                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
                 } else {
-                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus).await?)
+                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, tracing).await?)
                 }
             })
     });
@@ -83,11 +84,12 @@ async fn server_loop(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    tracing: bool,
 ) -> Result<(), ServerError> {
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone()) => {
+            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), tracing) => {
                 result?;
             }
             _ = wait_for_event(receiver, Event::Reload) => {
@@ -105,6 +107,7 @@ async fn spawn_servers(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_sender = event_bus.clone();
 
@@ -116,12 +119,14 @@ async fn spawn_servers(
 
     let environment = Environment::get();
 
-    let bridge_handle = tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await });
+    let mut bridge_handle =
+        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
 
     trace!("waiting for bridge ready");
-
-    wait_for_event(receiver, Event::BridgeReady).await;
-
+    tokio::select! {
+        _ = wait_for_event(receiver, Event::BridgeReady) => (),
+        result = &mut bridge_handle => {result??; return Ok(());}
+    };
     trace!("bridge ready");
 
     let registry_path = environment
@@ -152,8 +157,8 @@ async fn spawn_servers(
             "--text-blob",
             &format!("REGISTRY={registry_path}"),
         ])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
+        .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
         .kill_on_drop(watch)
         .spawn()
@@ -272,6 +277,13 @@ fn environment_variables() -> impl Iterator<Item = (String, String)> {
     )
 }
 
+#[derive(serde::Deserialize)]
+struct SchemaParserResult {
+    #[allow(dead_code)]
+    required_resolvers: Vec<String>,
+    versioned_registry: serde_json::Value,
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser() -> Result<(), ServerError> {
@@ -286,18 +298,25 @@ async fn run_schema_parser() -> Result<(), ServerError> {
 
     let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
 
+    let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
+        .await?
+        .map_err(ServerError::CreateTemporaryFile)?
+        .into_temp_path();
+
+    trace!(
+        "using a temporary file for the parser output: {parser_result_path}",
+        parser_result_path = parser_result_path.display()
+    );
+
     let output = {
         let mut node_command = Command::new("node")
             .args([
-                &parser_path.to_str().ok_or(ServerError::CachePath)?,
-                &environment
+                parser_path.to_str().ok_or(ServerError::CachePath)?,
+                environment
                     .project_grafbase_schema_path
                     .to_str()
                     .ok_or(ServerError::ProjectPath)?,
-                &environment
-                    .project_grafbase_registry_path
-                    .to_str()
-                    .ok_or(ServerError::ProjectPath)?,
+                parser_result_path.to_str().expect("must be a valid path"),
             ])
             .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
@@ -317,11 +336,27 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .map_err(ServerError::SchemaParserError)?
     };
 
-    output
-        .status
-        .success()
-        .then_some(())
-        .ok_or_else(|| ServerError::ParseSchema(String::from_utf8_lossy(&output.stderr).into_owned()))
+    if !output.status.success() {
+        return Err(ServerError::ParseSchema(
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        ));
+    }
+
+    let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
+        .await
+        .map_err(ServerError::SchemaParserResultRead)?;
+    let parser_result: SchemaParserResult =
+        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+
+    tokio::fs::write(
+        &environment.project_grafbase_registry_path,
+        serde_json::to_string(&parser_result.versioned_registry)
+            .expect("serde_json::Value serialises just fine for sure"),
+    )
+    .await
+    .map_err(ServerError::SchemaRegistryWrite)?;
+
+    Ok(())
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {
