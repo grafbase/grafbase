@@ -1,0 +1,148 @@
+use cynic::http::CynicReqwestError;
+use std::{io, path::PathBuf};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ApiError {
+    /// returned if the login server could not be started
+    #[error("could not start the login server")]
+    StartLoginServer,
+
+    /// returned if the user is not logged in when attempting to log out
+    #[error("could not log out as you are not logged in")]
+    NotLoggedIn,
+
+    /// returned if ~/.grafbase could not be created
+    #[error("could not delete '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    DeleteCredentialsFile(io::Error),
+
+    /// returned if ~/.grafbase/credentials.json could not be read
+    #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    ReadCredentialsFile(io::Error),
+
+    /// returned if .grafbase/project.json could not be read
+    #[error("could not read '.grafbase/project.json'\ncaused by: {0}")]
+    ReadProjectMetadataFile(io::Error),
+
+    /// returned if ~/.grafbase could not be read
+    #[error("could not read '~/.grafbase'\ncaused by: {0}")]
+    ReadUserDotGrafbaseFolder(io::Error),
+
+    /// returned if an operation failed due to the user being logged out
+    #[error("could not complete the action as you are logged out")]
+    LoggedOut,
+
+    /// returned if the contents of the credential file are corrupt
+    #[error("could not complete the action as your credential file is corrupt")]
+    CorruptCredentialsFile,
+
+    /// returned if the contents of the project metadata file are corrupt
+    #[error("could not complete the action as your project metadata file are corrupt")]
+    CorruptProjectMetadataFile,
+
+    /// returned if an operation failed due to a token being unauthorized or the user previously being deleted
+    #[error("unauthorized or deleted user")]
+    UnauthorizedOrDeletedUser,
+
+    /// returned if a token does not have access to a user's personal account
+    #[error("incorrectly scoped token")]
+    IncorrectlyScopedToken,
+
+    /// returned if a project schema could not be read
+    #[error("could not read the project graphql schema")]
+    ReadSchema,
+
+    /// returned if the project metadata file could not be written
+    #[error("could not write the project metadata file\ncaused by: {0}")]
+    WriteProjectMetadataFile(io::Error),
+
+    /// TODO hint regarding CLI version
+    /// returned if a cynic request could not be completed
+    #[error("could not complete a request")]
+    RequestError,
+
+    /// returned if a cynic request could not be completed (due to connection issues)
+    #[error("could not complete a request")]
+    ConnectionError,
+
+    /// returned if a project being created has already been created
+    #[error("could not create a new project as this local project has already been linked to a remote project")]
+    ProjectAlreadyLinked,
+
+    /// returned if the path of ~/.grafbase could not be found
+    #[error("could not find the current user home folder")]
+    FindUserDotGrafbaseFolder,
+
+    /// returned if ~/.grafbase could not be created
+    #[error("could not create '~/.grafbase\ncaused by: {0}")]
+    CreateUserDotGrafbaseFolder(io::Error),
+
+    /// returned if an available port could not be find
+    #[error("could not find an available port")]
+    FindAvailablePort,
+
+    /// wraps a [`CreateError`]
+    #[error(transparent)]
+    CreateError(CreateError),
+}
+
+#[derive(Error, Debug)]
+pub enum CreateError {
+    /// returned if the given slug for a new project is already in use
+    #[error("could not create a new project as the provided slug is already in use")]
+    SlugAlreadyExists,
+
+    /// returned if the given slug for a new project is invalid
+    #[error("could not create a new project as the provided slug is invalid")]
+    SlugInvalid,
+
+    /// returned if the given slug for a new project was too long
+    #[error("could not create a new project as the provided slug is longer than {max_length} characters")]
+    SlugTooLong { max_length: i32 },
+
+    /// returned if a given account ID does not exist
+    #[error("could not create a new project as the specified account ID does not exist")]
+    AccountDoesNotExist,
+
+    /// returned if the user has reached the current plan limit
+    #[error("could not create a new project as the current plan limit of {max} projects has been reached")]
+    CurrentPlanLimitReached { max: i32 },
+
+    /// returned if duplicate database regions were selected
+    #[error("could not create a new project as duplicate database regions were selected")]
+    DuplicateDatabaseRegions { duplicates: Vec<String> },
+
+    /// returned if no database regions are selected
+    #[error("could not create a new project as no database regions were selected")]
+    EmptyDatabaseRegions,
+
+    /// returned if invalid database regions are used
+    #[error("could not create a new project as invalid regions were selected")]
+    InvalidDatabaseRegions { invalid: Vec<String> },
+
+    // TODO add hint regarding CLI version
+    /// returned if an unknown error occurs
+    #[error("could not create a new project, encountered an unknown error")]
+    Unknown,
+}
+
+#[derive(Error, Debug)]
+pub enum LoginApiError {
+    #[error("could not write '{0}'")]
+    WriteCredentialFile(PathBuf),
+}
+
+impl From<CreateError> for ApiError {
+    fn from(error: CreateError) -> Self {
+        Self::CreateError(error)
+    }
+}
+
+impl From<CynicReqwestError> for ApiError {
+    fn from(error: CynicReqwestError) -> Self {
+        match error {
+            CynicReqwestError::ReqwestError(error) if error.is_connect() => ApiError::ConnectionError,
+            CynicReqwestError::ReqwestError(_) | CynicReqwestError::ErrorResponse(_, _) => ApiError::RequestError,
+        }
+    }
+}

@@ -1,5 +1,5 @@
 use crate::{errors::CliError, output::report};
-use backend::{
+use backend::api::{
     create,
     types::{Account, DatabaseRegion, DATABASE_REGIONS},
 };
@@ -32,7 +32,7 @@ pub async fn create() -> Result<(), CliError> {
 
     let (accounts, closest_region) = create::get_viewer_data_for_creation()
         .await
-        .map_err(CliError::BackendError)?;
+        .map_err(CliError::BackendApiError)?;
 
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
@@ -82,7 +82,7 @@ pub async fn create() -> Result<(), CliError> {
     if confirm {
         let domains = create::create(&selected_account.id, &project_name, &[selected_region.0])
             .await
-            .map_err(CliError::BackendError)?;
+            .map_err(CliError::BackendApiError)?;
 
         report::created(&project_name, &domains);
     }

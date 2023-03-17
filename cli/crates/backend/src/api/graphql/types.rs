@@ -1,4 +1,4 @@
-#[cynic::schema_for_derives(file = r#"src/graphql/api.graphql"#, module = "schema")]
+#[cynic::schema_for_derives(file = r#"src/api/graphql/api.graphql"#, module = "schema")]
 pub mod mutations {
     use super::schema;
 
@@ -110,9 +110,60 @@ pub mod mutations {
         #[cynic(fallback)]
         Unknown,
     }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct ProjectDoesNotExistError {
+        pub __typename: String,
+    }
+
+    #[derive(cynic::InputObject, Clone, Debug)]
+    #[cynic(rename_all = "camelCase")]
+    pub struct DeploymentCreateInput {
+        pub archive_file_size: i32,
+        pub branch: String,
+        pub project_id: cynic::Id,
+    }
+
+    #[derive(cynic::QueryVariables)]
+    pub struct DeploymentCreateArguments {
+        pub input: DeploymentCreateInput,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    #[cynic(graphql_type = "Mutation", variables = "DeploymentCreateArguments")]
+    pub struct DeploymentCreate {
+        #[arguments(input: $input)]
+        pub deployment_create: DeploymentCreatePayload,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct DeploymentCreateSuccess {
+        pub __typename: String,
+        pub presigned_url: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct DailyDeploymentCountLimitExceededError {
+        pub __typename: String,
+    }
+
+    #[derive(cynic::QueryFragment, Debug)]
+    pub struct ArchiveFileSizeLimitExceededError {
+        pub __typename: String,
+    }
+
+    #[derive(cynic::InlineFragments, Debug)]
+    pub enum DeploymentCreatePayload {
+        DeploymentCreateSuccess(DeploymentCreateSuccess),
+        ProjectDoesNotExistError(ProjectDoesNotExistError),
+        ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError),
+        DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError),
+        #[cynic(fallback)]
+        Unknown,
+    }
 }
 
-#[cynic::schema_for_derives(file = r#"src/graphql/api.graphql"#, module = "schema")]
+#[cynic::schema_for_derives(file = r#"src/api/graphql/api.graphql"#, module = "schema")]
 pub mod queries {
     use super::schema;
 
@@ -156,5 +207,5 @@ pub mod queries {
 
 #[allow(non_snake_case, non_camel_case_types)]
 mod schema {
-    cynic::use_schema!(r#"src/graphql/api.graphql"#);
+    cynic::use_schema!(r#"src/api/graphql/api.graphql"#);
 }

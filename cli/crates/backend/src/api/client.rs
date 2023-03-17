@@ -1,0 +1,51 @@
+use super::types::Credentials;
+use super::{consts::CREDENTIALS_FILE, errors::ApiError};
+use crate::consts::USER_AGENT;
+use axum::http::{HeaderMap, HeaderValue};
+use common::environment::get_user_dot_grafbase_path;
+use reqwest::{header, Client};
+use tokio::fs::read_to_string;
+
+/// # Errors
+pub async fn create_client() -> Result<reqwest::Client, ApiError> {
+    // needed to bypass the project fallback behavior of Environment's dot grafbase folder
+    // TODO consider removing the fallback
+    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::FindUserDotGrafbaseFolder)?;
+
+    match user_dot_grafbase_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => return Err(ApiError::LoggedOut),
+        Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
+    }
+
+    let credentials_file_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
+
+    match credentials_file_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => return Err(ApiError::LoggedOut),
+        Err(error) => return Err(ApiError::ReadCredentialsFile(error)),
+    }
+
+    let credential_file = read_to_string(user_dot_grafbase_path.join(CREDENTIALS_FILE))
+        .await
+        .map_err(ApiError::ReadCredentialsFile)?;
+
+    let credentials: Credentials<'_> =
+        serde_json::from_str(&credential_file).map_err(|_| ApiError::CorruptCredentialsFile)?;
+
+    let token = credentials.access_token;
+
+    let mut headers = HeaderMap::new();
+    let mut bearer_token =
+        HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptCredentialsFile)?;
+    bearer_token.set_sensitive(true);
+    headers.insert(header::AUTHORIZATION, bearer_token);
+    let mut user_agent = HeaderValue::from_str(USER_AGENT).expect("must be visible ascii");
+    user_agent.set_sensitive(true);
+    headers.insert(header::USER_AGENT, user_agent);
+
+    Ok(Client::builder()
+        .default_headers(headers)
+        .build()
+        .expect("TLS is supported in all targets"))
+}

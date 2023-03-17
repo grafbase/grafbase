@@ -1,4 +1,5 @@
-use backend::errors::{BackendError, LoginApiError, ServerError};
+use backend::api::errors::{ApiError, LoginApiError};
+use backend::errors::{BackendError, ServerError};
 use common::errors::CommonError;
 use std::io::{self, ErrorKind};
 use thiserror::Error;
@@ -18,6 +19,9 @@ pub enum CliError {
     /// wraps an error originating in the local-backend crate
     #[error(transparent)]
     BackendError(BackendError),
+    /// wraps an error originating in the local-backend crate api module
+    #[error(transparent)]
+    BackendApiError(ApiError),
     /// wraps an error originating in the local-backend crate's login API
     #[error(transparent)]
     LoginApiError(LoginApiError),

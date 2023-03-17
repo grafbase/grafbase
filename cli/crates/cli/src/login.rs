@@ -1,5 +1,5 @@
 use crate::{errors::CliError, output::report};
-use backend::{login, types::LoginMessage};
+use backend::api::{login, types::LoginMessage};
 use common::utils::get_thread_panic_message;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
@@ -11,7 +11,7 @@ use std::{
 pub fn login() -> Result<(), CliError> {
     let (message_sender, message_receiver) = channel();
 
-    let login_handle = spawn(|| login::login(message_sender).map_err(CliError::BackendError));
+    let login_handle = spawn(|| login::login(message_sender).map_err(CliError::BackendApiError));
 
     if let Ok(LoginMessage::CallbackUrl(url)) = message_receiver.recv() {
         report::login(&url);
