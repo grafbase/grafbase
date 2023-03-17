@@ -31,6 +31,7 @@ pub async fn deploy() -> Result<(), ApiError> {
     tokio::task::spawn_blocking(|| {
         let (tar_file, tar_file_path) = tempfile::NamedTempFile::new().unwrap().into_parts();
 
+        // TODO look into using async-tar
         let mut tar = tar::Builder::new(tar_file);
         tar.mode(tar::HeaderMode::Deterministic);
 
