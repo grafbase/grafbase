@@ -46,8 +46,8 @@ fn main() {
 
 fn try_main() -> Result<(), CliError> {
     let matches = build_cli().get_matches();
-
-    let filter = EnvFilter::builder().parse_lossy(if let Ok(Some(true)) = matches.try_get_one("trace") {
+    let trace = matches.try_get_one::<u16>("trace");
+    let filter = EnvFilter::builder().parse_lossy(if matches!(trace, Ok(Some(level)) if *level >= 1) {
         TRACE_LOG_FILTER
     } else {
         DEFAULT_LOG_FILTER
@@ -84,7 +84,7 @@ fn try_main() -> Result<(), CliError> {
             let watch = !matches.get_flag("disable-watch");
             let port = matches.get_one::<u16>("port").copied();
 
-            dev(search, watch, port)
+            dev(search, watch, port, matches!(trace, Ok(Some(level)) if *level >= 2))
         }
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);

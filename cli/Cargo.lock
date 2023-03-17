@@ -1436,6 +1436,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "tantivy",
+ "tempfile",
  "thiserror",
  "tokio",
  "tower-http 0.4.0",

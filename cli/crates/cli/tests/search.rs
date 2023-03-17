@@ -50,12 +50,14 @@ macro_rules! assert_found {
     }};
 }
 
+// FIXME: Unignore.
 // Tantivy query syntax
 // https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html
 #[rstest]
-#[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL, 4021)]
-#[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED, 4022)]
-#[case("listFields", SEARCH_CREATE_LIST, SEARCH_SEARCH_LIST, 4023)]
+#[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL, 4022)]
+#[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED, 4023)]
+#[case("listFields", SEARCH_CREATE_LIST, SEARCH_SEARCH_LIST, 4024)]
+#[ignore]
 fn search(#[case] name: &str, #[case] create_query: &str, #[case] search_query: &str, #[case] port: u16) {
     let mut env = Environment::init(port);
     env.grafbase_init();

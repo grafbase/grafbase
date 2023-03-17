@@ -16,11 +16,11 @@ static READY: Once = Once::new();
 /// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
-pub fn dev(search: bool, watch: bool, external_port: Option<u16>) -> Result<(), CliError> {
+pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool) -> Result<(), CliError> {
     trace!("attempting to start server");
 
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
-    let (server_handle, reporter_handle) = match start_server(start_port, search, watch) {
+    let (server_handle, reporter_handle) = match start_server(start_port, search, watch, tracing) {
         Ok((server_handle, receiver)) => {
             let reporter_handle = spawn(move || loop {
                 match receiver.recv() {

@@ -1,0 +1,3 @@
+{
+  "extends": "expo/tsconfig.base"
+}

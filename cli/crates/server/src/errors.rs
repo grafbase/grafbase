@@ -57,6 +57,22 @@ pub enum ServerError {
     #[error(transparent)]
     SchemaParserError(IoError),
 
+    /// returned if reading the parser result fails
+    #[error(transparent)]
+    SchemaParserResultRead(IoError),
+
+    /// returned if the schema parser result is invalid JSON
+    #[error("schema parser result is malformed JSON:\n{0}")]
+    SchemaParserResultJson(serde_json::Error),
+
+    /// returned if writing the schema registry fails
+    #[error(transparent)]
+    SchemaRegistryWrite(IoError),
+
+    /// returned if `tempfile::NamedTempFile::new()` fails.
+    #[error("could not create a temporary file for the parser result: {0}")]
+    CreateTemporaryFile(IoError),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),

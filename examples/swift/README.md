@@ -37,7 +37,7 @@ To learn more about Grafbase, take a look at the following resources:
 
 - [Grafbase](https://grafbase.com/) - learn about Grafbase features and API.
 
-To learn more about Next.js, take a look at the following resources:
+To learn more about Swift, take a look at the following resources:
 
 - [Swift Documentation](https://www.swift.org/)
 
