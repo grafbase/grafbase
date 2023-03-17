@@ -653,7 +653,7 @@ impl Schema {
         env: QueryEnv,
         exec_context: Arc<ExecutionContext>,
     ) -> Response {
-        use query_planning::execution_query::context::{Context, ExecutionContext};
+        use query_planning::execution_query::context::{Context};
         use query_planning::execution_query::planner::PhysicalQueryPlanner;
         use query_planning::execution_query::ExecuteStream;
         use query_planning::logical_query::QueryOperations;
@@ -705,7 +705,7 @@ impl Schema {
                 let b = a.into_future();
                 #[cfg(feature = "tracing_worker")]
                 logworker::info!("", "Execution",);
-                let (c, rest) = b.await;
+                let (c, _rest) = b.await;
 
                 #[cfg(feature = "tracing_worker")]
                 logworker::info!("", "{c:?}",);

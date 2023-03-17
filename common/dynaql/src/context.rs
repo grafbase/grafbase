@@ -915,7 +915,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
-        use query_planning::logical_plan::schema::ExprSchema;
+        
         use query_planning::logical_plan::Datasource;
 
         use crate::registry::plan::{PlanProjection, PlanRelated};

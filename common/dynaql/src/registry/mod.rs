@@ -1353,7 +1353,7 @@ impl Registry {
         root: &'a MetaType,
         previous_logical_plan: Option<ArcIntern<LogicalPlan>>,
     ) -> ServerResult<Positioned<SelectionPlan>> {
-        use query_planning::logical_plan::builder::LogicalPlanBuilder;
+        
         use query_planning::logical_query::dynaql::to_selection_plan;
 
         let field = ctx.item;

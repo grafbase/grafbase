@@ -191,7 +191,7 @@ impl<'a> VisitorContext<'a> {
                     "__Schema",
                 );
                 */
-                let schema_type = __Schema::create_type_info(registry);
+                let _schema_type = __Schema::create_type_info(registry);
                 dynaql::registry::MetaType::Object {
                     name: "Query".to_owned(),
                     description: None,
