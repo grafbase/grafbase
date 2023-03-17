@@ -210,7 +210,7 @@ impl ConstValue {
             .clone()
             .into_json()
             .map_err(|err| ArrowError::JsonError(err.to_string()));
-        infer_json_schema_from_iterator(std::iter::once(value))
+        infer_json_schema_from_iterator(std::iter::once(value)).map(mandatory)
     }
 
     /// Give the associated schema for a list
