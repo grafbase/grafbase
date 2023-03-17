@@ -167,6 +167,7 @@ impl ConstValue {
         }
     }
 
+    /// Check the [`ConstValue`] is an array
     pub fn is_array(&self) -> bool {
         matches!(self, ConstValue::List(_))
     }

@@ -136,6 +136,7 @@ impl BaseType {
         BaseType::List(Box::new(ty))
     }
 
+    /// Check the base type is a list
     pub fn is_list(&self) -> bool {
         matches!(self, BaseType::List(_))
     }
