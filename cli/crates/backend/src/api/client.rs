@@ -7,6 +7,7 @@ use reqwest::{header, Client};
 use tokio::fs::read_to_string;
 
 /// # Errors
+#[allow(clippy::module_name_repetitions)]
 pub async fn create_client() -> Result<reqwest::Client, ApiError> {
     // needed to bypass the project fallback behavior of Environment's dot grafbase folder
     // TODO consider removing the fallback

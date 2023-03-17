@@ -9,6 +9,7 @@ use cynic::{Id, MutationBuilder};
 use tokio::fs::read_to_string;
 
 /// # Errors
+/// # Panics
 pub async fn deploy() -> Result<(), ApiError> {
     let environment = Environment::get();
 
@@ -62,7 +63,7 @@ pub async fn deploy() -> Result<(), ApiError> {
 
     let response = client.post(API_URL).run_graphql(operation).await?;
 
-    let payload = response
+    let _payload = response
         .data
         .ok_or(ApiError::UnauthorizedOrDeletedUser)?
         .deployment_create;
