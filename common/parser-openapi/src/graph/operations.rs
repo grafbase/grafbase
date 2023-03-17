@@ -119,7 +119,7 @@ impl Operation {
             .graph
             .edges(self.node_index())
             .find_map(|edge| match edge.weight() {
-                super::Edge::HasResponseType { status_code, .. } if is_ok(*status_code) => Some(*status_code),
+                super::Edge::HasResponseType { status_code, .. } if is_ok(status_code) => Some(status_code.clone()),
                 _ => None,
             })
     }
@@ -163,7 +163,7 @@ impl Operation {
             .find_map(|edge| match edge.weight() {
                 super::Edge::HasResponseType {
                     status_code, wrapping, ..
-                } if is_ok(*status_code) => Some(OutputFieldType::from_index(edge.target(), wrapping)),
+                } if is_ok(status_code) => Some(OutputFieldType::from_index(edge.target(), wrapping)),
                 _ => None,
             })
     }

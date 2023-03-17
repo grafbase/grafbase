@@ -55,14 +55,10 @@ pub enum RequestBodyContentType {
     FormEncoded(BTreeMap<String, QueryParameterEncodingStyle>),
 }
 
-#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ExpectedStatusCode {
     Exact(u16),
-    OneHundredRange,
-    TwoHundredRange,
-    ThreeHundredRange,
-    FourHundredRange,
-    FiveHundredRange,
+    Range(std::ops::Range<u16>),
 }
 
 impl HttpResolver {
@@ -164,11 +160,7 @@ impl PartialEq<ExpectedStatusCode> for reqwest::StatusCode {
     fn eq(&self, expected: &ExpectedStatusCode) -> bool {
         match expected {
             ExpectedStatusCode::Exact(expected_status) => self.as_u16() == *expected_status,
-            ExpectedStatusCode::OneHundredRange => (100..200).contains(&self.as_u16()),
-            ExpectedStatusCode::TwoHundredRange => (200..300).contains(&self.as_u16()),
-            ExpectedStatusCode::ThreeHundredRange => (300..400).contains(&self.as_u16()),
-            ExpectedStatusCode::FourHundredRange => (400..500).contains(&self.as_u16()),
-            ExpectedStatusCode::FiveHundredRange => (500..600).contains(&self.as_u16()),
+            ExpectedStatusCode::Range(range) => range.contains(&self.as_u16()),
         }
     }
 }

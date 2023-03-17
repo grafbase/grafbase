@@ -233,11 +233,11 @@ fn request_body_content_type(
 fn convert_status_code(code: &openapiv3::StatusCode) -> Result<ExpectedStatusCode, Error> {
     match code {
         StatusCode::Code(code) => Ok(ExpectedStatusCode::Exact(*code)),
-        StatusCode::Range(1) => Ok(ExpectedStatusCode::OneHundredRange),
-        StatusCode::Range(2) => Ok(ExpectedStatusCode::TwoHundredRange),
-        StatusCode::Range(3) => Ok(ExpectedStatusCode::ThreeHundredRange),
-        StatusCode::Range(4) => Ok(ExpectedStatusCode::FourHundredRange),
-        StatusCode::Range(5) => Ok(ExpectedStatusCode::FiveHundredRange),
+        StatusCode::Range(1) => Ok(ExpectedStatusCode::Range(100..200)),
+        StatusCode::Range(2) => Ok(ExpectedStatusCode::Range(200..300)),
+        StatusCode::Range(3) => Ok(ExpectedStatusCode::Range(300..400)),
+        StatusCode::Range(4) => Ok(ExpectedStatusCode::Range(400..500)),
+        StatusCode::Range(5) => Ok(ExpectedStatusCode::Range(500..600)),
         _ => Err(Error::UnknownStatusCodeRange(code.to_string())),
     }
 }
@@ -252,8 +252,8 @@ mod tests {
     #[rstest]
     #[case("200", ExpectedStatusCode::Exact(200))]
     #[case("201", ExpectedStatusCode::Exact(201))]
-    #[case("2XX", ExpectedStatusCode::TwoHundredRange)]
-    #[case("5XX", ExpectedStatusCode::FiveHundredRange)]
+    #[case("2XX", ExpectedStatusCode::Range(200..300))]
+    #[case("5XX", ExpectedStatusCode::Range(500..600))]
     fn test_status_codes(#[case] input: &str, #[case] expected: ExpectedStatusCode) {
         let status_code =
             serde_json::from_value::<openapiv3::StatusCode>(serde_json::Value::String(input.to_string())).unwrap();

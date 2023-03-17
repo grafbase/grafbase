@@ -213,7 +213,7 @@ impl ParentNode {
                 ..
             } => Edge::HasResponseType {
                 content_type: content_type.clone(),
-                status_code: *status_code,
+                status_code: status_code.clone(),
                 wrapping,
             },
             ParentNode::Field {

@@ -131,11 +131,12 @@ pub enum Error {
     ListNestedInsideObjectQueryParameter(String, String),
 }
 
-fn is_ok(status: ExpectedStatusCode) -> bool {
-    matches!(
-        status,
-        ExpectedStatusCode::Exact(200) | ExpectedStatusCode::TwoHundredRange
-    )
+fn is_ok(status: &ExpectedStatusCode) -> bool {
+    match status {
+        ExpectedStatusCode::Exact(200) => true,
+        ExpectedStatusCode::Range(range) => *range == (200u16..300),
+        _ => false,
+    }
 }
 
 fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
