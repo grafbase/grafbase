@@ -175,6 +175,16 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
     }
 }
 
+fn sanitize_expression_attribute_values(
+    values: HashMap<String, dynomite::AttributeValue>,
+) -> Option<HashMap<String, dynomite::AttributeValue>> {
+    if values.is_empty() {
+        None
+    } else {
+        Some(values)
+    }
+}
+
 impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
     fn to_transaction<'a>(
         self,
@@ -205,7 +215,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
                 condition_expression: Some(cond_expr),
                 key,
                 expression_attribute_names: Some(exp_att_names),
-                expression_attribute_values: Some(exp_att_values),
+                expression_attribute_values: sanitize_expression_attribute_values(exp_att_values),
                 ..Default::default()
             };
 
@@ -558,7 +568,7 @@ impl ExecuteChangesOnDatabase for DeleteUnitNodeConstraintInput {
                 condition_expression: Some(cond_expr),
                 key,
                 expression_attribute_names: Some(exp_att_names),
-                expression_attribute_values: Some(exp_att_values),
+                expression_attribute_values: sanitize_expression_attribute_values(exp_att_values),
                 ..Default::default()
             };
 
