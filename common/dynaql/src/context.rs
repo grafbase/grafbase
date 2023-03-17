@@ -915,7 +915,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
         use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
-        
+
         use query_planning::logical_plan::Datasource;
 
         use crate::registry::plan::{PlanProjection, PlanRelated};
@@ -989,17 +989,13 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             .build();
                     let by_schema = by.schema();
 
-                    #[cfg(feature = "tracing_worker")]
-                    logworker::info!("", "{by_schema:?}",);
-
                     let schema = self
                         .get_schema_id(schema.ok_or_else(|| {
                             ServerError::new("No schema id", Some(self.item.pos))
                         })?)?;
 
                     let first_field = by_schema.fields().iter().next();
-                    #[cfg(feature = "tracing_worker")]
-                    logworker::info!("", "{first_field:?}",);
+
                     match first_field {
                         Some(field) => {
                             let name = field.name();

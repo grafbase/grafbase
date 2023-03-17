@@ -594,6 +594,7 @@ impl Schema {
     /// Theorically there shouldn't have any errors as we validate the GraphQL
     /// query before executing it.
     #[cfg(feature = "query-planning")]
+    #[allow(unused)]
     async fn logical_query_once(&self, env: QueryEnv) -> Response {
         use query_planning::logical_query::QueryOperations;
 
@@ -647,13 +648,14 @@ impl Schema {
         resp
     }
 
+    /// LogicalQuery creation & Execution.
     #[cfg(feature = "query-planning")]
     async fn logical_query_execute_once(
         &self,
         env: QueryEnv,
         exec_context: Arc<ExecutionContext>,
     ) -> Response {
-        use query_planning::execution_query::context::{Context};
+        use query_planning::execution_query::context::Context;
         use query_planning::execution_query::planner::PhysicalQueryPlanner;
         use query_planning::execution_query::ExecuteStream;
         use query_planning::logical_query::QueryOperations;
@@ -701,27 +703,14 @@ impl Schema {
                 let planner = PhysicalQueryPlanner::default();
                 let exec = planner.create_execution_query(&query).unwrap();
                 let ctx = Context::new(exec_context);
-                let a = exec.execute(&ctx).unwrap().fuse();
-                let b = a.into_future();
-                #[cfg(feature = "tracing_worker")]
-                logworker::info!("", "Execution",);
-                let (c, _rest) = b.await;
+                let execute_stream = exec.execute(&ctx).unwrap().fuse();
+                let exec_future = execute_stream.into_future();
+                let (first_result, _rest) = exec_future.await;
 
-                #[cfg(feature = "tracing_worker")]
-                logworker::info!("", "{c:?}",);
-
-                let mut c: serde_json::Value = c
-                    .unwrap()
-                    .map_err(|x| {
-                        #[cfg(feature = "tracing_worker")]
-                        logworker::info!("", "{x:?}");
-                        x
-                    })
-                    .unwrap()
-                    .to_json();
-                let c = c.get_mut("data").unwrap().take();
-                #[cfg(feature = "tracing_worker")]
-                logworker::info!("", "{}", c.to_string());
+                // Some unwrap here, behind a feature flag, not an issue to crash the worker.
+                let mut first_response: serde_json::Value =
+                    first_result.unwrap().unwrap().to_json();
+                let c = first_response.get_mut("data").unwrap().take();
                 let mut root = QueryResponse::default();
                 let id = root.from_serde_value(c);
                 root.set_root_unchecked(id);

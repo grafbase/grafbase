@@ -1353,7 +1353,6 @@ impl Registry {
         root: &'a MetaType,
         previous_logical_plan: Option<ArcIntern<LogicalPlan>>,
     ) -> ServerResult<Positioned<SelectionPlan>> {
-        
         use query_planning::logical_query::dynaql::to_selection_plan;
 
         let field = ctx.item;
@@ -1371,18 +1370,11 @@ impl Registry {
             )
             .await?;
 
-            let json = resolution_schema.clone().into_json().unwrap().to_string();
-            #[cfg(feature = "tracing_worker")]
-            logworker::info!("", "aaa: {json}");
-
-            let a = to_selection_plan(
+            let plan = to_selection_plan(
                 field.node.response_key().node.as_str(),
                 resolution_schema,
                 ctx_obj.item.pos,
             );
-            #[cfg(feature = "tracing_worker")]
-            logworker::info!("", "bbb: {a:?}");
-            let plan = a;
             return Ok(plan);
         }
 
