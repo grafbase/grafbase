@@ -1,7 +1,7 @@
-use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
+use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
 use once_cell::sync::Lazy;
-use openapiv3::{AdditionalProperties, ReferenceOr, StatusCode, Type};
+use openapiv3::{AdditionalProperties, ReferenceOr, Type};
 use petgraph::graph::NodeIndex;
 use regex::Regex;
 
@@ -138,7 +138,7 @@ enum ParentNode {
         required: bool,
     },
     OperationResponse {
-        status_code: StatusCode,
+        status_code: ExpectedStatusCode,
         content_type: String,
         operation_index: NodeIndex,
     },
@@ -213,7 +213,7 @@ impl ParentNode {
                 ..
             } => Edge::HasResponseType {
                 content_type: content_type.clone(),
-                status_code: status_code.clone(),
+                status_code: *status_code,
                 wrapping,
             },
             ParentNode::Field {

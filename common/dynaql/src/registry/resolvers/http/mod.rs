@@ -20,6 +20,7 @@ pub struct HttpResolver {
     pub path_parameters: Vec<PathParameter>,
     pub query_parameters: Vec<QueryParameter>,
     pub request_body: Option<RequestBody>,
+    pub expected_status: ExpectedStatusCode,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
@@ -52,6 +53,16 @@ pub enum QueryParameterEncodingStyle {
 pub enum RequestBodyContentType {
     Json,
     FormEncoded(BTreeMap<String, QueryParameterEncodingStyle>),
+}
+
+#[derive(Clone, Copy, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub enum ExpectedStatusCode {
+    Exact(u16),
+    OneHundredRange,
+    TwoHundredRange,
+    ThreeHundredRange,
+    FourHundredRange,
+    FiveHundredRange,
 }
 
 impl HttpResolver {
@@ -104,10 +115,18 @@ impl HttpResolver {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
+            if response.status() != self.expected_status {
+                return Err(Error::new(format!(
+                    "Received an unexpected status from the downstream server: {}",
+                    response.status(),
+                )));
+            }
+
             let data = response
                 .json::<serde_json::Value>()
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
+
             Ok(ResolvedValue::new(Arc::new(dbg!(data))))
         }))
     }
@@ -138,5 +157,18 @@ impl HttpResolver {
             .collect::<Result<Vec<_>, _>>()?;
 
         url.apply_query_parameters(&self.query_parameters, &query_variables)
+    }
+}
+
+impl PartialEq<ExpectedStatusCode> for reqwest::StatusCode {
+    fn eq(&self, expected: &ExpectedStatusCode) -> bool {
+        match expected {
+            ExpectedStatusCode::Exact(expected_status) => self.as_u16() == *expected_status,
+            ExpectedStatusCode::OneHundredRange => (100..200).contains(&self.as_u16()),
+            ExpectedStatusCode::TwoHundredRange => (200..300).contains(&self.as_u16()),
+            ExpectedStatusCode::ThreeHundredRange => (300..400).contains(&self.as_u16()),
+            ExpectedStatusCode::FourHundredRange => (400..500).contains(&self.as_u16()),
+            ExpectedStatusCode::FiveHundredRange => (500..600).contains(&self.as_u16()),
+        }
     }
 }

@@ -1,4 +1,4 @@
-use dynaql::registry::Registry;
+use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
 use parsing::components::Ref;
@@ -97,6 +97,8 @@ pub enum Error {
     TopLevelParameterWasReference(String),
     #[error("Couldn't parse HTTP method: {0}")]
     UnknownHttpMethod(String),
+    #[error("An operation was marked with an unknown status code range: {0}")]
+    UnknownStatusCodeRange(String),
     #[error("The operation {0} didn't have a response schema")]
     OperationMissingResponseSchema(String),
     #[error("The operation {0} didn't have a response schema")]
@@ -129,12 +131,11 @@ pub enum Error {
     ListNestedInsideObjectQueryParameter(String, String),
 }
 
-fn is_ok(status: &openapiv3::StatusCode) -> bool {
-    match status {
-        openapiv3::StatusCode::Code(200) => true,
-        openapiv3::StatusCode::Range(_range) => todo!(),
-        _ => false,
-    }
+fn is_ok(status: ExpectedStatusCode) -> bool {
+    matches!(
+        status,
+        ExpectedStatusCode::Exact(200) | ExpectedStatusCode::TwoHundredRange
+    )
 }
 
 fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {

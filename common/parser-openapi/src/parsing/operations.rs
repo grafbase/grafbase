@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
+use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
@@ -63,7 +63,7 @@ impl OperationDetails {
 
                     for response_component in response_components {
                         responses.push(Response {
-                            status_code: status_code.clone(),
+                            status_code: convert_status_code(status_code)?,
                             content_type: response_component.content_type.clone(),
                             schema: response_component.schema.clone(),
                         });
@@ -72,7 +72,7 @@ impl OperationDetails {
                 ReferenceOr::Item(response) => {
                     for (content_type, media_type) in &response.content {
                         responses.push(Response {
-                            status_code: status_code.clone(),
+                            status_code: convert_status_code(status_code)?,
                             content_type: content_type.clone(),
                             schema: media_type.schema.clone(),
                         });
@@ -172,7 +172,7 @@ impl RequestBody {
 
 #[derive(Clone, Debug)]
 pub struct Response {
-    pub status_code: StatusCode,
+    pub status_code: ExpectedStatusCode,
     pub content_type: String,
     pub schema: Option<ReferenceOr<openapiv3::Schema>>,
 }
@@ -227,5 +227,37 @@ fn request_body_content_type(
                 .collect(),
         )),
         _ => None,
+    }
+}
+
+fn convert_status_code(code: &openapiv3::StatusCode) -> Result<ExpectedStatusCode, Error> {
+    match code {
+        StatusCode::Code(code) => Ok(ExpectedStatusCode::Exact(*code)),
+        StatusCode::Range(1) => Ok(ExpectedStatusCode::OneHundredRange),
+        StatusCode::Range(2) => Ok(ExpectedStatusCode::TwoHundredRange),
+        StatusCode::Range(3) => Ok(ExpectedStatusCode::ThreeHundredRange),
+        StatusCode::Range(4) => Ok(ExpectedStatusCode::FourHundredRange),
+        StatusCode::Range(5) => Ok(ExpectedStatusCode::FiveHundredRange),
+        _ => Err(Error::UnknownStatusCodeRange(code.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use dynaql::registry::resolvers::http::ExpectedStatusCode;
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case("200", ExpectedStatusCode::Exact(200))]
+    #[case("201", ExpectedStatusCode::Exact(201))]
+    #[case("2XX", ExpectedStatusCode::TwoHundredRange)]
+    #[case("5XX", ExpectedStatusCode::FiveHundredRange)]
+    fn test_status_codes(#[case] input: &str, #[case] expected: ExpectedStatusCode) {
+        let status_code =
+            serde_json::from_value::<openapiv3::StatusCode>(serde_json::Value::String(input.to_string())).unwrap();
+
+        assert_eq!(convert_status_code(&status_code).unwrap(), expected);
     }
 }

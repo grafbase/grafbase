@@ -332,6 +332,9 @@ Registry {
                                             content_type: Json,
                                         },
                                     ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -382,6 +385,9 @@ Registry {
                                             ),
                                             content_type: Json,
                                         },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
                                     ),
                                 },
                             ),
@@ -450,6 +456,9 @@ Registry {
                                         },
                                     ],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -501,6 +510,9 @@ Registry {
                                             content_type: Json,
                                         },
                                     ),
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -551,6 +563,9 @@ Registry {
                                             ),
                                             content_type: Json,
                                         },
+                                    ),
+                                    expected_status: Exact(
+                                        200,
                                     ),
                                 },
                             ),
@@ -1200,6 +1215,9 @@ Registry {
                                         },
                                     ],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1252,6 +1270,9 @@ Registry {
                                         },
                                     ],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1303,6 +1324,9 @@ Registry {
                                     ],
                                     query_parameters: [],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1338,6 +1362,9 @@ Registry {
                                     path_parameters: [],
                                     query_parameters: [],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1389,6 +1416,9 @@ Registry {
                                     ],
                                     query_parameters: [],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1456,6 +1486,9 @@ Registry {
                                         },
                                     ],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
@@ -1507,6 +1540,9 @@ Registry {
                                     ],
                                     query_parameters: [],
                                     request_body: None,
+                                    expected_status: Exact(
+                                        200,
+                                    ),
                                 },
                             ),
                         },
