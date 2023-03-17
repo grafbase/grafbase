@@ -1,4 +1,4 @@
-use super::errors::LoginApiError;
+use super::{errors::LoginApiError, graphql};
 use serde::{Deserialize, Serialize};
 use std::fmt::{self, Display};
 
@@ -41,61 +41,23 @@ impl ToString for ProjectMetadata {
     }
 }
 
-pub const DATABASE_REGIONS: [DatabaseRegion; 9] = [
-    DatabaseRegion::UsEast1,
-    DatabaseRegion::UsWest2,
-    DatabaseRegion::EuCentral1,
-    DatabaseRegion::EuNorth1,
-    DatabaseRegion::EuWest1,
-    DatabaseRegion::EuWest3,
-    DatabaseRegion::ApNortheast2,
-    DatabaseRegion::ApSouth1,
-    DatabaseRegion::ApSoutheast1,
-];
-
 #[derive(Clone)]
-pub enum DatabaseRegion {
-    ApNortheast2,
-    ApSouth1,
-    ApSoutheast1,
-    EuCentral1,
-    EuNorth1,
-    EuWest1,
-    EuWest3,
-    UsEast1,
-    UsWest2,
+pub struct DatabaseRegion {
+    pub name: String,
+    pub city: String,
 }
 
 impl Display for DatabaseRegion {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let display = match self {
-            Self::EuNorth1 => "eu-north-1",
-            Self::ApNortheast2 => "ap-northeast-2",
-            Self::ApSouth1 => "ap-south-1",
-            Self::ApSoutheast1 => "ap-southeast-1",
-            Self::EuCentral1 => "eu-central-1",
-            Self::EuWest1 => "eu-west-1",
-            Self::EuWest3 => "eu-west-3",
-            Self::UsEast1 => "us-east-1",
-            Self::UsWest2 => "us-west-2",
-        };
-        formatter.write_str(display)
+        formatter.write_str(&self.name)
     }
 }
 
-impl DatabaseRegion {
-    #[must_use]
-    pub fn to_location_name(&self) -> &'static str {
-        match self {
-            Self::ApNortheast2 => "Seoul",
-            Self::ApSouth1 => "Mumbai",
-            Self::ApSoutheast1 => "Singapore",
-            Self::EuCentral1 => "Frankfurt",
-            Self::EuNorth1 => "Stockholm",
-            Self::EuWest1 => "Ireland",
-            Self::EuWest3 => "Paris",
-            Self::UsEast1 => "N. Virginia",
-            Self::UsWest2 => "Oregon",
+impl From<graphql::queries::DatabaseRegion> for DatabaseRegion {
+    fn from(api_region: graphql::queries::DatabaseRegion) -> Self {
+        Self {
+            name: api_region.name,
+            city: api_region.city,
         }
     }
 }

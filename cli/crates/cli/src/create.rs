@@ -1,7 +1,7 @@
 use crate::{errors::CliError, output::report};
 use backend::api::{
     create,
-    types::{Account, DatabaseRegion, DATABASE_REGIONS},
+    types::{Account, DatabaseRegion},
 };
 use common::environment::Environment;
 use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
@@ -21,7 +21,7 @@ struct RegionSelection(DatabaseRegion);
 
 impl Display for RegionSelection {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter.write_fmt(format_args!("{} ({})", self.0.to_location_name(), self.0))
+        formatter.write_fmt(format_args!("{} ({})", self.0.city, self.0))
     }
 }
 
@@ -30,7 +30,7 @@ impl Display for RegionSelection {
 pub async fn create() -> Result<(), CliError> {
     let environment = Environment::get();
 
-    let (accounts, closest_region) = create::get_viewer_data_for_creation()
+    let (accounts, available_regions, closest_region) = create::get_viewer_data_for_creation()
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -63,12 +63,12 @@ pub async fn create() -> Result<(), CliError> {
 
     let selected_region = Select::new(
         "In which region should your database be created?",
-        DATABASE_REGIONS.into_iter().map(RegionSelection).collect(),
+        available_regions.iter().cloned().map(RegionSelection).collect(),
     )
     .with_starting_cursor(
-        DATABASE_REGIONS
+        available_regions
             .iter()
-            .position(|region| region.to_string() == closest_region)
+            .position(|region| region.name == closest_region.name)
             .unwrap_or_default(),
     )
     .prompt()

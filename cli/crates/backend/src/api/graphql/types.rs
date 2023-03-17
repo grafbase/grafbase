@@ -169,14 +169,16 @@ pub mod queries {
 
     #[derive(cynic::QueryFragment, Debug)]
     #[cynic(graphql_type = "Query")]
-    pub struct ViewerAndClosestRegion {
+    pub struct ViewerAndRegions {
         pub viewer: Option<User>,
         pub closest_database_region: Option<DatabaseRegion>,
+        pub database_regions: Vec<DatabaseRegion>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct DatabaseRegion {
         pub name: String,
+        pub city: String,
     }
 
     #[derive(cynic::QueryFragment, Debug)]

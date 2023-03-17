@@ -32,6 +32,10 @@ pub enum ApiError {
     #[error("could not complete the action as you are logged out")]
     LoggedOut,
 
+    /// returned if an operation failed due to the project not being linked
+    #[error("could not complete the action as this project has not been linked")]
+    UnlinkedProject,
+
     /// returned if the contents of the credential file are corrupt
     #[error("could not complete the action as your credential file is corrupt")]
     CorruptCredentialsFile,

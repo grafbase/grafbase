@@ -15,7 +15,7 @@ use std::iter;
 
 /// # Errors
 /// # Panics
-pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, String), ApiError> {
+pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
     // TODO consider if we want to do this elsewhere
     if project_linked() {
         return Err(ApiError::ProjectAlreadyLinked);
@@ -23,7 +23,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, String), Ap
 
     let client = create_client().await?;
 
-    let query = queries::ViewerAndClosestRegion::build(());
+    let query = queries::ViewerAndRegions::build(());
 
     let response = client.post(API_URL).run_graphql(query).await?;
 
@@ -34,7 +34,9 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, String), Ap
     let closest_region = response
         .closest_database_region
         .ok_or(ApiError::UnauthorizedOrDeletedUser)?
-        .name;
+        .into();
+
+    let available_regions = response.database_regions.into_iter().map(Into::into).collect();
 
     let PersonalAccount { id, name, slug } = viewer_response
         .personal_account
@@ -63,7 +65,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, String), Ap
         )
         .collect();
 
-    Ok((accounts, closest_region))
+    Ok((accounts, available_regions, closest_region))
 }
 
 /// # Errors
