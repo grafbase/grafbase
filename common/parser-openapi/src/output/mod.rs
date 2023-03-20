@@ -242,20 +242,22 @@ impl Operation {
                     path_parameters: path_parameters
                         .iter()
                         .map(|param| {
-                            let name = param.name(graph).unwrap().to_string();
+                            let name = param.openapi_name(graph).unwrap().to_string();
+                            let input_name = param.graphql_name(graph).unwrap().to_string();
                             http::PathParameter {
-                                name: name.clone(),
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                                name,
+                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
                             }
                         })
                         .collect(),
                     query_parameters: query_parameters
                         .iter()
                         .map(|param| {
-                            let name = param.name(graph).unwrap().to_owned();
+                            let name = param.openapi_name(graph).unwrap().to_string();
+                            let input_name = param.graphql_name(graph).unwrap().to_string();
                             http::QueryParameter {
-                                name: name.clone(),
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                                name,
+                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
                                 encoding_style: param.encoding_style(graph).unwrap(),
                             }
                         })
@@ -280,7 +282,7 @@ impl PathParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
-            self.name(graph)?.to_string(),
+            self.graphql_name(graph)?.to_string(),
             TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
@@ -290,7 +292,7 @@ impl QueryParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
-            self.name(graph)?,
+            self.graphql_name(graph)?.to_string(),
             TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
