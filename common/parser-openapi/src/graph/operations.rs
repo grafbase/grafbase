@@ -71,12 +71,12 @@ impl Operation {
         }
     }
 
-    pub fn http_method(self, graph: &super::OpenApiGraph) -> Option<String> {
-        Some(self.details(graph)?.http_method.to_string())
+    pub fn http_method(self, graph: &super::OpenApiGraph) -> String {
+        self.details(graph).http_method.to_string()
     }
 
-    pub fn url(self, graph: &super::OpenApiGraph) -> Option<String> {
-        let path = &self.details(graph)?.path;
+    pub fn url(self, graph: &super::OpenApiGraph) -> String {
+        let path = &self.details(graph).path;
 
         // Remove any leading `/` so we can join cleanly
         // (graph.metadata.url should always have a trailing slash)
@@ -84,11 +84,16 @@ impl Operation {
 
         // Note that we can't use Url::join here as it'll escape any OpenAPI parameter
         // placeholders.
-        Some(format!("{}{path}", graph.metadata.url))
+        format!("{}{path}", graph.metadata.url)
     }
 
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
-        Some(OperationName(self.details(graph)?.operation_id.clone()?))
+        let details = self.details(graph);
+        let mut name = details.operation_id.clone()?;
+        if details.http_method == HttpMethod::Get && name.to_lowercase().starts_with("get") {
+            name = name[3..].to_string();
+        }
+        Some(OperationName(name))
     }
 
     pub fn path_parameters(self, graph: &super::OpenApiGraph) -> Vec<PathParameter> {
@@ -144,10 +149,10 @@ impl Operation {
         Some(RequestBody(edge_index))
     }
 
-    fn details(self, graph: &super::OpenApiGraph) -> Option<&OperationDetails> {
+    fn details(self, graph: &super::OpenApiGraph) -> &OperationDetails {
         match &graph.graph[self.node_index()] {
-            super::Node::Operation(op) => Some(op),
-            _ => None,
+            super::Node::Operation(op) => op,
+            _ => unreachable!(),
         }
     }
 

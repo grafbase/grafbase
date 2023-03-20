@@ -1281,8 +1281,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getPetById": MetaField {
-                    name: "getPetById",
+                "petById": MetaField {
+                    name: "petById",
                     description: None,
                     args: {
                         "petId": MetaInputValue {
@@ -1335,8 +1335,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getInventory": MetaField {
-                    name: "getInventory",
+                "inventory": MetaField {
+                    name: "inventory",
                     description: None,
                     args: {},
                     ty: "JSON!",
@@ -1373,8 +1373,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getOrderById": MetaField {
-                    name: "getOrderById",
+                "orderById": MetaField {
+                    name: "orderById",
                     description: None,
                     args: {
                         "orderId": MetaInputValue {
@@ -1497,8 +1497,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getUserByName": MetaField {
-                    name: "getUserByName",
+                "userByName": MetaField {
+                    name: "userByName",
                     description: None,
                     args: {
                         "username": MetaInputValue {
