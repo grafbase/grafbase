@@ -89,7 +89,7 @@ logworker = { path = "../log", package = "log", optional = true }
 bson = { version = "2", optional = true, features = ["chrono-0_4"] }
 chrono-tz = { version = "0.8", optional = true }
 hashbrown = { version = "0.13", optional = true }
-iso8601-duration = { version = "0.1", optional = true }
+iso8601-duration = { version = "0.2", optional = true }
 log = { version = "0.4", optional = true }
 secrecy = { version = "0.8", features = ["serde"] }
 tracinglib = { version = "0.1", optional = true, package = "tracing" }
