@@ -25,7 +25,7 @@ log = { path = "../log" }
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "__rustls"] }
+reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
 
 [dev-dependencies]
 chrono = "0.4"
