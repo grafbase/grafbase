@@ -111,7 +111,7 @@ impl HttpResolver {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
-            if self.expected_status.contains(response.status()) {
+            if !self.expected_status.contains(response.status()) {
                 return Err(Error::new(format!(
                     "Received an unexpected status from the downstream server: {}",
                     response.status(),
