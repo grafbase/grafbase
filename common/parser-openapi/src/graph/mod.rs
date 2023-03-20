@@ -4,7 +4,7 @@ use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodi
 use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,
-    visit::{EdgeRef, IntoEdges, Reversed},
+    visit::{EdgeFiltered, EdgeRef, IntoEdges, Reversed},
     Graph,
 };
 
@@ -282,17 +282,29 @@ impl OpenApiGraph {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
                 // nearest named thing, and construct a name based on the fields in-betweeen.
                 // Not ideal, but the best we can do.
-                let reversed_graph = Reversed(&self.graph);
+                let filtered_graph = EdgeFiltered::from_fn(&self.graph, |edge| {
+                    matches!(
+                        edge.weight(),
+                        Edge::HasField { .. }
+                            | Edge::HasPathParameter { .. }
+                            | Edge::HasQueryParameter { .. }
+                            | Edge::HasRequestType { .. }
+                            | Edge::HasResponseType { .. }
+                            | Edge::HasType { .. }
+                            | Edge::HasUnionMember
+                    )
+                });
+                let filtered_reversed_graph = Reversed(&filtered_graph);
 
                 let (_, mut path) = petgraph::algo::astar(
-                    &reversed_graph,
+                    &filtered_reversed_graph,
                     node,
                     |current_node| self.graph[current_node].name().is_some(),
                     |_| 0,
                     |_| 0,
                 )?;
 
-                let named_node = path.pop()?;
+                let named_node = *path.last()?;
 
                 // Reverse our path so we can look things up in the original graph.
                 path.reverse();
@@ -302,20 +314,21 @@ impl OpenApiGraph {
                 while let Some(src_node) = path_iter.next() {
                     let Some(&dest_node) = path_iter.peek() else { break; };
 
-                    // I am sort of assuming there's only one edge here.
-                    // Should be the case at the moment but might need to update this to a loop if that changes
-                    let edge = self.graph.edges_connecting(src_node, dest_node).next().unwrap();
-                    if let Edge::HasField { name, .. } = edge.weight() {
-                        name_components.push(name.as_str());
-                    }
+                    name_components.extend(self.graph.edges_connecting(src_node, dest_node).find_map(|edge| {
+                        match edge.weight() {
+                            Edge::HasField { name, .. }
+                            | Edge::HasPathParameter { name, .. }
+                            | Edge::HasQueryParameter { name, .. } => Some(name.as_str()),
+                            _ => None,
+                        }
+                    }));
                 }
 
                 let root_name = self.graph[named_node].name().unwrap();
                 name_components.push(root_name.as_str());
-
                 name_components.push(&self.metadata.name);
-
                 name_components.reverse();
+
                 Some(name_components.join("_").to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),

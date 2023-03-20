@@ -22,7 +22,7 @@ input PetstoreCategoryInput {
 	name: String
 	id: Int
 }
-enum PetstoreFindPetsByStatus {
+enum PetstoreFindPetsByStatusStatus {
 	AVAILABLE
 	PENDING
 	SOLD
@@ -77,7 +77,7 @@ enum PetstorePetStatus {
 	SOLD
 }
 type PetstoreQueries {
-	findPetsByStatus(status: PetstoreFindPetsByStatus): [PetstorePet!]!
+	findPetsByStatus(status: PetstoreFindPetsByStatusStatus): [PetstorePet!]!
 	findPetsByTags(tags: [String!]): [PetstorePet!]!
 	petById(petId: Int!): PetstorePet!
 	inventory: JSON!
