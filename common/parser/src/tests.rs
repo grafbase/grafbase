@@ -575,10 +575,46 @@ fn should_support_search_directive() {
     assert_registry_schema_generation(&complex);
     assert_snapshot(&format!("{}-complex", function_name!()), complex);
 
+    let model_directive = super::to_registry(
+        r#"
+            type Product @model @search {
+              ip: IPAddress
+              timestamp: Timestamp!
+              url: URL
+              email: [Email]
+              phone: PhoneNumber
+              date: [Date!]!
+              datetime: DateTime
+              text: [[String]]
+              int: Int
+              float: Float
+              bool: Boolean
+              json: JSON
+            }
+            "#,
+    );
+
+    assert!(
+        model_directive.is_ok(),
+        "Search should support model @search directive."
+    );
+    let model_directive = model_directive.unwrap();
+    assert_registry_schema_generation(&model_directive);
+    assert_snapshot(&format!("{}-model_directive", function_name!()), model_directive);
+
     assert_validation_error!(
         r#"
             type Product {
                 title: String @search
+            }
+        "#,
+        "The @search directive can only be used on @model types."
+    );
+
+    assert_validation_error!(
+        r#"
+            type Product @search {
+                title: String
             }
         "#,
         "The @search directive can only be used on @model types."

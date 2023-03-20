@@ -49,7 +49,6 @@ use super::auth_directive::AuthDirective;
 use super::directive::Directive;
 use super::relations::RelationEngine;
 use super::resolver_directive::ResolverDirective;
-use super::search_directive::SEARCH_DIRECTIVE;
 use super::unique_directive::UniqueDirective;
 use super::visitor::{Visitor, VisitorContext};
 
@@ -487,21 +486,7 @@ impl<'a> Visitor<'a> for ModelDirective {
             add_query_paginated_collection(ctx, &type_definition.node, connection_edges, model_auth.as_ref());
             add_remove_mutation(ctx, &type_name, model_auth.as_ref());
 
-            let search_fields = object
-                .fields
-                .iter()
-                .filter_map(|field| {
-                    field
-                        .node
-                        .directives
-                        .iter()
-                        .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
-                        .map(|directive| (&field.node, directive))
-                })
-                .collect::<Vec<_>>();
-            if !search_fields.is_empty() {
-                add_query_search(ctx, &type_definition.node, model_auth.as_ref(), search_fields);
-            }
+            add_query_search(ctx, &type_definition.node, &object.fields, model_auth.as_ref());
         }
     }
 }

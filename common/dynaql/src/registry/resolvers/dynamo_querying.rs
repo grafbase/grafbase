@@ -173,7 +173,7 @@ impl TryFrom<Cursor> for IdCursor {
     type Error = FromUtf8Error;
 
     fn try_from(value: Cursor) -> Result<Self, Self::Error> {
-        String::from_utf8(value.to_bytes()).map(|id| IdCursor { id })
+        String::from_utf8(value.into_bytes()).map(|id| IdCursor { id })
     }
 }
 

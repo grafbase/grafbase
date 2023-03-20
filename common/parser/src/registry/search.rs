@@ -12,7 +12,7 @@ use dynaql::registry::{
 };
 use dynaql::registry::{MetaType, MetaTypeName, Registry};
 use dynaql::{AuthConfig, Operations, Positioned};
-use dynaql_parser::types::{ConstDirective, FieldDefinition, Type, TypeDefinition};
+use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition};
 use grafbase_runtime::search;
 
 use crate::registry::generate_pagination_args;
@@ -26,6 +26,7 @@ use crate::registry::names::{
     PAGINATION_FIELD_PAGE_INFO, PAGINATION_FIELD_SEARCH_INFO, PAGINATION_INPUT_ARG_AFTER, PAGINATION_INPUT_ARG_BEFORE,
     PAGINATION_INPUT_ARG_FIRST, PAGINATION_INPUT_ARG_LAST, SEARCH_INFO_FIELD_TOTAL_HITS, SEARCH_INFO_TYPE,
 };
+use crate::rules::model_directive::{METADATA_FIELD_CREATED_AT, METADATA_FIELD_UPDATED_AT};
 use crate::rules::search_directive::SEARCH_DIRECTIVE;
 use crate::rules::visitor::VisitorContext;
 
@@ -81,58 +82,124 @@ fn convert_to_search_field_type(ty: &str, is_nullable: Option<bool>) -> Result<s
     }
 }
 
+pub fn build_search_schema(
+    ctx: &mut VisitorContext<'_>,
+    model_type_definition: &TypeDefinition,
+    fields: &[Positioned<FieldDefinition>],
+) -> Option<search::Schema> {
+    let search_fields = if model_type_definition
+        .directives
+        .iter()
+        .any(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+    {
+        let mut search_fields: HashMap<String, search::FieldEntry> = fields
+            .iter()
+            .filter_map(|field| {
+                convert_to_search_field_type(&field.node.ty.node.to_string(), None)
+                    .ok()
+                    .map(|ty| (field.node.name.node.to_string(), search::FieldEntry { ty }))
+            })
+            .collect();
+        let ty = search::FieldType::DateTime(search::FieldOptions { nullable: false });
+        search_fields.insert(
+            METADATA_FIELD_CREATED_AT.to_string(),
+            search::FieldEntry { ty: ty.clone() },
+        );
+        search_fields.insert(METADATA_FIELD_UPDATED_AT.to_string(), search::FieldEntry { ty });
+        search_fields
+    } else {
+        let (search_fields, errors): (HashMap<_, _>, Vec<_>) = fields
+            .iter()
+            .filter_map(|field| {
+                field
+                    .node
+                    .directives
+                    .iter()
+                    .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
+                    .map(|directive| {
+                        convert_to_search_field_type(&field.node.ty.node.to_string(), None)
+                            .map(|ty| (field.node.name.node.to_string(), search::FieldEntry { ty }))
+                            .map_err(|unsupported_type_name| {
+                                ctx.report_error(
+                                    vec![directive.pos],
+                                    format!(
+                            "The @{SEARCH_DIRECTIVE} directive cannot be used with the {unsupported_type_name} type."
+                        ),
+                                );
+                            })
+                    })
+            })
+            .partition_result();
+        if !errors.is_empty() {
+            return None;
+        }
+        search_fields
+    };
+
+    if search_fields.is_empty() {
+        None
+    } else {
+        Some(search::Schema { fields: search_fields })
+    }
+}
+
 pub fn add_query_search(
     ctx: &mut VisitorContext<'_>,
     model_type_definition: &TypeDefinition,
+    fields: &[Positioned<FieldDefinition>],
     model_auth: Option<&AuthConfig>,
-    search_fields: Vec<(&FieldDefinition, &Positioned<ConstDirective>)>,
 ) {
-    assert!(!search_fields.is_empty());
+    let Some(schema) = build_search_schema(ctx, model_type_definition, fields) else {
+        return;
+    };
     let type_name = MetaNames::model(model_type_definition);
     let entity_type = MetaNames::entity_type(model_type_definition);
-    let field_name = MetaNames::query_search(model_type_definition);
+    let field_filters = {
+        let mut field_filters: HashMap<String, FilterKind> = fields
+            .iter()
+            .filter_map(|field| {
+                let name = field.node.name.node.to_string();
+                if schema.fields.contains_key(&name) {
+                    Some((name, FilterKind::from(field.node.ty.node.to_string().as_str())))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        if schema.fields.contains_key(METADATA_FIELD_CREATED_AT) {
+            field_filters.insert(
+                METADATA_FIELD_CREATED_AT.to_string(),
+                FilterKind::Single {
+                    scalar: "DateTime".to_string(),
+                    is_nullable: false,
+                },
+            );
+        }
+        if schema.fields.contains_key(METADATA_FIELD_UPDATED_AT) {
+            field_filters.insert(
+                METADATA_FIELD_UPDATED_AT.to_string(),
+                FilterKind::Single {
+                    scalar: "DateTime".to_string(),
+                    is_nullable: false,
+                },
+            );
+        }
 
-    let (fields, errors): (HashMap<_, _>, Vec<_>) = search_fields
-        .iter()
-        .map(|(field, directive)| {
-            convert_to_search_field_type(&field.ty.node.to_string(), None)
-                .map(|ty| (field.name.node.to_string(), search::FieldEntry { ty }))
-                .map_err(|unsupported_type_name| {
-                    ctx.report_error(
-                        vec![directive.pos],
-                        format!(
-                            "The @{SEARCH_DIRECTIVE} directive cannot be used with the {unsupported_type_name} type."
-                        ),
-                    );
-                })
-        })
-        .partition_result();
-    if !errors.is_empty() {
-        return;
-    }
-    ctx.registry.get_mut().search_config.indices.insert(
-        entity_type.clone(),
-        search::IndexConfig {
-            schema: search::Schema { fields },
-        },
-    );
+        field_filters
+    };
+
+    ctx.registry
+        .get_mut()
+        .search_config
+        .indices
+        .insert(entity_type.clone(), search::IndexConfig { schema });
 
     let connection_type = register_connection_type(ctx.registry.get_mut(), model_type_definition, model_auth);
     ctx.queries.push(MetaField {
-        name: field_name,
+        name: MetaNames::query_search(model_type_definition),
         description: Some(format!("Search `{type_name}`")),
         args: {
             let mut pagination_args = generate_pagination_args(ctx.registry.get_mut(), model_type_definition);
-            let search_filters: HashMap<String, FilterKind> = search_fields
-                .into_iter()
-                .map(|(field, _)| {
-                    (
-                        field.name.node.to_string(),
-                        FilterKind::from(field.ty.node.to_string().as_str()),
-                    )
-                })
-                .collect();
-
             let args = vec![
                 MetaInputValue::new(INPUT_ARG_QUERY, "String").with_description("Text to search."),
                 MetaInputValue::new(INPUT_ARG_FIELDS, "[String!]").with_description(concat!(
@@ -142,7 +209,7 @@ pub fn add_query_search(
                 )),
                 MetaInputValue::new(
                     INPUT_ARG_FILTER,
-                    register_model_filter(ctx.registry.get_mut(), model_type_definition, search_filters),
+                    register_model_filter(ctx.registry.get_mut(), model_type_definition, field_filters),
                 ),
                 pagination_args
                     .remove(PAGINATION_INPUT_ARG_FIRST)
