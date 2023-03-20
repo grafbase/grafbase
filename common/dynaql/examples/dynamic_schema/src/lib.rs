@@ -34,8 +34,8 @@ pub async fn main(req: Request, env: Env, context: Context) -> Result<Response> 
                     "Authorization",
                     "Content-Type",
                     "Origin",
-                    "X-Api-Key",
-                    "X-Requested-With",
+                    "x-api-key",
+                    "x-requested-with",
                 ])
                 .with_max_age(86400)
                 .with_methods([Method::Get, Method::Options, Method::Post])
@@ -95,8 +95,8 @@ pub async fn main(req: Request, env: Env, context: Context) -> Result<Response> 
                     "Authorization",
                     "Content-Type",
                     "Origin",
-                    "X-Api-Key",
-                    "X-Requested-With",
+                    "x-api-key",
+                    "x-requested-with",
                 ])
                 .with_max_age(86400)
                 .with_methods([Method::Get, Method::Options, Method::Post])
