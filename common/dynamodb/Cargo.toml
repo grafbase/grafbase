@@ -57,7 +57,7 @@ serde = { workspace = true, optional = true }
 reqwest = { version = "0.11", default-features = false, optional = true, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, optional = true, features = ["json", "__rustls"] }
+reqwest = { version = "0.11", default-features = false, optional = true, features = ["json", "rustls-tls"] }
 
 [dev-dependencies]
 tokio = { version = "1", features = [

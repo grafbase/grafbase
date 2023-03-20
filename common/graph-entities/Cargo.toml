@@ -21,7 +21,7 @@ ulid = { workspace = true }
 
 [dev-dependencies]
 insta = { version = "1", features = ["json"] }
-rstest = "0.16"
+rstest = { workspace = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2", default-features = false, features = ["js"] }
