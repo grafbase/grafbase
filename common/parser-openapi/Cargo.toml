@@ -21,4 +21,4 @@ url = "2.3"
 
 [dev-dependencies]
 insta = "1"
-rstest = "0.16"
+rstest = "0.17"
