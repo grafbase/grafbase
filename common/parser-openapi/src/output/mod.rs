@@ -234,6 +234,7 @@ impl Operation {
                     method: self.http_method(graph)?,
                     url: self.url(graph)?,
                     api_name: graph.metadata.name.clone(),
+                    expected_status: self.expected_status(graph)?,
                     path_parameters: path_parameters
                         .iter()
                         .map(|param| {

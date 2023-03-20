@@ -20,6 +20,7 @@ pub struct HttpResolver {
     pub path_parameters: Vec<PathParameter>,
     pub query_parameters: Vec<QueryParameter>,
     pub request_body: Option<RequestBody>,
+    pub expected_status: ExpectedStatusCode,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
@@ -52,6 +53,12 @@ pub enum QueryParameterEncodingStyle {
 pub enum RequestBodyContentType {
     Json,
     FormEncoded(BTreeMap<String, QueryParameterEncodingStyle>),
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+pub enum ExpectedStatusCode {
+    Exact(u16),
+    Range(std::ops::Range<u16>),
 }
 
 impl HttpResolver {
@@ -104,10 +111,18 @@ impl HttpResolver {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
+            if !self.expected_status.contains(response.status()) {
+                return Err(Error::new(format!(
+                    "Received an unexpected status from the downstream server: {}",
+                    response.status(),
+                )));
+            }
+
             let data = response
                 .json::<serde_json::Value>()
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
+
             Ok(ResolvedValue::new(Arc::new(dbg!(data))))
         }))
     }
@@ -138,5 +153,14 @@ impl HttpResolver {
             .collect::<Result<Vec<_>, _>>()?;
 
         url.apply_query_parameters(&self.query_parameters, &query_variables)
+    }
+}
+
+impl ExpectedStatusCode {
+    pub fn contains(&self, code: reqwest::StatusCode) -> bool {
+        match self {
+            ExpectedStatusCode::Exact(expected_status) => code.as_u16() == *expected_status,
+            ExpectedStatusCode::Range(range) => range.contains(&code.as_u16()),
+        }
     }
 }

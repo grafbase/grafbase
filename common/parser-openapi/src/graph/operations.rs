@@ -1,3 +1,4 @@
+use dynaql::registry::resolvers::http::ExpectedStatusCode;
 use inflector::Inflector;
 use petgraph::{graph::NodeIndex, visit::EdgeRef};
 
@@ -110,6 +111,17 @@ impl Operation {
                 _ => None,
             })
             .collect()
+    }
+
+    pub fn expected_status(self, graph: &super::OpenApiGraph) -> Option<ExpectedStatusCode> {
+        // As in ty below, we're only taking succesful expected statuses for now
+        graph
+            .graph
+            .edges(self.node_index())
+            .find_map(|edge| match edge.weight() {
+                super::Edge::HasResponseType { status_code, .. } if is_ok(status_code) => Some(status_code.clone()),
+                _ => None,
+            })
     }
 
     pub fn request_body(self, graph: &super::OpenApiGraph) -> Option<RequestBody> {

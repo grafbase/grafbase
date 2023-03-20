@@ -1,8 +1,7 @@
 use std::borrow::Cow;
 
-use dynaql::registry::resolvers::http::{QueryParameterEncodingStyle, RequestBodyContentType};
+use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
-use openapiv3::StatusCode;
 use petgraph::{
     graph::NodeIndex,
     visit::{EdgeRef, IntoEdges, Reversed},
@@ -105,7 +104,7 @@ pub enum Edge {
 
     /// An edge bewteen an operation and it's response type
     HasResponseType {
-        status_code: StatusCode,
+        status_code: ExpectedStatusCode,
         #[allow(dead_code)]
         content_type: String,
         wrapping: WrappingType,
