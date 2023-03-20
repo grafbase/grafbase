@@ -1,6 +1,4 @@
-use strum_macros::EnumString;
-
-#[derive(Debug, PartialEq, EnumString)]
+#[derive(Debug, PartialEq, strum::EnumString)]
 pub enum TransactionCanceledReason {
     ConditionalCheckFailed,
     TransactionConflict,

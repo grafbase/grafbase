@@ -4,5 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-strum = "0.24"
-strum_macros = "0.24"
+strum = { workspace = true, features = ["derive"] }
