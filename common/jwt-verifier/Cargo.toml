@@ -7,9 +7,9 @@ edition = "2021"
 [dependencies]
 futures-util = "0.3"
 json_dotpath = "1"
-jwt-compact = { version = "0.6", default-features = false, features = [
+jwt-compact = { workspace = true, default-features = false, features = [
     "clock",
-    "with_rsa",
+    "rsa",
 ] }
 secrecy = "0.8"
 serde = { workspace = true }
