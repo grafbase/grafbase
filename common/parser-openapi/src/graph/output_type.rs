@@ -1,9 +1,9 @@
 use petgraph::{
     graph::NodeIndex,
-    visit::{Dfs, EdgeFiltered, EdgeRef, Walker},
+    visit::{Dfs, EdgeFiltered, EdgeRef, IntoEdges, Walker},
 };
 
-use crate::output::OutputFieldKind;
+use crate::{graph::Arity, output::OutputFieldKind};
 
 use super::{Edge, Enum, Node, OpenApiGraph, Scalar, WrappingType};
 
@@ -94,6 +94,32 @@ impl OutputType {
             Node::Schema(_) => OutputType::from_index(graph.schema_target(index)?, graph),
             _ => None,
         }
+    }
+}
+
+impl OutputField {
+    /// It's fairly common in OpenAPI specs to have a field named `data`
+    /// that would probably be called `nodes` in a GraphQL API.
+    ///
+    /// This function tries to detect those fields so we can rename them.
+    pub fn looks_like_nodes_field(&self, graph: &OpenApiGraph) -> bool {
+        // For now we're only considering list fields that have the very generic name "data"
+        if self.name != "data" || self.ty.wrapping.arity() != Some(Arity::Many) {
+            return false;
+        }
+
+        // If the field doesn't point at a schema we probably don't want to count it as an edge.
+        let Node::Schema(_) = graph.graph[self.ty.target_index] else {
+            return false;
+        };
+
+        let reversed_graph = petgraph::visit::Reversed(&graph.graph);
+
+        // We only do this transform on schemas that we consider a "resource"
+        // so that we don't pull in arbitrary lists named `data`
+        reversed_graph
+            .edges(self.ty.target_index)
+            .any(|edge| matches!(edge.weight(), Edge::ForResource { .. }))
     }
 }
 

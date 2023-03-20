@@ -528,7 +528,7 @@ type StripeApplicationFeeRefunds {
 	url: String!
 	object: StripeApplicationFeeObjectRefunds!
 	hasMore: Boolean!
-	data: [StripeFeeRefund!]!
+	nodes: [StripeFeeRefund!]!
 }
 enum StripeApplicationObject {
 	APPLICATION
@@ -943,7 +943,7 @@ type StripeChargeRefunds {
 	url: String!
 	object: StripeChargeObjectRefunds!
 	hasMore: Boolean!
-	data: [StripeRefund!]!
+	nodes: [StripeRefund!]!
 }
 enum StripeChargeStatus {
 	FAILED
@@ -1220,7 +1220,7 @@ type StripeCheckoutSessionLineItems {
 	url: String!
 	object: StripeCheckoutSessionObjectLineItems!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeCheckoutSessionLocale {
 	AUTO
@@ -1464,7 +1464,7 @@ type StripeCreditNoteLines {
 	url: String!
 	object: StripeCreditNoteObjectLines!
 	hasMore: Boolean!
-	data: [StripeCreditNoteLineItem!]!
+	nodes: [StripeCreditNoteLineItem!]!
 }
 enum StripeCreditNoteObject {
 	CREDIT_NOTE
@@ -1651,7 +1651,7 @@ type StripeCustomerSubscriptions {
 	url: String!
 	object: StripeCustomerObjectSubscriptions!
 	hasMore: Boolean!
-	data: [StripeSubscription!]!
+	nodes: [StripeSubscription!]!
 }
 type StripeCustomerTax {
 	location: StripeCustomerTaxLocation
@@ -1673,7 +1673,7 @@ type StripeCustomerTaxIds {
 	url: String!
 	object: StripeCustomerObjectTaxIds!
 	hasMore: Boolean!
-	data: [StripeTaxId!]!
+	nodes: [StripeTaxId!]!
 }
 type StripeCustomerTaxLocation {
 	state: String
@@ -2089,7 +2089,7 @@ type StripeFileLinks {
 	url: String!
 	object: StripeFileObjectLinks!
 	hasMore: Boolean!
-	data: [StripeFileLink!]!
+	nodes: [StripeFileLink!]!
 }
 enum StripeFileObject {
 	FILE
@@ -2171,7 +2171,7 @@ type StripeFinancialConnectionsAccountOwnershipOwners {
 	url: String!
 	object: StripeFinancialConnectionsAccountOwnershipObjectOwners!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccountOwner!]!
+	nodes: [StripeFinancialConnectionsAccountOwner!]!
 }
 enum StripeFinancialConnectionsAccountPermissions {
 	BALANCES
@@ -2211,7 +2211,7 @@ type StripeFinancialConnectionsSessionAccounts {
 	url: String!
 	object: StripeFinancialConnectionsSessionObjectAccounts!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccount!]!
+	nodes: [StripeFinancialConnectionsAccount!]!
 }
 enum StripeFinancialConnectionsSessionObject {
 	FINANCIAL_CONNECTIONS_SESSION
@@ -2475,13 +2475,13 @@ type StripeGetAccounts {
 	url: String!
 	object: StripeGetAccountsObject!
 	hasMore: Boolean!
-	data: [StripeAccount!]!
+	nodes: [StripeAccount!]!
 }
 type StripeGetAccountsAccountCapabilities {
 	url: String!
 	object: StripeGetAccountsAccountCapabilitiesObject!
 	hasMore: Boolean!
-	data: [StripeCapability!]!
+	nodes: [StripeCapability!]!
 }
 enum StripeGetAccountsAccountCapabilitiesObject {
 	LIST
@@ -2499,7 +2499,7 @@ type StripeGetAccountsAccountPeople {
 	url: String!
 	object: StripeGetAccountsAccountPeopleObject!
 	hasMore: Boolean!
-	data: [StripePerson!]!
+	nodes: [StripePerson!]!
 }
 input StripeGetAccountsAccountPeopleInput {
 	representative: Boolean
@@ -2514,7 +2514,7 @@ type StripeGetAccountsAccountPersons {
 	url: String!
 	object: StripeGetAccountsAccountPersonsObject!
 	hasMore: Boolean!
-	data: [StripePerson!]!
+	nodes: [StripePerson!]!
 }
 input StripeGetAccountsAccountPersonsInput {
 	representative: Boolean
@@ -2538,7 +2538,7 @@ type StripeGetApplePayDomains {
 	url: String!
 	object: StripeGetApplePayDomainsObject!
 	hasMore: Boolean!
-	data: [StripeApplePayDomain!]!
+	nodes: [StripeApplePayDomain!]!
 }
 enum StripeGetApplePayDomainsObject {
 	LIST
@@ -2547,13 +2547,13 @@ type StripeGetApplicationFees {
 	url: String!
 	object: StripeGetApplicationFeesObject!
 	hasMore: Boolean!
-	data: [StripeApplicationFee!]!
+	nodes: [StripeApplicationFee!]!
 }
 type StripeGetApplicationFeesIdRefunds {
 	url: String!
 	object: StripeGetApplicationFeesIdRefundsObject!
 	hasMore: Boolean!
-	data: [StripeFeeRefund!]!
+	nodes: [StripeFeeRefund!]!
 }
 enum StripeGetApplicationFeesIdRefundsObject {
 	LIST
@@ -2571,7 +2571,7 @@ type StripeGetAppsSecrets {
 	url: String!
 	object: StripeGetAppsSecretsObject!
 	hasMore: Boolean!
-	data: [StripeAppsSecret!]!
+	nodes: [StripeAppsSecret!]!
 }
 input StripeGetAppsSecretsFindInput {
 	user: String
@@ -2596,7 +2596,7 @@ type StripeGetBalanceHistory {
 	url: String!
 	object: StripeGetBalanceHistoryObject!
 	hasMore: Boolean!
-	data: [StripeBalanceTransaction!]!
+	nodes: [StripeBalanceTransaction!]!
 }
 input StripeGetBalanceHistoryInput {
 	lte: Int
@@ -2611,7 +2611,7 @@ type StripeGetBalanceTransactions {
 	url: String!
 	object: StripeGetBalanceTransactionsObject!
 	hasMore: Boolean!
-	data: [StripeBalanceTransaction!]!
+	nodes: [StripeBalanceTransaction!]!
 }
 input StripeGetBalanceTransactionsInput {
 	lte: Int
@@ -2626,7 +2626,7 @@ type StripeGetBillingPortalConfigurations {
 	url: String!
 	object: StripeGetBillingPortalConfigurationsObject!
 	hasMore: Boolean!
-	data: [StripeBillingPortalConfiguration!]!
+	nodes: [StripeBillingPortalConfiguration!]!
 }
 enum StripeGetBillingPortalConfigurationsObject {
 	LIST
@@ -2635,13 +2635,13 @@ type StripeGetCharges {
 	url: String!
 	object: StripeGetChargesObject!
 	hasMore: Boolean!
-	data: [StripeCharge!]!
+	nodes: [StripeCharge!]!
 }
 type StripeGetChargesChargeRefunds {
 	url: String!
 	object: StripeGetChargesChargeRefundsObject!
 	hasMore: Boolean!
-	data: [StripeRefund!]!
+	nodes: [StripeRefund!]!
 }
 enum StripeGetChargesChargeRefundsObject {
 	LIST
@@ -2661,7 +2661,7 @@ type StripeGetChargesSearch {
 	object: StripeGetChargesSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripeCharge!]!
+	nodes: [StripeCharge!]!
 }
 enum StripeGetChargesSearchObject {
 	SEARCH_RESULT
@@ -2670,7 +2670,7 @@ type StripeGetCheckoutSessions {
 	url: String!
 	object: StripeGetCheckoutSessionsObject!
 	hasMore: Boolean!
-	data: [StripeCheckoutSession!]!
+	nodes: [StripeCheckoutSession!]!
 }
 input StripeGetCheckoutSessionsInput {
 	email: String!
@@ -2682,7 +2682,7 @@ type StripeGetCheckoutSessionsSessionLineItems {
 	url: String!
 	object: StripeGetCheckoutSessionsSessionLineItemsObject!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeGetCheckoutSessionsSessionLineItemsObject {
 	LIST
@@ -2691,7 +2691,7 @@ type StripeGetCountrySpecs {
 	url: String!
 	object: StripeGetCountrySpecsObject!
 	hasMore: Boolean!
-	data: [StripeCountrySpec!]!
+	nodes: [StripeCountrySpec!]!
 }
 enum StripeGetCountrySpecsObject {
 	LIST
@@ -2700,7 +2700,7 @@ type StripeGetCoupons {
 	url: String!
 	object: StripeGetCouponsObject!
 	hasMore: Boolean!
-	data: [StripeCoupon!]!
+	nodes: [StripeCoupon!]!
 }
 input StripeGetCouponsInput {
 	lte: Int
@@ -2715,13 +2715,13 @@ type StripeGetCreditNotes {
 	url: String!
 	object: StripeGetCreditNotesObject!
 	hasMore: Boolean!
-	data: [StripeCreditNote!]!
+	nodes: [StripeCreditNote!]!
 }
 type StripeGetCreditNotesCreditNoteLines {
 	url: String!
 	object: StripeGetCreditNotesCreditNoteLinesObject!
 	hasMore: Boolean!
-	data: [StripeCreditNoteLineItem!]!
+	nodes: [StripeCreditNoteLineItem!]!
 }
 enum StripeGetCreditNotesCreditNoteLinesObject {
 	LIST
@@ -2751,13 +2751,13 @@ type StripeGetCustomers {
 	url: String!
 	object: StripeGetCustomersObject!
 	hasMore: Boolean!
-	data: [StripeCustomer!]!
+	nodes: [StripeCustomer!]!
 }
 type StripeGetCustomersCustomerBalanceTransactions {
 	url: String!
 	object: StripeGetCustomersCustomerBalanceTransactionsObject!
 	hasMore: Boolean!
-	data: [StripeCustomerBalanceTransaction!]!
+	nodes: [StripeCustomerBalanceTransaction!]!
 }
 enum StripeGetCustomersCustomerBalanceTransactionsObject {
 	LIST
@@ -2766,7 +2766,7 @@ type StripeGetCustomersCustomerBankAccounts {
 	url: String!
 	object: StripeGetCustomersCustomerBankAccountsObject!
 	hasMore: Boolean!
-	data: [StripeBankAccount!]!
+	nodes: [StripeBankAccount!]!
 }
 enum StripeGetCustomersCustomerBankAccountsObject {
 	LIST
@@ -2775,7 +2775,7 @@ type StripeGetCustomersCustomerCards {
 	url: String!
 	object: StripeGetCustomersCustomerCardsObject!
 	hasMore: Boolean!
-	data: [StripeCard!]!
+	nodes: [StripeCard!]!
 }
 enum StripeGetCustomersCustomerCardsObject {
 	LIST
@@ -2784,7 +2784,7 @@ type StripeGetCustomersCustomerCashBalanceTransactions {
 	url: String!
 	object: StripeGetCustomersCustomerCashBalanceTransactionsObject!
 	hasMore: Boolean!
-	data: [StripeCustomerCashBalanceTransaction!]!
+	nodes: [StripeCustomerCashBalanceTransaction!]!
 }
 enum StripeGetCustomersCustomerCashBalanceTransactionsObject {
 	LIST
@@ -2832,7 +2832,7 @@ type StripeGetCustomersCustomerSubscriptions {
 	url: String!
 	object: StripeGetCustomersCustomerSubscriptionsObject!
 	hasMore: Boolean!
-	data: [StripeSubscription!]!
+	nodes: [StripeSubscription!]!
 }
 enum StripeGetCustomersCustomerSubscriptionsObject {
 	LIST
@@ -2841,7 +2841,7 @@ type StripeGetCustomersCustomerTaxIds {
 	url: String!
 	object: StripeGetCustomersCustomerTaxIdsObject!
 	hasMore: Boolean!
-	data: [StripeTaxId!]!
+	nodes: [StripeTaxId!]!
 }
 enum StripeGetCustomersCustomerTaxIdsObject {
 	LIST
@@ -2861,7 +2861,7 @@ type StripeGetCustomersSearch {
 	object: StripeGetCustomersSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripeCustomer!]!
+	nodes: [StripeCustomer!]!
 }
 enum StripeGetCustomersSearchObject {
 	SEARCH_RESULT
@@ -2870,7 +2870,7 @@ type StripeGetDisputes {
 	url: String!
 	object: StripeGetDisputesObject!
 	hasMore: Boolean!
-	data: [StripeDispute!]!
+	nodes: [StripeDispute!]!
 }
 input StripeGetDisputesInput {
 	lte: Int
@@ -2885,7 +2885,7 @@ type StripeGetEvents {
 	url: String!
 	object: StripeGetEventsObject!
 	hasMore: Boolean!
-	data: [StripeEvent!]!
+	nodes: [StripeEvent!]!
 }
 input StripeGetEventsInput {
 	lte: Int
@@ -2900,7 +2900,7 @@ type StripeGetExchangeRates {
 	url: String!
 	object: StripeGetExchangeRatesObject!
 	hasMore: Boolean!
-	data: [StripeExchangeRate!]!
+	nodes: [StripeExchangeRate!]!
 }
 enum StripeGetExchangeRatesObject {
 	LIST
@@ -2909,7 +2909,7 @@ type StripeGetFileLinks {
 	url: String!
 	object: StripeGetFileLinksObject!
 	hasMore: Boolean!
-	data: [StripeFileLink!]!
+	nodes: [StripeFileLink!]!
 }
 input StripeGetFileLinksInput {
 	lte: Int
@@ -2947,13 +2947,13 @@ type StripeGetFinancialConnectionsAccounts {
 	url: String!
 	object: StripeGetFinancialConnectionsAccountsObject!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccount!]!
+	nodes: [StripeFinancialConnectionsAccount!]!
 }
 type StripeGetFinancialConnectionsAccountsAccountOwners {
 	url: String!
 	object: StripeGetFinancialConnectionsAccountsAccountOwnersObject!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccountOwner!]!
+	nodes: [StripeFinancialConnectionsAccountOwner!]!
 }
 enum StripeGetFinancialConnectionsAccountsAccountOwnersObject {
 	LIST
@@ -2991,7 +2991,7 @@ type StripeGetInvoiceitems {
 	url: String!
 	object: StripeGetInvoiceitemsObject!
 	hasMore: Boolean!
-	data: [StripeInvoiceitem!]!
+	nodes: [StripeInvoiceitem!]!
 }
 input StripeGetInvoiceitemsInput {
 	lte: Int
@@ -3019,7 +3019,7 @@ type StripeGetInvoicesInvoiceLines {
 	url: String!
 	object: StripeGetInvoicesInvoiceLinesObject!
 	hasMore: Boolean!
-	data: [StripeLineItem!]!
+	nodes: [StripeLineItem!]!
 }
 enum StripeGetInvoicesInvoiceLinesObject {
 	LIST
@@ -3030,7 +3030,7 @@ type StripeGetInvoicesSearch {
 	object: StripeGetInvoicesSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripeInvoice!]!
+	nodes: [StripeInvoice!]!
 }
 enum StripeGetInvoicesSearchObject {
 	SEARCH_RESULT
@@ -3163,7 +3163,7 @@ type StripeGetIssuingSettlements {
 	url: String!
 	object: StripeGetIssuingSettlementsObject!
 	hasMore: Boolean!
-	data: [StripeIssuingSettlement!]!
+	nodes: [StripeIssuingSettlement!]!
 }
 input StripeGetIssuingSettlementsInput {
 	lte: Int
@@ -3188,13 +3188,13 @@ type StripeGetLinkedAccounts {
 	url: String!
 	object: StripeGetLinkedAccountsObject!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccount!]!
+	nodes: [StripeFinancialConnectionsAccount!]!
 }
 type StripeGetLinkedAccountsAccountOwners {
 	url: String!
 	object: StripeGetLinkedAccountsAccountOwnersObject!
 	hasMore: Boolean!
-	data: [StripeFinancialConnectionsAccountOwner!]!
+	nodes: [StripeFinancialConnectionsAccountOwner!]!
 }
 enum StripeGetLinkedAccountsAccountOwnersObject {
 	LIST
@@ -3210,7 +3210,7 @@ type StripeGetPaymentIntents {
 	url: String!
 	object: StripeGetPaymentIntentsObject!
 	hasMore: Boolean!
-	data: [StripePaymentIntent!]!
+	nodes: [StripePaymentIntent!]!
 }
 input StripeGetPaymentIntentsInput {
 	lte: Int
@@ -3227,7 +3227,7 @@ type StripeGetPaymentIntentsSearch {
 	object: StripeGetPaymentIntentsSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripePaymentIntent!]!
+	nodes: [StripePaymentIntent!]!
 }
 enum StripeGetPaymentIntentsSearchObject {
 	SEARCH_RESULT
@@ -3236,7 +3236,7 @@ type StripeGetPaymentLinks {
 	url: String!
 	object: StripeGetPaymentLinksObject!
 	hasMore: Boolean!
-	data: [StripePaymentLink!]!
+	nodes: [StripePaymentLink!]!
 }
 enum StripeGetPaymentLinksObject {
 	LIST
@@ -3245,7 +3245,7 @@ type StripeGetPaymentLinksPaymentLinkLineItems {
 	url: String!
 	object: StripeGetPaymentLinksPaymentLinkLineItemsObject!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeGetPaymentLinksPaymentLinkLineItemsObject {
 	LIST
@@ -3284,7 +3284,7 @@ type StripeGetPayouts {
 	url: String!
 	object: StripeGetPayoutsObject!
 	hasMore: Boolean!
-	data: [StripePayout!]!
+	nodes: [StripePayout!]!
 }
 input StripeGetPayoutsInput {
 	lte: Int
@@ -3299,7 +3299,7 @@ type StripeGetPlans {
 	url: String!
 	object: StripeGetPlansObject!
 	hasMore: Boolean!
-	data: [StripePlan!]!
+	nodes: [StripePlan!]!
 }
 input StripeGetPlansInput {
 	lte: Int
@@ -3330,7 +3330,7 @@ type StripeGetPricesSearch {
 	object: StripeGetPricesSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripePrice!]!
+	nodes: [StripePrice!]!
 }
 enum StripeGetPricesSearchObject {
 	SEARCH_RESULT
@@ -3343,7 +3343,7 @@ type StripeGetProducts {
 	url: String!
 	object: StripeGetProductsObject!
 	hasMore: Boolean!
-	data: [StripeProduct!]!
+	nodes: [StripeProduct!]!
 }
 input StripeGetProductsInput {
 	lte: Int
@@ -3360,7 +3360,7 @@ type StripeGetProductsSearch {
 	object: StripeGetProductsSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripeProduct!]!
+	nodes: [StripeProduct!]!
 }
 enum StripeGetProductsSearchObject {
 	SEARCH_RESULT
@@ -3369,7 +3369,7 @@ type StripeGetPromotionCodes {
 	url: String!
 	object: StripeGetPromotionCodesObject!
 	hasMore: Boolean!
-	data: [StripePromotionCode!]!
+	nodes: [StripePromotionCode!]!
 }
 input StripeGetPromotionCodesInput {
 	lte: Int
@@ -3390,7 +3390,7 @@ type StripeGetQuotesQuoteComputedUpfrontLineItems {
 	url: String!
 	object: StripeGetQuotesQuoteComputedUpfrontLineItemsObject!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeGetQuotesQuoteComputedUpfrontLineItemsObject {
 	LIST
@@ -3399,7 +3399,7 @@ type StripeGetQuotesQuoteLineItems {
 	url: String!
 	object: StripeGetQuotesQuoteLineItemsObject!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeGetQuotesQuoteLineItemsObject {
 	LIST
@@ -3408,7 +3408,7 @@ type StripeGetRadarEarlyFraudWarnings {
 	url: String!
 	object: StripeGetRadarEarlyFraudWarningsObject!
 	hasMore: Boolean!
-	data: [StripeRadarEarlyFraudWarning!]!
+	nodes: [StripeRadarEarlyFraudWarning!]!
 }
 enum StripeGetRadarEarlyFraudWarningsObject {
 	LIST
@@ -3417,7 +3417,7 @@ type StripeGetRadarValueListItems {
 	url: String!
 	object: StripeGetRadarValueListItemsObject!
 	hasMore: Boolean!
-	data: [StripeRadarValueListItem!]!
+	nodes: [StripeRadarValueListItem!]!
 }
 input StripeGetRadarValueListItemsInput {
 	lte: Int
@@ -3432,7 +3432,7 @@ type StripeGetRadarValueLists {
 	url: String!
 	object: StripeGetRadarValueListsObject!
 	hasMore: Boolean!
-	data: [StripeRadarValueList!]!
+	nodes: [StripeRadarValueList!]!
 }
 input StripeGetRadarValueListsInput {
 	lte: Int
@@ -3447,7 +3447,7 @@ type StripeGetRefunds {
 	url: String!
 	object: StripeGetRefundsObject!
 	hasMore: Boolean!
-	data: [StripeRefund!]!
+	nodes: [StripeRefund!]!
 }
 input StripeGetRefundsInput {
 	lte: Int
@@ -3462,7 +3462,7 @@ type StripeGetReportingReportRuns {
 	url: String!
 	object: StripeGetReportingReportRunsObject!
 	hasMore: Boolean!
-	data: [StripeReportingReportRun!]!
+	nodes: [StripeReportingReportRun!]!
 }
 input StripeGetReportingReportRunsInput {
 	lte: Int
@@ -3477,7 +3477,7 @@ type StripeGetReportingReportTypes {
 	url: String!
 	object: StripeGetReportingReportTypesObject!
 	hasMore: Boolean!
-	data: [StripeReportingReportType!]!
+	nodes: [StripeReportingReportType!]!
 }
 enum StripeGetReportingReportTypesObject {
 	LIST
@@ -3486,7 +3486,7 @@ type StripeGetReviews {
 	url: String!
 	object: StripeGetReviewsObject!
 	hasMore: Boolean!
-	data: [StripeReview!]!
+	nodes: [StripeReview!]!
 }
 input StripeGetReviewsInput {
 	lte: Int
@@ -3501,7 +3501,7 @@ type StripeGetSetupAttempts {
 	url: String!
 	object: StripeGetSetupAttemptsObject!
 	hasMore: Boolean!
-	data: [StripeSetupAttempt!]!
+	nodes: [StripeSetupAttempt!]!
 }
 input StripeGetSetupAttemptsInput {
 	lte: Int
@@ -3516,7 +3516,7 @@ type StripeGetSetupIntents {
 	url: String!
 	object: StripeGetSetupIntentsObject!
 	hasMore: Boolean!
-	data: [StripeSetupIntent!]!
+	nodes: [StripeSetupIntent!]!
 }
 input StripeGetSetupIntentsInput {
 	lte: Int
@@ -3531,7 +3531,7 @@ type StripeGetShippingRates {
 	url: String!
 	object: StripeGetShippingRatesObject!
 	hasMore: Boolean!
-	data: [StripeShippingRate!]!
+	nodes: [StripeShippingRate!]!
 }
 input StripeGetShippingRatesInput {
 	lte: Int
@@ -3546,7 +3546,7 @@ type StripeGetSigmaScheduledQueryRuns {
 	url: String!
 	object: StripeGetSigmaScheduledQueryRunsObject!
 	hasMore: Boolean!
-	data: [StripeScheduledQueryRun!]!
+	nodes: [StripeScheduledQueryRun!]!
 }
 enum StripeGetSigmaScheduledQueryRunsObject {
 	LIST
@@ -3555,7 +3555,7 @@ type StripeGetSourcesSourceSourceTransactions {
 	url: String!
 	object: StripeGetSourcesSourceSourceTransactionsObject!
 	hasMore: Boolean!
-	data: [StripeSourceTransaction!]!
+	nodes: [StripeSourceTransaction!]!
 }
 enum StripeGetSourcesSourceSourceTransactionsObject {
 	LIST
@@ -3564,7 +3564,7 @@ type StripeGetSubscriptionItems {
 	url: String!
 	object: StripeGetSubscriptionItemsObject!
 	hasMore: Boolean!
-	data: [StripeSubscriptionItem!]!
+	nodes: [StripeSubscriptionItem!]!
 }
 enum StripeGetSubscriptionItemsObject {
 	LIST
@@ -3573,7 +3573,7 @@ type StripeGetSubscriptionItemsSubscriptionItemUsageRecordSummaries {
 	url: String!
 	object: StripeGetSubscriptionItemsSubscriptionItemUsageRecordSummariesObject!
 	hasMore: Boolean!
-	data: [StripeUsageRecordSummary!]!
+	nodes: [StripeUsageRecordSummary!]!
 }
 enum StripeGetSubscriptionItemsSubscriptionItemUsageRecordSummariesObject {
 	LIST
@@ -3582,7 +3582,7 @@ type StripeGetSubscriptionSchedules {
 	url: String!
 	object: StripeGetSubscriptionSchedulesObject!
 	hasMore: Boolean!
-	data: [StripeSubscriptionSchedule!]!
+	nodes: [StripeSubscriptionSchedule!]!
 }
 input StripeGetSubscriptionSchedulesInput {
 	lte: Int
@@ -3617,7 +3617,7 @@ type StripeGetSubscriptionsSearch {
 	object: StripeGetSubscriptionsSearchObject!
 	nextPage: String
 	hasMore: Boolean!
-	data: [StripeSubscription!]!
+	nodes: [StripeSubscription!]!
 }
 enum StripeGetSubscriptionsSearchObject {
 	SEARCH_RESULT
@@ -3626,7 +3626,7 @@ type StripeGetTaxCodes {
 	url: String!
 	object: StripeGetTaxCodesObject!
 	hasMore: Boolean!
-	data: [StripeTaxCode!]!
+	nodes: [StripeTaxCode!]!
 }
 enum StripeGetTaxCodesObject {
 	LIST
@@ -3635,7 +3635,7 @@ type StripeGetTaxRates {
 	url: String!
 	object: StripeGetTaxRatesObject!
 	hasMore: Boolean!
-	data: [StripeTaxRate!]!
+	nodes: [StripeTaxRate!]!
 }
 input StripeGetTaxRatesInput {
 	lte: Int
@@ -3650,7 +3650,7 @@ type StripeGetTerminalConfigurations {
 	url: String!
 	object: StripeGetTerminalConfigurationsObject!
 	hasMore: Boolean!
-	data: [StripeTerminalConfiguration!]!
+	nodes: [StripeTerminalConfiguration!]!
 }
 enum StripeGetTerminalConfigurationsObject {
 	LIST
@@ -3659,7 +3659,7 @@ type StripeGetTerminalLocations {
 	url: String!
 	object: StripeGetTerminalLocationsObject!
 	hasMore: Boolean!
-	data: [StripeTerminalLocation!]!
+	nodes: [StripeTerminalLocation!]!
 }
 enum StripeGetTerminalLocationsObject {
 	LIST
@@ -3672,7 +3672,7 @@ type StripeGetTestHelpersTestClocks {
 	url: String!
 	object: StripeGetTestHelpersTestClocksObject!
 	hasMore: Boolean!
-	data: [StripeTestHelpersTestClock!]!
+	nodes: [StripeTestHelpersTestClock!]!
 }
 enum StripeGetTestHelpersTestClocksObject {
 	LIST
@@ -3693,13 +3693,13 @@ type StripeGetTransfers {
 	url: String!
 	object: StripeGetTransfersObject!
 	hasMore: Boolean!
-	data: [StripeTransfer!]!
+	nodes: [StripeTransfer!]!
 }
 type StripeGetTransfersIdReversals {
 	url: String!
 	object: StripeGetTransfersIdReversalsObject!
 	hasMore: Boolean!
-	data: [StripeTransferReversal!]!
+	nodes: [StripeTransferReversal!]!
 }
 enum StripeGetTransfersIdReversalsObject {
 	LIST
@@ -3727,7 +3727,7 @@ type StripeGetTreasuryFinancialAccounts {
 	url: String!
 	object: StripeGetTreasuryFinancialAccountsObject!
 	hasMore: Boolean!
-	data: [StripeTreasuryFinancialAccount!]!
+	nodes: [StripeTreasuryFinancialAccount!]!
 }
 input StripeGetTreasuryFinancialAccountsInput {
 	lte: Int
@@ -3803,7 +3803,7 @@ type StripeGetWebhookEndpoints {
 	url: String!
 	object: StripeGetWebhookEndpointsObject!
 	hasMore: Boolean!
-	data: [StripeWebhookEndpoint!]!
+	nodes: [StripeWebhookEndpoint!]!
 }
 enum StripeGetWebhookEndpointsObject {
 	LIST
@@ -4000,7 +4000,7 @@ type StripeInvoiceLines {
 	url: String!
 	object: StripeInvoiceObjectLines!
 	hasMore: Boolean!
-	data: [StripeLineItem!]!
+	nodes: [StripeLineItem!]!
 }
 type StripeInvoiceMandateOptionsCard {
 	description: String
@@ -7609,7 +7609,7 @@ type StripePaymentLinkLineItems {
 	url: String!
 	object: StripePaymentLinkObjectLineItems!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripePaymentLinkObject {
 	PAYMENT_LINK
@@ -26364,7 +26364,7 @@ type StripeQuoteLineItems {
 	url: String!
 	object: StripeQuoteObjectLineItems!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeQuoteObject {
 	QUOTE
@@ -26443,7 +26443,7 @@ type StripeQuotesResourceUpfrontLineItems {
 	url: String!
 	object: StripeQuotesResourceUpfrontObjectLineItems!
 	hasMore: Boolean!
-	data: [StripeItem!]!
+	nodes: [StripeItem!]!
 }
 enum StripeQuotesResourceUpfrontObjectLineItems {
 	LIST
@@ -26515,7 +26515,7 @@ type StripeRadarValueListListItems {
 	url: String!
 	object: StripeRadarValueListObjectListItems!
 	hasMore: Boolean!
-	data: [StripeRadarValueListItem!]!
+	nodes: [StripeRadarValueListItem!]!
 }
 enum StripeRadarValueListObject {
 	RADAR_VALUE_LIST
@@ -28789,7 +28789,7 @@ type StripeSubscriptionItems {
 	url: String!
 	object: StripeSubscriptionObjectItems!
 	hasMore: Boolean!
-	data: [StripeSubscriptionItem!]!
+	nodes: [StripeSubscriptionItem!]!
 }
 enum StripeSubscriptionObject {
 	SUBSCRIPTION
@@ -29417,7 +29417,7 @@ type StripeTransferReversals {
 	url: String!
 	object: StripeTransferObjectReversals!
 	hasMore: Boolean!
-	data: [StripeTransferReversal!]!
+	nodes: [StripeTransferReversal!]!
 }
 type StripeTransferSchedule {
 	weeklyAnchor: String
@@ -30025,7 +30025,7 @@ type StripeTreasuryTransactionEntries {
 	url: String!
 	object: StripeTreasuryTransactionObjectEntries!
 	hasMore: Boolean!
-	data: [StripeTreasuryTransactionEntry!]!
+	nodes: [StripeTreasuryTransactionEntry!]!
 }
 type StripeTreasuryTransactionEntry {
 	type: StripeTreasuryTransactionEntryType!

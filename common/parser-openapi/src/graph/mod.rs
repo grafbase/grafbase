@@ -129,7 +129,7 @@ pub enum Edge {
     },
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Arity {
     One,
     Many,

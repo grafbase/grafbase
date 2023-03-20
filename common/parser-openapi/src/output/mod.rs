@@ -134,7 +134,11 @@ pub enum OutputFieldKind {
 impl OutputField {
     fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let api_name = &self.name;
-        let graphql_name = api_name.to_camel_case();
+        let mut graphql_name = api_name.to_camel_case();
+
+        if self.looks_like_nodes_field(graph) {
+            graphql_name = "nodes".to_string();
+        }
 
         let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
             key: api_name.to_string(),
