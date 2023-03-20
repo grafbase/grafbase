@@ -7,10 +7,10 @@ use crate::{
     names::{
         INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_EQ,
         INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN,
-        INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_HAS_ANY,
-        INPUT_FIELD_FILTER_LIST_HAS_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY, INPUT_FIELD_FILTER_LT,
-        INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ, INPUT_FIELD_FILTER_NONE,
-        INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
+        INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_INCLUDES,
+        INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY,
+        INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ,
+        INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
     },
     registry::scalars::{DateScalar, DateTimeScalar, IPAddressScalar, TimestampScalar},
     Error,
@@ -74,7 +74,7 @@ pub fn parse_filter(schema: &search::Schema, object: Value) -> Result<search::Fi
                                 parse_filter_array(schema, value).map(search::Filter::Any)
                             }
                             INPUT_FIELD_FILTER_NONE => {
-                                parse_filter_array(schema, value).map(search::Filter::None_)
+                                parse_filter_array(schema, value).map(search::Filter::None)
                             }
                             INPUT_FIELD_FILTER_NOT => parse_filter(schema, value)
                                 .map(|f| search::Filter::Not(Box::new(f))),
@@ -106,9 +106,9 @@ fn parse_field_filter(
 ) -> Result<search::Filter, Error> {
     match conditions {
         Value::Object(conditions) => {
-            if conditions.contains_key(INPUT_FIELD_FILTER_LIST_HAS_ANY)
+            if conditions.contains_key(INPUT_FIELD_FILTER_LIST_INCLUDES)
                 || conditions.contains_key(INPUT_FIELD_FILTER_LIST_IS_EMPTY)
-                || conditions.contains_key(INPUT_FIELD_FILTER_LIST_HAS_NONE)
+                || conditions.contains_key(INPUT_FIELD_FILTER_LIST_INCLUDES_NONE)
             {
                 parse_list_filter(field, field_name, conditions)
             } else {
@@ -130,11 +130,11 @@ fn parse_list_filter(
             .into_iter()
             .map(|(name, value)| {
                 Ok(match name.as_str() {
-                    INPUT_FIELD_FILTER_LIST_HAS_ANY => search::Filter::ListFilter {
+                    INPUT_FIELD_FILTER_LIST_INCLUDES => search::Filter::ListFilter {
                         field: field_name.to_string(),
                         condition: HasAny(parse_scalar_condition(field, value)?),
                     },
-                    INPUT_FIELD_FILTER_LIST_HAS_NONE => search::Filter::ListFilter {
+                    INPUT_FIELD_FILTER_LIST_INCLUDES_NONE => search::Filter::ListFilter {
                         field: field_name.to_string(),
                         condition: HasNone(parse_scalar_condition(field, value)?),
                     },

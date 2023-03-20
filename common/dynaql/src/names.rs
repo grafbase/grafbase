@@ -14,6 +14,6 @@ pub const INPUT_FIELD_FILTER_IN: &str = "in";
 pub const INPUT_FIELD_FILTER_NOT_IN: &str = "notIn";
 pub const INPUT_FIELD_FILTER_IS_NULL: &str = "isNull";
 
-pub const INPUT_FIELD_FILTER_LIST_HAS_ANY: &str = "hasAny";
-pub const INPUT_FIELD_FILTER_LIST_HAS_NONE: &str = "hasNone";
+pub const INPUT_FIELD_FILTER_LIST_INCLUDES: &str = "includes";
+pub const INPUT_FIELD_FILTER_LIST_INCLUDES_NONE: &str = "includesNone";
 pub const INPUT_FIELD_FILTER_LIST_IS_EMPTY: &str = "isEmpty";

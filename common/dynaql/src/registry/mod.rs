@@ -1272,6 +1272,7 @@ pub struct Registry {
     pub schemas: HashMap<SchemaID, Arc<ArrowSchema>>,
     #[serde(default)]
     pub http_headers: BTreeMap<String, Vec<(String, String)>>,
+    // FIXME: This probably shouldn't belong here but in the ParserResult.
     #[serde(default)]
     pub search_config: grafbase_runtime::search::Config,
 }
