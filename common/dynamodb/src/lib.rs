@@ -1,5 +1,5 @@
 cfg_if::cfg_if! {
-    if #[cfg(not(feature = "local"))] {
+    if #[cfg(not(feature = "sqlite"))] {
         mod batch_getitem;
         mod query;
         mod query_by_type;
@@ -77,6 +77,7 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
+    pub user_id: Option<String>,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -100,7 +101,7 @@ impl DynamoDBRequestedIndex {
     }
 
     cfg_if::cfg_if! {
-        if #[cfg(not(feature = "local"))] {
+        if #[cfg(not(feature = "sqlite"))] {
             fn pk(&self) -> String {
                 match self {
                     Self::None => "__pk".to_string(),
@@ -190,6 +191,7 @@ impl DynamoDBContext {
     /// * `dynamodb_table_name` - The DynamoDB TableName.
     /// * `latitude` - Request latitude, to locate the closest region
     /// * `longitude` - Request longitude, to locate the closest region
+    /// * `user_id` - Optional ID identifying the current user
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         // TODO: This should go away with tracing.
@@ -202,6 +204,7 @@ impl DynamoDBContext {
         longitude: f32,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
+        user_id: Option<String>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
         let closest_region: rusoto_core::Region =
@@ -227,6 +230,7 @@ impl DynamoDBContext {
             dynamodb_table_name,
             closest_region,
             resolver_binding_map,
+            user_id,
         }
     }
 
@@ -276,7 +280,7 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(not(feature = "sqlite"))]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
@@ -296,18 +300,19 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(feature = "local")]
+#[cfg(feature = "sqlite")]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: &Arc<LocalContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
-            loader: get_loader_batch_transaction(Arc::clone(local_ctx)),
+            loader: get_loader_batch_transaction(Arc::clone(local_ctx), Arc::clone(ctx)),
             query: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::None),
             query_reversed: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::ReverseIndex),
             query_fat: get_loader_query_type(Arc::clone(local_ctx), DynamoDBRequestedIndex::FatPartitionIndex),
             paginated_query_fat: get_loader_paginated_query_type(
                 Arc::clone(local_ctx),
+                Arc::clone(ctx),
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone(), Arc::clone(local_ctx)),

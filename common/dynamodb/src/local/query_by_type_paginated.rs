@@ -10,7 +10,7 @@ use std::time::Duration;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
-use crate::{DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering};
 
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
@@ -81,6 +81,7 @@ pub struct QueryResult {
 
 pub struct QueryTypePaginatedLoader {
     local_context: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
     #[allow(dead_code)]
     index: DynamoDBRequestedIndex,
 }
@@ -225,6 +226,9 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 value_map.insert("pk", SqlValue::String(parent_id.to_string()));
                 value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
             }
+            if let Some(user_id) = self.ctx.user_id.as_ref() {
+                value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+            }
 
             let (query, values) = Sql::SelectTypePaginated {
                 has_origin: query_key.cursor.maybe_origin().is_some(),
@@ -245,6 +249,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     !query_key.ordering.is_asc()
                 },
                 edges_count: query_key.edges.len(),
+                filter_by_owner: self.ctx.user_id.is_some(),
             }
             .compile(value_map);
 
@@ -364,10 +369,15 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
 
 pub fn get_loader_paginated_query_type(
     local_context: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
     index: DynamoDBRequestedIndex,
 ) -> DataLoader<QueryTypePaginatedLoader, LruCache> {
     DataLoader::with_cache(
-        QueryTypePaginatedLoader { local_context, index },
+        QueryTypePaginatedLoader {
+            local_context,
+            ctx,
+            index,
+        },
         |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )

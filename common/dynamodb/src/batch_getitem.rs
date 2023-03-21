@@ -7,7 +7,7 @@ use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
-use crate::constant::{PK, SK};
+use crate::constant::{OWNED_BY, PK, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::DynamoDBContext;
@@ -88,6 +88,17 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .remove(&self.ctx.dynamodb_table_name)
             .ok_or(BatchGetItemLoaderError::UnknownError)?
             .into_iter()
+            .filter(|item| {
+                // BatchGetItem doesn't support filtering, so do it manually
+                if let Some(user_id) = self.ctx.user_id.as_ref() {
+                    item.get(OWNED_BY)
+                        .and_then(|av| av.ss.as_ref())
+                        .map(|owners| owners.contains(user_id))
+                        .unwrap_or(false)
+                } else {
+                    true
+                }
+            })
             .fold(HashMap::new(), |mut acc, cur| {
                 let pk = cur.get(PK).and_then(|x| x.s.clone()).unwrap();
                 let sk = cur.get(SK).and_then(|x| x.s.clone()).unwrap();

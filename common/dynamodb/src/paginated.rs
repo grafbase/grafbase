@@ -1,6 +1,6 @@
 //! Extention interfaces for rusoto `DynamoDb`
 
-use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE};
 use crate::{DynamoDBRequestedIndex, QueryTypePaginatedKey};
 use dynomite::Attribute;
 use futures::TryFutureExt;
@@ -173,6 +173,7 @@ pub trait DynamoDbExtPaginated {
         query_key: QueryTypePaginatedKey,
         table: String,
         index: DynamoDBRequestedIndex,
+        owned_by: Option<&str>,
     ) -> Result<QueryResult, RusotoError<QueryError>>;
 }
 
@@ -241,6 +242,7 @@ where
         query_key: QueryTypePaginatedKey,
         table: String,
         index: DynamoDBRequestedIndex,
+        owned_by: Option<&str>,
     ) -> Result<QueryResult, RusotoError<QueryError>> {
         let QueryTypePaginatedKey {
             r#type: node_type,
@@ -290,18 +292,24 @@ where
             String::new()
         };
 
-        let sk_string = if cursor.is_nested_relation() {
+        let mut filter_expression = if cursor.is_nested_relation() {
             exp_att_name.insert("#relationname".to_string(), RELATION_NAMES.to_string());
 
             exp.insert(":relation".to_string(), cursor.relation_name().into_attr());
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            Some(format!(
-                "(begins_with(#type, :type) AND contains(#relationname, :relation)) {edge_query}"
-            ))
+            format!("(begins_with(#type, :type) AND contains(#relationname, :relation)) {edge_query}")
         } else {
             exp.insert(":type".to_string(), node_type.clone().into_attr());
-            Some(format!("begins_with(#type, :type) {edge_query}"))
+            format!("begins_with(#type, :type) {edge_query}")
         };
+
+        if let Some(owned_by) = owned_by {
+            exp_att_name.insert("#owned_by_name".to_string(), OWNED_BY.to_string());
+            exp.insert(":owned_by_value".to_string(), owned_by.to_string().into_attr());
+            filter_expression += " AND contains(#owned_by_name, :owned_by_value)";
+        }
+
+        log::debug!(trace_id, "FilterExpression: {filter_expression}");
 
         let scan_index_forward = if cursor.is_forward() {
             ordering.is_asc()
@@ -333,7 +341,7 @@ where
         let input: QueryInput = QueryInput {
             table_name: table,
             key_condition_expression,
-            filter_expression: sk_string,
+            filter_expression: Some(filter_expression),
             index_name: if cursor.is_nested_relation() {
                 None
             } else {
