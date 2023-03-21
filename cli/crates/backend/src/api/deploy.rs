@@ -57,10 +57,12 @@ pub async fn deploy() -> Result<(), ApiError> {
 
     let client = create_client().await?;
 
+    let content_length = tar_file.metadata().await.unwrap().len() as i32; // must fit or will be over allowed limit
+
     let operation = DeploymentCreate::build(DeploymentCreateArguments {
         input: DeploymentCreateInput {
             // ERROR
-            archive_file_size: tar_file.metadata().await.unwrap().len() as i32, // must fit or will be over allowed limit
+            archive_file_size: content_length,
             branch: None,
             project_id: Id::new(project_metadata.project_id),
         },
@@ -78,6 +80,7 @@ pub async fn deploy() -> Result<(), ApiError> {
             let framed_tar = FramedRead::new(tar_file, BytesCodec::new());
             let response = Client::new()
                 .put(payload.presigned_url)
+                .header(header::CONTENT_LENGTH, content_length)
                 .header(header::CONTENT_TYPE, "application/x-tar")
                 .body(Body::wrap_stream(framed_tar))
                 .send()
