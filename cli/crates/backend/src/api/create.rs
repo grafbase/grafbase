@@ -1,5 +1,6 @@
 use super::client::create_client;
 use super::consts::{API_URL, PROJECT_METADATA_FILE};
+use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
@@ -104,6 +105,9 @@ pub async fn create(
             )
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
+
+            deploy::deploy().await?;
+
             Ok(project.production_branch.domains)
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),

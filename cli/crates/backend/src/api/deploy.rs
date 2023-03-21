@@ -1,10 +1,11 @@
 use super::client::create_client;
-use super::consts::{API_URL, GRAFBASE_DIR_NAME, PACKAGE_JSON, PROJECT_METADATA_FILE};
+use super::consts::{API_URL, GRAFBASE_DIR_NAME, PACKAGE_JSON, PROJECT_METADATA_FILE, TAR_CONTENT_TYPE};
 use super::errors::ApiError;
 use super::graphql::mutations::{
     DeploymentCreate, DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
 };
 use super::types::ProjectMetadata;
+use crate::consts::USER_AGENT;
 use common::environment::Environment;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
@@ -82,7 +83,8 @@ pub async fn deploy() -> Result<(), ApiError> {
             let response = Client::new()
                 .put(payload.presigned_url)
                 .header(header::CONTENT_LENGTH, content_length)
-                .header(header::CONTENT_TYPE, "application/x-tar")
+                .header(header::CONTENT_TYPE, TAR_CONTENT_TYPE)
+                .header(header::USER_AGENT, USER_AGENT)
                 .body(Body::wrap_stream(framed_tar))
                 .send()
                 .await
