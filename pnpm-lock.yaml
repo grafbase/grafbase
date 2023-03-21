@@ -202,7 +202,7 @@ importers:
       case-sensitive-paths-webpack-plugin: ^2.4.0
       css-loader: ^6.5.1
       css-minimizer-webpack-plugin: ^4.0.0
-      dotenv: ^10.0.0
+      dotenv: ^16.0.0
       dotenv-expand: ^5.1.0
       eslint: ^8.3.0
       eslint-config-grafbase: workspace:*
@@ -274,7 +274,7 @@ importers:
       case-sensitive-paths-webpack-plugin: 2.4.0
       css-loader: 6.7.3_webpack@5.75.0
       css-minimizer-webpack-plugin: 4.2.2_webpack@5.75.0
-      dotenv: 10.0.0
+      dotenv: 16.0.3
       dotenv-expand: 5.1.0
       eslint: 8.29.0
       eslint-config-grafbase: link:../eslint-config-grafbase
@@ -5505,9 +5505,9 @@ packages:
     resolution: {integrity: sha512-YXQl1DSa4/PQyRfgrv6aoNjhasp/p4qs9FjJ4q4cQk+8m4r6k4ZSiEyytKG8f8W9gi8WsQtIObNmKd+tMzNTmA==}
     dev: true
 
-  /dotenv/10.0.0:
-    resolution: {integrity: sha512-rlBi9d8jpv9Sf1klPjNfFAuWDjKLwTIJJ/VxtoTwIR6hnZxcEOQCZg2oIL3MWBYw5GpUDKOEnND7LXTbIpQ03Q==}
-    engines: {node: '>=10'}
+  /dotenv/16.0.3:
+    resolution: {integrity: sha512-7GO6HghkA5fYG9TYnNxi14/7K9f5occMlp3zXAuSxn7CKCxt9xbNWG7yF8hTCSUchlfWSe3uLmlPfigevRItzQ==}
+    engines: {node: '>=12'}
     dev: true
 
   /duplexer/0.1.2:
