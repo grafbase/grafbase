@@ -122,7 +122,7 @@ impl Client {
 
 #[derive(serde::Serialize)]
 #[must_use]
-pub struct GqlRequestBuilder<Response = serde_json::Value> {
+pub struct GqlRequestBuilder<Response> {
     // These two will be serialized into the request
     query: String,
     #[serde(skip_serializing_if = "Option::is_none")]
