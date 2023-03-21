@@ -19,7 +19,7 @@ use crate::registry::generate_pagination_args;
 use crate::registry::names::{
     MetaNames, INPUT_ARG_FIELDS, INPUT_ARG_FILTER, INPUT_ARG_QUERY, INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY,
     INPUT_FIELD_FILTER_EQ, INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN,
-    INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_HAS_ANY, INPUT_FIELD_FILTER_LIST_HAS_NONE,
+    INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_INCLUDES, INPUT_FIELD_FILTER_LIST_INCLUDES_NONE,
     INPUT_FIELD_FILTER_LIST_IS_EMPTY, INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ,
     INPUT_FIELD_FILTER_NONE, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN, PAGINATION_FIELD_EDGES,
     PAGINATION_FIELD_EDGE_CURSOR, PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_EDGE_SEARCH_SCORE,
@@ -452,8 +452,8 @@ fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String 
             description: Some(String::new()),
             input_fields: {
                 vec![
-                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_HAS_ANY, &item_input_type_name),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_HAS_NONE, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES, &item_input_type_name),
+                    MetaInputValue::new(INPUT_FIELD_FILTER_LIST_INCLUDES_NONE, &item_input_type_name),
                     MetaInputValue::new(INPUT_FIELD_FILTER_LIST_IS_EMPTY, "Boolean"),
                 ]
                 .into_iter()

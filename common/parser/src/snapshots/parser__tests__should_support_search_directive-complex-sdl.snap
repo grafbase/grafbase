@@ -37,8 +37,8 @@ input DateListItemSearchFilterInput {
 
 """
 input DateListSearchFilterInput {
-	hasAny: DateListItemSearchFilterInput
-	hasNone: DateListItemSearchFilterInput
+	includes: DateListItemSearchFilterInput
+	includesNone: DateListItemSearchFilterInput
 	isEmpty: Boolean
 }
 """
@@ -96,8 +96,8 @@ input EmailListItemSearchFilterInput {
 
 """
 input EmailListSearchFilterInput {
-	hasAny: EmailListItemSearchFilterInput
-	hasNone: EmailListItemSearchFilterInput
+	includes: EmailListItemSearchFilterInput
+	includesNone: EmailListItemSearchFilterInput
 	isEmpty: Boolean
 }
 """
@@ -357,8 +357,8 @@ input StringListItemSearchFilterInput {
 
 """
 input StringListSearchFilterInput {
-	hasAny: StringListItemSearchFilterInput
-	hasNone: StringListItemSearchFilterInput
+	includes: StringListItemSearchFilterInput
+	includesNone: StringListItemSearchFilterInput
 	isEmpty: Boolean
 }
 """
