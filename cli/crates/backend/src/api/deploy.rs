@@ -45,6 +45,7 @@ pub async fn deploy() -> Result<(), ApiError> {
     if environment.project_path.join(PACKAGE_JSON).exists() {
         tar.append_path_with_name(environment.project_path.join(PACKAGE_JSON), PACKAGE_JSON)
             .await
+            // ERROR
             .unwrap();
     }
 
