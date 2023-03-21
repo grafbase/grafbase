@@ -17,13 +17,7 @@ fn reserved_dates() {
     let client = env.create_client();
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": RESERVED_DATES_NESTED_CREATION,
-            "variables": {}
-        })
-        .to_string(),
-    );
+    let response = client.gql::<Value>(RESERVED_DATES_NESTED_CREATION).send();
 
     let user: Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "name", String), "John");
@@ -58,15 +52,12 @@ fn reserved_dates() {
     assert_eq!(dot_get!(nested_user, "createdAt", String), created_at);
     assert_eq!(dot_get!(nested_user, "updatedAt", String), created_at);
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": RESERVED_DATES_CREATE_TODO,
-            "variables": {
+    let response = client
+        .gql::<Value>(RESERVED_DATES_CREATE_TODO)
+        .variables(json!({
                 "title": "Champion"
-            }
-        })
-        .to_string(),
-    );
+        }))
+        .send();
     let todo: Value = dot_get!(response, "data.todoCreate.todo");
     let todo_created_at = dot_get!(todo, "createdAt", String);
     assert!(todo_created_at
@@ -75,16 +66,13 @@ fn reserved_dates() {
         .gt(&Utc::now().checked_sub_signed(Duration::hours(1)).unwrap()));
     assert_eq!(dot_get!(todo, "updatedAt", String), todo_created_at);
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": RESERVED_DATES_CREATE_TODO_LIST,
-            "variables": {
-                "title": "Champion List",
-                "todoId": dot_get!(todo, "id", String)
-            }
-        })
-        .to_string(),
-    );
+    let response = client
+        .gql::<Value>(RESERVED_DATES_CREATE_TODO_LIST)
+        .variables(json!({
+            "title": "Champion List",
+            "todoId": dot_get!(todo, "id", String)
+        }))
+        .send();
     let todo_list: Value = dot_get!(response, "data.todoListCreate.todoList");
     let todo_list_created_at = dot_get!(todo_list, "createdAt", String);
     assert!(todo_list_created_at

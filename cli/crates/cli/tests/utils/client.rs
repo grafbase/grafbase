@@ -2,6 +2,7 @@
 use reqwest::header::HeaderMap;
 use serde_json::json;
 use std::{
+    marker::PhantomData,
     thread::sleep,
     time::{Duration, SystemTime},
 };
@@ -34,18 +35,18 @@ impl Client {
         self
     }
 
-    pub fn gql<T>(&self, body: String) -> T
+    pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
-        T: for<'de> serde::de::Deserialize<'de>,
+        Response: for<'de> serde::de::Deserialize<'de>,
     {
-        self.client
-            .post(&self.endpoint)
-            .body(body)
-            .headers(self.headers.clone())
-            .send()
-            .unwrap()
-            .json::<T>()
-            .unwrap()
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        GqlRequestBuilder {
+            query: query.into(),
+            variables: None,
+            phantom: PhantomData,
+            reqwest_builder,
+        }
     }
 
     fn introspect(&self) -> String {
@@ -116,5 +117,41 @@ impl Client {
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
             sleep(Duration::from_millis(interval_millis));
         }
+    }
+}
+
+#[derive(serde::Serialize)]
+#[must_use]
+pub struct GqlRequestBuilder<Response = serde_json::Value> {
+    // These two will be serialized into the request
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+
+    // These won't
+    #[serde(skip)]
+    phantom: PhantomData<fn() -> Response>,
+    #[serde(skip)]
+    reqwest_builder: reqwest::blocking::RequestBuilder,
+}
+
+impl<Response> GqlRequestBuilder<Response> {
+    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+
+    pub fn send(self) -> Response
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+
+        self.reqwest_builder
+            .json(&json)
+            .send()
+            .unwrap()
+            .json::<Response>()
+            .unwrap()
     }
 }

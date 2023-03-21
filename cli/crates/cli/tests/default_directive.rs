@@ -1,7 +1,7 @@
 mod utils;
 
 use crate::utils::consts::{DEFAULT_DIRECTIVE_CREATE_USER1, DEFAULT_DIRECTIVE_CREATE_USER2, DEFAULT_DIRECTIVE_SCHEMA};
-use serde_json::{json, Value};
+use serde_json::Value;
 use utils::environment::Environment;
 
 #[test]
@@ -13,13 +13,7 @@ fn default_directive() {
     let client = env.create_client();
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": DEFAULT_DIRECTIVE_CREATE_USER1,
-            "variables": {}
-        })
-        .to_string(),
-    );
+    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER1).send();
 
     let user: serde_json::Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "signInCount", usize), 0);
@@ -32,13 +26,7 @@ fn default_directive() {
         serde_json::json!({ "content": "" })
     );
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": DEFAULT_DIRECTIVE_CREATE_USER2,
-            "variables": {}
-        })
-        .to_string(),
-    );
+    let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER2).send();
     let user: serde_json::Value = dot_get!(response, "data.userCreate.user");
     assert_eq!(dot_get!(user, "signInCount", usize), 1);
     assert_eq!(dot_get!(user, "country", String), "France");
