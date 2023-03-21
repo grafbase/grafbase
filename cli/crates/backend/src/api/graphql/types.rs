@@ -120,7 +120,7 @@ pub mod mutations {
     #[cynic(rename_all = "camelCase")]
     pub struct DeploymentCreateInput {
         pub archive_file_size: i32,
-        pub branch: String,
+        pub branch: Option<String>,
         pub project_id: cynic::Id,
     }
 

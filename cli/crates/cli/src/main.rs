@@ -3,6 +3,7 @@
 mod cli_input;
 mod completions;
 mod create;
+mod deploy;
 mod dev;
 mod errors;
 mod init;
@@ -16,7 +17,7 @@ mod watercolor;
 #[macro_use]
 extern crate log;
 
-use crate::{create::create, dev::dev, init::init, login::login, logout::logout, reset::reset};
+use crate::{create::create, deploy::deploy, dev::dev, init::init, login::login, logout::logout, reset::reset};
 use cli_input::build_cli;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
@@ -59,11 +60,11 @@ fn try_main() -> Result<(), CliError> {
 
     trace!("subcommand: {}", subcommand.expect("required").0);
 
-    if let Some(("dev" | "init" | "reset" | "login" | "logout" | "create", ..)) = subcommand {
+    if let Some(("dev" | "init" | "reset" | "login" | "logout" | "create" | "deploy", ..)) = subcommand {
         report::cli_header();
     }
 
-    if let Some(("dev" | "create", ..)) = subcommand {
+    if let Some(("dev" | "create" | "deploy", ..)) = subcommand {
         Environment::try_init().map_err(CliError::CommonError)?;
     }
 
@@ -95,6 +96,7 @@ fn try_main() -> Result<(), CliError> {
         Some(("login", _)) => login(),
         Some(("logout", _)) => logout(),
         Some(("create", _)) => create(),
+        Some(("deploy", _)) => deploy(),
         _ => unreachable!(),
     }
 }
