@@ -50,6 +50,12 @@ pub struct MetaNames;
 ///     - The model name must be the prefix
 ///     - All types/inputs must be CamelCase, all fields must be camelCase.
 impl MetaNames {
+    pub fn entity_type(model_type_definition: &TypeDefinition) -> String {
+        // FIXME: At several places the lowercase for the id & entity_type is
+        // used. A single code path should handle that.
+        MetaNames::model(model_type_definition).to_lowercase()
+    }
+
     pub fn model(model_type_definition: &TypeDefinition) -> String {
         model_type_definition.name.node.to_camel()
     }
@@ -63,6 +69,14 @@ impl MetaNames {
 
     pub fn search_filter_input(model_type_definition: &TypeDefinition) -> String {
         format!("{}SearchFilterInput", Self::model(model_type_definition))
+    }
+
+    pub fn search_scalar_list_filter_input(scalar: &str) -> String {
+        format!("{scalar}ListSearchFilterInput")
+    }
+
+    pub fn search_scalar_list_item_filter_input(scalar: &str) -> String {
+        format!("{scalar}ListItemSearchFilterInput")
     }
 
     pub fn search_scalar_filter_input(scalar: &str, nullable: bool) -> String {

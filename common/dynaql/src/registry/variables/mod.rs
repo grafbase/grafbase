@@ -8,7 +8,6 @@
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError, ServerResult};
 use dynaql_value::Name;
-use graph_entities::cursor::PaginationCursor;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 
@@ -117,20 +116,6 @@ impl VariableResolveDefinition {
                 Err(Error::new("Internal Error: failed to infer key")
                     .into_server_error(ctx.item.pos))
             }
-        }
-    }
-
-    pub fn expect_opt_cursor<'a>(
-        &self,
-        ctx: &'a Context<'a>,
-        last_resolver_value: Option<&'a serde_json::Value>,
-    ) -> Result<Option<PaginationCursor>, ServerError> {
-        match self.expect_opt_string(ctx, last_resolver_value)? {
-            Some(s) => match PaginationCursor::from_string(s) {
-                Ok(cursor) => Ok(Some(cursor)),
-                Err(_) => Err(Error::new("Invalid Cursor").into_server_error(ctx.item.pos)),
-            },
-            None => Ok(None),
         }
     }
 

@@ -1,14 +1,16 @@
 use serde_json::Value;
 use thiserror::Error;
 
-use grafbase_runtime::search;
+use grafbase_runtime::search::{self, Cursor, ScalarCondition};
 
 use crate::{
     names::{
         INPUT_FIELD_FILTER_ALL, INPUT_FIELD_FILTER_ANY, INPUT_FIELD_FILTER_EQ,
         INPUT_FIELD_FILTER_GT, INPUT_FIELD_FILTER_GTE, INPUT_FIELD_FILTER_IN,
-        INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LT, INPUT_FIELD_FILTER_LTE,
-        INPUT_FIELD_FILTER_NEQ, INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
+        INPUT_FIELD_FILTER_IS_NULL, INPUT_FIELD_FILTER_LIST_HAS_ANY,
+        INPUT_FIELD_FILTER_LIST_HAS_NONE, INPUT_FIELD_FILTER_LIST_IS_EMPTY, INPUT_FIELD_FILTER_LT,
+        INPUT_FIELD_FILTER_LTE, INPUT_FIELD_FILTER_NEQ, INPUT_FIELD_FILTER_NONE,
+        INPUT_FIELD_FILTER_NOT, INPUT_FIELD_FILTER_NOT_IN,
     },
     registry::scalars::{DateScalar, DateTimeScalar, IPAddressScalar, TimestampScalar},
     Error,
@@ -22,15 +24,13 @@ pub enum InvalidPagination {
     UnsupporedBackwardsWithoutCursor,
     #[error("Either 'first' or 'last' must be specified.")]
     MissingDirection,
-    #[error("Invalid cursor")]
-    InvalidCursor,
 }
 
 pub fn parse_pagination(
     first: Option<usize>,
-    before: Option<String>,
+    before: Option<Cursor>,
     last: Option<usize>,
-    after: Option<String>,
+    after: Option<Cursor>,
 ) -> Result<search::Pagination, InvalidPagination> {
     match (first, after, last, before) {
         (Some(_), _, Some(_), _) => Err(InvalidPagination::UnsupportedCombination("first", "last")),
@@ -38,22 +38,15 @@ pub fn parse_pagination(
             Err(InvalidPagination::UnsupportedCombination("first", "before"))
         }
         (_, Some(_), Some(_), _) => Err(InvalidPagination::UnsupportedCombination("last", "after")),
-        (Some(first), None, None, None) => Ok(search::Pagination::Forward {
+        (Some(first), after, None, None) => Ok(search::Pagination::Forward {
             first: first as u64,
-            after: None,
-        }),
-        (Some(first), Some(after), None, None) => Ok(search::Pagination::Forward {
-            first: first as u64,
-            after: Some(
-                search::Cursor::try_from(after).map_err(|_| InvalidPagination::InvalidCursor)?,
-            ),
+            after,
         }),
         (None, None, Some(last), before) => {
             if let Some(before) = before {
                 Ok(search::Pagination::Backward {
                     last: last as u64,
-                    before: search::Cursor::try_from(before)
-                        .map_err(|_| InvalidPagination::InvalidCursor)?,
+                    before,
                 })
             } else {
                 Err(InvalidPagination::UnsupporedBackwardsWithoutCursor)
@@ -70,7 +63,7 @@ pub fn parse_filter(schema: &search::Schema, object: Value) -> Result<search::Fi
                 .into_iter()
                 .map(|(name, value)| {
                     (if let Some(field) = schema.fields.get(&name) {
-                        parse_scalar_filter(&name, field, value)
+                        parse_field_filter(&name, field, value)
                             .map_err(|err| Error::new(format!("Field '{name}': {err:?}")))
                     } else {
                         match name.as_str() {
@@ -79,6 +72,9 @@ pub fn parse_filter(schema: &search::Schema, object: Value) -> Result<search::Fi
                             }
                             INPUT_FIELD_FILTER_ANY => {
                                 parse_filter_array(schema, value).map(search::Filter::Any)
+                            }
+                            INPUT_FIELD_FILTER_NONE => {
+                                parse_filter_array(schema, value).map(search::Filter::None_)
                             }
                             INPUT_FIELD_FILTER_NOT => parse_filter(schema, value)
                                 .map(|f| search::Filter::Not(Box::new(f))),
@@ -103,38 +99,109 @@ fn parse_filter_array(schema: &search::Schema, array: Value) -> Result<Vec<searc
     }
 }
 
-fn parse_scalar_filter(
+fn parse_field_filter(
     field_name: &str,
     field: &search::FieldEntry,
-    filters: Value,
+    conditions: Value,
 ) -> Result<search::Filter, Error> {
-    match filters {
-        Value::Object(filters) => Ok(search::Filter::All(
-            filters
-                .into_iter()
-                .map(|(name, value)| {
-                    use search::Condition::*;
-                    let condition = match name.as_str() {
-                        INPUT_FIELD_FILTER_EQ => Eq(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_NEQ => Neq(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_GT => Gt(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_GTE => Gte(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_LTE => Lte(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_LT => Lt(parse_scalar(field, value)?),
-                        INPUT_FIELD_FILTER_IN => In(parse_scalar_array(field, value)?),
-                        INPUT_FIELD_FILTER_NOT_IN => NotIn(parse_scalar_array(field, value)?),
-                        INPUT_FIELD_FILTER_IS_NULL => IsNull(serde_json::from_value(value)?),
-                        _ => return Err(Error::new(format!("Unknown field {name}"))),
-                    };
-                    Ok(search::Filter::FieldFilter {
-                        field: field_name.to_string(),
-                        condition,
-                    })
-                })
-                .collect::<Result<_, Error>>()?,
-        )),
+    match conditions {
+        Value::Object(conditions) => {
+            if conditions.contains_key(INPUT_FIELD_FILTER_LIST_HAS_ANY)
+                || conditions.contains_key(INPUT_FIELD_FILTER_LIST_IS_EMPTY)
+                || conditions.contains_key(INPUT_FIELD_FILTER_LIST_HAS_NONE)
+            {
+                parse_list_filter(field, field_name, conditions)
+            } else {
+                parse_scalar_filter(field, field_name, conditions)
+            }
+        }
+        _ => Err(Error::new("Expected an object of conditions")),
+    }
+}
 
-        _ => Err(Error::new("Expected an object of filters")),
+fn parse_list_filter(
+    field: &search::FieldEntry,
+    field_name: &str,
+    conditions: serde_json::Map<String, Value>,
+) -> Result<search::Filter, Error> {
+    use search::ListCondition::*;
+    Ok(search::Filter::All(
+        conditions
+            .into_iter()
+            .map(|(name, value)| {
+                Ok(match name.as_str() {
+                    INPUT_FIELD_FILTER_LIST_HAS_ANY => search::Filter::ListFilter {
+                        field: field_name.to_string(),
+                        condition: HasAny(parse_scalar_condition(field, value)?),
+                    },
+                    INPUT_FIELD_FILTER_LIST_HAS_NONE => search::Filter::ListFilter {
+                        field: field_name.to_string(),
+                        condition: HasNone(parse_scalar_condition(field, value)?),
+                    },
+                    INPUT_FIELD_FILTER_LIST_IS_EMPTY => search::Filter::ListFilter {
+                        field: field_name.to_string(),
+                        condition: IsEmpty(serde_json::from_value(value)?),
+                    },
+                    _ => return Err(Error::new(format!("Unknown list condition {name}"))),
+                })
+            })
+            .collect::<Result<_, Error>>()?,
+    ))
+}
+
+fn parse_scalar_filter(
+    field: &search::FieldEntry,
+    field_name: &str,
+    conditions: serde_json::Map<String, Value>,
+) -> Result<search::Filter, Error> {
+    parse_scalar_condition(field, Value::Object(conditions)).map(|condition| {
+        search::Filter::ScalarFilter {
+            field: field_name.to_string(),
+            condition,
+        }
+    })
+}
+
+fn parse_scalar_condition(
+    field: &search::FieldEntry,
+    conditions: Value,
+) -> Result<ScalarCondition, Error> {
+    use search::ScalarCondition::*;
+    match conditions {
+        Value::Object(conditions) => Ok(All(conditions
+            .into_iter()
+            .map(|(name, value)| {
+                Ok(match name.as_str() {
+                    INPUT_FIELD_FILTER_EQ => Eq(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_NEQ => Neq(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_GT => Gt(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_GTE => Gte(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_LTE => Lte(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_LT => Lt(parse_scalar(field, value)?),
+                    INPUT_FIELD_FILTER_IN => In(parse_scalar_array(field, value)?),
+                    INPUT_FIELD_FILTER_NOT_IN => NotIn(parse_scalar_array(field, value)?),
+                    INPUT_FIELD_FILTER_IS_NULL => IsNull(serde_json::from_value(value)?),
+                    INPUT_FIELD_FILTER_ALL => All(parse_scalar_condition_array(field, value)?),
+                    INPUT_FIELD_FILTER_ANY => Any(parse_scalar_condition_array(field, value)?),
+                    INPUT_FIELD_FILTER_NOT => Not(Box::new(parse_scalar_condition(field, value)?)),
+                    _ => return Err(Error::new(format!("Unknown condition {name}"))),
+                })
+            })
+            .collect::<Result<_, Error>>()?)),
+        _ => Err(Error::new("Expected an object of conditions")),
+    }
+}
+
+fn parse_scalar_condition_array(
+    field: &search::FieldEntry,
+    conditions: Value,
+) -> Result<Vec<ScalarCondition>, Error> {
+    match conditions {
+        Value::Array(nested) => nested
+            .into_iter()
+            .map(|cond| parse_scalar_condition(field, cond))
+            .collect(),
+        _ => Err(Error::new("Expected a list of conditions")),
     }
 }
 

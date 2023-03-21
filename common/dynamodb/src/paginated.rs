@@ -4,7 +4,6 @@ use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
 use crate::{DynamoDBRequestedIndex, QueryTypePaginatedKey};
 use dynomite::Attribute;
 use futures::TryFutureExt;
-use graph_entities::cursor::PaginationCursor;
 use graph_entities::{ConstraintID, ID};
 use indexmap::map::Entry;
 use indexmap::IndexMap;
@@ -90,8 +89,8 @@ impl PaginatedCursor {
     pub fn from_graphql(
         first: Option<usize>,
         last: Option<usize>,
-        after: Option<PaginationCursor>,
-        before: Option<PaginationCursor>,
+        after: Option<String>,
+        before: Option<String>,
         nested: Option<ParentEdge>,
     ) -> Result<Self, CursorCreation> {
         match (first, after, last, before) {
@@ -99,12 +98,12 @@ impl PaginatedCursor {
             (Some(_), _, _, Some(_)) => Err(CursorCreation::FirstAndBeforeSameTime),
             (_, Some(_), Some(_), _) => Err(CursorCreation::LastAndAfterSameTime),
             (Some(first), after, None, None) => Ok(Self::Forward {
-                exclusive_last_key: after.map(|cursor| cursor.id),
+                exclusive_last_key: after,
                 first,
                 maybe_parent_edge: nested,
             }),
             (None, None, Some(last), before) => Ok(Self::Backward {
-                exclusive_first_key: before.map(|cursor| cursor.id),
+                exclusive_first_key: before,
                 last,
                 maybe_parent_edge: nested,
             }),

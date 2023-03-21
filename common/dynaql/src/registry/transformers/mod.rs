@@ -10,10 +10,9 @@
 //! At the end of the transformation, each transformed values are merged into one
 //! serde_json::Value.
 
-use super::utils::attribute_to_value;
+use super::{resolvers::dynamo_querying::IdCursor, utils::attribute_to_value};
 use crate::Error;
 use dynomite::AttributeValue;
-use graph_entities::cursor::PaginationCursor;
 use std::collections::HashMap;
 
 /// Describe the Transformer step used to transform a Value from the Resolver.
@@ -39,7 +38,7 @@ impl Transformer {
             }
             Self::ConvertSkToCursor => {
                 let sk: String = serde_json::from_value(value)?;
-                Ok(serde_json::to_value(PaginationCursor { id: sk })?)
+                Ok(serde_json::to_value(IdCursor { id: sk })?)
             }
             Self::JSONSelect { property } => {
                 let result = value
