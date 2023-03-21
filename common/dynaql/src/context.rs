@@ -2,7 +2,7 @@
 
 use async_lock::RwLock as AsynRwLock;
 
-use dynamodb::CurrentDateTime;
+use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
 use graph_entities::QueryResponse;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
@@ -907,6 +907,13 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         }
     }
 
+    pub fn trace_id(&self) -> String {
+        self.data::<Arc<DynamoDBBatchersData>>()
+            .map(|x| x.ctx.trace_id.clone())
+            .ok()
+            .unwrap_or_default()
+    }
+
     #[cfg(feature = "query-planning")]
     pub fn convert_resolver_to_logic_plan(
         &self,
@@ -914,12 +921,15 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         resolver: Option<&Resolver>,
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
-        use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
+        use query_planning::logical_plan::builder::{
+            join, LogicalPlanBuilder, PaginationArgumentsBuilder,
+        };
 
+        use query_planning::logical_plan::cursor::Cursor;
         use query_planning::logical_plan::Datasource;
 
         use crate::registry::plan::{PlanProjection, PlanRelated};
-        use crate::registry::resolvers::dynamo_querying::DynamoResolver;
+        use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
 
         if let Some(plan) = plan {
@@ -937,6 +947,31 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     to,
                     relation_name,
                 }) => {
+                    // For a [`PlanRelated`] plan, we have to infer the local pagination arguments
+                    // We removed them from the schema definition as it shouldn't change.
+                    let first = VariableResolveDefinition::InputTypeName("first".to_string());
+                    let last = VariableResolveDefinition::InputTypeName("last".to_string());
+                    let after = VariableResolveDefinition::InputTypeName("before".to_string());
+                    let before = VariableResolveDefinition::InputTypeName("after".to_string());
+
+                    let first = first.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
+                    let after = after.expect_opt_cursor(self, None)?;
+                    let before = before.expect_opt_cursor(self, None)?;
+                    let last = last.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
+
+                    let cursor = Cursor::try_new(first, last, after, before).map_err(|err| {
+                        Error::new_with_source(err).into_server_error(self.item.pos)
+                    })?;
+
+                    let elt_to_fetch = cursor.elt_to_fetch();
+                    let pagination = PaginationArgumentsBuilder::default()
+                        .cursor(cursor)
+                        // .order_by()
+                        .build()
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?;
+
                     let previous = if from.is_some() {
                         previous_plan.ok_or_else(|| {
                         ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
@@ -954,8 +989,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                                 .map(|x| vec![x.clone()])
                                 .unwrap_or_default(),
                             schema.as_ref(),
+                            pagination,
                             Datasource::gb(),
                         )
+                        .and_then(|x| x.limit(0, Some(elt_to_fetch)))
                         .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
                         .build()
                 }
