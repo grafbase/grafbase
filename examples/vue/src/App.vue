@@ -12,59 +12,59 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref } from 'vue'
 
 interface MessageNode {
-  id: string;
-  author: string;
-  body: string;
-  createdAt: string;
+  id: string
+  author: string
+  body: string
+  createdAt: string
 }
 
 export default defineComponent({
   name: 'App',
 
   setup() {
-    const nodes = ref<MessageNode[]>([]);
+    const nodes = ref<MessageNode[]>([])
 
     const GetAllMessagesQuery = /* GraphQL */ `
-    query GetAllMessages($first: Int!) {
-      messageCollection(first: $first) {
-        edges {
-          node {
-            id
-            author
-            body
-            createdAt
+      query GetAllMessages($first: Int!) {
+        messageCollection(first: $first) {
+          edges {
+            node {
+              id
+              author
+              body
+              createdAt
+            }
           }
         }
       }
-    }
-  `
+    `
 
-    fetch('http://localhost:4000/graphql', {
+    fetch(process.env.VUE_APP_GRAFBASE_API_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-          query: GetAllMessagesQuery,
-          variables: {
-            first: 100
-          }
-        }),
+        query: GetAllMessagesQuery,
+        variables: {
+          first: 100
+        }
+      })
     })
       .then((res) => res.json())
       .then((data) => {
         nodes.value = data.data.messageCollection.edges.map(
           (edge: { node: MessageNode }) => edge.node
-        );
+        )
       })
       .catch((error) => {
-        console.error(error);
-      });
+        console.error(error)
+      })
 
-    return { nodes };
-  },
-});
+    return { nodes }
+  }
+})
 </script>
