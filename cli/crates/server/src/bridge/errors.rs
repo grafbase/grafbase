@@ -1,3 +1,4 @@
+use super::api_counterfeit::search;
 use super::sqlite::extended_error_codes;
 use super::types::Constraint;
 use super::types::Operation;
@@ -31,6 +32,13 @@ pub enum UserError {
 impl From<SqlxError> for ApiError {
     fn from(error: SqlxError) -> Self {
         Self::SqlError(error)
+    }
+}
+
+impl From<search::SearchError> for ApiError {
+    fn from(error: search::SearchError) -> Self {
+        error!("Search Error: {error:?}");
+        Self::ServerError
     }
 }
 

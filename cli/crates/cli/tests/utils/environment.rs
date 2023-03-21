@@ -109,6 +109,8 @@ impl Environment {
     pub fn grafbase_dev(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),
+            "--trace",
+            "2",
             "dev",
             "--disable-watch",
             "--port",

@@ -5,17 +5,8 @@ query OptSearch(
   $before: String
   $after: String
   $filter: FieldsSearchFilterInput
-  $fields: [String!]
 ) {
-  fieldsSearch(
-    query: $query
-    first: $first
-    after: $after
-    last: $last
-    before: $before
-    filter: $filter
-    fields: $fields
-  ) {
+  fieldsSearch(query: $query, first: $first, after: $after, last: $last, before: $before, filter: $filter) {
     searchInfo {
       totalHits
     }
@@ -30,17 +21,6 @@ query OptSearch(
       score
       node {
         id
-        ip
-        timestamp
-        url
-        email
-        phone
-        datetime
-        date
-        text
-        int
-        float
-        bool
       }
     }
   }
