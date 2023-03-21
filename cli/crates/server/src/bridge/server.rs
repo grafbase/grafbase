@@ -17,6 +17,7 @@ use common::environment::Environment;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -25,8 +26,14 @@ use std::sync::Arc;
 use tokio::sync::broadcast::Sender;
 use tower_http::trace::TraceLayer;
 
+struct HandlerState {
+    worker_port: u16,
+    environment_variables: HashMap<String, String>,
+    pool: SqlitePool,
+}
+
 async fn query_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State(handler_state): State<Arc<HandlerState>>,
     Json(payload): Json<Operation>,
 ) -> Result<Json<Vec<Record>>, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
@@ -36,7 +43,7 @@ async fn query_endpoint(
     let result = payload
         .iter_variables()
         .fold(template, QueryAs::bind)
-        .fetch_all(pool.as_ref())
+        .fetch_all(&handler_state.as_ref().pool)
         .await
         .map_err(|error| {
             error!("query error: {error}");
@@ -49,7 +56,7 @@ async fn query_endpoint(
 }
 
 async fn mutation_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State(handler_state): State<Arc<HandlerState>>,
     Json(payload): Json<Mutation>,
 ) -> Result<StatusCode, ApiError> {
     trace!("request\n\n{:#?}\n", payload);
@@ -58,7 +65,7 @@ async fn mutation_endpoint(
         return Ok(StatusCode::OK);
     };
 
-    let mut transaction = pool.begin().await.map_err(|error| {
+    let mut transaction = handler_state.as_ref().pool.begin().await.map_err(|error| {
         error!("transaction start error: {error}");
         error
     })?;
@@ -89,7 +96,7 @@ async fn mutation_endpoint(
 }
 
 async fn search_endpoint(
-    State(pool): State<Arc<SqlitePool>>,
+    State(handler_state): State<Arc<HandlerState>>,
     Json(request): Json<QueryExecutionRequest>,
 ) -> Result<Json<QueryExecutionResponse>, ApiError> {
     let registry: Registry = {
@@ -106,7 +113,7 @@ async fn search_endpoint(
         versioned.registry
     };
 
-    let response = Index::build(pool.as_ref(), &request.entity_type, &registry.search_config)
+    let response = Index::build(&handler_state.pool, &request.entity_type, &registry.search_config)
         .await?
         .search(request.query, request.pagination)?;
     Ok(Json(response))
@@ -132,15 +139,19 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     query(PREPARE).execute(&pool).await?;
 
-    let pool = Arc::new(pool);
+    let environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
 
-    let _environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
+    let handler_state = Arc::new(HandlerState {
+        worker_port,
+        environment_variables,
+        pool,
+    });
 
     let router = Router::new()
         .route("/query", post(query_endpoint))
         .route("/mutation", post(mutation_endpoint))
         .route("/search", post(search_endpoint))
-        .with_state(Arc::clone(&pool))
+        .with_state(handler_state.clone())
         .layer(TraceLayer::new_for_http());
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
@@ -158,7 +169,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
         listener_result = listener::start(worker_port, event_bus) => { listener_result? }
     };
 
-    pool.close().await;
+    handler_state.pool.close().await;
 
     Ok(())
 }
