@@ -62,14 +62,14 @@ fn schema_arity(ctx: &super::Context, operation_index: NodeIndex, schema_index: 
     // We already have the index of the final node, so we can ditch the end of the path
     path.pop()?;
 
-    // We need to get the Wrapping type from the edge between the schema and it underlying type
-    let schema_parent_index = path.pop()?;
+    // We need to get the Wrapping type from the edge between the schema and its underlying type
     let wrapping_type = ctx.graph.edges(schema_index).find_map(|edge| match edge.weight() {
         Edge::HasType { wrapping, .. } => Some(wrapping.clone()),
         _ => None,
     })?;
 
     // We also need to take the wrapping type from the edge that points to our schema.
+    let schema_parent_index = path.pop()?;
     let outer_wrapping_type = ctx
         .graph
         .edges_connecting(schema_parent_index, schema_index)
