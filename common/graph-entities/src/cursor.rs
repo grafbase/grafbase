@@ -36,8 +36,7 @@ impl Display for PaginationCursor {
 impl PaginationCursor {
     pub fn encode(value: &str) -> String {
         use base64::Engine;
-        let utf8 = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(value);
-        utf8
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(value)
     }
 
     pub fn from_string(value: String) -> Result<PaginationCursor, base64::DecodeError> {

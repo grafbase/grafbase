@@ -928,7 +928,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         use query_planning::logical_plan::cursor::Cursor;
         use query_planning::logical_plan::Datasource;
 
-        use crate::registry::plan::{PlanProjection, PlanRelated};
+        use crate::registry::plan::{Apply, PlanProjection, PlanRelated};
         use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
 
@@ -993,7 +993,22 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             Datasource::gb(),
                         )
                         .and_then(|x| x.limit(0, Some(elt_to_fetch)))
-                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
+                }
+                SchemaPlan::Apply(Apply { fun_fields, plan }) => {
+                    let sub_plan: ArcIntern<LogicalPlan> = self.convert_resolver_to_logic_plan(
+                        previous_plan,
+                        resolver,
+                        Some(plan.as_ref()),
+                    )?;
+                    LogicalPlanBuilder::from(sub_plan)
+                        .apply(fun_fields.clone())
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
                         .build()
                 }
             });
