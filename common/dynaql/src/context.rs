@@ -951,8 +951,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     // We removed them from the schema definition as it shouldn't change.
                     let first = VariableResolveDefinition::InputTypeName("first".to_string());
                     let last = VariableResolveDefinition::InputTypeName("last".to_string());
-                    let after = VariableResolveDefinition::InputTypeName("before".to_string());
-                    let before = VariableResolveDefinition::InputTypeName("after".to_string());
+                    let after = VariableResolveDefinition::InputTypeName("after".to_string());
+                    let before = VariableResolveDefinition::InputTypeName("before".to_string());
 
                     let first = first.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
                     let after = after.expect_opt_cursor(self, None)?;
