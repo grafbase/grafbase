@@ -129,13 +129,7 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {
-        let response = client.gql::<Value>(
-            json!({
-                "query": create_query,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client.gql::<Value>(create_query).variables(variables).send();
         dot_get!(response, &format!("data.{name}Create.{name}.id"))
     };
     let search = |query: &str, fields: Option<Vec<&str>>, filter: Value| -> Collection<Value> {
@@ -144,13 +138,10 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
         } else {
             Value::String(query.to_string())
         };
-        let response = client.gql::<Value>(
-            json!({
-                "query": search_query,
-                "variables": json!({"query": query, "first": 10, "filter": filter, "fields": fields})
-            })
-            .to_string(),
-        );
+        let response = client
+            .gql::<Value>(search_query)
+            .variables(json!({"query": query, "first": 10, "filter": filter, "fields": fields}))
+            .send();
         dot_get!(response, &format!("data.{name}Search"))
     };
     let search_text = |query: &str| search(query, None, Value::Null);
@@ -410,23 +401,11 @@ fn search_created_updated_at() {
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {
-        let response = client.gql::<Value>(
-            json!({
-                "query": SEARCH_CREATE_OPTIONAL,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client.gql::<Value>(SEARCH_CREATE_OPTIONAL).variables(variables).send();
         dot_get!(response, "data.fieldsCreate.fields.id")
     };
     let search = |variables: Value| -> Collection<Value> {
-        let response = client.gql::<Value>(
-            json!({
-                "query": SEARCH_METADATA_FIELDS,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client.gql::<Value>(SEARCH_METADATA_FIELDS).variables(variables).send();
         dot_get!(response, "data.fieldsSearch")
     };
 
@@ -483,23 +462,11 @@ fn search_pagination_and_total_hits() {
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {
-        let response = client.gql::<Value>(
-            json!({
-                "query": SEARCH_CREATE_OPTIONAL,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client.gql::<Value>(SEARCH_CREATE_OPTIONAL).variables(variables).send();
         dot_get!(response, "data.fieldsCreate.fields.id")
     };
     let search = |variables: Value| -> Collection<Value> {
-        let response = client.gql::<Value>(
-            json!({
-                "query": SEARCH_PAGINATION,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client.gql::<Value>(SEARCH_PAGINATION).variables(variables).send();
         dot_get!(response, "data.fieldsSearch")
     };
 

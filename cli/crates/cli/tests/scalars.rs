@@ -6,30 +6,13 @@ use utils::client::Client;
 use utils::consts::{SCALARS_CREATE_OPTIONAL, SCALARS_CREATE_REQUIRED, SCALARS_SCHEMA};
 use utils::environment::Environment;
 
-trait ClientScalarExt {
-    fn create_opt(&self, variables: Value) -> Value;
-    fn create_req(&self, variables: Value) -> Value;
-}
-
-impl ClientScalarExt for Client {
+impl Client {
     fn create_opt(&self, variables: Value) -> Value {
-        self.gql::<Value>(
-            json!({
-                "query": SCALARS_CREATE_OPTIONAL,
-                "variables": variables
-            })
-            .to_string(),
-        )
+        self.gql::<Value>(SCALARS_CREATE_OPTIONAL).variables(variables).send()
     }
 
     fn create_req(&self, variables: Value) -> Value {
-        self.gql::<Value>(
-            json!({
-                "query": SCALARS_CREATE_REQUIRED,
-                "variables": variables
-            })
-            .to_string(),
-        )
+        self.gql::<Value>(SCALARS_CREATE_REQUIRED).variables(variables).send()
     }
 }
 

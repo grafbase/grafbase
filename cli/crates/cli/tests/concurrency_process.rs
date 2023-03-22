@@ -1,6 +1,8 @@
 mod utils;
 
-use serde_json::{json, Value};
+use std::future::IntoFuture;
+
+use serde_json::Value;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
@@ -22,8 +24,8 @@ async fn concurrency_process() {
 
     for _ in 0..15 {
         let (response1, response2): (Value, Value) = tokio::join!(
-            async_client1.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string()),
-            async_client2.gql::<Value>(json!({ "query": CONCURRENCY_MUTATION }).to_string())
+            async_client1.gql::<Value>(CONCURRENCY_MUTATION).into_future(),
+            async_client2.gql::<Value>(CONCURRENCY_MUTATION).into_future()
         );
 
         let errors1: Option<Value> = dot_get_opt!(response1, "errors");
@@ -33,12 +35,8 @@ async fn concurrency_process() {
         assert!(errors2.is_none(), "errors2: {errors2:#?}");
     }
 
-    let response1 = async_client1
-        .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
-        .await;
-    let response2 = async_client2
-        .gql::<Value>(json!({ "query": CONCURRENCY_QUERY }).to_string())
-        .await;
+    let response1 = async_client1.gql::<Value>(CONCURRENCY_QUERY).await;
+    let response2 = async_client2.gql::<Value>(CONCURRENCY_QUERY).await;
 
     let result_list1: Vec<Value> = dot_get!(response1, "data.todoListCollection.edges");
     let result_list2: Vec<Value> = dot_get!(response2, "data.todoListCollection.edges");
