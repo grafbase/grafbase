@@ -134,7 +134,11 @@ pub enum OutputFieldKind {
 impl OutputField {
     fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
         let api_name = &self.name;
-        let graphql_name = api_name.to_camel_case();
+        let mut graphql_name = api_name.to_camel_case();
+
+        if self.looks_like_nodes_field(graph) {
+            graphql_name = "nodes".to_string();
+        }
 
         let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
             key: api_name.to_string(),
@@ -231,27 +235,29 @@ impl Operation {
             resolve: Some(Resolver {
                 id: None,
                 r#type: ResolverType::Http(HttpResolver {
-                    method: self.http_method(graph)?,
-                    url: self.url(graph)?,
+                    method: self.http_method(graph),
+                    url: self.url(graph),
                     api_name: graph.metadata.name.clone(),
                     expected_status: self.expected_status(graph)?,
                     path_parameters: path_parameters
                         .iter()
                         .map(|param| {
-                            let name = param.name(graph).unwrap().to_string();
+                            let name = param.openapi_name(graph).unwrap().to_string();
+                            let input_name = param.graphql_name(graph).unwrap().to_string();
                             http::PathParameter {
-                                name: name.clone(),
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                                name,
+                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
                             }
                         })
                         .collect(),
                     query_parameters: query_parameters
                         .iter()
                         .map(|param| {
-                            let name = param.name(graph).unwrap().to_owned();
+                            let name = param.openapi_name(graph).unwrap().to_string();
+                            let input_name = param.graphql_name(graph).unwrap().to_string();
                             http::QueryParameter {
-                                name: name.clone(),
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(name),
+                                name,
+                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
                                 encoding_style: param.encoding_style(graph).unwrap(),
                             }
                         })
@@ -276,7 +282,7 @@ impl PathParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
-            self.name(graph)?.to_string(),
+            self.graphql_name(graph)?.to_string(),
             TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }
@@ -286,7 +292,7 @@ impl QueryParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
         let input_value = self.input_value(graph)?;
         Some(MetaInputValue::new(
-            self.name(graph)?,
+            self.graphql_name(graph)?.to_string(),
             TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
         ))
     }

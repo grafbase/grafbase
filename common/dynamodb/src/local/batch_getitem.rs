@@ -1,8 +1,9 @@
 use super::bridge_api;
 use super::types::{Operation, Record, Sql, SqlValue};
+use crate::constant::OWNED_BY;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::LocalContext;
+use crate::{DynamoDBContext, LocalContext};
 use dynomite::AttributeValue;
 use maplit::hashmap;
 use quick_error::quick_error;
@@ -24,6 +25,7 @@ quick_error! {
 
 pub struct BatchGetItemLoader {
     local_ctx: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
 }
 
 #[async_trait::async_trait]
@@ -55,17 +57,31 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         .map_err(|_| Self::Error::UnknownError)?;
 
         let response = results
-            .iter()
-            .map(|Record { pk, sk, document, .. }| ((pk.clone(), sk.clone()), document.clone()))
+            .into_iter()
+            .filter(|item| {
+                if let Some(user_id) = self.ctx.user_id.as_ref() {
+                    item.document
+                        .get(OWNED_BY)
+                        .and_then(|item| item.ss.as_ref())
+                        .map(|owners| owners.contains(user_id))
+                        .unwrap_or_default()
+                } else {
+                    true
+                }
+            })
+            .map(|Record { pk, sk, document, .. }| ((pk, sk), document))
             .collect();
 
         Ok(response)
     }
 }
 
-pub fn get_loader_batch_transaction(local_ctx: Arc<LocalContext>) -> DataLoader<BatchGetItemLoader, LruCache> {
+pub fn get_loader_batch_transaction(
+    local_ctx: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
+) -> DataLoader<BatchGetItemLoader, LruCache> {
     DataLoader::with_cache(
-        BatchGetItemLoader { local_ctx },
+        BatchGetItemLoader { local_ctx, ctx },
         |f| Runtime::locate().spawn(f),
         LruCache::new(128),
     )

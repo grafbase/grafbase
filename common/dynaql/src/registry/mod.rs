@@ -12,7 +12,6 @@ pub mod utils;
 pub mod variables;
 
 use arrow_schema::Schema as ArrowSchema;
-use dynamodb::DynamoDBBatchersData;
 use dynaql_parser::Pos;
 use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
@@ -440,7 +439,7 @@ impl MetaField {
                         {
                             #[cfg(feature = "tracing_worker")]
                             logworker::warn!(
-                                ctx.data_unchecked::<Arc<DynamoDBBatchersData>>().ctx.trace_id,
+                                ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>().ctx.trace_id,
                                 "{}",
                                 serde_json::to_string_pretty(&serde_json::json!({
                                     "message": "Something went wrong here",

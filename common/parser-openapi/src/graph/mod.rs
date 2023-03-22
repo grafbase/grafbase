@@ -4,7 +4,7 @@ use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodi
 use inflector::Inflector;
 use petgraph::{
     graph::NodeIndex,
-    visit::{EdgeRef, IntoEdges, Reversed},
+    visit::{EdgeFiltered, EdgeRef, IntoEdges, Reversed},
     Graph,
 };
 
@@ -81,13 +81,21 @@ pub enum Node {
 #[allow(clippy::enum_variant_names)]
 pub enum Edge {
     /// Links an object with the types of it's fields.
-    HasField { name: String, wrapping: WrappingType },
+    HasField {
+        name: String,
+        wrapping: WrappingType,
+    },
 
     /// The edge between a schema and its underlying type
-    HasType { wrapping: WrappingType },
+    HasType {
+        wrapping: WrappingType,
+    },
 
     /// An edge between an operation and the type/schema of one of its path parameters
-    HasPathParameter { name: String, wrapping: WrappingType },
+    HasPathParameter {
+        name: String,
+        wrapping: WrappingType,
+    },
 
     /// An edge between an operation and the type/schema of one of its query parameters
     HasQueryParameter {
@@ -112,6 +120,19 @@ pub enum Edge {
 
     /// An edge between a union and it's constituent members
     HasUnionMember,
+
+    // This edge goes between an Operation and the Schema that represents
+    // its primary resource.  This edge will only be present on Operations
+    // where we can actually determine this.
+    ForResource {
+        arity: Arity,
+    },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Arity {
+    One,
+    Many,
 }
 
 impl Node {
@@ -225,6 +246,31 @@ impl WrappingType {
             WrappingType::Named => false,
         }
     }
+
+    // Returns the arity of this WrappingType if it is either obviously a many
+    // or obviously a one, otherwise returns none
+    pub fn arity(&self) -> Option<Arity> {
+        let mut found_list = false;
+        let mut current = self;
+        loop {
+            match current {
+                WrappingType::NonNull(inner) => {
+                    current = inner.as_ref();
+                }
+                WrappingType::List(_) if found_list => {
+                    // If we've got a nested list we return None because that's not a _simple_ many
+                    // and I do not know how we'd handle that.
+                    return None;
+                }
+                WrappingType::List(inner) => {
+                    found_list = true;
+                    current = inner.as_ref();
+                }
+                WrappingType::Named if found_list => return Some(Arity::Many),
+                WrappingType::Named => return Some(Arity::One),
+            }
+        }
+    }
 }
 
 impl OpenApiGraph {
@@ -236,17 +282,29 @@ impl OpenApiGraph {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
                 // nearest named thing, and construct a name based on the fields in-betweeen.
                 // Not ideal, but the best we can do.
-                let reversed_graph = Reversed(&self.graph);
+                let filtered_graph = EdgeFiltered::from_fn(&self.graph, |edge| {
+                    matches!(
+                        edge.weight(),
+                        Edge::HasField { .. }
+                            | Edge::HasPathParameter { .. }
+                            | Edge::HasQueryParameter { .. }
+                            | Edge::HasRequestType { .. }
+                            | Edge::HasResponseType { .. }
+                            | Edge::HasType { .. }
+                            | Edge::HasUnionMember
+                    )
+                });
+                let filtered_reversed_graph = Reversed(&filtered_graph);
 
                 let (_, mut path) = petgraph::algo::astar(
-                    &reversed_graph,
+                    &filtered_reversed_graph,
                     node,
                     |current_node| self.graph[current_node].name().is_some(),
                     |_| 0,
                     |_| 0,
                 )?;
 
-                let named_node = path.pop()?;
+                let named_node = *path.last()?;
 
                 // Reverse our path so we can look things up in the original graph.
                 path.reverse();
@@ -256,20 +314,21 @@ impl OpenApiGraph {
                 while let Some(src_node) = path_iter.next() {
                     let Some(&dest_node) = path_iter.peek() else { break; };
 
-                    // I am sort of assuming there's only one edge here.
-                    // Should be the case at the moment but might need to update this to a loop if that changes
-                    let edge = self.graph.edges_connecting(src_node, dest_node).next().unwrap();
-                    if let Edge::HasField { name, .. } = edge.weight() {
-                        name_components.push(name.as_str());
-                    }
+                    name_components.extend(self.graph.edges_connecting(src_node, dest_node).find_map(|edge| {
+                        match edge.weight() {
+                            Edge::HasField { name, .. }
+                            | Edge::HasPathParameter { name, .. }
+                            | Edge::HasQueryParameter { name, .. } => Some(name.as_str()),
+                            _ => None,
+                        }
+                    }));
                 }
 
                 let root_name = self.graph[named_node].name().unwrap();
                 name_components.push(root_name.as_str());
-
                 name_components.push(&self.metadata.name);
-
                 name_components.reverse();
+
                 Some(name_components.join("_").to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),

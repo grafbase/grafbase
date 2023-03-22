@@ -83,7 +83,7 @@ impl AuthConfig {
         self.allowed_anonymous_ops
     }
 
-    pub fn token_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
+    pub fn private_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
         let groups = self.allowed_group_ops.clone().into_keys().collect();
@@ -94,9 +94,13 @@ impl AuthConfig {
             })
     }
 
+    pub fn owner_based_ops(&self) -> Operations {
+        self.allowed_owner_ops
+    }
+
     pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
         match groups_from_token {
-            Some(groups) => self.token_ops(groups),
+            Some(groups) => self.private_and_group_based_ops(groups),
             None => self.api_key_ops(),
         }
     }
@@ -104,7 +108,7 @@ impl AuthConfig {
 
 bitflags::bitflags! {
     #[allow(clippy::unsafe_derive_deserialize)]
-    #[derive(Serialize, Deserialize)]
+    #[derive(Serialize, Deserialize, Default)]
     #[serde(transparent)]
     pub struct Operations: u8 {
         const CREATE = 1 << 0;

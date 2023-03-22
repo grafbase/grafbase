@@ -1,5 +1,5 @@
 cfg_if::cfg_if! {
-    if #[cfg(not(feature = "local"))] {
+    if #[cfg(not(feature = "sqlite"))] {
         mod batch_getitem;
         mod query;
         mod query_by_type;
@@ -77,6 +77,7 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
+    pub user_id: Option<String>,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -100,7 +101,7 @@ impl DynamoDBRequestedIndex {
     }
 
     cfg_if::cfg_if! {
-        if #[cfg(not(feature = "local"))] {
+        if #[cfg(not(feature = "sqlite"))] {
             fn pk(&self) -> String {
                 match self {
                     Self::None => "__pk".to_string(),
@@ -186,37 +187,24 @@ impl DynamoDBContext {
     /// * `trace_id` - Trace id, should be removed as soon as we have tracing.
     /// * `access_key_id` - AWS Access Key.
     /// * `secret_access_key` - AWS Secret Access Key.
-    /// * `dynamodb_replication_regions` - The Regions in which the dynamodb table is replicated.
+    /// * `region` - Details that will be used to lookup the best AWS region
     /// * `dynamodb_table_name` - The DynamoDB TableName.
-    /// * `latitude` - Request latitude, to locate the closest region
-    /// * `longitude` - Request longitude, to locate the closest region
+    /// * `user_id` - Optional ID identifying the current user
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         // TODO: This should go away with tracing.
         trace_id: String,
         access_key_id: String,
         secret_access_key: String,
-        dynamodb_replication_regions: Vec<aws_region_nearby::AwsRegion>,
+        region: Region,
         dynamodb_table_name: String,
-        latitude: f32,
-        longitude: f32,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
+        user_id: Option<String>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
-        let closest_region: rusoto_core::Region =
-            aws_region_nearby::find_region_from_list(latitude, longitude, &dynamodb_replication_regions)
-                .name()
-                .parse()
-                .expect("the name of the region is certainly valid");
 
-        log::debug!(
-            &trace_id,
-            "Picked the closest region {} for coordinates (lat {}, lon {})",
-            closest_region.name(),
-            latitude,
-            longitude
-        );
+        let closest_region = region.into_aws(&trace_id);
 
         let http_client = HttpClient::new().expect("failed to create HTTP client");
         let client = DynamoDbClient::new_with(http_client, provider, closest_region.clone());
@@ -227,6 +215,7 @@ impl DynamoDBContext {
             dynamodb_table_name,
             closest_region,
             resolver_binding_map,
+            user_id,
         }
     }
 
@@ -240,6 +229,50 @@ impl DynamoDBContext {
     /// GSI name used to reverse lockup
     pub(crate) const fn index_reverse_lockup() -> &'static str {
         "gsi2"
+    }
+}
+
+pub enum Region {
+    Local(String),
+    Closest {
+        // The Regions in which the dynamodb table is replicated
+        replication_regions: Vec<aws_region_nearby::AwsRegion>,
+        /// Request latitude, to locate the closest region
+        latitude: f32,
+        /// Request longitude, to locate the closest region
+        longitude: f32,
+    },
+}
+
+impl Region {
+    fn into_aws(self, trace_id: &str) -> rusoto_core::Region {
+        match self {
+            Region::Local(endpoint) => rusoto_core::Region::Custom {
+                name: "local-emulator".to_string(),
+                endpoint,
+            },
+            Region::Closest {
+                replication_regions,
+                latitude,
+                longitude,
+            } => {
+                let closest_region =
+                    aws_region_nearby::find_region_from_list(latitude, longitude, &replication_regions)
+                        .name()
+                        .parse::<rusoto_core::Region>()
+                        .expect("the name of the region is certainly valid");
+
+                log::debug!(
+                    trace_id,
+                    "Picked the closest region {} for coordinates (lat {}, lon {})",
+                    closest_region.name(),
+                    latitude,
+                    longitude
+                );
+
+                closest_region
+            }
+        }
     }
 }
 
@@ -276,7 +309,7 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(not(feature = "local"))]
+#[cfg(not(feature = "sqlite"))]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
@@ -296,18 +329,19 @@ impl DynamoDBBatchersData {
     }
 }
 
-#[cfg(feature = "local")]
+#[cfg(feature = "sqlite")]
 impl DynamoDBBatchersData {
     pub fn new(ctx: &Arc<DynamoDBContext>, local_ctx: &Arc<LocalContext>) -> Arc<Self> {
         Arc::new_cyclic(|b| Self {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
-            loader: get_loader_batch_transaction(Arc::clone(local_ctx)),
+            loader: get_loader_batch_transaction(Arc::clone(local_ctx), Arc::clone(ctx)),
             query: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::None),
             query_reversed: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::ReverseIndex),
             query_fat: get_loader_query_type(Arc::clone(local_ctx), DynamoDBRequestedIndex::FatPartitionIndex),
             paginated_query_fat: get_loader_paginated_query_type(
                 Arc::clone(local_ctx),
+                Arc::clone(ctx),
                 DynamoDBRequestedIndex::FatPartitionIndex,
             ),
             transaction_new: get_loader_transaction_new(Arc::clone(ctx), b.clone(), Arc::clone(local_ctx)),

@@ -141,6 +141,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     query_key.clone(),
                     self.ctx.dynamodb_table_name.clone(),
                     self.index.clone(),
+                    self.ctx.user_id.as_deref(),
                 );
                 #[cfg(feature = "tracing")]
                 let req = req.instrument(info_span!("fetch query by type paginated"));

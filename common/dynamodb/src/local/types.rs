@@ -115,6 +115,7 @@ impl Column {
         }
     }
 }
+pub const OWNED_BY_KEY: &str = "owned_by";
 
 pub struct Row {
     pub columns: String,
@@ -236,7 +237,7 @@ pub enum Sql<'a> {
     /// values: pk, sk, to_remove[], document, updated_at
     DeleteRelations(usize),
     /// values: pk, sk
-    DeleteByIds,
+    DeleteByIds { filter_by_owner: bool },
     /// values: partition_keys[], sorting_keys[]
     SelectIdPairs(usize),
     /// values: pk, entity_type, edges[]
@@ -250,12 +251,13 @@ pub enum Sql<'a> {
         is_nested: bool,
         ascending: bool,
         edges_count: usize,
+        filter_by_owner: bool,
     },
     /// values: entity_type
     SelectType,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum SqlValue {
     String(String),
     VecDeque(VecDeque<String>),
@@ -312,8 +314,8 @@ impl<'a> Sql<'a> {
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         updated AS (SELECT DISTINCT * FROM {to_add})
 
-                    INSERT INTO 
-                        {table} ({columns}) 
+                    INSERT INTO
+                        {table} ({columns})
                     VALUES ({placeholders})
                     ON CONFLICT (pk,sk)
                     DO
@@ -341,7 +343,7 @@ impl<'a> Sql<'a> {
                 format!(
                     indoc::indoc! {"
                     UPDATE {table}
-                    SET 
+                    SET
                         document={document_update},
                         updated_at=?updated_at
                     WHERE pk=?pk AND sk=?sk
@@ -375,8 +377,8 @@ impl<'a> Sql<'a> {
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove}),
                         updated AS (SELECT DISTINCT * FROM {to_add})
-                
-                    UPDATE {table} SET 
+
+                    UPDATE {table} SET
                         relation_names=(SELECT json_group_array(updated.value) FROM updated),
                         document=json_patch(document, ?document),
                         updated_at=?updated_at
@@ -402,8 +404,8 @@ impl<'a> Sql<'a> {
                     WITH
                         original AS (SELECT json_each.value FROM {table}, json_each({table}.relation_names) WHERE pk=?pk AND sk=?sk),
                         removed AS (SELECT value FROM original {to_remove})
-                
-                    UPDATE {table} SET 
+
+                    UPDATE {table} SET
                         relation_names=(SELECT json_group_array(removed.value) FROM removed),
                         document=json_patch(document, ?document),
                         updated_at=?updated_at
@@ -413,8 +415,14 @@ impl<'a> Sql<'a> {
                     to_remove = to_remove,
                 )
             }
-            Self::DeleteByIds => {
-                format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE)
+            Self::DeleteByIds { filter_by_owner } => {
+                let mut sql = format!("DELETE FROM {table} WHERE pk=?pk AND sk=?sk", table = Self::TABLE);
+                if *filter_by_owner {
+                    sql.push_str(&format!(
+                        " AND json_extract(document, '$.__owned_by.SS[0]') = ?{OWNED_BY_KEY}" // FIXME: Refactor once more than one owner is supported.
+                    ));
+                }
+                sql
             }
             Self::SelectIdPairs(pair_count) => {
                 format!(
@@ -455,12 +463,12 @@ impl<'a> Sql<'a> {
             Self::SelectSingleRelation(pk_index) => {
                 format!(
                     indoc::indoc! {"
-                        SELECT 
-                            * 
-                        FROM 
+                        SELECT
+                            *
+                        FROM
                             {table},
-                            json_each({table}.relation_names) 
-                        WHERE 
+                            json_each({table}.relation_names)
+                        WHERE
                             {table}.{pk_index}=?parent_pk
                             AND json_each.value=?relation_name
                     "},
@@ -483,9 +491,10 @@ impl<'a> Sql<'a> {
                 is_nested,
                 ascending,
                 edges_count,
+                filter_by_owner,
             } => {
                 let mut r#where = vec!["entity_type=?entity_type".to_string()];
-                let select = if *is_nested {
+                let mut select = if *is_nested {
                     r#where.push("pk=?pk".to_string());
                     r#where.push("json_each.value=?relation_name".to_string());
                     format!(
@@ -499,6 +508,13 @@ impl<'a> Sql<'a> {
                 if *has_origin {
                     let op = if *ascending { ">" } else { "<" };
                     r#where.push(format!("sk {op} ?sk"));
+                }
+                if *filter_by_owner {
+                    select.push_str(&format!(
+                        ", json_each({table}.document,'$.__owned_by.SS') AS owner",
+                        table = Self::TABLE
+                    ));
+                    r#where.push(format!("owner.value = ?{OWNED_BY_KEY}"));
                 }
                 let ordering = if *ascending { "ASC" } else { "DESC" };
                 let page = format!(

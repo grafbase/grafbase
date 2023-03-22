@@ -254,8 +254,8 @@ Registry {
             rust_typename: "PetstoreCategoryInput",
             oneof: false,
         },
-        "PetstoreFindPetsByStatus": Enum {
-            name: "PetstoreFindPetsByStatus",
+        "PetstoreFindPetsByStatusStatus": Enum {
+            name: "PetstoreFindPetsByStatusStatus",
             description: None,
             enum_values: {
                 "AVAILABLE": MetaEnumValue {
@@ -283,7 +283,7 @@ Registry {
                     ),
                 },
             },
-            rust_typename: "PetstoreFindPetsByStatus",
+            rust_typename: "PetstoreFindPetsByStatusStatus",
         },
         "PetstoreMutations": Object {
             name: "PetstoreMutations",
@@ -1178,7 +1178,7 @@ Registry {
                         "status": MetaInputValue {
                             name: "status",
                             description: None,
-                            ty: "PetstoreFindPetsByStatus",
+                            ty: "PetstoreFindPetsByStatusStatus",
                             default_value: None,
                             is_secret: false,
                             rename: None,
@@ -1281,8 +1281,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getPetById": MetaField {
-                    name: "getPetById",
+                "petById": MetaField {
+                    name: "petById",
                     description: None,
                     args: {
                         "petId": MetaInputValue {
@@ -1335,8 +1335,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getInventory": MetaField {
-                    name: "getInventory",
+                "inventory": MetaField {
+                    name: "inventory",
                     description: None,
                     args: {},
                     ty: "JSON!",
@@ -1373,8 +1373,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getOrderById": MetaField {
-                    name: "getOrderById",
+                "orderById": MetaField {
+                    name: "orderById",
                     description: None,
                     args: {
                         "orderId": MetaInputValue {
@@ -1497,8 +1497,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "getUserByName": MetaField {
-                    name: "getUserByName",
+                "userByName": MetaField {
+                    name: "userByName",
                     description: None,
                     args: {
                         "username": MetaInputValue {

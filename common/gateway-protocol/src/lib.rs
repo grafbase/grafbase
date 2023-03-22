@@ -61,9 +61,13 @@ pub struct ExecutionRequest<'a> {
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
+// TODO: turn into an enumeration: ApiKey, Token
 pub struct ExecutionAuth {
+    /// API key or group based operations that are enabled on the global level.
     pub allowed_ops: dynaql::Operations,
     pub groups_from_token: Option<HashSet<String>>,
+    /// Owner's subject and enabled operations on the global level.
+    pub subject_and_owner_ops: Option<(String, dynaql::Operations)>,
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment

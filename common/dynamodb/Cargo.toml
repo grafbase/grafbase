@@ -44,7 +44,7 @@ wasm-bindgen-futures = { version = "0.4", optional = true }
 
 # feature = tokio
 tokio = { version = "1", optional = true }
-# feature="local"
+# feature="sqlite"
 cfg-if = "1"
 indoc = { version = "2", optional = true }
 maplit = { version = "1", optional = true }
@@ -69,7 +69,8 @@ tokio = { version = "1", features = [
 
 [features]
 default = ["wasm_runtime"]
-local = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper", "serde"]
+local = []
+sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper", "serde"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]

@@ -11,6 +11,7 @@ use self::components::{Components, Ref};
 
 pub mod components;
 mod graph;
+mod grouping;
 pub mod operations;
 
 #[derive(Default)]
@@ -31,6 +32,8 @@ pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
     }
 
     graph::extract_operations(&mut ctx, &spec.paths, components);
+
+    grouping::determine_resource_relationships(&mut ctx);
 
     if ctx.errors.is_empty() {
         Ok(ctx)

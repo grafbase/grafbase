@@ -15,7 +15,14 @@ pub struct QueryParameter(pub(super) EdgeIndex);
 pub struct RequestBody(pub(super) EdgeIndex);
 
 impl PathParameter {
-    pub fn name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
+    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> Option<&str> {
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasPathParameter { name, .. } => Some(name),
+            _ => None,
+        }
+    }
+
+    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
         match graph.graph.edge_weight(self.0)? {
             Edge::HasPathParameter { name, .. } => Some(FieldName(Cow::Borrowed(name))),
             _ => None,
@@ -32,9 +39,16 @@ impl PathParameter {
 }
 
 impl QueryParameter {
-    pub fn name(self, graph: &super::OpenApiGraph) -> Option<&str> {
+    pub fn openapi_name(self, graph: &super::OpenApiGraph) -> Option<&str> {
         match graph.graph.edge_weight(self.0)? {
             Edge::HasQueryParameter { name, .. } => Some(name),
+            _ => None,
+        }
+    }
+
+    pub fn graphql_name(self, graph: &super::OpenApiGraph) -> Option<FieldName<'_>> {
+        match graph.graph.edge_weight(self.0)? {
+            Edge::HasQueryParameter { name, .. } => Some(FieldName(Cow::Borrowed(name))),
             _ => None,
         }
     }
