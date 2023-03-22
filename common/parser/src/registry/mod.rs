@@ -94,7 +94,7 @@ pub fn add_input_type_non_primitive(ctx: &mut VisitorContext<'_>, object: &Objec
                 input_fields
             },
             visible: None,
-            rust_typename: type_name.clone(),
+            rust_typename: input_type.clone(),
         },
         &input_type,
         &input_type,

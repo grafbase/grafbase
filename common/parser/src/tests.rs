@@ -645,3 +645,17 @@ fn test_relations_with_underscore_types() {
 
     super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
 }
+
+#[test]
+fn test_name_clashes_dont_cause_panic() {
+    let schema = r#"
+        type User {
+            id: ID!
+        }
+
+        type UserInput {
+            id: ID!
+        }
+    "#;
+    super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
+}
