@@ -4,7 +4,6 @@ use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
 use duct::{cmd, Handle};
-use std::collections::HashMap;
 use std::io;
 use std::process::Output;
 use std::sync::Arc;
@@ -60,8 +59,8 @@ impl Environment {
         AsyncClient::new(self.endpoint.clone())
     }
 
-    pub fn write_schema(&self, schema: &'static str) {
-        fs::write(&self.schema_path, schema).unwrap();
+    pub fn write_schema(&self, schema: impl AsRef<str>) {
+        fs::write(&self.schema_path, schema.as_ref()).unwrap();
     }
 
     pub fn grafbase_init(&self) {
@@ -136,7 +135,11 @@ impl Environment {
         .into_output()
     }
 
-    pub fn set_variables(&mut self, variables: HashMap<String, String>) {
+    pub fn set_variables<K, V>(&mut self, variables: impl IntoIterator<Item = (K, V)>)
+    where
+        K: std::fmt::Display,
+        V: std::fmt::Display,
+    {
         let env_file = variables
             .into_iter()
             .map(|(key, value)| format!(r#"{key}="{value}""#))
