@@ -629,3 +629,19 @@ fn should_support_search_directive() {
         "The @search directive cannot be used with the JSON type."
     );
 }
+
+#[test]
+fn test_relations_with_underscore_types() {
+    let schema = r#"
+    type SomeType_WithAnUnderscore @model {
+        id: ID!,
+        otherType: SomeOtherType
+      }
+
+      type SomeOtherType @model {
+        test: String
+      }
+    "#;
+
+    super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
+}

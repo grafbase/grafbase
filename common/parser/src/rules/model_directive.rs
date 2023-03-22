@@ -247,53 +247,49 @@ impl<'a> Visitor<'a> for ModelDirective {
                                         )
                                     })
                                     .or_else(|| {
-                                        RelationEngine::get(ctx, &type_definition.node.name.node, &field.node).map(
-                                            |relation| {
-                                                let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
-                                                let edges = {
-                                                    let edge_type = to_base_type_str(&field.node.ty.node.base);
-                                                    connection_edges.push(edge_type.clone());
-                                                    vec![edge_type]
-                                                };
-                                                let (context_data_resolver, args, ty) =
-                                                    if is_array_basic_type(&field.node.ty.to_string()) {
-                                                        (
-                                                            ContextDataResolver::EdgeArray {
-                                                                key: type_name.clone(),
-                                                                relation_name: relation.name.clone(),
-                                                                expected_ty: to_base_type_str(&field.node.ty.node.base),
-                                                            },
-                                                            generate_pagination_args(registry, &type_definition.node),
-                                                            format!(
-                                                                "{}Connection",
-                                                                to_base_type_str(&field.node.ty.node.base).to_camel()
-                                                            ),
-                                                        )
-                                                    } else {
-                                                        (
-                                                            ContextDataResolver::SingleEdge {
-                                                                key: type_name.clone(),
-                                                                relation_name: relation.name.clone(),
-                                                            },
-                                                            Default::default(),
-                                                            field.node.ty.clone().node.to_string(),
-                                                        )
-                                                    };
-                                                (
-                                                    Resolver {
-                                                        id,
-                                                        r#type: ResolverType::ContextDataResolver(
-                                                            context_data_resolver,
+                                        RelationEngine::get(ctx, &type_name, &field.node).map(|relation| {
+                                            let id = Some(format!("{}_edge_resolver", type_name.to_lowercase()));
+                                            let edges = {
+                                                let edge_type = to_base_type_str(&field.node.ty.node.base);
+                                                connection_edges.push(edge_type.clone());
+                                                vec![edge_type]
+                                            };
+                                            let (context_data_resolver, args, ty) =
+                                                if is_array_basic_type(&field.node.ty.to_string()) {
+                                                    (
+                                                        ContextDataResolver::EdgeArray {
+                                                            key: type_name.clone(),
+                                                            relation_name: relation.name.clone(),
+                                                            expected_ty: to_base_type_str(&field.node.ty.node.base),
+                                                        },
+                                                        generate_pagination_args(registry, &type_definition.node),
+                                                        format!(
+                                                            "{}Connection",
+                                                            to_base_type_str(&field.node.ty.node.base).to_camel()
                                                         ),
-                                                    },
-                                                    Some(relation),
-                                                    None,
-                                                    edges,
-                                                    args,
-                                                    ty,
-                                                )
-                                            },
-                                        )
+                                                    )
+                                                } else {
+                                                    (
+                                                        ContextDataResolver::SingleEdge {
+                                                            key: type_name.clone(),
+                                                            relation_name: relation.name.clone(),
+                                                        },
+                                                        Default::default(),
+                                                        field.node.ty.clone().node.to_string(),
+                                                    )
+                                                };
+                                            (
+                                                Resolver {
+                                                    id,
+                                                    r#type: ResolverType::ContextDataResolver(context_data_resolver),
+                                                },
+                                                Some(relation),
+                                                None,
+                                                edges,
+                                                args,
+                                                ty,
+                                            )
+                                        })
                                     })
                                     .unwrap_or_else(|| {
                                         (
