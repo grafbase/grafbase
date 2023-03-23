@@ -57,6 +57,7 @@ async fn run_npm_command<P: AsRef<Path>>(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn build_resolver(
     environment: &Environment,
     resolver_name: &str,
