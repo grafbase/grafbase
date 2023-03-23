@@ -133,6 +133,8 @@ pub struct CustomerDeploymentConfig {
     pub globaldb_dynamodb_replication_regions: Vec<AwsRegion>,
     /// Default dynamodb Table Name
     pub globaldb_dynamodb_table_name: String,
+    /// search-query-executor lambda name
+    pub search_query_func_name: String,
     /// Environment – either `preview` or `production`
     pub grafbase_environment: grafbase::BranchEnvironment,
     /// Plain JWT secret used for JWT validations

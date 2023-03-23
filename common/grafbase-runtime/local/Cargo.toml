@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 async-trait = "0.1"
 grafbase-runtime = { path = ".." }
-search-protocol = { path = "../../search/protocol" }
+search-query = { path = "../../search/query" }
 send_wrapper = "0.6"
 serde = { workspace = true }
 log = { path = "../../log", features = ["with-worker"] }
@@ -17,4 +17,7 @@ worker-utils = { path = "../../worker-utils" }
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }

@@ -9,7 +9,6 @@ again = { version = "0.1", default-features = false, features = [
   "log",
 ] }
 async-trait = "0.1"
-aws-region-nearby = { workspace = true }
 chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
@@ -54,10 +53,15 @@ send_wrapper = { version = "0.6", optional = true }
 serde = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-reqwest = { version = "0.11", default-features = false, optional = true, features = ["json"] }
+reqwest = { version = "0.11", default-features = false, optional = true, features = [
+  "json",
+] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, optional = true, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, optional = true, features = [
+  "json",
+  "rustls-tls",
+] }
 
 [dev-dependencies]
 tokio = { version = "1", features = [
@@ -70,7 +74,15 @@ tokio = { version = "1", features = [
 [features]
 default = ["wasm_runtime"]
 local = []
-sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper", "serde"]
+sqlite = [
+  "indoc",
+  "maplit",
+  "once_cell",
+  "regex",
+  "reqwest",
+  "send_wrapper",
+  "serde",
+]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]
