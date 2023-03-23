@@ -199,7 +199,10 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(
+                            SchemaPlan::first(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                                .apply_cursor_encode(vec!["id".to_string()]),
+                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "start_cursor".to_string(),
                         }),
@@ -227,7 +230,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(SchemaPlan::last(false).apply_cursor_encode(vec!["id".to_string()])),
                         transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
                         }),
