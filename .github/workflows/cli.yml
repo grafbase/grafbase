@@ -17,7 +17,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/9cbb276-2023-03-21'
+  ASSETS_VERSION: 'release/2158273-2023-03-22'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
@@ -212,7 +212,7 @@ jobs:
     with:
       draft: false
       tag: ${{ github.ref_name }}
-      prerelease: contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc')
+      prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
