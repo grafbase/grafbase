@@ -88,6 +88,30 @@ pub enum ApiError {
     /// wraps a [`CreateError`]
     #[error(transparent)]
     CreateError(CreateError),
+
+    /// wraps a [`DeployError`]
+    #[error(transparent)]
+    DeployError(DeployError),
+
+    /// returned if a the request to upload the archive fails
+    #[error("could not complete the request to upload the deployment archive")]
+    UploadError,
+
+    /// returned if the upload archive metadata could not be read
+    #[error("could not read the upload archive metadata\ncaused by: {0}")]
+    ReadArchiveMetadata(io::Error),
+
+    /// returned if the upload archive could not be read
+    #[error("could not read the upload archive\ncaused by: {0}")]
+    ReadArchive(io::Error),
+
+    /// returned if a file or directory could not be appended to the upload archive
+    #[error("could not append a file or directory to the upload archive\ncaused by: {0}")]
+    AppendToArchive(io::Error),
+
+    /// returned if a temporary file for the upload archive could not be created
+    #[error("could not create a temporary file\ncaused by: {0}")]
+    CreateTempFile(io::Error),
 }
 
 #[derive(Error, Debug)]
@@ -131,6 +155,26 @@ pub enum CreateError {
 }
 
 #[derive(Error, Debug)]
+pub enum DeployError {
+    /// returned if the linked project does not exist
+    #[error("could not deploy as the linked project does not exist")]
+    ProjectDoesNotExist,
+
+    /// returned if the uploaded archive is over the allowed limit
+    #[error("could not deploy as the created archive is above the allowed limit of {limit} bytes")]
+    ArchiveFileSizeLimitExceededError { limit: i32 },
+
+    /// returned if the daily deployment count is passed
+    #[error("could not deploy as you have reached the allowed daily deployemnt amount of {limit}")]
+    DailyDeploymentCountLimitExceededError { limit: i32 },
+
+    // TODO add hint regarding CLI version
+    /// returned if an unknown error occurs
+    #[error("could not deploy, encountered an unknown error")]
+    Unknown,
+}
+
+#[derive(Error, Debug)]
 pub enum LoginApiError {
     #[error("could not write '{0}'")]
     WriteCredentialFile(PathBuf),
@@ -139,6 +183,12 @@ pub enum LoginApiError {
 impl From<CreateError> for ApiError {
     fn from(error: CreateError) -> Self {
         Self::CreateError(error)
+    }
+}
+
+impl From<DeployError> for ApiError {
+    fn from(error: DeployError) -> Self {
+        Self::DeployError(error)
     }
 }
 

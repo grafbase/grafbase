@@ -145,11 +145,13 @@ pub mod mutations {
     #[derive(cynic::QueryFragment, Debug)]
     pub struct DailyDeploymentCountLimitExceededError {
         pub __typename: String,
+        pub limit: i32,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
     pub struct ArchiveFileSizeLimitExceededError {
         pub __typename: String,
+        pub limit: i32,
     }
 
     #[derive(cynic::InlineFragments, Debug)]

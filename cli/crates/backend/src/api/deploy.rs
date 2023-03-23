@@ -1,8 +1,9 @@
 use super::client::create_client;
 use super::consts::{API_URL, GRAFBASE_DIR_NAME, PACKAGE_JSON, PROJECT_METADATA_FILE, TAR_CONTENT_TYPE};
-use super::errors::ApiError;
+use super::errors::{ApiError, DeployError};
 use super::graphql::mutations::{
-    DeploymentCreate, DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
+    ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
+    DeploymentCreateArguments, DeploymentCreateInput, DeploymentCreatePayload,
 };
 use super::types::ProjectMetadata;
 use crate::consts::USER_AGENT;
@@ -15,7 +16,6 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 /// # Errors
-/// # Panics
 pub async fn deploy() -> Result<(), ApiError> {
     let environment = Environment::get();
 
@@ -34,8 +34,9 @@ pub async fn deploy() -> Result<(), ApiError> {
     let project_metadata: ProjectMetadata =
         serde_json::from_str(&project_metadata_file).map_err(|_| ApiError::CorruptProjectMetadataFile)?;
 
-    // ERROR
-    let (tar_file, tar_file_path) = tempfile::NamedTempFile::new().unwrap().into_parts();
+    let (tar_file, tar_file_path) = tempfile::NamedTempFile::new()
+        .map_err(ApiError::CreateTempFile)?
+        .into_parts();
 
     let tar_file: tokio::fs::File = tar_file.into();
     let tar_file = tar_file.compat();
@@ -46,24 +47,24 @@ pub async fn deploy() -> Result<(), ApiError> {
     if environment.project_path.join(PACKAGE_JSON).exists() {
         tar.append_path_with_name(environment.project_path.join(PACKAGE_JSON), PACKAGE_JSON)
             .await
-            // ERROR
-            .unwrap();
+            .map_err(ApiError::AppendToArchive)?;
     }
 
-    // ERROR
     tar.append_dir_all(GRAFBASE_DIR_NAME, &environment.project_grafbase_path)
         .await
-        .unwrap();
+        .map_err(ApiError::AppendToArchive)?;
 
-    let tar_file = tokio::fs::File::open(&tar_file_path).await.unwrap();
+    let tar_file = tokio::fs::File::open(&tar_file_path)
+        .await
+        .map_err(ApiError::ReadArchive)?;
 
     let client = create_client().await?;
 
-    let content_length = tar_file.metadata().await.unwrap().len() as i32; // must fit or will be over allowed limit
+    #[allow(clippy::cast_possible_truncation)] // must fit or will be over allowed limit
+    let content_length = tar_file.metadata().await.map_err(ApiError::ReadArchiveMetadata)?.len() as i32;
 
     let operation = DeploymentCreate::build(DeploymentCreateArguments {
         input: DeploymentCreateInput {
-            // ERROR
             archive_file_size: content_length,
             branch: None,
             project_id: Id::new(project_metadata.project_id),
@@ -88,16 +89,21 @@ pub async fn deploy() -> Result<(), ApiError> {
                 .body(Body::wrap_stream(framed_tar))
                 .send()
                 .await
-                // ERROR
-                .unwrap();
+                .map_err(|_| ApiError::UploadError)?;
 
-            dbg!(response.text().await);
+            if !response.status().is_success() {
+                return Err(ApiError::UploadError);
+            }
         }
-        // ERROR
-        DeploymentCreatePayload::ProjectDoesNotExistError(_) => todo!(),
-        DeploymentCreatePayload::ArchiveFileSizeLimitExceededError(_) => todo!(),
-        DeploymentCreatePayload::DailyDeploymentCountLimitExceededError(_) => todo!(),
-        DeploymentCreatePayload::Unknown => todo!(),
+        DeploymentCreatePayload::ProjectDoesNotExistError(_) => return Err(DeployError::ProjectDoesNotExist.into()),
+        DeploymentCreatePayload::ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError {
+            limit, ..
+        }) => return Err(DeployError::ArchiveFileSizeLimitExceededError { limit }.into()),
+        DeploymentCreatePayload::DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError {
+            limit,
+            ..
+        }) => return Err(DeployError::DailyDeploymentCountLimitExceededError { limit }.into()),
+        DeploymentCreatePayload::Unknown => return Err(DeployError::Unknown.into()),
     }
 
     Ok(())
