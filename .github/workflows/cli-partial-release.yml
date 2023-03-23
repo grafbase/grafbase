@@ -6,6 +6,9 @@ on:
       draft:
         type: boolean
         required: true
+      prerelease:
+        type: boolean
+        required: true
       tag:
         type: string
         required: true
@@ -87,7 +90,7 @@ jobs:
         run: |
           set -e
           set -o pipefail
-          
+
           cd cli/crates
 
           retryable() {
@@ -112,11 +115,15 @@ jobs:
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
           cd cli/npm
-          (cd aarch64-apple-darwin && npm publish)
-          (cd x86_64-apple-darwin && npm publish)
-          (cd x86_64-pc-windows-msvc && npm publish)
-          (cd x86_64-unknown-linux-musl && npm publish)
-          (cd cli && npm publish)
+          PUBLISH_ARGUMENTS=()
+          if [[ $INPUT_PRERELEASE != "false" ]]; then
+              PUBLISH_ARGUMENTS+=(--tag next)
+          fi
+          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
+          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
+          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
+          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
+          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
 
       - name: Github Release
         id: gh-release
@@ -124,6 +131,7 @@ jobs:
         with:
           body_path: cli/changelog/${{ inputs.tag }}.md
           draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
           files: |
             cli/licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin

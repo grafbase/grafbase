@@ -1,11 +1,15 @@
+use std::path::PathBuf;
+
 use rust_embed::RustEmbed;
+
+pub use crate::file_watcher::FileEventType;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
 pub struct Assets;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum ServerMessage {
     Ready(u16),
-    Reload,
+    Reload(PathBuf, FileEventType),
 }
