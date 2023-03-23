@@ -11,6 +11,8 @@ pub enum SchemaPlan {
     Related(PlanRelated),
     /// Apply a function on a column
     Apply(Apply),
+    First(First),
+    Last(Last),
 }
 
 impl SchemaPlan {
@@ -35,6 +37,17 @@ impl SchemaPlan {
                 .collect(),
         })
     }
+
+    pub fn first(previous: Option<Self>) -> Self {
+        Self::First(First {
+            plan: previous.map(Box::new),
+        })
+    }
+
+    /// Take the last element if `next` false, or the last + 1 element is `next` true
+    pub fn last(next: bool) -> Self {
+        Self::Last(Last { take_next: next })
+    }
 }
 
 /// Describe the fields projected
@@ -55,4 +68,14 @@ pub struct PlanRelated {
 pub struct Apply {
     pub plan: Box<SchemaPlan>,
     pub(crate) fun_fields: Vec<(String, ApplyFunction)>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct First {
+    pub plan: Option<Box<SchemaPlan>>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+pub struct Last {
+    take_next: bool,
 }
