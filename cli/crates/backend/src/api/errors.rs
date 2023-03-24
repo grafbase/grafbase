@@ -85,14 +85,6 @@ pub enum ApiError {
     #[error("could not find an available port")]
     FindAvailablePort,
 
-    /// wraps a [`CreateError`]
-    #[error(transparent)]
-    CreateError(CreateError),
-
-    /// wraps a [`DeployError`]
-    #[error(transparent)]
-    DeployError(DeployError),
-
     /// returned if a the request to upload the archive fails
     #[error("could not complete the request to upload the deployment archive")]
     UploadError,
@@ -112,6 +104,14 @@ pub enum ApiError {
     /// returned if a temporary file for the upload archive could not be created
     #[error("could not create a temporary file\ncaused by: {0}")]
     CreateTempFile(io::Error),
+
+    /// wraps a [`CreateError`]
+    #[error(transparent)]
+    CreateError(CreateError),
+
+    /// wraps a [`DeployError`]
+    #[error(transparent)]
+    DeployError(DeployError),
 }
 
 #[derive(Error, Debug)]
