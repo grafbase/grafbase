@@ -109,11 +109,11 @@ pub mod report {
     }
 
     pub fn deploy() {
-        watercolor::output_error!("🕒 Deploying...", @BrightBlue);
+        watercolor::output_error!("🕒 Your project is being deployed", @BrightBlue);
     }
 
     pub fn deploy_success() {
-        watercolor::output_error!("\n✨ Successfully deployed!", @BrightBlue);
+        watercolor::output_error!("\n✨ Your project has been deployed successfully!", @BrightBlue);
     }
 
     pub fn created(name: &str, urls: &[String]) {
