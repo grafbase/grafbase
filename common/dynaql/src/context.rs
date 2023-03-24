@@ -823,15 +823,6 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     #[cfg(feature = "query-planning")]
-    pub fn to_selection_plan(
-        &self,
-        _root: &'a MetaType,
-        _previous_plan: Option<Arc<LogicalPlan>>,
-    ) -> Positioned<SelectionPlan> {
-        todo!()
-    }
-
-    #[cfg(feature = "query-planning")]
     /// Convert the actual field to a [`LogicalPlan`] by looking at the corresponding type on the
     /// schema.
     pub fn to_logic_plan(
