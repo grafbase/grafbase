@@ -1,9 +1,12 @@
 pub mod report {
 
+    use std::path::Path;
+
     use crate::{
         errors::CliError,
         watercolor::{self, watercolor},
     };
+    use backend::types::FileEventType;
     use colored::Colorize;
     use common::consts::LOCALHOST;
 
@@ -69,8 +72,11 @@ pub mod report {
         watercolor::output_error!("\n👋 see you next time!", @BrightBlue);
     }
 
-    pub fn reload() {
-        println!("🔄 detected a schema change, reloading");
+    pub fn reload<P: AsRef<Path>>(path: P, _file_event_type: FileEventType) {
+        println!(
+            "🔄 detected a change in {path}, reloading",
+            path = path.as_ref().display()
+        );
     }
 
     pub fn project_reset() {

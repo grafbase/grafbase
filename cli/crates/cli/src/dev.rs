@@ -25,7 +25,7 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
             let reporter_handle = spawn(move || loop {
                 match receiver.recv() {
                     Ok(ServerMessage::Ready(port)) => READY.call_once(|| report::start_server(port, start_port)),
-                    Ok(ServerMessage::Reload) => report::reload(),
+                    Ok(ServerMessage::Reload(path, file_event_type)) => report::reload(path, file_event_type),
                     Err(_) => break,
                 }
             });

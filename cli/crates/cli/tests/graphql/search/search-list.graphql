@@ -1,16 +1,47 @@
-query ListSearch($query: String!, $limit: Int!) {
-  listFieldsSearch(query: $query, limit: $limit) {
-    id
-    ip
-    timestamp
-    url
-    email
-    phone
-    datetime
-    date
-    text
-    int
-    float
-    bool
+query ListSearch(
+  $query: String
+  $first: Int
+  $last: Int
+  $before: String
+  $after: String
+  $filter: ListFieldsSearchFilterInput
+  $fields: [String!]
+) {
+  listFieldsSearch(
+    query: $query
+    first: $first
+    after: $after
+    last: $last
+    before: $before
+    filter: $filter
+    fields: $fields
+  ) {
+    searchInfo {
+      totalHits
+    }
+    pageInfo {
+      hasNextPage
+      hasPreviousPage
+      startCursor
+      endCursor
+    }
+    edges {
+      cursor
+      score
+      node {
+        id
+        ip
+        timestamp
+        url
+        email
+        phone
+        datetime
+        date
+        text
+        int
+        float
+        bool
+      }
+    }
   }
 }

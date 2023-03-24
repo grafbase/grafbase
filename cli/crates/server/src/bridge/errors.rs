@@ -1,3 +1,4 @@
+use super::api_counterfeit::search;
 use super::sqlite::extended_error_codes;
 use super::types::Constraint;
 use super::types::Operation;
@@ -18,7 +19,6 @@ pub enum ApiError {
     /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
     SqlError(SqlxError),
-
     #[error("server error")]
     ServerError,
 }
@@ -34,6 +34,13 @@ impl From<SqlxError> for ApiError {
     }
 }
 
+impl From<search::SearchError> for ApiError {
+    fn from(error: search::SearchError) -> Self {
+        error!("Search Error: {error:?}");
+        Self::ServerError
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Serialize, Debug)]
 pub struct ApiErrorResponse {
@@ -45,6 +52,7 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
+
             ApiError::SqlError(_) | ApiError::ServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
         }
     }

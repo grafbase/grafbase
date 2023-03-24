@@ -1,6 +1,11 @@
 #![allow(dead_code)]
 use serde_json::json;
-use std::time::{Duration, SystemTime};
+use std::{
+    future::{Future, IntoFuture},
+    marker::PhantomData,
+    pin::Pin,
+    time::{Duration, SystemTime},
+};
 use tokio::time::sleep;
 
 use crate::utils::consts::INTROSPECTION_QUERY;
@@ -24,19 +29,19 @@ impl AsyncClient {
         }
     }
 
-    pub async fn gql<T>(&self, body: String) -> T
+    // TODO: update this one as well...
+    pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
-        T: for<'de> serde::de::Deserialize<'de>,
+        Response: serde::de::DeserializeOwned + 'static,
     {
-        self.client
-            .post(&self.endpoint)
-            .body(body)
-            .send()
-            .await
-            .unwrap()
-            .json::<T>()
-            .await
-            .unwrap()
+        let reqwest_builder = self.client.post(&self.endpoint);
+
+        GqlRequestBuilder {
+            query: query.into(),
+            variables: None,
+            phantom: PhantomData,
+            reqwest_builder,
+        }
     }
 
     async fn introspect(&self) -> String {
@@ -108,5 +113,51 @@ impl AsyncClient {
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
             sleep(Duration::from_millis(interval_millis)).await;
         }
+    }
+}
+
+#[derive(serde::Serialize)]
+#[must_use]
+pub struct GqlRequestBuilder<Response> {
+    // These two will be serialized into the request
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+
+    // These won't
+    #[serde(skip)]
+    phantom: PhantomData<fn() -> Response>,
+    #[serde(skip)]
+    reqwest_builder: reqwest::RequestBuilder,
+}
+
+impl<Response> GqlRequestBuilder<Response> {
+    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+}
+
+impl<Response> IntoFuture for GqlRequestBuilder<Response>
+where
+    Response: serde::de::DeserializeOwned + 'static,
+{
+    type Output = Response;
+
+    type IntoFuture = Pin<Box<dyn Future<Output = Response> + Send + 'static>>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        Box::pin(async move {
+            let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+
+            self.reqwest_builder
+                .json(&json)
+                .send()
+                .await
+                .unwrap()
+                .json::<Response>()
+                .await
+                .unwrap()
+        })
     }
 }

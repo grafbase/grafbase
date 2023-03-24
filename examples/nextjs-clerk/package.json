@@ -8,7 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@clerk/nextjs": "4.0.2",
+    "@clerk/nextjs": "4.11.13",
     "next": "13.0.1",
     "react": "18.2.0",
     "react-dom": "18.2.0"

@@ -73,9 +73,28 @@ pub enum ServerError {
     #[error("could not create a temporary file for the parser result: {0}")]
     CreateTemporaryFile(IoError),
 
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not create an output artifact file during a resolver build")]
+    CreateResolverArtifactFile(IoError),
+
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("could not extract the resolver wrapper worker contents")]
+    ExtractResolverWrapperWorkerContents(String),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}")]
+    ResolverDoesNotExist(PathBuf),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm encountered an error: {0}")]
+    NpmCommandError(IoError),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("npm failed with output:\n{0}")]
+    NpmCommand(String),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]

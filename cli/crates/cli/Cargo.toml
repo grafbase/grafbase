@@ -40,7 +40,9 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.1
 
 [dev-dependencies]
 chrono = "0.4"
+crossbeam-channel = "0.5"
 duct = "0.13"
+insta = { version = "1.28", features = ["yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.6", default-features = false, features = [
   "clock",
@@ -57,6 +59,7 @@ tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
 rstest = "0.16"
+wiremock = "0.5"
 
 [[bin]]
 name = "grafbase"

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE},
+    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME},
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -32,6 +32,10 @@ pub struct Environment {
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file
     pub project_grafbase_registry_path: PathBuf,
+    /// the path of the `grafbase/resolvers` directory.
+    pub resolvers_source_path: PathBuf,
+    /// the path within `$PROJECT/.grafbase/` containing build artifacts for custom resolvers.
+    pub resolvers_build_artifact_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -65,6 +69,8 @@ impl Environment {
         let user_dot_grafbase_path =
             get_user_dot_grafbase_path().unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
+        let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
+        let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -73,6 +79,8 @@ impl Environment {
                 project_grafbase_schema_path,
                 user_dot_grafbase_path,
                 project_grafbase_registry_path,
+                resolvers_source_path,
+                resolvers_build_artifact_path,
             })
             .expect("cannot set environment twice");
 

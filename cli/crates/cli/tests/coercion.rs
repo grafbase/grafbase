@@ -13,9 +13,7 @@ fn coercion() {
     let client = env.create_client();
     client.poll_endpoint(30, 300);
 
-    let coerce = |variables: Value| {
-        client.gql::<Value>(json!({"query": COERCION_CREATE_DUMMY, "variables": variables}).to_string())
-    };
+    let coerce = |variables: Value| client.gql::<Value>(COERCION_CREATE_DUMMY).variables(variables).send();
 
     // Test from the spec
     // https://spec.graphql.org/October2021/#sec-List.Input-Coercion

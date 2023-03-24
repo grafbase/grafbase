@@ -2,7 +2,7 @@ mod utils;
 
 use std::collections::HashMap;
 
-use serde_json::{json, Value};
+use serde_json::Value;
 use utils::consts::{JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA};
 use utils::environment::Environment;
 
@@ -24,20 +24,20 @@ fn jwt_provider() {
     client.poll_endpoint(30, 300);
 
     // No auth header -> no authorization done in CLI
-    let resp = client.gql::<Value>(json!({ "query": JWT_PROVIDER_QUERY }).to_string());
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 
     // Reject invalid token
     let client = client.with_header("Authorization", "Bearer invalid-token");
-    let resp = client.gql::<Value>(json!({ "query": JWT_PROVIDER_QUERY }).to_string());
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized".to_string()), "error: {error:#?}");
 
     // Reject valid token with wrong group
     let token = generate_token("cli_user", &["some-group"]);
     let client = client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(json!({ "query": JWT_PROVIDER_QUERY }).to_string());
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(
         error,
@@ -48,7 +48,7 @@ fn jwt_provider() {
     // Accept valid token with correct group
     let token = generate_token("cli_user", &["backend"]);
     let client = client.with_header("Authorization", &format!("Bearer {token}"));
-    let resp = client.gql::<Value>(json!({ "query": JWT_PROVIDER_QUERY }).to_string());
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
 }

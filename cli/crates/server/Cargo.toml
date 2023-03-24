@@ -11,12 +11,23 @@ repository = "https://github.com/grafbase/grafbase"
 include = ["/src", "/assets"]
 
 [dependencies]
+anyhow = "1"
 axum = "0.6"
+async-trait = "0.1"
+base64 = "0.21"
+chrono = { version = "0.4", features = ["serde"] }
+combine = "4"
 dotenv = "0.15"
 exitcode = "1"
+futures-util = "0.3"
 hyper = "0.14"
+ipnet = "2"
+integer-encoding = "3"
+itertools = "0.10"
 log = "0.4"
 notify = "4"
+once_cell = "1"
+regex = "1"
 reqwest = { version = "0.11", features = [
   "rustls-tls",
   "json",
@@ -29,22 +40,19 @@ sqlx = { version = "0.6", features = [
   "sqlite",
   "json",
 ] }
+strum = { version = "0.24", features = ["derive"] }
 tempfile = "3"
+tantivy = "0.19"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.4", features = ["trace"] }
 tracing = "0.1"
+unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }
 version-compare = "0.1"
 which = "4"
-regex = "1"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.17.0" }
-tantivy = "0.19"
-futures-util = "0.3"
-chrono = "0.4"
-ipnet = "2"
-once_cell = "1"
 
 [dev-dependencies]
 serde_json = "1"
