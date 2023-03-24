@@ -108,6 +108,7 @@ pub mod report {
         watercolor::output_error!("✨ Successfully logged out!", @BrightBlue);
     }
 
+    // TODO change this to a spinner that is removed on success
     pub fn deploy() {
         watercolor::output_error!("🕒 Your project is being deployed", @BrightBlue);
     }
