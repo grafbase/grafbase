@@ -160,8 +160,8 @@ pub enum DeployError {
     #[error("could not deploy as the linked project does not exist")]
     ProjectDoesNotExist,
 
-    /// returned if the uploaded archive is over the allowed limit
-    #[error("could not deploy as the created archive is above the allowed limit of {limit} bytes")]
+    /// returned if the uploaded archive size is over the allowed limit
+    #[error("could not deploy as the created archive size is above the allowed limit of {limit} bytes")]
     ArchiveFileSizeLimitExceededError { limit: i32 },
 
     /// returned if the daily deployment count is passed
