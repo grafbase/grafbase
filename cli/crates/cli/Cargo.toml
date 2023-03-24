@@ -58,7 +58,7 @@ sysinfo = "0.28"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
 regex = "1"
-rstest = "0.16"
+rstest = "0.17"
 wiremock = "0.5"
 
 [[bin]]
