@@ -61,11 +61,11 @@ pub async fn deploy() -> Result<(), ApiError> {
     let client = create_client().await?;
 
     #[allow(clippy::cast_possible_truncation)] // must fit or will be over allowed limit
-    let content_length = tar_file.metadata().await.map_err(ApiError::ReadArchiveMetadata)?.len() as i32;
+    let archive_file_size = tar_file.metadata().await.map_err(ApiError::ReadArchiveMetadata)?.len() as i32;
 
     let operation = DeploymentCreate::build(DeploymentCreateArguments {
         input: DeploymentCreateInput {
-            archive_file_size: content_length,
+            archive_file_size,
             branch: None,
             project_id: Id::new(project_metadata.project_id),
         },
@@ -83,7 +83,7 @@ pub async fn deploy() -> Result<(), ApiError> {
             let framed_tar = FramedRead::new(tar_file, BytesCodec::new());
             let response = Client::new()
                 .put(payload.presigned_url)
-                .header(header::CONTENT_LENGTH, content_length)
+                .header(header::CONTENT_LENGTH, archive_file_size)
                 .header(header::CONTENT_TYPE, TAR_CONTENT_TYPE)
                 .header(header::USER_AGENT, USER_AGENT)
                 .body(Body::wrap_stream(framed_tar))
