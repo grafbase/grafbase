@@ -102,11 +102,11 @@ pub async fn deploy() -> Result<(), ApiError> {
         DeploymentCreatePayload::ProjectDoesNotExistError(_) => Err(DeployError::ProjectDoesNotExist.into()),
         DeploymentCreatePayload::ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError {
             limit, ..
-        }) => Err(DeployError::ArchiveFileSizeLimitExceededError { limit }.into()),
+        }) => Err(DeployError::ArchiveFileSizeLimitExceeded { limit }.into()),
         DeploymentCreatePayload::DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError {
             limit,
             ..
-        }) => Err(DeployError::DailyDeploymentCountLimitExceededError { limit }.into()),
+        }) => Err(DeployError::DailyDeploymentCountLimitExceeded { limit }.into()),
         DeploymentCreatePayload::Unknown => Err(DeployError::Unknown.into()),
     }
 }

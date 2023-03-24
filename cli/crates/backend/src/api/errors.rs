@@ -162,11 +162,11 @@ pub enum DeployError {
 
     /// returned if the uploaded archive size is over the allowed limit
     #[error("could not deploy as the created archive size is above the allowed limit of {limit} bytes")]
-    ArchiveFileSizeLimitExceededError { limit: i32 },
+    ArchiveFileSizeLimitExceeded { limit: i32 },
 
     /// returned if the daily deployment count is passed
     #[error("could not deploy as you have reached the allowed daily deployemnt amount of {limit}")]
-    DailyDeploymentCountLimitExceededError { limit: i32 },
+    DailyDeploymentCountLimitExceeded { limit: i32 },
 
     // TODO add hint regarding CLI version
     /// returned if an unknown error occurs
