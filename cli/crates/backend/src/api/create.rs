@@ -15,7 +15,8 @@ use cynic::{MutationBuilder, QueryBuilder};
 use std::iter;
 
 /// # Errors
-/// # Panics
+///
+/// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
     // TODO consider if we want to do this elsewhere
     if project_linked() {
@@ -70,6 +71,8 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 }
 
 /// # Errors
+///
+/// See [`ApiError`]
 pub async fn create(
     account_id: &str,
     project_slug: &str,

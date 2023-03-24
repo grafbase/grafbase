@@ -16,6 +16,8 @@ use tokio_util::codec::{BytesCodec, FramedRead};
 use tokio_util::compat::TokioAsyncReadCompatExt;
 
 /// # Errors
+///
+/// See [`ApiError`]
 pub async fn deploy() -> Result<(), ApiError> {
     let environment = Environment::get();
 
