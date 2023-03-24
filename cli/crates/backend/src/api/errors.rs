@@ -107,11 +107,11 @@ pub enum ApiError {
 
     /// wraps a [`CreateError`]
     #[error(transparent)]
-    CreateError(CreateError),
+    CreateError(#[from] CreateError),
 
     /// wraps a [`DeployError`]
     #[error(transparent)]
-    DeployError(DeployError),
+    DeployError(#[from] DeployError),
 }
 
 #[derive(Error, Debug)]
@@ -178,18 +178,6 @@ pub enum DeployError {
 pub enum LoginApiError {
     #[error("could not write '{0}'")]
     WriteCredentialFile(PathBuf),
-}
-
-impl From<CreateError> for ApiError {
-    fn from(error: CreateError) -> Self {
-        Self::CreateError(error)
-    }
-}
-
-impl From<DeployError> for ApiError {
-    fn from(error: DeployError) -> Self {
-        Self::DeployError(error)
-    }
 }
 
 impl From<CynicReqwestError> for ApiError {

@@ -18,7 +18,8 @@ pub enum ApiError {
     User(UserError),
     /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
-    SqlError(SqlxError),
+    SqlError(#[from] SqlxError),
+
     #[error("server error")]
     ServerError,
 }
@@ -26,19 +27,6 @@ pub enum ApiError {
 #[derive(Serialize, Debug)]
 pub enum UserError {
     ConstraintViolation(Constraint),
-}
-
-impl From<SqlxError> for ApiError {
-    fn from(error: SqlxError) -> Self {
-        Self::SqlError(error)
-    }
-}
-
-impl From<search::SearchError> for ApiError {
-    fn from(error: search::SearchError) -> Self {
-        error!("Search Error: {error:?}");
-        Self::ServerError
-    }
 }
 
 #[allow(dead_code)]
