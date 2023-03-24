@@ -1467,7 +1467,7 @@ dependencies = [
  "axum",
  "base64 0.21.0",
  "chrono",
- "combine",
+ "combine 4.6.6",
  "dotenv",
  "exitcode",
  "futures-util",
@@ -1889,6 +1889,7 @@ dependencies = [
  "thiserror",
  "unicode-segmentation",
  "unicode-width",
+]
 
 [[package]]
 name = "insta"
