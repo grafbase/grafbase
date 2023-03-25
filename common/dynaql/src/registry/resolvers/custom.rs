@@ -1,7 +1,9 @@
 use super::{ResolvedValue, ResolverContext, ResolverTrait};
 
 use crate::{Context, Error};
-use grafbase_runtime::custom_resolvers::{CustomResolverRequest, CustomResolversEngine};
+use grafbase_runtime::custom_resolvers::{
+    CustomResolverRequest, CustomResolverRequestPayload, CustomResolversEngine,
+};
 
 use send_wrapper::SendWrapper;
 
@@ -22,10 +24,17 @@ impl ResolverTrait for CustomResolver {
         _last_resolver_value: Option<&ResolvedValue>,
     ) -> Result<ResolvedValue, Error> {
         let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
+        let arguments = ctx
+            .field()
+            .arguments()?
+            .into_iter()
+            .map(|(name, value)| value.into_json().map(|value| (name.to_string(), value)))
+            .collect::<serde_json::Result<_>>()?;
         let future = SendWrapper::new(custom_resolvers_engine.invoke(
             ctx.data()?,
             CustomResolverRequest {
                 resolver_name: self.resolver_name.clone(),
+                payload: CustomResolverRequestPayload { arguments },
             },
         ));
         let value = Box::pin(future).await?;
