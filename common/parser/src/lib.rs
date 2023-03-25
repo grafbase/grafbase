@@ -19,6 +19,7 @@ use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::directive::Directives;
 use rules::enum_type::EnumType;
+use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
@@ -110,6 +111,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(BasicType)
+        .with(ExtendQueryAndMutationTypes)
         .with(EnumType)
         .with(ScalarHydratation)
         .with(LengthDirective)
