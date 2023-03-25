@@ -242,7 +242,20 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             None,
                                             None,
                                             vec![],
-                                            Default::default(),
+                                            field
+                                                .node
+                                                .arguments
+                                                .iter()
+                                                .map(|argument| {
+                                                    (
+                                                        argument.node.name.to_string(),
+                                                        MetaInputValue::new(
+                                                            argument.node.name.to_string(),
+                                                            argument.node.ty.to_string(),
+                                                        ),
+                                                    )
+                                                })
+                                                .collect(),
                                             field.node.ty.clone().node.to_string(),
                                         )
                                     })
