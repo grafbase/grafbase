@@ -16,6 +16,7 @@ pub enum Error {
 #[derive(Clone, Copy, serde::Serialize, strum::Display, PartialEq, Eq)]
 #[strum(serialize_all = "snake_case")]
 pub enum LogSeverity {
+    Trace,
     Debug,
     Info,
     Warn,

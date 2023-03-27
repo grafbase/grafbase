@@ -36,7 +36,7 @@ thread_local! {
 pub fn print_with_worker(config: &Config, status: LogSeverity, message: &str) {
     if config.contains(Config::WORKER) {
         match status {
-            LogSeverity::Debug => {
+            LogSeverity::Trace | LogSeverity::Debug => {
                 #[cfg(feature = "local")]
                 worker::console_debug!("{}", message);
                 // Intentionally ignored otherwise.
@@ -65,6 +65,7 @@ macro_rules! log {
 
         if config.contains($crate::Config::STDLOG) {
             match $status {
+                $crate::LogSeverity::Trace => $crate::log_::trace!("{}", message),
                 $crate::LogSeverity::Debug => $crate::log_::debug!("{}", message),
                 $crate::LogSeverity::Info => $crate::log_::info!("{}", message),
                 $crate::LogSeverity::Warn => $crate::log_::warn!("{}", message),
@@ -72,7 +73,8 @@ macro_rules! log {
             }
         }
         if config.intersects($crate::Config::DATADOG | $crate::Config::SENTRY) {
-            let should_log = config.contains($crate::Config::DATADOG) || $status == $crate::LogSeverity::Error;
+            let should_log = $status != $crate::LogSeverity::Trace &&
+                (config.contains($crate::Config::DATADOG) || $status == $crate::LogSeverity::Error);
             if should_log {
                 $crate::LOG_ENTRIES.with(|log_entries| {
                     log_entries
@@ -90,6 +92,13 @@ macro_rules! log {
             }
         }
     }};
+}
+
+#[macro_export]
+macro_rules! trace {
+    ($request_id:expr, $($t:tt)*) => {
+        $crate::log!($crate::LogSeverity::Trace, $request_id, $($t)*)
+    }
 }
 
 #[macro_export]

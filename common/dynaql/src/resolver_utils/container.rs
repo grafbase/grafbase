@@ -190,8 +190,8 @@ async fn resolve_container_inner<'a>(
 ) -> ServerResult<ResponseNodeId> {
     #[cfg(feature = "tracing_worker")]
     {
-        logworker::info!("", "Where: {}", root.name());
-        logworker::info!("", "Id: {:?}", node_id);
+        logworker::trace!("", "Where: {}", root.name());
+        logworker::trace!("", "Id: {:?}", node_id);
     }
     let mut fields = FieldsGraph(Vec::new());
     fields.add_set(ctx, root, node_id.clone())?;
@@ -395,7 +395,7 @@ impl<'a> FieldsGraph<'a> {
                                 let type_name = root.name();
                                 #[cfg(feature = "tracing_worker")]
                                 {
-                                    logworker::debug!(
+                                    logworker::trace!(
                                         "",
                                         "Resolving {field} on {type_name}",
                                         field = field.node.name.node.as_str()

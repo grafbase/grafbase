@@ -81,7 +81,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        ctx: &'a DynamoDBContext,
+        _ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {

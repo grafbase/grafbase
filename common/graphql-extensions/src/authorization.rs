@@ -52,7 +52,7 @@ impl Extension for AuthExtension {
         } = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        log::debug!(
+        log::trace!(
             self.trace_id,
             "auth: {global_ops}, {groups_from_token:?}, {subject_and_owner_ops:?}"
         );
@@ -69,7 +69,7 @@ impl Extension for AuthExtension {
                 .unwrap_or_default(),
         );
 
-        log::debug!(self.trace_id, "Resolved model ops: {model_ops}");
+        log::trace!(self.trace_id, "Resolved model ops: {model_ops}");
 
         if let Some(required_op) = info.required_operation {
             if !model_ops.contains(required_op) {
