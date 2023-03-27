@@ -35,7 +35,7 @@
     "css-loader": "^6.5.1",
     "css-minimizer-webpack-plugin": "^4.0.0",
     "dotenv": "^16.0.0",
-    "dotenv-expand": "^5.1.0",
+    "dotenv-expand": "^10.0.0",
     "eslint": "^8.3.0",
     "eslint-config-grafbase": "workspace:*",
     "eslint-config-react-app": "^7.0.1",
