@@ -17,7 +17,7 @@ use common::environment::Environment;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
-use std::collections::HashMap;
+
 use std::fs::File;
 use std::io::BufReader;
 use std::net::{Ipv4Addr, SocketAddr};
@@ -28,7 +28,6 @@ use tower_http::trace::TraceLayer;
 
 struct HandlerState {
     worker_port: u16,
-    environment_variables: HashMap<String, String>,
     pool: SqlitePool,
 }
 
@@ -124,14 +123,10 @@ async fn invoke_resolver_endpoint(
     Json(payload): Json<ResolverInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", payload);
-    super::resolvers::invoke_resolver(
-        handler_state.worker_port,
-        &payload.resolver_name,
-        &handler_state.environment_variables,
-    )
-    .await
-    .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
-    .map(Json)
+    super::resolvers::invoke_resolver(handler_state.worker_port, &payload.resolver_name)
+        .await
+        .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
+        .map(Json)
 }
 
 pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
@@ -154,13 +149,7 @@ pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Res
 
     query(PREPARE).execute(&pool).await?;
 
-    let environment_variables = crate::environment::variables().collect::<std::collections::HashMap<_, _>>();
-
-    let handler_state = Arc::new(HandlerState {
-        worker_port,
-        environment_variables,
-        pool,
-    });
+    let handler_state = Arc::new(HandlerState { worker_port, pool });
 
     let router = Router::new()
         .route("/query", post(query_endpoint))

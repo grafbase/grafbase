@@ -12,11 +12,7 @@ struct ResolverArgs<'a> {
     context: ResolverContext<'a>,
 }
 
-pub async fn invoke_resolver(
-    port: u16,
-    resolver_name: &str,
-    _environment_variables: &HashMap<String, String>,
-) -> Result<serde_json::Value, ApiError> {
+pub async fn invoke_resolver(port: u16, resolver_name: &str) -> Result<serde_json::Value, ApiError> {
     use futures_util::TryFutureExt;
     trace!("resolver invocation of '{resolver_name}'");
     reqwest::Client::new()

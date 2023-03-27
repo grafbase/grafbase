@@ -121,10 +121,12 @@ async fn spawn_servers(
 
     validate_dependencies().await?;
 
-    let resolvers = run_schema_parser().await?;
+    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
+
+    let resolvers = run_schema_parser(&environment_variables).await?;
     let environment = Environment::get();
 
-    let resolver_paths = build_resolvers(environment, resolvers, tracing).await?;
+    let resolver_paths = build_resolvers(environment, &environment_variables, resolvers, tracing).await?;
 
     let mut bridge_handle =
         tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
@@ -299,7 +301,9 @@ struct SchemaParserResult {
 
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
-async fn run_schema_parser() -> Result<Vec<String>, ServerError> {
+async fn run_schema_parser(
+    environment_variables: &std::collections::HashMap<String, String>,
+) -> Result<Vec<String>, ServerError> {
     trace!("parsing schema");
 
     let environment = Environment::get();
@@ -308,8 +312,6 @@ async fn run_schema_parser() -> Result<Vec<String>, ServerError> {
         .user_dot_grafbase_path
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
-
-    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
     let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
@@ -340,7 +342,7 @@ async fn run_schema_parser() -> Result<Vec<String>, ServerError> {
 
         let node_command_stdin = node_command.stdin.as_mut().expect("stdin must be available");
         node_command_stdin
-            .write_all(&serde_json::to_vec(&environment_variables).expect("must serialise to JSON just fine"))
+            .write_all(&serde_json::to_vec(environment_variables).expect("must serialise to JSON just fine"))
             .await
             .map_err(ServerError::SchemaParserError)?;
 
