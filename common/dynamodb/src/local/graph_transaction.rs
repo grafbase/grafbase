@@ -280,9 +280,11 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
                     ..Default::default()
                 },
             );
-            document
-                .entry(OWNED_BY.to_string())
-                .or_insert_with(|| ctx.user_id.clone().into_attr());
+            if let Some(user_id) = &ctx.user_id {
+                document
+                    .entry(OWNED_BY.to_string())
+                    .or_insert_with(|| HashSet::from([user_id.clone()]).into_attr());
+            }
 
             let record = Record {
                 pk: pk.clone(),
