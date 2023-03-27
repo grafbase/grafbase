@@ -36,7 +36,12 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         );
                         continue;
                     };
-                    ctx.queries.push(MetaField {
+                    let field_collection = match type_name.as_str() {
+                        "Query" => &mut ctx.queries,
+                        "Mutation" => &mut ctx.mutations,
+                        _ => return
+                    };
+                    field_collection.push(MetaField {
                         name: name.clone(),
                         description: field.node.description.clone().map(|x| x.node),
                         args: Default::default(),
