@@ -74,7 +74,7 @@ pub mod report {
 
     pub fn reload<P: AsRef<Path>>(path: P, _file_event_type: FileEventType) {
         println!(
-            "🔄 detected a change in {path}, reloading",
+            "🔄 Detected a change in {path}, reloading",
             path = path.as_ref().display()
         );
     }
