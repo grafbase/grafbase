@@ -207,7 +207,7 @@ importers:
       eslint: ^8.3.0
       eslint-config-grafbase: workspace:*
       eslint-config-react-app: ^7.0.1
-      eslint-webpack-plugin: ^3.1.1
+      eslint-webpack-plugin: ^4.0.0
       file-loader: ^6.2.0
       fs-extra: ^10.0.0
       graphql: ^16.6.0
@@ -279,7 +279,7 @@ importers:
       eslint: 8.29.0
       eslint-config-grafbase: link:../eslint-config-grafbase
       eslint-config-react-app: 7.0.1_6vrvgujtjexwr4hf4kghkqulpi
-      eslint-webpack-plugin: 3.2.0_2godrbid5dlikbzpspaxqblgd4
+      eslint-webpack-plugin: 4.0.0_2godrbid5dlikbzpspaxqblgd4
       file-loader: 6.2.0_webpack@5.75.0
       html-webpack-plugin: 5.5.0_webpack@5.75.0
       identity-obj-proxy: 3.0.0
@@ -7638,16 +7638,16 @@ packages:
     resolution: {integrity: sha512-mQ+suqKJVyeuwGYHAdjMFqjCyfl8+Ldnxuyp3ldiMBFKkvytrXUZWaiPCEav8qDHKty44bD+qV1IP4T+w+xXRA==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
-  /eslint-webpack-plugin/3.2.0_2godrbid5dlikbzpspaxqblgd4:
-    resolution: {integrity: sha512-avrKcGncpPbPSUHX6B3stNGzkKFto3eL+DKM4+VyMrVnhPc3vRczVlCq3uhuFOdRvDHTVXuzwk1ZKUrqDQHQ9w==}
-    engines: {node: '>= 12.13.0'}
+  /eslint-webpack-plugin/4.0.0_2godrbid5dlikbzpspaxqblgd4:
+    resolution: {integrity: sha512-eM9ccGRWkU+btBSVfABRn8CjT7jZ2Q+UV/RfErMDVCFXpihEbvajNrLltZpwTAcEoXSqESGlEPIUxl7PoDlLWw==}
+    engines: {node: '>= 14.15.0'}
     peerDependencies:
-      eslint: ^7.0.0 || ^8.0.0
+      eslint: ^8.0.0
       webpack: ^5.0.0
     dependencies:
       '@types/eslint': 8.4.10
       eslint: 8.29.0
-      jest-worker: 28.1.3
+      jest-worker: 29.5.0
       micromatch: 4.0.5
       normalize-path: 3.0.0
       schema-utils: 4.0.0
@@ -9635,15 +9635,6 @@ packages:
       '@types/node': 18.11.18
       merge-stream: 2.0.0
       supports-color: 8.1.1
-
-  /jest-worker/28.1.3:
-    resolution: {integrity: sha512-CqRA220YV/6jCo8VWvAt1KKx6eek1VIHMPeLEbpcfSfkEeWyBNppynM/o6q+Wmw+sOhos2ml34wZbSX3G13//g==}
-    engines: {node: ^12.13.0 || ^14.15.0 || ^16.10.0 || >=17.0.0}
-    dependencies:
-      '@types/node': 18.11.18
-      merge-stream: 2.0.0
-      supports-color: 8.1.1
-    dev: true
 
   /jest-worker/29.5.0:
     resolution: {integrity: sha512-NcrQnevGoSp4b5kg+akIpthoAFHxPBcb5P6mYPY0fUNT+sSvmtu6jlkEle3anczUKIKEbMxFimk9oTP/tpIPgA==}
