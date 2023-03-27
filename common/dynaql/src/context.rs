@@ -915,7 +915,8 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         };
 
         use query_planning::logical_plan::cursor::Cursor;
-        use query_planning::logical_plan::Datasource;
+        use query_planning::logical_plan::{traverse_logical_plan, Datasource};
+        use query_planning::scalar::ScalarValue;
 
         use crate::registry::plan::{Apply, First, Last, PlanProjection, PlanRelated};
         use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
@@ -1027,6 +1028,52 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             Error::new_with_source(err).into_server_error(self.item.pos)
                         })?
                         .build()
+                }
+                SchemaPlan::PaginationPage(page) => {
+                    use crate::registry::plan::PaginationPage;
+                    use query_planning::logical_plan::Direction;
+                    // If previous && forward? false
+                    // If previous && backward? check metadata
+                    // If next && backward? false
+                    // If next && forward check metadata
+                    let iteration_order = previous_plan
+                        .clone()
+                        .map(traverse_logical_plan)
+                        .unwrap_or_else(|| Box::new(std::iter::empty()))
+                        .find_map(|logic_plan| match logic_plan.as_ref() {
+                            LogicalPlan::Related(related) => Some(related.direction.clone()),
+                            _ => None,
+                        })
+                        .unwrap_or_default();
+
+                    let previous = previous_plan.ok_or_else(|| {
+                        ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
+                    })?;
+
+                    match (page, iteration_order) {
+                        (PaginationPage::Next, Direction::Forward)
+                        | (PaginationPage::Previous, Direction::Backward) => {
+                            LogicalPlanBuilder::from(previous)
+                                .metadata_has_next()
+                                .map_err(|err| {
+                                    Error::new_with_source(err).into_server_error(self.item.pos)
+                                })?
+                                .build()
+                        }
+                        (PaginationPage::Next, Direction::Backward)
+                        | (PaginationPage::Previous, Direction::Forward) => {
+                            LogicalPlanBuilder::from(previous)
+                                .projection_default(vec![(
+                                    "__val",
+                                    Some(ScalarValue::Boolean(Some(false))),
+                                    true,
+                                )])
+                                .map_err(|err| {
+                                    Error::new_with_source(err).into_server_error(self.item.pos)
+                                })?
+                                .build()
+                        }
+                    }
                 }
             });
         }

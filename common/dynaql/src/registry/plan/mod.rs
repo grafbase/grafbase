@@ -14,6 +14,7 @@ pub enum SchemaPlan {
     Apply(Apply),
     First(First),
     Last(Last),
+    PaginationPage(PaginationPage),
 }
 
 impl SchemaPlan {
@@ -50,6 +51,14 @@ impl SchemaPlan {
             plan: previous.map(Box::new),
         })
     }
+
+    pub fn pagination_page(forward: bool) -> Self {
+        if forward {
+            Self::PaginationPage(PaginationPage::Next)
+        } else {
+            Self::PaginationPage(PaginationPage::Previous)
+        }
+    }
 }
 
 /// Describe the fields projected
@@ -80,4 +89,10 @@ pub struct First {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Last {
     pub plan: Option<Box<SchemaPlan>>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum PaginationPage {
+    Next,
+    Previous,
 }
