@@ -47,8 +47,6 @@ use crate::registry::variables::VariableResolveDefinition;
 #[cfg(feature = "query-planning")]
 use query_planning::logical_plan::LogicalPlan;
 #[cfg(feature = "query-planning")]
-use query_planning::logical_query::SelectionPlan;
-#[cfg(feature = "query-planning")]
 use query_planning::reexport::internment::ArcIntern;
 
 /// Data related functions of the context.
@@ -919,7 +917,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         use query_planning::logical_plan::cursor::Cursor;
         use query_planning::logical_plan::Datasource;
 
-        use crate::registry::plan::{Apply, First, PlanProjection, PlanRelated};
+        use crate::registry::plan::{Apply, First, Last, PlanProjection, PlanRelated};
         use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
 
@@ -1016,8 +1014,19 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         })?
                         .build()
                 }
-                SchemaPlan::Last(_) => {
-                    todo!()
+                SchemaPlan::Last(Last { plan }) => {
+                    let sub_plan = plan.as_ref().map(|x| self.convert_resolver_to_logic_plan(
+                        previous_plan.clone(),
+                        resolver,
+                        Some(x.as_ref()),
+                    )).transpose()?.or(previous_plan).ok_or_else(|| ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos)))?;
+
+                    LogicalPlanBuilder::from(sub_plan)
+                        .pos_inverted(0)
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
                 }
             });
         }

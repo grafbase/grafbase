@@ -1,9 +1,10 @@
 use query_planning::logical_plan::apply_fct::ApplyFunction;
+use serde::{Deserialize, Serialize};
 
 use super::SchemaID;
 
 #[non_exhaustive]
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum SchemaPlan {
     /// Create a projection by selecting only a subset of the data.
     Projection(PlanProjection),
@@ -44,38 +45,39 @@ impl SchemaPlan {
         })
     }
 
-    /// Take the last element if `next` false, or the last + 1 element is `next` true
-    pub fn last(next: bool) -> Self {
-        Self::Last(Last { take_next: next })
+    pub fn last(previous: Option<Self>) -> Self {
+        Self::Last(Last {
+            plan: previous.map(Box::new),
+        })
     }
 }
 
 /// Describe the fields projected
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanProjection {
     pub(crate) fields: Vec<String>,
 }
 
 /// Describe the relation
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanRelated {
     pub(crate) from: Option<SchemaID>,
     pub(crate) to: SchemaID,
     pub(crate) relation_name: Option<String>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Apply {
     pub plan: Box<SchemaPlan>,
     pub(crate) fun_fields: Vec<(String, ApplyFunction)>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct First {
     pub plan: Option<Box<SchemaPlan>>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Last {
-    take_next: bool,
+    pub plan: Option<Box<SchemaPlan>>,
 }

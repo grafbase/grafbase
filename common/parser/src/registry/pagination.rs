@@ -230,7 +230,10 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(SchemaPlan::last(false).apply_cursor_encode(vec!["id".to_string()])),
+                        plan: Some(
+                            SchemaPlan::last(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                                .apply_cursor_encode(vec!["id".to_string()]),
+                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
                         }),
