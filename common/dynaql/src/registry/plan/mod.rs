@@ -15,11 +15,16 @@ pub enum SchemaPlan {
     First(First),
     Last(Last),
     PaginationPage(PaginationPage),
+    Resolver(Resolver),
 }
 
 impl SchemaPlan {
     pub fn projection(fields: Vec<String>) -> Self {
         Self::Projection(PlanProjection { fields })
+    }
+
+    pub fn resolver(resolver_name: String) -> Self {
+        Self::Resolver(Resolver { resolver_name })
     }
 
     pub fn related(from: Option<SchemaID>, to: SchemaID, relation_name: Option<String>) -> Self {
@@ -91,4 +96,9 @@ pub struct Last {
 pub enum PaginationPage {
     Next,
     Previous,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Resolver {
+    pub resolver_name: String,
 }

@@ -1072,6 +1072,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         }
                     }
                 }
+                SchemaPlan::Resolver(_) => {
+                    todo!()
+                }
             });
         }
 
