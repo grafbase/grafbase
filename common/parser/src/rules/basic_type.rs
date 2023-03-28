@@ -22,6 +22,7 @@ impl<'a> Visitor<'a> for BasicType {
     ) {
         let directives = &type_definition.node.directives;
         if_chain! {
+            if !["Query", "Mutation"].contains(&type_definition.node.name.node.as_str());
             if !directives.iter().any(|directive| directive.node.name.node == MODEL_DIRECTIVE);
             if let TypeKind::Object(object) = &type_definition.node.kind;
             then {
