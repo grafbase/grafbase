@@ -40,7 +40,7 @@ pub mod report {
     pub fn project_created(name: Option<&str>) {
         let slash = std::path::MAIN_SEPARATOR.to_string();
         if let Some(name) = name {
-            watercolor::output!(r#"✨ "{name}" was successfully created!"#, @BrightBlue);
+            watercolor::output!(r#"✨ {name} was successfully initialized!"#, @BrightBlue);
 
             let schema_path = &[".", name, "grafbase", "schema.graphql"].join(&slash);
 
@@ -106,5 +106,13 @@ pub mod report {
 
     pub fn logout() {
         watercolor::output_error!("✨ successfully logged out!", @BrightBlue);
+    }
+
+    pub fn created(name: &str, urls: &[String]) {
+        watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
+        watercolor::output!("Endpoints:", @BrightBlue);
+        for url in urls {
+            watercolor::output!("- https://{url}", @BrightBlue);
+        }
     }
 }

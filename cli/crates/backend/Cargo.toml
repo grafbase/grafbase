@@ -13,7 +13,9 @@ repository = "https://github.com/grafbase/grafbase"
 axum = "0.6"
 async-compression = { version = "0.3", features = ["gzip", "tokio"] }
 async-tar = "0.4"
-dirs = "4"
+const_format = { version = "0.2", features = ["rust_1_64"] }
+cynic = { version = "2", features = ["http-reqwest"] }
+dirs = "5"
 exitcode = "1"
 http-cache-reqwest = "0.7"
 reqwest = { version = "0.11", features = [

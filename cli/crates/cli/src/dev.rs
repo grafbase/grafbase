@@ -3,7 +3,6 @@ use crate::CliError;
 use backend::server_api::start_server;
 use backend::types::ServerMessage;
 use common::consts::DEFAULT_PORT;
-use common::environment::Environment;
 use common::utils::get_thread_panic_message;
 use std::sync::Once;
 use std::thread::spawn;
@@ -19,8 +18,6 @@ static READY: Once = Once::new();
 /// returns [`CliError::ServerPanic`] if the development server panics
 pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool) -> Result<(), CliError> {
     trace!("attempting to start server");
-
-    Environment::try_init().map_err(CliError::CommonError)?;
 
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
     let (server_handle, reporter_handle) = match start_server(start_port, search, watch, tracing) {

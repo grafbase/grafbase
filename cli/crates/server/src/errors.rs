@@ -2,7 +2,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
-use common::traits::ToExitCode;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
@@ -132,43 +131,6 @@ pub enum ServerError {
     /// returned if a file watcher could not be initialized
     #[error("Could not initialize a file watcher: {0}")]
     FileWatcherInit(NotifyError),
-}
-
-impl ToExitCode for ServerError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::FileWatcherInit(_)
-            | Self::NodeInPath
-            | Self::NpmCommand(_)
-            | Self::NpmCommandError(_)
-            | Self::OutdatedNode(_, _)
-            | Self::ParseSchema(_)
-            | Self::ReadVersion
-            | Self::SchemaParserError(_)
-            | Self::WriteFile(_) => exitcode::DATAERR,
-            Self::BridgeApi(_)
-            | Self::CheckNodeVersion
-            | Self::ConnectToDatabase(_)
-            | Self::CreateDatabase(_)
-            | Self::ExtractResolverWrapperWorkerContents(_)
-            | Self::MiniflareCommandError(_)
-            | Self::MiniflareError(_)
-            | Self::QueryDatabase(_)
-            | Self::ResolverDoesNotExist(_)
-            | Self::SchemaParserResultJson(_)
-            | Self::SchemaParserResultRead(_)
-            | Self::SpawnedTaskPanic(_)
-            | Self::UnknownSqliteError(_) => exitcode::SOFTWARE,
-            Self::CachePath
-            | Self::CreateCacheDir
-            | Self::CreateDir(_)
-            | Self::CreateResolverArtifactFile(_)
-            | Self::CreateTemporaryFile(_)
-            | Self::ProjectPath
-            | Self::SchemaRegistryWrite(_) => exitcode::CANTCREAT,
-            Self::AvailablePort => exitcode::UNAVAILABLE,
-        }
-    }
 }
 
 impl From<SqlxError> for ServerError {
