@@ -1032,10 +1032,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 SchemaPlan::PaginationPage(page) => {
                     use crate::registry::plan::PaginationPage;
                     use query_planning::logical_plan::Direction;
-                    // If previous && forward? false
-                    // If previous && backward? check metadata
-                    // If next && backward? false
-                    // If next && forward check metadata
+
                     let iteration_order = previous_plan
                         .clone()
                         .map(traverse_logical_plan)
