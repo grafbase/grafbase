@@ -52,12 +52,8 @@ impl SchemaPlan {
         })
     }
 
-    pub fn pagination_page(forward: bool) -> Self {
-        if forward {
-            Self::PaginationPage(PaginationPage::Next)
-        } else {
-            Self::PaginationPage(PaginationPage::Previous)
-        }
+    pub fn pagination_page(page: PaginationPage) -> Self {
+        Self::PaginationPage(page)
     }
 }
 

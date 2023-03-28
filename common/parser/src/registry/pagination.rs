@@ -1,7 +1,7 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
-use dynaql::registry::plan::SchemaPlan;
+use dynaql::registry::plan::{PaginationPage, SchemaPlan};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::Registry;
@@ -140,7 +140,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(SchemaPlan::pagination_page(false)),
+                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Previous)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
                         }),
@@ -171,7 +171,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: Some(SchemaPlan::pagination_page(true)),
+                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Next)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
                         }),
