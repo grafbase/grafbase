@@ -7,10 +7,10 @@ A JSON Value
 """
 scalar JSON
 type Mutation {
-	stripe: StripeMutations
+	stripe: StripeMutation!
 }
 type Query {
-	stripe: StripeQueries
+	stripe: StripeQuery!
 }
 type StripeAccount {
 	type: StripeAccountType
@@ -7775,7 +7775,7 @@ enum StripeMandateType {
 	SINGLE_USE
 }
 union StripeMandateUnion = StripeMandate
-type StripeMutations {
+type StripeMutation {
 	postAccountLinks(input: StripePostAccountLinksInput!): StripeAccountLink!
 	postAccounts(input: StripePostAccountsInput): StripeAccount!
 	postAccountsAccount(account: String!, input: StripePostAccountsAccountInput): StripeAccount!
@@ -28066,7 +28066,7 @@ type StripePromotionCodesResourceRestrictions {
 	firstTimeTransaction: Boolean!
 	currencyOptions: JSON
 }
-type StripeQueries {
+type StripeQuery {
 	account(expand: [String!]): StripeAccount!
 	accounts(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeGetAccountsCreatedUnionInput): StripeGetAccounts!
 	accountsAccount(account: String!, expand: [String!]): StripeAccount!

@@ -20,12 +20,12 @@ pub trait RegistryExt {
 
 impl RegistryExt for Registry {
     fn query_fields_mut(&mut self, api_metadata: &ApiMetadata) -> &mut IndexMap<String, MetaField> {
-        let object_name = format!("{}Queries", api_metadata.name.to_pascal_case());
+        let object_name = format!("{}Query", api_metadata.name.to_pascal_case());
 
         insert_field(
             self.query_root_mut().fields_mut().expect("QueryRoot to be an Object"),
             api_metadata.name.to_camel_case(),
-            object_name.clone(),
+            format!("{object_name}!"),
         );
 
         insert_empty_object(&mut self.types, object_name)
@@ -38,14 +38,14 @@ impl RegistryExt for Registry {
             insert_empty_object(&mut self.types, name);
         }
 
-        let object_name = format!("{}Mutations", api_metadata.name.to_pascal_case());
+        let object_name = format!("{}Mutation", api_metadata.name.to_pascal_case());
 
         insert_field(
             self.mutation_root_mut()
                 .fields_mut()
                 .expect("MutationRoot to be an Object"),
             api_metadata.name.to_camel_case(),
-            object_name.clone(),
+            format!("{object_name}!"),
         );
 
         insert_empty_object(&mut self.types, object_name)

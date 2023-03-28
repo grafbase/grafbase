@@ -7,7 +7,7 @@ A JSON Value
 """
 scalar JSON
 type Mutation {
-	petstore: PetstoreMutations
+	petstore: PetstoreMutation!
 }
 type PetstoreApiResponse {
 	message: String
@@ -27,7 +27,7 @@ enum PetstoreFindPetsByStatusStatus {
 	PENDING
 	SOLD
 }
-type PetstoreMutations {
+type PetstoreMutation {
 	updatePet(input: PetstorePetInput!): PetstorePet!
 	addPet(input: PetstorePetInput!): PetstorePet!
 	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse!
@@ -76,7 +76,7 @@ enum PetstorePetStatus {
 	PENDING
 	SOLD
 }
-type PetstoreQueries {
+type PetstoreQuery {
 	findPetsByStatus(status: PetstoreFindPetsByStatusStatus): [PetstorePet!]!
 	findPetsByTags(tags: [String!]): [PetstorePet!]!
 	petById(petId: Int!): PetstorePet!
@@ -114,7 +114,7 @@ input PetstoreUserInput {
 	id: Int
 }
 type Query {
-	petstore: PetstoreQueries
+	petstore: PetstoreQuery!
 }
 schema {
 	query: Query
