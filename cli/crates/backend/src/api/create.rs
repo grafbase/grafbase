@@ -1,5 +1,6 @@
 use super::client::create_client;
 use super::consts::{API_URL, PROJECT_METADATA_FILE};
+use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
@@ -14,7 +15,8 @@ use cynic::{MutationBuilder, QueryBuilder};
 use std::iter;
 
 /// # Errors
-/// # Panics
+///
+/// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
     // TODO consider if we want to do this elsewhere
     if project_linked() {
@@ -69,6 +71,8 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 }
 
 /// # Errors
+///
+/// See [`ApiError`]
 pub async fn create(
     account_id: &str,
     project_slug: &str,
@@ -104,6 +108,9 @@ pub async fn create(
             )
             .await
             .map_err(ApiError::WriteProjectMetadataFile)?;
+
+            deploy::deploy().await?;
+
             Ok(project.production_branch.domains)
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),

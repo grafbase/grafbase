@@ -43,7 +43,7 @@ pub enum ServerError {
 
     /// returned if the sqlite bridge cannot be started
     #[error("the bridge api encountered an error: {0}")]
-    BridgeApi(HyperError),
+    BridgeApi(#[from] HyperError),
 
     /// returned if the miniflare command returns an error
     #[error("miniflare encountered an error: {0}")]
@@ -114,7 +114,7 @@ pub enum ServerError {
 
     /// returned if a spawned task panics
     #[error(transparent)]
-    SpawnedTaskPanic(JoinError),
+    SpawnedTaskPanic(#[from] JoinError),
 
     /// returned if node is not in the user $PATH
     #[error("Node.js does not seem to be installed")]
@@ -130,7 +130,7 @@ pub enum ServerError {
 
     /// returned if a file watcher could not be initialized
     #[error("Could not initialize a file watcher: {0}")]
-    FileWatcherInit(NotifyError),
+    FileWatcherInit(#[from] NotifyError),
 }
 
 impl From<SqlxError> for ServerError {
@@ -159,12 +159,6 @@ impl From<SqlxError> for ServerError {
     }
 }
 
-impl From<HyperError> for ServerError {
-    fn from(error: HyperError) -> Self {
-        Self::BridgeApi(error)
-    }
-}
-
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let body = Json(json!({
@@ -172,17 +166,5 @@ impl IntoResponse for ServerError {
         }));
 
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
-    }
-}
-
-impl From<JoinError> for ServerError {
-    fn from(error: JoinError) -> Self {
-        Self::SpawnedTaskPanic(error)
-    }
-}
-
-impl From<NotifyError> for ServerError {
-    fn from(notify_error: NotifyError) -> Self {
-        Self::FileWatcherInit(notify_error)
     }
 }

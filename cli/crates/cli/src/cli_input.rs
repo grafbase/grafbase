@@ -56,6 +56,7 @@ pub fn build_cli() -> Command {
         .subcommand(Command::new("login").about("Logs into your Grafbase account"))
         .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
         .subcommand(Command::new("create").about("Set up and deploy a new project"))
+        .subcommand(Command::new("deploy").about("Deploy your project"))
     // .subcommand(Command::new("deploy").about("TBD"))
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view
