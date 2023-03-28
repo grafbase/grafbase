@@ -43,13 +43,13 @@ export default function Index() {
         Signed in
         <br />
         <a href="/api/auth/logout">Logout</a>
-        {/* <br />
+        <br />
         <button
           onClick={() => fetchMessages().then(({ data: res }) => setData(res))}
         >
           Fetch messages with token
         </button>
-        <pre>{JSON.stringify({ data }, null, 2)}</pre> */}
+        <pre>{JSON.stringify({ data }, null, 2)}</pre>
       </>
     )
   }
