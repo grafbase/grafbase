@@ -37,3 +37,6 @@ webbrowser = "0.8"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.18.0-rc.2" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.18.0-rc.2" }
+
+[patch.crates-io]
+cacache = "11.1.0"
