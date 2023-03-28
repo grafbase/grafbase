@@ -119,11 +119,11 @@ jobs:
           if [[ $INPUT_PRERELEASE != "false" ]]; then
               PUBLISH_ARGUMENTS+=(--tag next)
           fi
-          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
-          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
-          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
-          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
-          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]/#/-}")
+          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
       - name: Github Release
         id: gh-release
