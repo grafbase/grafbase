@@ -57,6 +57,7 @@ async fn run_npm_command<P: AsRef<Path>>(
     }
 }
 
+#[allow(clippy::too_many_lines)]
 async fn build_resolver(
     environment: &Environment,
     resolver_name: &str,
@@ -71,9 +72,9 @@ async fn build_resolver(
         .resolvers_source_path
         .join(resolver_name)
         .with_extension("js");
-    if tokio::fs::metadata(&resolver_input_file_path).await.is_err() {
-        return Err(ServerError::ResolverDoesNotExist(resolver_input_file_path));
-    }
+    let _ = tokio::fs::metadata(&resolver_input_file_path)
+        .await
+        .map_err(|_| ServerError::ResolverDoesNotExist(resolver_input_file_path.clone()))?;
 
     let package_json_file_path = {
         let paths = futures_util::stream::iter(
@@ -171,6 +172,21 @@ async fn build_resolver(
         &[("FORCE_COLOR", "0"), ("CLOUDFLARE_API_TOKEN", "STUB")],
     )
     .await?;
+
+    tokio::fs::write(
+        resolver_build_artifact_directory_path.join("wrangler.toml"),
+        format!(
+            r#"
+                name = "{resolver_name}"
+                [build.upload]
+                format = "modules"
+                [miniflare]
+                routes = ["127.0.0.1/resolver/{resolver_name}/invoke"]
+            "#
+        ),
+    )
+    .await
+    .map_err(ServerError::CreateTemporaryFile)?;
 
     Ok(resolver_build_artifact_directory_path)
 }

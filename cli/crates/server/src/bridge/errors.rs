@@ -21,6 +21,8 @@ pub enum ApiError {
     SqlError(#[from] SqlxError),
     #[error("server error")]
     ServerError,
+    #[error("resolver {0} is invalid")]
+    ResolverInvalid(String),
 }
 
 #[derive(Serialize, Debug)]
@@ -47,7 +49,9 @@ impl IntoResponse for ApiError {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
 
-            ApiError::SqlError(_) | ApiError::ServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+            ApiError::SqlError(_) | ApiError::ServerError | ApiError::ResolverInvalid(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
         }
     }
 }

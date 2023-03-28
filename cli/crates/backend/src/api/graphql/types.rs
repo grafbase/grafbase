@@ -3,7 +3,6 @@ pub mod mutations {
     use super::schema;
 
     #[derive(cynic::InputObject, Clone, Debug)]
-    #[cynic(rename_all = "camelCase")]
     pub struct ProjectCreateInput {
         pub account_id: cynic::Id,
         pub project_slug: String,
