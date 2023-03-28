@@ -124,7 +124,7 @@ async fn spawn_servers(
     let resolvers = run_schema_parser().await?;
     let environment = Environment::get();
 
-    let _resolver_paths = build_resolvers(environment, resolvers, tracing).await?;
+    let resolver_paths = build_resolvers(environment, resolvers, tracing).await?;
 
     let mut bridge_handle =
         tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
@@ -147,7 +147,7 @@ async fn spawn_servers(
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
-    let miniflare_arguments = [
+    let mut miniflare_arguments: Vec<_> = [
         // used by miniflare when running normally as well
         "--experimental-vm-modules",
         "./packages/miniflare/dist/src/cli.js",
@@ -165,12 +165,27 @@ async fn spawn_servers(
         &bridge_port_binding_string,
         "--text-blob",
         &registry_text_blob_string,
-    ];
+        "--mount",
+        "stream-router=../stream-router",
+    ]
+    .into_iter()
+    .map(std::borrow::Cow::Borrowed)
+    .collect();
+    miniflare_arguments.extend(resolver_paths.into_iter().flat_map(|(resolver_name, resolver_path)| {
+        [
+            "--mount".into(),
+            format!(
+                "{resolver_name}={}",
+                resolver_path.to_str().expect("correct at this point")
+            )
+            .into(),
+        ]
+    }));
 
     let miniflare = Command::new("node")
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args(miniflare_arguments)
+        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
