@@ -345,20 +345,27 @@ impl OpenApiGraph {
                 }
 
                 // Unions are named based on the names of their constituent types.
-                // Although it's perfectly possible for any of the members to be un-named
-                // so this will probably require a bit more work at some point.
-                let mut name = self.metadata.name.to_string().to_pascal_case();
-                name.push_str(
-                    &self
-                        .graph
-                        .edges(node)
-                        .filter_map(|edge| match edge.weight() {
-                            Edge::HasUnionMember => OutputType::from_index(edge.target(), self)?.name(self),
-                            _ => None,
-                        })
-                        .collect::<Vec<_>>()
-                        .join("Or"),
-                );
+                let name_components = self
+                    .graph
+                    .edges(node)
+                    .filter_map(|edge| match edge.weight() {
+                        Edge::HasUnionMember => OutputType::from_index(edge.target(), self)?.name(self),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>();
+
+                let mut name;
+                let prefix = self.metadata.name.to_string().to_pascal_case();
+                if name_components
+                    .first()
+                    .filter(|name| name.starts_with(&prefix))
+                    .is_some()
+                {
+                    name = String::new();
+                } else {
+                    name = prefix;
+                }
+                name.push_str(&name_components.join("Or"));
                 name.push_str("Union");
 
                 Some(name)
