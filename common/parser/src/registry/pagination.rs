@@ -140,7 +140,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(SchemaPlan::pagination_page(false)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
                         }),
@@ -171,7 +171,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(SchemaPlan::pagination_page(true)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
                         }),
