@@ -28,7 +28,7 @@ jobs:
   detect-change-type:
     runs-on: ubuntu-latest
     outputs:
-      cli: ${{ steps.filter.outputs.cli }}
+      build: ${{ steps.filter.outputs.build }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -38,12 +38,13 @@ jobs:
         id: filter
         with:
           filters: |
-            cli:
+            build:
               - 'cli/**'
+              - '.github/**'
 
   lint:
     needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.cli == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     steps:
       - name: Get sources
@@ -159,6 +160,10 @@ jobs:
   darwin:
     needs: [lint]
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -181,29 +186,17 @@ jobs:
         with:
           lint: false
 
-      - name: Build aarch64 release
+      - name: Build ${{ matrix.target }} release
         run: |
           cd cli
-          cargo build --release --target aarch64-apple-darwin
-
-      - name: Build x86_64 release
-        run: |
-          cd cli
-          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target ${{ matrix.target }}
 
       - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload aarch binary
+        name: Upload ${{ matrix.target }} binary
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.ref_name }}-aarch64-apple-darwin
-          path: cli/target/aarch64-apple-darwin/release/grafbase
-
-      - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload x86_64 binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ github.ref_name }}-x86_64-apple-darwin
-          path: cli/target/x86_64-apple-darwin/release/grafbase
+          name: ${{ github.ref_name }}-${{ matrix.target }}
+          path: cli/target/${{ matrix.target }}/release/grafbase
 
   release:
     needs: [windows, linux, darwin]
