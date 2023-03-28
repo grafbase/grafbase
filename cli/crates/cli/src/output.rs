@@ -124,4 +124,12 @@ pub mod report {
             watercolor::output!("- https://{url}", @BrightBlue);
         }
     }
+
+    pub fn created(name: &str, urls: &[String]) {
+        watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
+        watercolor::output!("Endpoints:", @BrightBlue);
+        for url in urls {
+            watercolor::output!("- https://{url}", @BrightBlue);
+        }
+    }
 }
