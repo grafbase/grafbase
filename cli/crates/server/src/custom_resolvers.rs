@@ -4,6 +4,7 @@ use std::process::Stdio;
 
 use common::environment::Environment;
 use futures_util::{pin_mut, TryStreamExt};
+use itertools::Itertools;
 use tokio::process::Command;
 
 use crate::errors::ServerError;
@@ -22,8 +23,6 @@ async fn run_npm_command<P: AsRef<Path>>(
     tracing: bool,
     environment: &[(&'static str, &'static str)],
 ) -> Result<(), ServerError> {
-    use itertools::Itertools;
-
     let artifact_directory_path_string = artifact_directory_path
         .as_ref()
         .to_str()
@@ -60,6 +59,7 @@ async fn run_npm_command<P: AsRef<Path>>(
 #[allow(clippy::too_many_lines)]
 async fn build_resolver(
     environment: &Environment,
+    environment_variables: &std::collections::HashMap<String, String>,
     resolver_name: &str,
     resolver_wrapper_worker_contents: &str,
     tracing: bool,
@@ -182,7 +182,12 @@ async fn build_resolver(
                 format = "modules"
                 [miniflare]
                 routes = ["127.0.0.1/resolver/{resolver_name}/invoke"]
-            "#
+                [vars]
+                {vars}
+            "#,
+            vars = environment_variables
+                .iter()
+                .format_with("\n", |(key, value), f| f(&std::format_args!("{key} = \"{value}\"")))
         ),
     )
     .await
@@ -205,6 +210,7 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerErro
 
 pub async fn build_resolvers(
     environment: &Environment,
+    environment_variables: &std::collections::HashMap<String, String>,
     resolvers: impl IntoIterator<Item = String>,
     tracing: bool,
 ) -> Result<HashMap<String, PathBuf>, ServerError> {
@@ -222,6 +228,7 @@ pub async fn build_resolvers(
         .and_then(|resolver_name| async {
             let output_file_path = build_resolver(
                 environment,
+                environment_variables,
                 resolver_name.as_str(),
                 &resolver_wrapper_worker_contents,
                 tracing,
