@@ -1,7 +1,7 @@
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
-use parser::QueryNamingStrategy;
+use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use parsing::components::Ref;
 use url::Url;
 
@@ -49,7 +49,7 @@ impl From<parser::OpenApiDirective> for ApiMetadata {
             name: val.name.clone(),
             url: val.url.clone(),
             headers: val.headers(),
-            query_naming: val.query_naming,
+            query_naming: val.transforms.query_naming,
         }
     }
 }

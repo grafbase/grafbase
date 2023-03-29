@@ -13,14 +13,20 @@ pub struct OpenApiDirective {
     pub schema_url: String,
     #[serde(default)]
     headers: Vec<Header>,
-
     #[serde(default)]
-    pub query_naming: QueryNamingStrategy,
+    pub transforms: OpenApiTransforms,
+}
+
+#[derive(Debug, Default, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OpenApiTransforms {
+    #[serde(default)]
+    pub query_naming: OpenApiQueryNamingStrategy,
 }
 
 #[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum QueryNamingStrategy {
+pub enum OpenApiQueryNamingStrategy {
     OperationId,
     #[default]
     SchemaName,
@@ -63,13 +69,17 @@ impl Directive for OpenApiDirective {
           "The URL of this APIs schema"
           schema: String!
           headers: [OpenApiHeader!]
-          "How we determine the field names of the generated query type"
-          queryNaming: QueryNamingStrategy = SCHEMA_NAME
+          transforms: OpenApiTransforms
         ) on SCHEMA
 
         input OpenApiHeader {
             name: String!
             value: String!
+        }
+
+        input OpenApiTransforms {
+          "How we determine the field names of the generated query type"
+          queryNaming: QueryNamingStrategy = SCHEMA_NAME
         }
 
         enum QueryNamingStrategy {
@@ -120,7 +130,7 @@ mod tests {
 
     use crate::rules::visitor::RuleError;
 
-    use super::QueryNamingStrategy;
+    use super::OpenApiQueryNamingStrategy;
 
     #[test]
     fn test_parsing_openapi_directive() {
@@ -172,15 +182,18 @@ mod tests {
                         ),
                     },
                 ],
+                transforms: OpenApiTransforms {
+                    query_naming: SchemaName,
+                },
             },
         ]
         "###);
     }
 
     #[rstest]
-    #[case("OPERATION_ID", QueryNamingStrategy::OperationId)]
-    #[case("SCHEMA_NAME", QueryNamingStrategy::SchemaName)]
-    fn test_parse_naming_strategy(#[case] input: &str, #[case] expected: QueryNamingStrategy) {
+    #[case("OPERATION_ID", OpenApiQueryNamingStrategy::OperationId)]
+    #[case("SCHEMA_NAME", OpenApiQueryNamingStrategy::SchemaName)]
+    fn test_parse_naming_strategy(#[case] input: &str, #[case] expected: OpenApiQueryNamingStrategy) {
         let result = crate::to_registry_with_variables(
             format!(
                 r#"
@@ -189,7 +202,9 @@ mod tests {
                         name: "stripe",
                         url: "https://api.stripe.com",
                         schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
-                        queryNaming: {input}
+                        transforms: {{
+                            queryNaming: {input}
+                        }}
                       )
             "#
             ),
@@ -199,7 +214,10 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(result.openapi_directives.first().unwrap().query_naming, expected);
+        assert_eq!(
+            result.openapi_directives.first().unwrap().transforms.query_naming,
+            expected
+        );
     }
 
     macro_rules! assert_validation_error {
@@ -242,7 +260,7 @@ mod tests {
                 name: "stripe",
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 url: "https://api.stripe.com",
-                queryNamingStrategy: PIES
+                transforms: {queryNaming: PIES}
               )
             "#,
             "unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"

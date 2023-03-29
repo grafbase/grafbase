@@ -36,7 +36,7 @@ mod models;
 use crate::rules::cache_directive::{CacheDirective, CacheVisitor};
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
-pub use rules::openapi_directive::{OpenApiDirective, QueryNamingStrategy};
+pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
 

@@ -1,6 +1,5 @@
 ---
 source: common/parser-openapi/src/lib.rs
-assertion_line: 177
 expression: registry
 ---
 Registry {
@@ -20,7 +19,7 @@ Registry {
                     name: "petstore",
                     description: None,
                     args: {},
-                    ty: "PetstoreMutations",
+                    ty: "PetstoreMutation!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -295,8 +294,8 @@ Registry {
             },
             rust_typename: "PetstoreFindPetsByStatusStatus",
         },
-        "PetstoreMutations": Object {
-            name: "PetstoreMutations",
+        "PetstoreMutation": Object {
+            name: "PetstoreMutation",
             description: None,
             fields: {
                 "updatePet": MetaField {
@@ -600,7 +599,7 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreMutations",
+            rust_typename: "PetstoreMutation",
             constraints: [],
         },
         "PetstoreOrder": Object {
@@ -1197,8 +1196,8 @@ Registry {
             },
             rust_typename: "PetstorePetStatus",
         },
-        "PetstoreQueries": Object {
-            name: "PetstoreQueries",
+        "PetstoreQuery": Object {
+            name: "PetstoreQuery",
             description: None,
             fields: {
                 "findPetsByStatus": MetaField {
@@ -1313,8 +1312,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "petById": MetaField {
-                    name: "petById",
+                "pet": MetaField {
+                    name: "pet",
                     description: None,
                     args: {
                         "petId": MetaInputValue {
@@ -1407,8 +1406,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "orderById": MetaField {
-                    name: "orderById",
+                "order": MetaField {
+                    name: "order",
                     description: None,
                     args: {
                         "orderId": MetaInputValue {
@@ -1533,8 +1532,8 @@ Registry {
                     required_operation: None,
                     auth: None,
                 },
-                "userByName": MetaField {
-                    name: "userByName",
+                "user": MetaField {
+                    name: "user",
                     description: None,
                     args: {
                         "username": MetaInputValue {
@@ -1598,7 +1597,7 @@ Registry {
             keys: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: "PetstoreQueries",
+            rust_typename: "PetstoreQuery",
             constraints: [],
         },
         "PetstoreTag": Object {
@@ -2049,7 +2048,7 @@ Registry {
                     name: "petstore",
                     description: None,
                     args: {},
-                    ty: "PetstoreQueries",
+                    ty: "PetstoreQuery!",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,

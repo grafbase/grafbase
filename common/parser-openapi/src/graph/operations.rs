@@ -1,6 +1,5 @@
 use dynaql::registry::resolvers::http::ExpectedStatusCode;
 use inflector::Inflector;
-use parser::QueryNamingStrategy;
 use petgraph::{
     graph::NodeIndex,
     visit::{EdgeRef, IntoEdges, Reversed},
@@ -9,6 +8,7 @@ use petgraph::{
 use crate::{
     is_ok,
     parsing::operations::{HttpMethod, OperationDetails},
+    QueryNamingStrategy,
 };
 
 use super::{
