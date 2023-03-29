@@ -441,6 +441,19 @@ impl<'a> Sql<'a> {
                 number_of_edges,
                 filter_by_owner,
             } => {
+                let maybe_owner_table = if *filter_by_owner {
+                    format!(
+                        ", json_each({table}.document,'$.__owned_by.SS') AS owner",
+                        table = Self::TABLE
+                    )
+                } else {
+                    "".to_string()
+                };
+                let maybe_owner_condition = if *filter_by_owner {
+                    format!("AND owner.value=?{OWNED_BY_KEY}")
+                } else {
+                    "".to_string()
+                };
                 format!(
                     indoc::indoc! {"
                     SELECT
@@ -465,18 +478,10 @@ impl<'a> Sql<'a> {
                         {maybe_owner_condition}
                 "},
                     table = Self::TABLE,
-                    maybe_owner_table = if *filter_by_owner {
-                        ", json_each({table}.document,'$.__owned_by.SS') AS owner"
-                    } else {
-                        ""
-                    },
+                    maybe_owner_table = maybe_owner_table,
                     pk = pk,
                     edges = joined_repeating("relation_name.value=?edges", *number_of_edges, " OR "),
-                    maybe_owner_condition = if *filter_by_owner {
-                        "AND owner.value=?{OWNED_BY_KEY}"
-                    } else {
-                        ""
-                    }
+                    maybe_owner_condition = maybe_owner_condition,
                 )
             }
             Self::SelectId { pk, filter_by_owner } => {

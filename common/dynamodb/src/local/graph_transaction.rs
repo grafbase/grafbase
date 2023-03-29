@@ -285,7 +285,6 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
                     .entry(OWNED_BY.to_string())
                     .or_insert_with(|| HashSet::from([user_id.clone()]).into_attr());
             }
-
             let record = Record {
                 pk: pk.clone(),
                 sk: sk.clone(),
