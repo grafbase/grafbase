@@ -371,7 +371,27 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "endCursor",
-            "plan": null,
+            "plan": {
+              "Apply": {
+                "fun_fields": [
+                  [
+                    "id",
+                    "CursorEncode"
+                  ]
+                ],
+                "plan": {
+                  "Last": {
+                    "plan": {
+                      "Projection": {
+                        "fields": [
+                          "id"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -402,7 +422,9 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "hasNextPage",
-            "plan": null,
+            "plan": {
+              "PaginationPage": "Next"
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -433,7 +455,9 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "hasPreviousPage",
-            "plan": null,
+            "plan": {
+              "PaginationPage": "Previous"
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -464,7 +488,27 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "startCursor",
-            "plan": null,
+            "plan": {
+              "Apply": {
+                "fun_fields": [
+                  [
+                    "id",
+                    "CursorEncode"
+                  ]
+                ],
+                "plan": {
+                  "First": {
+                    "plan": {
+                      "Projection": {
+                        "fields": [
+                          "id"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": 4,
@@ -898,10 +942,20 @@ expression: req_string_a
             "external": false,
             "name": "cursor",
             "plan": {
-              "Projection": {
-                "fields": [
-                  "id"
-                ]
+              "Apply": {
+                "fun_fields": [
+                  [
+                    "id",
+                    "CursorEncode"
+                  ]
+                ],
+                "plan": {
+                  "Projection": {
+                    "fields": [
+                      "id"
+                    ]
+                  }
+                }
               }
             },
             "provides": null,

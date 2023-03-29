@@ -283,6 +283,18 @@ impl Error {
         }
     }
 
+    /// Create an error with an error and a custom message error;
+    pub fn new_with_source_and_message(
+        message: impl Display,
+        source: impl Send + Sync + 'static,
+    ) -> Self {
+        Self {
+            message: message.to_string(),
+            source: Some(Arc::new(source)),
+            extensions: None,
+        }
+    }
+
     /// Convert the error to a server error.
     #[must_use]
     pub fn into_server_error(self, pos: Pos) -> ServerError {

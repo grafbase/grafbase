@@ -1,7 +1,7 @@
 use dynamodb::constant;
 use dynaql::indexmap::IndexMap;
 use dynaql::registry::enums::OrderByDirection;
-use dynaql::registry::plan::SchemaPlan;
+use dynaql::registry::plan::{PaginationPage, SchemaPlan};
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::Registry;
@@ -89,8 +89,9 @@ fn register_edge_type(
                             },
                             Transformer::ConvertSkToCursor,
                         ])),
-                        // Incomplete: need base64
-                        plan: Some(SchemaPlan::projection(vec!["id".to_string()])),
+                        plan: Some(
+                            SchemaPlan::projection(vec!["id".to_string()]).apply_cursor_encode(vec!["id".to_string()]),
+                        ),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
                     },
@@ -137,7 +138,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Previous)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_previous_page".to_string(),
                         }),
@@ -168,7 +169,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(SchemaPlan::pagination_page(PaginationPage::Next)),
                         transformer: Some(Transformer::JSONSelect {
                             property: "has_next_page".to_string(),
                         }),
@@ -196,7 +197,10 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(
+                            SchemaPlan::first(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                                .apply_cursor_encode(vec!["id".to_string()]),
+                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "start_cursor".to_string(),
                         }),
@@ -224,7 +228,10 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             id: None,
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
-                        plan: None,
+                        plan: Some(
+                            SchemaPlan::last(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                                .apply_cursor_encode(vec!["id".to_string()]),
+                        ),
                         transformer: Some(Transformer::JSONSelect {
                             property: "end_cursor".to_string(),
                         }),

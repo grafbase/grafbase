@@ -2,7 +2,7 @@
 
 use async_lock::RwLock as AsynRwLock;
 
-use dynamodb::CurrentDateTime;
+use dynamodb::{CurrentDateTime, DynamoDBBatchersData};
 use graph_entities::QueryResponse;
 use std::any::{Any, TypeId};
 use std::collections::hash_map::Entry;
@@ -46,8 +46,6 @@ use arrow_schema::Schema as ArrowSchema;
 use crate::registry::variables::VariableResolveDefinition;
 #[cfg(feature = "query-planning")]
 use query_planning::logical_plan::LogicalPlan;
-#[cfg(feature = "query-planning")]
-use query_planning::logical_query::SelectionPlan;
 #[cfg(feature = "query-planning")]
 use query_planning::reexport::internment::ArcIntern;
 
@@ -823,15 +821,6 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     }
 
     #[cfg(feature = "query-planning")]
-    pub fn to_selection_plan(
-        &self,
-        _root: &'a MetaType,
-        _previous_plan: Option<Arc<LogicalPlan>>,
-    ) -> Positioned<SelectionPlan> {
-        todo!()
-    }
-
-    #[cfg(feature = "query-planning")]
     /// Convert the actual field to a [`LogicalPlan`] by looking at the corresponding type on the
     /// schema.
     pub fn to_logic_plan(
@@ -907,6 +896,13 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         }
     }
 
+    pub fn trace_id(&self) -> String {
+        self.data::<Arc<DynamoDBBatchersData>>()
+            .map(|x| x.ctx.trace_id.clone())
+            .ok()
+            .unwrap_or_default()
+    }
+
     #[cfg(feature = "query-planning")]
     pub fn convert_resolver_to_logic_plan(
         &self,
@@ -914,12 +910,16 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         resolver: Option<&Resolver>,
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
-        use query_planning::logical_plan::builder::{join, LogicalPlanBuilder};
+        use query_planning::logical_plan::builder::{
+            join, LogicalPlanBuilder, PaginationArgumentsBuilder,
+        };
 
-        use query_planning::logical_plan::Datasource;
+        use query_planning::logical_plan::cursor::Cursor;
+        use query_planning::logical_plan::{traverse_logical_plan, Datasource};
+        use query_planning::scalar::ScalarValue;
 
-        use crate::registry::plan::{PlanProjection, PlanRelated};
-        use crate::registry::resolvers::dynamo_querying::DynamoResolver;
+        use crate::registry::plan::{Apply, First, Last, PlanProjection, PlanRelated};
+        use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
 
         if let Some(plan) = plan {
@@ -937,6 +937,31 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     to,
                     relation_name,
                 }) => {
+                    // For a [`PlanRelated`] plan, we have to infer the local pagination arguments
+                    // We removed them from the schema definition as it shouldn't change.
+                    let first = VariableResolveDefinition::InputTypeName("first".to_string());
+                    let last = VariableResolveDefinition::InputTypeName("last".to_string());
+                    let after = VariableResolveDefinition::InputTypeName("after".to_string());
+                    let before = VariableResolveDefinition::InputTypeName("before".to_string());
+
+                    let first = first.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
+                    let after = after.expect_opt_cursor(self, None)?;
+                    let before = before.expect_opt_cursor(self, None)?;
+                    let last = last.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
+
+                    let cursor = Cursor::try_new(first, last, after, before).map_err(|err| {
+                        Error::new_with_source(err).into_server_error(self.item.pos)
+                    })?;
+
+                    let elt_to_fetch = cursor.elt_to_fetch();
+                    let pagination = PaginationArgumentsBuilder::default()
+                        .cursor(cursor)
+                        // .order_by()
+                        .build()
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?;
+
                     let previous = if from.is_some() {
                         previous_plan.ok_or_else(|| {
                         ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
@@ -954,10 +979,98 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                                 .map(|x| vec![x.clone()])
                                 .unwrap_or_default(),
                             schema.as_ref(),
+                            pagination,
                             Datasource::gb(),
                         )
-                        .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                        .and_then(|x| x.limit(0, Some(elt_to_fetch)))
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
                         .build()
+                }
+                SchemaPlan::Apply(Apply { fun_fields, plan }) => {
+                    let sub_plan: ArcIntern<LogicalPlan> = self.convert_resolver_to_logic_plan(
+                        previous_plan,
+                        resolver,
+                        Some(plan.as_ref()),
+                    )?;
+                    LogicalPlanBuilder::from(sub_plan)
+                        .apply(fun_fields.clone())
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
+                }
+                SchemaPlan::First(First { plan }) => {
+                    let sub_plan = plan.as_ref().map(|x| self.convert_resolver_to_logic_plan(
+                        previous_plan.clone(),
+                        resolver,
+                        Some(x.as_ref()),
+                    )).transpose()?.or(previous_plan).ok_or_else(|| ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos)))?;
+
+                    LogicalPlanBuilder::from(sub_plan)
+                        .limit(0, Some(1))
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
+                }
+                SchemaPlan::Last(Last { plan }) => {
+                    let sub_plan = plan.as_ref().map(|x| self.convert_resolver_to_logic_plan(
+                        previous_plan.clone(),
+                        resolver,
+                        Some(x.as_ref()),
+                    )).transpose()?.or(previous_plan).ok_or_else(|| ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos)))?;
+
+                    LogicalPlanBuilder::from(sub_plan)
+                        .pos_inverted(0)
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
+                }
+                SchemaPlan::PaginationPage(page) => {
+                    use crate::registry::plan::PaginationPage;
+                    use query_planning::logical_plan::Direction;
+
+                    let iteration_order = previous_plan
+                        .clone()
+                        .map(traverse_logical_plan)
+                        .unwrap_or_else(|| Box::new(std::iter::empty()))
+                        .find_map(|logic_plan| match logic_plan.as_ref() {
+                            LogicalPlan::Related(related) => Some(related.direction.clone()),
+                            _ => None,
+                        })
+                        .unwrap_or_default();
+
+                    let previous = previous_plan.ok_or_else(|| {
+                        ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
+                    })?;
+
+                    match (page, iteration_order) {
+                        (PaginationPage::Next, Direction::Forward)
+                        | (PaginationPage::Previous, Direction::Backward) => {
+                            LogicalPlanBuilder::from(previous)
+                                .metadata_has_next()
+                                .map_err(|err| {
+                                    Error::new_with_source(err).into_server_error(self.item.pos)
+                                })?
+                                .build()
+                        }
+                        (PaginationPage::Next, Direction::Backward)
+                        | (PaginationPage::Previous, Direction::Forward) => {
+                            LogicalPlanBuilder::from(previous)
+                                .projection_default(vec![(
+                                    "__val",
+                                    Some(ScalarValue::Boolean(Some(false))),
+                                    true,
+                                )])
+                                .map_err(|err| {
+                                    Error::new_with_source(err).into_server_error(self.item.pos)
+                                })?
+                                .build()
+                        }
+                    }
                 }
             });
         }
