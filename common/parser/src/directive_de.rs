@@ -3,6 +3,7 @@ use std::fmt::Display;
 use dynaql::Name;
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
+use serde::de::IntoDeserializer;
 
 /// Parses a ConstDirective into a type that impls Deserialize
 pub fn parse_directive<D: serde::de::DeserializeOwned>(directive: &ConstDirective) -> Result<D, Error> {
@@ -88,14 +89,14 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
         V: serde::de::Visitor<'de>,
     {
         match self.0 {
-            ConstValue::Null => visitor.visit_unit(),
+            ConstValue::Null => visitor.visit_none(),
             ConstValue::Number(num) if num.is_f64() => visitor.visit_f64(num.as_f64().unwrap()),
             ConstValue::Number(num) if num.is_u64() => visitor.visit_u64(num.as_u64().unwrap()),
             ConstValue::Number(num) => visitor.visit_i64(num.as_i64().unwrap()),
             ConstValue::String(s) => visitor.visit_str(s),
             ConstValue::Boolean(b) => visitor.visit_bool(*b),
             ConstValue::Binary(b) => visitor.visit_bytes(b),
-            ConstValue::Enum(en) => visitor.visit_str(en.as_str()),
+            ConstValue::Enum(en) => visitor.visit_enum(en.as_str().into_deserializer()),
             ConstValue::List(v) => visitor.visit_seq(Sequence(v.iter())),
             ConstValue::Object(obj) => visitor.visit_map(Object {
                 iter: obj.iter(),
@@ -106,8 +107,18 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
 
     serde::forward_to_deserialize_any! {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-        bytes byte_buf option unit unit_struct newtype_struct seq tuple
+        bytes byte_buf unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier ignored_any
+    }
+
+    fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        match self.0 {
+            ConstValue::Null => visitor.visit_none(),
+            _ => visitor.visit_some(self),
+        }
     }
 }
 

@@ -1,0 +1,422 @@
+---
+source: common/parser-openapi/src/lib.rs
+expression: registry.export_sdl(false)
+---
+"""
+A JSON Value
+"""
+scalar JSON
+type Mutation {
+	openai: OpenaiMutation!
+}
+input OpenaiChatCompletionRequestMessageInput {
+	name: String
+	content: String!
+	role: OpenaiChatCompletionRequestMessageRole!
+}
+enum OpenaiChatCompletionRequestMessageRole {
+	SYSTEM
+	USER
+	ASSISTANT
+}
+type OpenaiChatCompletionResponseMessage {
+	content: String!
+	role: OpenaiChatCompletionResponseMessageRole!
+}
+enum OpenaiChatCompletionResponseMessageRole {
+	SYSTEM
+	USER
+	ASSISTANT
+}
+input OpenaiCreateAnswerRequestInput {
+	user: String
+	expand: [JSON!]
+	returnPrompt: Boolean
+	returnMetadata: Boolean
+	logitBias: JSON
+	n: Int
+	stop: OpenaiUnionInput
+	maxTokens: Int
+	logprobs: Int
+	temperature: Float
+	maxRerank: Int
+	searchModel: String
+	file: String
+	documents: [String!]
+	examplesContext: String!
+	examples: [[String!]!]!
+	question: String!
+	model: String!
+}
+type OpenaiCreateAnswerResponse {
+	selectedDocuments: [OpenaiCreateAnswerResponseSelectedDocuments!]
+	answers: [String!]
+	completion: String
+	searchModel: String
+	model: String
+	object: String
+}
+type OpenaiCreateAnswerResponseSelectedDocuments {
+	text: String
+	document: Int
+}
+input OpenaiCreateChatCompletionRequestInput {
+	user: String
+	logitBias: JSON
+	frequencyPenalty: Float
+	presencePenalty: Float
+	maxTokens: Int
+	stop: OpenaiUnionInput
+	stream: Boolean
+	n: Int
+	topP: Float
+	temperature: Float
+	messages: [OpenaiChatCompletionRequestMessageInput!]!
+	model: String!
+}
+type OpenaiCreateChatCompletionResponse {
+	usage: OpenaiCreateChatCompletionResponseUsage
+	choices: [OpenaiCreateChatCompletionResponseChoices!]!
+	model: String!
+	created: Int!
+	object: String!
+	id: String!
+}
+type OpenaiCreateChatCompletionResponseChoices {
+	finishReason: String
+	message: OpenaiChatCompletionResponseMessage
+	index: Int
+}
+type OpenaiCreateChatCompletionResponseUsage {
+	totalTokens: Int!
+	completionTokens: Int!
+	promptTokens: Int!
+}
+input OpenaiCreateClassificationRequestInput {
+	user: String
+	expand: [JSON!]
+	returnMetadata: Boolean
+	returnPrompt: Boolean
+	logitBias: JSON
+	maxExamples: Int
+	logprobs: Int
+	temperature: Float
+	searchModel: String
+	labels: [String!]
+	file: String
+	examples: [[String!]!]
+	query: String!
+	model: String!
+}
+type OpenaiCreateClassificationResponse {
+	selectedExamples: [OpenaiCreateClassificationResponseSelectedExamples!]
+	label: String
+	completion: String
+	searchModel: String
+	model: String
+	object: String
+}
+type OpenaiCreateClassificationResponseSelectedExamples {
+	label: String
+	text: String
+	document: Int
+}
+input OpenaiCreateCompletionRequestInput {
+	user: String
+	logitBias: JSON
+	bestOf: Int
+	frequencyPenalty: Float
+	presencePenalty: Float
+	stop: OpenaiUnionInput
+	echo: Boolean
+	logprobs: Int
+	stream: Boolean
+	n: Int
+	topP: Float
+	temperature: Float
+	maxTokens: Int
+	suffix: String
+	prompt: OpenaiUnionInput
+	model: String!
+}
+type OpenaiCreateCompletionResponse {
+	usage: OpenaiCreateCompletionResponseUsage
+	choices: [OpenaiCreateCompletionResponseChoices!]!
+	model: String!
+	created: Int!
+	object: String!
+	id: String!
+}
+type OpenaiCreateCompletionResponseChoices {
+	finishReason: String
+	logprobs: OpenaiCreateCompletionResponseLogprobsChoices
+	index: Int
+	text: String
+}
+type OpenaiCreateCompletionResponseLogprobsChoices {
+	textOffset: [Int!]
+	topLogprobs: [JSON!]
+	tokenLogprobs: [Float!]
+	tokens: [String!]
+}
+type OpenaiCreateCompletionResponseUsage {
+	totalTokens: Int!
+	completionTokens: Int!
+	promptTokens: Int!
+}
+input OpenaiCreateEditRequestInput {
+	topP: Float
+	temperature: Float
+	n: Int
+	instruction: String!
+	input: String
+	model: String!
+}
+type OpenaiCreateEditResponse {
+	usage: OpenaiCreateEditResponseUsage!
+	choices: [OpenaiCreateEditResponseChoices!]!
+	created: Int!
+	object: String!
+}
+type OpenaiCreateEditResponseChoices {
+	finishReason: String
+	logprobs: OpenaiCreateEditResponseLogprobsChoices
+	index: Int
+	text: String
+}
+type OpenaiCreateEditResponseLogprobsChoices {
+	textOffset: [Int!]
+	topLogprobs: [JSON!]
+	tokenLogprobs: [Float!]
+	tokens: [String!]
+}
+type OpenaiCreateEditResponseUsage {
+	totalTokens: Int!
+	completionTokens: Int!
+	promptTokens: Int!
+}
+input OpenaiCreateEmbeddingRequestInput {
+	user: String
+	input: OpenaiUnionInput!
+	model: String!
+}
+type OpenaiCreateEmbeddingResponse {
+	usage: OpenaiCreateEmbeddingResponseUsage!
+	data: [OpenaiCreateEmbeddingResponseData!]!
+	model: String!
+	object: String!
+}
+type OpenaiCreateEmbeddingResponseData {
+	embedding: [Float!]!
+	object: String!
+	index: Int!
+}
+type OpenaiCreateEmbeddingResponseUsage {
+	totalTokens: Int!
+	promptTokens: Int!
+}
+input OpenaiCreateFineTuneRequestInput {
+	suffix: String
+	classificationBetas: [Float!]
+	classificationPositiveClass: String
+	classificationNClasses: Int
+	computeClassificationMetrics: Boolean
+	promptLossWeight: Float
+	learningRateMultiplier: Float
+	batchSize: Int
+	nEpochs: Int
+	model: String
+	validationFile: String
+	trainingFile: String!
+}
+input OpenaiCreateImageRequestInput {
+	user: String
+	responseFormat: OpenaiCreateImageRequestResponseFormat
+	size: String
+	n: Int
+	prompt: String!
+}
+enum OpenaiCreateImageRequestResponseFormat {
+	URL
+	B_64_JSON
+}
+input OpenaiCreateModerationRequestInput {
+	model: String
+	input: OpenaiUnionInput!
+}
+type OpenaiCreateModerationResponse {
+	results: [OpenaiCreateModerationResponseResults!]!
+	model: String!
+	id: String!
+}
+type OpenaiCreateModerationResponseCategoriesResults {
+	violenceGraphic: Boolean!
+	violence: Boolean!
+	sexualMinors: Boolean!
+	sexual: Boolean!
+	selfHarm: Boolean!
+	hateThreatening: Boolean!
+	hate: Boolean!
+}
+type OpenaiCreateModerationResponseCategoryScoresResults {
+	violenceGraphic: Float!
+	violence: Float!
+	sexualMinors: Float!
+	sexual: Float!
+	selfHarm: Float!
+	hateThreatening: Float!
+	hate: Float!
+}
+type OpenaiCreateModerationResponseResults {
+	categoryScores: OpenaiCreateModerationResponseCategoryScoresResults!
+	categories: OpenaiCreateModerationResponseCategoriesResults!
+	flagged: Boolean!
+}
+input OpenaiCreateSearchRequestInput {
+	user: String
+	returnMetadata: Boolean
+	maxRerank: Int
+	file: String
+	documents: [String!]
+	query: String!
+}
+type OpenaiCreateSearchResponse {
+	data: [OpenaiCreateSearchResponseData!]
+	model: String
+	object: String
+}
+type OpenaiCreateSearchResponseData {
+	score: Float
+	document: Int
+	object: String
+}
+type OpenaiCreateTranscriptionResponse {
+	text: String!
+}
+type OpenaiCreateTranslationResponse {
+	text: String!
+}
+type OpenaiDeleteFileResponse {
+	deleted: Boolean!
+	object: String!
+	id: String!
+}
+type OpenaiDeleteModelResponse {
+	deleted: Boolean!
+	object: String!
+	id: String!
+}
+type OpenaiEngine {
+	ready: Boolean!
+	created: Int!
+	object: String!
+	id: String!
+}
+type OpenaiFineTune {
+	events: [OpenaiFineTuneEvent!]
+	resultFiles: [OpenaiOpenAIFile!]!
+	validationFiles: [OpenaiOpenAIFile!]!
+	trainingFiles: [OpenaiOpenAIFile!]!
+	hyperparams: JSON!
+	status: String!
+	organizationId: String!
+	fineTunedModel: String!
+	model: String!
+	updatedAt: Int!
+	createdAt: Int!
+	object: String!
+	id: String!
+}
+type OpenaiFineTuneEvent {
+	message: String!
+	level: String!
+	createdAt: Int!
+	object: String!
+}
+type OpenaiImagesResponse {
+	data: [OpenaiImagesResponseData!]!
+	created: Int!
+}
+type OpenaiImagesResponseData {
+	b64Json: String
+	url: String
+}
+type OpenaiListEnginesResponse {
+	nodes: [OpenaiEngine!]!
+	object: String!
+}
+type OpenaiListFilesResponse {
+	nodes: [OpenaiOpenAIFile!]!
+	object: String!
+}
+type OpenaiListFineTuneEventsResponse {
+	data: [OpenaiFineTuneEvent!]!
+	object: String!
+}
+type OpenaiListFineTunesResponse {
+	nodes: [OpenaiFineTune!]!
+	object: String!
+}
+type OpenaiListModelsResponse {
+	nodes: [OpenaiModel!]!
+	object: String!
+}
+type OpenaiModel {
+	ownedBy: String!
+	created: Int!
+	object: String!
+	id: String!
+}
+type OpenaiMutation {
+	createCompletion(input: OpenaiCreateCompletionRequestInput!): OpenaiCreateCompletionResponse!
+	createChatCompletion(input: OpenaiCreateChatCompletionRequestInput!): OpenaiCreateChatCompletionResponse!
+	createEdit(input: OpenaiCreateEditRequestInput!): OpenaiCreateEditResponse!
+	createImage(input: OpenaiCreateImageRequestInput!): OpenaiImagesResponse!
+	createImageEdit: OpenaiImagesResponse!
+	createImageVariation: OpenaiImagesResponse!
+	createEmbedding(input: OpenaiCreateEmbeddingRequestInput!): OpenaiCreateEmbeddingResponse!
+	createTranscription: OpenaiCreateTranscriptionResponse!
+	createTranslation: OpenaiCreateTranslationResponse!
+	createSearch(engineId: String!, input: OpenaiCreateSearchRequestInput!): OpenaiCreateSearchResponse!
+	createFile: OpenaiOpenAIFile!
+	deleteFile(fileId: String!): OpenaiDeleteFileResponse!
+	createAnswer(input: OpenaiCreateAnswerRequestInput!): OpenaiCreateAnswerResponse!
+	createClassification(input: OpenaiCreateClassificationRequestInput!): OpenaiCreateClassificationResponse!
+	createFineTune(input: OpenaiCreateFineTuneRequestInput!): OpenaiFineTune!
+	cancelFineTune(fineTuneId: String!): OpenaiFineTune!
+	deleteModel(model: String!): OpenaiDeleteModelResponse!
+	createModeration(input: OpenaiCreateModerationRequestInput!): OpenaiCreateModerationResponse!
+}
+type OpenaiOpenAIFile {
+	statusDetails: JSON
+	status: String
+	purpose: String!
+	filename: String!
+	createdAt: Int!
+	bytes: Int!
+	object: String!
+	id: String!
+}
+type OpenaiQuery {
+	listEngines: OpenaiListEnginesResponse!
+	retrieveEngine(engineId: String!): OpenaiEngine!
+	listFiles: OpenaiListFilesResponse!
+	retrieveFile(fileId: String!): OpenaiOpenAIFile!
+	downloadFile(fileId: String!): String!
+	listFineTunes: OpenaiListFineTunesResponse!
+	retrieveFineTune(fineTuneId: String!): OpenaiFineTune!
+	listFineTuneEvents(fineTuneId: String!, stream: Boolean): OpenaiListFineTuneEventsResponse!
+	listModels: OpenaiListModelsResponse!
+	retrieveModel(model: String!): OpenaiModel!
+}
+input OpenaiUnionInput {
+	string: String
+}
+type Query {
+	openai: OpenaiQuery!
+}
+schema {
+	query: Query
+	mutation: Mutation
+}
+

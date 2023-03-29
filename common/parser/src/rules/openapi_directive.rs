@@ -5,6 +5,7 @@ use crate::{directive_de::parse_directive, dynamic_string::DynamicString};
 use super::{directive::Directive, visitor::Visitor};
 
 #[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
     pub name: String,
     pub url: Url,
@@ -12,6 +13,17 @@ pub struct OpenApiDirective {
     pub schema_url: String,
     #[serde(default)]
     headers: Vec<Header>,
+
+    #[serde(default)]
+    pub query_naming: QueryNamingStrategy,
+}
+
+#[derive(Clone, Copy, Debug, Default, serde::Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum QueryNamingStrategy {
+    OperationId,
+    #[default]
+    SchemaName,
 }
 
 impl OpenApiDirective {
@@ -51,11 +63,20 @@ impl Directive for OpenApiDirective {
           "The URL of this APIs schema"
           schema: String!
           headers: [OpenApiHeader!]
+          "How we determine the field names of the generated query type"
+          queryNaming: QueryNamingStrategy = SCHEMA_NAME
         ) on SCHEMA
 
         input OpenApiHeader {
             name: String!
             value: String!
+        }
+
+        enum QueryNamingStrategy {
+            "We take query names directly from their OpenAPI operationId"
+            OPERATION_ID
+            "We take query names from the schemas they contain where possible, falling back to operationId where not"
+            SCHEMA_NAME
         }
         "#
         .to_string()
@@ -95,7 +116,11 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use crate::rules::visitor::RuleError;
+
+    use super::QueryNamingStrategy;
 
     #[test]
     fn test_parsing_openapi_directive() {
@@ -152,6 +177,31 @@ mod tests {
         "###);
     }
 
+    #[rstest]
+    #[case("OPERATION_ID", QueryNamingStrategy::OperationId)]
+    #[case("SCHEMA_NAME", QueryNamingStrategy::SchemaName)]
+    fn test_parse_naming_strategy(#[case] input: &str, #[case] expected: QueryNamingStrategy) {
+        let result = crate::to_registry_with_variables(
+            format!(
+                r#"
+                    extend schema
+                      @openapi(
+                        name: "stripe",
+                        url: "https://api.stripe.com",
+                        schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+                        queryNaming: {input}
+                      )
+            "#
+            ),
+            &maplit::hashmap! {
+                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.openapi_directives.first().unwrap().query_naming, expected);
+    }
+
     macro_rules! assert_validation_error {
         ($schema:literal, $expected_message:literal) => {
             assert_matches!(
@@ -180,6 +230,22 @@ mod tests {
               )
             "#,
             "missing field `schema`"
+        );
+    }
+
+    #[test]
+    fn test_invalid_query_strategy() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @openapi(
+                name: "stripe",
+                schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
+                url: "https://api.stripe.com",
+                queryNamingStrategy: PIES
+              )
+            "#,
+            "unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
         );
     }
 }

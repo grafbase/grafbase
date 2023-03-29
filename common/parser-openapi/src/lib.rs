@@ -1,6 +1,7 @@
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
+use parser::QueryNamingStrategy;
 use parsing::components::Ref;
 use url::Url;
 
@@ -39,6 +40,18 @@ pub struct ApiMetadata {
     pub name: String,
     pub url: Url,
     pub headers: Vec<(String, String)>,
+    pub query_naming: QueryNamingStrategy,
+}
+
+impl From<parser::OpenApiDirective> for ApiMetadata {
+    fn from(val: parser::OpenApiDirective) -> Self {
+        ApiMetadata {
+            name: val.name.clone(),
+            url: val.url.clone(),
+            headers: val.headers(),
+            query_naming: val.query_naming,
+        }
+    }
 }
 
 pub enum Format {
@@ -177,11 +190,32 @@ mod tests {
         insta::assert_debug_snapshot!(registry);
     }
 
+    #[test]
+    fn test_openai_output() {
+        let spec = std::fs::read_to_string("test_data/openai.yaml").unwrap();
+
+        let mut registry = default_registry();
+
+        parse_spec(
+            &spec,
+            Format::Yaml,
+            ApiMetadata {
+                query_naming: QueryNamingStrategy::OperationId,
+                ..metadata("openai")
+            },
+            &mut registry,
+        )
+        .unwrap();
+
+        insta::assert_snapshot!(registry.export_sdl(false));
+    }
+
     fn metadata(name: &str) -> ApiMetadata {
         ApiMetadata {
             name: name.into(),
             url: Url::parse("http://example.com").unwrap(),
             headers: vec![],
+            query_naming: QueryNamingStrategy::SchemaName,
         }
     }
 

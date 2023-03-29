@@ -79,11 +79,11 @@ enum PetstorePetStatus {
 type PetstoreQuery {
 	findPetsByStatus(status: PetstoreFindPetsByStatusStatus): [PetstorePet!]!
 	findPetsByTags(tags: [String!]): [PetstorePet!]!
-	petById(petId: Int!): PetstorePet!
+	pet(petId: Int!): PetstorePet!
 	inventory: JSON!
-	orderById(orderId: Int!): PetstoreOrder!
+	order(orderId: Int!): PetstoreOrder!
 	loginUser(password: String, username: String): String!
-	userByName(username: String!): PetstoreUser!
+	user(username: String!): PetstoreUser!
 }
 type PetstoreTag {
 	name: String

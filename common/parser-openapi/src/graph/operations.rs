@@ -1,6 +1,10 @@
 use dynaql::registry::resolvers::http::ExpectedStatusCode;
 use inflector::Inflector;
-use petgraph::{graph::NodeIndex, visit::EdgeRef};
+use parser::QueryNamingStrategy;
+use petgraph::{
+    graph::NodeIndex,
+    visit::{EdgeRef, IntoEdges, Reversed},
+};
 
 use crate::{
     is_ok,
@@ -8,10 +12,10 @@ use crate::{
 };
 
 use super::{
-    output_type::OutputFieldType, Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType,
+    output_type::OutputFieldType, Arity, Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType,
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Operation {
     Query(NodeIndex),
     Mutation(NodeIndex),
@@ -51,7 +55,7 @@ impl super::OpenApiGraph {
                     .unwrap_or_default()
             })
             .copied()
-            .map(Operation::Query)
+            .map(Operation::Mutation)
             .collect()
     }
 }
@@ -88,12 +92,58 @@ impl Operation {
     }
 
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
+        match graph.metadata.query_naming {
+            QueryNamingStrategy::OperationId => self.name_by_operation_id(graph),
+            QueryNamingStrategy::SchemaName => self.name_by_associated_schema(graph),
+        }
+    }
+
+    fn name_by_operation_id(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
         let details = self.details(graph);
         let mut name = details.operation_id.clone()?;
         if details.http_method == HttpMethod::Get && name.to_lowercase().starts_with("get") {
             name = name[3..].to_string();
         }
+
         Some(OperationName(name))
+    }
+
+    fn name_by_associated_schema(self, graph: &super::OpenApiGraph) -> Option<OperationName> {
+        let Operation::Query(operation_index) = self else {
+            // If we have a mutation we always want to use the operationId for naming.
+            return self.name_by_operation_id(graph);
+        };
+
+        let reversed_graph = Reversed(&graph.graph);
+
+        let arity_and_schema = graph
+            .graph
+            .edges(operation_index)
+            .find_map(|edge| match edge.weight() {
+                Edge::ForResource { arity } => Some((arity, edge.target())),
+                _ => None,
+            })
+            .filter(|(operation_arity, schema_index)| {
+                // We need to make sure there's only one query operation of this arity
+                // associated with this schema, otherwise we'll end up with clashes if we try to
+                // use the schema name.
+                let count = reversed_graph
+                    .edges(*schema_index)
+                    .filter_map(|edge| match edge.weight() {
+                        Edge::ForResource { arity } if arity == *operation_arity => Some(edge.target()),
+                        _ => None,
+                    })
+                    .filter(|index| matches!(Operation::from_index(*index, graph), Some(Operation::Query(_))))
+                    .count();
+
+                count == 1
+            });
+
+        match arity_and_schema {
+            None => self.name_by_operation_id(graph),
+            Some((Arity::One, schema_index)) => Some(OperationName(graph.graph[schema_index].name()?)),
+            Some((Arity::Many, schema_index)) => Some(OperationName(graph.graph[schema_index].name()?.to_plural())),
+        }
     }
 
     pub fn path_parameters(self, graph: &super::OpenApiGraph) -> Vec<PathParameter> {
