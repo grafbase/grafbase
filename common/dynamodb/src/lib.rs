@@ -290,8 +290,12 @@ impl DynamoDBBatchersData {
             ctx: Arc::clone(ctx),
             transaction: get_loader_transaction(Arc::clone(ctx)),
             loader: get_loader_batch_transaction(Arc::clone(local_ctx), Arc::clone(ctx)),
-            query: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::None),
-            query_reversed: get_loader_query(Arc::clone(local_ctx), DynamoDBRequestedIndex::ReverseIndex),
+            query: get_loader_query(Arc::clone(local_ctx), Arc::clone(ctx), DynamoDBRequestedIndex::None),
+            query_reversed: get_loader_query(
+                Arc::clone(local_ctx),
+                Arc::clone(ctx),
+                DynamoDBRequestedIndex::ReverseIndex,
+            ),
             query_fat: get_loader_query_type(Arc::clone(local_ctx), DynamoDBRequestedIndex::FatPartitionIndex),
             paginated_query_fat: get_loader_paginated_query_type(
                 Arc::clone(local_ctx),
