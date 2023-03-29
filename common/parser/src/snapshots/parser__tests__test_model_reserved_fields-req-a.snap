@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 378
 expression: req_string_a
 ---
 {
@@ -172,7 +173,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -192,7 +194,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Create a Product",
@@ -234,7 +237,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Delete a Product by ID or unique field",
@@ -284,7 +288,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Update a Product",
@@ -346,7 +351,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -357,7 +363,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -387,7 +394,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -417,7 +425,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -447,7 +456,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -484,7 +494,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -495,7 +506,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "when the model was created",
@@ -535,7 +547,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Unique identifier",
@@ -575,7 +588,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -615,7 +629,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "when the model was updated",
@@ -680,7 +695,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -691,7 +707,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -712,7 +729,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Information to aid in pagination",
@@ -758,7 +776,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -769,7 +788,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -812,7 +832,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -823,7 +844,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -855,7 +877,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -866,7 +889,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -911,7 +935,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -975,7 +1000,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -986,7 +1012,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1029,7 +1056,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": null,
@@ -1040,7 +1068,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Access the current type schema of this server.",
@@ -1070,7 +1099,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Query a single Product by an ID or a unique field",
@@ -1144,7 +1174,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "Paginated query to fetch the whole list of `Product`.",
@@ -1220,7 +1251,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
@@ -1231,7 +1263,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1252,7 +1285,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1273,7 +1307,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1294,7 +1329,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1315,7 +1351,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1447,7 +1484,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
@@ -1458,7 +1496,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1479,7 +1518,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1500,7 +1540,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1521,7 +1562,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1549,7 +1591,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
@@ -1560,7 +1603,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1581,7 +1625,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1602,7 +1647,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1623,7 +1669,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1644,7 +1691,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1665,7 +1713,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1693,7 +1742,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
@@ -1704,7 +1754,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1725,7 +1776,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1746,7 +1798,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1767,7 +1820,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1795,7 +1849,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
@@ -1806,7 +1861,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "A list of all directives supported by this server.",
@@ -1827,7 +1883,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
@@ -1848,7 +1905,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "The type that query operations will be rooted at.",
@@ -1869,7 +1927,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "If this server support subscription, the type that subscription operations will be rooted at.",
@@ -1890,7 +1949,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": "A list of all types supported by this server.",
@@ -1918,7 +1978,8 @@ expression: req_string_a
       "Object": {
         "cache_control": {
           "max_age": 0,
-          "public": true
+          "public": true,
+          "stale_while_revalidate": 0
         },
         "constraints": [],
         "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
@@ -1929,7 +1990,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1959,7 +2021,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -1989,7 +2052,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2010,7 +2074,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2031,7 +2096,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2052,7 +2118,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2073,7 +2140,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2094,7 +2162,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2115,7 +2184,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2136,7 +2206,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,
@@ -2157,7 +2228,8 @@ expression: req_string_a
             "auth": null,
             "cache_control": {
               "max_age": 0,
-              "public": true
+              "public": true,
+              "stale_while_revalidate": 0
             },
             "deprecation": "NoDeprecated",
             "description": null,

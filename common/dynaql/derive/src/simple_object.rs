@@ -143,10 +143,12 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
         let cache_control = {
             let public = field.cache_control.is_public();
             let max_age = field.cache_control.max_age;
+            let stale_while_revalidate = field.cache_control.stale_while_revalidate;
             quote! {
                 #crate_name::CacheControl {
                     public: #public,
                     max_age: #max_age,
+                    stale_while_revalidate: #stale_while_revalidate,
                 }
             }
         };
@@ -262,10 +264,12 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
     let cache_control = {
         let public = object_args.cache_control.is_public();
         let max_age = object_args.cache_control.max_age;
+        let stale_while_revalidate = object_args.cache_control.stale_while_revalidate;
         quote! {
             #crate_name::CacheControl {
                 public: #public,
                 max_age: #max_age,
+                stale_while_revalidate: #stale_while_revalidate,
             }
         }
     };

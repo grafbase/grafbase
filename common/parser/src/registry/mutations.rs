@@ -102,10 +102,7 @@ pub fn add_mutation_create<'a>(
         },
         ty: Type::nullable(payload_base_type).to_string(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: dynaql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
+        cache_control: Default::default(),
         external: false,
         provides: None,
         requires: None,
@@ -206,10 +203,7 @@ pub fn add_mutation_update<'a>(
         },
         ty: Type::nullable(payload_base_type).to_string(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: dynaql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
+        cache_control: Default::default(),
         external: false,
         provides: None,
         requires: None,
@@ -524,10 +518,7 @@ fn register_mutation_payload_type<'a>(
                     },
                 }
             },
-            cache_control: dynaql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
+            cache_control: Default::default(),
             extends: false,
             keys: None,
             visible: None,

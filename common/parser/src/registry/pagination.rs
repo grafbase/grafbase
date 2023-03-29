@@ -17,6 +17,7 @@ use crate::registry::names::{
     PAGE_INFO_FIELD_START_CURSOR, PAGE_INFO_TYPE, PAGINATION_FIELD_EDGES, PAGINATION_FIELD_EDGE_CURSOR,
     PAGINATION_FIELD_EDGE_NODE, PAGINATION_FIELD_PAGE_INFO,
 };
+use crate::rules::cache_directive::CacheDirective;
 use crate::rules::model_directive::METADATA_FIELD_CREATED_AT;
 use crate::rules::visitor::VisitorContext;
 
@@ -95,10 +96,7 @@ fn register_edge_type(
                     },
                 ),
             ]),
-            cache_control: dynaql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
+            cache_control: CacheDirective::parse(&model_type_definition.directives),
             extends: false,
             keys: None,
             visible: None,
@@ -235,10 +233,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                     },
                 ),
             ]),
-            cache_control: dynaql::CacheControl {
-                public: true,
-                max_age: 0usize,
-            },
+            cache_control: Default::default(),
             extends: false,
             keys: None,
             visible: None,
@@ -317,10 +312,7 @@ fn register_connection_type(
                         },
                     ),
                 ]),
-                cache_control: dynaql::CacheControl {
-                    public: true,
-                    max_age: 0usize,
-                },
+                cache_control: CacheDirective::parse(&model_type_definition.directives),
                 extends: false,
                 keys: None,
                 visible: None,
@@ -358,6 +350,7 @@ pub fn add_query_paginated_collection(
         model_auth,
     );
     let field = MetaNames::query_collection(model_type_definition);
+    let cache_control = CacheDirective::parse(&model_type_definition.directives);
 
     let plan = Some(SchemaPlan::related(None, ctx.get_schema_id(&type_name), None));
 
@@ -368,10 +361,7 @@ pub fn add_query_paginated_collection(
         // TODO: Should this be really nullable?
         ty: Type::nullable(connection_type).to_string(),
         deprecation: dynaql::registry::Deprecation::NoDeprecated,
-        cache_control: dynaql::CacheControl {
-            public: true,
-            max_age: 0usize,
-        },
+        cache_control,
         external: false,
         provides: None,
         requires: None,

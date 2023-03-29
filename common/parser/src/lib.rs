@@ -33,6 +33,7 @@ use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 mod models;
 
+use crate::rules::cache_directive::{CacheDirective, CacheVisitor};
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::openapi_directive::OpenApiDirective;
@@ -100,7 +101,8 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with::<ResolverDirective>()
         .with::<UniqueDirective>()
         .with::<SearchDirective>()
-        .with::<OpenApiDirective>();
+        .with::<OpenApiDirective>()
+        .with::<CacheDirective>();
 
     let mut rules = rules::visitor::VisitorNil
         .with(CheckBeginsWithDoubleUnderscore)
@@ -110,6 +112,7 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         .with(ModelDirective)
         .with(AuthDirective)
         .with(ResolverDirective)
+        .with(CacheVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)
         .with(EnumType)

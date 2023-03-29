@@ -23,7 +23,6 @@ pub struct Response {
     pub extensions: BTreeMap<String, Value>,
 
     /// Cache control value
-    #[serde(skip)]
     pub cache_control: CacheControl,
 
     /// Errors
