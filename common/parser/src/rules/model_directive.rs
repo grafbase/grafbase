@@ -306,9 +306,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 ty,
                                                 CacheDirective::parse(&field.node.directives),
                                                 SchemaPlan::related(
-                                                    Some(ctx.get_schema_id(&relation.relation.0.clone().unwrap())),
-                                                    ctx.get_schema_id(&relation.relation.1.clone()),
-                                                    Some(relation.name.clone()),
+                                                    Some(ctx.get_schema_id(relation.relation.0.clone().unwrap())),
+                                                    ctx.get_schema_id(relation.relation.1.clone()),
+                                                    Some(relation.name),
                                                 ),
                                             )
                                         })
