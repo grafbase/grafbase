@@ -1,11 +1,16 @@
-use dynaql::registry::{MetaType, Registry};
-use dynaql::Schema;
+use dynaql::registry::{MetaField, MetaType, Registry};
+use dynaql::{CacheControl, Schema};
 use function_name::named;
 use serde_json as _;
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use crate::models::from_meta_type;
-use crate::rules::visitor::RuleError;
+use crate::rules::cache_directive::GlobalCacheRulesError::{
+    ForbiddenRegistryType, UnknownRegistryType, UnknownRegistryTypeField,
+};
+use crate::rules::visitor::{RuleError, MUTATION_TYPE};
+use crate::{GlobalCacheTarget, ParseResult};
 
 macro_rules! assert_validation_error {
     ($schema:literal, $expected_message:literal) => {
@@ -507,6 +512,7 @@ fn should_validate_relation_name() {
 
 #[test]
 fn should_pick_up_required_resolvers() {
+    let variables = HashMap::new();
     const SCHEMA: &str = r#"
         type User @model {
             name: String!
@@ -529,7 +535,7 @@ fn should_pick_up_required_resolvers() {
         }
     "#;
 
-    let result = super::to_registry_with_variables(SCHEMA, &HashMap::new()).expect("must succeed");
+    let result = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
 
     assert_eq!(
         result.required_resolvers,
@@ -684,4 +690,164 @@ fn test_name_clashes_dont_cause_panic() {
         }
     "#;
     super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
+}
+
+#[test]
+#[allow(clippy::panic)]
+fn should_apply_global_cache_rules_and_check_inline_precedence() {
+    let variables = HashMap::new();
+    const SCHEMA: &str = r#"
+        extend schema @cache(rules: [
+            {maxAge: 10, types: "User"},
+            {maxAge: 5, types: [{ name: "Post", fields: ["contents"]}]}
+        ])
+
+        type User @model @cache(maxAge: 60) {
+            name: String!
+            email: String!
+        }
+
+        type Post @model @cache(maxAge: 20) {
+            author: User!
+            contents: String! @cache(maxAge: 10)
+        }
+    "#;
+
+    let mut result = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+
+    // apply caching controls
+    if let Err(global_cache_rules_result) = result.global_cache_rules.apply(&mut result.registry) {
+        panic!("global cache rules apply must succeed - {global_cache_rules_result:?}");
+    };
+
+    let MetaType::Object { cache_control: user_cache_control, .. } = result.registry.types.get("User").unwrap() else {
+        panic!("should be an object");
+    };
+
+    let post_type = result.registry.types.get("Post").unwrap();
+    let MetaType::Object { cache_control: post_cache_control, .. } = post_type else {
+        panic!("should be an object");
+    };
+
+    let MetaField {
+        cache_control: post_contents_cache_control,
+        ..
+    } = post_type.fields().unwrap().get("contents").unwrap();
+
+    assert_eq!(
+        user_cache_control,
+        &CacheControl {
+            public: true,
+            max_age: 60,
+            stale_while_revalidate: 0,
+        }
+    );
+
+    assert_eq!(
+        post_cache_control,
+        &CacheControl {
+            public: true,
+            max_age: 20,
+            stale_while_revalidate: 0,
+        }
+    );
+
+    assert_eq!(
+        post_contents_cache_control,
+        &CacheControl {
+            public: true,
+            max_age: 10,
+            stale_while_revalidate: 0,
+        }
+    );
+}
+
+#[test]
+fn should_fail_global_cache_rules_apply_due_to_unknown_type_and_field() {
+    let variables = HashMap::new();
+    const SCHEMA: &str = r#"
+        extend schema @cache(rules: [
+            {maxAge: 10, types: "User"},
+            {maxAge: 5, types: [{ name: "Post", fields: ["contents"]}]}
+        ])
+
+        type User @model @cache(maxAge: 60) {
+            name: String!
+            email: String!
+        }
+
+        type Post @model @cache(maxAge: 20) {
+            author: User!
+            contents: String! @cache(maxAge: 10)
+        }
+    "#;
+
+    let ParseResult {
+        mut registry,
+        mut global_cache_rules,
+        ..
+    } = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    global_cache_rules.insert(
+        GlobalCacheTarget::Type(Cow::Owned("UnknownType".to_string())),
+        CacheControl::default(),
+    );
+    global_cache_rules.insert(
+        GlobalCacheTarget::Field(Cow::Owned("Post".to_string()), Cow::Owned("unknownField".to_string())),
+        CacheControl::default(),
+    );
+    let known_post_fields = registry
+        .types
+        .get("Post")
+        .unwrap()
+        .fields()
+        .unwrap()
+        .keys()
+        .map(|s| s.to_string())
+        .collect();
+
+    if let Err(err) = global_cache_rules.apply(&mut registry) {
+        assert_eq!(err.len(), 2);
+        assert!(err.contains(&UnknownRegistryType("UnknownType".to_string())));
+        assert!(err.contains(&UnknownRegistryTypeField(
+            "unknownField".to_string(),
+            "Post".to_string(),
+            known_post_fields
+        )));
+    };
+}
+
+#[test]
+fn should_fail_global_cache_rules_apply_due_to_mutation_rule() {
+    let variables = HashMap::new();
+    const SCHEMA: &str = r#"
+        extend schema @cache(rules: [
+            {maxAge: 10, types: "User"},
+            {maxAge: 5, types: [{ name: "Post", fields: ["contents"]}]}
+        ])
+
+        type User @model @cache(maxAge: 60) {
+            name: String!
+            email: String!
+        }
+
+        type Post @model @cache(maxAge: 20) {
+            author: User!
+            contents: String! @cache(maxAge: 10)
+        }
+    "#;
+
+    let ParseResult {
+        mut registry,
+        mut global_cache_rules,
+        ..
+    } = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    global_cache_rules.insert(
+        GlobalCacheTarget::Type(Cow::Owned(MUTATION_TYPE.to_string())),
+        CacheControl::default(),
+    );
+
+    if let Err(err) = global_cache_rules.apply(&mut registry) {
+        assert_eq!(err.len(), 1);
+        assert!(err.contains(&ForbiddenRegistryType(MUTATION_TYPE.to_string())));
+    };
 }

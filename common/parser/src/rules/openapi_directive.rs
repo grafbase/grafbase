@@ -119,6 +119,9 @@ mod tests {
 
     #[test]
     fn test_parsing_openapi_directive() {
+        let variables = maplit::hashmap! {
+                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
+        };
         let result = crate::to_registry_with_variables(
             r#"
             extend schema
@@ -129,9 +132,7 @@ mod tests {
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
               )
             "#,
-            &maplit::hashmap! {
-                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
-            },
+            &variables,
         )
         .unwrap();
 
@@ -173,6 +174,9 @@ mod tests {
     #[case("OPERATION_ID", OpenApiQueryNamingStrategy::OperationId)]
     #[case("SCHEMA_NAME", OpenApiQueryNamingStrategy::SchemaName)]
     fn test_parse_naming_strategy(#[case] input: &str, #[case] expected: OpenApiQueryNamingStrategy) {
+        let variables = maplit::hashmap! {
+                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
+        };
         let result = crate::to_registry_with_variables(
             format!(
                 r#"
@@ -187,9 +191,7 @@ mod tests {
                       )
             "#
             ),
-            &maplit::hashmap! {
-                "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
-            },
+            &variables,
         )
         .unwrap();
 
