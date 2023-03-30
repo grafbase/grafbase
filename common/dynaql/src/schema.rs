@@ -656,11 +656,7 @@ impl Schema {
 
     /// LogicalQuery creation & Execution.
     #[cfg(feature = "query-planning")]
-    async fn logical_query_execute_once(
-        &self,
-        env: QueryEnv,
-        exec_context: Arc<ExecutionContext>,
-    ) -> Response {
+    async fn logical_query_execute_once(&self, env: QueryEnv) -> Response {
         use query_planning::execution_query::context::Context;
         use query_planning::execution_query::planner::PhysicalQueryPlanner;
         use query_planning::execution_query::ExecuteStream;
@@ -676,6 +672,16 @@ impl Schema {
             resolvers_data: Default::default(),
             response_graph: Arc::new(RwLock::new(QueryResponse::default())),
         };
+
+        #[cfg(feature = "query-planning")]
+        let engine =
+            ctx.data_unchecked::<grafbase_runtime::custom_resolvers::CustomResolversEngine>();
+
+        #[cfg(feature = "query-planning")]
+        let req = ctx.data_unchecked::<grafbase_runtime::ExecutionContext>();
+
+        #[cfg(feature = "query-planning")]
+        let exec_context = Arc::new(ExecutionContext::new(engine.clone(), req.clone()).unwrap());
 
         let query = ctx.registry().query_root();
 
@@ -737,8 +743,6 @@ impl Schema {
         #[cfg(feature = "query-planning")]
         let is_logical_plan = request.logic_plan;
         let extensions = self.create_extensions(Default::default());
-        #[cfg(feature = "query-planning")]
-        let exec_context = Arc::new(ExecutionContext::sample().unwrap());
         let request_fut = {
             let extensions = extensions.clone();
             async move {
@@ -751,9 +755,7 @@ impl Schema {
                         #[cfg(feature = "query-planning")]
                         {
                             if is_logical_plan {
-                                return self
-                                    .logical_query_execute_once(env.clone(), exec_context.clone())
-                                    .await;
+                                return self.logical_query_execute_once(env.clone()).await;
                             }
                         }
 

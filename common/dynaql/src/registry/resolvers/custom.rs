@@ -34,7 +34,10 @@ impl ResolverTrait for CustomResolver {
             ctx.data()?,
             CustomResolverRequest {
                 resolver_name: self.resolver_name.clone(),
-                payload: CustomResolverRequestPayload { arguments },
+                payload: CustomResolverRequestPayload {
+                    arguments,
+                    parent: None,
+                },
             },
         ));
         let value = Box::pin(future).await?;

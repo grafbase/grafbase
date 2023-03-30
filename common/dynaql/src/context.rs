@@ -918,7 +918,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         use query_planning::logical_plan::{traverse_logical_plan, Datasource};
         use query_planning::scalar::ScalarValue;
 
-        use crate::registry::plan::{Apply, First, Last, PlanProjection, PlanRelated};
+        use crate::registry::plan::{
+            Apply, First, Last, PlanProjection, PlanRelated, Resolver as SchemaPlanResolver,
+        };
         use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
 
@@ -1072,8 +1074,17 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         }
                     }
                 }
-                SchemaPlan::Resolver(_) => {
-                    todo!()
+                SchemaPlan::Resolver(SchemaPlanResolver { resolver_name }) => {
+                    let previous = previous_plan.ok_or_else(|| {
+                        ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
+                    })?;
+
+                    LogicalPlanBuilder::from(previous)
+                        .resolver(resolver_name.clone())
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build()
                 }
             });
         }
