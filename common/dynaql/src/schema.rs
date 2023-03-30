@@ -678,7 +678,7 @@ impl Schema {
             ctx.data_unchecked::<grafbase_runtime::custom_resolvers::CustomResolversEngine>();
 
         #[cfg(feature = "query-planning")]
-        let req = ctx.data_unchecked::<grafbase_runtime::ExecutionContext>();
+        let req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();
 
         #[cfg(feature = "query-planning")]
         let exec_context = Arc::new(ExecutionContext::new(engine.clone(), req.clone()).unwrap());
