@@ -63,6 +63,8 @@ pub const SEARCH_CREATE_OPTIONAL: &str = include_str!("../graphql/search/create-
 pub const SEARCH_SEARCH_OPTIONAL: &str = include_str!("../graphql/search/search-optional.graphql");
 pub const SEARCH_PAGINATION: &str = include_str!("../graphql/search/search-pagination.graphql");
 pub const SEARCH_METADATA_FIELDS: &str = include_str!("../graphql/search/search-metadata-fields.graphql");
+pub const SEARCH_CREATE_PERSON: &str = include_str!("../graphql/search/create-person.graphql");
+pub const SEARCH_SEARCH_PERSON: &str = include_str!("../graphql/search/search-person.graphql");
 
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
