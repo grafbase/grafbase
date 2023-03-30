@@ -123,10 +123,16 @@ async fn invoke_resolver_endpoint(
     Json(payload): Json<ResolverInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", payload);
-    super::resolvers::invoke_resolver(handler_state.worker_port, &payload.resolver_name)
-        .await
-        .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
-        .map(Json)
+    super::resolvers::invoke_resolver(
+        handler_state.worker_port,
+        &payload.resolver_name,
+        &serde_json::json!({
+            "parent": payload.payload.parent,
+        }),
+    )
+    .await
+    .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
+    .map(Json)
 }
 
 pub async fn start(port: u16, worker_port: u16, event_bus: Sender<Event>) -> Result<(), ServerError> {
