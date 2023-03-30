@@ -196,7 +196,7 @@ impl DynamoDBContext {
         trace_id: String,
         access_key_id: String,
         secret_access_key: String,
-        region: Region,
+        region: rusoto_core::Region,
         dynamodb_table_name: String,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
@@ -204,16 +204,14 @@ impl DynamoDBContext {
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
 
-        let closest_region = region.into_aws(&trace_id);
-
         let http_client = HttpClient::new().expect("failed to create HTTP client");
-        let client = DynamoDbClient::new_with(http_client, provider, closest_region.clone());
+        let client = DynamoDbClient::new_with(http_client, provider, region.clone());
 
         Self {
             trace_id,
             dynamodb_client: client,
             dynamodb_table_name,
-            closest_region,
+            closest_region: region,
             resolver_binding_map,
             user_id,
         }
@@ -229,50 +227,6 @@ impl DynamoDBContext {
     /// GSI name used to reverse lockup
     pub(crate) const fn index_reverse_lockup() -> &'static str {
         "gsi2"
-    }
-}
-
-pub enum Region {
-    Local(String),
-    Closest {
-        // The Regions in which the dynamodb table is replicated
-        replication_regions: Vec<aws_region_nearby::AwsRegion>,
-        /// Request latitude, to locate the closest region
-        latitude: f32,
-        /// Request longitude, to locate the closest region
-        longitude: f32,
-    },
-}
-
-impl Region {
-    fn into_aws(self, trace_id: &str) -> rusoto_core::Region {
-        match self {
-            Region::Local(endpoint) => rusoto_core::Region::Custom {
-                name: "local-emulator".to_string(),
-                endpoint,
-            },
-            Region::Closest {
-                replication_regions,
-                latitude,
-                longitude,
-            } => {
-                let closest_region =
-                    aws_region_nearby::find_region_from_list(latitude, longitude, &replication_regions)
-                        .name()
-                        .parse::<rusoto_core::Region>()
-                        .expect("the name of the region is certainly valid");
-
-                log::debug!(
-                    trace_id,
-                    "Picked the closest region {} for coordinates (lat {}, lon {})",
-                    closest_region.name(),
-                    latitude,
-                    longitude
-                );
-
-                closest_region
-            }
-        }
     }
 }
 

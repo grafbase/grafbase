@@ -83,9 +83,6 @@ impl QueryResolver {
                             pagination: search_parser::parse_pagination(
                                 first, before, last, after,
                             )?,
-                            // TODO: Where should database be defined? In the ExecutionContext
-                            // available for everything in grafbase-runtime or specific to search?
-                            database: String::new(),
                             entity_type: entity_type.clone(),
                         },
                     )

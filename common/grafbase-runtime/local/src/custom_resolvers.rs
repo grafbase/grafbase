@@ -4,7 +4,7 @@ use grafbase_runtime::{
     custom_resolvers::{
         CustomResolverError, CustomResolverRequest, CustomResolverResponse, CustomResolversEngineInner,
     },
-    ExecutionContext,
+    GraphqlRequestExecutionContext,
 };
 
 pub struct CustomResolvers {
@@ -24,11 +24,11 @@ impl CustomResolvers {
 impl CustomResolversEngineInner for CustomResolvers {
     async fn invoke(
         &self,
-        ctx: &ExecutionContext,
+        ctx: &GraphqlRequestExecutionContext,
         request: CustomResolverRequest,
     ) -> Result<CustomResolverResponse, CustomResolverError> {
         self.bridge.request("/invoke-resolver", request).await.map_err(|error| {
-            log::error!(ctx.request_id, "Resolver invocation failed with: {}", error);
+            log::error!(ctx.ray_id, "Resolver invocation failed with: {}", error);
             CustomResolverError::ServerError
         })
     }
