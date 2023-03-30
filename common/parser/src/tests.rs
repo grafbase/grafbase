@@ -602,6 +602,32 @@ fn should_support_search_directive() {
     assert_registry_schema_generation(&model_directive);
     assert_snapshot(&format!("{}-model_directive", function_name!()), model_directive);
 
+    let enum_field = super::to_registry(
+        r#"
+            enum Status {
+                ACTIVE
+                INACTIVE
+            }
+
+            enum Pet {
+                CAT
+                DOG
+            }
+
+            type Product @model @search {
+                status: Status
+                pet: Pet!
+                pets: [Pet!]
+                name: String
+            }
+            "#,
+    );
+
+    assert!(enum_field.is_ok(), "Search should support model @search directive.");
+    let model_directive = enum_field.unwrap();
+    assert_registry_schema_generation(&model_directive);
+    assert_snapshot(&format!("{}-enum-field", function_name!()), model_directive);
+
     assert_validation_error!(
         r#"
             type Product {
