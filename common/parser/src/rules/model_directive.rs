@@ -230,7 +230,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                 continue;
                             }
 
-                            let (resolver, relation, transformer, edges, args, ty, cache_control) =
+                            let (resolver, relation, transformer, edges, args, ty, cache_control, plan) =
                                 ResolverDirective::resolver_name(&field.node)
                                     .map(|resolver_name| {
                                         (
@@ -259,6 +259,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                 .collect(),
                                             field.node.ty.clone().node.to_string(),
                                             CacheDirective::parse(&field.node.directives),
+                                            SchemaPlan::resolver(resolver_name.to_owned()),
                                         )
                                     })
                                     .or_else(|| {
@@ -298,12 +299,17 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                     id,
                                                     r#type: ResolverType::ContextDataResolver(context_data_resolver),
                                                 },
-                                                Some(relation),
+                                                Some(relation.clone()),
                                                 None,
                                                 edges,
                                                 args,
                                                 ty,
                                                 CacheDirective::parse(&field.node.directives),
+                                                SchemaPlan::related(
+                                                    Some(ctx.get_schema_id(&relation.relation.0.clone().unwrap())),
+                                                    ctx.get_schema_id(&relation.relation.1.clone()),
+                                                    Some(relation.name.clone()),
+                                                ),
                                             )
                                         })
                                     })
@@ -323,17 +329,9 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             Default::default(),
                                             field.node.ty.clone().node.to_string(),
                                             CacheDirective::parse(&field.node.directives),
+                                            SchemaPlan::projection(vec![name.clone()]),
                                         )
                                     });
-
-                            let plan = match &relation {
-                                None => Some(SchemaPlan::projection(vec![name.clone()])),
-                                Some(meta_relation) => Some(SchemaPlan::related(
-                                    Some(ctx.get_schema_id(&meta_relation.relation.0.clone().unwrap())),
-                                    ctx.get_schema_id(&meta_relation.relation.1.clone()),
-                                    Some(meta_relation.name.clone()),
-                                )),
-                            };
 
                             fields.insert(
                                 name.clone(),
@@ -351,7 +349,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                     compute_complexity: None,
                                     resolve: Some(resolver),
                                     edges,
-                                    plan,
+                                    plan: Some(plan),
                                     relation,
                                     transformer,
                                     required_operation: None,
