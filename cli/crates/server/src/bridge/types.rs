@@ -70,13 +70,5 @@ pub struct RecordDocument {
 #[derive(Deserialize, Debug)]
 pub struct ResolverInvocation {
     pub resolver_name: String,
-    #[serde(default)]
-    pub arguments: Option<serde_json::Value>,
-    pub payload: ResolverPayload,
-}
-
-#[derive(Deserialize, Debug)]
-pub struct ResolverPayload {
-    #[serde(default)]
-    pub parent: Option<serde_json::Value>,
+    pub payload: serde_json::Value,
 }
