@@ -11,6 +11,9 @@ use dynaql_value::Name;
 use grafbase_runtime::cursor::Cursor;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
+use serde::Serialize;
+
+use self::oneof::OneOf;
 
 pub mod id;
 pub mod oneof;
@@ -104,6 +107,21 @@ impl VariableResolveDefinition {
         }
     }
 
+    pub fn expect_op_obj<'a>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+    ) -> Result<Option<IndexMap<Name, Value>>, ServerError> {
+        match self.param(ctx, last_resolver_value)? {
+            Some(Value::Object(inner)) => Ok(Some(inner)),
+            None => Ok(None),
+            _ => {
+                Err(Error::new("Internal Error: failed to infer key")
+                    .into_server_error(ctx.item.pos))
+            }
+        }
+    }
+
     pub fn expect_opt_string<'a>(
         &self,
         ctx: &'a Context<'a>,
@@ -155,6 +173,22 @@ impl VariableResolveDefinition {
                     Err(Error::new("Invalid Cursor").into_server_error(ctx.item.pos))
                 }
             },
+            None => Ok(None),
+        }
+    }
+
+    pub fn expect_oneof<'a, T>(
+        &self,
+        ctx: &'a Context<'a>,
+        last_resolver_value: Option<&'a serde_json::Value>,
+    ) -> Result<Option<OneOf<T>>, ServerError>
+    where
+        T: Serialize + DeserializeOwned,
+    {
+        match self.param(ctx, last_resolver_value)? {
+            Some(s) => serde_json::to_value(s)
+                .and_then(|value| serde_json::from_value(value))
+                .map_err(|err| Error::new_with_source(err).into_server_error(ctx.item.pos)),
             None => Ok(None),
         }
     }
