@@ -1,0 +1,8 @@
+mutation TodoUpdate($id: ID!, $title: String, $complete: Boolean) {
+	todoUpdate(by: { id: $id }, input: { title: $title, complete: $complete }) {
+		todo {
+			title
+			complete
+		}
+	}
+}

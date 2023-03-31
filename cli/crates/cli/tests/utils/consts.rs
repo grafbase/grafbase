@@ -81,3 +81,10 @@ pub const RESERVED_DATES_CREATE_TODO_LIST: &str = include_str!("../graphql/reser
 pub const DEFAULT_DIRECTIVE_CREATE_USER1: &str = include_str!("../graphql/default_directive/create-user1.graphql");
 pub const DEFAULT_DIRECTIVE_CREATE_USER2: &str = include_str!("../graphql/default_directive/create-user2.graphql");
 pub const DEFAULT_DIRECTIVE_SCHEMA: &str = include_str!("../graphql/default_directive/schema.graphql");
+
+pub const OWNER_TODO_SCHEMA: &str = include_str!("../graphql/owner/global/todo/todo-schema.graphql");
+pub const OWNER_TODO_CREATE: &str = include_str!("../graphql/owner/global/todo/todo-create.graphql");
+pub const OWNER_TODO_GET: &str = include_str!("../graphql/owner/global/todo/todo-get.graphql");
+pub const OWNER_TODO_UPDATE: &str = include_str!("../graphql/owner/global/todo/todo-update.graphql");
+pub const OWNER_TODO_LIST: &str = include_str!("../graphql/owner/global/todo/todo-list.graphql");
+pub const OWNER_TODO_DELETE: &str = include_str!("../graphql/owner/global/todo/todo-delete.graphql");

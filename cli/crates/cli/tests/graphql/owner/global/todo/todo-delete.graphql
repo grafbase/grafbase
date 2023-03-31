@@ -1,0 +1,5 @@
+mutation TodoDelete($id: ID!) {
+	todoDelete(by: { id: $id }) {
+		__typename
+	}
+}
