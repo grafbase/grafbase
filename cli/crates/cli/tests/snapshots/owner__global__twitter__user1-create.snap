@@ -1,0 +1,17 @@
+---
+source: crates/cli/tests/owner.rs
+expression: user_created
+---
+{
+  "data": {
+    "userCreate": {
+      "user": {
+        "avatar": "http://example.com/",
+        "email": "one@example.com",
+        "id": "[id]",
+        "url": "http://example.com/",
+        "username": "1"
+      }
+    }
+  }
+}

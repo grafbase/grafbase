@@ -88,3 +88,10 @@ pub const OWNER_TODO_GET: &str = include_str!("../graphql/owner/global/todo/todo
 pub const OWNER_TODO_UPDATE: &str = include_str!("../graphql/owner/global/todo/todo-update.graphql");
 pub const OWNER_TODO_LIST: &str = include_str!("../graphql/owner/global/todo/todo-list.graphql");
 pub const OWNER_TODO_DELETE: &str = include_str!("../graphql/owner/global/todo/todo-delete.graphql");
+
+pub const OWNER_TWITTER_SCHEMA: &str = include_str!("../graphql/owner/global/twitter/twitter-schema.graphql");
+pub const OWNER_TWITTER_USER_CREATE: &str = include_str!("../graphql/owner/global/twitter/user-create.graphql");
+pub const OWNER_TWITTER_USER_GET_BY_ID: &str = include_str!("../graphql/owner/global/twitter/user-get-by-id.graphql");
+pub const OWNER_TWITTER_USER_GET_BY_EMAIL: &str =
+    include_str!("../graphql/owner/global/twitter/user-get-by-email.graphql");
+    

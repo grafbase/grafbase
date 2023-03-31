@@ -2,6 +2,7 @@ mod utils;
 
 use crate::utils::consts::{
     OWNER_TODO_CREATE, OWNER_TODO_DELETE, OWNER_TODO_GET, OWNER_TODO_LIST, OWNER_TODO_SCHEMA, OWNER_TODO_UPDATE,
+    OWNER_TWITTER_SCHEMA, OWNER_TWITTER_USER_CREATE, OWNER_TWITTER_USER_GET_BY_EMAIL, OWNER_TWITTER_USER_GET_BY_ID,
 };
 use json_dotpath::DotPaths;
 use serde_json::{json, Value};
@@ -130,6 +131,94 @@ mod global {
             );
             // list of todos should be empty.
             insta::assert_json_snapshot!("list-empty", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
+        }
+    }
+
+    mod twitter {
+        use super::*;
+
+        #[test]
+        fn get_by_id_should_be_filtered_by_the_owner() {
+            let mut env = Environment::init(4028);
+            env.grafbase_init();
+            env.write_schema(OWNER_TWITTER_SCHEMA);
+            env.grafbase_dev();
+            let client = env.create_client();
+            client.poll_endpoint(30, 300);
+
+            // user1 creates a todo.
+            let email: &str = "one@example.com";
+            let user_created = client
+                .gql::<Value>(OWNER_TWITTER_USER_CREATE)
+                .bearer(USER1)
+                .variables(
+                    json!({ "username": "1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
+                )
+                .send();
+
+            insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
+            let id: String = user_created
+                .dot_get("data.userCreate.user.id")
+                .unwrap()
+                .expect("id must be present");
+            // user1 can use get by id
+            insta::assert_json_snapshot!(
+                "user1-get",
+                client
+                    .gql::<Value>(OWNER_TWITTER_USER_GET_BY_ID)
+                    .bearer(USER1)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // user2 cannot get the entity by id
+            insta::assert_json_snapshot!(
+                "user2-get-empty",
+                client
+                    .gql::<Value>(OWNER_TWITTER_USER_GET_BY_ID)
+                    .bearer(USER2)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+        }
+
+        #[test]
+        fn get_by_email_should_be_filtered_by_the_owner() {
+            let mut env = Environment::init(4029);
+            env.grafbase_init();
+            env.write_schema(OWNER_TWITTER_SCHEMA);
+            env.grafbase_dev();
+            let client = env.create_client();
+            client.poll_endpoint(30, 300);
+
+            // user1 creates a todo.
+            let email: &str = "one@example.com";
+            let user_created = client
+                .gql::<Value>(OWNER_TWITTER_USER_CREATE)
+                .bearer(USER1)
+                .variables(
+                    json!({ "username": "1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
+                )
+                .send();
+
+            insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
+            // user1 can use get by email
+            insta::assert_json_snapshot!(
+                "user1-get",
+                client
+                    .gql::<Value>(OWNER_TWITTER_USER_GET_BY_EMAIL)
+                    .bearer(USER1)
+                    .variables(json!({ "email": email }))
+                    .send()
+            );
+            // user2 cannot get the entity by email
+            insta::assert_json_snapshot!(
+                "user2-get-empty",
+                client
+                    .gql::<Value>(OWNER_TWITTER_USER_GET_BY_EMAIL)
+                    .bearer(USER2)
+                    .variables(json!({ "email": email }))
+                    .send()
+            );
         }
     }
 }
