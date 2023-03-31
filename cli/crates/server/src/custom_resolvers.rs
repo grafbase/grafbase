@@ -56,6 +56,25 @@ async fn run_npm_command<P: AsRef<Path>>(
     }
 }
 
+// https://toml.io/en/v1.0.0#string
+// > Any Unicode character may be used except those that must be escaped:
+// > quotation mark, backslash, and the control characters other than tab
+// (U+0000 to U+0008, U+000A to U+001F, U+007F).
+fn should_escape_character_in_toml_string(c: char) -> bool {
+    c == '"' || c == '/' || (c.is_control() && c != '\t')
+}
+
+fn escape_string_in_toml(s: &str) -> String {
+    s.chars().fold(String::new(), |mut string, c| {
+        if should_escape_character_in_toml_string(c) {
+            string.extend(c.escape_unicode());
+        } else {
+            string.push(c);
+        }
+        string
+    })
+}
+
 #[allow(clippy::too_many_lines)]
 async fn build_resolver(
     environment: &Environment,
@@ -187,7 +206,10 @@ async fn build_resolver(
             "#,
             vars = environment_variables
                 .iter()
-                .format_with("\n", |(key, value), f| f(&std::format_args!("{key} = \"{value}\"")))
+                .format_with("\n", |(key, value), f| f(&std::format_args!(
+                    "{key} = \"{value_escaped}\"",
+                    value_escaped = escape_string_in_toml(&value)
+                )))
         ),
     )
     .await
