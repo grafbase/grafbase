@@ -208,7 +208,7 @@ async fn build_resolver(
                 .iter()
                 .format_with("\n", |(key, value), f| f(&std::format_args!(
                     "{key} = \"{value_escaped}\"",
-                    value_escaped = escape_string_in_toml(&value)
+                    value_escaped = escape_string_in_toml(value)
                 )))
         ),
     )
