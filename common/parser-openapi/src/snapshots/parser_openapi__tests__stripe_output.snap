@@ -28201,7 +28201,6 @@ type StripeQuery {
 	quote(quote: String!, expand: [String!]): StripeQuote!
 	quotesQuoteComputedUpfrontLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteComputedUpfrontLineItems!
 	quotesQuoteLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteLineItems!
-	quotesQuotePdf(quote: String!, expand: [String!]): String!
 	radarEarlyFraudWarnings(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, charge: String): StripeGetRadarEarlyFraudWarnings!
 	radarEarlyFraudWarning(earlyFraudWarning: String!, expand: [String!]): StripeRadarEarlyFraudWarning!
 	radarValueListItems(valueList: String!, value: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeGetRadarValueListItemsCreatedUnionInput): StripeGetRadarValueListItems!

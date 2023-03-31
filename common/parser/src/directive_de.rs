@@ -1,19 +1,30 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
-use dynaql::Name;
+use dynaql::{Name, Pos};
 use dynaql_parser::types::ConstDirective;
 use dynaql_value::ConstValue;
-use serde::de::IntoDeserializer;
+use serde::de::{Error as _, IntoDeserializer};
+
+use crate::{dynamic_string::DynamicString, rules::visitor::RuleError};
 
 /// Parses a ConstDirective into a type that impls Deserialize
-pub fn parse_directive<D: serde::de::DeserializeOwned>(directive: &ConstDirective) -> Result<D, Error> {
+///
+/// This will automatically interpolate environment variables into any type that deserializes
+/// as a String (but not neccesarily any string that is present in the SDL)
+pub fn parse_directive<D: serde::de::DeserializeOwned>(
+    directive: &ConstDirective,
+    environment_variables: &HashMap<String, String>,
+) -> Result<D, RuleError> {
     D::deserialize(DirectiveDeserializer {
         directive,
         current_index: 0,
+        environment_variables,
     })
+    .map_err(|Error::Message(msg, pos)| RuleError::new(pos.into_iter().collect(), msg))
 }
 
 struct DirectiveDeserializer<'de> {
+    environment_variables: &'de HashMap<String, String>,
     directive: &'de ConstDirective,
     current_index: usize,
 }
@@ -47,16 +58,22 @@ impl<'de> serde::de::MapAccess<'de> for DirectiveDeserializer<'de> {
         }
         return seed
             .deserialize(NameDeserializer(&self.directive.arguments[self.current_index].0.node))
-            .map(Some);
+            .map(Some)
+            .map_err(|Error::Message(msg, pos)| {
+                Error::Message(msg, pos.or(Some(self.directive.arguments[self.current_index].0.pos)))
+            });
     }
 
     fn next_value_seed<V>(&mut self, seed: V) -> Result<V::Value, Self::Error>
     where
         V: serde::de::DeserializeSeed<'de>,
     {
-        let val = &self.directive.arguments[self.current_index].1;
+        let value = &self.directive.arguments[self.current_index].1;
+        let current_pos = self.directive.arguments[self.current_index].1.pos;
         self.current_index += 1;
-        seed.deserialize(ValueDeserializer(&val.node))
+
+        seed.deserialize(ValueDeserializer::new(&value.node, self.environment_variables))
+            .map_err(|err| Error::Message(err.to_string(), Some(current_pos)))
     }
 }
 
@@ -79,7 +96,19 @@ impl<'de> serde::de::Deserializer<'de> for NameDeserializer<'de> {
     }
 }
 
-struct ValueDeserializer<'de>(&'de ConstValue);
+struct ValueDeserializer<'de> {
+    value: &'de ConstValue,
+    environment_variables: &'de HashMap<String, String>,
+}
+
+impl<'de> ValueDeserializer<'de> {
+    fn new(value: &'de ConstValue, environment_variables: &'de HashMap<String, String>) -> Self {
+        ValueDeserializer {
+            value,
+            environment_variables,
+        }
+    }
+}
 
 impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
     type Error = Error;
@@ -88,7 +117,7 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.0 {
+        match self.value {
             ConstValue::Null => visitor.visit_none(),
             ConstValue::Number(num) if num.is_f64() => visitor.visit_f64(num.as_f64().unwrap()),
             ConstValue::Number(num) if num.is_u64() => visitor.visit_u64(num.as_u64().unwrap()),
@@ -97,16 +126,20 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
             ConstValue::Boolean(b) => visitor.visit_bool(*b),
             ConstValue::Binary(b) => visitor.visit_bytes(b),
             ConstValue::Enum(en) => visitor.visit_enum(en.as_str().into_deserializer()),
-            ConstValue::List(v) => visitor.visit_seq(Sequence(v.iter())),
+            ConstValue::List(v) => visitor.visit_seq(Sequence {
+                values: v.iter(),
+                environment_variables: self.environment_variables,
+            }),
             ConstValue::Object(obj) => visitor.visit_map(Object {
                 iter: obj.iter(),
                 next_value: None,
+                environment_variables: self.environment_variables,
             }),
         }
     }
 
     serde::forward_to_deserialize_any! {
-        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char
         bytes byte_buf unit unit_struct newtype_struct seq tuple
         tuple_struct map struct enum identifier
     }
@@ -115,7 +148,7 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
     where
         V: serde::de::Visitor<'de>,
     {
-        match self.0 {
+        match self.value {
             ConstValue::Null => visitor.visit_none(),
             _ => visitor.visit_some(self),
         }
@@ -127,9 +160,45 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
     {
         visitor.visit_unit()
     }
+
+    fn deserialize_str<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        match self.value {
+            ConstValue::String(s) => {
+                let mut dynamic_string = s.parse::<DynamicString>()?;
+                dynamic_string.partially_evaluate(self.environment_variables)?;
+                match dynamic_string.into_fully_evaluated_str() {
+                    Some(evaluated_string) => visitor.visit_string(evaluated_string),
+                    None => {
+                        // Pretty sure this shouldn't happen at the moment, but if we add
+                        // any runtime variable support it might.  Should probably change
+                        // this to return a partially evaluated string if that happens.
+                        //
+                        // For now I'm just going to return an error to users.
+                        Err(Error::custom(
+                            "DynamicString was not fully evaluated.  Please contact support",
+                        ))
+                    }
+                }
+            }
+            _ => self.deserialize_any(visitor),
+        }
+    }
+
+    fn deserialize_string<V>(self, visitor: V) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        self.deserialize_str(visitor)
+    }
 }
 
-struct Sequence<'de>(std::slice::Iter<'de, ConstValue>);
+struct Sequence<'de> {
+    values: std::slice::Iter<'de, ConstValue>,
+    environment_variables: &'de HashMap<String, String>,
+}
 
 impl<'de> serde::de::SeqAccess<'de> for Sequence<'de> {
     type Error = Error;
@@ -138,16 +207,18 @@ impl<'de> serde::de::SeqAccess<'de> for Sequence<'de> {
     where
         T: serde::de::DeserializeSeed<'de>,
     {
-        let Some(val) = self.0.next() else {
-                return Ok(None);
-            };
-        seed.deserialize(ValueDeserializer(val)).map(Some)
+        let Some(value) = self.values.next() else {
+            return Ok(None);
+        };
+        seed.deserialize(ValueDeserializer::new(value, self.environment_variables))
+            .map(Some)
     }
 }
 
 struct Object<'de> {
     iter: dynaql::indexmap::map::Iter<'de, Name, ConstValue>,
     next_value: Option<&'de ConstValue>,
+    environment_variables: &'de HashMap<String, String>,
 }
 
 impl<'de> serde::de::MapAccess<'de> for Object<'de> {
@@ -169,30 +240,36 @@ impl<'de> serde::de::MapAccess<'de> for Object<'de> {
         V: serde::de::DeserializeSeed<'de>,
     {
         let value = self.next_value.take().unwrap();
-        seed.deserialize(ValueDeserializer(value))
+        seed.deserialize(ValueDeserializer::new(value, self.environment_variables))
     }
 }
 
 #[derive(Debug)]
-pub enum Error {
-    Message(String),
+enum Error {
+    Message(String, Option<Pos>),
 }
 
 impl serde::de::Error for Error {
     fn custom<T: Display>(msg: T) -> Self {
-        Error::Message(msg.to_string())
+        Error::Message(msg.to_string(), None)
     }
 }
 
 impl Display for Error {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::Message(msg) => formatter.write_str(msg),
+            Error::Message(msg, _) => formatter.write_str(msg),
         }
     }
 }
 
 impl std::error::Error for Error {}
+
+impl From<dynaql::ServerError> for Error {
+    fn from(value: dynaql::ServerError) -> Self {
+        Error::Message(value.message, value.locations.into_iter().next())
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -207,7 +284,7 @@ mod tests {
     #[allow(dead_code)]
     struct MyDirective {
         a_list: Vec<String>,
-        a_nested_object: MyNestedObject,
+        a_nested_object: Option<MyNestedObject>,
     }
 
     #[derive(Debug, serde::Deserialize)]
@@ -217,30 +294,63 @@ mod tests {
         a_field: String,
     }
 
-    #[test]
-    fn test_from_directive() {
-        let doc = parse_schema(
-            r#"
-                extend schema @mydirective(aList: ["hello", "there"], aNestedObject: {aField: "blah"})
-            "#,
-        )
-        .unwrap();
+    fn directive_test<Directive>(
+        schema: &str,
+        environment_variables: &HashMap<String, String>,
+    ) -> Result<Directive, RuleError>
+    where
+        Directive: serde::de::DeserializeOwned,
+    {
+        let doc = parse_schema(schema).unwrap();
+
         let TypeSystemDefinition::Schema(schema) = &doc.definitions[0] else {
             panic!("Expected a schema");
         };
 
-        let directive = &schema.node.directives[0];
+        parse_directive(&schema.node.directives[0].node, environment_variables)
+    }
 
-        insta::assert_debug_snapshot!(parse_directive::<MyDirective>(&directive.node).unwrap(), @r###"
+    #[test]
+    fn test_from_directive() {
+        insta::assert_debug_snapshot!(
+            directive_test::<MyDirective>(
+                r#"
+                    extend schema @mydirective(
+                        aList: ["hello", "there", "Bearer {{ env.BLAH }}"],
+                        aNestedObject: {aField: "blah"},
+                    )
+                "#,
+                &maplit::hashmap!{"BLAH".to_string() => "OH_LOOK_AN_ENV_VAR".to_string()}
+            ).unwrap(),
+            @r###"
         MyDirective {
             a_list: [
                 "hello",
                 "there",
+                "Bearer OH_LOOK_AN_ENV_VAR",
             ],
-            a_nested_object: MyNestedObject {
-                a_field: "blah",
-            },
+            a_nested_object: Some(
+                MyNestedObject {
+                    a_field: "blah",
+                },
+            ),
         }
         "###);
+    }
+
+    #[test]
+    fn test_missing_env_var() {
+        insta::assert_snapshot!(
+            directive_test::<MyDirective>(
+                r#"
+                    extend schema @mydirective(
+                        aList: ["Bearer {{ env.BLAH }}"],
+                    )
+                "#,
+                &HashMap::default()
+            )
+            .unwrap_err().to_string(),
+            @"[3:32] undefined variable `BLAH`"
+        );
     }
 }
