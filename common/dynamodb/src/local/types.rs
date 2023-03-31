@@ -241,9 +241,13 @@ pub enum Sql<'a> {
     /// values: partition_keys[], sorting_keys[]
     SelectIdPairs(usize),
     /// values: pk, entity_type, edges[]
-    SelectIdWithEdges(String, usize),
+    SelectIdWithEdges {
+        pk: String,
+        number_of_edges: usize,
+        filter_by_owner: bool,
+    },
     /// values: pk
-    SelectId(String),
+    SelectId { pk: String, filter_by_owner: bool },
     /// values: parent_pk, relation_name
     SelectSingleRelation(String),
     SelectTypePaginated {
@@ -432,33 +436,69 @@ impl<'a> Sql<'a> {
                     id_pairs = joined_repeating("pk=?partition_keys AND sk=?sorting_keys", *pair_count, " OR ")
                 )
             }
-            Self::SelectIdWithEdges(pk, number_of_edges) => {
+            Self::SelectIdWithEdges {
+                pk,
+                number_of_edges,
+                filter_by_owner,
+            } => {
+                let maybe_owner_table = if *filter_by_owner {
+                    format!(
+                        ", json_each({table}.document,'$.__owned_by.SS') AS owner",
+                        table = Self::TABLE
+                    )
+                } else {
+                    "".to_string()
+                };
+                let maybe_owner_condition = if *filter_by_owner {
+                    format!("AND owner.value=?{OWNED_BY_KEY}")
+                } else {
+                    "".to_string()
+                };
                 format!(
                     indoc::indoc! {"
                     SELECT
-                        *
+                        {table}.*
                     FROM
                         {table}
+                        {maybe_owner_table}
                     WHERE
                         {pk}=?pk
                         AND entity_type=?entity_type
+                        {maybe_owner_condition}
                     UNION ALL
                     SELECT
                         {table}.*
                     FROM
                         {table},
-                        json_each({table}.relation_names)
+                        json_each({table}.relation_names) AS relation_name
+                        {maybe_owner_table}
                     WHERE
                         {table}.pk=?pk
                         AND ({edges})
+                        {maybe_owner_condition}
                 "},
                     table = Self::TABLE,
+                    maybe_owner_table = maybe_owner_table,
                     pk = pk,
-                    edges = joined_repeating("json_each.value=?edges", *number_of_edges, " OR "),
+                    edges = joined_repeating("relation_name.value=?edges", *number_of_edges, " OR "),
+                    maybe_owner_condition = maybe_owner_condition,
                 )
             }
-            Self::SelectId(pk) => {
-                format!("SELECT * FROM {table} WHERE {pk}=?pk", table = Self::TABLE)
+            Self::SelectId { pk, filter_by_owner } => {
+                let mut select = format!("SELECT {table}.* FROM {table}", table = Self::TABLE);
+                let mut r#where = vec![format!("{pk}=?pk")];
+                if *filter_by_owner {
+                    select.push_str(&format!(
+                        ", json_each({table}.document,'$.__owned_by.SS') AS owner",
+                        table = Self::TABLE
+                    ));
+                    r#where.push(format!("owner.value = ?{OWNED_BY_KEY}"));
+                }
+                format!(
+                    "{select} WHERE {conditions}",
+                    select = select,
+                    conditions = r#where.join(" AND "),
+                )
             }
             Self::SelectSingleRelation(pk_index) => {
                 format!(

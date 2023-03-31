@@ -301,6 +301,7 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
                     HashSet::from([user_id.clone()]).into_attr(),
                 );
             }
+
             let mut exp_values = HashMap::with_capacity(fields.len() + 1);
             let mut exp_att_names = HashMap::with_capacity(fields.len() + 1);
             let update_expression = UpdateRelationInternalInput::to_update_expression(
