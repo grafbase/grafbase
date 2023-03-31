@@ -20,7 +20,7 @@ fnv = "1"
 futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
-futures-util = { version = "0.3", default-features = false, features = [
+futures-util = { workspace = true, default-features = false, features = [
   "std",
   "async-await",
 ] }

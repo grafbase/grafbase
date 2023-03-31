@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 bitflags = "1"
-futures-util = { version = "0.3", default-features = false, features = [
+futures-util = { workspace = true, default-features = false, features = [
     "std",
     "async-await",
 ] }
