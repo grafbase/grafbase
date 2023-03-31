@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::{directive_de::parse_directive, dynamic_string::DynamicString};
+use crate::directive_de::parse_directive;
 
 use super::{directive::Directive, visitor::Visitor};
 
@@ -36,16 +36,7 @@ impl OpenApiDirective {
     pub fn headers(&self) -> Vec<(String, String)> {
         self.headers
             .iter()
-            .map(|header| {
-                (
-                    header.name.clone(),
-                    header
-                        .value
-                        .as_fully_evaluated_str()
-                        .expect("OpenAPIDirective headers to be fully evaluated while parsing")
-                        .to_string(),
-                )
-            })
+            .map(|header| (header.name.clone(), header.value.clone()))
             .collect()
     }
 }
@@ -53,7 +44,7 @@ impl OpenApiDirective {
 #[derive(Debug, serde::Deserialize)]
 pub struct Header {
     name: String,
-    value: DynamicString,
+    value: String,
 }
 
 const OPENAPI_DIRECTIVE_NAME: &str = "openapi";
@@ -108,14 +99,8 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
             .filter(|d| d.node.name.node == OPENAPI_DIRECTIVE_NAME);
 
         for directive in directives {
-            match parse_directive::<OpenApiDirective>(&directive.node) {
-                Ok(mut parsed_directive) => {
-                    for header in &mut parsed_directive.headers {
-                        if let Err(error) = ctx.partially_evaluate_literal(&mut header.value) {
-                            ctx.report_error(vec![directive.pos], error.to_string());
-                        }
-                    }
-
+            match parse_directive::<OpenApiDirective>(&directive.node, ctx.variables) {
+                Ok(parsed_directive) => {
                     ctx.openapi_directives.push(parsed_directive);
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
@@ -173,13 +158,7 @@ mod tests {
                 headers: [
                     Header {
                         name: "authorization",
-                        value: DynamicString(
-                            [
-                                Literal(
-                                    "Bearer i_am_a_key",
-                                ),
-                            ],
-                        ),
+                        value: "Bearer i_am_a_key",
                     },
                 ],
                 transforms: OpenApiTransforms {
@@ -244,7 +223,7 @@ mod tests {
               @openapi(
                 name: "stripe",
                 url: "https://api.stripe.com",
-                headers: [{ name: "authorization", value: "{{ env.STRIPE_API_KEY }}" }],
+                headers: [{ name: "authorization", value: "BLAH" }],
               )
             "#,
             "missing field `schema`"
@@ -263,7 +242,7 @@ mod tests {
                 transforms: {queryNaming: PIES}
               )
             "#,
-            "unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
+            "[7:29] unknown variant `PIES`, expected `OPERATION_ID` or `SCHEMA_NAME`"
         );
     }
 }
