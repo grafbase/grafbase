@@ -217,11 +217,20 @@ impl Operation {
             .edges(self.node_index())
             .find_map(|edge| match edge.weight() {
                 super::Edge::HasResponseType {
-                    status_code, wrapping, ..
-                } if is_ok(status_code) => Some(OutputFieldType::from_index(edge.target(), wrapping)),
+                    content_type,
+                    status_code,
+                    wrapping,
+                    ..
+                } if is_ok(status_code) && is_json(content_type) => {
+                    Some(OutputFieldType::from_index(edge.target(), wrapping))
+                }
                 _ => None,
             })
     }
+}
+
+fn is_json(content_type: &str) -> bool {
+    content_type == "application/json"
 }
 
 pub struct OperationName(String);
