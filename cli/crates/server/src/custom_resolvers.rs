@@ -64,15 +64,18 @@ fn should_escape_character_in_toml_string(c: char) -> bool {
     c == '"' || c == '/' || (c.is_control() && c != '\t')
 }
 
-fn escape_string_in_toml(s: &str) -> String {
-    s.chars().fold(String::new(), |mut string, c| {
-        if should_escape_character_in_toml_string(c) {
-            string.extend(c.escape_unicode());
-        } else {
-            string.push(c);
-        }
-        string
-    })
+fn escape_string_in_toml(string: &str) -> String {
+    use itertools::Either;
+    string
+        .chars()
+        .flat_map(|c| {
+            if should_escape_character_in_toml_string(c) {
+                Either::Left(c.escape_unicode())
+            } else {
+                Either::Right(std::iter::once(c))
+            }
+        })
+        .collect()
 }
 
 #[allow(clippy::too_many_lines)]
