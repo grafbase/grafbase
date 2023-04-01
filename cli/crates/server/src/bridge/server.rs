@@ -123,7 +123,7 @@ async fn invoke_resolver_endpoint(
     Json(payload): Json<ResolverInvocation>,
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", payload);
-    super::resolvers::invoke_resolver(handler_state.worker_port, &payload.resolver_name)
+    super::resolvers::invoke_resolver(handler_state.worker_port, &payload.resolver_name, &payload.payload)
         .await
         .map_err(|_| ApiError::ResolverInvalid(payload.resolver_name.clone()))
         .map(Json)
