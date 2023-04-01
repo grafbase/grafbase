@@ -44,7 +44,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.1
 chrono = "0.4"
 crossbeam-channel = "0.5"
 duct = "0.13"
-insta = { version = "1.28", features = ["yaml"] }
+insta = { version = "1.28", features = ["json", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.6", default-features = false, features = [
   "clock",
