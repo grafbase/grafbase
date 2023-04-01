@@ -72,6 +72,17 @@ pub mod report {
         watercolor::output_error!("\n👋 See you next time!", @BrightBlue);
     }
 
+    pub fn start_resolver_build(resolver_name: &str) {
+        println!("wait  - compiling resolver {resolver_name}…",);
+    }
+
+    pub fn complete_resolver_build(resolver_name: &str, duration: std::time::Duration) {
+        println!(
+            "event - {resolver_name} compiled successfully in {duration}",
+            duration = indicatif::FormattedDuration(duration)
+        );
+    }
+
     pub fn reload<P: AsRef<Path>>(path: P, _file_event_type: FileEventType) {
         println!(
             "🔄 Detected a change in {path}, reloading",

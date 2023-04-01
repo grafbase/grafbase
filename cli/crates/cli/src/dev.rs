@@ -26,6 +26,12 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
                 match receiver.recv() {
                     Ok(ServerMessage::Ready(port)) => READY.call_once(|| report::start_server(port, start_port)),
                     Ok(ServerMessage::Reload(path, file_event_type)) => report::reload(path, file_event_type),
+                    Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
+                        report::start_resolver_build(&resolver_name)
+                    }
+                    Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
+                        report::complete_resolver_build(&name, duration)
+                    }
                     Err(_) => break,
                 }
             });

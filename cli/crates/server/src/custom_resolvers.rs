@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::mpsc::Sender;
 
 use common::environment::Environment;
 use futures_util::{pin_mut, TryStreamExt};
@@ -8,6 +9,7 @@ use itertools::Itertools;
 use tokio::process::Command;
 
 use crate::errors::ServerError;
+use crate::types::ServerMessage;
 
 #[derive(strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
@@ -233,6 +235,7 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerErro
 }
 
 pub async fn build_resolvers(
+    sender: &Sender<ServerMessage>,
     environment: &Environment,
     environment_variables: &std::collections::HashMap<String, String>,
     resolvers: impl IntoIterator<Item = String>,
@@ -250,6 +253,8 @@ pub async fn build_resolvers(
     futures_util::stream::iter(resolvers_iterator)
         .map(Ok)
         .and_then(|resolver_name| async {
+            let start = std::time::Instant::now();
+            let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
             let output_file_path = build_resolver(
                 environment,
                 environment_variables,
@@ -258,6 +263,10 @@ pub async fn build_resolvers(
                 tracing,
             )
             .await?;
+            let _ = sender.send(ServerMessage::CompleteResolverBuild {
+                name: resolver_name.clone(),
+                duration: start.elapsed(),
+            });
             Ok((resolver_name, output_file_path))
         })
         .try_collect()
