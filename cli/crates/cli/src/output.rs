@@ -79,7 +79,9 @@ pub mod report {
     pub fn complete_resolver_build(resolver_name: &str, duration: std::time::Duration) {
         println!(
             "event - {resolver_name} compiled successfully in {duration}",
-            duration = humantime::format_duration(duration)
+            duration = humantime::format_duration(
+                duration - std::time::Duration::from_nanos((duration.subsec_nanos() % 1_000_000) as u64)
+            )
         );
     }
 
