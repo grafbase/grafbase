@@ -65,17 +65,16 @@ fn should_escape_character_in_toml_string(c: char) -> bool {
 }
 
 fn escape_string_in_toml(string: &str) -> String {
-    use itertools::Either;
     string
         .chars()
-        .flat_map(|c| {
+        .format_with("", |c, format| {
             if should_escape_character_in_toml_string(c) {
-                Either::Left(c.escape_unicode())
+                format(&std::format_args!("\\u{:04x}", c as u32))
             } else {
-                Either::Right(std::iter::once(c))
+                format(&c)
             }
         })
-        .collect()
+        .to_string()
 }
 
 #[allow(clippy::too_many_lines)]
