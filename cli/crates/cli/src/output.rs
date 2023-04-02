@@ -80,7 +80,7 @@ pub mod report {
         println!(
             "event - {resolver_name} compiled successfully in {duration}",
             duration = humantime::format_duration(
-                duration - std::time::Duration::from_nanos((duration.subsec_nanos() % 1_000_000) as u64)
+                duration - std::time::Duration::from_nanos(u64::from(duration.subsec_nanos() % 1_000_000))
             )
         );
     }
