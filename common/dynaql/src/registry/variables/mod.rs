@@ -187,7 +187,7 @@ impl VariableResolveDefinition {
     {
         match self.param(ctx, last_resolver_value)? {
             Some(s) => serde_json::to_value(s)
-                .and_then(|value| serde_json::from_value(value))
+                .and_then(serde_json::from_value)
                 .map_err(|err| Error::new_with_source(err).into_server_error(ctx.item.pos)),
             None => Ok(None),
         }
