@@ -1,7 +1,9 @@
 use std::borrow::Cow;
 
+use graph_entities::ResponseNodeId;
 use indexmap::map::IndexMap;
 
+use crate::graph::field_into_node;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
@@ -23,7 +25,7 @@ pub(crate) struct QueryRoot<T> {
 
 #[async_trait::async_trait]
 impl<T: ObjectType> ContainerType for QueryRoot<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         if !ctx.schema_env.registry.disable_introspection && !ctx.query_env.disable_introspection {
             if ctx.item.node.name.node == "__schema" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
@@ -58,7 +60,7 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
         if ctx.schema_env.registry.enable_federation || ctx.schema_env.registry.has_entities() {
             if ctx.item.node.name.node == "_entities" {
                 let (_, representations) = ctx.param_value::<Vec<Any>>("representations", None)?;
-                let res = futures_util::future::try_join_all(representations.iter().map(
+                let values = futures_util::future::try_join_all(representations.iter().map(
                     |item| async move {
                         self.inner.find_entity(ctx, &item.0).await?.ok_or_else(|| {
                             ServerError::new("Entity not found.", Some(ctx.item.pos))
@@ -66,7 +68,8 @@ impl<T: ObjectType> ContainerType for QueryRoot<T> {
                     },
                 ))
                 .await?;
-                return Ok(Some(Value::List(res)));
+
+                return Ok(Some(field_into_node(Value::List(values), ctx).await));
             } else if ctx.item.node.name.node == "_service" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 return OutputType::resolve(
@@ -186,7 +189,7 @@ impl<T: ObjectType> OutputType for QueryRoot<T> {
         &self,
         _ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         todo!("node_step");
         /*
         resolve_container(

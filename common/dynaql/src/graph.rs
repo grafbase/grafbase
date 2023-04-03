@@ -67,7 +67,6 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
-            let _relations = ctx.relations_edges();
             for (name, value) in value {
                 let id = field_into_node(value, ctx).await;
                 let relation = name.to_string();

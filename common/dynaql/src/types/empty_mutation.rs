@@ -1,10 +1,12 @@
 use std::borrow::Cow;
 
+use graph_entities::ResponseNodeId;
+
 use crate::parser::types::Field;
 use crate::resolver_utils::ContainerType;
 use crate::{
     registry, Context, ContextSelectionSet, ObjectType, OutputType, Positioned, ServerError,
-    ServerResult, Value,
+    ServerResult,
 };
 
 /// Empty mutation
@@ -37,7 +39,7 @@ impl ContainerType for EmptyMutation {
         true
     }
 
-    async fn resolve_field(&self, _ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, _ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         Ok(None)
     }
 }
@@ -68,7 +70,7 @@ impl OutputType for EmptyMutation {
         &self,
         _ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         Err(ServerError::new(
             "Schema is not configured for mutations.",
             None,

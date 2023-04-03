@@ -188,7 +188,6 @@ impl QueryResponse {
     pub fn new_node_unchecked(&mut self, node: QueryResponseNode) -> ResponseNodeId {
         let id = node.id();
         self.data.insert(id.clone(), node);
-        dbg!(self.data.len());
         id
     }
 
@@ -205,27 +204,6 @@ impl QueryResponse {
     /// Delete a Node by his ID
     pub fn delete_node<S: Borrow<ResponseNodeId>>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
         self.data.remove(id.borrow()).ok_or(QueryResponseErrors::NodeNotFound)
-    }
-
-    pub fn delete_node_recursive<S: Borrow<ResponseNodeId>>(
-        &mut self,
-        id: S,
-    ) -> Result<QueryResponseNode, QueryResponseErrors> {
-        let node = self.delete_node(id)?;
-        match &node {
-            QueryResponseNode::Container(container) => {
-                for child in container.children.values() {
-                    self.delete_node_recursive(child)?;
-                }
-            }
-            QueryResponseNode::List(list) => {
-                for child in &list.children {
-                    self.delete_node_recursive(child)?;
-                }
-            }
-            QueryResponseNode::Primitive(_) => {}
-        }
-        Ok(node)
     }
 
     /// Append a new node to another node which has to be a `Container`
@@ -274,13 +252,14 @@ impl QueryResponse {
         }
     }
 
-    pub fn node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<ConstValue> {
+    /// Removes a node and it's children from the Graph, and returns a ConstValue of its data.
+    pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<ConstValue> {
         match self.delete_node(node_id).ok()? {
             QueryResponseNode::Container(ResponseContainer { children, .. }) => {
-                let mut fields = dynaql_value::indexmap::IndexMap::new();
+                let mut fields = dynaql_value::indexmap::IndexMap::with_capacity(children.len());
 
                 for (relation, nested_id) in children {
-                    match self.node_into_const_value(nested_id)? {
+                    match self.take_node_into_const_value(nested_id)? {
                         // Skipping nested empty objects
                         ConstValue::Object(fields) if fields.is_empty() => (),
                         value => {
@@ -293,16 +272,15 @@ impl QueryResponse {
             QueryResponseNode::List(ResponseList { children, .. }) => {
                 let mut list = Vec::with_capacity(children.len());
                 for node in children {
-                    list.push(self.node_into_const_value(node)?);
+                    list.push(self.take_node_into_const_value(node)?);
                 }
                 Some(ConstValue::List(list))
             }
-            // TODO: Ok, so this inherently _has_ to copy Value which is fucking expensive as shit.
-            // TODO: Figure out if we can get rid of this clone...
             QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => Some(value),
         }
     }
 
+    // Returns a serde_json::value of the given node.
     fn transform_node_to_json_value(&self, node: &QueryResponseNode) -> serde_json::Result<serde_json::Value> {
         match node {
             QueryResponseNode::Container(ResponseContainer { children, .. }) => {

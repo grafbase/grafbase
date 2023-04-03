@@ -173,6 +173,10 @@ impl<T> InputValueError<T> {
         }
     }
 
+    pub fn message(self) -> String {
+        self.message
+    }
+
     /// A custom error message.
     ///
     /// TODO: Temp function to provide an error message, should change as soon as we work on
@@ -184,10 +188,6 @@ impl<T> InputValueError<T> {
 }
 
 impl<T: InputType> InputValueError<T> {
-    pub fn message(self) -> String {
-        self.message
-    }
-
     /// The expected input type did not match the actual input type.
     #[must_use]
     pub fn expected_type(actual: Value) -> Self {

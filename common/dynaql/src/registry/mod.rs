@@ -23,7 +23,6 @@ use std::sync::Arc;
 use ulid::Ulid;
 
 use crate::auth::{AuthConfig, Operations};
-use crate::graph::selection_set_into_node;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
@@ -1366,16 +1365,23 @@ impl Registry {
         if ctx.item.node.name.node == "__schema" {
             let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
             let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-            let resolution_schema = OutputType::resolve(
+            let node_id = OutputType::resolve(
                 &__Schema::new(&ctx.schema_env.registry, &visible_types),
                 &ctx_obj,
                 ctx.item,
             )
             .await?;
 
+            let mut graph = ctx.response_graph.write().await;
+
             let plan = to_selection_plan(
                 field.node.response_key().node.as_str(),
-                resolution_schema,
+                graph.take_node_into_const_value(node_id).ok_or_else(|| {
+                    ServerError::new(
+                        "Internal error in introspection query",
+                        Some(field.node.name.pos),
+                    )
+                })?,
                 ctx_obj.item.pos,
             );
             return Ok(plan);
@@ -1451,42 +1457,31 @@ impl Registry {
             if ctx.item.node.name.node == "__schema" {
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                let a = selection_set_into_node(
-                    OutputType::resolve(
-                        &__Schema::new(&ctx.schema_env.registry, &visible_types),
-                        &ctx_obj,
-                        ctx.item,
-                    )
-                    .await?,
-                    &ctx_obj,
-                    root,
-                )
-                .await;
 
-                return Ok(Some(a));
+                let resolved = OutputType::resolve(
+                    &__Schema::new(&ctx.schema_env.registry, &visible_types),
+                    &ctx_obj,
+                    ctx.item,
+                )
+                .await?;
+
+                return Ok(Some(resolved));
             } else if ctx.item.node.name.node == "__type" {
                 let (_, type_name) = ctx.param_value::<String>("name", None)?;
                 let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
                 let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-                let a = selection_set_into_node(
-                    OutputType::resolve(
-                        &ctx.schema_env
-                            .registry
-                            .types
-                            .get(&type_name)
-                            .filter(|_| visible_types.contains(type_name.as_str()))
-                            .map(|ty| {
-                                __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)
-                            }),
-                        &ctx_obj,
-                        ctx.item,
-                    )
-                    .await?,
+                let resolved = OutputType::resolve(
+                    &ctx.schema_env
+                        .registry
+                        .types
+                        .get(&type_name)
+                        .filter(|_| visible_types.contains(type_name.as_str()))
+                        .map(|ty| __Type::new_simple(&ctx.schema_env.registry, &visible_types, ty)),
                     &ctx_obj,
-                    root,
+                    ctx.item,
                 )
-                .await;
-                return Ok(Some(a));
+                .await?;
+                return Ok(Some(resolved));
             }
         }
 

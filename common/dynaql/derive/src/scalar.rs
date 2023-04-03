@@ -90,10 +90,13 @@ pub fn generate(
 
             async fn resolve(
                 &self,
-                _: &#crate_name::ContextSelectionSet<'_>,
+                ctx: &#crate_name::ContextSelectionSet<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
-            ) -> #crate_name::ServerResult<#crate_name::Value> {
-                ::std::result::Result::Ok(#crate_name::ScalarType::to_value(self))
+            ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
+                #crate_name::resolver_utils::resolve_scalar_native(
+                    ctx,
+                    #crate_name::ScalarType::to_value(self)
+                ).await
             }
         }
     };

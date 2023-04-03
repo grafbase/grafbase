@@ -1,5 +1,4 @@
 use crate::extensions::ResolveInfo;
-use crate::graph::selection_set_into_node;
 use crate::parser::types::Field;
 use crate::registry::scalars::{DynamicScalar, PossibleScalar};
 use crate::registry::MetaType;
@@ -156,7 +155,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
     field: &Positioned<Field>,
     iter: impl IntoIterator<Item = T>,
     len: Option<usize>,
-) -> ServerResult<Value> {
+) -> ServerResult<ResponseNodeId> {
     let extensions = &ctx.query_env.extensions;
     if !extensions.is_empty() {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
@@ -175,7 +174,6 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         .types
                         .get(type_name.as_ref())
                         .and_then(|ty| ty.field_by_name(field.node.name.node.as_str()));
-                    let ty = ctx_field.schema_env.registry.types.get(type_name.as_ref());
 
                     let resolve_info = ResolveInfo {
                         path_node: ctx_idx.path_node.as_ref().unwrap(),
@@ -188,17 +186,10 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                         input_values: Vec::new(), // Isn't needed for static resolve
                     };
                     let resolve_fut = async {
-                        let a = selection_set_into_node(
-                            OutputType::resolve(&item, &ctx_idx, field)
-                                .await
-                                .map(Option::Some)
-                                .map_err(|err| ctx_idx.set_error_path(err))?
-                                .unwrap_or_default(),
-                            &ctx_idx,
-                            ty.unwrap(),
-                        )
-                        .await;
-                        Ok(Some(a))
+                        OutputType::resolve(&item, &ctx_idx, field)
+                            .await
+                            .map(Option::Some)
+                            .map_err(|err| ctx_idx.set_error_path(err))
                     };
                     futures_util::pin_mut!(resolve_fut);
                     extensions
@@ -208,17 +199,15 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                 }
             });
         }
-        let a = futures_util::future::try_join_all(futures).await?;
-        let node = QueryResponseNode::List(ResponseList::with_children(a));
-        let mut response_graph = ctx.response_graph.write().await;
-        let node_id = response_graph.new_node_unchecked(node);
-        let result = response_graph
-            .node_into_const_value(node_id)
-            .ok_or_else(|| {
-                ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
-            })?;
-        // TODO: Do we want to do the delete shit here as well?  Maybe...
-        Ok(result)
+        let children = futures_util::future::try_join_all(futures).await?;
+
+        let node_id = ctx
+            .response_graph
+            .write()
+            .await
+            .new_node_unchecked(ResponseList::with_children(children).into());
+
+        Ok(node_id)
     } else {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();
         for (idx, item) in iter.into_iter().enumerate() {
@@ -229,8 +218,15 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
                     .map_err(|err| ctx_idx.set_error_path(err))
             });
         }
-        Ok(Value::List(
-            futures_util::future::try_join_all(futures).await?,
-        ))
+
+        let children = futures_util::future::try_join_all(futures).await?;
+
+        let node_id = ctx
+            .response_graph
+            .write()
+            .await
+            .new_node_unchecked(ResponseList::with_children(children).into());
+
+        Ok(node_id)
     }
 }

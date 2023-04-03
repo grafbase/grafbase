@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use dynaql_parser::types::Field;
+use graph_entities::ResponseNodeId;
 
-use crate::{registry, ContextSelectionSet, OutputType, Positioned, ServerResult, Value};
+use crate::{registry, ContextSelectionSet, OutputType, Positioned, ServerResult};
 
 #[async_trait::async_trait]
 impl<'a, T> OutputType for Cow<'a, T>
@@ -22,7 +23,7 @@ where
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         self.as_ref().resolve(ctx, field).await
     }
 }

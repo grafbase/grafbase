@@ -571,6 +571,7 @@ pub fn generate(
     }
 
     let visible = visible_fn(&object_args.visible);
+    // TODO: Ok, so this thing is doing a recurse...
     let resolve_container = if object_args.serial {
         quote! { #crate_name::resolver_utils::resolve_container_serial_native(ctx, self).await }
     } else {
@@ -585,7 +586,7 @@ pub fn generate(
             #[allow(unused_braces, unused_variables, unused_parens, unused_mut)]
             #[#crate_name::async_trait::async_trait]
             impl #impl_generics #crate_name::resolver_utils::ContainerType for #self_ty #where_clause {
-                async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+                async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                     #(#resolvers)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
@@ -641,7 +642,7 @@ pub fn generate(
                     &self,
                     ctx: &#crate_name::ContextSelectionSet<'_>,
                     _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
-                ) -> #crate_name::ServerResult<#crate_name::Value> {
+                ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                     #resolve_container
                 }
             }
@@ -678,7 +679,7 @@ pub fn generate(
                     ty
                 }
 
-                async fn __internal_resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> where Self: #crate_name::ContainerType {
+                async fn __internal_resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> where Self: #crate_name::ContainerType {
                     #(#resolvers)*
                     ::std::result::Result::Ok(::std::option::Option::None)
                 }
@@ -716,7 +717,7 @@ pub fn generate(
             codes.push(quote! {
                 #[#crate_name::async_trait::async_trait]
                 impl #crate_name::resolver_utils::ContainerType for #concrete_type {
-                    async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+                    async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                         self.__internal_resolve_field(ctx).await
                     }
 
@@ -739,7 +740,7 @@ pub fn generate(
                         &self,
                         ctx: &#crate_name::ContextSelectionSet<'_>,
                         _field: &#crate_name::Positioned<#crate_name::parser::types::Field>
-                    ) -> #crate_name::ServerResult<#crate_name::Value> {
+                    ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                         #resolve_container
                     }
                 }

@@ -1,4 +1,9 @@
-use crate::{InputType, InputValueError, InputValueResult, Name, Value};
+use dynaql_value::ConstValue;
+use graph_entities::{ResponseNodeId, ResponsePrimitive};
+
+use crate::{
+    context::ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, Value,
+};
 
 /// A variant of an enum.
 pub struct EnumItem<T> {
@@ -41,4 +46,16 @@ pub fn parse_enum<T: EnumType + InputType>(value: Value) -> InputValueResult<T> 
 pub fn enum_value<T: EnumType>(value: T) -> Value {
     let item = T::items().iter().find(|item| item.value == value).unwrap();
     Value::Enum(Name::new(item.name))
+}
+
+pub async fn enum_value_node<'a, T: EnumType>(
+    ctx: &ContextSelectionSet<'a>,
+    value: T,
+) -> ResponseNodeId {
+    let item = T::items().iter().find(|item| item.value == value).unwrap();
+
+    let mut response_graph = ctx.response_graph.write().await;
+    response_graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
+        ResponsePrimitive::new(ConstValue::Enum(Name::new(item.name))),
+    ))
 }

@@ -1,12 +1,9 @@
 //! Useful GraphQL types.
 
-pub mod connection;
-
 mod any;
 mod empty_mutation;
 mod empty_subscription;
 mod id;
-mod json;
 mod maybe_undefined;
 mod merged_object;
 mod query_root;
@@ -20,7 +17,6 @@ pub use any::Any;
 pub use empty_mutation::EmptyMutation;
 pub use empty_subscription::EmptySubscription;
 pub use id::ID;
-pub use json::Json;
 pub use maybe_undefined::MaybeUndefined;
 pub use merged_object::{MergedObject, MergedObjectTail};
 #[cfg(feature = "string_number")]

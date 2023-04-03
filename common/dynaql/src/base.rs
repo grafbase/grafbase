@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use dynaql_value::ConstValue;
+use graph_entities::ResponseNodeId;
 
 use crate::parser::types::Field;
 use crate::registry::{self, Registry};
@@ -80,7 +81,7 @@ pub trait OutputType: Send + Sync {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value>;
+    ) -> ServerResult<ResponseNodeId>;
 }
 
 #[async_trait::async_trait]
@@ -98,7 +99,7 @@ impl<T: OutputType + ?Sized> OutputType for &T {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(*self, ctx, field).await
     }
 }
@@ -117,7 +118,7 @@ impl<T: OutputType + Sync, E: Into<Error> + Send + Sync + Clone> OutputType for 
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         match self {
             Ok(value) => value.resolve(ctx, field).await,
             Err(err) => {
@@ -163,7 +164,7 @@ impl<T: OutputType + ?Sized> OutputType for Box<T> {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }
@@ -210,7 +211,7 @@ impl<T: OutputType + ?Sized> OutputType for Arc<T> {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         T::resolve(&**self, ctx, field).await
     }
 }

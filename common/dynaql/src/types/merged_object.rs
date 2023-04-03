@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::pin::Pin;
 
+use graph_entities::ResponseNodeId;
 use indexmap::IndexMap;
 
 use crate::futures_util::Stream;
@@ -21,7 +22,7 @@ where
     A: ContainerType,
     B: ContainerType,
 {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         match self.0.resolve_field(ctx).await {
             Ok(Some(value)) => Ok(Some(value)),
             Ok(None) => self.1.resolve_field(ctx).await,
@@ -93,7 +94,7 @@ where
         &self,
         _ctx: &ContextSelectionSet<'_>,
         _field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         unreachable!()
     }
 }

@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use graph_entities::{ResponseNodeId, ResponsePrimitive};
+
 use crate::parser::types::Field;
 use crate::{
     registry, ContextSelectionSet, InputType, InputValueError, InputValueResult, OutputType,
@@ -65,17 +67,27 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         if let Some(inner) = self {
             match OutputType::resolve(inner, ctx, field).await {
                 Ok(value) => Ok(value),
                 Err(err) => {
                     ctx.add_error(err);
-                    Ok(Value::Null)
+                    let mut graph = ctx.response_graph.write().await;
+                    Ok(
+                        graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
+                            ResponsePrimitive::new(Value::Null),
+                        )),
+                    )
                 }
             }
         } else {
-            Ok(Value::Null)
+            let mut graph = ctx.response_graph.write().await;
+            Ok(
+                graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
+                    ResponsePrimitive::new(Value::Null),
+                )),
+            )
         }
     }
 }
