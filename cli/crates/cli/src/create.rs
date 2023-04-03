@@ -1,12 +1,12 @@
-use crate::{errors::CliError, output::report};
+use crate::{errors::CliError, output::report, prompts::handle_inquire_error};
 use backend::api::{
     create,
     types::{Account, DatabaseRegion},
 };
 use common::environment::Environment;
-use inquire::{validator::Validation, Confirm, InquireError, Select, Text};
+use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
-use std::{fmt::Display, process};
+use std::fmt::Display;
 
 #[derive(Debug)]
 struct AccountSelection(Account);
@@ -88,14 +88,4 @@ pub async fn create() -> Result<(), CliError> {
     }
 
     Ok(())
-}
-
-fn handle_inquire_error(error: InquireError) -> CliError {
-    match error {
-        InquireError::NotTTY => CliError::PromptNotTTY,
-        InquireError::IO(error) => CliError::PromptIoError(error),
-        // exit normally without panicking on ESC or CTRL+C
-        InquireError::OperationCanceled | InquireError::OperationInterrupted => process::exit(0),
-        InquireError::InvalidConfiguration(_) | InquireError::Custom(_) => unreachable!(),
-    }
 }

@@ -7,17 +7,23 @@ mod deploy;
 mod dev;
 mod errors;
 mod init;
+mod link;
 mod login;
 mod logout;
 mod output;
 mod panic_hook;
+mod prompts;
 mod reset;
+mod unlink;
 mod watercolor;
 
 #[macro_use]
 extern crate log;
 
-use crate::{create::create, deploy::deploy, dev::dev, init::init, login::login, logout::logout, reset::reset};
+use crate::{
+    create::create, deploy::deploy, dev::dev, init::init, link::link, login::login, logout::logout, reset::reset,
+    unlink::unlink,
+};
 use cli_input::build_cli;
 use common::{
     consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
@@ -60,11 +66,13 @@ fn try_main() -> Result<(), CliError> {
 
     trace!("subcommand: {}", subcommand.expect("required").0);
 
-    if let Some(("dev" | "init" | "reset" | "login" | "logout" | "create" | "deploy", ..)) = subcommand {
+    if let Some(("dev" | "init" | "reset" | "login" | "logout" | "create" | "deploy" | "link" | "unlink", ..)) =
+        subcommand
+    {
         report::cli_header();
     }
 
-    if let Some(("dev" | "create" | "deploy", ..)) = subcommand {
+    if let Some(("dev" | "create" | "deploy" | "link" | "unlink", ..)) = subcommand {
         Environment::try_init().map_err(CliError::CommonError)?;
     }
 
@@ -97,6 +105,8 @@ fn try_main() -> Result<(), CliError> {
         Some(("logout", _)) => logout(),
         Some(("create", _)) => create(),
         Some(("deploy", _)) => deploy(),
+        Some(("link", _)) => link(),
+        Some(("unlink", _)) => unlink(),
         _ => unreachable!(),
     }
 }

@@ -16,6 +16,21 @@ pub struct Account {
     pub personal: bool,
 }
 
+#[derive(Debug)]
+pub struct AccountWithProjects {
+    pub id: String,
+    pub name: String,
+    pub slug: String,
+    pub personal: bool,
+    pub projects: Vec<Project>,
+}
+
+#[derive(Debug)]
+pub struct Project {
+    pub id: String,
+    pub slug: String,
+}
+
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Credentials<'a> {
@@ -53,8 +68,8 @@ impl Display for DatabaseRegion {
     }
 }
 
-impl From<graphql::queries::DatabaseRegion> for DatabaseRegion {
-    fn from(api_region: graphql::queries::DatabaseRegion) -> Self {
+impl From<graphql::queries::viewer_and_regions::DatabaseRegion> for DatabaseRegion {
+    fn from(api_region: graphql::queries::viewer_and_regions::DatabaseRegion) -> Self {
         Self {
             name: api_region.name,
             city: api_region.city,

@@ -38,6 +38,9 @@ pub enum CliError {
     /// returned if an IO error is encountered when trying to display an interactive prompt
     #[error("encountered an IO error while showing an interactive prompt\ncaused by: {0}")]
     PromptIoError(io::Error),
+    /// returned if an account selected for linking a project has no projects
+    #[error("the selected account has no projects")]
+    AccountWithNoProjects,
 }
 
 #[cfg(target_family = "windows")]
