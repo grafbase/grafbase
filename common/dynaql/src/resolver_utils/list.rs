@@ -210,12 +210,14 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
         }
         let a = futures_util::future::try_join_all(futures).await?;
         let node = QueryResponseNode::List(ResponseList::with_children(a));
-        let response_graph = ctx.response_graph.read().await;
+        let mut response_graph = ctx.response_graph.write().await;
+        let node_id = response_graph.new_node_unchecked(node);
         let result = response_graph
-            .transform_node_to_const_value(&node)
-            .map_err(|_| {
+            .node_into_const_value(node_id)
+            .ok_or_else(|| {
                 ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
             })?;
+        // TODO: Do we want to do the delete shit here as well?  Maybe...
         Ok(result)
     } else {
         let mut futures = len.map(Vec::with_capacity).unwrap_or_default();

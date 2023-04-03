@@ -292,16 +292,19 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         results
     };
 
-    let mut map = IndexMap::new();
-    let response = ctx.response_graph.read().await;
-    for (name, value) in res {
-        if let Some(node) = response.get_node(&value) {
-            let const_value = response.transform_node_to_const_value(node).map_err(|_| {
-                ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
-            })?;
+    // Then extracts them from the graph into a const_value.
+    // and then the outer level puts them _back_ into the Graph.
+    // Also with some serialization & desrialization going on in the background.
+    // FUN.
 
-            insert_value(&mut map, name, const_value);
-        }
+    let mut map = IndexMap::new();
+    let mut response = ctx.response_graph.write().await;
+    for (name, value) in res {
+        let const_value = response.node_into_const_value(value).ok_or_else(|| {
+            ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
+        })?;
+
+        insert_value(&mut map, name, const_value);
     }
     Ok(Value::Object(map))
 }
