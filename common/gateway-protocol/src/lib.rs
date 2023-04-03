@@ -108,6 +108,7 @@ pub struct ResolverHealthResponse {
     pub ready: bool,
 }
 
+// FIXME: Drop `Default` and instantiate this explicitly for local.
 /// Encapsulates customer specific configuration
 /// Required for executing requests that target a customer deployment
 #[derive(Clone, Default, serde::Deserialize, serde::Serialize)]
