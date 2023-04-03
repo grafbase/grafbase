@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::mpsc::Sender;
 
 use common::environment::Environment;
 use futures_util::{pin_mut, TryStreamExt};
@@ -8,6 +9,7 @@ use itertools::Itertools;
 use tokio::process::Command;
 
 use crate::errors::ServerError;
+use crate::types::ServerMessage;
 
 #[derive(strum::AsRefStr, strum::Display)]
 #[strum(serialize_all = "lowercase")]
@@ -54,6 +56,27 @@ async fn run_npm_command<P: AsRef<Path>>(
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
+}
+
+// https://toml.io/en/v1.0.0#string
+// > Any Unicode character may be used except those that must be escaped:
+// > quotation mark, backslash, and the control characters other than tab
+// (U+0000 to U+0008, U+000A to U+001F, U+007F).
+fn should_escape_character_in_toml_string(c: char) -> bool {
+    c == '"' || c == '/' || (c.is_control() && c != '\t')
+}
+
+fn escape_string_in_toml(string: &str) -> String {
+    string
+        .chars()
+        .format_with("", |c, format| {
+            if should_escape_character_in_toml_string(c) {
+                format(&std::format_args!("\\u{:04x}", c as u32))
+            } else {
+                format(&c)
+            }
+        })
+        .to_string()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -187,7 +210,10 @@ async fn build_resolver(
             "#,
             vars = environment_variables
                 .iter()
-                .format_with("\n", |(key, value), f| f(&std::format_args!("{key} = \"{value}\"")))
+                .format_with("\n", |(key, value), f| f(&std::format_args!(
+                    "{key} = \"{value_escaped}\"",
+                    value_escaped = escape_string_in_toml(value)
+                )))
         ),
     )
     .await
@@ -209,6 +235,7 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerErro
 }
 
 pub async fn build_resolvers(
+    sender: &Sender<ServerMessage>,
     environment: &Environment,
     environment_variables: &std::collections::HashMap<String, String>,
     resolvers: impl IntoIterator<Item = String>,
@@ -226,6 +253,8 @@ pub async fn build_resolvers(
     futures_util::stream::iter(resolvers_iterator)
         .map(Ok)
         .and_then(|resolver_name| async {
+            let start = std::time::Instant::now();
+            let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
             let output_file_path = build_resolver(
                 environment,
                 environment_variables,
@@ -234,6 +263,10 @@ pub async fn build_resolvers(
                 tracing,
             )
             .await?;
+            let _ = sender.send(ServerMessage::CompleteResolverBuild {
+                name: resolver_name.clone(),
+                duration: start.elapsed(),
+            });
             Ok((resolver_name, output_file_path))
         })
         .try_collect()

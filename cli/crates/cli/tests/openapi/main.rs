@@ -33,7 +33,7 @@ async fn openapi_test() {
                 r#"
                     query {
                         petstore {
-                            petById(petId: 123) {
+                            pet(petId: 123) {
                                 id
                                 name
                                 status
@@ -47,7 +47,7 @@ async fn openapi_test() {
     ---
     data:
       petstore:
-        petById:
+        pet:
           id: 123
           name: doggie
           status: AVAILABLE

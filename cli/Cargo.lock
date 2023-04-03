@@ -1397,7 +1397,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.18.0-rc.2"
+version = "0.18.0-rc.4"
 dependencies = [
  "backtrace",
  "cfg-if 1.0.0",
@@ -1412,6 +1412,7 @@ dependencies = [
  "grafbase-local-backend",
  "grafbase-local-common",
  "hex-literal",
+ "humantime",
  "indicatif",
  "indoc",
  "inquire",
@@ -1442,7 +1443,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.18.0-rc.2"
+version = "0.18.0-rc.4"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1471,7 +1472,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.18.0-rc.2"
+version = "0.18.0-rc.4"
 dependencies = [
  "dirs 5.0.0",
  "exitcode",
@@ -1481,7 +1482,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.18.0-rc.2"
+version = "0.18.0-rc.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1736,6 +1737,12 @@ name = "httpdate"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c4a1e36c821dbe04574f602848a19f742f4fb3c98d40449f11bcad18d6b17421"
+
+[[package]]
+name = "humantime"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a3a5bfb195931eeb336b2a7b4d761daec841b97f947d34394601737a7bba5e4"
 
 [[package]]
 name = "hyper"
