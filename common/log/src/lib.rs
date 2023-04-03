@@ -1,7 +1,3 @@
-#[cfg(feature = "with-worker")]
-#[macro_use]
-extern crate maplit;
-
 mod constants;
 mod types;
 
@@ -72,7 +68,12 @@ macro_rules! log {
                 $crate::LogSeverity::Error => $crate::log_::error!("{}", message),
             }
         }
-        if config.intersects($crate::Config::DATADOG | $crate::Config::SENTRY) {
+        #[cfg(feature = "with-sentry")]
+        let intersection = $crate::Config::DATADOG | $crate::Config::SENTRY;
+        #[cfg(not(feature = "with-sentry"))]
+        let intersection = $crate::Config::DATADOG;
+
+        if config.intersects(intersection) {
             let should_log = $status != $crate::LogSeverity::Trace &&
                 (config.contains($crate::Config::DATADOG) || $status == $crate::LogSeverity::Error);
             if should_log {
@@ -216,7 +217,7 @@ pub async fn push_logs_to_datadog(log_config: &LogConfig<'_>, entries: &[LogEntr
     }
 }
 
-#[cfg(feature = "sentry-cf-worker")]
+#[cfg(feature = "with-sentry")]
 pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry]) -> Result<(), Error> {
     use sentry_cf_worker::{send_envelope, Envelope, Event, Level};
 
@@ -229,7 +230,7 @@ pub async fn push_logs_to_sentry(log_config: &LogConfig<'_>, entries: &[LogEntry
         .filter(|entry| entry.severity == LogSeverity::Error)
         .map(|entry| {
             let mut envelope = Envelope::new();
-            let mut tags = btreemap! {
+            let mut tags = maplit::btreemap! {
                 "environment".to_owned() => log_config.environment.clone(),
                 "file_path".to_owned() => entry.file_path.clone(),
                 "hostname".to_owned() => log_config.host_name.clone(),

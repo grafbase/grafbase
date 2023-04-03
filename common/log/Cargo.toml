@@ -19,7 +19,8 @@ wasm-timer = "0.2"
 worker = { workspace = true, optional = true }
 
 [features]
-with-worker = ["sentry-cf-worker", "worker"]
+with-sentry = ["sentry-cf-worker"]
+with-worker = ["worker"]
 local = []
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

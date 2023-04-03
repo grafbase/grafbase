@@ -12,7 +12,7 @@ dynamodb = { path = "../dynamodb" }
 grafbase-runtime = { path = "../grafbase-runtime" }
 case = "1"
 if_chain = "1"
-itertools = "0.10"
+itertools = { workspace = true }
 lazy_static = { workspace = true }
 quick-error = "2"
 regex = "1"
