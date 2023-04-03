@@ -72,7 +72,7 @@ static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
 ulid = { version = "1", features = ["wasm"] }
-url = { version = "2" }
+url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 
