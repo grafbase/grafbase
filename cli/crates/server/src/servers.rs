@@ -152,7 +152,7 @@ async fn spawn_servers(
     let mut miniflare_arguments: Vec<_> = [
         // used by miniflare when running normally as well
         "--experimental-vm-modules",
-        "./packages/miniflare/dist/src/cli.js",
+        "./node_modules/miniflare/dist/src/cli.js",
         "--modules",
         "--host",
         "127.0.0.1",
@@ -162,13 +162,13 @@ async fn spawn_servers(
         "--no-cf-fetch",
         "--do-persist",
         "--wrangler-config",
-        "../wrangler.toml",
+        "./wrangler.toml",
         "--binding",
         &bridge_port_binding_string,
         "--text-blob",
         &registry_text_blob_string,
         "--mount",
-        "stream-router=../stream-router",
+        "stream-router=./stream-router",
     ]
     .into_iter()
     .map(std::borrow::Cow::Borrowed)
@@ -190,7 +190,7 @@ async fn spawn_servers(
         .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
+        .current_dir(&environment.user_dot_grafbase_path)
         .kill_on_drop(watch)
         .spawn()
         .map_err(ServerError::MiniflareCommandError)?;
