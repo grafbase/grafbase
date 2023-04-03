@@ -11,6 +11,8 @@ use cynic::{http::ReqwestExt, QueryBuilder};
 use std::iter;
 
 /// # Errors
+///
+/// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
 pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiError> {
     // TODO consider if we want to do this elsewhere
@@ -79,6 +81,8 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 }
 
 /// # Errors
+///
+/// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
 pub async fn link_project(account_id: String, project_id: String) -> Result<(), ApiError> {
     let environment = Environment::get();
