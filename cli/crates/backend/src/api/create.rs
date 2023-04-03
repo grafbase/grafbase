@@ -41,7 +41,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 
     let available_regions = response.database_regions.into_iter().map(Into::into).collect();
 
-    let PersonalAccount { id, name, slug, .. } = viewer_response
+    let PersonalAccount { id, name, slug } = viewer_response
         .personal_account
         .ok_or(ApiError::IncorrectlyScopedToken)?;
 
