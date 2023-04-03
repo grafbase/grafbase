@@ -2,7 +2,7 @@ use super::{
     client::create_client,
     consts::{API_URL, PROJECT_METADATA_FILE},
     errors::ApiError,
-    graphql::queries::{self, viewer::PersonalAccount},
+    graphql::queries::viewer::{PersonalAccount, Viewer},
     types::{AccountWithProjects, Project, ProjectMetadata},
     utils::project_linked,
 };
@@ -22,7 +22,7 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 
     let client = create_client().await?;
 
-    let query = queries::viewer::Viewer::build(());
+    let query = Viewer::build(());
 
     let response = client.post(API_URL).run_graphql(query).await?;
 
