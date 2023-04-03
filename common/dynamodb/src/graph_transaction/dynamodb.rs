@@ -615,6 +615,13 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
+            if let Some(user_id) = &ctx.user_id {
+                user_defined_item.insert(
+                    constant::OWNED_BY.to_string(),
+                    HashSet::from([user_id.clone()]).into_attr(),
+                );
+            }
+
             // If user_defined_item is passed in as part of an update it'll have these
             // keys in it and we do not want them on a unique constraint.
             // Seems like it would be easier to not have these in user_defined_item
