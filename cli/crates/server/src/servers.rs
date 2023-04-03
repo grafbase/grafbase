@@ -126,7 +126,7 @@ async fn spawn_servers(
     let resolvers = run_schema_parser(&environment_variables).await?;
     let environment = Environment::get();
 
-    let resolver_paths = build_resolvers(environment, &environment_variables, resolvers, tracing).await?;
+    let resolver_paths = build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await?;
 
     let mut bridge_handle =
         tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
