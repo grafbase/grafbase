@@ -1,8 +1,6 @@
-use std::process;
-
-use inquire::InquireError;
-
 use crate::errors::CliError;
+use inquire::InquireError;
+use std::process;
 
 pub fn handle_inquire_error(error: InquireError) -> CliError {
     match error {
