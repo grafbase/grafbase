@@ -19,11 +19,19 @@ scalar Date
 """
 
 """
-input DateListItemSearchFilterInput {
-	ALL: [DateListItemSearchFilterInput!]
-	ANY: [DateListItemSearchFilterInput!]
-	NONE: [DateListItemSearchFilterInput!]
-	NOT: DateListItemSearchFilterInput
+input DateListSearchFilterInput {
+	includes: DateSearchFilterInput
+	includesNone: DateSearchFilterInput
+	isEmpty: Boolean
+}
+"""
+
+"""
+input DateSearchFilterInput {
+	ALL: [DateSearchFilterInput!]
+	ANY: [DateSearchFilterInput!]
+	NONE: [DateSearchFilterInput!]
+	NOT: DateSearchFilterInput
 	eq: Date
 	neq: Date
 	gt: Date
@@ -32,14 +40,6 @@ input DateListItemSearchFilterInput {
 	lt: Date
 	in: [Date!]
 	notIn: [Date!]
-}
-"""
-
-"""
-input DateListSearchFilterInput {
-	includes: DateListItemSearchFilterInput
-	includesNone: DateListItemSearchFilterInput
-	isEmpty: Boolean
 }
 """
 A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339
@@ -61,6 +61,10 @@ scalar DateTime
 
 """
 input DateTimeOrNullSearchFilterInput {
+	ALL: [DateTimeOrNullSearchFilterInput!]
+	ANY: [DateTimeOrNullSearchFilterInput!]
+	NONE: [DateTimeOrNullSearchFilterInput!]
+	NOT: DateTimeOrNullSearchFilterInput
 	eq: DateTime
 	neq: DateTime
 	gt: DateTime
@@ -75,6 +79,10 @@ input DateTimeOrNullSearchFilterInput {
 
 """
 input DateTimeSearchFilterInput {
+	ALL: [DateTimeSearchFilterInput!]
+	ANY: [DateTimeSearchFilterInput!]
+	NONE: [DateTimeSearchFilterInput!]
+	NOT: DateTimeSearchFilterInput
 	eq: DateTime
 	neq: DateTime
 	gt: DateTime
@@ -91,11 +99,19 @@ scalar Email
 """
 
 """
-input EmailListItemSearchFilterInput {
-	ALL: [EmailListItemSearchFilterInput!]
-	ANY: [EmailListItemSearchFilterInput!]
-	NONE: [EmailListItemSearchFilterInput!]
-	NOT: EmailListItemSearchFilterInput
+input EmailListSearchFilterInput {
+	includes: EmailSearchFilterInput
+	includesNone: EmailSearchFilterInput
+	isEmpty: Boolean
+}
+"""
+
+"""
+input EmailSearchFilterInput {
+	ALL: [EmailSearchFilterInput!]
+	ANY: [EmailSearchFilterInput!]
+	NONE: [EmailSearchFilterInput!]
+	NOT: EmailSearchFilterInput
 	eq: Email
 	neq: Email
 	gt: String
@@ -104,14 +120,6 @@ input EmailListItemSearchFilterInput {
 	lt: String
 	in: [Email!]
 	notIn: [Email!]
-}
-"""
-
-"""
-input EmailListSearchFilterInput {
-	includes: EmailListItemSearchFilterInput
-	includesNone: EmailListItemSearchFilterInput
-	isEmpty: Boolean
 }
 """
 Possible operations for a Float field
@@ -125,6 +133,10 @@ input FloatOperationsInput {
 
 """
 input FloatOrNullSearchFilterInput {
+	ALL: [FloatOrNullSearchFilterInput!]
+	ANY: [FloatOrNullSearchFilterInput!]
+	NONE: [FloatOrNullSearchFilterInput!]
+	NOT: FloatOrNullSearchFilterInput
 	eq: Float
 	neq: Float
 	gt: Float
@@ -145,6 +157,10 @@ scalar IPAddress
 
 """
 input IPAddressOrNullSearchFilterInput {
+	ALL: [IPAddressOrNullSearchFilterInput!]
+	ANY: [IPAddressOrNullSearchFilterInput!]
+	NONE: [IPAddressOrNullSearchFilterInput!]
+	NOT: IPAddressOrNullSearchFilterInput
 	eq: IPAddress
 	neq: IPAddress
 	gt: IPAddress
@@ -167,6 +183,10 @@ input IntOperationsInput {
 
 """
 input IntOrNullSearchFilterInput {
+	ALL: [IntOrNullSearchFilterInput!]
+	ANY: [IntOrNullSearchFilterInput!]
+	NONE: [IntOrNullSearchFilterInput!]
+	NOT: IntOrNullSearchFilterInput
 	eq: Int
 	neq: Int
 	gt: Int
@@ -213,6 +233,10 @@ scalar PhoneNumber
 
 """
 input PhoneNumberOrNullSearchFilterInput {
+	ALL: [PhoneNumberOrNullSearchFilterInput!]
+	ANY: [PhoneNumberOrNullSearchFilterInput!]
+	NONE: [PhoneNumberOrNullSearchFilterInput!]
+	NOT: PhoneNumberOrNullSearchFilterInput
 	eq: PhoneNumber
 	neq: PhoneNumber
 	gt: String
@@ -303,6 +327,10 @@ type ProductSearchEdge {
 
 """
 input ProductSearchFilterInput {
+	ALL: [ProductSearchFilterInput!]
+	ANY: [ProductSearchFilterInput!]
+	NONE: [ProductSearchFilterInput!]
+	NOT: ProductSearchFilterInput
 	bool: BooleanOrNullSearchFilterInput
 	createdAt: DateTimeSearchFilterInput
 	date: DateListSearchFilterInput
@@ -316,10 +344,6 @@ input ProductSearchFilterInput {
 	timestamp: TimestampSearchFilterInput
 	updatedAt: DateTimeSearchFilterInput
 	url: URLOrNullSearchFilterInput
-	ALL: [ProductSearchFilterInput!]
-	ANY: [ProductSearchFilterInput!]
-	NONE: [ProductSearchFilterInput!]
-	NOT: ProductSearchFilterInput
 }
 """
 Input to update a Product
@@ -361,11 +385,19 @@ type SearchInfo {
 """
 
 """
-input StringListItemSearchFilterInput {
-	ALL: [StringListItemSearchFilterInput!]
-	ANY: [StringListItemSearchFilterInput!]
-	NONE: [StringListItemSearchFilterInput!]
-	NOT: StringListItemSearchFilterInput
+input StringListSearchFilterInput {
+	includes: StringSearchFilterInput
+	includesNone: StringSearchFilterInput
+	isEmpty: Boolean
+}
+"""
+
+"""
+input StringSearchFilterInput {
+	ALL: [StringSearchFilterInput!]
+	ANY: [StringSearchFilterInput!]
+	NONE: [StringSearchFilterInput!]
+	NOT: StringSearchFilterInput
 	eq: String
 	neq: String
 	gt: String
@@ -376,14 +408,6 @@ input StringListItemSearchFilterInput {
 	notIn: [String!]
 }
 """
-
-"""
-input StringListSearchFilterInput {
-	includes: StringListItemSearchFilterInput
-	includesNone: StringListItemSearchFilterInput
-	isEmpty: Boolean
-}
-"""
 A Unix Timestamp with milliseconds precision.
 """
 scalar Timestamp
@@ -391,6 +415,10 @@ scalar Timestamp
 
 """
 input TimestampSearchFilterInput {
+	ALL: [TimestampSearchFilterInput!]
+	ANY: [TimestampSearchFilterInput!]
+	NONE: [TimestampSearchFilterInput!]
+	NOT: TimestampSearchFilterInput
 	eq: Timestamp
 	neq: Timestamp
 	gt: Timestamp
@@ -408,6 +436,10 @@ scalar URL
 
 """
 input URLOrNullSearchFilterInput {
+	ALL: [URLOrNullSearchFilterInput!]
+	ANY: [URLOrNullSearchFilterInput!]
+	NONE: [URLOrNullSearchFilterInput!]
+	NOT: URLOrNullSearchFilterInput
 	eq: URL
 	neq: URL
 	gt: String

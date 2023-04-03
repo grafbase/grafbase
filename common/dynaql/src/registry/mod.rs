@@ -1163,6 +1163,11 @@ impl MetaType {
     }
 
     #[inline]
+    pub fn is_enum(&self) -> bool {
+        matches!(self, MetaType::Enum { .. })
+    }
+
+    #[inline]
     pub fn is_possible_type(&self, type_name: &str) -> bool {
         match self {
             MetaType::Interface { possible_types, .. } => possible_types.contains(type_name),

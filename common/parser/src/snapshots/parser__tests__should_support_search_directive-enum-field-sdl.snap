@@ -18,6 +18,23 @@ Where an RFC 3339 compliant date-time string has a time-zone other than UTC, it 
 For example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.
 """
 scalar DateTime
+"""
+
+"""
+input DateTimeSearchFilterInput {
+	ALL: [DateTimeSearchFilterInput!]
+	ANY: [DateTimeSearchFilterInput!]
+	NONE: [DateTimeSearchFilterInput!]
+	NOT: DateTimeSearchFilterInput
+	eq: DateTime
+	neq: DateTime
+	gt: DateTime
+	gte: DateTime
+	lte: DateTime
+	lt: DateTime
+	in: [DateTime!]
+	notIn: [DateTime!]
+}
 type Mutation {
 	"""
 	Create a Product
@@ -42,8 +59,32 @@ type PageInfo {
 	startCursor: String
 	endCursor: String
 }
+enum Pet {
+	CAT
+	DOG
+}
+"""
+
+"""
+input PetListSearchFilterInput {
+	includes: PetSearchFilterInput
+	includesNone: PetSearchFilterInput
+	isEmpty: Boolean
+}
+"""
+
+"""
+input PetSearchFilterInput {
+	eq: Pet
+	neq: Pet
+	in: [Pet!]
+	notIn: [Pet!]
+}
 type Product {
-	title: String
+	status: Status
+	pet: Pet!
+	pets: [Pet!]
+	name: String
 	"""
 	Unique identifier
 	"""
@@ -71,7 +112,10 @@ type ProductConnection {
 Input to create a Product
 """
 input ProductCreateInput {
-	title: String
+	status: Status
+	pet: Pet!
+	pets: [Pet!]
+	name: String
 }
 type ProductCreatePayload {
 	product: Product
@@ -104,13 +148,21 @@ input ProductSearchFilterInput {
 	ANY: [ProductSearchFilterInput!]
 	NONE: [ProductSearchFilterInput!]
 	NOT: ProductSearchFilterInput
-	title: StringOrNullSearchFilterInput
+	createdAt: DateTimeSearchFilterInput
+	name: StringOrNullSearchFilterInput
+	pet: PetSearchFilterInput
+	pets: PetListSearchFilterInput
+	status: StatusOrNullSearchFilterInput
+	updatedAt: DateTimeSearchFilterInput
 }
 """
 Input to update a Product
 """
 input ProductUpdateInput {
-	title: String
+	status: Status
+	pet: Pet
+	pets: [Pet!]
+	name: String
 }
 type ProductUpdatePayload {
 	product: Product
@@ -131,6 +183,20 @@ type Query {
 }
 type SearchInfo {
 	totalHits: Int!
+}
+enum Status {
+	ACTIVE
+	INACTIVE
+}
+"""
+
+"""
+input StatusOrNullSearchFilterInput {
+	eq: Status
+	neq: Status
+	in: [Status!]
+	notIn: [Status!]
+	isNull: Boolean
 }
 """
 

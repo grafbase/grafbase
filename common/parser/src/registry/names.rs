@@ -75,10 +75,6 @@ impl MetaNames {
         format!("{scalar}ListSearchFilterInput")
     }
 
-    pub fn search_scalar_list_item_filter_input(scalar: &str) -> String {
-        format!("{scalar}ListItemSearchFilterInput")
-    }
-
     pub fn search_scalar_filter_input(scalar: &str, nullable: bool) -> String {
         let scalar = if nullable {
             Cow::Owned(format!("{scalar}OrNull"))

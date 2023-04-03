@@ -57,10 +57,16 @@ impl From<&str> for FilterKind {
     }
 }
 
-fn convert_to_search_field_type(ty: &str, is_nullable: Option<bool>) -> Result<search::FieldType, String> {
+fn convert_to_search_field_type(
+    registry: &Registry,
+    ty: &str,
+    is_nullable: Option<bool>,
+) -> Result<search::FieldType, String> {
     match MetaTypeName::create(ty) {
-        MetaTypeName::NonNull(type_name) => convert_to_search_field_type(type_name, is_nullable.or(Some(false))),
-        MetaTypeName::List(type_name) => convert_to_search_field_type(type_name, Some(true)),
+        MetaTypeName::NonNull(type_name) => {
+            convert_to_search_field_type(registry, type_name, is_nullable.or(Some(false)))
+        }
+        MetaTypeName::List(type_name) => convert_to_search_field_type(registry, type_name, Some(true)),
         MetaTypeName::Named(type_name) => {
             let opts = search::FieldOptions {
                 nullable: is_nullable.unwrap_or(true),
@@ -77,7 +83,18 @@ fn convert_to_search_field_type(ty: &str, is_nullable: Option<bool>) -> Result<s
                 "Float" => search::FieldType::Float(opts),
                 "Boolean" => search::FieldType::Boolean(opts),
                 "IPAddress" => search::FieldType::IPAddress(opts),
-                _ => return Err(type_name.to_string()),
+                _ => {
+                    if registry
+                        .types
+                        .get(type_name)
+                        .map(|meta_type| meta_type.is_enum())
+                        .unwrap_or_default()
+                    {
+                        search::FieldType::String(opts)
+                    } else {
+                        return Err(type_name.to_string());
+                    }
+                }
             })
         }
     }
@@ -96,7 +113,7 @@ pub fn build_search_schema(
         let mut search_fields: HashMap<String, search::FieldEntry> = fields
             .iter()
             .filter_map(|field| {
-                convert_to_search_field_type(&field.node.ty.node.to_string(), None)
+                convert_to_search_field_type(&ctx.registry.borrow(), &field.node.ty.node.to_string(), None)
                     .ok()
                     .map(|ty| (field.node.name.node.to_string(), search::FieldEntry { ty }))
             })
@@ -118,14 +135,14 @@ pub fn build_search_schema(
                     .iter()
                     .find(|directive| directive.node.name.node == SEARCH_DIRECTIVE)
                     .map(|directive| {
-                        convert_to_search_field_type(&field.node.ty.node.to_string(), None)
+                        let field_type =
+                            convert_to_search_field_type(&ctx.registry.borrow(), &field.node.ty.node.to_string(), None);
+                        field_type
                             .map(|ty| (field.node.name.node.to_string(), search::FieldEntry { ty }))
                             .map_err(|unsupported_type_name| {
                                 ctx.report_error(
                                     vec![directive.pos],
-                                    format!(
-                            "The @{SEARCH_DIRECTIVE} directive cannot be used with the {unsupported_type_name} type."
-                        ),
+                                    format!("The @{SEARCH_DIRECTIVE} directive cannot be used with the {unsupported_type_name} type."),
                                 );
                             })
                     })
@@ -434,29 +451,31 @@ fn register_model_filter(
             name: input_type_name.clone(),
             description: Some(String::new()),
             input_fields: {
-                let mut args = filters
-                    .into_iter()
-                    .map(|(name, kind)| {
-                        MetaInputValue::new(
-                            name,
-                            match kind {
-                                FilterKind::Single { scalar, is_nullable } => {
-                                    register_scalar_filter(registry, &scalar, is_nullable)
-                                }
-                                FilterKind::List { scalar } => register_scalar_list_filter(registry, &scalar),
-                            },
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                // Stable schema
-                args.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
-
-                args.extend([
+                let mut args = vec![
                     MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
                     MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
-                ]);
+                ];
+                args.extend({
+                    let mut field_args = filters
+                        .into_iter()
+                        .map(|(name, kind)| {
+                            MetaInputValue::new(
+                                name,
+                                match kind {
+                                    FilterKind::Single { scalar, is_nullable } => {
+                                        register_scalar_filter(registry, &scalar, is_nullable)
+                                    }
+                                    FilterKind::List { scalar } => register_scalar_list_filter(registry, &scalar),
+                                },
+                            )
+                        })
+                        .collect::<Vec<_>>();
+                    // Stable schema
+                    field_args.sort_by(|a, b| a.name.partial_cmp(&b.name).unwrap());
+                    field_args
+                });
 
                 args.into_iter().map(|input| (input.name.clone(), input)).collect()
             },
@@ -472,44 +491,9 @@ fn register_model_filter(
 }
 
 fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String {
-    let item_input_type_name = MetaNames::search_scalar_list_item_filter_input(scalar);
-    registry.create_type(
-        |_| MetaType::InputObject {
-            name: item_input_type_name.clone(),
-            description: Some(String::new()),
-            input_fields: {
-                let mut args = vec![
-                    MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{item_input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{item_input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{item_input_type_name}!]")),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &item_input_type_name),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
-                ];
-                if scalar != "Boolean" {
-                    let range_scalar = match scalar {
-                        "Email" | "PhoneNumber" | "URL" => "String",
-                        _ => scalar,
-                    };
-                    args.extend([
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GT, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_GTE, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LTE, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_LT, range_scalar),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
-                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
-                    ]);
-                }
-                args.into_iter().map(|input| (input.name.clone(), input)).collect()
-            },
-            visible: None,
-            rust_typename: item_input_type_name.clone(),
-            oneof: scalar == "Boolean",
-        },
-        &item_input_type_name,
-        &item_input_type_name,
-    );
-
+    // Whether the scalar is really nullable or not, doesn't matter, Tantivy cannot make the
+    // difference
+    let item_input_type_name = register_scalar_filter(registry, scalar, false);
     let list_input_type_name = MetaNames::search_scalar_list_filter_input(scalar);
     registry.create_type(
         |_| MetaType::InputObject {
@@ -539,15 +523,32 @@ fn register_scalar_list_filter(registry: &mut Registry, scalar: &str) -> String 
 fn register_scalar_filter(registry: &mut Registry, scalar: &str, is_nullable: bool) -> String {
     let input_type_name = MetaNames::search_scalar_filter_input(scalar, is_nullable);
     registry.create_type(
-        |_| MetaType::InputObject {
+        |registry| MetaType::InputObject {
             name: input_type_name.clone(),
             description: Some(String::new()),
             input_fields: {
-                let mut args = vec![
-                    MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
-                    MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
-                ];
-                if scalar != "Boolean" {
+                let mut args = vec![];
+                if scalar == "Boolean" {
+                    args.extend([
+                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                    ]);
+                } else if registry.types.get(scalar).map(|ty| ty.is_enum()).unwrap_or_default() {
+                    args.extend([
+                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_IN, format!("[{scalar}!]")),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT_IN, format!("[{scalar}!]")),
+                    ]);
+                } else {
+                    args.extend([
+                        MetaInputValue::new(INPUT_FIELD_FILTER_ALL, format!("[{input_type_name}!]")),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_ANY, format!("[{input_type_name}!]")),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NONE, format!("[{input_type_name}!]")),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NOT, &input_type_name),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_EQ, scalar),
+                        MetaInputValue::new(INPUT_FIELD_FILTER_NEQ, scalar),
+                    ]);
                     let range_scalar = match scalar {
                         "Email" | "PhoneNumber" | "URL" => "String",
                         _ => scalar,
