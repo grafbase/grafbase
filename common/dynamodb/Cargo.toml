@@ -26,7 +26,7 @@ futures-util = { workspace = true, default-features = false, features = [
 ] }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
-itertools = "0.10"
+itertools = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
 lru = { version = "0.10" }
 quick-error = "2"

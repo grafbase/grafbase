@@ -57,7 +57,7 @@ futures-util = { workspace = true, default-features = false, features = [
 http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 ipnet = "2.7"
-itertools = "0.10"
+itertools = { workspace = true }
 mime = "0.3"
 multer = "2"
 nom = "7.1"
@@ -72,7 +72,7 @@ static_assertions = "1"
 tempfile = "3"
 thiserror = { workspace = true }
 ulid = { version = "1", features = ["wasm"] }
-url = { version = "2" }
+url = { workspace = true, features = ["serde"] }
 unindent = "0.2"
 grafbase-runtime = { path = "../grafbase-runtime" }
 

@@ -40,10 +40,12 @@ bitflags::bitflags! {
         #[cfg(feature = "with-worker")]
         const WORKER  = 0b0000_0010;
         const STDLOG  = 0b0000_0100;
+        #[cfg(feature = "with-sentry")]
         const SENTRY  = 0b0000_1000;
     }
 }
 
+#[cfg(feature = "with-sentry")]
 #[derive(Debug, serde::Deserialize)]
 pub struct SentryConfig {
     #[serde(alias = "sentry_api_key")]
@@ -57,18 +59,10 @@ pub struct LogConfig<'a> {
     pub datadog_api_key: Option<String>,
     pub environment: String,
     pub host_name: String,
+    #[cfg(feature = "with-sentry")]
     pub sentry_config: Option<SentryConfig>,
     pub service_name: Cow<'static, str>,
     pub source_type: &'static str,
     pub trace_id: String,
     pub extra_tags: Vec<(&'static str, Cow<'a, str>)>,
-}
-
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct SentryLogEntry {
-    pub contents: String,
-    pub request_id: String,
-    pub hostname: String,
-    pub environment: String,
-    pub branch: Option<String>,
 }
