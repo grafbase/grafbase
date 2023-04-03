@@ -3,7 +3,7 @@ use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
-use crate::{DynamoDBRequestedIndex, LocalContext};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext};
 use graph_entities::{NodeID, ID};
 use indexmap::map::IndexMap;
 use maplit::hashmap;
@@ -26,6 +26,7 @@ quick_error! {
 
 pub struct QueryLoader {
     local_context: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
     index: DynamoDBRequestedIndex,
 }
 
@@ -63,16 +64,28 @@ impl Loader<QueryKey> for QueryLoader {
                 continue;
             };
 
-            let value_map = hashmap! {
+            let mut value_map = hashmap! {
                 "pk" => SqlValue::String(pk.to_string()),
                 "entity_type" => SqlValue::String(pk.ty().to_string()),
                 "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
             };
+            if let Some(user_id) = self.ctx.user_id.as_ref() {
+                value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+            }
 
             let (query, values) = if has_edges {
-                Sql::SelectIdWithEdges(self.index.pk(), number_of_edges).compile(value_map)
+                Sql::SelectIdWithEdges {
+                    pk: self.index.pk(),
+                    number_of_edges,
+                    filter_by_owner: self.ctx.user_id.is_some(),
+                }
+                .compile(value_map)
             } else {
-                Sql::SelectId(self.index.pk()).compile(value_map)
+                Sql::SelectId {
+                    pk: self.index.pk(),
+                    filter_by_owner: self.ctx.user_id.is_some(),
+                }
+                .compile(value_map)
             };
 
             let future = || async move {
@@ -135,10 +148,15 @@ impl Loader<QueryKey> for QueryLoader {
 
 pub fn get_loader_query(
     local_context: Arc<LocalContext>,
+    ctx: Arc<DynamoDBContext>,
     index: DynamoDBRequestedIndex,
 ) -> DataLoader<QueryLoader, LruCache> {
     DataLoader::with_cache(
-        QueryLoader { local_context, index },
+        QueryLoader {
+            local_context,
+            ctx,
+            index,
+        },
         |f| Runtime::locate().spawn(f),
         LruCache::new(256),
     )

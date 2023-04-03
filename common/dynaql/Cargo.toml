@@ -50,7 +50,7 @@ derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
 fnv = "1"
-futures-util = { version = "0.3", default-features = false, features = [
+futures-util = { workspace = true, default-features = false, features = [
   "io",
   "sink",
 ] }

@@ -40,7 +40,7 @@ pub struct VisitorContext<'a> {
     /// able to construct the whole SchemaRegistry at the end of the parsing.
     pub schema_to_build: RwLock<HashMap<SchemaID, String>>,
     pub registry: RefCell<Registry>,
-    variables: &'a HashMap<String, String>,
+    pub variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
     pub(crate) openapi_directives: Vec<OpenApiDirective>,
     pub(crate) global_cache_directive: CacheDirective,

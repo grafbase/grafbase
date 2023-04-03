@@ -113,7 +113,6 @@ pub enum Edge {
     /// An edge bewteen an operation and it's response type
     HasResponseType {
         status_code: ExpectedStatusCode,
-        #[allow(dead_code)]
         content_type: String,
         wrapping: WrappingType,
     },

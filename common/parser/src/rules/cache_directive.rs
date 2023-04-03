@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::directive_de::parse_directive;
 use crate::rules::visitor::VisitorContext;
 use dynaql::CacheControl;
@@ -20,7 +22,7 @@ impl CacheDirective {
         directives
             .iter()
             .find(|d| d.node.name.node == CACHE_DIRECTIVE_NAME)
-            .and_then(|directive| parse_directive::<CacheDirective>(&directive.node).ok())
+            .and_then(|directive| parse_directive::<CacheDirective>(&directive.node, &HashMap::default()).ok())
             .unwrap_or_default()
             .into()
     }
@@ -70,7 +72,7 @@ impl CacheVisitor {
         }
 
         directives.first().and_then(|pos_const_directive| {
-            match parse_directive::<CacheDirective>(&pos_const_directive.node) {
+            match parse_directive::<CacheDirective>(&pos_const_directive.node, &HashMap::default()) {
                 Ok(cache_directive) => Some(cache_directive),
                 Err(err) => {
                     ctx.report_error(vec![pos_const_directive.pos], format!("@cache directive error: {err}"));

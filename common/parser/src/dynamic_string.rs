@@ -90,4 +90,13 @@ impl DynamicString {
             _ => None,
         }
     }
+
+    pub fn into_fully_evaluated_str(self) -> Option<String> {
+        type UnaryArray = [DynamicStringSegment; 1];
+
+        match UnaryArray::try_from(self.0).ok()? {
+            [DynamicStringSegment::Literal(literal)] => Some(literal),
+            _ => None,
+        }
+    }
 }
