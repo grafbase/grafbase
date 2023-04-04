@@ -8,8 +8,9 @@ use std::time::Duration;
 use rstest::rstest;
 use serde_json::{json, Value};
 use utils::consts::{
-    SEARCH_CREATE_LIST, SEARCH_CREATE_OPTIONAL, SEARCH_CREATE_REQUIRED, SEARCH_METADATA_FIELDS, SEARCH_PAGINATION,
-    SEARCH_SCHEMA, SEARCH_SEARCH_LIST, SEARCH_SEARCH_OPTIONAL, SEARCH_SEARCH_REQUIRED,
+    SEARCH_CREATE_LIST, SEARCH_CREATE_OPTIONAL, SEARCH_CREATE_PERSON, SEARCH_CREATE_REQUIRED, SEARCH_METADATA_FIELDS,
+    SEARCH_PAGINATION, SEARCH_SCHEMA, SEARCH_SEARCH_LIST, SEARCH_SEARCH_OPTIONAL, SEARCH_SEARCH_PERSON,
+    SEARCH_SEARCH_REQUIRED,
 };
 use utils::environment::Environment;
 
@@ -114,8 +115,59 @@ struct Edge<N> {
     node: N,
 }
 
-// Tantivy query syntax
-// https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html
+#[test]
+fn search_enums() {
+    let mut env = Environment::init();
+    env.grafbase_init();
+    env.write_schema(SEARCH_SCHEMA);
+    env.grafbase_dev();
+    let client = env.create_client();
+    client.poll_endpoint(30, 300);
+
+    let create = |variables: Value| {
+        let response = client.gql::<Value>(SEARCH_CREATE_PERSON).variables(variables).send();
+        dot_get!(response, "data.personCreate.person.id", String)
+    };
+    let search = |variables: Value| {
+        let response = client.gql::<Value>(SEARCH_SEARCH_PERSON).variables(variables).send();
+        dot_get!(response, "data.personSearch", Collection<Value>)
+    };
+    let filter = |filter: Value| search(json!({"first": 10, "filter": filter}));
+    let search_text = |query: &str| search(json!({"first": 10, "query": query}));
+
+    let cat_person = create(json!({"alive": "SCHRODINGER", "favoritePet": "CAT",  "pets": ["CAT", "HAMSTER"]}));
+    let dog_person = create(json!({"alive": "YES", "favoritePet": "DOG", "pets": ["DOG", "HAMSTER"]}));
+    let dead_person = create(json!({"alive": "NO"}));
+
+    // Filters
+    assert_hits_unordered!(filter(json!({"alive": {"eq": "YES"}})), dog_person);
+    assert_hits_unordered!(filter(json!({"alive": {"eq": "SCHRODINGER"}})), cat_person);
+    assert_hits_unordered!(filter(json!({"alive": {"eq": "NO"}})), dead_person);
+    assert_hits_unordered!(
+        filter(json!({"alive": {"in": ["YES", "SCHRODINGER"]}})),
+        dog_person,
+        cat_person
+    );
+    assert_hits_unordered!(filter(json!({"alive": {"notIn": ["YES", "SCHRODINGER"]}})), dead_person);
+    assert_hits_unordered!(filter(json!({"alive": {"notIn": ["YES", "SCHRODINGER"]}})), dead_person);
+    assert_hits_unordered!(filter(json!({"favoritePet": {"isNull": true}})), dead_person);
+    assert_hits_unordered!(
+        filter(json!({"favoritePet": {"isNull": false}})),
+        cat_person,
+        dog_person
+    );
+    assert_hits_unordered!(
+        filter(json!({"pets": {"includes": {"eq": "HAMSTER"}}})),
+        cat_person,
+        dog_person
+    );
+
+    // Text search
+    assert_hits_unordered!(search_text("hamstr"), cat_person, dog_person);
+    assert_hits_unordered!(search_text("cat"), cat_person);
+    assert_hits_unordered!(search_text("shroidnger"), cat_person);
+}
+
 #[rstest]
 #[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL)]
 #[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED)]

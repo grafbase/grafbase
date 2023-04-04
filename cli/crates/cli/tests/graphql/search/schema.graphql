@@ -41,3 +41,22 @@ type ListFields @model {
   float: [Float!] @search
   bool: [Boolean!] @search
 }
+
+enum Alive {
+  YES
+  SCHRODINGER
+  NO
+}
+
+enum Pet {
+  CAT
+  DOG
+  HAMSTER
+  RABBIT
+}
+
+type Person @model @search {
+  alive: Alive!
+  favoritePet: Pet
+  pets: [Pet!]
+}
