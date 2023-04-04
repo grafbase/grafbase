@@ -1,0 +1,8 @@
+extend type Query {
+  ask(prompt: String!): [Choice] @resolver(name: "ask")
+}
+
+type Choice {
+  text: String
+  finish_reason: String
+}

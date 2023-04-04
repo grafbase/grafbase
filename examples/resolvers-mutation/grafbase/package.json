@@ -1,0 +1,6 @@
+{
+  "private": true,
+  "dependencies": {
+    "stripe": "11.17.0"
+  }
+}
