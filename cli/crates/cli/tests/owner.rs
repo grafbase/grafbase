@@ -1,13 +1,5 @@
 mod utils;
 
-use crate::utils::consts::{
-    OWNER_TODO_CREATE, OWNER_TODO_DELETE, OWNER_TODO_GET, OWNER_TODO_LIST, OWNER_TODO_SCHEMA, OWNER_TODO_UPDATE,
-    OWNER_TWITTER_SCHEMA, OWNER_TWITTER_USER_CREATE, OWNER_TWITTER_USER_GET_BY_EMAIL, OWNER_TWITTER_USER_GET_BY_ID,
-};
-use json_dotpath::DotPaths;
-use serde_json::{json, Value};
-use utils::environment::Environment;
-
 /*
 All JWTs were generated using header:
 ```json
@@ -39,10 +31,16 @@ const USER1: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2
 const USER2: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImV4cCI6MzAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyLCJzdWIiOiJ1c2VyMiJ9.J8j7tjrjd-WaRFcxRBUjev0-1uifRnE0IVt_W-IXdHM";
 
 mod global {
-    use super::*;
 
     mod todo {
-        use super::*;
+        use crate::utils::consts::{
+            OWNER_TODO_CREATE, OWNER_TODO_DELETE, OWNER_TODO_GET, OWNER_TODO_LIST, OWNER_TODO_SCHEMA, OWNER_TODO_UPDATE,
+        };
+        use crate::utils::environment::Environment;
+        use crate::{USER1, USER2};
+        use json_dotpath::DotPaths;
+        use serde_json::{json, Value};
+
         #[test]
         fn entity_should_be_visible_only_to_the_owner() {
             let mut env = Environment::init(4027);
@@ -135,7 +133,14 @@ mod global {
     }
 
     mod twitter {
-        use super::*;
+        use crate::utils::consts::{
+            OWNER_TWITTER_SCHEMA, OWNER_TWITTER_USER_CREATE, OWNER_TWITTER_USER_GET_BY_EMAIL,
+            OWNER_TWITTER_USER_GET_BY_ID,
+        };
+        use crate::utils::environment::Environment;
+        use crate::{USER1, USER2};
+        use json_dotpath::DotPaths;
+        use serde_json::{json, Value};
 
         #[test]
         fn get_by_id_should_be_filtered_by_the_owner() {
