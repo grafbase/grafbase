@@ -1,10 +1,10 @@
 {
-	todoCollection(first: 10) {
-		edges {
-			node {
-				title
-				complete
-			}
-		}
-	}
+  todoCollection(first: 10) {
+    edges {
+      node {
+        title
+        complete
+      }
+    }
+  }
 }

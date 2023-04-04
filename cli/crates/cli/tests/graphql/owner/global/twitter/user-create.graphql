@@ -1,19 +1,11 @@
 mutation UserCreate($username: String!, $email: Email!, $avatar: URL!, $url: URL!) {
-	userCreate(
-		input: {
-			username: $username
-			email: $email
-			avatar: $avatar
-			url: $url
-		}
-	) {
-		user {
-			id
-			username
-			email
-			avatar
-			url
-		}
-	}
+  userCreate(input: { username: $username, email: $email, avatar: $avatar, url: $url }) {
+    user {
+      id
+      username
+      email
+      avatar
+      url
+    }
+  }
 }
-

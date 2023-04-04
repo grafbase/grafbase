@@ -1,5 +1,5 @@
 query UserGetByEmail($email: Email!) {
-	user(by: { email: $email }) {
-		email
-	}
+  user(by: { email: $email }) {
+    email
+  }
 }

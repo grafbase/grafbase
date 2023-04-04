@@ -1,6 +1,6 @@
 query TodoGet($id: ID!) {
-	todo(by: { id: $id }) {
-		title
-		complete
-	}
+  todo(by: { id: $id }) {
+    title
+    complete
+  }
 }

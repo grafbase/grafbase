@@ -1,6 +1,6 @@
 schema
   @auth(
-    providers: [{ type: jwt, issuer: "https://idp.example.com", secret:"abc123" }]
+    providers: [{ type: jwt, issuer: "https://idp.example.com", secret: "abc123" }]
     rules: [{ allow: owner, operations: [read, get, list, create] }]
   ) {
   query: Query
