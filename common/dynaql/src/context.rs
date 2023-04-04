@@ -915,9 +915,10 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         };
 
         use query_planning::logical_plan::cursor::Cursor;
-        use query_planning::logical_plan::{traverse_logical_plan, Datasource};
+        use query_planning::logical_plan::{traverse_logical_plan, Datasource, Direction};
         use query_planning::scalar::ScalarValue;
 
+        use crate::registry::enums::OrderByDirection;
         use crate::registry::plan::{
             Apply, First, Last, PlanProjection, PlanRelated, Resolver as SchemaPlanResolver,
         };
@@ -945,11 +946,19 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     let last = VariableResolveDefinition::InputTypeName("last".to_string());
                     let after = VariableResolveDefinition::InputTypeName("after".to_string());
                     let before = VariableResolveDefinition::InputTypeName("before".to_string());
+                    let order_by = VariableResolveDefinition::InputTypeName("orderBy".to_string());
 
                     let first = first.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
                     let after = after.expect_opt_cursor(self, None)?;
                     let before = before.expect_opt_cursor(self, None)?;
                     let last = last.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
+                    let order_by = order_by.expect_oneof::<OrderByDirection>(self, None)?;
+
+                    let direction = match order_by.map(|x| x.value) {
+                        Some(OrderByDirection::ASC) => Direction::Forward,
+                        Some(OrderByDirection::DESC) => Direction::Backward,
+                        None => Direction::default(),
+                    };
 
                     let cursor = Cursor::try_new(first, last, after, before).map_err(|err| {
                         Error::new_with_source(err).into_server_error(self.item.pos)
@@ -958,7 +967,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     let elt_to_fetch = cursor.elt_to_fetch();
                     let pagination = PaginationArgumentsBuilder::default()
                         .cursor(cursor)
-                        // .order_by()
+                        .order_by(direction)
                         .build()
                         .map_err(|err| {
                             Error::new_with_source(err).into_server_error(self.item.pos)
@@ -1033,7 +1042,6 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 }
                 SchemaPlan::PaginationPage(page) => {
                     use crate::registry::plan::PaginationPage;
-                    use query_planning::logical_plan::Direction;
 
                     let iteration_order = previous_plan
                         .clone()
