@@ -94,4 +94,3 @@ pub const OWNER_TWITTER_USER_CREATE: &str = include_str!("../graphql/owner/globa
 pub const OWNER_TWITTER_USER_GET_BY_ID: &str = include_str!("../graphql/owner/global/twitter/user-get-by-id.graphql");
 pub const OWNER_TWITTER_USER_GET_BY_EMAIL: &str =
     include_str!("../graphql/owner/global/twitter/user-get-by-email.graphql");
-    
