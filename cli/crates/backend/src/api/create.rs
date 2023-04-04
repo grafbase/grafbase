@@ -6,8 +6,9 @@ use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
     ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload, ProjectCreateSuccess, SlugTooLongError,
 };
-use super::graphql::queries::{self, PersonalAccount};
+use super::graphql::queries::viewer_and_regions::{PersonalAccount, ViewerAndRegions};
 use super::types::{Account, DatabaseRegion, ProjectMetadata};
+use super::utils::project_linked;
 use common::environment::Environment;
 use cynic::http::ReqwestExt;
 use cynic::Id;
@@ -19,13 +20,13 @@ use std::iter;
 /// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
     // TODO consider if we want to do this elsewhere
-    if project_linked() {
+    if project_linked().await? {
         return Err(ApiError::ProjectAlreadyLinked);
     }
 
     let client = create_client().await?;
 
-    let query = queries::ViewerAndRegions::build(());
+    let query = ViewerAndRegions::build(());
 
     let response = client.post(API_URL).run_graphql(query).await?;
 
@@ -54,17 +55,12 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
     };
 
     let accounts = iter::once(personal_account)
-        .chain(
-            viewer_response
-                .organization_memberships
-                .iter()
-                .map(|membership| Account {
-                    id: membership.account.id.inner().to_owned(),
-                    name: membership.account.name.clone(),
-                    slug: membership.account.slug.clone(),
-                    personal: false,
-                }),
-        )
+        .chain(viewer_response.organizations.nodes.iter().map(|organization| Account {
+            id: organization.id.inner().to_owned(),
+            name: organization.name.clone(),
+            slug: organization.slug.clone(),
+            personal: false,
+        }))
         .collect();
 
     Ok((accounts, available_regions, closest_region))
@@ -131,12 +127,4 @@ pub async fn create(
         }
         ProjectCreatePayload::Unknown => Err(CreateError::Unknown.into()),
     }
-}
-
-fn project_linked() -> bool {
-    let environment = Environment::get();
-    environment
-        .project_dot_grafbase_path
-        .join(PROJECT_METADATA_FILE)
-        .exists()
 }

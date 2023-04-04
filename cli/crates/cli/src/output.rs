@@ -130,6 +130,14 @@ pub mod report {
         watercolor::output_error!("\n✨ Your project has been deployed successfully!", @BrightBlue);
     }
 
+    pub fn linked(name: &str) {
+        watercolor::output_error!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
+    }
+
+    pub fn unlinked() {
+        watercolor::output_error!("✨ Successfully unlinked your project!", @BrightBlue);
+    }
+
     pub fn created(name: &str, urls: &[String]) {
         watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
         watercolor::output!("Endpoints:", @BrightBlue);

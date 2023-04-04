@@ -57,7 +57,8 @@ pub fn build_cli() -> Command {
         .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
         .subcommand(Command::new("create").about("Set up and deploy a new project"))
         .subcommand(Command::new("deploy").about("Deploy your project"))
-    // .subcommand(Command::new("deploy").about("TBD"))
+        .subcommand(Command::new("link").about("Connect a local project to a remote project"))
+        .subcommand(Command::new("unlink").about("Disconnect a local project from a remote project"))
     // .subcommand(Command::new("logs").about("TBD"))
     // // TODO: schema edit / view
 }

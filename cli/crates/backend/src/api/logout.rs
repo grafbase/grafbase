@@ -8,9 +8,9 @@ use std::fs;
 ///
 /// - returns [`BackendError::NotLoggedIn`] if the user is not logged in when attempting to log out
 ///
-/// - returns [`BackendError::DeleteCredentialsFile`] if ~/.grafbase could not be created
+/// - returns [`BackendError::DeleteCredentialsFile`] if ~/.grafbase/credentials.json could not be deleted
 ///
-/// - returns [`BackendError::ReadCredentialsFile`] if ~/.grafbase could not be read
+/// - returns [`BackendError::ReadCredentialsFile`] if ~/.grafbase/credentials.json could not be read
 pub fn logout() -> Result<(), ApiError> {
     let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::NotLoggedIn)?;
 

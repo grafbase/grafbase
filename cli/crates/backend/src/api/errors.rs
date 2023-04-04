@@ -12,9 +12,13 @@ pub enum ApiError {
     #[error("could not log out as you are not logged in")]
     NotLoggedIn,
 
-    /// returned if ~/.grafbase could not be created
+    /// returned if ~/.grafbase/credentials.json could not be deleted
     #[error("could not delete '~/.grafbase/credentials.json'\ncaused by: {0}")]
     DeleteCredentialsFile(io::Error),
+
+    /// returned if ~/.grafbase/project.json could not be deleted
+    #[error("could not delete '~/.grafbase/project.json'\ncaused by: {0}")]
+    DeleteProjectMetadataFile(io::Error),
 
     /// returned if ~/.grafbase/credentials.json could not be read
     #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
@@ -70,7 +74,7 @@ pub enum ApiError {
     ConnectionError,
 
     /// returned if a project being created has already been created
-    #[error("could not create a new project as this local project has already been linked to a remote project")]
+    #[error("could not proceed as this local project has already been linked to a remote project")]
     ProjectAlreadyLinked,
 
     /// returned if the path of ~/.grafbase could not be found
