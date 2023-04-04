@@ -1,0 +1,17 @@
+extend type Mutation {
+  checkout(input: CheckoutSessionInput!): CheckoutSession!
+    @resolver(name: "checkout")
+}
+
+input CheckoutSessionInput {
+  lineItems: [CheckoutLineItem]
+}
+
+input CheckoutLineItem {
+  price: String!
+  quantity: Int = 1
+}
+
+type CheckoutSession {
+  url: Int!
+}
