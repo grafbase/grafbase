@@ -43,7 +43,7 @@ mod global {
 
         #[test]
         fn entity_should_be_visible_only_to_the_owner() {
-            let mut env = Environment::init(4027);
+            let mut env = Environment::init();
             env.grafbase_init();
             env.write_schema(OWNER_TODO_SCHEMA);
             env.grafbase_dev();
@@ -144,7 +144,7 @@ mod global {
 
         #[test]
         fn get_by_id_should_be_filtered_by_the_owner() {
-            let mut env = Environment::init(4028);
+            let mut env = Environment::init();
             env.grafbase_init();
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
@@ -188,7 +188,7 @@ mod global {
 
         #[test]
         fn get_by_email_should_be_filtered_by_the_owner() {
-            let mut env = Environment::init(4029);
+            let mut env = Environment::init();
             env.grafbase_init();
             env.write_schema(OWNER_TWITTER_SCHEMA);
             env.grafbase_dev();
