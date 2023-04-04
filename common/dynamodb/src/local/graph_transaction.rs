@@ -517,7 +517,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
@@ -542,6 +542,10 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             document.insert(UPDATED_AT.to_string(), now_attr);
             document.insert(INVERTED_INDEX_PK.to_string(), target.clone().into_attr());
             document.insert(INVERTED_INDEX_SK.to_string(), id_attr);
+
+            if let Some(user_id) = &ctx.user_id {
+                document.insert(OWNED_BY.to_string(), HashSet::from([user_id.clone()]).into_attr());
+            }
 
             let record = Record {
                 pk,
