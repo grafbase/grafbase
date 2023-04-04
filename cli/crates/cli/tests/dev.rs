@@ -6,7 +6,7 @@ use utils::environment::Environment;
 
 #[test]
 fn dev() {
-    let mut env = Environment::init(4000);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(DEFAULT_SCHEMA);
     env.grafbase_dev();

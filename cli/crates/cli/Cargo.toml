@@ -17,6 +17,7 @@ clap = { version = "4", features = ["cargo", "wrap_help"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
+fslock = "0.2"
 indicatif = "0.17"
 inquire = "0.6"
 exitcode = "1"

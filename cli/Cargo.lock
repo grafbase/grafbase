@@ -1196,6 +1196,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fslock"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04412b8935272e3a9bae6f48c7bfff74c2911f60525404edfdd28e49884c3bfb"
+dependencies = [
+ "libc",
+ "winapi 0.3.9",
+]
+
+[[package]]
 name = "fuchsia-zircon"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1409,6 +1419,7 @@ dependencies = [
  "ctrlc",
  "duct",
  "exitcode",
+ "fslock",
  "grafbase-local-backend",
  "grafbase-local-common",
  "hex-literal",

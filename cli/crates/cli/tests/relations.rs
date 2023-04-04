@@ -10,7 +10,7 @@ use utils::environment::Environment;
 
 #[test]
 fn relations() {
-    let mut env = Environment::init(4002);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 

@@ -4,7 +4,7 @@ use utils::environment::Environment;
 
 #[test]
 fn init() {
-    let env = Environment::init(4016);
+    let env = Environment::init();
 
     env.grafbase_init();
 

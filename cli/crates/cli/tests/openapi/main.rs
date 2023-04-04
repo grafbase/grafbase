@@ -4,7 +4,6 @@ mod utils;
 use std::net::SocketAddr;
 
 use crossbeam_channel::{Receiver, Sender};
-use rand::Rng;
 use serde_json::{json, Value};
 use utils::{async_client::AsyncClient, environment::Environment};
 use wiremock::{
@@ -17,7 +16,7 @@ async fn openapi_test() {
     let mock_server = wiremock::MockServer::start().await;
     mount_petstore_spec(&mock_server).await;
 
-    let mut env = Environment::init(rand::thread_rng().gen_range(49152..65535));
+    let mut env = Environment::init();
     let client = start_grafbase_with_petstore_schema(&mut env, mock_server.address()).await;
 
     Mock::given(method("GET"))

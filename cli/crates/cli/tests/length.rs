@@ -7,7 +7,7 @@ use utils::environment::Environment;
 
 #[test]
 fn length() {
-    let mut env = Environment::init(4014);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 

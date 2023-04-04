@@ -8,7 +8,7 @@ use utils::environment::Environment;
 
 #[tokio::test]
 async fn concurrency_thread() {
-    let mut env = Environment::init(4007);
+    let mut env = Environment::init();
 
     env.grafbase_init();
     env.write_schema(CONCURRENCY_SCHEMA);

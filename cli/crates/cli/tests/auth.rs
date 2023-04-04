@@ -11,7 +11,7 @@ const JWT_SECRET: &str = "topsecret";
 
 #[test]
 fn jwt_provider() {
-    let mut env = Environment::init(4015);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(JWT_PROVIDER_SCHEMA);
     env.set_variables(HashMap::from([

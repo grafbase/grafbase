@@ -6,7 +6,7 @@ use utils::environment::Environment;
 
 #[test]
 fn default_directive() {
-    let mut env = Environment::init(4017);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(DEFAULT_DIRECTIVE_SCHEMA);
     env.grafbase_dev();

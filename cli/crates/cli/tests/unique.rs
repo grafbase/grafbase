@@ -12,7 +12,7 @@ use utils::{client::Client, environment::Environment};
 #[test]
 #[allow(clippy::too_many_lines)]
 fn unique() {
-    let mut env = Environment::init(4003);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -194,7 +194,7 @@ pub const ACCOUNT_QUERY_PAGINATED: &str = include_str!("graphql/unique/multiple-
 
 #[test]
 fn unique_with_multiple_fields() {
-    let mut env = Environment::init(4021);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
