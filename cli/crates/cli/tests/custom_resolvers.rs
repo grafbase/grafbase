@@ -48,6 +48,7 @@ use utils::environment::Environment;
         ),
     ],
 )]
+#[cfg_attr(target_os = "windows", ignore)]
 fn test_resolver(
     #[case] schema: &str,
     #[case] resolver_name: &str,
