@@ -16,7 +16,7 @@ use std::iter;
 #[allow(clippy::module_name_repetitions)]
 pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiError> {
     // TODO consider if we want to do this elsewhere
-    if project_linked() {
+    if project_linked().await? {
         return Err(ApiError::ProjectAlreadyLinked);
     }
 

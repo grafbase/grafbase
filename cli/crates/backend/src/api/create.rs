@@ -20,7 +20,7 @@ use std::iter;
 /// See [`ApiError`]
 pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<DatabaseRegion>, DatabaseRegion), ApiError> {
     // TODO consider if we want to do this elsewhere
-    if project_linked() {
+    if project_linked().await? {
         return Err(ApiError::ProjectAlreadyLinked);
     }
 
