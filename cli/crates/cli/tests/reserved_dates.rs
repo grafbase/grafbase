@@ -10,7 +10,7 @@ use utils::environment::Environment;
 #[test]
 fn reserved_dates() {
     // TODO: Create simpler client setup (one-line)
-    let mut env = Environment::init(4018);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(RESERVED_DATES_SCHEMA);
     env.grafbase_dev();

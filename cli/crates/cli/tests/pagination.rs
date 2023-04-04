@@ -53,7 +53,7 @@ fn generate_todos(client: &Client, n: usize) -> Vec<Todo> {
 
 #[test]
 fn pagination() {
-    let mut env = Environment::init(4010);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
@@ -213,7 +213,7 @@ macro_rules! assert_same_todos {
 
 #[test]
 fn pagination_order() {
-    let mut env = Environment::init(4019);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();

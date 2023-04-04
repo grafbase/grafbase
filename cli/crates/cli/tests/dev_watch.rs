@@ -7,7 +7,7 @@ use utils::environment::Environment;
 
 #[test]
 fn dev_watch() {
-    let mut env = Environment::init(4001);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 

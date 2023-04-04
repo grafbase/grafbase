@@ -4,7 +4,7 @@ use utils::environment::Environment;
 
 #[test]
 fn reset() {
-    let mut env = Environment::init(4004);
+    let mut env = Environment::init();
 
     env.grafbase_init();
     env.grafbase_dev();

@@ -21,8 +21,34 @@ pub struct Environment {
 
 const DOT_ENV_FILE: &str = ".env";
 
+fn get_free_port() -> u16 {
+    const INITIAL_PORT: u16 = 4000;
+
+    let test_state_directory_path = std::env::temp_dir().join("grafbase/cli-tests");
+    std::fs::create_dir_all(&test_state_directory_path).unwrap();
+    let lock_file_path = test_state_directory_path.join("port-number.lock");
+    let port_number_file_path = test_state_directory_path.join("port-number.txt");
+    let mut lock_file = fslock::LockFile::open(&lock_file_path).unwrap();
+    lock_file.lock().unwrap();
+    let port_number = if port_number_file_path.exists() {
+        std::fs::read_to_string(&port_number_file_path)
+            .unwrap()
+            .trim()
+            .parse::<u16>()
+            .unwrap()
+            + 1
+    } else {
+        INITIAL_PORT
+    };
+    std::fs::write(&port_number_file_path, port_number.to_string()).unwrap();
+    lock_file.unlock().unwrap();
+    port_number
+}
+
 impl Environment {
-    pub fn init(port: u16) -> Self {
+    pub fn init() -> Self {
+        let port = get_free_port();
+
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
@@ -38,7 +64,9 @@ impl Environment {
         }
     }
 
-    pub fn from(other: &Environment, port: u16) -> Self {
+    pub fn from(other: &Environment) -> Self {
+        let port = get_free_port();
+
         let temp_dir = other.temp_dir.clone();
 
         Self {

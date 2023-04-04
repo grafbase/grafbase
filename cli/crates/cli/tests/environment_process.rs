@@ -5,7 +5,7 @@ use utils::environment::Environment;
 
 #[test]
 fn environment_process() {
-    let mut env = Environment::init(4013);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 

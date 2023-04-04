@@ -6,7 +6,7 @@ use utils::environment::Environment;
 
 #[test]
 fn coercion() {
-    let mut env = Environment::init(4020);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(COERCION_SCHEMA);
     env.grafbase_dev();

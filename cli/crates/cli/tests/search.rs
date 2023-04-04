@@ -117,11 +117,11 @@ struct Edge<N> {
 // Tantivy query syntax
 // https://docs.rs/tantivy/latest/tantivy/query/struct.QueryParser.html
 #[rstest]
-#[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL, 4022)]
-#[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED, 4023)]
-#[case("listFields", SEARCH_CREATE_LIST, SEARCH_SEARCH_LIST, 4024)]
-fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_query: &str, #[case] port: u16) {
-    let mut env = Environment::init(port);
+#[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL)]
+#[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED)]
+#[case("listFields", SEARCH_CREATE_LIST, SEARCH_SEARCH_LIST)]
+fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_query: &str) {
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
@@ -393,7 +393,7 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
 
 #[test]
 fn search_created_updated_at() {
-    let mut env = Environment::init(4026);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
@@ -454,7 +454,7 @@ fn search_created_updated_at() {
 
 #[test]
 fn search_pagination_and_total_hits() {
-    let mut env = Environment::init(4025);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();

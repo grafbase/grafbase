@@ -51,7 +51,7 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn scalars() {
-    let mut env = Environment::init(4011);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
