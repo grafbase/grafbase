@@ -52,24 +52,18 @@ impl Extension for AuthExtension {
         } = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        log::trace!(
-            self.trace_id,
-            "auth: {global_ops}, {groups_from_token:?}, {subject_and_owner_ops:?}"
-        );
-        let model_ops = info
-            .auth
-            .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
-            .unwrap_or(*global_ops); // Fall back to global auth if model auth is not configured
-
         // Merge with owner's global ops
-        let model_ops = model_ops.union(
+        let global_ops = global_ops.union(
             subject_and_owner_ops
                 .as_ref()
                 .map(|subject_and_owner_ops| subject_and_owner_ops.1)
                 .unwrap_or_default(),
         );
 
-        log::trace!(self.trace_id, "Resolved model ops: {model_ops}");
+        let model_ops = info
+            .auth
+            .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
+            .unwrap_or(global_ops); // Fall back to global auth if model auth is not configured
 
         if let Some(required_op) = info.required_operation {
             if !model_ops.contains(required_op) {
@@ -103,7 +97,7 @@ impl Extension for AuthExtension {
                         registry: &ctx.schema_env.registry,
                         required_op,
                         model_ops,
-                        global_ops: *global_ops,
+                        global_ops,
                         groups_from_token: groups_from_token.as_ref(),
                     })?;
                 }
@@ -174,13 +168,16 @@ impl AuthExtension {
                 .map(|auth| auth.allowed_ops(opts.groups_from_token))
                 .unwrap_or(opts.model_ops);
 
+            log::trace!(self.trace_id, "check_input.{field_name} ${field_ops}");
+
             if !field_ops.contains(opts.required_op) {
                 let msg = format!(
-                "Unauthorized to access {MUTATION_TYPE}.{mutation_name} (missing {required_op} operation on {type_name}.{field_name})",
-                mutation_name = opts.mutation_name,
-                required_op = opts.required_op,
-                type_name = opts.type_name,
-            );
+                    "Unauthorized to access {MUTATION_TYPE}.{mutation_name} (missing {required_op} operation on {type_name}.{field_name})",
+                    mutation_name = opts.mutation_name,
+                    required_op = opts.required_op,
+                    type_name = opts.type_name,
+                );
+
                 warn!(self.trace_id, "{msg} auth={auth:?}", auth = field.auth);
                 return Err(ServerError::new(msg, None));
             }
