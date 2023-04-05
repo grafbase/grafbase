@@ -21,7 +21,7 @@
 use crate::NodeID;
 use core::fmt::{self, Display, Formatter};
 use derivative::Derivative;
-use dynaql_value::ConstValue;
+use dynaql_value::{ConstValue, Name};
 use indexmap::IndexMap;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
@@ -252,11 +252,35 @@ impl QueryResponse {
         }
     }
 
-    pub fn transform_node_to_const_value(&self, node: &QueryResponseNode) -> serde_json::Result<ConstValue> {
-        self.transform_node_to_json_value(node)
-            .and_then(|v| serde_json::from_str::<ConstValue>(&v.to_string()))
+    /// Removes a node and it's children from the Graph, and returns a ConstValue of its data.
+    pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<ConstValue> {
+        match self.delete_node(node_id).ok()? {
+            QueryResponseNode::Container(ResponseContainer { children, .. }) => {
+                let mut fields = dynaql_value::indexmap::IndexMap::with_capacity(children.len());
+
+                for (relation, nested_id) in children {
+                    match self.take_node_into_const_value(nested_id)? {
+                        // Skipping nested empty objects
+                        ConstValue::Object(fields) if fields.is_empty() => (),
+                        value => {
+                            fields.insert(Name::new(relation.to_string()), value);
+                        }
+                    }
+                }
+                Some(ConstValue::Object(fields))
+            }
+            QueryResponseNode::List(ResponseList { children, .. }) => {
+                let mut list = Vec::with_capacity(children.len());
+                for node in children {
+                    list.push(self.take_node_into_const_value(node)?);
+                }
+                Some(ConstValue::List(list))
+            }
+            QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => Some(value),
+        }
     }
 
+    // Returns a serde_json::value of the given node.
     fn transform_node_to_json_value(&self, node: &QueryResponseNode) -> serde_json::Result<serde_json::Value> {
         match node {
             QueryResponseNode::Container(ResponseContainer { children, .. }) => {

@@ -416,7 +416,7 @@ pub fn generate(
                 fields
             }
 
-            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                 #(#resolvers)*
                 ::std::result::Result::Ok(::std::option::Option::None)
             }

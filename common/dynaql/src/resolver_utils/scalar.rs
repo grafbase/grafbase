@@ -1,4 +1,6 @@
-use crate::{InputValueResult, Value};
+use graph_entities::{ResponseNodeId, ResponsePrimitive};
+
+use crate::{ContextSelectionSet, InputValueResult, ServerResult, Value};
 
 /// A GraphQL scalar.
 ///
@@ -57,7 +59,7 @@ pub trait ScalarType: Sized + Send {
 /// #[derive(Serialize, Deserialize)]
 /// struct MyValue {
 ///     a: i32,
-///     b: HashMap<String, i32>,     
+///     b: HashMap<String, i32>,
 /// }
 ///
 /// scalar!(MyValue);
@@ -198,11 +200,26 @@ macro_rules! scalar_internal {
 
             async fn resolve(
                 &self,
-                _: &$crate::ContextSelectionSet<'_>,
+                ctx: &$crate::ContextSelectionSet<'_>,
                 _field: &$crate::Positioned<$crate::parser::types::Field>,
             ) -> $crate::ServerResult<$crate::Value> {
-                ::std::result::Result::Ok($crate::ScalarType::to_value(self))
+                #crate_name::resolver_utils::resolve_scalar_native(
+                    ctx,
+                    #crate_name::ScalarType::to_value(self)
+                ).await
             }
         }
     };
+}
+
+pub async fn resolve_scalar_native<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    value: Value,
+) -> ServerResult<ResponseNodeId> {
+    let mut response_graph = ctx.response_graph.write().await;
+    Ok(
+        response_graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
+            ResponsePrimitive::new(value),
+        )),
+    )
 }

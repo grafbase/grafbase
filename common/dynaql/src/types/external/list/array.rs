@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use graph_entities::ResponseNodeId;
+
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
@@ -73,7 +75,7 @@ impl<T: OutputType, const N: usize> OutputType for [T; N] {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
     }
 }

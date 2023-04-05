@@ -8,10 +8,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
 
-use indexmap::IndexMap;
-
 use crate::extensions::ResolveInfo;
-use crate::graph::field_into_node;
 use crate::parser::types::Selection;
 use crate::registry::MetaType;
 use crate::{
@@ -34,7 +31,7 @@ pub trait ContainerType: OutputType {
     /// Resolves a field value and outputs it as a json value `dynaql::Value`.
     ///
     /// If the field was not found returns None.
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>>;
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>>;
 
     /// Collect all the fields of the container that are queried in the selection set.
     ///
@@ -74,7 +71,7 @@ fn collect_all_fields_graph_meta<'a>(
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for &T {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(*self, ctx).await
     }
 
@@ -85,7 +82,7 @@ impl<T: ContainerType + ?Sized> ContainerType for &T {
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for Arc<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(self, ctx).await
     }
 
@@ -96,7 +93,7 @@ impl<T: ContainerType + ?Sized> ContainerType for Arc<T> {
 
 #[async_trait::async_trait]
 impl<T: ContainerType + ?Sized> ContainerType for Box<T> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         T::resolve_field(self, ctx).await
     }
 
@@ -107,7 +104,7 @@ impl<T: ContainerType + ?Sized> ContainerType for Box<T> {
 
 #[async_trait::async_trait]
 impl<T: ContainerType, E: Into<Error> + Send + Sync + Clone> ContainerType for Result<T, E> {
-    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<Value>> {
+    async fn resolve_field(&self, ctx: &Context<'_>) -> ServerResult<Option<ResponseNodeId>> {
         match self {
             Ok(value) => T::resolve_field(value, ctx).await,
             Err(err) => Err(ctx.set_error_path(err.clone().into().into_server_error(ctx.item.pos))),
@@ -144,7 +141,7 @@ pub async fn resolve_container_serial<'a>(
 pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a T,
-) -> ServerResult<Value> {
+) -> ServerResult<ResponseNodeId> {
     resolve_container_inner_native(ctx, root, true).await
 }
 
@@ -152,34 +149,8 @@ pub async fn resolve_container_native<'a, T: ContainerType + ?Sized>(
 pub async fn resolve_container_serial_native<'a, T: ContainerType + ?Sized>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a T,
-) -> ServerResult<Value> {
+) -> ServerResult<ResponseNodeId> {
     resolve_container_inner_native(ctx, root, false).await
-}
-
-fn insert_value(target: &mut IndexMap<Name, Value>, name: Name, value: Value) {
-    if let Some(prev_value) = target.get_mut(&name) {
-        if let Value::Object(target_map) = prev_value {
-            if let Value::Object(obj) = value {
-                for (key, value) in obj {
-                    insert_value(target_map, key, value);
-                }
-            }
-        } else if let Value::List(target_list) = prev_value {
-            if let Value::List(list) = value {
-                for (idx, value) in list.into_iter().enumerate() {
-                    if let Some(Value::Object(target_map)) = target_list.get_mut(idx) {
-                        if let Value::Object(obj) = value {
-                            for (key, value) in obj {
-                                insert_value(target_map, key, value);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    } else {
-        target.insert(name, value);
-    }
 }
 
 async fn resolve_container_inner<'a>(
@@ -278,7 +249,7 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
     ctx: &ContextSelectionSet<'a>,
     root: &'a T,
     parallel: bool,
-) -> ServerResult<Value> {
+) -> ServerResult<ResponseNodeId> {
     let mut fields = Fields(Vec::new());
     fields.add_set_native(ctx, root)?;
 
@@ -292,18 +263,18 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         results
     };
 
-    let mut map = IndexMap::new();
-    let response = ctx.response_graph.read().await;
+    let mut container = ResponseContainer::new_container();
     for (name, value) in res {
-        if let Some(node) = response.get_node(&value) {
-            let const_value = response.transform_node_to_const_value(node).map_err(|_| {
-                ctx.set_error_path(ServerError::new("JSON serialization failure.", None))
-            })?;
-
-            insert_value(&mut map, name, const_value);
-        }
+        container.insert(
+            ResponseNodeRelation::not_a_relation(name.to_string().into(), None),
+            value,
+        );
     }
-    Ok(Value::Object(map))
+    Ok(ctx
+        .response_graph
+        .write()
+        .await
+        .new_node_unchecked(QueryResponseNode::from(container)))
 }
 type BoxFieldGraphFuture<'a> =
     Pin<Box<dyn Future<Output = ServerResult<((Option<Name>, Name), ResponseNodeId)>> + 'a + Send>>;
@@ -613,9 +584,9 @@ impl<'a> Fields<'a> {
                             if extensions.is_empty() && field.node.directives.is_empty() {
                                 Ok((
                                     field_name,
-                                    field_into_node(
-                                        root.resolve_field(&ctx_field).await?.unwrap_or_default(),
+                                    response_id_unwrap_or_null(
                                         &ctx_field,
+                                        root.resolve_field(&ctx_field).await?,
                                     )
                                     .await,
                                 ))
@@ -655,12 +626,8 @@ impl<'a> Fields<'a> {
                                 };
 
                                 let resolve_fut = async {
-                                    let a = field_into_node(
-                                        root.resolve_field(&ctx_field).await?.unwrap_or_default(),
-                                        &ctx_field,
-                                    )
-                                    .await;
-                                    Ok(Some(a))
+                                    let a = root.resolve_field(&ctx_field).await?;
+                                    Ok(a)
                                 };
 
                                 if field.node.directives.is_empty() {

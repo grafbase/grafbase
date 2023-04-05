@@ -181,8 +181,8 @@ pub fn generate(enum_args: &args::Enum) -> GeneratorResult<TokenStream> {
                 Self::__create_type_info(registry)
             }
 
-            async fn resolve(&self, _: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::Value> {
-                ::std::result::Result::Ok(#crate_name::resolver_utils::enum_value(*self))
+            async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
+                ::std::result::Result::Ok(#crate_name::resolver_utils::enum_value_node(ctx, *self).await)
             }
         }
 

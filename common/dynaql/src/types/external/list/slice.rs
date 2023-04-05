@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 use std::sync::Arc;
 
+use graph_entities::ResponseNodeId;
+
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
@@ -27,7 +29,7 @@ impl<'a, T: OutputType + 'a> OutputType for &'a [T] {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
     }
 }
@@ -53,7 +55,7 @@ macro_rules! impl_output_slice_for_smart_ptr {
                 &self,
                 ctx: &ContextSelectionSet<'_>,
                 field: &Positioned<Field>,
-            ) -> ServerResult<Value> {
+            ) -> ServerResult<ResponseNodeId> {
                 resolve_list_native(ctx, field, self.iter(), Some(self.len())).await
             }
         }

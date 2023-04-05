@@ -65,7 +65,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
         impl #impl_generics #crate_name::resolver_utils::ContainerType for #ident #ty_generics #where_clause {
-            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                 #create_merged_obj.resolve_field(ctx).await
             }
 
@@ -110,7 +110,7 @@ pub fn generate(object_args: &args::MergedObject) -> GeneratorResult<TokenStream
                 })
             }
 
-            async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::Value> {
+            async fn resolve(&self, ctx: &#crate_name::ContextSelectionSet<'_>, _field: &#crate_name::Positioned<#crate_name::parser::types::Field>) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 #resolve_container
             }
         }

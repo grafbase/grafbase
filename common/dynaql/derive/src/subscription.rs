@@ -382,17 +382,8 @@ pub fn generate(
                                 };
 
                                 let resolve_fut = async {
-                                    let a = #crate_name::graph::selection_set_into_node(
-                                            #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field)
-                                            .await
-                                            .map(::std::option::Option::Some)
-                                            .map_err(|err| ctx_selection_set.set_error_path(err)).unwrap()
-                                            .unwrap_or_default(),
-                                            &ctx_selection_set,
-                                            schema_env.registry.types.get(&type_name).unwrap(),
-                                        )
-                                        .await;
-                                    Ok(Some(a))
+                                    let resolved = #crate_name::OutputType::resolve(&msg, &ctx_selection_set, &*field).await?;
+                                    Ok(Some(resolved))
                                 };
 
                                 /*

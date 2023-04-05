@@ -6,10 +6,12 @@ use std::str::FromStr;
 use dynaql_parser::types::Field;
 use dynaql_parser::Positioned;
 use dynaql_value::{from_value, to_value};
+use graph_entities::ResponseNodeId;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
+use crate::graph::selection_set_into_node;
 use crate::registry::{MetaType, Registry};
 use crate::{
     ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, OutputType,
@@ -95,9 +97,9 @@ where
 
     async fn resolve(
         &self,
-        _ctx: &ContextSelectionSet<'_>,
-        _field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+        ctx: &ContextSelectionSet<'_>,
+        field: &Positioned<Field>,
+    ) -> ServerResult<ResponseNodeId> {
         let mut map = IndexMap::new();
         for (name, value) in self {
             map.insert(
@@ -105,6 +107,14 @@ where
                 to_value(value).unwrap_or_default(),
             );
         }
-        Ok(Value::Object(map))
+        let ctx_field = ctx.with_field(field, None, Some(&ctx.item.node));
+        let ty = ctx_field
+            .schema_env
+            .registry
+            .types
+            .get(Self::type_name().as_ref())
+            .expect("If this type is used it should be in the registry");
+
+        Ok(selection_set_into_node(Value::Object(map), ctx, ty).await)
     }
 }

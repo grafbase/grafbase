@@ -329,7 +329,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         #[allow(clippy::all, clippy::pedantic)]
         #[#crate_name::async_trait::async_trait]
         impl #impl_generics #crate_name::resolver_utils::ContainerType for #ident #ty_generics #where_clause {
-            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
+            async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::ResponseNodeId>> {
                 #(#resolvers)*
                 ::std::result::Result::Ok(::std::option::Option::None)
             }
@@ -381,7 +381,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 &self,
                 ctx: &#crate_name::ContextSelectionSet<'_>,
                 _field: &#crate_name::Positioned<#crate_name::parser::types::Field>,
-            ) -> #crate_name::ServerResult<#crate_name::Value> {
+            ) -> #crate_name::ServerResult<#crate_name::ResponseNodeId> {
                 #crate_name::resolver_utils::resolve_container_native(ctx, self).await
             }
         }

@@ -3,6 +3,8 @@ use std::cmp::Eq;
 use std::collections::HashSet;
 use std::hash::Hash;
 
+use graph_entities::ResponseNodeId;
+
 use crate::parser::types::Field;
 use crate::resolver_utils::resolve_list_native;
 use crate::{
@@ -69,7 +71,7 @@ impl<T: OutputType + Hash + Eq> OutputType for HashSet<T> {
         &self,
         ctx: &ContextSelectionSet<'_>,
         field: &Positioned<Field>,
-    ) -> ServerResult<Value> {
+    ) -> ServerResult<ResponseNodeId> {
         resolve_list_native(ctx, field, self, Some(self.len())).await
     }
 }
