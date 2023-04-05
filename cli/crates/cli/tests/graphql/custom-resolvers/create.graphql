@@ -1,0 +1,9 @@
+mutation {
+  postCreate(
+    input: {}
+  ) {
+    post {
+      id
+    }
+  }
+}

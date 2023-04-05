@@ -99,6 +99,8 @@ async fn build_resolver(
         .await
         .map_err(|_| ServerError::ResolverDoesNotExist(resolver_input_file_path.clone()))?;
 
+    trace!("locating package.json…");
+
     let package_json_file_path = {
         let paths = futures_util::stream::iter(
             resolver_input_file_path

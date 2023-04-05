@@ -249,14 +249,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
             let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
 
             let parent = full_path.parent().expect("must have a parent");
-
-            let parent_exists = parent.metadata().is_ok();
-
-            let create_dir_result = if parent_exists {
-                Ok(())
-            } else {
-                fs::create_dir_all(parent)
-            };
+            let create_dir_result = fs::create_dir_all(parent);
 
             // must be Some(file) since we're iterating over existing paths
             let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));

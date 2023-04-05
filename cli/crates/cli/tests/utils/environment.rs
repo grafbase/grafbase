@@ -91,6 +91,18 @@ impl Environment {
         fs::write(&self.schema_path, schema.as_ref()).unwrap();
     }
 
+    pub fn write_resolver(&self, path: impl AsRef<str>, contents: impl AsRef<str>) {
+        let target_path = self
+            .schema_path
+            .parent()
+            .unwrap()
+            .join("resolvers")
+            .join(path.as_ref())
+            .with_extension("js");
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        fs::write(target_path, contents.as_ref()).unwrap();
+    }
+
     pub fn grafbase_init(&self) {
         cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
     }
