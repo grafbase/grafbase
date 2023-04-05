@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use rust_embed::RustEmbed;
 
+use common::types::ResolverMessageLevel;
+
 pub use crate::file_watcher::FileEventType;
 
 #[derive(RustEmbed)]
@@ -19,6 +21,7 @@ pub enum ServerMessage {
     },
     ResolverMessage {
         resolver_name: String,
+        level: ResolverMessageLevel,
         message: String,
     },
 }

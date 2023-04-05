@@ -1494,6 +1494,7 @@ dependencies = [
  "dirs 5.0.0",
  "exitcode",
  "once_cell",
+ "serde",
  "thiserror",
 ]
 

@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use crate::types::ServerMessage;
 
+use common::types::ResolverMessageLevel;
+
 use super::errors::ApiError;
 
 #[derive(serde::Serialize)]
@@ -16,8 +18,15 @@ struct ResolverArgs<'a> {
 
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct ResolverMessage {
+    message: String,
+    level: ResolverMessageLevel,
+}
+
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ResolverResponse {
-    log_entries: Vec<String>,
+    log_entries: Vec<ResolverMessage>,
     #[serde(flatten)]
     rest: serde_json::Value,
 }
@@ -42,10 +51,11 @@ pub async fn invoke_resolver(
         .await
         .map_err(|_| ApiError::ServerError)?;
 
-    for message in log_entries {
+    for ResolverMessage { level, message } in log_entries {
         event_bus
             .send(ServerMessage::ResolverMessage {
                 resolver_name: resolver_name.to_owned(),
+                level,
                 message,
             })
             .await

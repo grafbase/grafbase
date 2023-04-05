@@ -13,4 +13,5 @@ repository = "https://github.com/grafbase/grafbase"
 dirs = "5"
 exitcode = "1"
 once_cell = "1"
+serde = { version = "1", features = ["derive"] }
 thiserror = "1"
