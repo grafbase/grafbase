@@ -149,7 +149,7 @@ impl Environment {
         let command = cmd!(
             cargo_bin("grafbase"),
             "--trace",
-            "3",
+            "2",
             "dev",
             "--disable-watch",
             "--port",
