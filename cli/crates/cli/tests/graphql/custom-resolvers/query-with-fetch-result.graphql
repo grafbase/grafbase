@@ -1,5 +1,5 @@
 query GetPost($id: ID!) {
   post(by: { id: $id }) {
-    octocat(text: "Hello Grafbase")
+    fetchResult
   }
 }

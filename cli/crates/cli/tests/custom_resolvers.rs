@@ -14,11 +14,11 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
-    include_str!("./graphql/custom-resolvers/schema-with-octocat.graphql"),
-    "fetch-octocat",
-    include_str!("./resolvers/fetch-octocat.js"),
+    include_str!("./graphql/custom-resolvers/schema-with-fetch-result.graphql"),
+    "fetch-grafbase-graphql",
+    include_str!("./resolvers/fetch-grafbase-graphql.js"),
     &[
-        (include_str!("./graphql/custom-resolvers/query-with-octocat.graphql"), "data.post.octocat")
+        (include_str!("./graphql/custom-resolvers/query-with-fetch-result.graphql"), "data.post.fetchResult")
     ],
 )]
 #[case(
@@ -62,7 +62,7 @@ fn test_resolver(
     env.write_resolver(resolver_name, resolver_contents);
     env.grafbase_dev();
     let client = env.create_client();
-    client.poll_endpoint(90, 300);
+    client.poll_endpoint(60, 300);
 
     // Create.
     let response = client

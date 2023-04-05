@@ -1,3 +1,0 @@
-type Post @model {
-    octocat(text: String!): String! @resolver(name: "fetch-octocat")
-}
