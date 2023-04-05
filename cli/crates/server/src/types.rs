@@ -8,7 +8,7 @@ pub use crate::file_watcher::FileEventType;
 #[folder = "assets/"]
 pub struct Assets;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready(u16),
     Reload(PathBuf, FileEventType),
@@ -16,5 +16,9 @@ pub enum ServerMessage {
     CompleteResolverBuild {
         name: String,
         duration: std::time::Duration,
+    },
+    ResolverMessage {
+        resolver_name: String,
+        message: String,
     },
 }

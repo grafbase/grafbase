@@ -115,7 +115,7 @@ async fn spawn_servers(
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
-    let bridge_sender = event_bus.clone();
+    let bridge_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
 
@@ -128,8 +128,18 @@ async fn spawn_servers(
 
     let resolver_paths = build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await?;
 
+    let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
+
     let mut bridge_handle =
-        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
+        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus).await })
+            .fuse();
+
+    let sender_cloned = sender.clone();
+    tokio::spawn(async move {
+        while let Some(message) = bridge_receiver.recv().await {
+            sender_cloned.send(message).unwrap();
+        }
+    });
 
     trace!("waiting for bridge ready");
     tokio::select! {
@@ -202,7 +212,6 @@ async fn spawn_servers(
     let miniflare_output_result = miniflare.wait_with_output();
 
     tokio::select! {
-        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
         result = miniflare_output_result => {
             let output = result.map_err(ServerError::MiniflareCommandError)?;
 
@@ -212,6 +221,7 @@ async fn spawn_servers(
                 .then_some(())
                 .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
         }
+        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
     }
 
     Ok(())

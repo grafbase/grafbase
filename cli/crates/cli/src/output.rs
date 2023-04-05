@@ -85,6 +85,10 @@ pub mod report {
         );
     }
 
+    pub fn resolver_message(resolver_name: String, message: String) {
+        watercolor::output!("[{resolver_name}] {message}", @Yellow);
+    }
+
     pub fn reload<P: AsRef<Path>>(path: P, _file_event_type: FileEventType) {
         println!(
             "🔄 Detected a change in {path}, reloading",
