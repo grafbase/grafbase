@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use reqwest::header::HeaderMap;
 use serde_json::json;
 use std::{
     future::{Future, IntoFuture},
@@ -12,6 +13,7 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 
 pub struct AsyncClient {
     endpoint: String,
+    headers: HeaderMap,
     client: reqwest::Client,
     snapshot: Option<String>,
 }
@@ -26,7 +28,22 @@ impl AsyncClient {
                 .build()
                 .unwrap(),
             snapshot: None,
+            headers: HeaderMap::new(),
         }
+    }
+
+    pub fn with_api_key(self) -> Self {
+        self.with_header("x-api-key", "any")
+    }
+
+    pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
+        self.headers.insert(key, value.parse().unwrap());
+        self
+    }
+
+    pub fn with_cleared_headers(mut self) -> Self {
+        self.headers.clear();
+        self
     }
 
     // TODO: update this one as well...
@@ -34,7 +51,7 @@ impl AsyncClient {
     where
         Response: serde::de::DeserializeOwned + 'static,
     {
-        let reqwest_builder = self.client.post(&self.endpoint);
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
 
         GqlRequestBuilder {
             query: query.into(),
@@ -47,6 +64,7 @@ impl AsyncClient {
     async fn introspect(&self) -> String {
         self.client
             .post(&self.endpoint)
+            .headers(self.headers.clone())
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .send()
             .await
@@ -60,6 +78,7 @@ impl AsyncClient {
         if let Ok(response) = self
             .client
             .post(&self.endpoint)
+            .headers(self.headers.clone())
             .body(json!({"operationName":"IntrospectionQuery", "query": INTROSPECTION_QUERY}).to_string())
             .send()
             .await

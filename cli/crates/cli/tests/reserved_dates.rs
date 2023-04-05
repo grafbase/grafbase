@@ -14,7 +14,7 @@ fn reserved_dates() {
     env.grafbase_init();
     env.write_schema(RESERVED_DATES_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let response = client.gql::<Value>(RESERVED_DATES_NESTED_CREATION).send();

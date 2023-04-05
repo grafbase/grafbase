@@ -121,7 +121,7 @@ fn search_enums() {
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| {
@@ -177,7 +177,7 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {
@@ -449,7 +449,7 @@ fn search_created_updated_at() {
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {
@@ -510,7 +510,7 @@ fn search_pagination_and_total_hits() {
     env.grafbase_init();
     env.write_schema(SEARCH_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let create = |variables: Value| -> String {

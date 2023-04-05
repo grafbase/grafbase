@@ -15,11 +15,11 @@ async fn concurrency_process() {
     env1.write_schema(CONCURRENCY_SCHEMA);
     env1.grafbase_dev();
 
-    let async_client1 = env1.create_async_client();
+    let async_client1 = env1.create_async_client().with_api_key();
     async_client1.poll_endpoint(30, 300).await;
 
     env2.grafbase_dev();
-    let async_client2 = env2.create_async_client();
+    let async_client2 = env2.create_async_client().with_api_key();
     async_client2.poll_endpoint(30, 300).await;
 
     for _ in 0..15 {

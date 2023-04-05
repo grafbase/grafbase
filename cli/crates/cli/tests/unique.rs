@@ -20,7 +20,7 @@ fn unique() {
 
     env.grafbase_dev();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 
@@ -202,7 +202,7 @@ fn unique_with_multiple_fields() {
 
     env.grafbase_dev();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 

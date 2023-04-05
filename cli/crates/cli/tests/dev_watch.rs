@@ -15,7 +15,7 @@ fn dev_watch() {
 
     env.grafbase_dev_watch();
 
-    let mut client = env.create_client();
+    let mut client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 

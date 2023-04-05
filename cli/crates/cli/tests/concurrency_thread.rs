@@ -19,7 +19,7 @@ async fn concurrency_thread() {
     // due to the CLI not erroring this seems like a configuration issue or due to using multiple clients
     // but
     // TODO: make sure this isn't due to a concurrency issue
-    let async_client = env.create_async_client();
+    let async_client = env.create_async_client().with_api_key();
 
     async_client.poll_endpoint(30, 300).await;
 
