@@ -87,17 +87,28 @@ async fn build_resolver(
     resolver_wrapper_worker_contents: &str,
     tracing: bool,
 ) -> Result<PathBuf, ServerError> {
+    const EXTENSIONS: [&str; 2] = ["js", "ts"];
+
     use futures_util::StreamExt;
 
     trace!("building resolver {resolver_name}");
 
-    let resolver_input_file_path = environment
-        .resolvers_source_path
-        .join(resolver_name)
-        .with_extension("js");
-    let _ = tokio::fs::metadata(&resolver_input_file_path)
+    let resolver_input_file_path_without_extension = environment.resolvers_source_path.join(resolver_name);
+
+    let resolver_paths = futures_util::stream::iter(
+        EXTENSIONS
+            .iter()
+            .map(|extension| resolver_input_file_path_without_extension.with_extension(*extension)),
+    )
+    .filter(|path| {
+        let path = path.as_path().to_owned();
+        async move { tokio::fs::try_exists(path).await.expect("must succeed") }
+    });
+    futures_util::pin_mut!(resolver_paths);
+    let resolver_input_file_path = resolver_paths
+        .next()
         .await
-        .map_err(|_| ServerError::ResolverDoesNotExist(resolver_input_file_path.clone()))?;
+        .ok_or_else(|| ServerError::ResolverDoesNotExist(resolver_input_file_path_without_extension.clone()))?;
 
     trace!("locating package.json…");
 
