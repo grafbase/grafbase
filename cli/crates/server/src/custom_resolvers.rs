@@ -198,11 +198,12 @@ async fn build_resolver(
     )
     .await?;
 
+    let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
         resolver_build_artifact_directory_path.join("wrangler.toml"),
         format!(
             r#"
-                name = "{resolver_name}"
+                name = "{slugified_resolver_name}"
                 [build.upload]
                 format = "modules"
                 [miniflare]
