@@ -146,6 +146,20 @@ pub struct CustomerDeploymentConfig {
     #[serde(default)]
     /// Customer's dedicated subdomain
     pub subdomain: String,
+    // FIXME: 2023-04-05: Optional for now for legacy projects being deployed. Change me back to a
+    // String later on.
+    #[serde(default)]
+    pub account_id: Option<String>,
+}
+
+impl CustomerDeploymentConfig {
+    pub fn account_id(&self) -> String {
+        // Unknown account id for now to avoid having nulls as we won't have them for long
+        // ACCOUNT#00000000000000000000000000
+        self.account_id
+            .clone()
+            .unwrap_or_else(|| format!("ACCOUNT#{}", ulid::Ulid::from(0)))
+    }
 }
 
 pub fn deserialize_aws_regions<'de, D>(deserializer: D) -> Result<Vec<AwsRegion>, D::Error>
