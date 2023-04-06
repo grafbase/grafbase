@@ -193,6 +193,10 @@ fn test_field_resolver(
             .gql::<Value>(query_contents.to_owned())
             .variables(serde_json::json!({ "id": post_id }))
             .send();
+        let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
+        if !errors.is_empty() {
+            panic!("Error response: {errors:?}");
+        }
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
         let snapshot_name = format!("field_resolver_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
@@ -271,6 +275,11 @@ fn test_query_mutation_resolver(
     // Run queries.
     for (index, (query_contents, path)) in queries.iter().enumerate() {
         let response = client.gql::<Value>(query_contents.to_owned()).send();
+        let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
+        if !errors.is_empty() {
+            panic!("Error response: {errors:?}");
+        }
+
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
         let snapshot_name = format!("query_mutation_resolver_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
