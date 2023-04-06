@@ -6,6 +6,7 @@ use utils::environment::Environment;
 
 #[rstest::rstest]
 #[case(
+    1,
     r#"
         type Post @model {
             title: String!
@@ -23,6 +24,7 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
+    2,
     r#"
         type Post @model {
             title: String!
@@ -46,6 +48,7 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
+    3,
     r#"
         type Post @model {
             title: String!
@@ -82,6 +85,7 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
+    4,
     r#"
         type Post @model {
             title: String!
@@ -110,6 +114,7 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
+    5,
     r#"
         type Post @model {
             title: String!
@@ -128,6 +133,7 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
+    6,
     r#"
         type Post @model {
             title: String!
@@ -146,6 +152,7 @@ use utils::environment::Environment;
 )]
 #[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
+    #[case] case_index: usize,
     #[case] schema: &str,
     #[case] resolver_name: &str,
     #[case] resolver_contents: &str,
@@ -187,16 +194,18 @@ fn test_field_resolver(
             .variables(serde_json::json!({ "id": post_id }))
             .send();
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+        let snapshot_name = format!("field_resolver_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
-            insta::assert_snapshot!(format!("{resolver_name}_{index}"), value);
+            insta::assert_snapshot!(snapshot_name, value);
         } else {
-            insta::assert_json_snapshot!(format!("{resolver_name}_{index}"), value);
+            insta::assert_json_snapshot!(snapshot_name, value);
         }
     }
 }
 
 #[rstest::rstest]
 #[case(
+    1,
     r#"
         extend type Query {
             hello: String @resolver(name: "hello")
@@ -220,6 +229,7 @@ fn test_field_resolver(
     ],
 )]
 #[case(
+    2,
     r#"
         extend type Mutation {
             stringToNumber(string: String!): Int @resolver(name: "string-to-number")
@@ -244,6 +254,7 @@ fn test_field_resolver(
 )]
 #[cfg_attr(target_os = "windows", ignore)]
 fn test_query_mutation_resolver(
+    #[case] case_index: usize,
     #[case] schema: &str,
     #[case] resolver_name: &str,
     #[case] resolver_contents: &str,
@@ -261,10 +272,11 @@ fn test_query_mutation_resolver(
     for (index, (query_contents, path)) in queries.iter().enumerate() {
         let response = client.gql::<Value>(query_contents.to_owned()).send();
         let value = dot_get_opt!(response, path, serde_json::Value).unwrap_or_default();
+        let snapshot_name = format!("query_mutation_resolver_{case_index}_{index}", index = index + 1);
         if let Some(value) = value.as_str() {
-            insta::assert_snapshot!(format!("{resolver_name}_{index}"), value);
+            insta::assert_snapshot!(snapshot_name, value);
         } else {
-            insta::assert_json_snapshot!(format!("{resolver_name}_{index}"), value);
+            insta::assert_json_snapshot!(snapshot_name, value);
         }
     }
 }
