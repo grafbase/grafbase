@@ -19,6 +19,28 @@ pub enum SchemaPlan {
 }
 
 impl SchemaPlan {
+    pub fn is_from_maindb(&self) -> bool {
+        match self {
+            SchemaPlan::Projection(_) => true, // We don't know in fact.
+            SchemaPlan::Related(_) => true,
+            SchemaPlan::Apply(ref input) => input.plan.as_ref().is_from_maindb(),
+            SchemaPlan::First(ref input) => input
+                .plan
+                .as_ref()
+                .map(|x| x.is_from_maindb())
+                .unwrap_or(true),
+            SchemaPlan::Last(ref input) => input
+                .plan
+                .as_ref()
+                .map(|x| x.is_from_maindb())
+                .unwrap_or(true),
+            SchemaPlan::PaginationPage(_) => true,
+            SchemaPlan::Resolver(_) => false,
+        }
+    }
+}
+
+impl SchemaPlan {
     pub fn projection(fields: Vec<String>) -> Self {
         Self::Projection(PlanProjection { fields })
     }

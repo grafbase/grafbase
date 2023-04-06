@@ -6,6 +6,7 @@ use query_planning::logical_query::{
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
 use query_planning::reexport::internment::ArcIntern;
+use query_planning::scalar::graphql::GraphQLScalars;
 use query_planning::scalar::ScalarValue;
 
 use crate::parser::types::Selection;
@@ -80,6 +81,7 @@ impl FieldsGraph {
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
                                         array: false,
+                                        ty: Some(GraphQLScalars::String),
                                         name: field
                                             .node
                                             .response_key()
@@ -112,6 +114,7 @@ impl FieldsGraph {
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
                                         array: false,
+                                        ty: Some(GraphQLScalars::String),
                                         name: field
                                             .node
                                             .response_key()
