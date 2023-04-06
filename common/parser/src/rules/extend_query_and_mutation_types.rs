@@ -1,8 +1,8 @@
 use super::visitor::{Visitor, VisitorContext};
 use crate::rules::resolver_directive::ResolverDirective;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use dynaql::registry::resolvers::{Resolver, ResolverType};
-use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{MetaField, MetaInputValue};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
@@ -74,10 +74,8 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                         }),
                         edges: Vec::new(),
                         relation: None,
-                        transformer: Some(Transformer::JSONSelect {
-                            property: name
-                        }),
-                        plan: None,
+                        transformer: None,
+                        plan: Some(SchemaPlan::resolver(resolver_name.to_owned())),
                         required_operation: None,
                         auth: None,
                     });
