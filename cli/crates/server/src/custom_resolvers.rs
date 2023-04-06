@@ -188,6 +188,10 @@ async fn build_resolver(
     .await
     .map_err(ServerError::CreateResolverArtifactFile)?;
 
+    let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
+
+    let _ = tokio::fs::remove_file(&wrangler_toml_file_path).await;
+
     // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
     run_npm_command(
@@ -211,7 +215,7 @@ async fn build_resolver(
 
     let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
-        resolver_build_artifact_directory_path.join("wrangler.toml"),
+        wrangler_toml_file_path,
         format!(
             r#"
                 name = "{slugified_resolver_name}"
