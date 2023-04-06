@@ -245,6 +245,7 @@ pub use registry::CacheControl;
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, EnumType, ScalarType};
+pub use response::GraphQlResponse;
 pub use response::{BatchResponse, Response};
 pub use schema::{Schema, SchemaBuilder, SchemaEnv};
 pub use validation::{ValidationMode, ValidationResult, VisitorContext};

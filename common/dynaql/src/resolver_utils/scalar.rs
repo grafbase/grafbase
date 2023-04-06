@@ -219,7 +219,7 @@ pub async fn resolve_scalar_native<'a>(
     let mut response_graph = ctx.response_graph.write().await;
     Ok(
         response_graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-            ResponsePrimitive::new(value),
+            ResponsePrimitive::new(value.into()),
         )),
     )
 }

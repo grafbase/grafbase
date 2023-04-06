@@ -347,7 +347,11 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 }
             }
             SchemaKind::AllOf { .. } => {
-                ctx.errors.push(Error::AllOfSchema);
+                // These are used infrequently enough that I don't really want to support them.
+                // But GitHub uses them in one place so I don't want to error out and kill the whole
+                // process.
+                //
+                // For now I'm just going to ignore.
             }
             SchemaKind::Not { .. } => {
                 ctx.errors.push(Error::NotSchema);

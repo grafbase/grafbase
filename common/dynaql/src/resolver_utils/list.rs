@@ -72,7 +72,7 @@ pub async fn resolve_list<'a>(
                                 Ok(Some(
                                     ctx_idx.response_graph.write().await.new_node_unchecked(
                                         QueryResponseNode::Primitive(ResponsePrimitive::new(
-                                            result,
+                                            result.into(),
                                         )),
                                     ),
                                 ))
@@ -112,7 +112,7 @@ pub async fn resolve_list<'a>(
                         })?;
 
                         Ok(ctx_idx.response_graph.write().await.new_node_unchecked(
-                            QueryResponseNode::Primitive(ResponsePrimitive::new(result)),
+                            QueryResponseNode::Primitive(ResponsePrimitive::new(result.into())),
                         ))
                     }
                     // TODO: node_step

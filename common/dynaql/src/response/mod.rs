@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
 use http::HeaderValue;
+use serde::ser::SerializeMap;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -47,24 +48,14 @@ impl Response {
         }
     }
 
-    pub fn to_json_value(&self) -> serde_json::Result<serde_json::Value> {
-        let mut fields = serde_json::Map::new();
-        fields.insert("data".to_string(), self.data.to_json_value()?);
-        if !self.errors.is_empty() {
-            fields.insert("errors".to_string(), serde_json::to_value(&self.errors)?);
-        }
-        if !self.extensions.is_empty() {
-            fields.insert(
-                "extensions".to_string(),
-                serde_json::to_value(&self.extensions)?,
-            );
-        }
-        Ok(serde_json::Value::Object(fields))
+    pub fn into_graphql_response(self) -> GraphQlResponse {
+        GraphQlResponse(self)
     }
 
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(data: QueryResponse) -> Self {
+    pub fn new(mut data: QueryResponse) -> Self {
+        data.shrink_to_fit();
         Self {
             data,
             ..Default::default()
@@ -131,8 +122,7 @@ impl Response {
 
 /// Response for batchable queries
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug, Serialize)]
-#[serde(untagged)]
+#[derive(Debug)]
 pub enum BatchResponse {
     /// Response for single queries
     Single(Response),
@@ -186,16 +176,15 @@ impl BatchResponse {
         })
     }
 
-    pub fn to_json_value(&self) -> serde_json::Result<serde_json::Value> {
+    pub fn into_json_value(self) -> serde_json::Result<serde_json::Value> {
         match self {
-            Self::Batch(multiple) => {
-                let mut out = Vec::new();
-                for resp in multiple {
-                    out.push(resp.to_json_value()?);
-                }
-                Ok(serde_json::Value::Array(out))
-            }
-            Self::Single(single) => single.to_json_value(),
+            Self::Batch(multiple) => serde_json::to_value(
+                multiple
+                    .into_iter()
+                    .map(Response::into_graphql_response)
+                    .collect::<Vec<_>>(),
+            ),
+            Self::Single(single) => serde_json::to_value(single.into_graphql_response()),
         }
     }
 }
@@ -209,6 +198,26 @@ impl From<Response> for BatchResponse {
 impl From<Vec<Response>> for BatchResponse {
     fn from(responses: Vec<Response>) -> Self {
         Self::Batch(responses)
+    }
+}
+
+/// A wrapper around Response that Serialises in GraphQL format
+pub struct GraphQlResponse(Response);
+
+impl serde::Serialize for GraphQlResponse {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut map = serializer.serialize_map(Some(5))?;
+        map.serialize_entry("data", &self.0.data.as_graphql_data())?;
+        if !self.0.errors.is_empty() {
+            map.serialize_entry("errors", &self.0.errors)?;
+        }
+        if !self.0.extensions.is_empty() {
+            map.serialize_entry("extensions", &self.0.extensions)?;
+        }
+        map.end()
     }
 }
 
@@ -227,7 +236,7 @@ mod tests {
 
         let resp = BatchResponse::Single(resp);
         assert_eq!(
-            resp.to_json_value().unwrap().to_string(),
+            resp.into_json_value().unwrap().to_string(),
             r#"{"data":true}"#
         );
     }
@@ -248,7 +257,7 @@ mod tests {
 
         let resp = BatchResponse::Batch(vec![resp1, resp2]);
         assert_eq!(
-            resp.to_json_value().unwrap().to_string(),
+            resp.into_json_value().unwrap().to_string(),
             r#"[{"data":true},{"data":"1"}]"#
         );
     }

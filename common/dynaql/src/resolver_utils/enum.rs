@@ -1,5 +1,5 @@
-use dynaql_value::ConstValue;
-use graph_entities::{ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
+use query_planning::reexport::internment::ArcIntern;
 
 use crate::{
     context::ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, Value,
@@ -56,6 +56,6 @@ pub async fn enum_value_node<'a, T: EnumType>(
 
     let mut response_graph = ctx.response_graph.write().await;
     response_graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-        ResponsePrimitive::new(ConstValue::Enum(Name::new(item.name))),
+        ResponsePrimitive::new(CompactValue::Enum(ArcIntern::new(item.name.to_string()))),
     ))
 }

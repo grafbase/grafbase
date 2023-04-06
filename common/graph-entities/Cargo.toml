@@ -10,7 +10,6 @@ base64 = "0.21"
 derivative = "2"
 dynaql-value = { path = "../dynaql/value", version = "3" }
 dynomite = "0.10"
-indexmap = "1"
 internment = { version = "0.7", features = ["serde", "arc"] }
 serde_json = { workspace = true }
 serde = { workspace = true }

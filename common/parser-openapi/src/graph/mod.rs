@@ -67,6 +67,7 @@ pub enum Node {
 
     /// A GraphQL Object that may be needed in the output.
     Object,
+
     /// A scalar
     Scalar(ScalarKind),
 

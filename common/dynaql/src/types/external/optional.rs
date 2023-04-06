@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use graph_entities::{ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
 
 use crate::parser::types::Field;
 use crate::{
@@ -76,7 +76,7 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
                     let mut graph = ctx.response_graph.write().await;
                     Ok(
                         graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-                            ResponsePrimitive::new(Value::Null),
+                            ResponsePrimitive::new(CompactValue::Null),
                         )),
                     )
                 }
@@ -85,7 +85,7 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
             let mut graph = ctx.response_graph.write().await;
             Ok(
                 graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-                    ResponsePrimitive::new(Value::Null),
+                    ResponsePrimitive::new(CompactValue::Null),
                 )),
             )
         }

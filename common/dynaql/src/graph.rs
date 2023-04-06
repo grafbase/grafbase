@@ -45,7 +45,7 @@ pub async fn selection_set_into_node<'a>(
             QueryResponseNode::Container(container)
         }
         rest => {
-            let node = ResponsePrimitive::new(rest);
+            let node = ResponsePrimitive::new(rest.into());
             QueryResponseNode::Primitive(node)
         }
     };
@@ -79,7 +79,7 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
             QueryResponseNode::Container(container)
         }
         rest => {
-            let node = ResponsePrimitive::new(rest);
+            let node = ResponsePrimitive::new(rest.into());
             QueryResponseNode::Primitive(node)
         }
     };

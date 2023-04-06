@@ -1,9 +1,8 @@
-use dynaql_value::ConstValue;
 use serde_json::Value;
 
 use crate::{
-    QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation,
-    ResponsePrimitive,
+    CompactValue, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId,
+    ResponseNodeRelation, ResponsePrimitive,
 };
 
 impl QueryResponse {
@@ -11,10 +10,10 @@ impl QueryResponse {
     /// be used.
     pub fn from_serde_value(&mut self, value: Value) -> ResponseNodeId {
         let a: QueryResponseNode = match value {
-            Value::Null => QueryResponseNode::Primitive(ResponsePrimitive::new(ConstValue::Null)),
-            Value::Bool(boo) => QueryResponseNode::Primitive(ResponsePrimitive::new(ConstValue::Boolean(boo))),
-            Value::Number(n) => QueryResponseNode::Primitive(ResponsePrimitive::new(ConstValue::Number(n))),
-            Value::String(s) => QueryResponseNode::Primitive(ResponsePrimitive::new(ConstValue::String(s))),
+            Value::Null => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Null)),
+            Value::Bool(boo) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Boolean(boo))),
+            Value::Number(n) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Number(n))),
+            Value::String(s) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::String(s))),
             Value::Array(val) => {
                 let nodes = val
                     .into_iter()
@@ -39,5 +38,60 @@ impl QueryResponse {
         };
 
         self.new_node_unchecked(a)
+    }
+
+    pub fn as_graphql_data(&self) -> GraphQlResponseSerializer<'_> {
+        GraphQlResponseSerializer(self)
+    }
+}
+
+/// A Wrapper around QueryResponse that serialises the nodes for
+/// external use.
+///
+/// The default Serialize on QueryResponse maintains the Graph
+/// structure, so is not suitable for sending to users.
+pub struct GraphQlResponseSerializer<'a>(pub &'a QueryResponse);
+
+impl serde::Serialize for GraphQlResponseSerializer<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self.0.root.as_ref() {
+            Some(node_id) => NodeSerializer { node_id, graph: self.0 }.serialize(serializer),
+            None => serializer.serialize_none(),
+        }
+    }
+}
+
+struct NodeSerializer<'a> {
+    node_id: &'a ResponseNodeId,
+    graph: &'a QueryResponse,
+}
+
+impl serde::Serialize for NodeSerializer<'_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let node = self.graph.get_node(self.node_id).expect("a valid graph");
+        match node {
+            QueryResponseNode::Container(container) => {
+                serializer.collect_map(container.children.iter().map(|(key, value)| {
+                    (
+                        key.to_string(),
+                        NodeSerializer {
+                            node_id: value,
+                            graph: self.graph,
+                        },
+                    )
+                }))
+            }
+            QueryResponseNode::List(list) => serializer.collect_seq(list.children.iter().map(|value| NodeSerializer {
+                node_id: value,
+                graph: self.graph,
+            })),
+            QueryResponseNode::Primitive(primitive) => primitive.value.serialize(serializer),
+        }
     }
 }
