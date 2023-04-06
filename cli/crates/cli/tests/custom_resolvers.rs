@@ -6,25 +6,55 @@ use utils::environment::Environment;
 
 #[rstest::rstest]
 #[case(
-    include_str!("./graphql/custom-resolvers/schema-with-text.graphql"),
+    r#"
+        type Post @model {
+            text: String! @resolver(name: "return-text")
+        }
+    "#,
     "return-text.js",
-    include_str!("./resolvers/return-text.js"),
+    r#"
+        export default function Resolver({ parent, args, context, info }) {
+            return "Lorem ipsum dolor sit amet";
+        }
+    "#,
     &[
-        (include_str!("./graphql/custom-resolvers/query-with-text.graphql"), "data.post.text")
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { text } }", "data.post.text")
     ],
 )]
 #[case(
-    include_str!("./graphql/custom-resolvers/schema-with-fetch-result.graphql"),
+    r#"
+        type Post @model {
+            fetchResult: JSON! @resolver(name: "fetch-grafbase-graphql")
+        }
+    "#,
     "fetch-grafbase-graphql.js",
-    include_str!("./resolvers/fetch-grafbase-graphql.js"),
+    r#"
+        export default function Resolver({ parent, args, context, info }) {
+            return fetch('https://api.grafbase.com/graphql', {
+                headers: {
+                    'content-type': 'application/json'
+                },
+                method: 'POST',
+                body: JSON.stringify({ query: '{ __typename }' })
+            });
+        }
+    "#,
     &[
-        (include_str!("./graphql/custom-resolvers/query-with-fetch-result.graphql"), "data.post.fetchResult")
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { fetchResult } }", "data.post.fetchResult")
     ],
 )]
 #[case(
-    include_str!("./graphql/custom-resolvers/schema-with-env-variable.graphql"),
+    r#"
+        type Post @model {
+            variable(name: String!): String @resolver(name: "return-env-variable")
+        }
+    "#,
     "return-env-variable.js",
-    include_str!("./resolvers/return-env-variable.js"),
+    r#"
+        export default function Resolver({ parent, args, context, info }) {
+            return process.env[args.name] || null;
+        }
+    "#,
     &[
         (
             r#"
@@ -49,15 +79,51 @@ use utils::environment::Environment;
     ],
 )]
 #[case(
-    include_str!("./graphql/custom-resolvers/schema-with-json-in-ts.graphql"),
-    "nested/return-object.ts",
-    include_str!("./resolvers/return-object-in-ts.ts"),
+    r#"
+        type Post @model {
+            variable: String! @resolver(name: "return-env-variable")
+        }
+    "#,
+    "return-env-variable.js",
+    r#"
+        const value = process.env["MY_OWN_VARIABLE"];
+
+        export default function Resolver({ parent, args, context, info }) {
+            return value;
+        }
+    "#,
     &[
-        (include_str!("./graphql/custom-resolvers/query-with-object.graphql"), "data.post.object")
+        (
+            r#"
+                query GetPost($id: ID!) {
+                    post(by: { id: $id }) {
+                        variable
+                    }
+                }
+            "#,
+            "data.post.variable"
+        ),
+    ],
+)]
+#[case(
+    r#"
+        type Post @model {
+            object: JSON! @resolver(name: "nested/return-object")
+        }
+    "#,
+    "nested/return-object.ts",
+    r#"
+        export default function Resolver({ parent, args, context, info }) {
+            const returnValue: any = { a: 123, b: "Hello" };
+            return returnValue;
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { object } }", "data.post.object")
     ],
 )]
 #[cfg_attr(target_os = "windows", ignore)]
-fn test_resolver(
+fn test_field_resolver(
     #[case] schema: &str,
     #[case] resolver_name: &str,
     #[case] resolver_contents: &str,
@@ -74,7 +140,19 @@ fn test_resolver(
 
     // Create.
     let response = client
-        .gql::<Value>(include_str!("./graphql/custom-resolvers/create.graphql"))
+        .gql::<Value>(
+            r#"
+                mutation {
+                    postCreate(
+                        input: {}
+                    ) {
+                        post {
+                            id
+                        }
+                    }
+                }
+            "#,
+        )
         .send();
     let post_id = dot_get!(response, "data.postCreate.post.id", String);
 

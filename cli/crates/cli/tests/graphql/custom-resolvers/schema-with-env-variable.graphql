@@ -1,3 +1,0 @@
-type Post @model {
-    variable(name: String!): String @resolver(name: "return-env-variable")
-}
