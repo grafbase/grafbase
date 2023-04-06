@@ -32,7 +32,7 @@ struct ResolverResponse {
 }
 
 pub async fn invoke_resolver(
-    event_bus: &tokio::sync::mpsc::Sender<ServerMessage>,
+    bridge_sender: &tokio::sync::mpsc::Sender<ServerMessage>,
     port: u16,
     resolver_name: &str,
     payload: &serde_json::Value,
@@ -52,7 +52,7 @@ pub async fn invoke_resolver(
         .map_err(|_| ApiError::ServerError)?;
 
     for ResolverMessage { level, message } in log_entries {
-        event_bus
+        bridge_sender
             .send(ServerMessage::ResolverMessage {
                 resolver_name: resolver_name.to_owned(),
                 level,

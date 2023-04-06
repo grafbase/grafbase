@@ -29,7 +29,7 @@ use tower_http::trace::TraceLayer;
 struct HandlerState {
     worker_port: u16,
     pool: SqlitePool,
-    sender: tokio::sync::mpsc::Sender<ServerMessage>,
+    bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
 }
 
 async fn query_endpoint(
@@ -125,7 +125,7 @@ async fn invoke_resolver_endpoint(
 ) -> Result<Json<serde_json::Value>, ApiError> {
     trace!("resolver invocation\n\n{:#?}\n", payload);
     super::resolvers::invoke_resolver(
-        &handler_state.sender,
+        &handler_state.bridge_sender,
         handler_state.worker_port,
         &payload.resolver_name,
         &payload.payload,
@@ -138,7 +138,7 @@ async fn invoke_resolver_endpoint(
 pub async fn start(
     port: u16,
     worker_port: u16,
-    sender: tokio::sync::mpsc::Sender<ServerMessage>,
+    bridge_sender: tokio::sync::mpsc::Sender<ServerMessage>,
     event_bus: tokio::sync::broadcast::Sender<Event>,
 ) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
@@ -163,7 +163,7 @@ pub async fn start(
     let handler_state = Arc::new(HandlerState {
         worker_port,
         pool,
-        sender,
+        bridge_sender,
     });
 
     let router = Router::new()
