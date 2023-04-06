@@ -84,7 +84,7 @@ pub fn complete_resolver_build(resolver_name: &str, duration: std::time::Duratio
     );
 }
 
-pub fn resolver_message(resolver_name: String, message: String, level: ResolverMessageLevel) {
+pub fn resolver_message(resolver_name: &str, message: &str, level: ResolverMessageLevel) {
     match level {
         ResolverMessageLevel::Debug => watercolor::output!("[{resolver_name}] {message}", @BrightBlack),
         ResolverMessageLevel::Error => watercolor::output!("[{resolver_name}] {message}", @Red),
