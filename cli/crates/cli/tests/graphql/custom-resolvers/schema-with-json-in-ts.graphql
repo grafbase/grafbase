@@ -1,0 +1,3 @@
+type Post @model {
+    object: JSON! @resolver(name: "nested/return-object")
+}

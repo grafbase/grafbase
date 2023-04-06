@@ -177,8 +177,9 @@ async fn spawn_servers(
         [
             "--mount".into(),
             format!(
-                "{resolver_name}={}",
-                resolver_path.to_str().expect("correct at this point")
+                "{resolver_name}={resolver_path}",
+                resolver_name = slug::slugify(resolver_name),
+                resolver_path = resolver_path.display()
             )
             .into(),
         ]

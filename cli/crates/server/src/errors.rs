@@ -85,7 +85,7 @@ pub enum ServerError {
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
 
-    #[error("could not find a resolver referenced in the schema under the path {0}")]
+    #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
     ResolverDoesNotExist(PathBuf),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully

@@ -7,7 +7,7 @@ use utils::environment::Environment;
 #[rstest::rstest]
 #[case(
     include_str!("./graphql/custom-resolvers/schema-with-text.graphql"),
-    "return-text",
+    "return-text.js",
     include_str!("./resolvers/return-text.js"),
     &[
         (include_str!("./graphql/custom-resolvers/query-with-text.graphql"), "data.post.text")
@@ -15,7 +15,7 @@ use utils::environment::Environment;
 )]
 #[case(
     include_str!("./graphql/custom-resolvers/schema-with-fetch-result.graphql"),
-    "fetch-grafbase-graphql",
+    "fetch-grafbase-graphql.js",
     include_str!("./resolvers/fetch-grafbase-graphql.js"),
     &[
         (include_str!("./graphql/custom-resolvers/query-with-fetch-result.graphql"), "data.post.fetchResult")
@@ -23,7 +23,7 @@ use utils::environment::Environment;
 )]
 #[case(
     include_str!("./graphql/custom-resolvers/schema-with-env-variable.graphql"),
-    "return-env-variable",
+    "return-env-variable.js",
     include_str!("./resolvers/return-env-variable.js"),
     &[
         (
@@ -46,6 +46,14 @@ use utils::environment::Environment;
             "#,
             "data.post.variable"
         ),
+    ],
+)]
+#[case(
+    include_str!("./graphql/custom-resolvers/schema-with-json-in-ts.graphql"),
+    "nested/return-object.ts",
+    include_str!("./resolvers/return-object-in-ts.ts"),
+    &[
+        (include_str!("./graphql/custom-resolvers/query-with-object.graphql"), "data.post.object")
     ],
 )]
 #[cfg_attr(target_os = "windows", ignore)]

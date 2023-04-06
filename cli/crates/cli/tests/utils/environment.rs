@@ -92,13 +92,7 @@ impl Environment {
     }
 
     pub fn write_resolver(&self, path: impl AsRef<str>, contents: impl AsRef<str>) {
-        let target_path = self
-            .schema_path
-            .parent()
-            .unwrap()
-            .join("resolvers")
-            .join(path.as_ref())
-            .with_extension("js");
+        let target_path = self.schema_path.parent().unwrap().join("resolvers").join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents.as_ref()).unwrap();
     }
