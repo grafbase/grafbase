@@ -3,7 +3,7 @@ use crate::rules::resolver_directive::ResolverDirective;
 use dynaql::registry::resolvers::custom::CustomResolver;
 use dynaql::registry::resolvers::{Resolver, ResolverType};
 use dynaql::registry::transformers::Transformer;
-use dynaql::registry::MetaField;
+use dynaql::registry::{MetaField, MetaInputValue};
 use dynaql_parser::types::TypeKind;
 use if_chain::if_chain;
 
@@ -44,7 +44,20 @@ impl<'a> Visitor<'a> for ExtendQueryAndMutationTypes {
                     field_collection.push(MetaField {
                         name: name.clone(),
                         description: field.node.description.clone().map(|x| x.node),
-                        args: Default::default(),
+                        args: field
+                            .node
+                            .arguments
+                            .iter()
+                            .map(|argument| {
+                                (
+                                    argument.node.name.to_string(),
+                                    MetaInputValue::new(
+                                        argument.node.name.to_string(),
+                                        argument.node.ty.to_string(),
+                                    ),
+                                )
+                            })
+                            .collect(),
                         ty: field.node.ty.clone().node.to_string(),
                         deprecation: Default::default(),
                         cache_control: Default::default(),
