@@ -211,7 +211,11 @@ async fn build_resolver(
         tracing,
         &[("FORCE_COLOR", "0"), ("CLOUDFLARE_API_TOKEN", "STUB")],
     )
-    .await?;
+    .await
+    .map_err(|err| match err {
+        ServerError::NpmCommand(output) => ServerError::ResolverBuild(resolver_name.to_owned(), output),
+        other => other,
+    })?;
 
     let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
