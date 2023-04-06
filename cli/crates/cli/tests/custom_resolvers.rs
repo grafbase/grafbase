@@ -269,7 +269,7 @@ fn test_query_mutation_resolver(
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(60, 300);
 
     // Run queries.
