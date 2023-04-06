@@ -291,6 +291,10 @@ impl QueryResponse {
             QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => Some(value),
         }
     }
+
+    fn node_exists(&self, id: &ResponseNodeId) -> bool {
+        self.get_node(id).is_some()
+    }
 }
 
 impl QueryResponseNode {

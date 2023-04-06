@@ -57,7 +57,7 @@ impl serde::Serialize for GraphQlResponseSerializer<'_> {
     where
         S: serde::Serializer,
     {
-        match self.0.root.as_ref() {
+        match self.0.root.as_ref().filter(|node_id| self.0.node_exists(node_id)) {
             Some(node_id) => NodeSerializer { node_id, graph: self.0 }.serialize(serializer),
             None => serializer.serialize_none(),
         }
@@ -74,23 +74,36 @@ impl serde::Serialize for NodeSerializer<'_> {
     where
         S: serde::Serializer,
     {
-        let node = self.graph.get_node(self.node_id).expect("a valid graph");
+        let node = self
+            .graph
+            .get_node(self.node_id)
+            .expect("node presence to be checked before NodeSerializer");
+
         match node {
-            QueryResponseNode::Container(container) => {
-                serializer.collect_map(container.children.iter().map(|(key, value)| {
-                    (
-                        key.to_string(),
-                        NodeSerializer {
-                            node_id: value,
-                            graph: self.graph,
-                        },
-                    )
-                }))
-            }
-            QueryResponseNode::List(list) => serializer.collect_seq(list.children.iter().map(|value| NodeSerializer {
-                node_id: value,
-                graph: self.graph,
-            })),
+            QueryResponseNode::Container(container) => serializer.collect_map(
+                container
+                    .children
+                    .iter()
+                    .filter(|(_, node_id)| self.graph.node_exists(node_id))
+                    .map(|(key, value)| {
+                        (
+                            key.to_string(),
+                            NodeSerializer {
+                                node_id: value,
+                                graph: self.graph,
+                            },
+                        )
+                    }),
+            ),
+            QueryResponseNode::List(list) => serializer.collect_seq(
+                list.children
+                    .iter()
+                    .filter(|node_id| self.graph.node_exists(node_id))
+                    .map(|value| NodeSerializer {
+                        node_id: value,
+                        graph: self.graph,
+                    }),
+            ),
             QueryResponseNode::Primitive(primitive) => primitive.value.serialize(serializer),
         }
     }
