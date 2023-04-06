@@ -46,6 +46,7 @@ impl Client {
             variables: None,
             phantom: PhantomData,
             reqwest_builder,
+            bearer: None,
         }
     }
 
@@ -133,11 +134,18 @@ pub struct GqlRequestBuilder<Response> {
     phantom: PhantomData<fn() -> Response>,
     #[serde(skip)]
     reqwest_builder: reqwest::blocking::RequestBuilder,
+    #[serde(skip)]
+    bearer: Option<String>,
 }
 
 impl<Response> GqlRequestBuilder<Response> {
     pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
         self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+
+    pub fn bearer(mut self, token: &str) -> Self {
+        self.bearer = Some(format!("Bearer {token}"));
         self
     }
 
@@ -147,11 +155,15 @@ impl<Response> GqlRequestBuilder<Response> {
     {
         let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
 
-        self.reqwest_builder
-            .json(&json)
-            .send()
-            .unwrap()
-            .json::<Response>()
-            .unwrap()
+        if let Some(bearer) = self.bearer {
+            self.reqwest_builder.header("authorization", bearer)
+        } else {
+            self.reqwest_builder
+        }
+        .json(&json)
+        .send()
+        .unwrap()
+        .json::<Response>()
+        .unwrap()
     }
 }

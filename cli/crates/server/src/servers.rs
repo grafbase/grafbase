@@ -185,16 +185,17 @@ async fn spawn_servers(
         ]
     }));
 
-    let miniflare = Command::new("node")
+    let mut miniflare = Command::new("node");
+    miniflare
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
         .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(&environment.user_dot_grafbase_path)
-        .kill_on_drop(watch)
-        .spawn()
-        .map_err(ServerError::MiniflareCommandError)?;
+        .kill_on_drop(watch);
+    trace!("Spawning {miniflare:?}");
+    let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
 
     let _ = sender.send(ServerMessage::Ready(worker_port));
 
