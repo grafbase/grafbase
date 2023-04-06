@@ -18,7 +18,7 @@ fn relations() {
 
     env.grafbase_dev_watch();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);

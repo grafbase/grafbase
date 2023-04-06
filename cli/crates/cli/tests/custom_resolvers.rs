@@ -32,7 +32,7 @@ use utils::environment::Environment;
                     post(by: { id: $id }) {
                         variable(name: "GRAFBASE_ENV")
                     }
-                }      
+                }
             "#,
             "data.post.variable"
         ),
@@ -42,7 +42,7 @@ use utils::environment::Environment;
                     post(by: { id: $id }) {
                         variable(name: "MY_OWN_VARIABLE")
                     }
-                }      
+                }
             "#,
             "data.post.variable"
         ),
@@ -69,7 +69,7 @@ fn test_resolver(
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(60, 300);
 
     // Create.

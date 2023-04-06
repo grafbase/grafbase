@@ -23,10 +23,11 @@ fn jwt_provider() {
     let client = env.create_client();
     client.poll_endpoint(30, 300);
 
-    // No auth header -> no authorization done in CLI
-    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
-    let errors: Option<Value> = dot_get_opt!(resp, "errors");
-    assert!(errors.is_none(), "errors: {errors:#?}");
+    // TODO: uncomment once https://github.com/grafbase/api/pull/1955 is merged
+    // No auth header -> fail
+    // let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    // let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
+    // assert_eq!(error, Some("Unauthorized".to_string()), "error: {error:#?}");
 
     // Reject invalid token
     let client = client.with_header("Authorization", "Bearer invalid-token");
@@ -51,6 +52,13 @@ fn jwt_provider() {
     let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let errors: Option<Value> = dot_get_opt!(resp, "errors");
     assert!(errors.is_none(), "errors: {errors:#?}");
+
+    // TODO: uncomment once https://github.com/grafbase/api/pull/1955 is merged
+    // accept authorization via an API key
+    // let client = client.with_cleared_headers().with_api_key();
+    // let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
+    // let errors: Option<Value> = dot_get_opt!(resp, "errors");
+    // assert!(errors.is_none(), "errors: {errors:#?}");
 }
 
 fn generate_token(user_id: &str, groups: &[&str]) -> String {

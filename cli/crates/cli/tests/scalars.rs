@@ -55,7 +55,7 @@ fn scalars() {
     env.grafbase_init();
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let variables = json!({

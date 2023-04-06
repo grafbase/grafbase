@@ -10,7 +10,7 @@ fn default_directive() {
     env.grafbase_init();
     env.write_schema(DEFAULT_DIRECTIVE_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let response = client.gql::<Value>(DEFAULT_DIRECTIVE_CREATE_USER1).send();

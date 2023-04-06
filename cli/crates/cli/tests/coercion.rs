@@ -10,7 +10,7 @@ fn coercion() {
     env.grafbase_init();
     env.write_schema(COERCION_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let coerce = |variables: Value| client.gql::<Value>(COERCION_CREATE_DUMMY).variables(variables).send();

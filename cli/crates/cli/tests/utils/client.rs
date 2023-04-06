@@ -30,8 +30,17 @@ impl Client {
         }
     }
 
+    pub fn with_api_key(self) -> Self {
+        self.with_header("x-api-key", "any")
+    }
+
     pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
         self.headers.insert(key, value.parse().unwrap());
+        self
+    }
+
+    pub fn with_cleared_headers(mut self) -> Self {
+        self.headers.clear();
         self
     }
 

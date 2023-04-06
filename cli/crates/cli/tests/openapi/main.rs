@@ -141,7 +141,7 @@ async fn start_grafbase_with_petstore_schema(env: &mut Environment, mock_address
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();
 
-    let client = env.create_async_client();
+    let client = env.create_async_client().with_api_key();
 
     client.poll_endpoint(30, 300).await;
 
