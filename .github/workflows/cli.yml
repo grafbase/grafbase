@@ -39,8 +39,8 @@ jobs:
         with:
           filters: |
             build:
-              - 'cli/**'
-              - '.github/**'
+              - 'cli/**/*'
+              - '.github/**/*'
 
   lint:
     needs: [detect-change-type]
