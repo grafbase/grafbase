@@ -1,3 +1,0 @@
-type Post @model {
-    text: String! @resolver(name: "return-text")
-}

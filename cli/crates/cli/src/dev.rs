@@ -32,6 +32,13 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
                     Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
                         report::complete_resolver_build(&name, duration);
                     }
+                    Ok(ServerMessage::ResolverMessage {
+                        resolver_name,
+                        message,
+                        level,
+                    }) => {
+                        report::resolver_message(&resolver_name, &message, level);
+                    }
                     Err(_) => break,
                 }
             });

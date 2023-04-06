@@ -6,6 +6,7 @@ use std::sync::mpsc::Sender;
 use common::environment::Environment;
 use futures_util::{pin_mut, TryStreamExt};
 use itertools::Itertools;
+use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::errors::ServerError;
@@ -56,27 +57,6 @@ async fn run_npm_command<P: AsRef<Path>>(
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
-}
-
-// https://toml.io/en/v1.0.0#string
-// > Any Unicode character may be used except those that must be escaped:
-// > quotation mark, backslash, and the control characters other than tab
-// (U+0000 to U+0008, U+000A to U+001F, U+007F).
-fn should_escape_character_in_toml_string(c: char) -> bool {
-    c == '"' || c == '/' || (c.is_control() && c != '\t')
-}
-
-fn escape_string_in_toml(string: &str) -> String {
-    string
-        .chars()
-        .format_with("", |c, format| {
-            if should_escape_character_in_toml_string(c) {
-                format(&std::format_args!("\\u{:04x}", c as u32))
-            } else {
-                format(&c)
-            }
-        })
-        .to_string()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -188,6 +168,10 @@ async fn build_resolver(
     .await
     .map_err(ServerError::CreateResolverArtifactFile)?;
 
+    let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
+
+    let _ = tokio::fs::remove_file(&wrangler_toml_file_path).await;
+
     // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
     run_npm_command(
@@ -207,11 +191,43 @@ async fn build_resolver(
         tracing,
         &[("FORCE_COLOR", "0"), ("CLOUDFLARE_API_TOKEN", "STUB")],
     )
-    .await?;
+    .await
+    .map_err(|err| match err {
+        ServerError::NpmCommand(output) => ServerError::ResolverBuild(resolver_name.to_owned(), output),
+        other => other,
+    })?;
+
+    let process_env_prelude = format!(
+        "globalThis.process = {{ env: {} }};",
+        serde_json::to_string(&environment_variables).expect("must be valid JSON")
+    );
+
+    let (temp_file, temp_file_path) = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
+        .await?
+        .map_err(ServerError::CreateResolverArtifactFile)?
+        .into_parts();
+    {
+        let mut temp_file: tokio::fs::File = temp_file.into();
+        temp_file
+            .write_all(process_env_prelude.as_bytes())
+            .await
+            .map_err(ServerError::CreateResolverArtifactFile)?;
+        temp_file
+            .write_all(
+                &tokio::fs::read(wrangler_output_directory_path.join("entrypoint.js"))
+                    .await
+                    .expect("must succeed"),
+            )
+            .await
+            .map_err(ServerError::CreateResolverArtifactFile)?;
+    }
+    tokio::fs::copy(temp_file_path, wrangler_output_directory_path.join("entrypoint.js"))
+        .await
+        .map_err(ServerError::CreateResolverArtifactFile)?;
 
     let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
-        resolver_build_artifact_directory_path.join("wrangler.toml"),
+        wrangler_toml_file_path,
         format!(
             r#"
                 name = "{slugified_resolver_name}"
@@ -219,15 +235,7 @@ async fn build_resolver(
                 format = "modules"
                 [miniflare]
                 routes = ["127.0.0.1/resolver/{resolver_name}/invoke"]
-                [vars]
-                {vars}
             "#,
-            vars = environment_variables
-                .iter()
-                .format_with("\n", |(key, value), f| f(&std::format_args!(
-                    "{key} = \"{value_escaped}\"",
-                    value_escaped = escape_string_in_toml(value)
-                )))
         ),
     )
     .await

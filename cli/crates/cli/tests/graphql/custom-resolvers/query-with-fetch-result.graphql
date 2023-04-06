@@ -1,5 +1,0 @@
-query GetPost($id: ID!) {
-  post(by: { id: $id }) {
-    fetchResult
-  }
-}

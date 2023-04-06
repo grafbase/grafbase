@@ -96,6 +96,10 @@ pub enum ServerError {
     #[error("npm failed with output:\n{0}")]
     NpmCommand(String),
 
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("resolver {0} failed to build:\n{1}")]
+    ResolverBuild(String, String),
+
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
     ProjectPath,
