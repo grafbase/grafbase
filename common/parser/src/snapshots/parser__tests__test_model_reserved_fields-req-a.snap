@@ -1,11 +1,9 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 378
 expression: req_string_a
 ---
 {
   "auth": {
-    "allowed_anonymous_ops": 31,
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
