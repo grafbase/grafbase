@@ -22,24 +22,31 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
     let (server_handle, reporter_handle) = match start_server(start_port, search, watch, tracing) {
         Ok((server_handle, receiver)) => {
-            let reporter_handle = spawn(move || loop {
-                match receiver.recv() {
-                    Ok(ServerMessage::Ready(port)) => READY.call_once(|| report::start_server(port, start_port)),
-                    Ok(ServerMessage::Reload(path, file_event_type)) => report::reload(path, file_event_type),
-                    Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
-                        report::start_resolver_build(&resolver_name);
+            let reporter_handle = spawn(move || {
+                let mut resolvers_reported = false;
+
+                loop {
+                    match receiver.recv() {
+                        Ok(ServerMessage::Ready(port)) => {
+                            READY.call_once(|| report::start_server(resolvers_reported, port, start_port))
+                        }
+                        Ok(ServerMessage::Reload(path, file_event_type)) => report::reload(path, file_event_type),
+                        Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
+                            report::start_resolver_build(&resolver_name);
+                        }
+                        Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
+                            resolvers_reported = true;
+                            report::complete_resolver_build(&name, duration);
+                        }
+                        Ok(ServerMessage::ResolverMessage {
+                            resolver_name,
+                            message,
+                            level,
+                        }) => {
+                            report::resolver_message(&resolver_name, &message, level);
+                        }
+                        Err(_) => break,
                     }
-                    Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
-                        report::complete_resolver_build(&name, duration);
-                    }
-                    Ok(ServerMessage::ResolverMessage {
-                        resolver_name,
-                        message,
-                        level,
-                    }) => {
-                        report::resolver_message(&resolver_name, &message, level);
-                    }
-                    Err(_) => break,
                 }
             });
 

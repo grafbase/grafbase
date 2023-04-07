@@ -17,7 +17,11 @@ pub fn cli_header() {
 }
 
 /// reports to stdout that the server has started
-pub fn start_server(port: u16, start_port: u16) {
+pub fn start_server(resolvers_reported: bool, port: u16, start_port: u16) {
+    if resolvers_reported {
+        println!();
+    }
+
     if port != start_port {
         println!(
             "Port {} is unavailable, started on the closest available port",
@@ -72,15 +76,21 @@ pub fn goodbye() {
 }
 
 pub fn start_resolver_build(resolver_name: &str) {
-    println!("wait  - compiling resolver {resolver_name}…",);
+    println!(
+        "{}  - compiling resolver '{resolver_name}'…",
+        watercolor!("wait", @Blue)
+    );
 }
 
 pub fn complete_resolver_build(resolver_name: &str, duration: std::time::Duration) {
+    let formatted_duration = if duration < std::time::Duration::from_secs(1) {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{:.1}s", duration.as_secs_f64())
+    };
     println!(
-        "event - {resolver_name} compiled successfully in {duration}",
-        duration = humantime::format_duration(
-            duration - std::time::Duration::from_nanos(u64::from(duration.subsec_nanos() % 1_000_000))
-        )
+        "{} - resolver '{resolver_name}' compiled successfully in {formatted_duration}",
+        watercolor!("event", @Green)
     );
 }
 
