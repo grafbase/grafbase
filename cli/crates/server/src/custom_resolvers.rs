@@ -4,7 +4,7 @@ use std::process::Stdio;
 use std::sync::mpsc::Sender;
 
 use common::environment::Environment;
-use futures_util::{pin_mut, TryStreamExt};
+use futures_util::pin_mut;
 use itertools::Itertools;
 use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
@@ -263,7 +263,9 @@ pub async fn build_resolvers(
     resolvers: impl IntoIterator<Item = String>,
     tracing: bool,
 ) -> Result<HashMap<String, PathBuf>, ServerError> {
-    use futures_util::StreamExt;
+    use futures_util::{StreamExt, TryStreamExt};
+
+    const RESOLVER_BUILD_CONCURRENCY: usize = 8;
 
     let mut resolvers_iterator = resolvers.into_iter().peekable();
     if resolvers_iterator.peek().is_none() {
@@ -274,7 +276,7 @@ pub async fn build_resolvers(
 
     futures_util::stream::iter(resolvers_iterator)
         .map(Ok)
-        .and_then(|resolver_name| async {
+        .map_ok(|resolver_name| async {
             let start = std::time::Instant::now();
             let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
             let output_file_path = build_resolver(
@@ -291,6 +293,7 @@ pub async fn build_resolvers(
             });
             Ok((resolver_name, output_file_path))
         })
+        .try_buffer_unordered(RESOLVER_BUILD_CONCURRENCY)
         .try_collect()
         .await
 }
