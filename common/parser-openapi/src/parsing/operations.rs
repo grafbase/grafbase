@@ -145,6 +145,7 @@ pub enum HttpMethod {
     Post,
     Put,
     Delete,
+    Patch,
 }
 
 #[derive(Clone, Debug)]

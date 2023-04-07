@@ -1,8 +1,8 @@
 use dynaql_parser::Positioned;
 use futures_util::FutureExt;
 use graph_entities::{
-    NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
-    ResponsePrimitive,
+    CompactValue, NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId,
+    ResponseNodeRelation, ResponsePrimitive,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -263,13 +263,13 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         results
     };
 
-    let mut container = ResponseContainer::new_container();
-    for (name, value) in res {
-        container.insert(
+    let container = ResponseContainer::with_children(res.into_iter().map(|(name, value)| {
+        (
             ResponseNodeRelation::not_a_relation(name.to_string().into(), None),
             value,
-        );
-    }
+        )
+    }));
+
     Ok(ctx
         .response_graph
         .write()
@@ -292,7 +292,7 @@ async fn response_id_unwrap_or_null(
             .write()
             .await
             .new_node_unchecked(QueryResponseNode::Primitive(ResponsePrimitive::new(
-                Value::Null,
+                CompactValue::Null,
             )))
     }
 }
@@ -321,7 +321,7 @@ impl<'a> FieldsGraph<'a> {
 
                         self.0.push(Box::pin(async move {
                             let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                Value::String(typename),
+                                CompactValue::String(typename),
                             ));
                             Ok((
                                 (alias, field_name),
@@ -552,7 +552,7 @@ impl<'a> Fields<'a> {
 
                         self.0.push(Box::pin(async move {
                             let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                Value::String(typename),
+                                CompactValue::String(typename),
                             ));
                             Ok((
                                 field_name,

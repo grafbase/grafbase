@@ -13,7 +13,7 @@ pub mod variables;
 
 use arrow_schema::Schema as ArrowSchema;
 use dynaql_parser::Pos;
-use graph_entities::{NodeID, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -496,7 +496,7 @@ impl MetaField {
                     .response_graph
                     .write()
                     .await
-                    .new_node_unchecked(ResponsePrimitive::new(result).into()))
+                    .new_node_unchecked(ResponsePrimitive::new(result.into()).into()))
             }
             CurrentResolverType::CONTAINER => {
                 // If there is a resolver associated to the container we execute it before
@@ -519,11 +519,9 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()));
+                            return Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ));
                         }
                     }
                     Some(resolved_value)
@@ -570,11 +568,9 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()))
+                            Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ))
                         }
                     }
                 }
@@ -608,11 +604,9 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()));
+                            return Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ));
                         }
                     }
                     serde_json::Value::Array(arr) => arr.clone(),
@@ -631,11 +625,9 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(Value::Null).into()))
+                            Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ))
                         }
                     }
                 }
@@ -1292,8 +1284,7 @@ pub mod vectorize {
         K: Serialize + 'a,
         V: Serialize + 'a,
     {
-        let container: Vec<_> = target.into_iter().collect();
-        serde::Serialize::serialize(&container, ser)
+        ser.collect_seq(target.into_iter())
     }
 
     pub fn deserialize<'de, T, K, V, D>(des: D) -> Result<T, D::Error>
@@ -1376,12 +1367,15 @@ impl Registry {
 
             let plan = to_selection_plan(
                 field.node.response_key().node.as_str(),
-                graph.take_node_into_const_value(node_id).ok_or_else(|| {
-                    ServerError::new(
-                        "Internal error in introspection query",
-                        Some(field.node.name.pos),
-                    )
-                })?,
+                graph
+                    .take_node_into_const_value(node_id)
+                    .ok_or_else(|| {
+                        ServerError::new(
+                            "Internal error in introspection query",
+                            Some(field.node.name.pos),
+                        )
+                    })?
+                    .into(),
                 ctx_obj.item.pos,
             );
             return Ok(plan);

@@ -18,11 +18,10 @@
 //! be able to faithfully compute the diff, it's much more simplier to not use the path of this
 //! data but to use the unique ID of the data you are modifying. Hence, this representation.
 
-use crate::NodeID;
+use crate::{CompactValue, NodeID};
 use core::fmt::{self, Display, Formatter};
 use derivative::Derivative;
-use dynaql_value::{ConstValue, Name};
-use indexmap::IndexMap;
+use dynaql_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
@@ -32,8 +31,9 @@ mod se;
 
 mod graph;
 pub use self::graph::ResponseNodeId;
+pub use se::GraphQlResponseSerializer;
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct QueryResponse {
     /// Root of the whole struct which is a Container
     root: Option<ResponseNodeId>,
@@ -53,14 +53,13 @@ pub mod vectorize {
         K: Serialize + 'a,
         V: Serialize + 'a,
     {
-        let container: Vec<_> = target.into_iter().collect();
-        serde::Serialize::serialize(&container, ser)
+        ser.collect_seq(target.into_iter())
     }
 
     pub fn deserialize<'de, T, K, V, D>(des: D) -> Result<T, D::Error>
     where
         D: Deserializer<'de>,
-        T: FromIterator<(K, V)>,
+        T: Deserialize<'de> + FromIterator<(K, V)>,
         K: Deserialize<'de>,
         V: Deserialize<'de>,
     {
@@ -100,6 +99,10 @@ pub struct Children<'a> {
 }
 
 impl QueryResponse {
+    pub fn shrink_to_fit(&mut self) {
+        self.data.shrink_to_fit();
+    }
+
     pub fn children(&self) -> Children<'_> {
         Children {
             response: self,
@@ -218,7 +221,7 @@ impl QueryResponse {
         let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::Container(container) = from_node {
-            container.children.insert(relation, id.clone());
+            container.insert(relation, id.clone());
         } else {
             return Err(QueryResponseErrors::NotAContainer);
         }
@@ -244,70 +247,53 @@ impl QueryResponse {
         Ok(id)
     }
 
-    pub fn to_json_value(&self) -> serde_json::Result<serde_json::Value> {
-        if let Some(root) = self.root.as_ref().and_then(|id| self.get_node(id)) {
-            self.transform_node_to_json_value(root)
-        } else {
-            Ok(serde_json::Value::Object(serde_json::Map::new()))
-        }
+    pub fn into_compact_value(mut self) -> serde_json::Result<CompactValue> {
+        Ok(match self.root.clone() {
+            Some(root_id) => self
+                .take_node_into_const_value(root_id)
+                .expect("graph root should always exist"),
+            None => CompactValue::Object(Default::default()),
+        })
     }
 
-    /// Removes a node and it's children from the Graph, and returns a ConstValue of its data.
-    pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<ConstValue> {
+    /// Creates a serde_json::Value of the Response.
+    ///
+    /// The resulting serde_json::Value can take a lot of memory so
+    /// serializing direct to a response should be preferred where possible.
+    pub fn to_json_value(&self) -> serde_json::Result<serde_json::Value> {
+        serde_json::to_value(self.as_graphql_data())
+    }
+
+    /// Removes a node and it's children from the Graph, and returns a CompactValue of its data.
+    pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<CompactValue> {
         match self.delete_node(node_id).ok()? {
             QueryResponseNode::Container(ResponseContainer { children, .. }) => {
-                let mut fields = dynaql_value::indexmap::IndexMap::with_capacity(children.len());
+                let mut fields = Vec::with_capacity(children.len());
 
                 for (relation, nested_id) in children {
                     match self.take_node_into_const_value(nested_id)? {
                         // Skipping nested empty objects
-                        ConstValue::Object(fields) if fields.is_empty() => (),
+                        CompactValue::Object(fields) if fields.is_empty() => (),
                         value => {
-                            fields.insert(Name::new(relation.to_string()), value);
+                            fields.push((Name::new(relation.to_string()), value));
                         }
                     }
                 }
-                Some(ConstValue::Object(fields))
+                Some(CompactValue::Object(fields))
             }
             QueryResponseNode::List(ResponseList { children, .. }) => {
                 let mut list = Vec::with_capacity(children.len());
                 for node in children {
                     list.push(self.take_node_into_const_value(node)?);
                 }
-                Some(ConstValue::List(list))
+                Some(CompactValue::List(list))
             }
             QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => Some(value),
         }
     }
 
-    // Returns a serde_json::value of the given node.
-    fn transform_node_to_json_value(&self, node: &QueryResponseNode) -> serde_json::Result<serde_json::Value> {
-        match node {
-            QueryResponseNode::Container(ResponseContainer { children, .. }) => {
-                let mut fields = serde_json::Map::new();
-                let nested_nodes = children
-                    .iter()
-                    .filter_map(|(relation, id)| self.get_node(id).map(|nested_node| (relation, nested_node)));
-                for (name, nested_node) in nested_nodes {
-                    match self.transform_node_to_json_value(nested_node)? {
-                        // Skipping nested empty objects
-                        serde_json::Value::Object(fields) if fields.is_empty() => (),
-                        value => {
-                            fields.insert(name.to_string(), value);
-                        }
-                    }
-                }
-                Ok(serde_json::Value::Object(fields))
-            }
-            QueryResponseNode::List(ResponseList { children, .. }) => {
-                let mut list = Vec::with_capacity(children.len());
-                for node in children.iter().filter_map(|id| self.get_node(id)) {
-                    list.push(self.transform_node_to_json_value(node)?);
-                }
-                Ok(serde_json::Value::Array(list))
-            }
-            QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => serde_json::to_value(value),
-        }
+    fn node_exists(&self, id: &ResponseNodeId) -> bool {
+        self.get_node(id).is_some()
     }
 }
 
@@ -332,14 +318,26 @@ impl QueryResponseNode {
         matches!(self, QueryResponseNode::Container(_))
     }
 
-    pub fn children(&self) -> Option<&IndexMap<ResponseNodeRelation, ResponseNodeId>> {
+    pub fn child(&self, relation: &ResponseNodeRelation) -> Option<&ResponseNodeId> {
+        self.children()?
+            .iter()
+            .find_map(|(key, child)| if key == relation { Some(child) } else { None })
+    }
+
+    pub fn child_mut(&mut self, relation: &ResponseNodeRelation) -> Option<&mut ResponseNodeId> {
+        self.children_mut()?
+            .iter_mut()
+            .find_map(|(key, child)| if key == relation { Some(child) } else { None })
+    }
+
+    pub fn children(&self) -> Option<&Vec<(ResponseNodeRelation, ResponseNodeId)>> {
         match self {
             Self::Container(container) => Some(&container.children),
             _ => None,
         }
     }
 
-    pub fn children_mut(&mut self) -> Option<&mut IndexMap<ResponseNodeRelation, ResponseNodeId>> {
+    pub fn children_mut(&mut self) -> Option<&mut Vec<(ResponseNodeRelation, ResponseNodeId)>> {
         match self {
             Self::Container(container) => Some(&mut container.children),
             _ => None,
@@ -388,11 +386,11 @@ impl ResponseList {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponsePrimitive {
     id: ResponseNodeId,
-    value: ConstValue,
+    value: CompactValue,
 }
 
 impl ResponsePrimitive {
-    pub fn new(value: ConstValue) -> Self {
+    pub fn new(value: CompactValue) -> Self {
         Self {
             id: ResponseNodeId::internal(),
             value,
@@ -404,7 +402,7 @@ impl Default for ResponsePrimitive {
     fn default() -> Self {
         Self {
             id: ResponseNodeId::internal(),
-            value: ConstValue::Null,
+            value: CompactValue::Null,
         }
     }
 }
@@ -488,8 +486,7 @@ pub enum RelationOrigin {
 pub struct ResponseContainer {
     id: ResponseNodeId,
     /// Children which are (relation_rame, node)
-    #[serde(with = "vectorize")]
-    children: IndexMap<ResponseNodeRelation, ResponseNodeId>,
+    children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
     // /// Errors, not as `ServerError` yet as we do not have the position.
     // errors: Vec<Error>,
     /// # Hack
@@ -515,7 +512,7 @@ impl ResponseContainer {
     pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Self {
         Self {
             id: ResponseNodeId::node(id),
-            children: IndexMap::default(),
+            children: Default::default(),
             relation: None,
             // errors: Vec::new(),
         }
@@ -524,7 +521,7 @@ impl ResponseContainer {
     pub fn new_container() -> Self {
         Self {
             id: ResponseNodeId::internal(),
-            children: IndexMap::default(),
+            children: Default::default(),
             relation: None,
             // errors: Vec::new(),
         }
@@ -534,7 +531,7 @@ impl ResponseContainer {
         self.relation = rel;
     }
 
-    pub fn with_children(children: Vec<(ResponseNodeRelation, ResponseNodeId)>) -> Self {
+    pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Self {
         Self {
             id: ResponseNodeId::internal(),
             children: children.into_iter().collect(),
@@ -545,8 +542,17 @@ impl ResponseContainer {
 
     /// Insert a new node with a relation, if an Old Node was present, the Old node will be
     /// replaced
-    pub fn insert(&mut self, name: ResponseNodeRelation, node: ResponseNodeId) -> Option<ResponseNodeId> {
-        self.children.insert(name, node)
+    pub fn insert(&mut self, name: ResponseNodeRelation, mut node: ResponseNodeId) -> Option<ResponseNodeId> {
+        if let Some((_, existing)) = self
+            .children
+            .iter_mut()
+            .find(|(existing_name, _)| *existing_name == name)
+        {
+            std::mem::swap(existing, &mut node);
+            return Some(node);
+        }
+        self.children.push((name, node));
+        None
     }
 }
 
@@ -560,16 +566,24 @@ pub enum QueryResponseNode {
 
 #[cfg(test)]
 mod tests {
-    use dynaql_value::Name;
+    use internment::ArcIntern;
 
     use crate::{
-        NodeID, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId,
+        CompactValue, NodeID, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId,
         ResponseNodeRelation, ResponsePrimitive,
     };
 
     #[test]
+    fn check_size_of_query_response_node() {
+        // Each node of the response graph gets a QueryResponseNode.  These graphs can
+        // get big (220k nodes in a large introspection query) so we need to keep
+        // QueryResponseNode as small as possible to avoid running out of memory.
+        assert_eq!(std::mem::size_of::<QueryResponseNode>(), 64);
+    }
+
+    #[test]
     fn should_transform_into_simple_json() {
-        let primitive_node = ResponsePrimitive::new(dynaql_value::ConstValue::String("blbl".into()));
+        let primitive_node = ResponsePrimitive::new(CompactValue::String("blbl".into()));
         let response = QueryResponse::new_root(primitive_node.into());
 
         assert_eq!(
@@ -595,7 +609,7 @@ mod tests {
             )
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(dynaql_value::ConstValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
             field: "title".to_string().into(),
@@ -632,7 +646,7 @@ mod tests {
             )
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(dynaql_value::ConstValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
@@ -664,9 +678,8 @@ mod tests {
             .push(&root_id, ResponseContainer::new_container().into())
             .unwrap();
 
-        let example_primitive = QueryResponseNode::Primitive(ResponsePrimitive::new(dynaql_value::ConstValue::String(
-            "example".to_string(),
-        )));
+        let example_primitive =
+            QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::String("example".to_string())));
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
@@ -717,7 +730,7 @@ mod tests {
             .push(&root_id, ResponseContainer::new_container().into())
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(dynaql_value::ConstValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
@@ -743,10 +756,10 @@ mod tests {
             .push(&root_id, ResponseContainer::new_container().into())
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(dynaql_value::ConstValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
 
         let example_primitive_enum =
-            ResponsePrimitive::new(dynaql_value::ConstValue::Enum(Name::new("example"))).into();
+            ResponsePrimitive::new(CompactValue::Enum(ArcIntern::new("example".to_owned()))).into();
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,

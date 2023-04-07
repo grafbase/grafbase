@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use graph_entities::{ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
 
 use crate::parser::types::Field;
 use crate::registry::Registry;
@@ -82,7 +82,7 @@ impl OutputType for str {
         let mut graph = ctx.response_graph.write().await;
         Ok(
             graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-                ResponsePrimitive::new(Value::String(self.to_string())),
+                ResponsePrimitive::new(CompactValue::String(self.to_string())),
             )),
         )
     }
