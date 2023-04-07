@@ -163,8 +163,6 @@ impl From<AuthConfig> for dynaql::AuthConfig {
                     _ => None,
                 })
                 .collect(),
-
-            ..Default::default()
         }
     }
 }
