@@ -15,7 +15,7 @@ use utils::environment::Environment;
     "#,
     "return-text.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return "Lorem ipsum dolor sit amet";
         }
     "#,
@@ -33,7 +33,7 @@ use utils::environment::Environment;
     "#,
     "fetch-grafbase-graphql.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return fetch('https://api.grafbase.com/graphql', {
                 headers: {
                     'content-type': 'application/json'
@@ -57,7 +57,7 @@ use utils::environment::Environment;
     "#,
     "return-env-variable.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return process.env[args.name] || null;
         }
     "#,
@@ -96,7 +96,7 @@ use utils::environment::Environment;
     r#"
         const value = process.env["MY_OWN_VARIABLE"];
 
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return value;
         }
     "#,
@@ -123,7 +123,7 @@ use utils::environment::Environment;
     "#,
     "nested/return-object.ts",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             const returnValue: any = { a: 123, b: "Hello" };
             return returnValue;
         }
@@ -142,7 +142,7 @@ use utils::environment::Environment;
     "#,
     "return-title.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return parent.title;
         }
     "#,
@@ -215,7 +215,7 @@ fn test_field_resolver(
     "#,
     "hello.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return 'Hello World!';
         }
     "#,
@@ -239,7 +239,7 @@ fn test_field_resolver(
     "#,
     "string-to-number.js",
     r#"
-        export default function Resolver({ parent, args, context, info }) {
+        export default function Resolver(parent, args, context, info) {
             return +args.string;
         }
     "#,
