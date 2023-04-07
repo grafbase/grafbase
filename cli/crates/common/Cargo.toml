@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-common"
-version = "0.18.0-rc.5"
+version = "0.18.0-rc.6"
 edition = "2021"
 description = "Common code used in multiple crates in the CLI workspace"
 license = "Apache-2.0"
