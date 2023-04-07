@@ -1,8 +1,6 @@
-use std::path::PathBuf;
-
-use tokio::sync::broadcast::Receiver;
-
 use crate::file_watcher::FileEventType;
+use std::path::PathBuf;
+use tokio::sync::broadcast::Receiver;
 
 /// server lifecycle related events
 #[derive(Clone, Debug, PartialEq, Eq)]

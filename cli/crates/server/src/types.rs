@@ -1,10 +1,7 @@
-use std::path::PathBuf;
-
-use rust_embed::RustEmbed;
-
-use common::types::ResolverMessageLevel;
-
 pub use crate::file_watcher::FileEventType;
+use common::types::ResolverMessageLevel;
+use rust_embed::RustEmbed;
+use std::path::PathBuf;
 
 #[derive(RustEmbed)]
 #[folder = "assets/"]
@@ -24,4 +21,5 @@ pub enum ServerMessage {
         level: ResolverMessageLevel,
         message: String,
     },
+    CompilationError(String),
 }
