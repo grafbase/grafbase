@@ -75,7 +75,7 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn api_key_ops(&self) -> Operations {
+    pub fn api_key_ops() -> Operations {
         Operations::all()
     }
 
@@ -97,7 +97,7 @@ impl AuthConfig {
     pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
         match groups_from_token {
             Some(groups) => self.private_and_group_based_ops(groups),
-            None => self.api_key_ops(),
+            None => Self::api_key_ops(),
         }
     }
 }

@@ -30,6 +30,7 @@ impl ExtensionFactory for AuthExtension {
     }
 }
 
+// Use ExecutionAuth and AuthConfig to allow/deny the request
 #[async_trait::async_trait]
 impl Extension for AuthExtension {
     async fn resolve(
@@ -45,24 +46,18 @@ impl Extension for AuthExtension {
         // global_ops and groups_from_token are set early on when authorizing
         // the API request. global_ops is based on the top-level auth directive
         // and may be overriden here on the model and field level.
-        let ExecutionAuth {
-            allowed_ops: global_ops,
-            groups_from_token,
-            subject_and_owner_ops,
-        } = ctx
+        let execution_auth = ctx
             .data::<ExecutionAuth>()
             .expect("auth must be injected into the context");
-        // Merge with owner's global ops
-        let global_ops = global_ops.union(
-            subject_and_owner_ops
-                .as_ref()
-                .map(|subject_and_owner_ops| subject_and_owner_ops.1)
-                .unwrap_or_default(),
-        );
 
+        let global_ops = execution_auth.global_ops();
+        let groups_from_token = match execution_auth {
+            ExecutionAuth::ApiKey => None,
+            ExecutionAuth::Token(token) => Some(token.groups_from_token()),
+        };
         let model_ops = info
             .auth
-            .map(|auth| auth.allowed_ops(groups_from_token.as_ref()))
+            .map(|auth| auth.allowed_ops(groups_from_token))
             .unwrap_or(global_ops); // Fall back to global auth if model auth is not configured
 
         if let Some(required_op) = info.required_operation {
@@ -98,7 +93,7 @@ impl Extension for AuthExtension {
                         required_op,
                         model_ops,
                         global_ops,
-                        groups_from_token: groups_from_token.as_ref(),
+                        groups_from_token,
                     })?;
                 }
                 (MUTATION_TYPE, Operations::DELETE) => {
@@ -107,7 +102,7 @@ impl Extension for AuthExtension {
                         info.name,
                         &ctx.schema_env.registry,
                         model_ops,
-                        groups_from_token.as_ref(),
+                        groups_from_token,
                     )?;
                 }
                 _ => {}
@@ -116,7 +111,7 @@ impl Extension for AuthExtension {
         // mutation when required_op is None (objects are agnostic to
         // operations) and auth is set.
         } else if let Some(auth) = info.auth {
-            let field_ops = auth.allowed_ops(groups_from_token.as_ref());
+            let field_ops = auth.allowed_ops(groups_from_token);
 
             if !field_ops.intersects(Operations::READ) {
                 let msg = format!(

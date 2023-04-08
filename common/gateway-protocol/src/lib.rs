@@ -62,31 +62,86 @@ pub struct ExecutionRequest<'a> {
 }
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
-// TODO: turn into an enumeration: ApiKey, Token
-pub struct ExecutionAuth {
-    /// API key or group based operations that are enabled on the global level.
-    pub allowed_ops: dynaql::Operations,
-    pub groups_from_token: Option<HashSet<String>>,
-    /// Owner's subject and enabled operations on the global level.
-    pub subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+
+pub enum ExecutionAuth {
+    ApiKey,
+    Token(ExecutionAuthToken),
 }
 
 impl ExecutionAuth {
+    pub fn new_from_api_keys() -> Self {
+        Self::ApiKey
+    }
+
+    pub fn new_from_token(
+        private_and_group_ops: dynaql::Operations,
+        groups_from_token: HashSet<String>,
+        subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+    ) -> Self {
+        let allowed_owner_ops = subject_and_owner_ops.as_ref().map(|it| it.1).unwrap_or_default();
+        let global_ops = private_and_group_ops.union(allowed_owner_ops);
+        Self::Token(ExecutionAuthToken {
+            global_ops,
+            private_and_group_ops,
+            groups_from_token,
+            subject_and_owner_ops,
+        })
+    }
+
+    pub fn global_ops(&self) -> dynaql::Operations {
+        match self {
+            Self::ApiKey => dynaql::AuthConfig::api_key_ops(),
+            Self::Token(token) => token.global_ops,
+        }
+    }
+
+    pub fn hash<H: Hasher + Default>(&self) -> u64 {
+        match self {
+            Self::ApiKey => {
+                let hasher = H::default();
+                hasher.finish()
+            }
+            Self::Token(token) => token.hash::<H>(),
+        }
+    }
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub struct ExecutionAuthToken {
+    /// API key or group based operations that are enabled on the global level.
+    global_ops: dynaql::Operations,
+    private_and_group_ops: dynaql::Operations,
+    groups_from_token: HashSet<String>,
+    /// Owner's subject and enabled operations on the global level.
+    subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+}
+
+impl ExecutionAuthToken {
+    pub fn global_ops(&self) -> dynaql::Operations {
+        self.global_ops
+    }
+
+    pub fn groups_from_token(&self) -> &HashSet<String> {
+        &self.groups_from_token
+    }
+
+    pub fn subject(&self) -> Option<&str> {
+        self.subject_and_owner_ops.as_ref().map(|it| it.0.as_str())
+    }
+
     pub fn hash<H: Hasher + Default>(&self) -> u64 {
         let mut hasher = H::default();
-        self.allowed_ops.hash(&mut hasher);
+        self.global_ops.hash(&mut hasher);
         self.subject_and_owner_ops.hash(&mut hasher);
-        if let Some(groups) = &self.groups_from_token {
-            hasher.write_usize(groups.len());
-            let mut h: u64 = 0;
-            // opted for XORing the hashes of the elements instead of sorting
-            for group in groups {
-                let mut hasher = H::default();
-                group.hash(&mut hasher);
-                h ^= hasher.finish();
-            }
-            hasher.write_u64(h);
+        hasher.write_usize(self.groups_from_token.len());
+        let mut h: u64 = 0;
+        // opted for XORing the hashes of the elements instead of sorting
+        for group in &self.groups_from_token {
+            let mut hasher = H::default();
+            group.hash(&mut hasher);
+            h ^= hasher.finish();
         }
+        hasher.write_u64(h);
         hasher.finish()
     }
 }
