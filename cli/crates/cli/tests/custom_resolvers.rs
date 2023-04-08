@@ -150,6 +150,24 @@ use utils::environment::Environment;
         ("query GetPost($id: ID!) { post(by: { id: $id }) { title2 } }", "data.post.title2")
     ],
 )]
+#[case(
+    7,
+    r#"
+        type Post @model {
+            title: String!
+            headerValue(name: String!): String @resolver(name: "return-header-value")
+        }
+    "#,
+    "return-header-value.js",
+    r#"
+        export default function Resolver(parent, args, context, info) {
+            return context.request.headers[args.name];
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { headerValue(name: \"x-test-header\") } }", "data.post.headerValue")
+    ],
+)]
 #[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
     #[case] case_index: usize,
@@ -191,6 +209,7 @@ fn test_field_resolver(
     for (index, (query_contents, path)) in queries.iter().enumerate() {
         let response = client
             .gql::<Value>(query_contents.to_owned())
+            .header("x-test-header", "test-value")
             .variables(serde_json::json!({ "id": post_id }))
             .send();
         let errors = dot_get_opt!(response, "errors", Vec::<serde_json::Value>).unwrap_or_default();
