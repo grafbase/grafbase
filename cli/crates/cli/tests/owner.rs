@@ -257,7 +257,8 @@ mod global {
                     .gql::<Value>(OWNER_TWITTER_TWEET_CREATE)
                     .bearer(USER1)
                     .variables(json!({ "userId": id }))
-                    .send()
+                    .send(),
+                {".data.tweetCreate.tweet.id" => "[id]"}
             );
             // user2 cannot get the entity by id
             insta::assert_json_snapshot!(
