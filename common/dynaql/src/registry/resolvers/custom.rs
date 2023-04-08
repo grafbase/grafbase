@@ -79,7 +79,7 @@ impl ResolverTrait for CustomResolver {
             let headers = ctx.query_env.http_headers.lock().unwrap();
             headers
                 .iter()
-                .flat_map(|(key, value)| {
+                .filter_map(|(key, value)| {
                     Some((
                         key.to_string().to_lowercase(),
                         value.to_str().ok()?.to_owned().into(),
