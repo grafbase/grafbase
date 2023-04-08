@@ -373,7 +373,7 @@ pub struct QueryEnvInner {
     pub uploads: Vec<UploadValue>,
     pub session_data: Arc<Data>,
     pub ctx_data: Arc<Data>,
-    pub http_headers: Mutex<HeaderMap>,
+    pub response_http_headers: Mutex<HeaderMap>,
     pub disable_introspection: bool,
     pub errors: Mutex<Vec<ServerError>>,
     /// Defines the current timestamp to be used whenever Utc::now() is used to have consistent
@@ -609,7 +609,7 @@ impl<'a, T> ContextBase<'a, T> {
     /// ```
     pub fn http_header_contains(&self, key: impl AsHeaderName) -> bool {
         self.query_env
-            .http_headers
+            .response_http_headers
             .lock()
             .unwrap()
             .contains_key(key)
@@ -663,7 +663,7 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> Option<HeaderValue> {
         if let Ok(value) = value.try_into() {
             self.query_env
-                .http_headers
+                .response_http_headers
                 .lock()
                 .unwrap()
                 .insert(name, value)
@@ -711,7 +711,7 @@ impl<'a, T> ContextBase<'a, T> {
     ) -> bool {
         if let Ok(value) = value.try_into() {
             self.query_env
-                .http_headers
+                .response_http_headers
                 .lock()
                 .unwrap()
                 .append(name, value)
