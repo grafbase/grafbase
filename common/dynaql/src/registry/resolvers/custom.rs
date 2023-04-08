@@ -4,7 +4,8 @@ use crate::{Context, Error};
 use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_runtime::custom_resolvers::{
-    CustomResolverRequest, CustomResolverRequestPayload, CustomResolversEngine,
+    CustomResolverRequest, CustomResolverRequestContext, CustomResolverRequestContextRequest,
+    CustomResolverRequestPayload, CustomResolversEngine,
 };
 
 use send_wrapper::SendWrapper;
@@ -74,6 +75,19 @@ impl ResolverTrait for CustomResolver {
 
         // -- End of hack
 
+        let headers = serde_json::Value::Object({
+            let headers = ctx.query_env.http_headers.lock().unwrap();
+            headers
+                .iter()
+                .flat_map(|(key, value)| {
+                    Some((
+                        key.to_string().to_lowercase(),
+                        value.to_str().ok()?.to_owned().into(),
+                    ))
+                })
+                .collect()
+        });
+
         let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
         let arguments = ctx
             .field()
@@ -88,6 +102,9 @@ impl ResolverTrait for CustomResolver {
                 payload: CustomResolverRequestPayload {
                     arguments,
                     parent: Some(value),
+                    context: CustomResolverRequestContext {
+                        request: CustomResolverRequestContextRequest { headers },
+                    },
                 },
             },
         ));
