@@ -167,7 +167,13 @@ impl<Response> GqlRequestBuilder<Response> {
             variables,
         } = self;
         reqwest_builder = reqwest_builder.header(name, value);
-        Self { query, variables, phantom, reqwest_builder, bearer }
+        Self {
+            query,
+            variables,
+            phantom,
+            reqwest_builder,
+            bearer,
+        }
     }
 
     pub fn send(self) -> Response
