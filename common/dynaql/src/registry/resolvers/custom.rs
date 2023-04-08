@@ -5,7 +5,7 @@ use dynamodb::attribute_to_value;
 use dynomite::AttributeValue;
 use grafbase_runtime::custom_resolvers::{
     CustomResolverRequest, CustomResolverRequestContext, CustomResolverRequestContextRequest,
-    CustomResolverRequestPayload, CustomResolversEngine,
+    CustomResolverRequestInfo, CustomResolverRequestPayload, CustomResolversEngine,
 };
 
 use send_wrapper::SendWrapper;
@@ -105,6 +105,7 @@ impl ResolverTrait for CustomResolver {
                     context: CustomResolverRequestContext {
                         request: CustomResolverRequestContextRequest { headers },
                     },
+                    info: CustomResolverRequestInfo {},
                 },
             },
         ));
