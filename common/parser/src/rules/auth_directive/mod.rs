@@ -9,8 +9,6 @@ mod operations;
 mod providers;
 mod rules;
 
-use config::AuthConfig;
-
 use super::directive::Directive;
 
 const AUTH_DIRECTIVE: &str = "auth";
@@ -24,7 +22,7 @@ impl AuthDirective {
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
-            AuthConfig::from_value(ctx, &directive.node, is_global).map(|auth| Some(dynaql::AuthConfig::from(auth)))
+            config::parse_auth_config(ctx, &directive.node, is_global).map(Some)
         } else {
             Ok(None)
         }
