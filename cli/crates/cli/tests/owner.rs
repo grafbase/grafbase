@@ -134,8 +134,8 @@ mod global {
 
     mod twitter {
         use crate::utils::consts::{
-            OWNER_TWITTER_SCHEMA, OWNER_TWITTER_USER_CREATE, OWNER_TWITTER_USER_GET_BY_EMAIL,
-            OWNER_TWITTER_USER_GET_BY_ID,
+            OWNER_TWITTER_SCHEMA, OWNER_TWITTER_TWEET_CREATE, OWNER_TWITTER_USER_AND_TWEETS_GET_BY_ID,
+            OWNER_TWITTER_USER_CREATE, OWNER_TWITTER_USER_GET_BY_EMAIL, OWNER_TWITTER_USER_GET_BY_ID,
         };
         use crate::utils::environment::Environment;
         use crate::{USER1, USER2};
@@ -151,13 +151,13 @@ mod global {
             let client = env.create_client();
             client.poll_endpoint(30, 300);
 
-            // user1 creates a todo.
-            let email: &str = "one@example.com";
+            // user1 creates a user entity.
+            let email: &str = "user1@example.com";
             let user_created = client
                 .gql::<Value>(OWNER_TWITTER_USER_CREATE)
                 .bearer(USER1)
                 .variables(
-                    json!({ "username": "1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
+                    json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
                 )
                 .send();
 
@@ -175,7 +175,7 @@ mod global {
                     .variables(json!({ "id": id }))
                     .send()
             );
-            // user2 cannot get the entity by id
+            // user2 cannot get the user entity by id
             insta::assert_json_snapshot!(
                 "user2-get-empty",
                 client
@@ -195,18 +195,18 @@ mod global {
             let client = env.create_client();
             client.poll_endpoint(30, 300);
 
-            // user1 creates a todo.
-            let email: &str = "one@example.com";
+            // user1 creates a user entity.
+            let email: &str = "user1@example.com";
             let user_created = client
                 .gql::<Value>(OWNER_TWITTER_USER_CREATE)
                 .bearer(USER1)
                 .variables(
-                    json!({ "username": "1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
+                    json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
                 )
                 .send();
 
             insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
-            // user1 can use get by email
+            // user1 can create a tweet
             insta::assert_json_snapshot!(
                 "user1-get",
                 client
@@ -215,13 +215,66 @@ mod global {
                     .variables(json!({ "email": email }))
                     .send()
             );
-            // user2 cannot get the entity by email
+            // user2 cannot get the user entity by email
             insta::assert_json_snapshot!(
                 "user2-get-empty",
                 client
                     .gql::<Value>(OWNER_TWITTER_USER_GET_BY_EMAIL)
                     .bearer(USER2)
                     .variables(json!({ "email": email }))
+                    .send()
+            );
+        }
+
+        #[test]
+        fn test_linking() {
+            let mut env = Environment::init();
+            env.grafbase_init();
+            env.write_schema(OWNER_TWITTER_SCHEMA);
+            env.grafbase_dev();
+            let client = env.create_client();
+            client.poll_endpoint(30, 300);
+
+            // user1 creates a user entity.
+            let email: &str = "user1@example.com";
+            let user_created = client
+                .gql::<Value>(OWNER_TWITTER_USER_CREATE)
+                .bearer(USER1)
+                .variables(
+                    json!({ "username": "user1", "email": email, "avatar": "http://example.com", "url": "http://example.com" }),
+                )
+                .send();
+
+            insta::assert_json_snapshot!("user1-create", user_created, {".data.userCreate.user.id" => "[id]"});
+            let id: String = user_created
+                .dot_get("data.userCreate.user.id")
+                .unwrap()
+                .expect("id must be present");
+            // user1 can create a tweet linked to the user entity
+            insta::assert_json_snapshot!(
+                "user1-create-tweet",
+                client
+                    .gql::<Value>(OWNER_TWITTER_TWEET_CREATE)
+                    .bearer(USER1)
+                    .variables(json!({ "userId": id }))
+                    .send()
+            );
+            // user2 cannot get the entity by id
+            insta::assert_json_snapshot!(
+                "user2-create-tweet-fail",
+                client
+                    .gql::<Value>(OWNER_TWITTER_TWEET_CREATE)
+                    .bearer(USER2)
+                    .variables(json!({ "userId": id }))
+                    .send()
+            );
+            // user1 can use get by id
+            insta::assert_json_snapshot!(
+                "user1-and-tweets-get",
+                client
+                    .gql::<Value>(OWNER_TWITTER_USER_AND_TWEETS_GET_BY_ID)
+                    .bearer(USER1)
+                    .variables(json!({ "id": id }))
                     .send()
             );
         }
