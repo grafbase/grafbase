@@ -542,7 +542,7 @@ impl Schema {
             uploads: request.uploads,
             session_data,
             ctx_data: query_data,
-            http_headers: Default::default(),
+            response_http_headers: Default::default(),
             disable_introspection: request.disable_introspection,
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
@@ -586,7 +586,9 @@ impl Schema {
             }
             Err(err) => Response::from_errors(vec![err]),
         }
-        .http_headers(std::mem::take(&mut *env.http_headers.lock().unwrap()));
+        .http_headers(std::mem::take(
+            &mut *env.response_http_headers.lock().unwrap(),
+        ));
 
         resp.errors
             .extend(std::mem::take(&mut *env.errors.lock().unwrap()));

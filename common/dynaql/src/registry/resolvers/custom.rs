@@ -75,19 +75,7 @@ impl ResolverTrait for CustomResolver {
 
         // -- End of hack
 
-        let headers = serde_json::Value::Object({
-            let headers = ctx.query_env.http_headers.lock().unwrap();
-            headers
-                .iter()
-                .filter_map(|(key, value)| {
-                    Some((
-                        key.to_string().to_lowercase(),
-                        value.to_str().ok()?.to_owned().into(),
-                    ))
-                })
-                .collect()
-        });
-
+        let graphql = ctx.data::<grafbase_runtime::GraphqlRequestExecutionContext>()?;
         let custom_resolvers_engine = ctx.data::<CustomResolversEngine>()?;
         let arguments = ctx
             .field()
@@ -103,7 +91,9 @@ impl ResolverTrait for CustomResolver {
                     arguments,
                     parent: Some(value),
                     context: CustomResolverRequestContext {
-                        request: CustomResolverRequestContextRequest { headers },
+                        request: CustomResolverRequestContextRequest {
+                            headers: serde_json::to_value(&graphql.headers).expect("must be valid"),
+                        },
                     },
                     info: CustomResolverRequestInfo {},
                 },
