@@ -21,6 +21,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 serde_with = { workspace = true }
 url = { version = "2" }
+thiserror = { workspace = true }
 tuple = "0.5"
 
 [dev-dependencies]

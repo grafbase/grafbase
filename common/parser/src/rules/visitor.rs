@@ -17,11 +17,15 @@ use std::sync::{Arc, RwLock};
 
 use crate::dynamic_string::DynamicString;
 use crate::models::from_meta_type;
-use crate::rules::cache_directive::CacheDirective;
+use crate::rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
+use crate::ParseResult;
 
 use super::openapi_directive::OpenApiDirective;
 
 type TypeStackType<'a> = Vec<(Option<&'a Positioned<Type>>, Option<&'a Positioned<TypeDefinition>>)>;
+
+pub const QUERY_TYPE: &str = "Query";
+pub const MUTATION_TYPE: &str = "Mutation";
 
 /// The VisitorContext to visit every types from the Schema.
 pub struct VisitorContext<'a> {
@@ -43,7 +47,7 @@ pub struct VisitorContext<'a> {
     pub variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
     pub(crate) openapi_directives: Vec<OpenApiDirective>,
-    pub(crate) global_cache_directive: CacheDirective,
+    pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 }
 
 /// Add a fake scalar to the types HashMap if it isn't added by the schema.
@@ -137,22 +141,22 @@ impl<'a> VisitorContext<'a> {
             variables,
             required_resolvers: Default::default(),
             openapi_directives: Vec::new(),
-            global_cache_directive: Default::default(),
+            global_cache_rules: Default::default(),
         }
     }
 
     /// Finish the Registry
-    pub(crate) fn finish(self) -> (Registry, HashSet<String>, Vec<OpenApiDirective>) {
+    pub(crate) fn finish(self) -> ParseResult<'static> {
         let mut registry = self.registry.take();
         if !self.mutations.is_empty() {
-            registry.mutation_type = Some("Mutation".to_string());
+            registry.mutation_type = Some(MUTATION_TYPE.to_string());
         }
 
         registry.create_type(
             |registry| {
                 let schema_type = __Schema::create_type_info(registry);
                 dynaql::registry::MetaType::Object {
-                    name: "Query".to_owned(),
+                    name: QUERY_TYPE.to_owned(),
                     description: None,
                     fields: {
                         let mut fields = dynaql::indexmap::IndexMap::new();
@@ -184,24 +188,28 @@ impl<'a> VisitorContext<'a> {
                         }
                         fields
                     },
-                    cache_control: self.global_cache_directive.into(),
+                    cache_control: self
+                        .global_cache_rules
+                        .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
+                        .copied()
+                        .unwrap_or_default(),
                     extends: false,
                     keys: ::std::option::Option::None,
                     visible: ::std::option::Option::None,
                     is_subscription: false,
                     is_node: false,
-                    rust_typename: "Query".to_owned(),
+                    rust_typename: QUERY_TYPE.to_owned(),
                     constraints: vec![],
                 }
             },
-            "Query",
-            "Query",
+            QUERY_TYPE,
+            QUERY_TYPE,
         );
 
         if !self.mutations.is_empty() {
             registry.create_type(
                 |_| dynaql::registry::MetaType::Object {
-                    name: "Mutation".to_owned(),
+                    name: MUTATION_TYPE.to_owned(),
                     description: None,
                     fields: {
                         let mut fields = dynaql::indexmap::IndexMap::new();
@@ -216,11 +224,11 @@ impl<'a> VisitorContext<'a> {
                     visible: ::std::option::Option::None,
                     is_subscription: false,
                     is_node: false,
-                    rust_typename: "Mutation".to_owned(),
+                    rust_typename: MUTATION_TYPE.to_owned(),
                     constraints: vec![],
                 },
-                "Mutation",
-                "Mutation",
+                MUTATION_TYPE,
+                MUTATION_TYPE,
             );
         }
 
@@ -236,7 +244,12 @@ impl<'a> VisitorContext<'a> {
 
         registry.schemas = result;
 
-        (registry, self.required_resolvers, self.openapi_directives)
+        ParseResult {
+            registry,
+            required_resolvers: self.required_resolvers,
+            openapi_directives: self.openapi_directives,
+            global_cache_rules: self.global_cache_rules,
+        }
     }
 
     #[allow(dead_code)]

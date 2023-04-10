@@ -36,6 +36,7 @@ mod models;
 use crate::rules::cache_directive::{CacheDirective, CacheVisitor};
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
+pub use rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
 pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
@@ -80,17 +81,18 @@ pub fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     Ok(to_registry_with_variables(input, &HashMap::new())?.registry)
 }
 
-pub struct ParseResult {
+pub struct ParseResult<'a> {
     pub registry: Registry,
     pub required_resolvers: HashSet<String>,
     pub openapi_directives: Vec<OpenApiDirective>,
+    pub global_cache_rules: GlobalCacheRules<'a>,
 }
 
 /// Transform the input schema into a Registry in the context of provided environment variables
 pub fn to_registry_with_variables<S: AsRef<str>>(
     input: S,
     variables: &HashMap<String, String>,
-) -> Result<ParseResult, Error> {
+) -> Result<ParseResult<'_>, Error> {
     let directives = Directives::new()
         .with::<AuthDirective>()
         .with::<DefaultDirective>()
@@ -153,10 +155,5 @@ pub fn to_registry_with_variables<S: AsRef<str>>(
         return Err(ctx.errors.into());
     }
 
-    let (registry, required_resolvers, openapi_directives) = ctx.finish();
-    Ok(ParseResult {
-        registry,
-        required_resolvers,
-        openapi_directives,
-    })
+    Ok(ctx.finish())
 }

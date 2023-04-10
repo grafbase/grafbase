@@ -1066,6 +1066,11 @@ impl MetaType {
     }
 
     #[inline]
+    pub fn field_by_name_mut(&mut self, name: &str) -> Option<&mut MetaField> {
+        self.fields_mut().and_then(|fields| fields.get_mut(name))
+    }
+
+    #[inline]
     pub fn fields(&self) -> Option<&IndexMap<String, MetaField>> {
         match self {
             MetaType::Object { fields, .. } => Some(&fields),
