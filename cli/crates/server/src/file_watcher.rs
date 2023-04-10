@@ -15,7 +15,7 @@ pub enum FileEventType {
     Changed,
 }
 
-/// watches a file for write events, running a callback on each write
+/// watches a path for file system events, running a callback on each write
 pub async fn start_watcher<P, T>(path: P, on_write: T) -> Result<(), ServerError>
 where
     P: AsRef<Path> + Send + 'static,
