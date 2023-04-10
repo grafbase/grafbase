@@ -22,9 +22,9 @@ fn compilation_error() {
 
     assert!(error_page.contains("Encountered a compilation error"));
 
-    env.write_schema(DEFAULT_SCHEMA);
-
     client.snapshot();
+
+    env.write_schema(DEFAULT_SCHEMA);
 
     client.poll_endpoint_for_changes(30, 300);
 
