@@ -14,8 +14,9 @@ use dynaql::registry::{
 };
 use dynaql::registry::{MetaEnumValue, Registry};
 use dynaql::validation::dynamic_validators::DynValidator;
-use dynaql::{AuthConfig, Operations};
+use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, TypeDefinition};
+use grafbase::auth::Operations;
 use std::fmt::Display;
 
 use crate::registry::names::MetaNames;

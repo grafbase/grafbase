@@ -38,7 +38,7 @@ pub enum Operation {
     Delete,
 }
 
-impl From<Operations> for dynaql::Operations {
+impl From<Operations> for grafbase::auth::Operations {
     fn from(ops: Operations) -> Self {
         let mut res = Self::empty();
         for op in ops.0 {

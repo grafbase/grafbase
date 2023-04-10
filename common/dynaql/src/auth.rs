@@ -1,8 +1,7 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-
+use grafbase::auth::Operations;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
@@ -99,25 +98,5 @@ impl AuthConfig {
             Some(groups) => self.private_and_group_based_ops(groups),
             None => Self::api_key_ops(),
         }
-    }
-}
-
-bitflags::bitflags! {
-    #[allow(clippy::unsafe_derive_deserialize)]
-    #[derive(Serialize, Deserialize, Default)]
-    #[serde(transparent)]
-    pub struct Operations: u8 {
-        const CREATE = 1 << 0;
-        const GET    = 1 << 1; // More granual read access
-        const LIST   = 1 << 2; // More granual read access
-        const UPDATE = 1 << 3;
-        const DELETE = 1 << 4;
-        const READ   = Self::GET.bits | Self::LIST.bits;
-    }
-}
-
-impl fmt::Display for Operations {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", format!("{self:?}").to_lowercase())
     }
 }

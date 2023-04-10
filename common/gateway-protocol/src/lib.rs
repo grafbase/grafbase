@@ -1,4 +1,5 @@
 use aws_region_nearby::AwsRegion;
+use grafbase::auth::Operations;
 use std::collections::{HashMap, HashSet};
 use std::hash::{Hash, Hasher};
 use worker::js_sys::Uint8Array;
@@ -74,9 +75,9 @@ impl ExecutionAuth {
     }
 
     pub fn new_from_token(
-        private_and_group_ops: dynaql::Operations,
+        private_and_group_ops: Operations,
         groups_from_token: HashSet<String>,
-        subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+        subject_and_owner_ops: Option<(String, Operations)>,
     ) -> Self {
         let allowed_owner_ops = subject_and_owner_ops.as_ref().map(|it| it.1).unwrap_or_default();
         let global_ops = private_and_group_ops.union(allowed_owner_ops);
@@ -88,7 +89,7 @@ impl ExecutionAuth {
         })
     }
 
-    pub fn global_ops(&self) -> dynaql::Operations {
+    pub fn global_ops(&self) -> Operations {
         match self {
             Self::ApiKey => dynaql::AuthConfig::api_key_ops(),
             Self::Token(token) => token.global_ops,
@@ -109,15 +110,15 @@ impl ExecutionAuth {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ExecutionAuthToken {
     /// API key or group based operations that are enabled on the global level.
-    global_ops: dynaql::Operations,
-    private_and_group_ops: dynaql::Operations,
+    global_ops: Operations,
+    private_and_group_ops: Operations,
     groups_from_token: HashSet<String>,
     /// Owner's subject and enabled operations on the global level.
-    subject_and_owner_ops: Option<(String, dynaql::Operations)>,
+    subject_and_owner_ops: Option<(String, Operations)>,
 }
 
 impl ExecutionAuthToken {
-    pub fn global_ops(&self) -> dynaql::Operations {
+    pub fn global_ops(&self) -> Operations {
         self.global_ops
     }
 

@@ -5,8 +5,9 @@ use dynaql::extensions::{Extension, ExtensionContext, ExtensionFactory, NextReso
 use dynaql::graph_entities::ResponseNodeId;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::Registry;
-use dynaql::{Operations, ServerError, ServerResult};
+use dynaql::{ServerError, ServerResult};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
+use grafbase::auth::Operations;
 
 use gateway_protocol::ExecutionAuth;
 use log::warn;

@@ -32,8 +32,9 @@ use dynaql::registry::{is_array_basic_type, MetaType};
 use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, transformers::Transformer, variables::VariableResolveDefinition,
 };
-use dynaql::{AuthConfig, Operations, Positioned};
+use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{BaseType, FieldDefinition, ObjectType, Type, TypeDefinition, TypeKind};
+use grafbase::auth::Operations;
 use std::borrow::Cow;
 use std::collections::HashMap;
 
@@ -529,8 +530,9 @@ fn has_any_invalid_metadata_fields(ctx: &mut VisitorContext<'_>, object_name: &s
 mod tests {
     use serde_json as _;
 
-    use dynaql::{AuthConfig, Operations};
+    use dynaql::AuthConfig;
     use dynaql_parser::parse_schema;
+    use grafbase::auth::Operations;
     use std::collections::HashMap;
 
     use crate::rules::visitor::{visit, VisitorContext};

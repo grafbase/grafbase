@@ -116,6 +116,7 @@ mod tests {
     use crate::rules::model_directive::ModelDirective;
     use crate::rules::visitor::visit;
     use dynaql_parser::parse_schema;
+    use grafbase::auth::Operations;
     use pretty_assertions::assert_eq;
     use providers::DEFAULT_GROUPS_CLAIM;
 
@@ -201,7 +202,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::all(),
+            allowed_private_ops: Operations::all(),
             ..Default::default()
         }
     );
@@ -216,7 +217,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::CREATE | dynaql::Operations::DELETE,
+            allowed_private_ops: Operations::CREATE | Operations::DELETE,
             ..Default::default()
         }
     );
@@ -231,7 +232,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_private_ops: dynaql::Operations::empty(),
+            allowed_private_ops: Operations::empty(),
             ..Default::default()
         }
     );
@@ -247,8 +248,8 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_group_ops: HashMap::from_iter(vec![
-                ("admin".to_string(), dynaql::Operations::all()),
-                ("moderator".to_string(), dynaql::Operations::all()),
+                ("admin".to_string(), Operations::all()),
+                ("moderator".to_string(), Operations::all()),
             ]),
             ..Default::default()
         }
@@ -268,12 +269,12 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             allowed_group_ops: HashMap::from_iter(vec![
-                ("admin".to_string(), dynaql::Operations::all()),
+                ("admin".to_string(), Operations::all()),
                 (
                     "moderator".to_string(),
-                    dynaql::Operations::GET | dynaql::Operations::LIST
+                    Operations::GET | Operations::LIST
                 ),
-                ("editor".to_string(), dynaql::Operations::GET | dynaql::Operations::LIST)
+                ("editor".to_string(), Operations::GET | Operations::LIST)
             ]),
             ..Default::default()
         }
@@ -337,7 +338,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_owner_ops: dynaql::Operations::all(),
+            allowed_owner_ops: Operations::all(),
             ..Default::default()
         }
     );
@@ -352,7 +353,7 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            allowed_owner_ops: dynaql::Operations::CREATE,
+            allowed_owner_ops: Operations::CREATE,
             ..Default::default()
         }
     );

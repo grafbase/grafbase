@@ -22,7 +22,7 @@ use std::sync::atomic::AtomicU16;
 use std::sync::Arc;
 use ulid::Ulid;
 
-use crate::auth::{AuthConfig, Operations};
+use crate::auth::AuthConfig;
 pub use crate::model::__DirectiveLocation;
 use crate::model::{__Schema, __Type};
 use crate::parser::types::{
@@ -34,6 +34,7 @@ use crate::{
     model, Any, Context, InputType, OutputType, Positioned, ServerError, ServerResult,
     SubscriptionType, Value, VisitorContext,
 };
+use grafbase::auth::Operations;
 
 pub use cache_control::CacheControl;
 

@@ -10,8 +10,9 @@ use dynaql::registry::{
     MetaType,
 };
 
-use dynaql::{AuthConfig, Operations};
+use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, ObjectType, Type, TypeDefinition, TypeKind};
+use grafbase::auth::Operations;
 
 use crate::registry::names::{
     MetaNames, INPUT_ARG_BY, INPUT_ARG_INPUT, INPUT_FIELD_RELATION_CREATE, INPUT_FIELD_RELATION_LINK,

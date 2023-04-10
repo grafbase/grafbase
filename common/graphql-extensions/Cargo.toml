@@ -11,3 +11,4 @@ dynaql-value = { path = "../../common/dynaql/value" }
 lazy_static = "1"
 log = { path = "../../common/log", features = ["with-worker"] }
 gateway-protocol = { path = "../../common/gateway-protocol" }
+grafbase = { path = "../../common/grafbase", features = ["json"] }

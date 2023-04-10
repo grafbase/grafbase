@@ -9,8 +9,9 @@ use dynaql::registry::{
     resolvers::context_data::ContextDataResolver, resolvers::dynamo_querying::DynamoResolver, resolvers::Resolver,
     resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue, MetaType,
 };
-use dynaql::{AuthConfig, Operations};
+use dynaql::AuthConfig;
 use dynaql_parser::types::{BaseType, Type, TypeDefinition};
+use grafbase::auth::Operations;
 
 use crate::registry::names::{
     MetaNames, PAGE_INFO_FIELD_END_CURSOR, PAGE_INFO_FIELD_HAS_NEXT_PAGE, PAGE_INFO_FIELD_HAS_PREVIOUS_PAGE,

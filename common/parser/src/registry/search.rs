@@ -11,8 +11,9 @@ use dynaql::registry::{
     resolvers::Resolver, resolvers::ResolverType, variables::VariableResolveDefinition, MetaField, MetaInputValue,
 };
 use dynaql::registry::{MetaType, MetaTypeName, Registry};
-use dynaql::{AuthConfig, Operations, Positioned};
+use dynaql::{AuthConfig, Positioned};
 use dynaql_parser::types::{FieldDefinition, Type, TypeDefinition};
+use grafbase::auth::Operations;
 use grafbase_runtime::search;
 
 use crate::registry::generate_pagination_args;
