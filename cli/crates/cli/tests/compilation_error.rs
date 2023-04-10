@@ -54,8 +54,6 @@ fn compilation_error() {
 
     let response = client.gql::<Value>(COMPILATION_ERROR_RESOLVER_MUTATION).send();
 
-    dbg!(&response);
-
     let errors: Option<Vec<String>> = dot_get_opt!(response, "errors");
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
