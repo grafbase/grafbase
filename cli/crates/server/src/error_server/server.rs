@@ -14,7 +14,7 @@ use tower_http::trace::TraceLayer;
 
 #[allow(clippy::unused_async)]
 async fn playground(State(error): State<String>) -> Html<String> {
-    let document = include_str!("./error-page.html").replace("{{error}}", &error);
+    let document = include_str!("error-page.html").replace("{{error}}", &error);
 
     Html(document)
 }
