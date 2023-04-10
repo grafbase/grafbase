@@ -134,9 +134,18 @@ async fn spawn_servers(
             return Ok(());
         }
     };
+
     let environment = Environment::get();
 
-    let resolver_paths = build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await?;
+    let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
+        Ok(resolver_paths) => resolver_paths,
+        Err(error) => {
+            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
+                .await??;
+            return Ok(());
+        }
+    };
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
