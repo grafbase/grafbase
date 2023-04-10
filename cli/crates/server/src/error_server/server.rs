@@ -12,18 +12,18 @@ use serde_json::{json, Value};
 use std::net::{Ipv4Addr, SocketAddr};
 use tower_http::trace::TraceLayer;
 
+#[allow(clippy::unused_async)]
 async fn playground(State(error): State<String>) -> Html<String> {
-    let document = include_str!("./error-page.html")
-        .replace("{{error}}", &error)
-        .to_owned();
+    let document = include_str!("./error-page.html").replace("{{error}}", &error);
 
     Html(document)
 }
 
+#[allow(clippy::unused_async)]
 async fn endpoint(State(error): State<String>) -> Json<Value> {
     let document = json!(
         {
-            "data": Value::Null,
+            "data": null,
             "errors": [error]
         }
     );
