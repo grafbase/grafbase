@@ -141,7 +141,7 @@ async fn spawn_servers(
         Ok(resolver_paths) => resolver_paths,
         Err(error) => {
             let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
-            // TODO disable colored output from wrangler
+            // TODO consider disabling colored output from wrangler
             let error_byte_vec = error.to_string().as_bytes().to_vec();
             let error = String::from_utf8(strip_ansi_escapes::strip(&error_byte_vec).unwrap_or(error_byte_vec))
                 .expect("must parse");
