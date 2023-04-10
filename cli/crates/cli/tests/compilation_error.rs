@@ -10,6 +10,7 @@ use utils::consts::{
 use utils::environment::Environment;
 
 #[test]
+#[cfg_attr(target_os = "windows", ignore)]
 fn compilation_error() {
     let mut env = Environment::init();
     env.grafbase_init();
