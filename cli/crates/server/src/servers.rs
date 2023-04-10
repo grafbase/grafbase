@@ -147,8 +147,7 @@ async fn spawn_servers(
                 .ok()
                 .and_then(|stripped| String::from_utf8(stripped).ok())
                 .unwrap_or(error.to_string());
-            tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
-                .await??;
+            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
             return Ok(());
         }
     };
