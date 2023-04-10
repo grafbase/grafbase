@@ -78,7 +78,10 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
+    // Owner and global owner-based operations.
     subject_and_owner_ops: Option<(String, Operations)>,
+    // Private/group-based global operations.
+    private_and_group_ops: Operations,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -202,6 +205,7 @@ impl DynamoDBContext {
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
         subject_and_owner_ops: Option<(String, Operations)>,
+        private_and_group_ops: Operations,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
 
@@ -215,6 +219,7 @@ impl DynamoDBContext {
             closest_region: region,
             resolver_binding_map,
             subject_and_owner_ops,
+            private_and_group_ops,
         }
     }
 
@@ -230,14 +235,52 @@ impl DynamoDBContext {
         "gsi2"
     }
 
-    pub fn restrict_by_owner(&self, requested_ops: Operations) -> Option<&str> {
-        self.subject_and_owner_ops.as_ref().and_then(|(subject, allowed_ops)| {
-            if requested_ops.intersects(*allowed_ops) {
+    pub fn restrict_by_owner(&self, requested_op: RequestedOperation) -> Option<&str> {
+        log::trace!(
+            self.trace_id,
+            "restrict_by_owner - subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
+            sub = self.subject_and_owner_ops,
+            pg_ops = self.private_and_group_ops,
+        );
+        self.subject_and_owner_ops.as_ref().and_then(|(subject, owner_ops)| {
+            // Owner should have priority for Create operation.
+            if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
+                Some(subject.as_str())
+            // private_group_ops have precedence over owner in all other operations.
+            } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
+                // Do not inject owner-by constraint.
+                None
+            } else if owner_ops.contains(requested_op.as_operations()) {
+                Some(subject.as_str())
+            } else if requested_op == RequestedOperation::Get {
+                // Get is requested during creation. If Get is not present in owner-based nor private/group-based ops,
+                // assume it implicitly with owner-by constraint.
                 Some(subject.as_str())
             } else {
-                None
+                panic!("restrict_by_owner - subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
+                       sub = self.subject_and_owner_ops,
+                       pg_ops = self.private_and_group_ops,)
             }
         })
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum RequestedOperation {
+    Create,
+    Get,
+    List,
+    Delete,
+}
+
+impl RequestedOperation {
+    fn as_operations(&self) -> Operations {
+        match self {
+            Self::Create => Operations::CREATE,
+            Self::Get => Operations::GET,
+            Self::List => Operations::LIST,
+            Self::Delete => Operations::DELETE,
+        }
     }
 }
 

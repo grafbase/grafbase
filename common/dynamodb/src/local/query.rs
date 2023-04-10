@@ -3,8 +3,7 @@ use super::types::{Operation, Sql, SqlValue};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext};
-use grafbase::auth::Operations;
+use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext, RequestedOperation};
 use graph_entities::{NodeID, ID};
 use indexmap::map::IndexMap;
 use maplit::hashmap;
@@ -70,7 +69,7 @@ impl Loader<QueryKey> for QueryLoader {
                 "entity_type" => SqlValue::String(pk.ty().to_string()),
                 "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
             };
-            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(Operations::LIST) {
+            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(RequestedOperation::List) {
                 value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
                 true
             } else {

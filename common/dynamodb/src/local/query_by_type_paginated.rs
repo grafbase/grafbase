@@ -1,5 +1,4 @@
 use dynomite::{attr_map, AttributeValue};
-use grafbase::auth::Operations;
 use graph_entities::ID;
 use indexmap::IndexMap;
 use maplit::hashmap;
@@ -11,7 +10,9 @@ use std::time::Duration;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering};
+use crate::{
+    DynamoDBContext, DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering, RequestedOperation,
+};
 
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
@@ -227,7 +228,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 value_map.insert("pk", SqlValue::String(parent_id.to_string()));
                 value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
             }
-            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(Operations::LIST) {
+            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(RequestedOperation::List) {
                 value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
                 true
             } else {

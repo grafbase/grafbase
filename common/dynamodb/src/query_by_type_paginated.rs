@@ -1,5 +1,4 @@
 use dynomite::AttributeValue;
-use grafbase::auth::Operations;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,7 +9,7 @@ use tracing::{info_span, Instrument};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, PaginationOrdering, QueryResult};
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex};
+use crate::{DynamoDBContext, DynamoDBRequestedIndex, RequestedOperation};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -135,7 +134,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         log::debug!(self.ctx.trace_id, "Query Paginated Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
-        let owned_by = self.ctx.restrict_by_owner(Operations::LIST);
+        let owned_by = self.ctx.restrict_by_owner(RequestedOperation::List);
         for query_key in keys {
             let future_get = || async move {
                 let req = self.ctx.dynamodb_client.clone().query_node_edges(

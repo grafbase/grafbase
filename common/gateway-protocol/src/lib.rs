@@ -79,10 +79,7 @@ impl ExecutionAuth {
         groups_from_token: HashSet<String>,
         subject_and_owner_ops: Option<(String, Operations)>,
     ) -> Self {
-        let allowed_owner_ops = subject_and_owner_ops.as_ref().map(|it| it.1).unwrap_or_default();
-        let global_ops = private_and_group_ops.union(allowed_owner_ops);
         Self::Token(ExecutionAuthToken {
-            global_ops,
             private_and_group_ops,
             groups_from_token,
             subject_and_owner_ops,
@@ -92,7 +89,7 @@ impl ExecutionAuth {
     pub fn global_ops(&self) -> Operations {
         match self {
             Self::ApiKey => dynaql::AuthConfig::api_key_ops(),
-            Self::Token(token) => token.global_ops,
+            Self::Token(token) => token.global_merged_ops(),
         }
     }
 
@@ -109,8 +106,7 @@ impl ExecutionAuth {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct ExecutionAuthToken {
-    /// API key or group based operations that are enabled on the global level.
-    global_ops: Operations,
+    /// Private or group-based operations that are enabled on the global level.
     private_and_group_ops: Operations,
     groups_from_token: HashSet<String>,
     /// Owner's subject and enabled operations on the global level.
@@ -118,8 +114,9 @@ pub struct ExecutionAuthToken {
 }
 
 impl ExecutionAuthToken {
-    pub fn global_ops(&self) -> Operations {
-        self.global_ops
+    pub fn global_merged_ops(&self) -> Operations {
+        let allowed_owner_ops = self.subject_and_owner_ops.as_ref().map(|it| it.1).unwrap_or_default();
+        self.private_and_group_ops.union(allowed_owner_ops)
     }
 
     pub fn groups_from_token(&self) -> &HashSet<String> {
@@ -130,9 +127,13 @@ impl ExecutionAuthToken {
         self.subject_and_owner_ops.as_ref()
     }
 
+    pub fn private_and_group_ops(&self) -> Operations {
+        self.private_and_group_ops
+    }
+
     pub fn hash<H: Hasher + Default>(&self) -> u64 {
         let mut hasher = H::default();
-        self.global_ops.hash(&mut hasher);
+        self.private_and_group_ops.hash(&mut hasher);
         self.subject_and_owner_ops.hash(&mut hasher);
         hasher.write_usize(self.groups_from_token.len());
         let mut h: u64 = 0;
