@@ -143,7 +143,9 @@ async fn spawn_servers(
             let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
             // TODO consider disabling colored output from wrangler
             let error_byte_vec = error.to_string().as_bytes().to_vec();
-            let error = String::from_utf8(strip_ansi_escapes::strip(&error_byte_vec).unwrap_or(error_byte_vec))
+            let error = strip_ansi_escapes::strip(&error_byte_vec)
+                .ok()
+                .and_then(|stripped| String::from_utf8(stripped).ok())
                 .unwrap_or(error.to_string());
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
                 .await??;
