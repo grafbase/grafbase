@@ -26,7 +26,6 @@ fn compilation_error() {
 
     let response = client.gql::<Value>(DEFAULT_QUERY).send();
 
-    dbg!(&response);
     let errors: Option<Vec<String>> = dot_get_opt!(response, "errors");
 
     assert!(errors.is_none());
