@@ -11,6 +11,7 @@ repository = "https://github.com/grafbase/grafbase"
 include = ["/src", "/assets"]
 
 [dependencies]
+strip-ansi-escapes = "0.1"
 anyhow = "1"
 axum = "0.6"
 async-trait = "0.1"

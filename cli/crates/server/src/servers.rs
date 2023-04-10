@@ -141,6 +141,9 @@ async fn spawn_servers(
         Ok(resolver_paths) => resolver_paths,
         Err(error) => {
             let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            let error_byte_vec = error.to_string().as_bytes().to_vec();
+            let error = String::from_utf8(strip_ansi_escapes::strip(&error_byte_vec).unwrap_or(error_byte_vec))
+                .expect("must parse");
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
                 .await??;
             return Ok(());

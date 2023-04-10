@@ -97,3 +97,7 @@ pub const OWNER_TWITTER_USER_GET_BY_EMAIL: &str =
 
 pub const COMPILATION_ERROR_SCHEMA: &str = include_str!("../graphql/compilation_error/schema.graphql");
 pub const COMPILATION_ERROR_QUERY: &str = include_str!("../graphql/compilation_error/query.graphql");
+pub const COMPILATION_ERROR_RESOLVER_SCHEMA: &str =
+    include_str!("../graphql/compilation_error/resolver-schema.graphql");
+pub const COMPILATION_ERROR_RESOLVER_MUTATION: &str =
+    include_str!("../graphql/compilation_error/resolver-mutation.graphql");

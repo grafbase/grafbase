@@ -1,0 +1,4 @@
+type Post @model {
+  title: String!
+  title2: String! @resolver(name: "return-title")
+}

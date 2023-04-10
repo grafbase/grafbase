@@ -1,0 +1,7 @@
+mutation {
+  postCreate(input: { title: "Hello" }) {
+    post {
+      id
+    }
+  }
+}
