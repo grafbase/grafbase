@@ -18,12 +18,7 @@ async fn compilation_error() {
 
     assert_eq!(errors.map(|errors| !errors.is_empty()), Some(true));
 
-    let error_page = reqwest::get(format!("http://127.0.0.1:{}", env.port))
-        .await
-        .unwrap()
-        .text()
-        .await
-        .unwrap();
+    let error_page = client.get_playground_html().await;
 
     assert!(error_page.contains("Encountered a compilation error"));
 
