@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthConfig {
-    pub allowed_anonymous_ops: Operations,
-
     pub allowed_private_ops: Operations,
 
     #[serde(with = "::serde_with::rust::maps_duplicate_key_is_error")]
@@ -63,8 +61,6 @@ impl Eq for JwtProvider {}
 impl Default for AuthConfig {
     fn default() -> Self {
         AuthConfig {
-            allowed_anonymous_ops: Operations::all(),
-
             allowed_private_ops: Operations::empty(),
 
             allowed_group_ops: HashMap::new(),
@@ -80,7 +76,7 @@ impl Default for AuthConfig {
 
 impl AuthConfig {
     pub fn api_key_ops(&self) -> Operations {
-        self.allowed_anonymous_ops
+        Operations::all()
     }
 
     pub fn private_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {

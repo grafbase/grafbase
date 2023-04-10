@@ -169,7 +169,7 @@ mod tests {
         Default::default()
     );
 
-    parse_test!(
+    parse_fail!(
         anonymous_rule,
         r#"
         schema @auth(
@@ -178,7 +178,7 @@ mod tests {
           query: Query
         }
         "#,
-        Default::default()
+        "auth rule: unknown variant `anonymous`, expected one of `private`, `groups`, `owner`"
     );
 
     parse_fail!(
@@ -190,7 +190,7 @@ mod tests {
           query: Query
         }
         "#,
-        "auth rule: unknown field `operations`, there are no fields"
+        "auth rule: unknown variant `anonymous`, expected one of `private`, `groups`, `owner`"
     );
 
     parse_test!(

@@ -13,14 +13,6 @@ use super::operations::Operations;
 #[serde(deny_unknown_fields)]
 #[non_exhaustive]
 pub enum AuthRule {
-    /// Public data access via API keys
-    // Ex: { allow: anonymous }
-    #[serde(alias = "public")]
-    #[serde(rename_all = "camelCase")]
-    Anonymous {
-        // Note: we don't support operations as our playground needs full access
-    },
-
     /// Signed-in user data access via OIDC
     // Ex: { allow: private }
     //     { allow: private, operations: [create, read] }

@@ -2091,7 +2091,6 @@ Registry {
     enable_federation: false,
     federation_subscription: false,
     auth: AuthConfig {
-        allowed_anonymous_ops: CREATE | GET | LIST | UPDATE | DELETE | READ,
         allowed_private_ops: (empty),
         allowed_group_ops: {},
         allowed_owner_ops: (empty),
