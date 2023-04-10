@@ -13,10 +13,10 @@ use tempfile::{tempdir, TempDir};
 pub struct Environment {
     pub endpoint: String,
     pub directory: PathBuf,
+    pub port: u16,
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    port: u16,
 }
 
 const DOT_ENV_FILE: &str = ".env";
