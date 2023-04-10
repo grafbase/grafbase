@@ -144,7 +144,7 @@ async fn spawn_servers(
             // TODO consider disabling colored output from wrangler
             let error_byte_vec = error.to_string().as_bytes().to_vec();
             let error = String::from_utf8(strip_ansi_escapes::strip(&error_byte_vec).unwrap_or(error_byte_vec))
-                .expect("must parse");
+                .unwrap_or(error.to_string());
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
                 .await??;
             return Ok(());
