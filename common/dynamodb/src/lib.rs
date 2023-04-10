@@ -38,6 +38,7 @@ cfg_if::cfg_if! {
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
 
+use grafbase::auth::Operations;
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -77,7 +78,7 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
-    pub user_id: Option<String>,
+    subject_and_owner_ops: Option<(String, Operations)>,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -200,7 +201,7 @@ impl DynamoDBContext {
         dynamodb_table_name: String,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
-        user_id: Option<String>,
+        subject_and_owner_ops: Option<(String, Operations)>,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
 
@@ -213,7 +214,7 @@ impl DynamoDBContext {
             dynamodb_table_name,
             closest_region: region,
             resolver_binding_map,
-            user_id,
+            subject_and_owner_ops,
         }
     }
 
@@ -227,6 +228,16 @@ impl DynamoDBContext {
     /// GSI name used to reverse lockup
     pub(crate) const fn index_reverse_lockup() -> &'static str {
         "gsi2"
+    }
+
+    pub fn restrict_by_owner(&self, requested_ops: Operations) -> Option<&str> {
+        self.subject_and_owner_ops.as_ref().and_then(|(subject, allowed_ops)| {
+            if requested_ops.intersects(*allowed_ops) {
+                Some(subject.as_str())
+            } else {
+                None
+            }
+        })
     }
 }
 

@@ -1,4 +1,5 @@
 use dynomite::AttributeValue;
+use grafbase::auth::Operations;
 use quick_error::quick_error;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -134,6 +135,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         log::debug!(self.ctx.trace_id, "Query Paginated Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
+        let owned_by = self.ctx.restrict_by_owner(Operations::LIST);
         for query_key in keys {
             let future_get = || async move {
                 let req = self.ctx.dynamodb_client.clone().query_node_edges(
@@ -141,7 +143,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     query_key.clone(),
                     self.ctx.dynamodb_table_name.clone(),
                     self.index.clone(),
-                    self.ctx.user_id.as_deref(),
+                    owned_by,
                 );
                 #[cfg(feature = "tracing")]
                 let req = req.instrument(info_span!("fetch query by type paginated"));

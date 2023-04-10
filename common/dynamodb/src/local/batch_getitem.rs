@@ -5,6 +5,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, LocalContext};
 use dynomite::AttributeValue;
+use grafbase::auth::Operations;
 use maplit::hashmap;
 use quick_error::quick_error;
 use std::collections::HashMap;
@@ -59,11 +60,11 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         let response = results
             .into_iter()
             .filter(|item| {
-                if let Some(user_id) = self.ctx.user_id.as_ref() {
+                if let Some(user_id) = self.ctx.restrict_by_owner(Operations::GET) {
                     item.document
                         .get(OWNED_BY)
                         .and_then(|item| item.ss.as_ref())
-                        .map(|owners| owners.contains(user_id))
+                        .map(|owners| owners.iter().any(|it| it == user_id))
                         .unwrap_or_default()
                 } else {
                     true

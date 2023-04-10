@@ -5,3 +5,5 @@ targets = [
 ]
 components = ["rustfmt", "clippy"]
 profile = "minimal"
+
+# FIXME: delete this file

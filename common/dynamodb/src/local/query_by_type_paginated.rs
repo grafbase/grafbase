@@ -1,4 +1,5 @@
 use dynomite::{attr_map, AttributeValue};
+use grafbase::auth::Operations;
 use graph_entities::ID;
 use indexmap::IndexMap;
 use maplit::hashmap;
@@ -226,9 +227,12 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 value_map.insert("pk", SqlValue::String(parent_id.to_string()));
                 value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
             }
-            if let Some(user_id) = self.ctx.user_id.as_ref() {
+            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(Operations::LIST) {
                 value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
-            }
+                true
+            } else {
+                false
+            };
 
             let (query, values) = Sql::SelectTypePaginated {
                 has_origin: query_key.cursor.maybe_origin().is_some(),
@@ -249,7 +253,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                     !query_key.ordering.is_asc()
                 },
                 edges_count: query_key.edges.len(),
-                filter_by_owner: self.ctx.user_id.is_some(),
+                filter_by_owner,
             }
             .compile(value_map);
 

@@ -4,6 +4,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex, LocalContext};
+use grafbase::auth::Operations;
 use graph_entities::{NodeID, ID};
 use indexmap::map::IndexMap;
 use maplit::hashmap;
@@ -69,21 +70,24 @@ impl Loader<QueryKey> for QueryLoader {
                 "entity_type" => SqlValue::String(pk.ty().to_string()),
                 "edges" => SqlValue::VecDeque(query_key.edges.clone().into()),
             };
-            if let Some(user_id) = self.ctx.user_id.as_ref() {
+            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(Operations::LIST) {
                 value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
-            }
+                true
+            } else {
+                false
+            };
 
             let (query, values) = if has_edges {
                 Sql::SelectIdWithEdges {
                     pk: self.index.pk(),
                     number_of_edges,
-                    filter_by_owner: self.ctx.user_id.is_some(),
+                    filter_by_owner,
                 }
                 .compile(value_map)
             } else {
                 Sql::SelectId {
                     pk: self.index.pk(),
-                    filter_by_owner: self.ctx.user_id.is_some(),
+                    filter_by_owner,
                 }
                 .compile(value_map)
             };

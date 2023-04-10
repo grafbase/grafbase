@@ -270,10 +270,7 @@ mod tests {
         dynaql::AuthConfig {
             allowed_group_ops: HashMap::from_iter(vec![
                 ("admin".to_string(), Operations::all()),
-                (
-                    "moderator".to_string(),
-                    Operations::GET | Operations::LIST
-                ),
+                ("moderator".to_string(), Operations::GET | Operations::LIST),
                 ("editor".to_string(), Operations::GET | Operations::LIST)
             ]),
             ..Default::default()

@@ -126,8 +126,8 @@ impl ExecutionAuthToken {
         &self.groups_from_token
     }
 
-    pub fn subject(&self) -> Option<&str> {
-        self.subject_and_owner_ops.as_ref().map(|it| it.0.as_str())
+    pub fn subject_and_owner_ops(&self) -> Option<&(String, Operations)> {
+        self.subject_and_owner_ops.as_ref()
     }
 
     pub fn hash<H: Hasher + Default>(&self) -> u64 {

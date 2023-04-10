@@ -11,6 +11,7 @@ use crate::constant::{OWNED_BY, PK, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::DynamoDBContext;
+use grafbase::auth::Operations;
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -90,10 +91,10 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .into_iter()
             .filter(|item| {
                 // BatchGetItem doesn't support filtering, so do it manually
-                if let Some(user_id) = self.ctx.user_id.as_ref() {
+                if let Some(user_id) = self.ctx.restrict_by_owner(Operations::GET) {
                     item.get(OWNED_BY)
                         .and_then(|av| av.ss.as_ref())
-                        .map(|owners| owners.contains(user_id))
+                        .map(|owners| owners.iter().any(|it| it == user_id))
                         .unwrap_or(false)
                 } else {
                     true
