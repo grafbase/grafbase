@@ -131,7 +131,7 @@ impl Client {
         }
     }
 
-    pub async fn get_playground_html(&self) -> String {
+    pub fn get_playground_html(&self) -> String {
         self.client
             .get(&self.playground_endpoint)
             .send()
