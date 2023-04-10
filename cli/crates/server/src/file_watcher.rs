@@ -16,7 +16,7 @@ pub enum FileEventType {
 }
 
 /// watches a file for write events, running a callback on each write
-pub async fn start_watcher<P, T>(file: P, on_write: T) -> Result<(), ServerError>
+pub async fn start_watcher<P, T>(path: P, on_write: T) -> Result<(), ServerError>
 where
     P: AsRef<Path> + Send + 'static,
     T: Fn(PathBuf, FileEventType) + Send + 'static,
@@ -24,7 +24,7 @@ where
     let (notify_sender, notify_receiver) = mpsc::channel();
 
     let mut watcher: RecommendedWatcher = Watcher::new(notify_sender, FILE_WATCHER_INTERVAL)?;
-    watcher.watch(&file, RecursiveMode::Recursive)?;
+    watcher.watch(&path, RecursiveMode::Recursive)?;
 
     tokio::task::spawn_blocking(move || -> Result<(), ServerError> {
         loop {
