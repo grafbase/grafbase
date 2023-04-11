@@ -175,9 +175,10 @@ pub enum QueryResponseErrors {
 impl QueryResponse {
     /// Initialize a new response
     pub fn new_root(node: QueryResponseNode) -> Self {
+        let id = node.id().unwrap_or_default();
         Self {
-            root: Some(node.id().unwrap_or_default()),
-            data: HashMap::from_iter(vec![(node.id().unwrap_or_default(), node)]),
+            root: Some(id.clone()),
+            data: HashMap::from_iter(vec![(id, node)]),
         }
     }
 
@@ -686,8 +687,8 @@ mod tests {
     #[test]
     fn delete_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.clone().unwrap();
 
         let node = response
             .push(&root_id, ResponseContainer::new_container().into())
@@ -738,8 +739,8 @@ mod tests {
     #[test]
     fn transform_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.clone().unwrap();
 
         let node = response
             .push(&root_id, ResponseContainer::new_container().into())
@@ -764,8 +765,8 @@ mod tests {
     #[test]
     fn print_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.clone().unwrap();
 
         let node = response
             .push(&root_id, ResponseContainer::new_container().into())
