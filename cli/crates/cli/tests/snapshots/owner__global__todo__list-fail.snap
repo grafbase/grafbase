@@ -1,0 +1,12 @@
+---
+source: crates/cli/tests/owner.rs
+expression: "client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send()"
+---
+{
+  "data": {},
+  "errors": [
+    {
+      "message": "Unauthorized to access Query.todoCollection (missing list operation)"
+    }
+  ]
+}

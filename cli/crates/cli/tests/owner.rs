@@ -29,15 +29,39 @@ const USER1: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2
 }
 */
 const USER2: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImV4cCI6MzAwMDAwMDAwMCwiaWF0IjoxNTE2MjM5MDIyLCJzdWIiOiJ1c2VyMiJ9.J8j7tjrjd-WaRFcxRBUjev0-1uifRnE0IVt_W-IXdHM";
+/*
+{
+  "iss": "https://idp.example.com",
+  "groups": [
+    "admin"
+  ],
+  "exp": 1700000000,
+  "sub": "user3",
+  "iat": 1516239022
+}
+*/
+const USER3: &str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6WyJhZG1pbiJdLCJleHAiOjE3MDAwMDAwMDAsInN1YiI6InVzZXIzIiwiaWF0IjoxNTE2MjM5MDIyfQ.spBDmilxTWvrPVBTdPP5FKHRTY5aFvXvVeDcC82MVq4";
+/*
+{
+  "iss": "https://idp.example.com",
+  "groups": [
+    "admin"
+  ],
+  "exp": 1700000000,
+  "iat": 1516239022
+}
+*/
+const ADMIN:&str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2lkcC5leGFtcGxlLmNvbSIsImdyb3VwcyI6WyJhZG1pbiJdLCJleHAiOjE3MDAwMDAwMDAsImlhdCI6MTUxNjIzOTAyMn0.1cEYNKTmOMMOE9DXpQWB5YLQgzjpMSMXt5lzWEXhjsY";
 
 mod global {
 
     mod todo {
         use crate::utils::consts::{
-            OWNER_TODO_CREATE, OWNER_TODO_DELETE, OWNER_TODO_GET, OWNER_TODO_LIST, OWNER_TODO_SCHEMA, OWNER_TODO_UPDATE,
+            OWNER_TODO_CREATE, OWNER_TODO_DELETE, OWNER_TODO_GET, OWNER_TODO_LIST, OWNER_TODO_MIXED_SCHEMA,
+            OWNER_TODO_OWNER_CREATE_SCHEMA, OWNER_TODO_SCHEMA, OWNER_TODO_UPDATE,
         };
         use crate::utils::environment::Environment;
-        use crate::{USER1, USER2};
+        use crate::{ADMIN, USER1, USER2, USER3};
         use json_dotpath::DotPaths;
         use serde_json::{json, Value};
 
@@ -62,7 +86,7 @@ mod global {
                 .dot_get("data.todoCreate.todo.id")
                 .unwrap()
                 .expect("id must be present");
-            // user1.list should show the todo.
+            // user1.list should see the todo.
             insta::assert_json_snapshot!("user1-list", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
             // user1 should be able to get the todo by id.
             insta::assert_json_snapshot!(
@@ -82,7 +106,7 @@ mod global {
                     .variables(json!({"id": id, "complete": true}))
                     .send()
             );
-            // user1.list should show the todo with updated complete status.
+            // user1.list should see the todo with updated complete status.
             insta::assert_json_snapshot!(
                 "user1-list-2",
                 client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send()
@@ -129,6 +153,124 @@ mod global {
             );
             // list of todos should be empty.
             insta::assert_json_snapshot!("list-empty", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
+        }
+
+        #[test]
+        fn owner_create_group_all_should_work() {
+            let mut env = Environment::init();
+            env.grafbase_init();
+            env.write_schema(OWNER_TODO_OWNER_CREATE_SCHEMA);
+            env.grafbase_dev();
+            let client = env.create_client();
+            client.poll_endpoint(30, 300);
+
+            // user1 creates a todo.
+            let todo_created = client
+                .gql::<Value>(OWNER_TODO_CREATE)
+                .bearer(USER1)
+                .variables(json!({ "title": "1", "complete": false }))
+                .send();
+            insta::assert_json_snapshot!("user1-create", todo_created, {".data.todoCreate.todo.id" => "[id]"});
+            let id: String = todo_created
+                .dot_get("data.todoCreate.todo.id")
+                .unwrap()
+                .expect("id must be present");
+
+            // // admin.list should see the todo.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(ADMIN).send());
+            // user3.list should see the todo.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER3).send());
+            // user1.list should be unauthorized.
+            insta::assert_json_snapshot!("list-fail", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
+            // user2.list should be unauthorized.
+            insta::assert_json_snapshot!("list-fail", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER2).send());
+
+            // user1 should not be able to get the todo by id.
+            insta::assert_json_snapshot!(
+                "get-fail",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER1)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // admin should be able to get the todo by id.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(ADMIN)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // user3 should be able to get the todo by id.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER3)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+        }
+
+        #[test]
+        fn group_should_supercede_owner_when_listing_entities() {
+            let mut env = Environment::init();
+            env.grafbase_init();
+            env.write_schema(OWNER_TODO_MIXED_SCHEMA);
+            env.grafbase_dev();
+            let client = env.create_client();
+            client.poll_endpoint(30, 300);
+
+            // user1 creates a todo.
+            let todo_created = client
+                .gql::<Value>(OWNER_TODO_CREATE)
+                .bearer(USER1)
+                .variables(json!({ "title": "1", "complete": false }))
+                .send();
+            insta::assert_json_snapshot!("user1-create", todo_created, {".data.todoCreate.todo.id" => "[id]"});
+            let id: String = todo_created
+                .dot_get("data.todoCreate.todo.id")
+                .unwrap()
+                .expect("id must be present");
+
+            // admin.list should see the todo.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(ADMIN).send());
+            // user3.list should see the todo.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER3).send());
+            // user1.list should see the todo.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
+            // user2.list should be unauthorized.
+            insta::assert_json_snapshot!("list", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER1).send());
+
+            // user1 should see the todo.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER1)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // admin should see the todo.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(ADMIN)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // user3 should see the todo.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER3)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
         }
     }
 
