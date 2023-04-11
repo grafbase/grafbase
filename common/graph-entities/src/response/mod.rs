@@ -446,7 +446,7 @@ pub enum ResponseNodeRelation {
         from: Option<ArcIntern<String>>,
         to: ArcIntern<String>,
     },
-    #[serde(rename = "r")]
+    #[serde(rename = "nr")]
     NotARelation {
         #[derivative(Hash = "ignore", PartialEq = "ignore")]
         #[serde(rename = "rk", default, skip_serializing_if = "Option::is_none")]
