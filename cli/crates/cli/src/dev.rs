@@ -45,6 +45,7 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
                         }) => {
                             report::resolver_message(&resolver_name, &message, level);
                         }
+                        Ok(ServerMessage::CompilationError(error)) => report::error(&CliError::CompilationError(error)),
                         Err(_) => break,
                     }
                 }

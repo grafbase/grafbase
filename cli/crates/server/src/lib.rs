@@ -25,6 +25,7 @@ mod bridge;
 mod consts;
 mod custom_resolvers;
 mod environment;
+mod error_server;
 mod event;
 mod file_watcher;
 mod servers;

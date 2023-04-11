@@ -12,11 +12,12 @@ use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
+    pub playground_endpoint: String,
     pub directory: PathBuf,
+    pub port: u16,
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    port: u16,
 }
 
 const DOT_ENV_FILE: &str = ".env";
@@ -58,6 +59,7 @@ impl Environment {
             directory: temp_dir.path().to_owned(),
             commands: vec![],
             endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            playground_endpoint: format!("http://127.0.0.1:{port}"),
             schema_path,
             temp_dir,
             port,
@@ -73,6 +75,7 @@ impl Environment {
             directory: other.directory.clone(),
             commands: vec![],
             endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            playground_endpoint: format!("http://127.0.0.1:{port}"),
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
@@ -80,11 +83,11 @@ impl Environment {
     }
 
     pub fn create_client(&self) -> Client {
-        Client::new(self.endpoint.clone())
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
-        AsyncClient::new(self.endpoint.clone())
+        AsyncClient::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
     pub fn write_schema(&self, schema: impl AsRef<str>) {

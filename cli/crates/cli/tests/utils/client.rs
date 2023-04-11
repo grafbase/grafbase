@@ -11,15 +11,17 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 
 pub struct Client {
     endpoint: String,
+    playground_endpoint: String,
     headers: HeaderMap,
     client: reqwest::blocking::Client,
     snapshot: Option<String>,
 }
 
 impl Client {
-    pub fn new(endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
         Self {
             endpoint,
+            playground_endpoint,
             headers: HeaderMap::new(),
             client: reqwest::blocking::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
@@ -127,6 +129,15 @@ impl Client {
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
             sleep(Duration::from_millis(interval_millis));
         }
+    }
+
+    pub fn get_playground_html(&self) -> String {
+        self.client
+            .get(&self.playground_endpoint)
+            .send()
+            .unwrap()
+            .text()
+            .unwrap()
     }
 }
 

@@ -2,6 +2,7 @@ use crate::consts::{
     ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
 use crate::custom_resolvers::build_resolvers;
+use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
@@ -98,7 +99,7 @@ async fn server_loop(
             }
             (path, file_event_type) = wait_for_event_and_match(receiver, |event| match event {
                 Event::Reload(path, file_event_type) => Some((path, file_event_type)),
-                Event::BridgeReady => None
+                Event::BridgeReady => None,
             }) => {
                 trace!("reload");
                 let _ = sender.send(ServerMessage::Reload(path, file_event_type));
@@ -124,10 +125,31 @@ async fn spawn_servers(
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
-    let resolvers = run_schema_parser(&environment_variables).await?;
+    let resolvers = match run_schema_parser(&environment_variables).await {
+        Ok(resolvers) => resolvers,
+        Err(error) => {
+            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
+                .await??;
+            return Ok(());
+        }
+    };
+
     let environment = Environment::get();
 
-    let resolver_paths = build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await?;
+    let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
+        Ok(resolver_paths) => resolver_paths,
+        Err(error) => {
+            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            // TODO consider disabling colored output from wrangler
+            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+                .ok()
+                .and_then(|stripped| String::from_utf8(stripped).ok())
+                .unwrap_or_else(|| error.to_string());
+            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+            return Ok(());
+        }
+    };
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 

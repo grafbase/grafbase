@@ -13,15 +13,17 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 
 pub struct AsyncClient {
     endpoint: String,
+    playground_endpoint: String,
     headers: HeaderMap,
     client: reqwest::Client,
     snapshot: Option<String>,
 }
 
 impl AsyncClient {
-    pub fn new(endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
         Self {
             endpoint,
+            playground_endpoint,
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
                 .timeout(Duration::from_secs(5))
@@ -132,6 +134,17 @@ impl AsyncClient {
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
             sleep(Duration::from_millis(interval_millis)).await;
         }
+    }
+
+    pub async fn get_playground_html(&self) -> String {
+        self.client
+            .get(&self.playground_endpoint)
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap()
     }
 }
 

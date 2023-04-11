@@ -83,7 +83,6 @@ fn scalars() {
             client.create_req(variables.clone()),
         ),
     ] {
-        dbg!(&response);
         assert_eq!(
             dot_get!(response, &format!("{prefix}.ip"), String),
             dot_get!(variables, "ip", String)

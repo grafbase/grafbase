@@ -41,6 +41,9 @@ pub enum CliError {
     /// returned if an account selected for linking a project has no projects
     #[error("the selected account has no projects")]
     AccountWithNoProjects,
+    /// returned if the schema parser failed to compile a file
+    #[error("{0}")]
+    CompilationError(String),
 }
 
 #[cfg(target_family = "windows")]
