@@ -176,8 +176,8 @@ impl QueryResponse {
     /// Initialize a new response
     pub fn new_root(node: QueryResponseNode) -> Self {
         Self {
-            root: Some(node.id()),
-            data: HashMap::from_iter(vec![(node.id(), node)]),
+            root: Some(node.id().unwrap_or_default()),
+            data: HashMap::from_iter(vec![(node.id().unwrap_or_default(), node)]),
         }
     }
 
@@ -189,7 +189,7 @@ impl QueryResponse {
     /// Create a new node, replace if the node already exist
     /// (A new node is not in the response)
     pub fn new_node_unchecked(&mut self, node: QueryResponseNode) -> ResponseNodeId {
-        let id = node.id();
+        let id = node.id().unwrap_or_default();
         self.data.insert(id.clone(), node);
         id
     }
@@ -288,7 +288,7 @@ impl QueryResponse {
                 }
                 Some(CompactValue::List(list))
             }
-            QueryResponseNode::Primitive(ResponsePrimitive { value, .. }) => Some(value),
+            QueryResponseNode::Primitive(ResponsePrimitive(value)) => Some(value),
         }
     }
 
@@ -298,16 +298,15 @@ impl QueryResponse {
 }
 
 impl QueryResponseNode {
-    pub fn id(&self) -> ResponseNodeId {
+    pub fn id(&self) -> Option<ResponseNodeId> {
         match self {
-            QueryResponseNode::Container(value) => value.id.clone(),
-            QueryResponseNode::List(value) => value.id.clone(),
-            QueryResponseNode::Primitive(value) => value.id.clone(),
+            QueryResponseNode::Container(value) => Some(value.id.clone()),
+            QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None, /*Some(value.id.clone()),*/
         }
     }
 
     pub fn is_node(&self) -> bool {
-        matches!(self.id(), ResponseNodeId::NodeID(_))
+        matches!(self.id(), Some(ResponseNodeId::NodeID(_)))
     }
 
     pub const fn is_list(&self) -> bool {
@@ -348,10 +347,12 @@ impl QueryResponseNode {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseList {
     id: ResponseNodeId,
+
     // Right now children are in an order based on the created_at which can be derived.
     // What we should do is to add a a OrderedBy field where we would specified Ord applied to this
     // List. Then on insert we'll be able to add new elements based on the Ord.
     // order: Vec<todo!()>,
+    #[serde(rename = "c", default, skip_serializing_if = "Vec::is_empty")]
     children: Vec<ResponseNodeId>,
 }
 
@@ -384,26 +385,29 @@ impl ResponseList {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ResponsePrimitive {
-    id: ResponseNodeId,
-    value: CompactValue,
-}
+pub struct ResponsePrimitive(CompactValue);
+// id: ResponseNodeId,
+// #[serde(rename = "v")]
+// value: CompactValue,
+// }
 
 impl ResponsePrimitive {
     pub fn new(value: CompactValue) -> Self {
-        Self {
-            id: ResponseNodeId::internal(),
-            value,
-        }
+        ResponsePrimitive(value)
+        // Self {
+        //     id: ResponseNodeId::internal(),
+        //     value,
+        // }
     }
 }
 
 impl Default for ResponsePrimitive {
     fn default() -> Self {
-        Self {
-            id: ResponseNodeId::internal(),
-            value: CompactValue::Null,
-        }
+        ResponsePrimitive(CompactValue::Null)
+        // Self {
+        //     id: ResponseNodeId::internal(),
+        //     value: CompactValue::Null,
+        // }
     }
 }
 
@@ -434,15 +438,19 @@ impl From<ResponseList> for QueryResponseNode {
 #[derive(Derivative, Debug, Deserialize, Serialize, Clone, Ord, PartialOrd, Eq)]
 #[derivative(Hash, PartialEq)]
 pub enum ResponseNodeRelation {
+    #[serde(rename = "r")]
     Relation {
         response_key: ArcIntern<String>,
         relation_name: ArcIntern<String>,
         from: Option<ArcIntern<String>>,
         to: ArcIntern<String>,
     },
+    #[serde(rename = "r")]
     NotARelation {
         #[derivative(Hash = "ignore", PartialEq = "ignore")]
+        #[serde(rename = "rk", default, skip_serializing_if = "Option::is_none")]
         response_key: Option<ArcIntern<String>>,
+        #[serde(rename = "f")]
         field: ArcIntern<String>,
     },
 }
@@ -478,7 +486,9 @@ impl Display for ResponseNodeRelation {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum RelationOrigin {
+    #[serde(rename = "n")]
     Node(ResponseNodeId),
+    #[serde(rename = "t")]
     Type(ArcIntern<String>),
 }
 
@@ -486,6 +496,7 @@ pub enum RelationOrigin {
 pub struct ResponseContainer {
     id: ResponseNodeId,
     /// Children which are (relation_rame, node)
+    #[serde(rename = "c")]
     children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
     // /// Errors, not as `ServerError` yet as we do not have the position.
     // errors: Vec<Error>,
@@ -505,6 +516,7 @@ pub struct ResponseContainer {
     /// To have the system of following relation working, we need to store here relations that are
     /// OneToMany, and we need to follow the origin node (if any) or the origin type and the
     /// relation.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "r")]
     relation: Option<(RelationOrigin, ArcIntern<String>)>,
 }
 
@@ -559,8 +571,11 @@ impl ResponseContainer {
 /// A Query Response Node
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub enum QueryResponseNode {
+    #[serde(rename = "C")]
     Container(ResponseContainer),
+    #[serde(rename = "L")]
     List(ResponseList),
+    #[serde(rename = "P")]
     Primitive(ResponsePrimitive),
 }
 
@@ -595,7 +610,7 @@ mod tests {
     #[test]
     fn should_transform_example_json() {
         let root: QueryResponseNode = ResponseContainer::new_container().into();
-        let root_id = root.id();
+        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
 
         let glossary_container = response
@@ -631,7 +646,7 @@ mod tests {
     #[test]
     fn should_be_able_to_delete_a_node() {
         let root: QueryResponseNode = ResponseContainer::new_container().into();
-        let root_id = root.id();
+        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
 
         let glossary_id = NodeID::new("type", "a_id");
@@ -671,7 +686,7 @@ mod tests {
     #[test]
     fn delete_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id();
+        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
 
         let node = response
@@ -723,7 +738,7 @@ mod tests {
     #[test]
     fn transform_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id();
+        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
 
         let node = response
@@ -749,7 +764,7 @@ mod tests {
     #[test]
     fn print_list_json() {
         let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
-        let root_id = root.id();
+        let root_id = root.id().unwrap();
         let mut response = QueryResponse::new_root(root);
 
         let node = response

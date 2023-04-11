@@ -1,9 +1,8 @@
 use crate::NodeID;
 use getrandom::getrandom;
 use internment::ArcIntern;
-use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Hash, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Hash)]
 /// A node identifier within a particular [`Tree`].
 ///
 /// This ID is used to get [`Node`] references from an [`Tree`].
@@ -17,6 +16,12 @@ pub enum ResponseNodeId {
     },
     // An ID which describe an Entity
     NodeID(ArcIntern<String>),
+}
+
+impl Default for ResponseNodeId {
+    fn default() -> Self {
+        Self::internal()
+    }
 }
 
 impl ResponseNodeId {
@@ -42,3 +47,58 @@ impl ResponseNodeId {
         }
     }
 }
+
+impl serde::Serialize for ResponseNodeId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            ResponseNodeId::Internal { id } => serializer.serialize_u64(*id),
+            ResponseNodeId::NodeID(string) => serializer.serialize_str(string.as_ref()),
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ResponseNodeId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct Visitor {}
+
+        impl<'de> serde::de::Visitor<'de> for Visitor {
+            type Value = ResponseNodeId;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(formatter, "a u64 or string")
+            }
+
+            fn visit_u64<E>(self, id: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(ResponseNodeId::Internal { id })
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(ResponseNodeId::NodeID(ArcIntern::new(value.to_string())))
+            }
+
+            fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Ok(ResponseNodeId::NodeID(ArcIntern::new(value)))
+            }
+        }
+
+        // This does rule out non self-describing formats :(
+        deserializer.deserialize_any(Visitor {})
+    }
+}
+
+// TODO: Serde tests
