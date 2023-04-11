@@ -10,7 +10,7 @@ use tracing::{info_span, Instrument};
 use crate::constant::{OWNED_BY, PK, SK};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, RequestedOperation};
+use crate::{DynamoDBContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -24,6 +24,11 @@ quick_error! {
         }
         MissingUniqueFields {
             display("Couldn't find values for required unique fields")
+        }
+        AuthorizationError(err: OperationAuthorizationError) {
+            from()
+            source(err)
+            display("Unauthorized")
         }
     }
 }
@@ -79,6 +84,10 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         });
         #[cfg(feature = "tracing")]
         let get_items = get_items.instrument(info_span!("fetch batch_get_item"));
+        let owned_by = match self.ctx.authorize_operation(RequestedOperation::List)? {
+            OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
+            OperationAuthorization::PrivateOrGroupBased => None,
+        };
         let get_items = get_items
             .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
             .await
@@ -90,7 +99,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
             .into_iter()
             .filter(|item| {
                 // BatchGetItem doesn't support filtering, so do it manually
-                if let Some(user_id) = self.ctx.restrict_by_owner(RequestedOperation::Get) {
+                if let Some(user_id) = owned_by {
                     item.get(OWNED_BY)
                         .and_then(|av| av.ss.as_ref())
                         .map(|owners| owners.iter().any(|it| it == user_id))

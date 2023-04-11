@@ -8,7 +8,7 @@ use super::{
 };
 use crate::constant::{self, PK, SK};
 use crate::transaction::TxItemMetadata;
-use crate::{DynamoDBBatchersData, DynamoDBContext};
+use crate::{DynamoDBBatchersData, DynamoDBContext, OperationAuthorization};
 use crate::{RequestedOperation, TxItem};
 
 use dynomite::Attribute;
@@ -45,7 +45,7 @@ impl ExecuteChangesOnDatabase for InsertNodeInternalInput {
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
-            if let Some(user_id) = ctx.restrict_by_owner(RequestedOperation::Create) {
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Create)? {
                 user_defined_item.insert(
                     constant::OWNED_BY.to_string(),
                     HashSet::from([user_id.to_string()]).into_attr(),
@@ -199,7 +199,7 @@ impl ExecuteChangesOnDatabase for DeleteNodeInternalInput {
             ]);
             let mut exp_att_values = HashMap::new();
             let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
-            if let Some(user_id) = ctx.restrict_by_owner(RequestedOperation::Delete) {
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Delete)? {
                 cond_expr.push_str(" AND contains(#owner_attr_name, :owner_val_name)");
                 exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
                 exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
@@ -295,7 +295,7 @@ impl ExecuteChangesOnDatabase for InsertRelationInternalInput {
             fields.insert(constant::TYPE_INDEX_SK.to_string(), partition_key_attr.clone());
             fields.insert(constant::INVERTED_INDEX_PK.to_string(), sorting_key_attr);
             fields.insert(constant::INVERTED_INDEX_SK.to_string(), partition_key_attr);
-            if let Some(user_id) = ctx.restrict_by_owner(RequestedOperation::Create) {
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Create)? {
                 fields.insert(
                     constant::OWNED_BY.to_string(),
                     HashSet::from([user_id.to_string()]).into_attr(),
@@ -615,7 +615,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());
             user_defined_item.insert(constant::UPDATED_AT.to_string(), now_attr);
 
-            if let Some(user_id) = ctx.restrict_by_owner(RequestedOperation::Create) {
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Create)? {
                 user_defined_item.insert(
                     constant::OWNED_BY.to_string(),
                     HashSet::from([user_id.to_string()]).into_attr(),

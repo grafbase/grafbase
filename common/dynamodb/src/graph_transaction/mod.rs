@@ -3,7 +3,7 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
-use crate::{constant, CurrentDateTime, QueryKey};
+use crate::{constant, CurrentDateTime, OperationAuthorizationError, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 
@@ -788,6 +788,12 @@ pub enum ToTransactionError {
         values: Vec<String>,
         fields: Vec<String>,
     },
+    #[error("{0}")]
+    Unauthorized(
+        #[from]
+        #[source]
+        OperationAuthorizationError,
+    ),
 }
 
 pub trait ExecuteChangesOnDatabase

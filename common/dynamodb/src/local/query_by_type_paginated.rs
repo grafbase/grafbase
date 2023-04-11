@@ -11,7 +11,8 @@ use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
 use crate::{
-    DynamoDBContext, DynamoDBRequestedIndex, LocalContext, PaginatedCursor, PaginationOrdering, RequestedOperation,
+    DynamoDBContext, DynamoDBRequestedIndex, LocalContext, OperationAuthorization, OperationAuthorizationError,
+    PaginatedCursor, PaginationOrdering, RequestedOperation,
 };
 
 use super::bridge_api;
@@ -23,6 +24,11 @@ quick_error! {
     pub enum QueryTypePaginatedLoaderError {
         QueryError {
             display("An internal error happened while fetching a list of entities")
+        }
+        AuthorizationError(err: OperationAuthorizationError) {
+            from()
+            source(err)
+            display("Unauthorized")
         }
     }
 }
@@ -228,7 +234,9 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
                 value_map.insert("pk", SqlValue::String(parent_id.to_string()));
                 value_map.insert("relation_name", SqlValue::String(relation_name.to_string()));
             }
-            let filter_by_owner = if let Some(user_id) = self.ctx.restrict_by_owner(RequestedOperation::List) {
+            let filter_by_owner = if let OperationAuthorization::OwnerBased(user_id) =
+                self.ctx.authorize_operation(RequestedOperation::List)?
+            {
                 value_map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
                 true
             } else {

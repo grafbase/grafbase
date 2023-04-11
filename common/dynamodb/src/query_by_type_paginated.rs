@@ -9,7 +9,9 @@ use tracing::{info_span, Instrument};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, PaginationOrdering, QueryResult};
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, DynamoDBRequestedIndex, RequestedOperation};
+use crate::{
+    DynamoDBContext, DynamoDBRequestedIndex, OperationAuthorization, OperationAuthorizationError, RequestedOperation,
+};
 
 // TODO: Should ensure Rosoto Errors impl clone
 quick_error! {
@@ -17,6 +19,11 @@ quick_error! {
     pub enum QueryTypePaginatedLoaderError {
         QueryError {
             display("An internal error happened while fetching a list of entities")
+        }
+        AuthorizationError(err: OperationAuthorizationError) {
+            from()
+            source(err)
+            display("Unauthorized")
         }
     }
 }
@@ -134,7 +141,10 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         log::debug!(self.ctx.trace_id, "Query Paginated Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
-        let owned_by = self.ctx.restrict_by_owner(RequestedOperation::List);
+        let owned_by = match self.ctx.authorize_operation(RequestedOperation::List)? {
+            OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
+            OperationAuthorization::PrivateOrGroupBased => None,
+        };
         for query_key in keys {
             let future_get = || async move {
                 let req = self.ctx.dynamodb_client.clone().query_node_edges(

@@ -183,6 +183,20 @@ quick_error! {
     }
 }
 
+#[derive(Debug)]
+pub enum OperationAuthorization<'a> {
+    OwnerBased(&'a str),
+    PrivateOrGroupBased,
+}
+
+#[derive(thiserror::Error, Debug, Clone)]
+#[error("unauthorized")]
+pub struct OperationAuthorizationError {
+    requested_op: RequestedOperation,
+    private_and_group_ops: Operations,
+    owner_ops: Operations,
+}
+
 impl DynamoDBContext {
     /// Create a new context
     ///
@@ -235,42 +249,62 @@ impl DynamoDBContext {
         "gsi2"
     }
 
-    #[allow(clippy::panic)]
-    pub fn restrict_by_owner(&self, requested_op: RequestedOperation) -> Option<&str> {
+    // Should owned-by constraint be injected to the database query?
+    // On Create, owner-based has precedence over private/group-based rules.
+    // For all other operations, private/group-based has precedence, so that e.g. an admin
+    // can list, update, delete all the items.
+    pub fn authorize_operation(
+        &self,
+        requested_op: RequestedOperation,
+    ) -> Result<OperationAuthorization<'_>, OperationAuthorizationError> {
+        let res = match self.subject_and_owner_ops.as_ref() {
+            Some((subject, owner_ops)) => {
+                if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
+                    Some(OperationAuthorization::OwnerBased(subject.as_str()))
+                } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
+                    // private_group_ops have precedence over owner in all other operations.
+                    Some(OperationAuthorization::PrivateOrGroupBased)
+                } else if owner_ops.contains(requested_op.as_operations()) {
+                    Some(OperationAuthorization::OwnerBased(subject.as_str()))
+                } else {
+                    None
+                }
+            }
+            None => {
+                // The owner-based auth is not enabled or JWT does not contain `sub`.
+                // Therefore only private/group-based auth might be applicable.
+                if self.private_and_group_ops.contains(requested_op.as_operations()) {
+                    Some(OperationAuthorization::PrivateOrGroupBased)
+                } else {
+                    None
+                }
+            }
+        };
         log::trace!(
             self.trace_id,
-            "restrict_by_owner - subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
+            "authorize_operation result: {res:?}, subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
             sub = self.subject_and_owner_ops,
             pg_ops = self.private_and_group_ops,
         );
-        self.subject_and_owner_ops.as_ref().and_then(|(subject, owner_ops)| {
-            // Owner should have priority for Create operation, even if private_group_ops contain it as well.
-            if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
-                Some(subject.as_str())
-            // private_group_ops have precedence over owner in all other operations.
-            } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
-                // Do not inject owner-by constraint.
-                None
-            } else if owner_ops.contains(requested_op.as_operations()) ||  requested_op == RequestedOperation::Get {
-                // Get is requested during creation. If Get is not present in owner-based nor private/group-based ops,
-                // assume it implicitly with owner-by constraint.
-                Some(subject.as_str())
-            } else {
-                panic!("restrict_by_owner - subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
-                       sub = self.subject_and_owner_ops,
-                       pg_ops = self.private_and_group_ops,)
-            }
+        res.ok_or_else(|| OperationAuthorizationError {
+            requested_op,
+            private_and_group_ops: self.private_and_group_ops,
+            owner_ops: self
+                .subject_and_owner_ops
+                .as_ref()
+                .map(|(_, ops)| *ops)
+                .unwrap_or_default(),
         })
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum RequestedOperation {
     Create,
     Get,
     List,
     Delete,
-}
+} // TODO update?
 
 impl RequestedOperation {
     fn as_operations(&self) -> Operations {

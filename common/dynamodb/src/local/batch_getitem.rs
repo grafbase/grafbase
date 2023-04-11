@@ -3,7 +3,7 @@ use super::types::{Operation, Record, Sql, SqlValue};
 use crate::constant::OWNED_BY;
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
-use crate::{DynamoDBContext, LocalContext, RequestedOperation};
+use crate::{DynamoDBContext, LocalContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
 use dynomite::AttributeValue;
 use maplit::hashmap;
 use quick_error::quick_error;
@@ -19,6 +19,11 @@ quick_error! {
         }
         MissingUniqueFields {
             display("Couldn't find values for required unique fields")
+        }
+        AuthorizationError(err: OperationAuthorizationError) {
+            from()
+            source(err)
+            display("Unauthorized")
         }
     }
 }
@@ -55,11 +60,14 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         )
         .await
         .map_err(|_| Self::Error::UnknownError)?;
-
+        let owned_by = match self.ctx.authorize_operation(RequestedOperation::List)? {
+            OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
+            OperationAuthorization::PrivateOrGroupBased => None,
+        };
         let response = results
             .into_iter()
             .filter(|item| {
-                if let Some(user_id) = self.ctx.restrict_by_owner(RequestedOperation::Get) {
+                if let Some(user_id) = owned_by {
                     item.document
                         .get(OWNED_BY)
                         .and_then(|item| item.ss.as_ref())
