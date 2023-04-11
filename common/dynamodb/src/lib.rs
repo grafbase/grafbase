@@ -235,6 +235,7 @@ impl DynamoDBContext {
         "gsi2"
     }
 
+    #[allow(clippy::panic)]
     pub fn restrict_by_owner(&self, requested_op: RequestedOperation) -> Option<&str> {
         log::trace!(
             self.trace_id,
@@ -243,16 +244,14 @@ impl DynamoDBContext {
             pg_ops = self.private_and_group_ops,
         );
         self.subject_and_owner_ops.as_ref().and_then(|(subject, owner_ops)| {
-            // Owner should have priority for Create operation.
+            // Owner should have priority for Create operation, even if private_group_ops contain it as well.
             if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
                 Some(subject.as_str())
             // private_group_ops have precedence over owner in all other operations.
             } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
                 // Do not inject owner-by constraint.
                 None
-            } else if owner_ops.contains(requested_op.as_operations()) {
-                Some(subject.as_str())
-            } else if requested_op == RequestedOperation::Get {
+            } else if owner_ops.contains(requested_op.as_operations()) ||  requested_op == RequestedOperation::Get {
                 // Get is requested during creation. If Get is not present in owner-based nor private/group-based ops,
                 // assume it implicitly with owner-by constraint.
                 Some(subject.as_str())
