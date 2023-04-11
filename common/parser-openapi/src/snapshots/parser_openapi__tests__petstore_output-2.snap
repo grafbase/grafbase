@@ -2104,4 +2104,5 @@ Registry {
     search_config: Config {
         indices: {},
     },
+    enable_caching: false,
 }

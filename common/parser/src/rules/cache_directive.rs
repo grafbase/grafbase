@@ -422,12 +422,15 @@ impl<'a> Visitor<'a> for CacheVisitor {
     ) {
         if let Some(global_cache_directive) = validate_directive(ctx, doc.node.directives.iter(), doc.pos, true) {
             ctx.global_cache_rules = global_cache_directive.rules_checked(ctx);
+            ctx.registry.get_mut().enable_caching = !ctx.global_cache_rules.is_empty();
         }
     }
 
     fn enter_type_definition(&mut self, ctx: &mut VisitorContext<'a>, type_definition: &'a Positioned<TypeDefinition>) {
         if let TypeKind::Object(_) = &type_definition.node.kind {
-            validate_directive(ctx, type_definition.node.directives.iter(), type_definition.pos, false);
+            if validate_directive(ctx, type_definition.node.directives.iter(), type_definition.pos, false).is_some() {
+                ctx.registry.get_mut().enable_caching = true;
+            };
         }
     }
 
@@ -437,7 +440,9 @@ impl<'a> Visitor<'a> for CacheVisitor {
         field: &'a Positioned<FieldDefinition>,
         _parent_type: &'a Positioned<TypeDefinition>,
     ) {
-        validate_directive(ctx, field.node.directives.iter(), field.pos, false);
+        if validate_directive(ctx, field.node.directives.iter(), field.pos, false).is_some() {
+            ctx.registry.get_mut().enable_caching = true;
+        };
     }
 }
 

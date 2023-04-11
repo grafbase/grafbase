@@ -1276,6 +1276,8 @@ pub struct Registry {
     pub http_headers: BTreeMap<String, Vec<(String, String)>>,
     #[serde(default)]
     pub search_config: grafbase_runtime::search::Config,
+    #[serde(default)]
+    pub enable_caching: bool,
 }
 
 pub mod vectorize {
