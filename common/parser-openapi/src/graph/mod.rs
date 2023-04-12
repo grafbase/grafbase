@@ -7,6 +7,7 @@ use petgraph::{
     visit::{EdgeFiltered, EdgeRef, IntoEdges, Reversed},
     Graph,
 };
+use serde_json::Value;
 
 use crate::parsing::operations::OperationDetails;
 
@@ -75,7 +76,12 @@ pub enum Node {
     Union,
 
     /// An enum type
-    Enum { values: Vec<String> },
+    Enum {
+        values: Vec<String>,
+    },
+
+    // The default value for a type node, linked via a HasDefault edge
+    Default(Value),
 }
 
 #[derive(Debug)]
@@ -127,6 +133,9 @@ pub enum Edge {
     ForResource {
         arity: Arity,
     },
+
+    /// An edge between any type node and its associated default
+    HasDefault,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -182,6 +191,7 @@ impl std::fmt::Debug for Node {
             Self::Scalar(kind) => f.debug_tuple("Scalar").field(kind).finish(),
             Self::Enum { values } => f.debug_struct("Enum").field("values", values).finish(),
             Self::Union => write!(f, "Union"),
+            Self::Default(value) => f.debug_tuple("Default").field(value).finish(),
         }
     }
 }
@@ -277,7 +287,7 @@ impl OpenApiGraph {
     fn type_name(&self, node: NodeIndex) -> Option<String> {
         match &self.graph[node] {
             schema @ Node::Schema { .. } => Some(schema.name()?),
-            Node::Operation(_) => None,
+            Node::Operation(_) | Node::Default(_) => None,
             Node::Object | Node::Enum { .. } => {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
                 // nearest named thing, and construct a name based on the fields in-betweeen.
@@ -417,6 +427,12 @@ impl<'a> std::fmt::Display for FieldName<'a> {
         let name = self.0.to_camel_case();
 
         write!(f, "{name}")
+    }
+}
+
+impl<'a> FieldName<'a> {
+    pub fn openapi_name(&self) -> &str {
+        self.0.as_ref()
     }
 }
 

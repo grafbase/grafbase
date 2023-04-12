@@ -19,6 +19,7 @@ thiserror = { workspace = true }
 url = "2.3"
 
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
+dynaql-value = { path = "../dynaql/value" }
 parser = { path = "../parser" }
 
 [dev-dependencies]

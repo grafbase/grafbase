@@ -18,8 +18,8 @@ use dynaql::{
 use inflector::Inflector;
 
 use crate::graph::{
-    Enum, InputField, InputObject, OpenApiGraph, Operation, OutputField, OutputFieldType, OutputType, PathParameter,
-    QueryParameter, RequestBody, WrappingType,
+    Enum, InputField, InputObject, InputValue, OpenApiGraph, Operation, OutputField, OutputFieldType, OutputType,
+    PathParameter, QueryParameter, RequestBody, WrappingType,
 };
 
 use self::namespacing::RegistryExt;
@@ -279,41 +279,40 @@ impl Operation {
 
 impl PathParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
-        let input_value = self.input_value(graph)?;
-        Some(MetaInputValue::new(
-            self.graphql_name(graph)?.to_string(),
-            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-        ))
+        self.input_value(graph)?
+            .to_meta_input_value(&self.graphql_name(graph)?.to_string(), graph)
     }
 }
 
 impl QueryParameter {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
-        let input_value = self.input_value(graph)?;
-        Some(MetaInputValue::new(
-            self.graphql_name(graph)?.to_string(),
-            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-        ))
+        self.input_value(graph)?
+            .to_meta_input_value(&self.graphql_name(graph)?.to_string(), graph)
     }
 }
 
 impl RequestBody {
     fn to_meta_input_value(self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
-        let input_value = self.input_value(graph)?;
-        Some(MetaInputValue::new(
-            self.argument_name().to_owned(),
-            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-        ))
+        self.input_value(graph)?
+            .to_meta_input_value(self.argument_name(), graph)
     }
 }
 
 impl InputField<'_> {
     fn to_meta_input_value(&self, graph: &OpenApiGraph) -> Option<MetaInputValue> {
-        let input_value = &self.value_type;
-        Some(MetaInputValue::new(
-            self.name.to_string(),
-            TypeDisplay::new(input_value.wrapping_type(), input_value.type_name(graph)?).to_string(),
-        ))
+        self.value_type.to_meta_input_value(&self.name.to_string(), graph)
+    }
+}
+
+impl InputValue {
+    fn to_meta_input_value(&self, name: &str, graph: &OpenApiGraph) -> Option<MetaInputValue> {
+        let mut graphql_value = MetaInputValue::new(
+            name.to_string(),
+            TypeDisplay::new(self.wrapping_type(), self.type_name(graph)?).to_string(),
+        );
+        graphql_value.default_value = self.default_value(graph);
+
+        Some(graphql_value)
     }
 }
 
