@@ -32,8 +32,8 @@ impl Operations {
 pub enum Operation {
     Create,
     Read,
-    Get,  // More granual read access
-    List, // More granual read access
+    Get,  // More granular read access
+    List, // More granular read access
     Update,
     Delete,
 }
