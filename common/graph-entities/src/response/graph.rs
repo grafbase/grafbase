@@ -96,9 +96,26 @@ impl<'de> serde::Deserialize<'de> for ResponseNodeId {
             }
         }
 
-        // This does rule out non self-describing formats :(
         deserializer.deserialize_any(Visitor {})
     }
 }
 
-// TODO: Serde tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_response_node_id_serde() {
+        let response_id = ResponseNodeId::Internal { id: u64::MAX };
+        assert_eq!(
+            serde_json::from_str::<ResponseNodeId>(&serde_json::to_string(&response_id).unwrap()).unwrap(),
+            response_id
+        );
+
+        let response_id = ResponseNodeId::NodeID(ArcIntern::new("I-am-an-id".into()));
+        assert_eq!(
+            serde_json::from_str::<ResponseNodeId>(&serde_json::to_string(&response_id).unwrap()).unwrap(),
+            response_id
+        );
+    }
+}

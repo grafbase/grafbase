@@ -17,6 +17,12 @@
 //! followed data changed, so it means the server will have to compute the diff between those. To
 //! be able to faithfully compute the diff, it's much more simplier to not use the path of this
 //! data but to use the unique ID of the data you are modifying. Hence, this representation.
+//!
+//! ### Serialization & Memory Use
+//!
+//! We've seen a lot of memory problems with this structure on larger query responses, so we need
+//! to be careful to keep both the in memory size and serialization size down.  As a result most
+//! of the types in this file have some serde attrs that make them more compact when serialized
 
 use crate::{CompactValue, NodeID};
 use core::fmt::{self, Display, Formatter};
@@ -302,7 +308,8 @@ impl QueryResponseNode {
     pub fn id(&self) -> Option<ResponseNodeId> {
         match self {
             QueryResponseNode::Container(value) => Some(value.id.clone()),
-            QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None, /*Some(value.id.clone()),*/
+            QueryResponseNode::List(value) => Some(value.id.clone()),
+            QueryResponseNode::Primitive(_) => None,
         }
     }
 
@@ -387,28 +394,16 @@ impl ResponseList {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponsePrimitive(CompactValue);
-// id: ResponseNodeId,
-// #[serde(rename = "v")]
-// value: CompactValue,
-// }
 
 impl ResponsePrimitive {
     pub fn new(value: CompactValue) -> Self {
         ResponsePrimitive(value)
-        // Self {
-        //     id: ResponseNodeId::internal(),
-        //     value,
-        // }
     }
 }
 
 impl Default for ResponsePrimitive {
     fn default() -> Self {
         ResponsePrimitive(CompactValue::Null)
-        // Self {
-        //     id: ResponseNodeId::internal(),
-        //     value: CompactValue::Null,
-        // }
     }
 }
 
@@ -439,14 +434,18 @@ impl From<ResponseList> for QueryResponseNode {
 #[derive(Derivative, Debug, Deserialize, Serialize, Clone, Ord, PartialOrd, Eq)]
 #[derivative(Hash, PartialEq)]
 pub enum ResponseNodeRelation {
-    #[serde(rename = "r")]
+    #[serde(rename = "R")]
     Relation {
+        #[serde(rename = "rk")]
         response_key: ArcIntern<String>,
+        #[serde(rename = "rn")]
         relation_name: ArcIntern<String>,
+        #[serde(rename = "f", default, skip_serializing_if = "Option::is_none")]
         from: Option<ArcIntern<String>>,
+        #[serde(rename = "t")]
         to: ArcIntern<String>,
     },
-    #[serde(rename = "nr")]
+    #[serde(rename = "NR")]
     NotARelation {
         #[derivative(Hash = "ignore", PartialEq = "ignore")]
         #[serde(rename = "rk", default, skip_serializing_if = "Option::is_none")]
@@ -487,9 +486,9 @@ impl Display for ResponseNodeRelation {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum RelationOrigin {
-    #[serde(rename = "n")]
+    #[serde(rename = "N")]
     Node(ResponseNodeId),
-    #[serde(rename = "t")]
+    #[serde(rename = "T")]
     Type(ArcIntern<String>),
 }
 
