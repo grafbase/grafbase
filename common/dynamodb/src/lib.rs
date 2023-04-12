@@ -18,7 +18,13 @@ cfg_if::cfg_if! {
         pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
         pub use query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
     } else {
-        mod local;
+        #[doc(hidden)]
+        pub mod local;
+
+        pub mod reexport {
+            pub use maplit;
+            pub use dynomite;
+        }
 
         use local::batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
         use local::query::get_loader_query;

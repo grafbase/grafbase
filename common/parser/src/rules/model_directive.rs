@@ -310,6 +310,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                                     Some(ctx.get_schema_id(relation.relation.0.clone().unwrap())),
                                                     ctx.get_schema_id(relation.relation.1.clone()),
                                                     Some(relation.name),
+                                                    relation.relation.1.clone(),
                                                 ),
                                             )
                                         })

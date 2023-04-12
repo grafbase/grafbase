@@ -49,11 +49,17 @@ impl SchemaPlan {
         Self::Resolver(Resolver { resolver_name })
     }
 
-    pub fn related(from: Option<SchemaID>, to: SchemaID, relation_name: Option<String>) -> Self {
+    pub fn related(
+        from: Option<SchemaID>,
+        to: SchemaID,
+        relation_name: Option<String>,
+        ty: String,
+    ) -> Self {
         Self::Related(PlanRelated {
             from,
             to,
             relation_name,
+            ty,
         })
     }
 
@@ -91,11 +97,14 @@ pub struct PlanProjection {
 }
 
 /// Describe the relation
+/// TODO: When handling Union for GraphQL: We need to sort an Union of multiple Schema.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanRelated {
     pub(crate) from: Option<SchemaID>,
     pub(crate) to: SchemaID,
     pub(crate) relation_name: Option<String>,
+    /// Type name for the output Schema.
+    pub(crate) ty: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
