@@ -27,7 +27,7 @@ mod tests {
         assert!(min_password_strength(&"password".to_string(), 3).is_err());
         assert!(min_password_strength(&"query".to_string(), 3).is_err());
         assert!(min_password_strength(&"P@ssword1".to_string(), 3).is_err());
-        assert!(min_password_strength(&"".to_string(), 3).is_err());
+        assert!(min_password_strength(&String::new(), 3).is_err());
 
         assert!(min_password_strength(&"Some!Secure!Password".to_string(), 3).is_ok());
     }

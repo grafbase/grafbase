@@ -447,12 +447,12 @@ impl<'a> Sql<'a> {
                         table = Self::TABLE
                     )
                 } else {
-                    "".to_string()
+                    String::new()
                 };
                 let maybe_owner_condition = if *filter_by_owner {
                     format!("AND owner.value=?{OWNED_BY_KEY}")
                 } else {
-                    "".to_string()
+                    String::new()
                 };
                 format!(
                     indoc::indoc! {"
