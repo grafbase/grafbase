@@ -1,9 +1,0 @@
-[toolchain]
-channel = "1.59"
-targets = [
-    "wasm32-unknown-unknown",     # Cloudflare Workers
-]
-components = ["rustfmt", "clippy"]
-profile = "minimal"
-
-# FIXME: delete this file
