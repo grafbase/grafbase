@@ -283,15 +283,16 @@ impl DynamoDBContext {
                 // Therefore only private/group-based auth might be applicable.
                 // Since model and field level is not supported by the low level auth yet,
                 // allow everything to continue with the old behavior.
+                // TODO: add API-key detection that skips this altogether.
                 Ok(OperationAuthorization::PrivateOrGroupBased)
             }
         };
-        log::trace!(self.trace_id, "authorize_operation result: {res:?}");
+        log::trace!(self.trace_id, "authorize_operation({requested_op:?}) = {res:?}");
         res
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum RequestedOperation {
     Create,
     Get,
