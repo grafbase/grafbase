@@ -1,4 +1,5 @@
 use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+use indexmap::IndexMap;
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapiv3::{AdditionalProperties, ReferenceOr, Type};
@@ -7,7 +8,7 @@ use regex::Regex;
 use serde_json::Value;
 
 use crate::{
-    graph::{ScalarKind, SchemaDetails, WrappingType},
+    graph::{FieldName, ScalarKind, SchemaDetails, WrappingType},
     parsing::{
         components::{Components, Ref},
         operations::OperationDetails,
@@ -322,35 +323,14 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 );
             }
             SchemaKind::Type(Type::Object(obj)) => {
-                if obj.properties.is_empty() {
-                    // If the object is empty _and_ there's no additionalProperties we don't bother
-                    // emiting an object for it.  Not sure if this is a good idea - could be some APIs
-                    // that _require_ an empty object.  But lets see what happens
-                    if obj.additional_properties != Some(AdditionalProperties::Any(false)) {
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
-                    }
-                    return;
-                }
-
-                let object_index = ctx.add_type_node(
+                extract_object(
+                    ctx,
                     parent,
-                    Node::Object,
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
+                    &schema.schema_data,
+                    &obj.properties,
+                    obj.additional_properties.as_ref(),
+                    &obj.required,
                 );
-
-                for (field_name, field_schema_or_ref) in &obj.properties {
-                    let required = obj.required.contains(field_name);
-                    extract_types(
-                        ctx,
-                        &field_schema_or_ref.clone().unbox(),
-                        ParentNode::Field {
-                            object_index,
-                            field_name: field_name.clone(),
-                            required,
-                        },
-                    );
-                }
             }
             SchemaKind::Type(Type::Array(arr)) => {
                 let Some(items) = arr.items.clone() else {
@@ -398,34 +378,62 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 ctx.errors.push(Error::NotSchema);
             }
             SchemaKind::Any(any) => {
-                // We treat an any very similar to an object
-                if any.properties.is_empty() {
-                    // If there's no explicit properties we make this a custom scalar
-                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
-                    return;
-                }
-
-                let object_index = ctx.add_type_node(
+                // For now we're assuming this is just an object that openapiv3 doesn't understand
+                extract_object(
+                    ctx,
                     parent,
-                    Node::Object,
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
+                    &schema.schema_data,
+                    &any.properties,
+                    any.additional_properties.as_ref(),
+                    &any.required,
                 );
-
-                for (field_name, field_schema_or_ref) in &any.properties {
-                    let required = any.required.contains(field_name);
-                    extract_types(
-                        ctx,
-                        &field_schema_or_ref.clone().unbox(),
-                        ParentNode::Field {
-                            object_index,
-                            field_name: field_name.clone(),
-                            required,
-                        },
-                    );
-                }
             }
         },
+    }
+}
+
+fn extract_object(
+    ctx: &mut Context,
+    parent: ParentNode,
+    schema_data: &openapiv3::SchemaData,
+    properties: &IndexMap<String, ReferenceOr<Box<openapiv3::Schema>>>,
+    additional_properties: Option<&AdditionalProperties>,
+    required_fields: &[String],
+) {
+    if properties.is_empty() {
+        // If the object is empty _and_ there's no additionalProperties we don't bother
+        // emiting an object for it.  Not sure if this is a good idea - could be some APIs
+        // that _require_ an empty object.  But lets see what happens
+        if additional_properties != Some(&AdditionalProperties::Any(false)) {
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
+        }
+        return;
+    }
+
+    if properties
+        .iter()
+        .any(|(field_name, _)| !is_valid_field_name(field_name))
+    {
+        // There's an edge case where field names are made up entirely of symbols and numbers,
+        // making it tricky to generate a good GQL name for those fields.
+        // For now, I'm just making those objects JSON.
+        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
+        return;
+    }
+
+    let object_index = ctx.add_type_node(parent, Node::Object, schema_data.nullable, schema_data.default.as_ref());
+
+    for (field_name, field_schema_or_ref) in properties {
+        let required = required_fields.contains(field_name);
+        extract_types(
+            ctx,
+            &field_schema_or_ref.clone().unbox(),
+            ParentNode::Field {
+                object_index,
+                field_name: field_name.clone(),
+                required,
+            },
+        );
     }
 }
 
@@ -438,4 +446,10 @@ fn is_valid_enum_value(value: &Option<String>) -> bool {
         .map(|value| value.to_screaming_snake_case())
         .filter(|value| REGEX.is_match(value))
         .is_some()
+}
+
+// OpenAPI field names can be basically any string, but we're much more limited
+/// in GraphQL.  This checks if this name is valid in GraphQL or not.
+fn is_valid_field_name(value: &str) -> bool {
+    FieldName::from_openapi_name(value).will_be_valid_graphql()
 }
