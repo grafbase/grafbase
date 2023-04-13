@@ -112,8 +112,8 @@ impl InputValue {
                 self.as_input_object(graph)?
                     .fields(graph)
                     .into_iter()
-                    .map(|field| {
-                        let inner_value = object.remove(field.name.openapi_name())?;
+                    .filter_map(|field| Some((object.remove(field.name.openapi_name())?, field)))
+                    .map(|(inner_value, field)| {
                         Some((
                             Name::new(field.name.to_string()),
                             field.value_type.transform_default(inner_value, graph)?,
