@@ -103,7 +103,6 @@ pub async fn create(
         ProjectCreatePayload::ProjectCreateSuccess(ProjectCreateSuccess { project, .. }) => {
             let project_metadata_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
 
-            // TODO prevent reset from deleting this
             tokio::fs::write(
                 &project_metadata_path,
                 ProjectMetadata {

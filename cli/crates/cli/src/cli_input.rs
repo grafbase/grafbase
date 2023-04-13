@@ -51,7 +51,7 @@ pub fn build_cli() -> Command {
                 "}),
         )
         .subcommand(Command::new("reset").about(indoc! {"
-            Resets the local data for the current project by removing the .grafbase directory
+            Resets the local database for the current project
         "}))
         .subcommand(Command::new("login").about("Logs into your Grafbase account"))
         .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))

@@ -15,9 +15,9 @@ fn reset() {
 
     env.kill_processes();
 
-    assert!(env.has_dot_grafbase_directory());
+    assert!(env.has_database_directory());
 
     env.grafbase_reset();
 
-    assert!(!env.has_dot_grafbase_directory());
+    assert!(!env.has_database_directory());
 }

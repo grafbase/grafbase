@@ -55,16 +55,16 @@ impl CliError {
         match self {
             Self::BackendError(BackendError::AlreadyAProject(_)) => Some("try running 'grafbase dev'".to_owned()),
             Self::BackendError(BackendError::AvailablePort) => Some("try supplying a larger port range to search by supplying a lower --port number".to_owned()),
-            Self::BackendError(BackendError::DeleteDotGrafbaseDirectory(error)) => {
+            Self::BackendError(BackendError::DeleteDatabaseDirectory(error)) => {
                 match error.kind() {
                     ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running 'grafbase reset' on a new project".to_owned()),
-                    ErrorKind::PermissionDenied => Some("it appears that you do not have sufficient permissions to delete the .grafbase directory, try modifying its permissions".to_owned()),
+                    ErrorKind::PermissionDenied => Some("it appears that you do not have sufficient permissions to delete '.grafbase/database', try modifying its permissions".to_owned()),
                     // TODO: replace with ErrorKind::DirectoryNotEmpty once stable 
                     #[cfg(target_family="windows")] 
                     _ => error
                             .raw_os_error()
                             .filter(|raw| raw == &WINDOWS_DIR_NOT_EMPTY_CODE)
-                            .map(|_| "this may be caused by the .grafbase directory being in use by another instance of 'grafbase'".to_owned()),
+                            .map(|_| "this may be caused by '.grafbase/database' being in use by another instance of 'grafbase'".to_owned()),
                     #[cfg(target_family="unix")] 
                     _ => None
                 }

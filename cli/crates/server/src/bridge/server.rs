@@ -1,6 +1,6 @@
 use super::api_counterfeit::registry::Registry;
 use super::api_counterfeit::search::{QueryExecutionRequest, QueryExecutionResponse};
-use super::consts::{DB_FILE, DB_URL_PREFIX, PREPARE};
+use super::consts::{DATABASE_FILE, DATABASE_URL_PREFIX, PREPARE};
 use super::search::Index;
 use super::types::{Mutation, Operation, Record, ResolverInvocation};
 use crate::bridge::api_counterfeit::registry::VersionedRegistry;
@@ -18,6 +18,7 @@ use common::environment::Environment;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
+use tokio::fs;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -144,10 +145,19 @@ pub async fn start(
     trace!("starting bridge at port {port}");
 
     let environment = Environment::get();
-    let db_file = environment.project_dot_grafbase_path.join(DB_FILE);
 
-    let db_url = match db_file.to_str() {
-        Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),
+    match environment.database_directory_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => fs::create_dir_all(&environment.database_directory_path)
+            .await
+            .map_err(ServerError::CreateDatabaseDir)?,
+        Err(error) => return Err(ServerError::ReadDatabaseDir(error)),
+    }
+
+    let database_file = environment.database_directory_path.join(DATABASE_FILE);
+
+    let db_url = match database_file.to_str() {
+        Some(db_file) => format!("{DATABASE_URL_PREFIX}{db_file}"),
         None => return Err(ServerError::ProjectPath),
     };
 

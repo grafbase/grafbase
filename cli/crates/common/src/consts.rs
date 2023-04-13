@@ -22,3 +22,5 @@ pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,g
 pub const DEFAULT_LOG_FILTER: &str = "off";
 /// the range suggested for ephemeral ports by IANA
 pub const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
+/// the subdirectory within '$PROJECT/.grafbase' containing the database
+pub const DATABASE_DIRECTORY: &str = "database";
