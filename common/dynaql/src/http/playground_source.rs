@@ -11,33 +11,68 @@ use serde::Serialize;
 /// ```
 pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
     r##"
-      <!DOCTYPE html>
-      <html lang="en">
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width,initial-scale=1" />
-          <title>Grafbase Playground</title>
-          <link rel="shortcut icon" href="https://grafbase.com/images/other/grafbase-logo-circle.png" />
-          <script>
-            window.GRAPHQL_URL = "{{GRAPHQL_URL}}";
-          </script>
-          <script defer="defer" src="{{ASSET_URL}}/main.js"></script>
-          <link href="{{ASSET_URL}}/main.css" rel="stylesheet" />
-          <link
-            href="https://cdn.jsdelivr.net/npm/@grafbase/graphiql@2.0.2/dist/index.css"
-            rel="stylesheet"
-          />
-        </head>
-        <body>
-          <noscript>You need to enable JavaScript to run the Grafbase playground</noscript>
-          <div id="root"></div>
-        </body>
-      </html>    
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <script>
+          window.GRAPHQL_URL = "{{GRAPHQL_URL}}";
+        </script>
+        <script>
+          self["MonacoEnvironment"] = (function (paths) {
+            return {
+              globalAPI: false,
+              getWorkerUrl: function (moduleId, label) {
+                var result = paths[label];
+                if (/^((http:)|(https:)|(file:)|(\/\/))/.test(result)) {
+                  var currentUrl = String(window.location);
+                  var currentOrigin = currentUrl.substr(
+                    0,
+                    currentUrl.length -
+                      window.location.hash.length -
+                      window.location.search.length -
+                      window.location.pathname.length
+                  );
+                  if (result.substring(0, currentOrigin.length) !== currentOrigin) {
+                    var js = "/*" + label + '*/importScripts("' + result + '");';
+                    var blob = new Blob([js], { type: "application/javascript" });
+                    return URL.createObjectURL(blob);
+                  }
+                }
+                return result;
+              },
+            };
+          })({
+            json: "{{ASSET_URL}}/monacoeditorwork/json.worker.bundle.js",
+            editorWorkerService:
+              "{{ASSET_URL}}/monacoeditorwork/editor.worker.bundle.js",
+            graphql: "{{ASSET_URL}}/monacoeditorwork/graphql.worker.bundle.js",
+          });
+        </script>
+    
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link
+          rel="shortcut icon"
+          href="https://grafbase.com/images/other/grafbase-logo-circle.png"
+        />
+    
+        <title>Grafbase Playground</title>
+        <script
+          type="module"
+          crossorigin
+          src="{{ASSET_URL}}/assets/index-332c8b8f.js"
+        ></script>
+        <link rel="stylesheet" href="{{ASSET_URL}}/assets/index-42766027.css" />
+      </head>
+      <body>
+        <div id="root"></div>
+      </body>
+    </html>    
     "##
     .replace("{{GRAPHQL_URL}}", config.endpoint)
     .replace(
         "{{ASSET_URL}}",
-        "https://assets.grafbase.com/playground",
+        "https://assets.grafbase.com/cli/pathfinder",
     )
 }
 
