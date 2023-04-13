@@ -1,6 +1,6 @@
 ---
 source: common/parser-openapi/src/lib.rs
-expression: registry.export_sdl(false)
+expression: "build_registry(\"test_data/openai.yaml\", Format::Yaml,\n        ApiMetadata {\n            query_naming: QueryNamingStrategy::OperationId,\n            ..metadata(\"openai\")\n        }).export_sdl(false)"
 ---
 """
 A JSON Value
@@ -29,18 +29,18 @@ enum OpenaiChatCompletionResponseMessageRole {
 	ASSISTANT
 }
 input OpenaiCreateAnswerRequestInput {
+	stop: JSON
 	user: String
 	expand: [JSON!]
-	returnPrompt: Boolean
-	returnMetadata: Boolean
+	returnPrompt: Boolean = false
+	returnMetadata: Boolean = false
 	logitBias: JSON
-	n: Int
-	stop: OpenaiUnionInput
-	maxTokens: Int
+	n: Int = 1
+	maxTokens: Int = 16
 	logprobs: Int
-	temperature: Float
-	maxRerank: Int
-	searchModel: String
+	temperature: Float = 0
+	maxRerank: Int = 200
+	searchModel: String = "ada"
 	file: String
 	documents: [String!]
 	examplesContext: String!
@@ -61,16 +61,16 @@ type OpenaiCreateAnswerResponseSelectedDocuments {
 	document: Int
 }
 input OpenaiCreateChatCompletionRequestInput {
+	stop: JSON
 	user: String
 	logitBias: JSON
-	frequencyPenalty: Float
-	presencePenalty: Float
-	maxTokens: Int
-	stop: OpenaiUnionInput
-	stream: Boolean
-	n: Int
-	topP: Float
-	temperature: Float
+	frequencyPenalty: Float = 0
+	presencePenalty: Float = 0
+	maxTokens: Int = "inf"
+	stream: Boolean = false
+	n: Int = 1
+	topP: Float = 1
+	temperature: Float = 1
 	messages: [OpenaiChatCompletionRequestMessageInput!]!
 	model: String!
 }
@@ -95,13 +95,13 @@ type OpenaiCreateChatCompletionResponseUsage {
 input OpenaiCreateClassificationRequestInput {
 	user: String
 	expand: [JSON!]
-	returnMetadata: Boolean
-	returnPrompt: Boolean
+	returnMetadata: Boolean = false
+	returnPrompt: Boolean = false
 	logitBias: JSON
-	maxExamples: Int
+	maxExamples: Int = 200
 	logprobs: Int
-	temperature: Float
-	searchModel: String
+	temperature: Float = 0
+	searchModel: String = "ada"
 	labels: [String!]
 	file: String
 	examples: [[String!]!]
@@ -122,21 +122,21 @@ type OpenaiCreateClassificationResponseSelectedExamples {
 	document: Int
 }
 input OpenaiCreateCompletionRequestInput {
+	stop: JSON
+	prompt: JSON
 	user: String
 	logitBias: JSON
-	bestOf: Int
-	frequencyPenalty: Float
-	presencePenalty: Float
-	stop: OpenaiUnionInput
-	echo: Boolean
+	bestOf: Int = 1
+	frequencyPenalty: Float = 0
+	presencePenalty: Float = 0
+	echo: Boolean = false
 	logprobs: Int
-	stream: Boolean
-	n: Int
-	topP: Float
-	temperature: Float
-	maxTokens: Int
+	stream: Boolean = false
+	n: Int = 1
+	topP: Float = 1
+	temperature: Float = 1
+	maxTokens: Int = 16
 	suffix: String
-	prompt: OpenaiUnionInput
 	model: String!
 }
 type OpenaiCreateCompletionResponse {
@@ -165,11 +165,11 @@ type OpenaiCreateCompletionResponseUsage {
 	promptTokens: Int!
 }
 input OpenaiCreateEditRequestInput {
-	topP: Float
-	temperature: Float
-	n: Int
+	topP: Float = 1
+	temperature: Float = 1
+	n: Int = 1
 	instruction: String!
-	input: String
+	input: String = ""
 	model: String!
 }
 type OpenaiCreateEditResponse {
@@ -196,8 +196,8 @@ type OpenaiCreateEditResponseUsage {
 	promptTokens: Int!
 }
 input OpenaiCreateEmbeddingRequestInput {
+	input: JSON!
 	user: String
-	input: OpenaiUnionInput!
 	model: String!
 }
 type OpenaiCreateEmbeddingResponse {
@@ -220,20 +220,20 @@ input OpenaiCreateFineTuneRequestInput {
 	classificationBetas: [Float!]
 	classificationPositiveClass: String
 	classificationNClasses: Int
-	computeClassificationMetrics: Boolean
-	promptLossWeight: Float
+	computeClassificationMetrics: Boolean = false
+	promptLossWeight: Float = 0.01
 	learningRateMultiplier: Float
 	batchSize: Int
-	nEpochs: Int
-	model: String
+	nEpochs: Int = 4
+	model: String = "curie"
 	validationFile: String
 	trainingFile: String!
 }
 input OpenaiCreateImageRequestInput {
 	user: String
-	responseFormat: OpenaiCreateImageRequestResponseFormat
-	size: String
-	n: Int
+	responseFormat: OpenaiCreateImageRequestResponseFormat = URL
+	size: String = "1024x1024"
+	n: Int = 1
 	prompt: String!
 }
 enum OpenaiCreateImageRequestResponseFormat {
@@ -241,8 +241,8 @@ enum OpenaiCreateImageRequestResponseFormat {
 	B_64_JSON
 }
 input OpenaiCreateModerationRequestInput {
-	model: String
-	input: OpenaiUnionInput!
+	input: JSON!
+	model: String = "text-moderation-latest"
 }
 type OpenaiCreateModerationResponse {
 	results: [OpenaiCreateModerationResponseResults!]!
@@ -274,8 +274,8 @@ type OpenaiCreateModerationResponseResults {
 }
 input OpenaiCreateSearchRequestInput {
 	user: String
-	returnMetadata: Boolean
-	maxRerank: Int
+	returnMetadata: Boolean = false
+	maxRerank: Int = 200
 	file: String
 	documents: [String!]
 	query: String!
@@ -405,12 +405,9 @@ type OpenaiQuery {
 	downloadFile(fileId: String!): String!
 	listFineTunes: OpenaiListFineTunesResponse!
 	retrieveFineTune(fineTuneId: String!): OpenaiFineTune!
-	listFineTuneEvents(fineTuneId: String!, stream: Boolean): OpenaiListFineTuneEventsResponse!
+	listFineTuneEvents(fineTuneId: String!, stream: Boolean = false): OpenaiListFineTuneEventsResponse!
 	listModels: OpenaiListModelsResponse!
 	retrieveModel(model: String!): OpenaiModel!
-}
-input OpenaiUnionInput {
-	string: String
 }
 type Query {
 	openai: OpenaiQuery!

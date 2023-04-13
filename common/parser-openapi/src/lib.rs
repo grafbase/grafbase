@@ -169,22 +169,14 @@ mod tests {
 
     #[test]
     fn test_stripe_output() {
-        let spec = std::fs::read_to_string("test_data/stripe.openapi.json").unwrap();
-
-        let mut registry = default_registry();
-
-        parse_spec(&spec, Format::Json, metadata("stripe"), &mut registry).unwrap();
-
-        insta::assert_snapshot!(registry.export_sdl(false));
+        insta::assert_snapshot!(
+            build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe")).export_sdl(false)
+        );
     }
 
     #[test]
     fn test_petstore_output() {
-        let spec = std::fs::read_to_string("test_data/petstore.openapi.json").unwrap();
-
-        let mut registry = default_registry();
-
-        parse_spec(&spec, Format::Json, metadata("petstore"), &mut registry).unwrap();
+        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata("petstore"));
 
         insta::assert_snapshot!(registry.export_sdl(false));
         insta::assert_debug_snapshot!(registry);
@@ -192,22 +184,36 @@ mod tests {
 
     #[test]
     fn test_openai_output() {
-        let spec = std::fs::read_to_string("test_data/openai.yaml").unwrap();
-
-        let mut registry = default_registry();
-
-        parse_spec(
-            &spec,
+        insta::assert_snapshot!(build_registry(
+            "test_data/openai.yaml",
             Format::Yaml,
             ApiMetadata {
                 query_naming: QueryNamingStrategy::OperationId,
                 ..metadata("openai")
-            },
+            }
+        )
+        .export_sdl(false));
+    }
+
+    #[test]
+    fn test_impossible_unions() {
+        insta::assert_snapshot!(
+            build_registry("test_data/impossible-unions.json", Format::Json, metadata("petstore")).export_sdl(false)
+        );
+    }
+
+    fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Registry {
+        let mut registry = default_registry();
+
+        parse_spec(
+            &std::fs::read_to_string(schema_path).unwrap(),
+            format,
+            metadata,
             &mut registry,
         )
         .unwrap();
 
-        insta::assert_snapshot!(registry.export_sdl(false));
+        registry
     }
 
     fn metadata(name: &str) -> ApiMetadata {
