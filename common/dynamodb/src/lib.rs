@@ -263,10 +263,10 @@ impl DynamoDBContext {
             Some((subject, owner_ops)) => {
                 if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
                     Ok(OperationAuthorization::OwnerBased(subject.as_str()))
-                } else if private_and_group_ops.contains(requested_op.as_operations()) {
+                } else if private_and_group_ops.contains(Operations::from(requested_op)) {
                     // private_group_ops have precedence over owner in all other operations.
                     Ok(OperationAuthorization::PrivateOrGroupBased)
-                } else if owner_ops.contains(requested_op.as_operations()) {
+                } else if owner_ops.contains(Operations::from(requested_op)) {
                     Ok(OperationAuthorization::OwnerBased(subject.as_str()))
                 } else {
                     Err(OperationAuthorizationError {
@@ -297,13 +297,13 @@ pub enum RequestedOperation {
     Delete,
 } // TODO update?
 
-impl RequestedOperation {
-    fn as_operations(&self) -> Operations {
-        match self {
-            Self::Create => Operations::CREATE,
-            Self::Get => Operations::GET,
-            Self::List => Operations::LIST,
-            Self::Delete => Operations::DELETE,
+impl From<RequestedOperation> for Operations {
+    fn from(value: RequestedOperation) -> Self {
+        match value {
+            RequestedOperation::Create => Operations::CREATE,
+            RequestedOperation::Get => Operations::GET,
+            RequestedOperation::List => Operations::LIST,
+            RequestedOperation::Delete => Operations::DELETE,
         }
     }
 }
