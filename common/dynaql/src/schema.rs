@@ -676,11 +676,11 @@ impl Schema {
         };
 
         #[cfg(feature = "query-planning")]
-        let engine =
+        let _engine =
             ctx.data_unchecked::<grafbase_runtime::custom_resolvers::CustomResolversEngine>();
 
         #[cfg(feature = "query-planning")]
-        let req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();
+        let _req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();
 
         #[cfg(feature = "query-planning")]
         let exec_context = ctx.data_unchecked::<Arc<ExecutionContext>>().clone();
