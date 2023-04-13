@@ -123,29 +123,35 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
 
             let mut node_transaction = vec![];
 
-            let mut exp_values = HashMap::with_capacity(len);
+            let mut exp_att_values = HashMap::with_capacity(len);
             let mut exp_att_names =
                 HashMap::from([("#pk".to_string(), PK.to_string()), ("#sk".to_string(), SK.to_string())]);
             let update_expression = Self::to_update_expression(
                 current_datetime,
                 user_defined_item,
                 increments,
-                &mut exp_values,
+                &mut exp_att_values,
                 &mut exp_att_names,
             );
             let key = dynomite::attr_map! {
                 constant::PK => pk.clone(),
                 constant::SK => sk.clone(),
             };
-            // TODO: Add ownership based condition_expression once combinations of owner/group/private rules are possible.
+            let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
+
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Update)? {
+                cond_expr.push_str(" AND contains(#owner_attr_name, :owner_val_name)");
+                exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
+                exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
+            }
 
             let update_transaction: TransactWriteItem = TransactWriteItem {
                 update: Some(Update {
                     table_name: ctx.dynamodb_table_name.clone(),
                     key,
-                    condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                    condition_expression: Some(cond_expr),
                     update_expression,
-                    expression_attribute_values: Some(exp_values),
+                    expression_attribute_values: Some(exp_att_values),
                     expression_attribute_names: Some(exp_att_names),
                     ..Default::default()
                 }),
@@ -703,7 +709,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
 
             let len = user_defined_item.len();
 
-            let mut exp_values = HashMap::with_capacity(len);
+            let mut exp_att_values = HashMap::with_capacity(len);
             let mut exp_att_names =
                 HashMap::from([("#pk".to_string(), PK.to_string()), ("#sk".to_string(), SK.to_string())]);
 
@@ -711,17 +717,23 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
                 current_datetime,
                 user_defined_item,
                 increments,
-                &mut exp_values,
+                &mut exp_att_values,
                 &mut exp_att_names,
             );
+            let mut cond_expr = "attribute_exists(#pk) AND attribute_exists(#sk)".to_string();
+            if let OperationAuthorization::OwnerBased(user_id) = ctx.authorize_operation(RequestedOperation::Update)? {
+                cond_expr.push_str(" AND contains(#owner_attr_name, :owner_val_name)");
+                exp_att_names.insert("#owner_attr_name".to_string(), constant::OWNED_BY.to_string());
+                exp_att_values.insert(":owner_val_name".to_string(), user_id.to_string().into_attr());
+            }
 
             let update_transaction: TransactWriteItem = TransactWriteItem {
                 update: Some(Update {
                     table_name: ctx.dynamodb_table_name.clone(),
                     key,
-                    condition_expression: Some("attribute_exists(#pk) AND attribute_exists(#sk)".to_string()),
+                    condition_expression: Some(cond_expr),
                     update_expression,
-                    expression_attribute_values: Some(exp_values),
+                    expression_attribute_values: Some(exp_att_values),
                     expression_attribute_names: Some(exp_att_names),
                     ..Default::default()
                 }),

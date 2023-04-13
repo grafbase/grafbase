@@ -81,7 +81,7 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
@@ -117,21 +117,33 @@ impl ExecuteChangesOnDatabase for UpdateNodeInternalInput {
 
             let document = serde_json::to_string(&document).expect("must serialize");
 
-            // TODO: Add a WHERE clause once combinations of owner/group/private rules are possible.
             let (increment_fields, increment_values): (Vec<_>, Vec<_>) = increments.iter().unzip();
-
             let increment_values = increment_values
                 .iter()
                 .map(|increment_value| increment_value.n.clone().expect("must exist"))
                 .collect::<VecDeque<_>>();
 
-            let (query, values) = Sql::Update(increment_fields).compile(hashmap! {
+            let mut map = hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
                 "document" => SqlValue::String(document),
                 "updated_at" => SqlValue::String(current_datetime.to_string()),
                 "increments" => SqlValue::VecDeque(increment_values)
-            });
+            };
+            let filter_by_owner = if let OperationAuthorization::OwnerBased(user_id) =
+                ctx.authorize_operation(RequestedOperation::Update)?
+            {
+                map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+                true
+            } else {
+                false
+            };
+
+            let (query, values) = Sql::Update {
+                increment_fields,
+                filter_by_owner,
+            }
+            .compile(map);
 
             Ok((query, values, None))
         })
@@ -142,7 +154,7 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
     fn to_transaction<'a>(
         self,
         _batchers: &'a DynamoDBBatchersData,
-        _ctx: &'a DynamoDBContext,
+        ctx: &'a DynamoDBContext,
         pk: String,
         sk: String,
     ) -> ToTransactionFuture<'a> {
@@ -180,13 +192,27 @@ impl ExecuteChangesOnDatabase for UpdateUniqueConstraint {
                 .map(|increment_value| increment_value.n.clone().expect("must exist"))
                 .collect::<VecDeque<_>>();
 
-            let (query, values) = Sql::Update(increment_fields).compile(hashmap! {
+            let mut map = hashmap! {
                 "pk" => SqlValue::String(pk),
                 "sk" => SqlValue::String(sk),
                 "document" => SqlValue::String(document),
                 "updated_at" => SqlValue::String(current_datetime.to_string()),
                 "increments" => SqlValue::VecDeque(increment_values)
-            });
+            };
+            let filter_by_owner = if let OperationAuthorization::OwnerBased(user_id) =
+                ctx.authorize_operation(RequestedOperation::Update)?
+            {
+                map.insert(crate::local::types::OWNED_BY_KEY, SqlValue::String(user_id.to_string()));
+                true
+            } else {
+                false
+            };
+
+            let (query, values) = Sql::Update {
+                increment_fields,
+                filter_by_owner,
+            }
+            .compile(map);
 
             Ok((query, values, None))
         })

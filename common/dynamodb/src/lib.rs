@@ -294,14 +294,16 @@ pub enum RequestedOperation {
     Create,
     Get,
     List,
+    Update,
     Delete,
-} // TODO update?
+}
 
 impl From<RequestedOperation> for Operations {
     fn from(value: RequestedOperation) -> Self {
         match value {
             RequestedOperation::Create => Operations::CREATE,
             RequestedOperation::Get => Operations::GET,
+            RequestedOperation::Update => Operations::UPDATE,
             RequestedOperation::List => Operations::LIST,
             RequestedOperation::Delete => Operations::DELETE,
         }

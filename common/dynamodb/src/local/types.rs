@@ -231,7 +231,10 @@ pub enum Sql<'a> {
     /// values: to_add[], Row.values,
     InsertRelation(&'a Row, usize),
     /// values: document, updated_at, pk, sk, increments
-    Update(Vec<&'a String>),
+    Update {
+        increment_fields: Vec<&'a String>,
+        filter_by_owner: bool,
+    },
     /// values: pk, sk, to_remove[], to_add[], document, updated_at
     UpdateWithRelations(usize, usize),
     /// values: pk, sk, to_remove[], document, updated_at
@@ -332,7 +335,10 @@ impl<'a> Sql<'a> {
                 )
             }
 
-            Self::Update(increment_fields) => {
+            Self::Update {
+                increment_fields,
+                filter_by_owner,
+            } => {
                 let document_update = if increment_fields.is_empty() {
                     "json_patch(document, ?document)".to_string()
                 } else {
@@ -344,7 +350,7 @@ impl<'a> Sql<'a> {
                         }
                     })
                 };
-                format!(
+                let mut sql = format!(
                     indoc::indoc! {"
                     UPDATE {table}
                     SET
@@ -354,9 +360,16 @@ impl<'a> Sql<'a> {
                 "},
                     table = Self::TABLE,
                     document_update = document_update
-                )
+                );
+                if *filter_by_owner {
+                    sql.push_str(&format!(
+                        " AND json_extract(document, '$.__owned_by.SS[0]') = ?{OWNED_BY_KEY}" // FIXME: Refactor once more than one owner is supported.
+                    ));
+                }
+                sql
             }
             Self::UpdateWithRelations(to_remove_count, to_add_count) => {
+                // TODO: missing filter_by_owner
                 let to_remove = if *to_remove_count > 0 {
                     format!(
                         "WHERE value NOT IN ({to_remove_placeholders})",
@@ -394,6 +407,7 @@ impl<'a> Sql<'a> {
                 )
             }
             Self::DeleteRelations(to_remove_count) => {
+                // TODO: missing filter_by_owner
                 let to_remove = if *to_remove_count > 0 {
                     format!(
                         "WHERE value NOT IN ({to_remove_placeholders})",
@@ -429,6 +443,7 @@ impl<'a> Sql<'a> {
                 sql
             }
             Self::SelectIdPairs(pair_count) => {
+                // TODO: missing filter_by_owner
                 format!(
                     "SELECT * FROM {table} WHERE {id_pairs}",
                     table = Self::TABLE,
@@ -501,6 +516,7 @@ impl<'a> Sql<'a> {
                 )
             }
             Self::SelectSingleRelation(pk_index) => {
+                // TODO: missing filter_by_owner
                 format!(
                     indoc::indoc! {"
                         SELECT
@@ -517,6 +533,7 @@ impl<'a> Sql<'a> {
                 )
             }
             Self::SelectType => {
+                // TODO: missing filter_by_owner
                 format!(
                     indoc::indoc! {"
                             SELECT * from {table}
