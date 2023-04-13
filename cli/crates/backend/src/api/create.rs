@@ -14,6 +14,7 @@ use cynic::http::ReqwestExt;
 use cynic::Id;
 use cynic::{MutationBuilder, QueryBuilder};
 use std::iter;
+use tokio::fs;
 
 /// # Errors
 ///
@@ -76,6 +77,14 @@ pub async fn create(
 ) -> Result<Vec<String>, ApiError> {
     let environment = Environment::get();
 
+    match environment.project_dot_grafbase_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => fs::create_dir_all(&environment.project_dot_grafbase_path)
+            .await
+            .map_err(ApiError::CreateProjectDotGrafbaseFolder)?,
+        Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
+    }
+
     let client = create_client().await?;
 
     let operation = ProjectCreate::build(ProjectCreateArguments {
@@ -93,6 +102,7 @@ pub async fn create(
     match payload {
         ProjectCreatePayload::ProjectCreateSuccess(ProjectCreateSuccess { project, .. }) => {
             let project_metadata_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
+
             // TODO prevent reset from deleting this
             tokio::fs::write(
                 &project_metadata_path,

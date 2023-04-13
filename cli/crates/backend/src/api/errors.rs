@@ -32,6 +32,10 @@ pub enum ApiError {
     #[error("could not read '~/.grafbase'\ncaused by: {0}")]
     ReadUserDotGrafbaseFolder(io::Error),
 
+    /// returned if .grafbase could not be read
+    #[error("could not read '.grafbase'\ncaused by: {0}")]
+    ReadProjectDotGrafbaseFolder(io::Error),
+
     /// returned if an operation failed due to the user being logged out
     #[error("could not complete the action as you are logged out")]
     LoggedOut,
@@ -82,8 +86,12 @@ pub enum ApiError {
     FindUserDotGrafbaseFolder,
 
     /// returned if ~/.grafbase could not be created
-    #[error("could not create '~/.grafbase\ncaused by: {0}")]
+    #[error("could not create '~/.grafbase'\ncaused by: {0}")]
     CreateUserDotGrafbaseFolder(io::Error),
+
+    /// returned if .grafbase could not be created
+    #[error("could not create '.grafbase'\ncaused by: {0}")]
+    CreateProjectDotGrafbaseFolder(io::Error),
 
     /// returned if an available port could not be find
     #[error("could not find an available port")]
