@@ -4,6 +4,7 @@ use once_cell::sync::Lazy;
 use openapiv3::{AdditionalProperties, ReferenceOr, Type};
 use petgraph::graph::NodeIndex;
 use regex::Regex;
+use serde_json::Value;
 
 use crate::{
     graph::{ScalarKind, SchemaDetails, WrappingType},
@@ -71,7 +72,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     Some(schema) => extract_types(ctx, &schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false, None);
                     }
                 }
             }
@@ -87,7 +88,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     Some(schema) => extract_types(ctx, &schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false, None);
                     }
                 }
             }
@@ -166,9 +167,15 @@ enum ParentNode {
 }
 
 impl Context {
-    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool) -> NodeIndex {
+    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool, default: Option<&Value>) -> NodeIndex {
         let dest_index = self.graph.add_node(node);
         self.add_type_edge(parent, dest_index, nullable);
+
+        if let Some(default_value) = default {
+            let default_index = self.graph.add_node(Node::Default(default_value.clone()));
+            self.graph.add_edge(dest_index, default_index, Edge::HasDefault);
+        }
+
         dest_index
     }
 
@@ -273,7 +280,12 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         ReferenceOr::Item(schema) => match &schema.schema_kind {
             SchemaKind::Type(Type::String(ty)) => {
                 if ty.enumeration.is_empty() || !ty.enumeration.iter().all(is_valid_enum_value) {
-                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable);
+                    ctx.add_type_node(
+                        parent,
+                        Node::Scalar(ScalarKind::String),
+                        schema.schema_data.nullable,
+                        schema.schema_data.default.as_ref(),
+                    );
                 } else {
                     ctx.add_type_node(
                         parent,
@@ -281,17 +293,33 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                             values: ty.enumeration.iter().flatten().cloned().collect(),
                         },
                         schema.schema_data.nullable,
+                        schema.schema_data.default.as_ref(),
                     );
                 }
             }
             SchemaKind::Type(Type::Boolean {}) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable);
+                ctx.add_type_node(
+                    parent,
+                    Node::Scalar(ScalarKind::Boolean),
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
             }
             SchemaKind::Type(Type::Integer(_)) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), schema.schema_data.nullable);
+                ctx.add_type_node(
+                    parent,
+                    Node::Scalar(ScalarKind::Integer),
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
             }
             SchemaKind::Type(Type::Number(_)) => {
-                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable);
+                ctx.add_type_node(
+                    parent,
+                    Node::Scalar(ScalarKind::Float),
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
             }
             SchemaKind::Type(Type::Object(obj)) => {
                 if obj.properties.is_empty() {
@@ -299,11 +327,18 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                     // emiting an object for it.  Not sure if this is a good idea - could be some APIs
                     // that _require_ an empty object.  But lets see what happens
                     if obj.additional_properties != Some(AdditionalProperties::Any(false)) {
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
                     }
                     return;
                 }
-                let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
+
+                let object_index = ctx.add_type_node(
+                    parent,
+                    Node::Object,
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
+
                 for (field_name, field_schema_or_ref) in &obj.properties {
                     let required = obj.required.contains(field_name);
                     extract_types(
@@ -341,7 +376,13 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                     return;
                 }
 
-                let union_index = ctx.add_type_node(parent, Node::Union, schema.schema_data.nullable);
+                let union_index = ctx.add_type_node(
+                    parent,
+                    Node::Union,
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
+
                 for schema in schemas {
                     extract_types(ctx, schema, ParentNode::Union(union_index));
                 }
@@ -360,10 +401,17 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                 // We treat an any very similar to an object
                 if any.properties.is_empty() {
                     // If there's no explicit properties we make this a custom scalar
-                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
                     return;
                 }
-                let object_index = ctx.add_type_node(parent, Node::Object, schema.schema_data.nullable);
+
+                let object_index = ctx.add_type_node(
+                    parent,
+                    Node::Object,
+                    schema.schema_data.nullable,
+                    schema.schema_data.default.as_ref(),
+                );
+
                 for (field_name, field_schema_or_ref) in &any.properties {
                     let required = any.required.contains(field_name);
                     extract_types(

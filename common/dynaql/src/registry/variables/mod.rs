@@ -7,7 +7,7 @@
 //! resolve this variable.
 use crate::{context::resolver_data_get_opt_ref, Context, Value};
 use crate::{Error, ServerError, ServerResult};
-use dynaql_value::Name;
+use dynaql_value::{ConstValue, Name};
 use grafbase_runtime::cursor::Cursor;
 use indexmap::IndexMap;
 use serde::de::DeserializeOwned;
@@ -70,13 +70,11 @@ impl VariableResolveDefinition {
         ctx: &Context<'_>,
         last_resolver_value: Option<&serde_json::Value>,
     ) -> ServerResult<T> {
-        let param = self.param(ctx, last_resolver_value)?;
-        // Looks a bit stupid to convert from and back serde_json::Value but it's way more friendly
-        // to use Deserialize to parse the expect input.
-        // TODO: Instead of self.param returning a ConstValue it should return a serde_json::Value
-        serde_json::to_value(param)
-            .and_then(|value| serde_json::from_value(value))
-            .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
+        let param = self
+            .param(ctx, last_resolver_value)?
+            .unwrap_or(ConstValue::Null);
+
+        T::deserialize(param).map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))
     }
 
     pub fn expect_string<'a>(

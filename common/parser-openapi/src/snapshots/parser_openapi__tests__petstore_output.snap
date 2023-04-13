@@ -77,7 +77,7 @@ enum PetstorePetStatus {
 	SOLD
 }
 type PetstoreQuery {
-	findPetsByStatus(status: PetstoreFindPetsByStatusStatus): [PetstorePet!]!
+	findPetsByStatus(status: PetstoreFindPetsByStatusStatus = AVAILABLE): [PetstorePet!]!
 	findPetsByTags(tags: [String!]): [PetstorePet!]!
 	pet(petId: Int!): PetstorePet!
 	inventory: JSON!
