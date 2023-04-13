@@ -3,7 +3,7 @@ mod utils;
 use std::collections::HashMap;
 
 use serde_json::Value;
-use utils::consts::{JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA};
+use utils::consts::{INTROSPECTION_QUERY, JWT_PROVIDER_QUERY, JWT_PROVIDER_SCHEMA};
 use utils::environment::Environment;
 
 const ISSUER_URL: &str = "https://some.issuer.test";
@@ -27,6 +27,9 @@ fn jwt_provider() {
     let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
     let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
     assert_eq!(error, Some("Unauthorized. Please use the 'x-api-key' header with any value locally. More info: https://grafbase.com/docs/auth".to_string()), "error: {error:#?}");
+
+    // introspection does not need an auth header locally.
+    insta::assert_json_snapshot!("introspection", client.gql::<Value>(INTROSPECTION_QUERY).send());
 
     // Reject invalid token
     let client = client.with_header("Authorization", "Bearer invalid-token");
