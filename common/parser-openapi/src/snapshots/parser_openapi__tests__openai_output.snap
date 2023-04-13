@@ -1,6 +1,6 @@
 ---
 source: common/parser-openapi/src/lib.rs
-expression: registry.export_sdl(false)
+expression: "build_registry(\"test_data/openai.yaml\", Format::Yaml,\n        ApiMetadata {\n            query_naming: QueryNamingStrategy::OperationId,\n            ..metadata(\"openai\")\n        }).export_sdl(false)"
 ---
 """
 A JSON Value
@@ -29,13 +29,13 @@ enum OpenaiChatCompletionResponseMessageRole {
 	ASSISTANT
 }
 input OpenaiCreateAnswerRequestInput {
+	stop: JSON
 	user: String
 	expand: [JSON!]
 	returnPrompt: Boolean = false
 	returnMetadata: Boolean = false
 	logitBias: JSON
 	n: Int = 1
-	stop: OpenaiUnionInput
 	maxTokens: Int = 16
 	logprobs: Int
 	temperature: Float = 0
@@ -61,12 +61,12 @@ type OpenaiCreateAnswerResponseSelectedDocuments {
 	document: Int
 }
 input OpenaiCreateChatCompletionRequestInput {
+	stop: JSON
 	user: String
 	logitBias: JSON
 	frequencyPenalty: Float = 0
 	presencePenalty: Float = 0
 	maxTokens: Int = "inf"
-	stop: OpenaiUnionInput
 	stream: Boolean = false
 	n: Int = 1
 	topP: Float = 1
@@ -122,12 +122,13 @@ type OpenaiCreateClassificationResponseSelectedExamples {
 	document: Int
 }
 input OpenaiCreateCompletionRequestInput {
+	stop: JSON
+	prompt: JSON
 	user: String
 	logitBias: JSON
 	bestOf: Int = 1
 	frequencyPenalty: Float = 0
 	presencePenalty: Float = 0
-	stop: OpenaiUnionInput
 	echo: Boolean = false
 	logprobs: Int
 	stream: Boolean = false
@@ -136,7 +137,6 @@ input OpenaiCreateCompletionRequestInput {
 	temperature: Float = 1
 	maxTokens: Int = 16
 	suffix: String
-	prompt: OpenaiUnionInput
 	model: String!
 }
 type OpenaiCreateCompletionResponse {
@@ -196,8 +196,8 @@ type OpenaiCreateEditResponseUsage {
 	promptTokens: Int!
 }
 input OpenaiCreateEmbeddingRequestInput {
+	input: JSON!
 	user: String
-	input: OpenaiUnionInput!
 	model: String!
 }
 type OpenaiCreateEmbeddingResponse {
@@ -241,8 +241,8 @@ enum OpenaiCreateImageRequestResponseFormat {
 	B_64_JSON
 }
 input OpenaiCreateModerationRequestInput {
+	input: JSON!
 	model: String = "text-moderation-latest"
-	input: OpenaiUnionInput!
 }
 type OpenaiCreateModerationResponse {
 	results: [OpenaiCreateModerationResponseResults!]!
@@ -408,9 +408,6 @@ type OpenaiQuery {
 	listFineTuneEvents(fineTuneId: String!, stream: Boolean = false): OpenaiListFineTuneEventsResponse!
 	listModels: OpenaiListModelsResponse!
 	retrieveModel(model: String!): OpenaiModel!
-}
-input OpenaiUnionInput {
-	string: String = "<|endoftext|>"
 }
 type Query {
 	openai: OpenaiQuery!

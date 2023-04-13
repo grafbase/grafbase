@@ -20,6 +20,7 @@ mod operations;
 mod output_type;
 mod parameters;
 mod scalar;
+mod transforms;
 
 pub use self::{
     enums::Enum,
@@ -42,11 +43,15 @@ pub struct OpenApiGraph {
 
 impl OpenApiGraph {
     pub fn new(parsed: crate::parsing::Context, metadata: crate::ApiMetadata) -> Self {
-        OpenApiGraph {
+        let mut this = OpenApiGraph {
             graph: parsed.graph,
             operation_indices: parsed.operation_indices,
             metadata,
-        }
+        };
+
+        transforms::impossible_unions_to_json(&mut this);
+
+        this
     }
 }
 
