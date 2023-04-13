@@ -1,12 +1,9 @@
 ---
 source: crates/cli/tests/owner.rs
-expression: "client.gql::<Value>(OWNER_TODO_GET).bearer(USER1).variables(json!({\n                \"id\" : id\n            })).send()"
+expression: "client.gql::<Value>(OWNER_TODO_GET).bearer(USER2).variables(json!({\n                \"id\" : id\n            })).send()"
 ---
 {
-  "data": null,
-  "errors": [
-    {
-      "message": "Unauthorized to access Query.todo (missing get operation)"
-    }
-  ]
+  "data": {
+    "todo": null
+  }
 }

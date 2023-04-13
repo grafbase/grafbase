@@ -185,12 +185,21 @@ mod global {
             // user2.list should be unauthorized.
             insta::assert_json_snapshot!("list-fail", client.gql::<Value>(OWNER_TODO_LIST).bearer(USER2).send());
 
-            // user1 should not be able to get the todo by id.
+            // user1 should be able to get the todo by id.
+            insta::assert_json_snapshot!(
+                "get",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER1)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // user2 should not be able to get the todo by id.
             insta::assert_json_snapshot!(
                 "get-fail",
                 client
                     .gql::<Value>(OWNER_TODO_GET)
-                    .bearer(USER1)
+                    .bearer(USER2)
                     .variables(json!({ "id": id }))
                     .send()
             );
@@ -250,6 +259,15 @@ mod global {
                 client
                     .gql::<Value>(OWNER_TODO_GET)
                     .bearer(USER1)
+                    .variables(json!({ "id": id }))
+                    .send()
+            );
+            // user2 should not be able to get the todo by id.
+            insta::assert_json_snapshot!(
+                "get-fail",
+                client
+                    .gql::<Value>(OWNER_TODO_GET)
+                    .bearer(USER2)
                     .variables(json!({ "id": id }))
                     .send()
             );

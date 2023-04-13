@@ -3,7 +3,7 @@ schema
     providers: [{ type: jwt, issuer: "https://idp.example.com", secret: "abc123" }]
     rules: [
       { allow: groups, groups: ["admin"] } # full access
-      { allow: owner, operations: [create] }
+      { allow: owner, operations: [create, get] }
     ]
   ) {
   query: Query
