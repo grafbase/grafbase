@@ -260,41 +260,34 @@ impl DynamoDBContext {
         let res = match self.subject_and_owner_ops.as_ref() {
             Some((subject, owner_ops)) => {
                 if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
-                    Some(OperationAuthorization::OwnerBased(subject.as_str()))
+                    Ok(OperationAuthorization::OwnerBased(subject.as_str()))
                 } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
                     // private_group_ops have precedence over owner in all other operations.
-                    Some(OperationAuthorization::PrivateOrGroupBased)
+                    Ok(OperationAuthorization::PrivateOrGroupBased)
                 } else if owner_ops.contains(requested_op.as_operations()) {
-                    Some(OperationAuthorization::OwnerBased(subject.as_str()))
+                    Ok(OperationAuthorization::OwnerBased(subject.as_str()))
                 } else {
-                    None
+                    Err(OperationAuthorizationError {
+                        requested_op,
+                        private_and_group_ops: self.private_and_group_ops,
+                        owner_ops: self
+                            .subject_and_owner_ops
+                            .as_ref()
+                            .map(|(_, ops)| *ops)
+                            .unwrap_or_default(),
+                    })
                 }
             }
             None => {
                 // The owner-based auth is not enabled or JWT does not contain `sub`.
                 // Therefore only private/group-based auth might be applicable.
-                if self.private_and_group_ops.contains(requested_op.as_operations()) {
-                    Some(OperationAuthorization::PrivateOrGroupBased)
-                } else {
-                    None
-                }
+                // Since model and field level is not supported by the low level auth yet,
+                // allow everything to continue with the old behavior.
+                Ok(OperationAuthorization::PrivateOrGroupBased)
             }
         };
-        log::trace!(
-            self.trace_id,
-            "authorize_operation result: {res:?}, subject_and_owner_ops:{sub:?}, private_and_group_ops: {pg_ops:?}, requested_op: {requested_op:?}",
-            sub = self.subject_and_owner_ops,
-            pg_ops = self.private_and_group_ops,
-        );
-        res.ok_or_else(|| OperationAuthorizationError {
-            requested_op,
-            private_and_group_ops: self.private_and_group_ops,
-            owner_ops: self
-                .subject_and_owner_ops
-                .as_ref()
-                .map(|(_, ops)| *ops)
-                .unwrap_or_default(),
-        })
+        log::trace!(self.trace_id, "authorize_operation result: {res:?}");
+        res
     }
 }
 
