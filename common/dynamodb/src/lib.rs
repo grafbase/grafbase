@@ -253,35 +253,35 @@ impl DynamoDBContext {
         &self,
         requested_op: RequestedOperation,
     ) -> Result<OperationAuthorization<'_>, OperationAuthorizationError> {
-        let (subject_and_owner_ops, private_and_group_ops) = match &self.auth {
-            ExecutionAuth::ApiKey => {
-                return Ok(OperationAuthorization::ApiKey);
-            }
-            ExecutionAuth::Token(token) => (token.subject_and_owner_ops(), token.private_and_group_ops()),
-        };
-        let res = match subject_and_owner_ops.as_ref() {
-            Some((subject, owner_ops)) => {
-                if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
-                    Ok(OperationAuthorization::OwnerBased(subject.as_str()))
-                } else if private_and_group_ops.contains(Operations::from(requested_op)) {
-                    // private_group_ops have precedence over owner in all other operations.
-                    Ok(OperationAuthorization::PrivateOrGroupBased)
-                } else if owner_ops.contains(Operations::from(requested_op)) {
-                    Ok(OperationAuthorization::OwnerBased(subject.as_str()))
-                } else {
-                    Err(OperationAuthorizationError {
-                        requested_op,
-                        private_and_group_ops,
-                        owner_ops: subject_and_owner_ops.as_ref().map(|(_, ops)| *ops).unwrap_or_default(),
-                    })
+        let res = match &self.auth {
+            ExecutionAuth::ApiKey => Ok(OperationAuthorization::ApiKey),
+            ExecutionAuth::Token(token) => {
+                match token.subject_and_owner_ops() {
+                    Some((subject, owner_ops)) => {
+                        // Owner based auth is enabled and JWT contains the `sub` claim.
+                        if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
+                            Ok(OperationAuthorization::OwnerBased(subject.as_str()))
+                        } else if token.private_and_group_ops().contains(Operations::from(requested_op)) {
+                            // private_group_ops have precedence over owner in all other operations.
+                            Ok(OperationAuthorization::PrivateOrGroupBased)
+                        } else if owner_ops.contains(Operations::from(requested_op)) {
+                            Ok(OperationAuthorization::OwnerBased(subject.as_str()))
+                        } else {
+                            Err(OperationAuthorizationError {
+                                requested_op,
+                                private_and_group_ops: token.private_and_group_ops(),
+                                owner_ops: token.owner_ops(),
+                            })
+                        }
+                    }
+                    None => {
+                        // The owner-based auth is not enabled or JWT does not contain the `sub` claim.
+                        // Therefore only private/group-based auth might be applicable.
+                        // Since model and field level is not supported by the low level auth yet,
+                        // allow everything to continue with the old behavior.
+                        Ok(OperationAuthorization::PrivateOrGroupBased)
+                    }
                 }
-            }
-            None => {
-                // The owner-based auth is not enabled or JWT does not contain `sub`.
-                // Therefore only private/group-based auth might be applicable.
-                // Since model and field level is not supported by the low level auth yet,
-                // allow everything to continue with the old behavior.
-                Ok(OperationAuthorization::PrivateOrGroupBased)
             }
         };
         log::trace!(self.trace_id, "authorize_operation({requested_op:?}) = {res:?}");
