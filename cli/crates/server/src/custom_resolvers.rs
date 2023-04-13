@@ -10,6 +10,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
 use crate::errors::ServerError;
+use crate::servers::DetectedResolver;
 use crate::types::ServerMessage;
 
 #[derive(strum::AsRefStr, strum::Display)]
@@ -65,14 +66,16 @@ async fn build_resolver(
     environment_variables: &std::collections::HashMap<String, String>,
     resolver_name: &str,
     resolver_wrapper_worker_contents: &str,
+    resolver_build_artifact_directory_path: &Path,
     tracing: bool,
-) -> Result<PathBuf, ServerError> {
+) -> Result<(), ServerError> {
     const EXTENSIONS: [&str; 2] = ["js", "ts"];
 
     use futures_util::StreamExt;
 
     trace!("building resolver {resolver_name}");
 
+    let resolvers_build_artifact_directory_path = environment.resolvers_build_artifact_path.as_path();
     let resolver_input_file_path_without_extension = environment.resolvers_source_path.join(resolver_name);
 
     let resolver_paths = futures_util::stream::iter(
@@ -111,8 +114,6 @@ async fn build_resolver(
         paths.next().await
     };
 
-    let resolvers_build_artifact_directory_path = environment.resolvers_build_artifact_path.as_path();
-    let resolver_build_artifact_directory_path = resolvers_build_artifact_directory_path.join(resolver_name);
     tokio::fs::create_dir_all(&resolver_build_artifact_directory_path)
         .await
         .map_err(ServerError::CreateTemporaryFile)?;
@@ -128,9 +129,10 @@ async fn build_resolver(
         .map_err(ServerError::NpmCommandError)?;
     }
 
+    // FIXME: Drop the dependency on wrangler.
     run_npm_command(
         CommandType::Npm,
-        resolvers_build_artifact_directory_path,
+        resolver_build_artifact_directory_path,
         &["add", "--save-dev", "wrangler"],
         tracing,
         &[],
@@ -138,7 +140,7 @@ async fn build_resolver(
     .await?;
     run_npm_command(
         CommandType::Npm,
-        resolvers_build_artifact_directory_path,
+        resolver_build_artifact_directory_path,
         &["install"],
         tracing,
         &[],
@@ -245,7 +247,7 @@ async fn build_resolver(
     .await
     .map_err(ServerError::CreateTemporaryFile)?;
 
-    Ok(resolver_build_artifact_directory_path)
+    Ok(())
 }
 
 async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerError> {
@@ -264,7 +266,7 @@ pub async fn build_resolvers(
     sender: &Sender<ServerMessage>,
     environment: &Environment,
     environment_variables: &std::collections::HashMap<String, String>,
-    resolvers: impl IntoIterator<Item = String>,
+    resolvers: impl IntoIterator<Item = crate::servers::DetectedResolver>,
     tracing: bool,
 ) -> Result<HashMap<String, PathBuf>, ServerError> {
     use futures_util::{StreamExt, TryStreamExt};
@@ -278,24 +280,43 @@ pub async fn build_resolvers(
 
     let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
 
+    let resolvers_build_artifact_directory_path = environment.resolvers_build_artifact_path.as_path();
+
     futures_util::stream::iter(resolvers_iterator)
         .map(Ok)
-        .map_ok(|resolver_name| async {
-            let start = std::time::Instant::now();
-            let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
-            let output_file_path = build_resolver(
-                environment,
-                environment_variables,
-                resolver_name.as_str(),
-                &resolver_wrapper_worker_contents,
-                tracing,
-            )
-            .await?;
-            let _ = sender.send(ServerMessage::CompleteResolverBuild {
-                name: resolver_name.clone(),
-                duration: start.elapsed(),
-            });
-            Ok((resolver_name, output_file_path))
+        .map_ok(|DetectedResolver { resolver_name, fresh }| {
+            let resolver_wrapper_worker_contents = resolver_wrapper_worker_contents.as_str();
+
+            async move {
+                let resolver_build_artifact_directory_path =
+                    resolvers_build_artifact_directory_path.join(&resolver_name);
+                if fresh {
+                    let wrangler_toml_path = resolver_build_artifact_directory_path.join("wrangler.toml");
+                    // Only touch the file to ensure the modified time relation is preserved.
+                    tokio::task::spawn_blocking(|| {
+                        filetime::set_file_mtime(wrangler_toml_path, filetime::FileTime::now()).expect("must succeed")
+                    })
+                    .await
+                    .expect("must succeed");
+                } else {
+                    let start = std::time::Instant::now();
+                    let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
+                    build_resolver(
+                        environment,
+                        environment_variables,
+                        resolver_name.as_str(),
+                        resolver_wrapper_worker_contents,
+                        &resolver_build_artifact_directory_path,
+                        tracing,
+                    )
+                    .await?;
+                    let _ = sender.send(ServerMessage::CompleteResolverBuild {
+                        name: resolver_name.clone(),
+                        duration: start.elapsed(),
+                    });
+                }
+                Ok((resolver_name, resolver_build_artifact_directory_path))
+            }
         })
         .try_buffer_unordered(RESOLVER_BUILD_CONCURRENCY)
         .try_collect()
