@@ -104,7 +104,7 @@ impl serde::Serialize for NodeSerializer<'_> {
                         graph: self.graph,
                     }),
             ),
-            QueryResponseNode::Primitive(primitive) => primitive.value.serialize(serializer),
+            QueryResponseNode::Primitive(primitive) => primitive.0.serialize(serializer),
         }
     }
 }

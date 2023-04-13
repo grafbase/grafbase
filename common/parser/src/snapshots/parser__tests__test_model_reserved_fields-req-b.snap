@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 386
 expression: req_string_b
 ---
 {
@@ -71,6 +72,7 @@ expression: req_string_b
     }
   },
   "disable_introspection": false,
+  "enable_caching": false,
   "enable_federation": false,
   "federation_subscription": false,
   "http_headers": {},
