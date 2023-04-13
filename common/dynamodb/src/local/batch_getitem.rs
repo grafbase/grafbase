@@ -62,7 +62,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         .map_err(|_| Self::Error::UnknownError)?;
         let owned_by = match self.ctx.authorize_operation(RequestedOperation::Get)? {
             OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
-            OperationAuthorization::PrivateOrGroupBased => None,
+            _ => None,
         };
         let response = results
             .into_iter()

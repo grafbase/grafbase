@@ -1,7 +1,7 @@
+use std::collections::HashMap;
+
 use aws_region_nearby::AwsRegion;
-use grafbase::auth::Operations;
-use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use grafbase::auth::ExecutionAuth;
 use worker::js_sys::Uint8Array;
 use worker::{Headers, Method, RequestInit};
 
@@ -60,92 +60,6 @@ pub struct ExecutionRequest<'a> {
     pub config: CustomerDeploymentConfig,
     /// Authorization details
     pub auth: ExecutionAuth,
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-
-pub enum ExecutionAuth {
-    ApiKey,
-    Token(ExecutionAuthToken),
-}
-
-impl ExecutionAuth {
-    pub fn new_from_api_keys() -> Self {
-        Self::ApiKey
-    }
-
-    pub fn new_from_token(
-        private_and_group_ops: Operations,
-        groups_from_token: HashSet<String>,
-        subject_and_owner_ops: Option<(String, Operations)>,
-    ) -> Self {
-        Self::Token(ExecutionAuthToken {
-            private_and_group_ops,
-            groups_from_token,
-            subject_and_owner_ops,
-        })
-    }
-
-    pub fn global_ops(&self) -> Operations {
-        match self {
-            Self::ApiKey => dynaql::AuthConfig::api_key_ops(),
-            Self::Token(token) => token.global_merged_ops(),
-        }
-    }
-
-    pub fn hash<H: Hasher + Default>(&self) -> u64 {
-        match self {
-            Self::ApiKey => {
-                let hasher = H::default();
-                hasher.finish()
-            }
-            Self::Token(token) => token.hash::<H>(),
-        }
-    }
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-pub struct ExecutionAuthToken {
-    /// Private or group-based operations that are enabled on the global level.
-    private_and_group_ops: Operations,
-    groups_from_token: HashSet<String>,
-    /// Owner's subject and enabled operations on the global level.
-    subject_and_owner_ops: Option<(String, Operations)>,
-}
-
-impl ExecutionAuthToken {
-    pub fn global_merged_ops(&self) -> Operations {
-        let allowed_owner_ops = self.subject_and_owner_ops.as_ref().map(|it| it.1).unwrap_or_default();
-        self.private_and_group_ops.union(allowed_owner_ops)
-    }
-
-    pub fn groups_from_token(&self) -> &HashSet<String> {
-        &self.groups_from_token
-    }
-
-    pub fn subject_and_owner_ops(&self) -> Option<&(String, Operations)> {
-        self.subject_and_owner_ops.as_ref()
-    }
-
-    pub fn private_and_group_ops(&self) -> Operations {
-        self.private_and_group_ops
-    }
-
-    pub fn hash<H: Hasher + Default>(&self) -> u64 {
-        let mut hasher = H::default();
-        self.private_and_group_ops.hash(&mut hasher);
-        self.subject_and_owner_ops.hash(&mut hasher);
-        hasher.write_usize(self.groups_from_token.len());
-        let mut h: u64 = 0;
-        // opted for XORing the hashes of the elements instead of sorting
-        for group in &self.groups_from_token {
-            let mut hasher = H::default();
-            group.hash(&mut hasher);
-            h ^= hasher.finish();
-        }
-        hasher.write_u64(h);
-        hasher.finish()
-    }
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment

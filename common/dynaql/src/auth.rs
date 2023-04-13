@@ -74,10 +74,6 @@ impl Default for AuthConfig {
 }
 
 impl AuthConfig {
-    pub fn api_key_ops() -> Operations {
-        Operations::all()
-    }
-
     pub fn private_and_group_based_ops(&self, groups_from_token: &HashSet<String>) -> Operations {
         // Add ops for each group contained in ID token
         // Minimum ops are that of any signed-in user, if present
@@ -96,7 +92,7 @@ impl AuthConfig {
     pub fn allowed_ops(&self, groups_from_token: Option<&HashSet<String>>) -> Operations {
         match groups_from_token {
             Some(groups) => self.private_and_group_based_ops(groups),
-            None => Self::api_key_ops(),
+            None => grafbase::auth::API_KEY_OPS,
         }
     }
 }

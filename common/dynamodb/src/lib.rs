@@ -38,7 +38,7 @@ cfg_if::cfg_if! {
 use dataloader::{DataLoader, LruCache};
 use dynomite::AttributeError;
 
-use grafbase::auth::Operations;
+use grafbase::auth::{ExecutionAuth, Operations};
 use quick_error::quick_error;
 use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
@@ -78,10 +78,7 @@ pub struct DynamoDBContext {
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
     pub resolver_binding_map: std::collections::HashMap<String, String>,
-    // Owner and global owner-based operations.
-    subject_and_owner_ops: Option<(String, Operations)>,
-    // Private/group-based global operations.
-    private_and_group_ops: Operations,
+    auth: ExecutionAuth,
 }
 
 /// Describe DynamoDBTables available in a GlobalDB Project.
@@ -187,6 +184,7 @@ quick_error! {
 pub enum OperationAuthorization<'a> {
     OwnerBased(&'a str),
     PrivateOrGroupBased,
+    ApiKey,
 }
 
 #[derive(thiserror::Error, Debug, Clone)]
@@ -218,8 +216,7 @@ impl DynamoDBContext {
         dynamodb_table_name: String,
         // FIXME: Move this to `grafbase-runtime`!
         resolver_binding_map: std::collections::HashMap<String, String>,
-        subject_and_owner_ops: Option<(String, Operations)>,
-        private_and_group_ops: Operations,
+        auth: ExecutionAuth,
     ) -> Self {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
 
@@ -232,8 +229,7 @@ impl DynamoDBContext {
             dynamodb_table_name,
             closest_region: region,
             resolver_binding_map,
-            subject_and_owner_ops,
-            private_and_group_ops,
+            auth,
         }
     }
 
@@ -257,11 +253,17 @@ impl DynamoDBContext {
         &self,
         requested_op: RequestedOperation,
     ) -> Result<OperationAuthorization<'_>, OperationAuthorizationError> {
-        let res = match self.subject_and_owner_ops.as_ref() {
+        let (subject_and_owner_ops, private_and_group_ops) = match &self.auth {
+            ExecutionAuth::ApiKey => {
+                return Ok(OperationAuthorization::ApiKey);
+            }
+            ExecutionAuth::Token(token) => (token.subject_and_owner_ops(), token.private_and_group_ops()),
+        };
+        let res = match subject_and_owner_ops.as_ref() {
             Some((subject, owner_ops)) => {
                 if requested_op == RequestedOperation::Create && owner_ops.contains(Operations::CREATE) {
                     Ok(OperationAuthorization::OwnerBased(subject.as_str()))
-                } else if self.private_and_group_ops.contains(requested_op.as_operations()) {
+                } else if private_and_group_ops.contains(requested_op.as_operations()) {
                     // private_group_ops have precedence over owner in all other operations.
                     Ok(OperationAuthorization::PrivateOrGroupBased)
                 } else if owner_ops.contains(requested_op.as_operations()) {
@@ -269,12 +271,8 @@ impl DynamoDBContext {
                 } else {
                     Err(OperationAuthorizationError {
                         requested_op,
-                        private_and_group_ops: self.private_and_group_ops,
-                        owner_ops: self
-                            .subject_and_owner_ops
-                            .as_ref()
-                            .map(|(_, ops)| *ops)
-                            .unwrap_or_default(),
+                        private_and_group_ops,
+                        owner_ops: subject_and_owner_ops.as_ref().map(|(_, ops)| *ops).unwrap_or_default(),
                     })
                 }
             }
@@ -283,7 +281,6 @@ impl DynamoDBContext {
                 // Therefore only private/group-based auth might be applicable.
                 // Since model and field level is not supported by the low level auth yet,
                 // allow everything to continue with the old behavior.
-                // TODO: add API-key detection that skips this altogether.
                 Ok(OperationAuthorization::PrivateOrGroupBased)
             }
         };

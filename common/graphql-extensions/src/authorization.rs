@@ -7,9 +7,8 @@ use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::Registry;
 use dynaql::{ServerError, ServerResult};
 use dynaql_value::{indexmap::IndexMap, ConstValue};
-use grafbase::auth::Operations;
+use grafbase::auth::{ExecutionAuth, Operations};
 
-use gateway_protocol::ExecutionAuth;
 use log::warn;
 
 const INPUT_ARG: &str = "input";

@@ -143,7 +143,7 @@ impl Loader<QueryTypePaginatedKey> for QueryTypePaginatedLoader {
         let mut concurrent_f = vec![];
         let owned_by = match self.ctx.authorize_operation(RequestedOperation::List)? {
             OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
-            OperationAuthorization::PrivateOrGroupBased => None,
+            _ => None,
         };
         for query_key in keys {
             let future_get = || async move {

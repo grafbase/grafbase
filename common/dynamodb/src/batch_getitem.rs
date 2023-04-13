@@ -86,7 +86,7 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         let get_items = get_items.instrument(info_span!("fetch batch_get_item"));
         let owned_by = match self.ctx.authorize_operation(RequestedOperation::Get)? {
             OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
-            OperationAuthorization::PrivateOrGroupBased => None,
+            _ => None,
         };
         let get_items = get_items
             .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
