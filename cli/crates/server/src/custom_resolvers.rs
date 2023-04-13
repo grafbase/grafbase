@@ -189,7 +189,11 @@ async fn build_resolver(
             resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
         ],
         tracing,
-        &[("FORCE_COLOR", "0"), ("CLOUDFLARE_API_TOKEN", "STUB")],
+        &[
+            ("CLOUDFLARE_API_TOKEN", "STUB"),
+            ("FORCE_COLOR", "0"),
+            ("WRANGLER_SEND_METRICS", "false"),
+        ],
     )
     .await
     .map_err(|err| match err {
