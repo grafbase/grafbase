@@ -294,7 +294,7 @@ pub async fn build_resolvers(
                     let wrangler_toml_path = resolver_build_artifact_directory_path.join("wrangler.toml");
                     // Only touch the file to ensure the modified time relation is preserved.
                     tokio::task::spawn_blocking(|| {
-                        filetime::set_file_mtime(wrangler_toml_path, filetime::FileTime::now()).expect("must succeed")
+                        filetime::set_file_mtime(wrangler_toml_path, filetime::FileTime::now()).expect("must succeed");
                     })
                     .await
                     .expect("must succeed");
