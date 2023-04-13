@@ -247,7 +247,6 @@ impl<'a> VisitorContext<'a> {
         ParseResult {
             registry,
             required_resolvers: self.required_resolvers,
-            openapi_directives: self.openapi_directives,
             global_cache_rules: self.global_cache_rules,
         }
     }
