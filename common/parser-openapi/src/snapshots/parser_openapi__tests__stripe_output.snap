@@ -1,6 +1,6 @@
 ---
 source: common/parser-openapi/src/lib.rs
-expression: registry.export_sdl(false)
+expression: "build_registry(\"test_data/stripe.openapi.json\", Format::Json,\n        metadata(\"stripe\")).export_sdl(false)"
 ---
 """
 A JSON Value
@@ -2786,20 +2786,20 @@ type StripeGetCreditNotesPreviewLines {
 	nodes: [StripeCreditNoteLineItem!]!
 }
 input StripeGetCreditNotesPreviewLinesInput {
+	taxRates: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
 	type: StripeGetCreditNotesPreviewTypeLines!
-	taxRates: StripeUnionInput
 	quantity: Int
 	invoiceLineItem: String
 	description: String
 	amount: Int
 }
 input StripeGetCreditNotesPreviewLinesLinesInput {
+	taxRates: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
 	type: StripeGetCreditNotesPreviewLinesTypeLines!
-	taxRates: StripeUnionInput
 	quantity: Int
 	invoiceLineItem: String
 	description: String
@@ -3277,16 +3277,16 @@ enum StripeGetInvoicesUpcomingIntervalRecurringPriceDataSubscriptionItems {
 	YEAR
 }
 input StripeGetInvoicesUpcomingInvoiceItemsInput {
+	taxRates: JSON
+	taxCode: JSON
+	metadata: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
-	taxRates: StripeUnionInput
-	taxCode: StripeUnionInput
 	taxBehavior: StripeGetInvoicesUpcomingTaxBehaviorInvoiceItems
 	quantity: Int
 	priceData: StripeGetInvoicesUpcomingPriceDataInvoiceItemsInput
 	price: String
 	period: StripeGetInvoicesUpcomingPeriodInvoiceItemsInput
-	metadata: StripeUnionInput
 	invoiceitem: String
 	discounts: StripeGetInvoicesUpcomingDiscountsInvoiceItemsUnionInput
 	discountable: Boolean
@@ -3360,16 +3360,16 @@ enum StripeGetInvoicesUpcomingLinesIntervalRecurringPriceDataSubscriptionItems {
 	YEAR
 }
 input StripeGetInvoicesUpcomingLinesInvoiceItemsInput {
+	taxRates: JSON
+	taxCode: JSON
+	metadata: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
-	taxRates: StripeUnionInput
-	taxCode: StripeUnionInput
 	taxBehavior: StripeGetInvoicesUpcomingLinesTaxBehaviorInvoiceItems
 	quantity: Int
 	priceData: StripeGetInvoicesUpcomingLinesPriceDataInvoiceItemsInput
 	price: String
 	period: StripeGetInvoicesUpcomingLinesPeriodInvoiceItemsInput
-	metadata: StripeUnionInput
 	invoiceitem: String
 	discounts: StripeGetInvoicesUpcomingLinesDiscountsInvoiceItemsUnionInput
 	discountable: Boolean
@@ -3413,11 +3413,11 @@ input StripeGetInvoicesUpcomingLinesShippingCustomerDetailsUnionInput {
 	stripeGetInvoicesUpcomingLinesShippingCustomerDetailsInput: StripeGetInvoicesUpcomingLinesShippingCustomerDetailsInput
 }
 input StripeGetInvoicesUpcomingLinesSubscriptionItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
+	metadata: JSON
 	quantity: Int
 	priceData: StripeGetInvoicesUpcomingLinesPriceDataSubscriptionItemsInput
 	price: String
-	metadata: StripeUnionInput
 	id: String
 	deleted: Boolean
 	clearUsage: Boolean
@@ -3447,7 +3447,7 @@ enum StripeGetInvoicesUpcomingLinesTaxBehaviorPriceDataSubscriptionItems {
 	UNSPECIFIED
 }
 input StripeGetInvoicesUpcomingLinesTaxCustomerDetailsInput {
-	ipAddress: StripeUnionInput
+	ipAddress: JSON
 }
 input StripeGetInvoicesUpcomingLinesTaxIdsCustomerDetailsInput {
 	value: String!
@@ -3539,11 +3539,11 @@ input StripeGetInvoicesUpcomingShippingCustomerDetailsUnionInput {
 	stripeGetInvoicesUpcomingShippingCustomerDetailsInput: StripeGetInvoicesUpcomingShippingCustomerDetailsInput
 }
 input StripeGetInvoicesUpcomingSubscriptionItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
+	metadata: JSON
 	quantity: Int
 	priceData: StripeGetInvoicesUpcomingPriceDataSubscriptionItemsInput
 	price: String
-	metadata: StripeUnionInput
 	id: String
 	deleted: Boolean
 	clearUsage: Boolean
@@ -3555,6 +3555,9 @@ enum StripeGetInvoicesUpcomingSubscriptionProrationBehavior {
 	NONE
 }
 enum StripeGetInvoicesUpcomingSubscriptionResumeAt {
+	NOW
+}
+enum StripeGetInvoicesUpcomingSubscriptionTrialEnd {
 	NOW
 }
 enum StripeGetInvoicesUpcomingTaxBehaviorInvoiceItems {
@@ -3573,7 +3576,7 @@ enum StripeGetInvoicesUpcomingTaxBehaviorPriceDataSubscriptionItems {
 	UNSPECIFIED
 }
 input StripeGetInvoicesUpcomingTaxCustomerDetailsInput {
-	ipAddress: StripeUnionInput
+	ipAddress: JSON
 }
 input StripeGetInvoicesUpcomingTaxIdsCustomerDetailsInput {
 	value: String!
@@ -10771,8 +10774,8 @@ enum StripePostAccountsAccountBankAccountsIdAccountType {
 	TOZA
 }
 input StripePostAccountsAccountBankAccountsIdInput {
+	metadata: JSON
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	expYear: String
 	expMonth: String
@@ -10813,8 +10816,8 @@ input StripePostAccountsAccountBrandingSettingsInput {
 	icon: String
 }
 input StripePostAccountsAccountBusinessProfileInput {
+	supportUrl: JSON
 	url: String
-	supportUrl: StripeUnionInput
 	supportPhone: String
 	supportEmail: String
 	supportAddress: StripePostAccountsAccountSupportAddressBusinessProfileInput
@@ -10878,8 +10881,8 @@ input StripePostAccountsAccountCardPaymentsCapabilitiesInput {
 	requested: Boolean
 }
 input StripePostAccountsAccountCardPaymentsSettingsInput {
-	statementDescriptorPrefixKanji: StripeUnionInput
-	statementDescriptorPrefixKana: StripeUnionInput
+	statementDescriptorPrefixKanji: JSON
+	statementDescriptorPrefixKana: JSON
 	statementDescriptorPrefix: String
 	declineOn: StripePostAccountsAccountDeclineOnCardPaymentsSettingsInput
 }
@@ -10984,8 +10987,8 @@ enum StripePostAccountsAccountExternalAccountsIdAccountType {
 	TOZA
 }
 input StripePostAccountsAccountExternalAccountsIdInput {
+	metadata: JSON
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	expYear: String
 	expMonth: String
@@ -11030,12 +11033,13 @@ input StripePostAccountsAccountIndiaInternationalPaymentsCapabilitiesInput {
 	requested: Boolean
 }
 input StripePostAccountsAccountIndividualInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsAccountVerificationIndividualInput
 	ssnLast4: String
 	registeredAddress: StripePostAccountsAccountRegisteredAddressIndividualInput
 	politicalExposure: StripePostAccountsAccountPoliticalExposureIndividual
 	phone: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11043,7 +11047,6 @@ input StripePostAccountsAccountIndividualInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11054,9 +11057,9 @@ input StripePostAccountsAccountIndividualInput {
 	address: StripePostAccountsAccountAddressIndividualInput
 }
 input StripePostAccountsAccountInput {
+	metadata: JSON
 	tosAcceptance: StripePostAccountsAccountTosAcceptanceInput
 	settings: StripePostAccountsAccountSettingsInput
-	metadata: StripeUnionInput
 	individual: StripePostAccountsAccountIndividualInput
 	externalAccount: String
 	expand: [String!]
@@ -11169,6 +11172,8 @@ input StripePostAccountsAccountPeopleDocumentsInput {
 	companyAuthorization: StripePostAccountsAccountPeopleCompanyAuthorizationDocumentsInput
 }
 input StripePostAccountsAccountPeopleInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsAccountPeopleVerificationInput
 	ssnLast4: String
 	relationship: StripePostAccountsAccountPeopleRelationshipInput
@@ -11177,7 +11182,6 @@ input StripePostAccountsAccountPeopleInput {
 	phone: String
 	personToken: String
 	nationality: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11185,7 +11189,6 @@ input StripePostAccountsAccountPeopleInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11252,6 +11255,8 @@ input StripePostAccountsAccountPeoplePersonDocumentsInput {
 	companyAuthorization: StripePostAccountsAccountPeoplePersonCompanyAuthorizationDocumentsInput
 }
 input StripePostAccountsAccountPeoplePersonInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsAccountPeoplePersonVerificationInput
 	ssnLast4: String
 	relationship: StripePostAccountsAccountPeoplePersonRelationshipInput
@@ -11260,7 +11265,6 @@ input StripePostAccountsAccountPeoplePersonInput {
 	phone: String
 	personToken: String
 	nationality: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11268,7 +11272,6 @@ input StripePostAccountsAccountPeoplePersonInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11292,9 +11295,9 @@ input StripePostAccountsAccountPeoplePersonRegisteredAddressInput {
 	city: String
 }
 input StripePostAccountsAccountPeoplePersonRelationshipInput {
+	percentOwnership: JSON
 	title: String
 	representative: Boolean
-	percentOwnership: StripeUnionInput
 	owner: Boolean
 	executive: Boolean
 	director: Boolean
@@ -11315,9 +11318,9 @@ input StripePostAccountsAccountPeopleRegisteredAddressInput {
 	city: String
 }
 input StripePostAccountsAccountPeopleRelationshipInput {
+	percentOwnership: JSON
 	title: String
 	representative: Boolean
-	percentOwnership: StripeUnionInput
 	owner: Boolean
 	executive: Boolean
 	director: Boolean
@@ -11381,6 +11384,8 @@ input StripePostAccountsAccountPersonsDocumentsInput {
 	companyAuthorization: StripePostAccountsAccountPersonsCompanyAuthorizationDocumentsInput
 }
 input StripePostAccountsAccountPersonsInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsAccountPersonsVerificationInput
 	ssnLast4: String
 	relationship: StripePostAccountsAccountPersonsRelationshipInput
@@ -11389,7 +11394,6 @@ input StripePostAccountsAccountPersonsInput {
 	phone: String
 	personToken: String
 	nationality: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11397,7 +11401,6 @@ input StripePostAccountsAccountPersonsInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11464,6 +11467,8 @@ input StripePostAccountsAccountPersonsPersonDocumentsInput {
 	companyAuthorization: StripePostAccountsAccountPersonsPersonCompanyAuthorizationDocumentsInput
 }
 input StripePostAccountsAccountPersonsPersonInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsAccountPersonsPersonVerificationInput
 	ssnLast4: String
 	relationship: StripePostAccountsAccountPersonsPersonRelationshipInput
@@ -11472,7 +11477,6 @@ input StripePostAccountsAccountPersonsPersonInput {
 	phone: String
 	personToken: String
 	nationality: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11480,7 +11484,6 @@ input StripePostAccountsAccountPersonsPersonInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11504,9 +11507,9 @@ input StripePostAccountsAccountPersonsPersonRegisteredAddressInput {
 	city: String
 }
 input StripePostAccountsAccountPersonsPersonRelationshipInput {
+	percentOwnership: JSON
 	title: String
 	representative: Boolean
-	percentOwnership: StripeUnionInput
 	owner: Boolean
 	executive: Boolean
 	director: Boolean
@@ -11527,9 +11530,9 @@ input StripePostAccountsAccountPersonsRegisteredAddressInput {
 	city: String
 }
 input StripePostAccountsAccountPersonsRelationshipInput {
+	percentOwnership: JSON
 	title: String
 	representative: Boolean
-	percentOwnership: StripeUnionInput
 	owner: Boolean
 	executive: Boolean
 	director: Boolean
@@ -11564,10 +11567,10 @@ input StripePostAccountsAccountRejectInput {
 	expand: [String!]
 }
 input StripePostAccountsAccountSchedulePayoutsSettingsInput {
+	delayDays: JSON
 	weeklyAnchor: StripePostAccountsAccountWeeklyAnchorSchedulePayoutsSettings
 	monthlyAnchor: Int
 	interval: StripePostAccountsAccountIntervalSchedulePayoutsSettings
-	delayDays: StripeUnionInput
 }
 input StripePostAccountsAccountSepaDebitPaymentsCapabilitiesInput {
 	requested: Boolean
@@ -11754,8 +11757,8 @@ input StripePostAccountsBrandingSettingsInput {
 	icon: String
 }
 input StripePostAccountsBusinessProfileInput {
+	supportUrl: JSON
 	url: String
-	supportUrl: StripeUnionInput
 	supportPhone: String
 	supportEmail: String
 	supportAddress: StripePostAccountsSupportAddressBusinessProfileInput
@@ -11815,8 +11818,8 @@ input StripePostAccountsCardPaymentsCapabilitiesInput {
 	requested: Boolean
 }
 input StripePostAccountsCardPaymentsSettingsInput {
-	statementDescriptorPrefixKanji: StripeUnionInput
-	statementDescriptorPrefixKana: StripeUnionInput
+	statementDescriptorPrefixKanji: JSON
+	statementDescriptorPrefixKana: JSON
 	statementDescriptorPrefix: String
 	declineOn: StripePostAccountsDeclineOnCardPaymentsSettingsInput
 }
@@ -11860,9 +11863,6 @@ input StripePostAccountsCompanyTaxIdVerificationDocumentsInput {
 input StripePostAccountsDeclineOnCardPaymentsSettingsInput {
 	cvcFailure: Boolean
 	avsFailure: Boolean
-}
-enum StripePostAccountsDelayDaysSchedulePayoutsSettings {
-	MINIMUM
 }
 input StripePostAccountsDobIndividualInput {
 	year: Int!
@@ -11909,12 +11909,13 @@ input StripePostAccountsIndiaInternationalPaymentsCapabilitiesInput {
 	requested: Boolean
 }
 input StripePostAccountsIndividualInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostAccountsVerificationIndividualInput
 	ssnLast4: String
 	registeredAddress: StripePostAccountsRegisteredAddressIndividualInput
 	politicalExposure: StripePostAccountsPoliticalExposureIndividual
 	phone: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -11922,7 +11923,6 @@ input StripePostAccountsIndividualInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -11933,10 +11933,10 @@ input StripePostAccountsIndividualInput {
 	address: StripePostAccountsAddressIndividualInput
 }
 input StripePostAccountsInput {
+	metadata: JSON
 	type: StripePostAccountsType
 	tosAcceptance: StripePostAccountsTosAcceptanceInput
 	settings: StripePostAccountsSettingsInput
-	metadata: StripeUnionInput
 	individual: StripePostAccountsIndividualInput
 	externalAccount: String
 	expand: [String!]
@@ -12018,10 +12018,10 @@ input StripePostAccountsRegisteredAddressIndividualInput {
 	city: String
 }
 input StripePostAccountsSchedulePayoutsSettingsInput {
+	delayDays: JSON
 	weeklyAnchor: StripePostAccountsWeeklyAnchorSchedulePayoutsSettings
 	monthlyAnchor: Int
 	interval: StripePostAccountsIntervalSchedulePayoutsSettings
-	delayDays: StripeUnionInput
 }
 input StripePostAccountsSepaDebitPaymentsCapabilitiesInput {
 	requested: Boolean
@@ -12105,7 +12105,7 @@ input StripePostApplePayDomainsInput {
 	domainName: String!
 }
 input StripePostApplicationFeesFeeRefundsIdInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostApplicationFeesIdRefundInput {
@@ -12152,21 +12152,21 @@ input StripePostBillingPortalConfigurationsBusinessProfileInput {
 	headline: String
 }
 input StripePostBillingPortalConfigurationsCancellationReasonSubscriptionCancelFeaturesInput {
-	options: StripeUnionInput!
+	options: JSON!
 	enabled: Boolean!
 }
 input StripePostBillingPortalConfigurationsConfigurationBusinessProfileInput {
-	termsOfServiceUrl: StripeUnionInput
-	privacyPolicyUrl: StripeUnionInput
+	termsOfServiceUrl: JSON
+	privacyPolicyUrl: JSON
 	headline: String
 }
 input StripePostBillingPortalConfigurationsConfigurationCancellationReasonSubscriptionCancelFeaturesInput {
-	options: StripeUnionInput
+	options: JSON
 	enabled: Boolean!
 }
 input StripePostBillingPortalConfigurationsConfigurationCustomerUpdateFeaturesInput {
+	allowedUpdates: JSON
 	enabled: Boolean
-	allowedUpdates: StripeUnionInput
 }
 input StripePostBillingPortalConfigurationsConfigurationFeaturesInput {
 	subscriptionUpdate: StripePostBillingPortalConfigurationsConfigurationSubscriptionUpdateFeaturesInput
@@ -12177,11 +12177,11 @@ input StripePostBillingPortalConfigurationsConfigurationFeaturesInput {
 	customerUpdate: StripePostBillingPortalConfigurationsConfigurationCustomerUpdateFeaturesInput
 }
 input StripePostBillingPortalConfigurationsConfigurationInput {
-	metadata: StripeUnionInput
+	metadata: JSON
+	defaultReturnUrl: JSON
 	loginPage: StripePostBillingPortalConfigurationsConfigurationLoginPageInput
 	features: StripePostBillingPortalConfigurationsConfigurationFeaturesInput
 	expand: [String!]
-	defaultReturnUrl: StripeUnionInput
 	businessProfile: StripePostBillingPortalConfigurationsConfigurationBusinessProfileInput
 	active: Boolean
 }
@@ -12226,14 +12226,14 @@ input StripePostBillingPortalConfigurationsConfigurationSubscriptionPauseFeature
 	enabled: Boolean
 }
 input StripePostBillingPortalConfigurationsConfigurationSubscriptionUpdateFeaturesInput {
+	defaultAllowedUpdates: JSON
 	prorationBehavior: StripePostBillingPortalConfigurationsConfigurationProrationBehaviorSubscriptionUpdateFeatures
 	products: StripePostBillingPortalConfigurationsConfigurationProductsSubscriptionUpdateFeaturesUnionInput
 	enabled: Boolean
-	defaultAllowedUpdates: StripeUnionInput
 }
 input StripePostBillingPortalConfigurationsCustomerUpdateFeaturesInput {
+	allowedUpdates: JSON
 	enabled: Boolean!
-	allowedUpdates: StripeUnionInput
 }
 input StripePostBillingPortalConfigurationsFeaturesInput {
 	subscriptionUpdate: StripePostBillingPortalConfigurationsSubscriptionUpdateFeaturesInput
@@ -12244,11 +12244,11 @@ input StripePostBillingPortalConfigurationsFeaturesInput {
 	customerUpdate: StripePostBillingPortalConfigurationsCustomerUpdateFeaturesInput
 }
 input StripePostBillingPortalConfigurationsInput {
+	defaultReturnUrl: JSON
 	metadata: JSON
 	loginPage: StripePostBillingPortalConfigurationsLoginPageInput
 	features: StripePostBillingPortalConfigurationsFeaturesInput!
 	expand: [String!]
-	defaultReturnUrl: StripeUnionInput
 	businessProfile: StripePostBillingPortalConfigurationsBusinessProfileInput!
 }
 input StripePostBillingPortalConfigurationsInvoiceHistoryFeaturesInput {
@@ -12292,10 +12292,10 @@ input StripePostBillingPortalConfigurationsSubscriptionPauseFeaturesInput {
 	enabled: Boolean
 }
 input StripePostBillingPortalConfigurationsSubscriptionUpdateFeaturesInput {
+	defaultAllowedUpdates: JSON!
 	prorationBehavior: StripePostBillingPortalConfigurationsProrationBehaviorSubscriptionUpdateFeatures
 	products: StripePostBillingPortalConfigurationsProductsSubscriptionUpdateFeaturesUnionInput!
 	enabled: Boolean!
-	defaultAllowedUpdates: StripeUnionInput!
 }
 input StripePostBillingPortalSessionsAfterCompletionFlowDataInput {
 	type: StripePostBillingPortalSessionsTypeAfterCompletionFlowData!
@@ -12465,8 +12465,8 @@ input StripePostChargesChargeDisputeEvidenceInput {
 	accessActivityLog: String
 }
 input StripePostChargesChargeDisputeInput {
+	metadata: JSON
 	submit: Boolean
-	metadata: StripeUnionInput
 	expand: [String!]
 	evidence: StripePostChargesChargeDisputeEvidenceInput
 }
@@ -12474,21 +12474,21 @@ input StripePostChargesChargeFraudDetailsInput {
 	userReport: String!
 }
 input StripePostChargesChargeInput {
+	metadata: JSON
 	transferGroup: String
 	shipping: StripePostChargesChargeShippingInput
 	receiptEmail: String
-	metadata: StripeUnionInput
 	fraudDetails: StripePostChargesChargeFraudDetailsInput
 	expand: [String!]
 	description: String
 	customer: String
 }
 input StripePostChargesChargeRefundInput {
+	metadata: JSON
 	reverseTransfer: Boolean
 	refundApplicationFee: Boolean
 	reason: StripePostChargesChargeRefundReason
 	paymentIntent: String
-	metadata: StripeUnionInput
 	instructionsEmail: String
 	expand: [String!]
 	amount: Int
@@ -12499,12 +12499,12 @@ enum StripePostChargesChargeRefundReason {
 	REQUESTED_BY_CUSTOMER
 }
 input StripePostChargesChargeRefundsInput {
+	metadata: JSON
 	reverseTransfer: Boolean
 	refundApplicationFee: Boolean
 	reason: StripePostChargesChargeRefundsReason
 	paymentIntent: String
 	origin: StripePostChargesChargeRefundsOrigin
-	metadata: StripeUnionInput
 	instructionsEmail: String
 	expand: [String!]
 	customer: String
@@ -12520,7 +12520,7 @@ enum StripePostChargesChargeRefundsReason {
 	REQUESTED_BY_CUSTOMER
 }
 input StripePostChargesChargeRefundsRefundInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostChargesChargeShippingInput {
@@ -12539,6 +12539,7 @@ input StripePostChargesDestinationUnionInput {
 	stripePostChargesDestinationInput: StripePostChargesDestinationInput
 }
 input StripePostChargesInput {
+	metadata: JSON
 	transferGroup: String
 	transferData: StripePostChargesTransferDataInput
 	statementDescriptorSuffix: String
@@ -12548,7 +12549,6 @@ input StripePostChargesInput {
 	receiptEmail: String
 	radarOptions: StripePostChargesRadarOptionsInput
 	onBehalfOf: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	destination: StripePostChargesDestinationUnionInput
 	description: String
@@ -13018,12 +13018,12 @@ input StripePostCheckoutSessionsInvoiceCreationInput {
 	enabled: Boolean!
 }
 input StripePostCheckoutSessionsInvoiceDataInvoiceCreationInput {
+	accountTaxIds: JSON
 	renderingOptions: StripePostCheckoutSessionsRenderingOptionsInvoiceDataInvoiceCreationUnionInput
 	metadata: JSON
 	footer: String
 	description: String
 	customFields: StripePostCheckoutSessionsCustomFieldsInvoiceDataInvoiceCreationUnionInput
-	accountTaxIds: StripeUnionInput
 }
 input StripePostCheckoutSessionsKlarnaPaymentMethodOptionsInput {
 	setupFutureUsage: StripePostCheckoutSessionsSetupFutureUsageKlarnaPaymentMethodOptions
@@ -13084,11 +13084,11 @@ enum StripePostCheckoutSessionsLocale {
 	ZH_TW
 }
 input StripePostCheckoutSessionsMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostCheckoutSessionsTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostCheckoutSessionsPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
 	defaultFor: [StripePostCheckoutSessionsDefaultForMandateOptionsAcssDebitPaymentMethodOptions!]
-	customMandateUrl: StripeUnionInput
 }
 input StripePostCheckoutSessionsMaximumDeliveryEstimateShippingRateDataShippingOptionsInput {
 	value: Int!
@@ -13493,8 +13493,8 @@ input StripePostCouponsAppliesToInput {
 	products: [String!]
 }
 input StripePostCouponsCouponInput {
+	metadata: JSON
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	currencyOptions: JSON
 }
@@ -13504,10 +13504,10 @@ enum StripePostCouponsDuration {
 	REPEATING
 }
 input StripePostCouponsInput {
+	metadata: JSON
 	redeemBy: Int
 	percentOff: Float
 	name: String
-	metadata: StripeUnionInput
 	maxRedemptions: Int
 	id: String
 	expand: [String!]
@@ -13541,10 +13541,10 @@ input StripePostCreditNotesInput {
 	amount: Int
 }
 input StripePostCreditNotesLinesInput {
+	taxRates: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
 	type: StripePostCreditNotesTypeLines!
-	taxRates: StripeUnionInput
 	quantity: Int
 	invoiceLineItem: String
 	description: String
@@ -13619,14 +13619,14 @@ input StripePostCustomersCustomerAddressUnionInput {
 	stripePostCustomersCustomerAddressInput: StripePostCustomersCustomerAddressInput
 }
 input StripePostCustomersCustomerBalanceTransactionsInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	description: String
 	currency: String!
 	amount: Int!
 }
 input StripePostCustomersCustomerBalanceTransactionsTransactionInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	description: String
 }
@@ -13692,9 +13692,9 @@ input StripePostCustomersCustomerBankAccountsIdAddressOwnerInput {
 	city: String
 }
 input StripePostCustomersCustomerBankAccountsIdInput {
+	metadata: JSON
 	owner: StripePostCustomersCustomerBankAccountsIdOwnerInput
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	expYear: String
 	expMonth: String
@@ -13799,9 +13799,9 @@ input StripePostCustomersCustomerCardsIdAddressOwnerInput {
 	city: String
 }
 input StripePostCustomersCustomerCardsIdInput {
+	metadata: JSON
 	owner: StripePostCustomersCustomerCardsIdOwnerInput
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	expYear: String
 	expMonth: String
@@ -13875,6 +13875,7 @@ enum StripePostCustomersCustomerFundingInstructionsTypeBankTransfer {
 	MX_BANK_TRANSFER
 }
 input StripePostCustomersCustomerInput {
+	metadata: JSON
 	taxExempt: String
 	tax: StripePostCustomersCustomerTaxInput
 	source: String
@@ -13884,7 +13885,6 @@ input StripePostCustomersCustomerInput {
 	phone: String
 	nextInvoiceSequence: Int
 	name: String
-	metadata: StripeUnionInput
 	invoiceSettings: StripePostCustomersCustomerInvoiceSettingsInput
 	invoicePrefix: String
 	expand: [String!]
@@ -13986,9 +13986,9 @@ input StripePostCustomersCustomerSourcesIdAddressOwnerInput {
 	city: String
 }
 input StripePostCustomersCustomerSourcesIdInput {
+	metadata: JSON
 	owner: StripePostCustomersCustomerSourcesIdOwnerInput
 	name: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	expYear: String
 	expMonth: String
@@ -14034,7 +14034,7 @@ input StripePostCustomersCustomerSubscriptionsAcssDebitPaymentMethodOptionsPayme
 	stripePostCustomersCustomerSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsInput: StripePostCustomersCustomerSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostCustomersCustomerSubscriptionsAddInvoiceItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostCustomersCustomerSubscriptionsPriceDataAddInvoiceItemsInput
 	price: String
@@ -14103,10 +14103,12 @@ input StripePostCustomersCustomerSubscriptionsFinancialConnectionsUsBankAccountP
 	permissions: [StripePostCustomersCustomerSubscriptionsPermissionsFinancialConnectionsUsBankAccountPaymentMethodOptionsPaymentSettings!]
 }
 input StripePostCustomersCustomerSubscriptionsInput {
+	trialEnd: JSON
+	metadata: JSON
+	defaultTaxRates: JSON
 	trialSettings: StripePostCustomersCustomerSubscriptionsTrialSettingsInput
 	trialPeriodDays: Int
 	trialFromPlan: Boolean
-	trialEnd: StripeUnionInput
 	transferData: StripePostCustomersCustomerSubscriptionsTransferDataInput
 	prorationBehavior: StripePostCustomersCustomerSubscriptionsProrationBehavior
 	promotionCode: String
@@ -14114,10 +14116,8 @@ input StripePostCustomersCustomerSubscriptionsInput {
 	paymentSettings: StripePostCustomersCustomerSubscriptionsPaymentSettingsInput
 	paymentBehavior: StripePostCustomersCustomerSubscriptionsPaymentBehavior
 	offSession: Boolean
-	metadata: StripeUnionInput
 	items: [StripePostCustomersCustomerSubscriptionsItemsInput!]
 	expand: [String!]
-	defaultTaxRates: StripeUnionInput
 	defaultSource: String
 	defaultPaymentMethod: String
 	daysUntilDue: Int
@@ -14146,7 +14146,7 @@ enum StripePostCustomersCustomerSubscriptionsIntervalRecurringPriceDataItems {
 	YEAR
 }
 input StripePostCustomersCustomerSubscriptionsItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostCustomersCustomerSubscriptionsPriceDataItemsInput
 	price: String
@@ -14185,16 +14185,16 @@ enum StripePostCustomersCustomerSubscriptionsPaymentBehavior {
 	PENDING_IF_INCOMPLETE
 }
 input StripePostCustomersCustomerSubscriptionsPaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostCustomersCustomerSubscriptionsUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostCustomersCustomerSubscriptionsCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostCustomersCustomerSubscriptionsCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostCustomersCustomerSubscriptionsBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostCustomersCustomerSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostCustomersCustomerSubscriptionsPaymentSettingsInput {
+	paymentMethodTypes: JSON
 	saveDefaultPaymentMethod: StripePostCustomersCustomerSubscriptionsSaveDefaultPaymentMethodPaymentSettings
-	paymentMethodTypes: StripeUnionInput
 	paymentMethodOptions: StripePostCustomersCustomerSubscriptionsPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostCustomersCustomerSubscriptionsPendingInvoiceItemIntervalInput {
@@ -14258,7 +14258,7 @@ input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAcssDebitPaym
 	stripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsInput: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAddInvoiceItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPriceDataAddInvoiceItemsInput
 	price: String
@@ -14336,9 +14336,12 @@ input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdFinancialConn
 	permissions: [StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPermissionsFinancialConnectionsUsBankAccountPaymentMethodOptionsPaymentSettings!]
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdInput {
+	trialEnd: JSON
+	metadata: JSON
+	defaultTaxRates: JSON
+	cancelAt: JSON
 	trialSettings: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdTrialSettingsInput
 	trialFromPlan: Boolean
-	trialEnd: StripeUnionInput
 	transferData: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdTransferDataUnionInput
 	prorationDate: Int
 	prorationBehavior: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdProrationBehavior
@@ -14348,17 +14351,14 @@ input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdInput {
 	paymentBehavior: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPaymentBehavior
 	pauseCollection: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPauseCollectionUnionInput
 	offSession: Boolean
-	metadata: StripeUnionInput
 	items: [StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdItemsInput!]
 	expand: [String!]
-	defaultTaxRates: StripeUnionInput
 	defaultSource: String
 	defaultPaymentMethod: String
 	daysUntilDue: Int
 	coupon: String
 	collectionMethod: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdCollectionMethod
 	cancelAtPeriodEnd: Boolean
-	cancelAt: StripeUnionInput
 	billingThresholds: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdBillingThresholdsUnionInput
 	billingCycleAnchor: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdBillingCycleAnchor
 	automaticTax: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAutomaticTaxInput
@@ -14378,11 +14378,11 @@ enum StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdIntervalRecurr
 	YEAR
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
+	metadata: JSON
 	quantity: Int
 	priceData: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPriceDataItemsInput
 	price: String
-	metadata: StripeUnionInput
 	id: String
 	deleted: Boolean
 	clearUsage: Boolean
@@ -14428,16 +14428,16 @@ enum StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPaymentBehavio
 	PENDING_IF_INCOMPLETE
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPaymentSettingsInput {
+	paymentMethodTypes: JSON
 	saveDefaultPaymentMethod: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdSaveDefaultPaymentMethodPaymentSettings
-	paymentMethodTypes: StripeUnionInput
 	paymentMethodOptions: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdPendingInvoiceItemIntervalInput {
@@ -14633,9 +14633,10 @@ enum StripePostCustomersCustomerTaxIdsType {
 	ZA_VAT
 }
 input StripePostCustomersCustomerTaxInput {
-	ipAddress: StripeUnionInput
+	ipAddress: JSON
 }
 input StripePostCustomersInput {
+	metadata: JSON
 	testClock: String
 	taxIdData: [StripePostCustomersTaxIdDataInput!]
 	taxExempt: String
@@ -14648,7 +14649,6 @@ input StripePostCustomersInput {
 	paymentMethod: String
 	nextInvoiceSequence: Int
 	name: String
-	metadata: StripeUnionInput
 	invoiceSettings: StripePostCustomersInvoiceSettingsInput
 	invoicePrefix: String
 	expand: [String!]
@@ -14694,7 +14694,7 @@ input StripePostCustomersTaxIdDataInput {
 	type: StripePostCustomersTypeTaxIdData!
 }
 input StripePostCustomersTaxInput {
-	ipAddress: StripeUnionInput
+	ipAddress: JSON
 }
 enum StripePostCustomersTypeTaxIdData {
 	AE_TRN
@@ -14782,8 +14782,8 @@ input StripePostDisputesDisputeEvidenceInput {
 	accessActivityLog: String
 }
 input StripePostDisputesDisputeInput {
+	metadata: JSON
 	submit: Boolean
-	metadata: StripeUnionInput
 	expand: [String!]
 	evidence: StripePostDisputesDisputeEvidenceInput
 }
@@ -14794,14 +14794,14 @@ input StripePostEphemeralKeysInput {
 	customer: String
 }
 input StripePostFileLinksInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	file: String!
 	expiresAt: Int
 	expand: [String!]
 }
 input StripePostFileLinksLinkInput {
-	metadata: StripeUnionInput
-	expiresAt: StripeUnionInput
+	metadata: JSON
+	expiresAt: JSON
 	expand: [String!]
 }
 input StripePostFinancialConnectionsAccountsAccountDisconnectInput {
@@ -14912,17 +14912,17 @@ input StripePostInvoiceitemsDiscountsUnionInput {
 	stripePostInvoiceitemsDiscountsInput: StripePostInvoiceitemsDiscountsInput
 }
 input StripePostInvoiceitemsInput {
+	taxCode: JSON
+	metadata: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
 	taxRates: [String!]
-	taxCode: StripeUnionInput
 	taxBehavior: StripePostInvoiceitemsTaxBehavior
 	subscription: String
 	quantity: Int
 	priceData: StripePostInvoiceitemsPriceDataInput
 	price: String
 	period: StripePostInvoiceitemsPeriodInput
-	metadata: StripeUnionInput
 	invoice: String
 	expand: [String!]
 	discounts: StripePostInvoiceitemsDiscountsUnionInput
@@ -14941,16 +14941,16 @@ input StripePostInvoiceitemsInvoiceitemDiscountsUnionInput {
 	stripePostInvoiceitemsInvoiceitemDiscountsInput: StripePostInvoiceitemsInvoiceitemDiscountsInput
 }
 input StripePostInvoiceitemsInvoiceitemInput {
+	taxRates: JSON
+	taxCode: JSON
+	metadata: JSON
 	unitAmountDecimal: String
 	unitAmount: Int
-	taxRates: StripeUnionInput
-	taxCode: StripeUnionInput
 	taxBehavior: StripePostInvoiceitemsInvoiceitemTaxBehavior
 	quantity: Int
 	priceData: StripePostInvoiceitemsInvoiceitemPriceDataInput
 	price: String
 	period: StripePostInvoiceitemsInvoiceitemPeriodInput
-	metadata: StripeUnionInput
 	expand: [String!]
 	discounts: StripePostInvoiceitemsInvoiceitemDiscountsUnionInput
 	discountable: Boolean
@@ -15088,6 +15088,8 @@ input StripePostInvoicesFromInvoiceInput {
 	action: StripePostInvoicesActionFromInvoice!
 }
 input StripePostInvoicesInput {
+	metadata: JSON
+	accountTaxIds: JSON
 	transferData: StripePostInvoicesTransferDataInput
 	subscription: String
 	statementDescriptor: String
@@ -15097,7 +15099,6 @@ input StripePostInvoicesInput {
 	pendingInvoiceItemsBehavior: StripePostInvoicesPendingInvoiceItemsBehavior
 	paymentSettings: StripePostInvoicesPaymentSettingsInput
 	onBehalfOf: String
-	metadata: StripeUnionInput
 	fromInvoice: StripePostInvoicesFromInvoiceInput
 	footer: String
 	expand: [String!]
@@ -15115,7 +15116,6 @@ input StripePostInvoicesInput {
 	automaticTax: StripePostInvoicesAutomaticTaxInput
 	autoAdvance: Boolean
 	applicationFeeAmount: Int
-	accountTaxIds: StripeUnionInput
 }
 input StripePostInvoicesInstallmentsCardPaymentMethodOptionsPaymentSettingsInput {
 	plan: StripePostInvoicesPlanInstallmentsCardPaymentMethodOptionsPaymentSettingsUnionInput
@@ -15210,20 +15210,21 @@ input StripePostInvoicesInvoiceFixedAmountShippingRateDataShippingCostInput {
 	amount: Int!
 }
 input StripePostInvoicesInvoiceInput {
+	onBehalfOf: JSON
+	metadata: JSON
+	defaultTaxRates: JSON
+	accountTaxIds: JSON
 	transferData: StripePostInvoicesInvoiceTransferDataUnionInput
 	statementDescriptor: String
 	shippingDetails: StripePostInvoicesInvoiceShippingDetailsUnionInput
 	shippingCost: StripePostInvoicesInvoiceShippingCostUnionInput
 	renderingOptions: StripePostInvoicesInvoiceRenderingOptionsUnionInput
 	paymentSettings: StripePostInvoicesInvoicePaymentSettingsInput
-	onBehalfOf: StripeUnionInput
-	metadata: StripeUnionInput
 	footer: String
 	expand: [String!]
 	dueDate: Int
 	discounts: StripePostInvoicesInvoiceDiscountsUnionInput
 	description: String
-	defaultTaxRates: StripeUnionInput
 	defaultSource: String
 	defaultPaymentMethod: String
 	daysUntilDue: Int
@@ -15232,7 +15233,6 @@ input StripePostInvoicesInvoiceInput {
 	automaticTax: StripePostInvoicesInvoiceAutomaticTaxInput
 	autoAdvance: Boolean
 	applicationFeeAmount: Int
-	accountTaxIds: StripeUnionInput
 }
 input StripePostInvoicesInvoiceInstallmentsCardPaymentMethodOptionsPaymentSettingsInput {
 	plan: StripePostInvoicesInvoicePlanInstallmentsCardPaymentMethodOptionsPaymentSettingsUnionInput
@@ -15265,15 +15265,15 @@ input StripePostInvoicesInvoicePayInput {
 	expand: [String!]
 }
 input StripePostInvoicesInvoicePaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostInvoicesInvoiceUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostInvoicesInvoiceCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostInvoicesInvoiceCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostInvoicesInvoiceBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostInvoicesInvoiceAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostInvoicesInvoicePaymentSettingsInput {
-	paymentMethodTypes: StripeUnionInput
+	paymentMethodTypes: JSON
 	paymentMethodOptions: StripePostInvoicesInvoicePaymentMethodOptionsPaymentSettingsInput
 	defaultMandate: String
 }
@@ -15408,15 +15408,15 @@ input StripePostInvoicesMinimumDeliveryEstimateShippingRateDataShippingCostInput
 	unit: StripePostInvoicesUnitMinimumDeliveryEstimateShippingRateDataShippingCost!
 }
 input StripePostInvoicesPaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostInvoicesUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostInvoicesCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostInvoicesCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostInvoicesBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostInvoicesAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostInvoicesPaymentSettingsInput {
-	paymentMethodTypes: StripeUnionInput
+	paymentMethodTypes: JSON
 	paymentMethodOptions: StripePostInvoicesPaymentMethodOptionsPaymentSettingsInput
 	defaultMandate: String
 }
@@ -15527,16 +15527,16 @@ enum StripePostInvoicesVerificationMethodUsBankAccountPaymentMethodOptionsPaymen
 	MICRODEPOSITS
 }
 input StripePostIssuingAuthorizationsAuthorizationApproveInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	amount: Int
 }
 input StripePostIssuingAuthorizationsAuthorizationDeclineInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostIssuingAuthorizationsAuthorizationInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostIssuingCardholdersAddressBillingInput {
@@ -18880,10 +18880,10 @@ enum StripePostIssuingCardsCardCategoriesSpendingLimitsSpendingControls {
 	WRECKING_AND_SALVAGE_YARDS
 }
 input StripePostIssuingCardsCardInput {
+	metadata: JSON
 	status: StripePostIssuingCardsCardStatus
 	spendingControls: StripePostIssuingCardsCardSpendingControlsInput
 	pin: StripePostIssuingCardsCardPinInput
-	metadata: StripeUnionInput
 	expand: [String!]
 	cancellationReason: StripePostIssuingCardsCardCancellationReason
 }
@@ -19270,44 +19270,44 @@ enum StripePostIssuingCardsTypeShipping {
 	INDIVIDUAL
 }
 input StripePostIssuingDisputesCanceledEvidenceInput {
-	returnedAt: StripeUnionInput
+	returnedAt: JSON
+	expectedAt: JSON
+	cancellationPolicyProvided: JSON
+	canceledAt: JSON
+	additionalDocumentation: JSON
 	returnStatus: String
 	productType: String
 	productDescription: String
 	explanation: String
-	expectedAt: StripeUnionInput
 	cancellationReason: String
-	cancellationPolicyProvided: StripeUnionInput
-	canceledAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesCanceledEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesCanceledEvidenceInput: StripePostIssuingDisputesCanceledEvidenceInput
 }
 input StripePostIssuingDisputesDisputeCanceledEvidenceInput {
-	returnedAt: StripeUnionInput
+	returnedAt: JSON
+	expectedAt: JSON
+	cancellationPolicyProvided: JSON
+	canceledAt: JSON
+	additionalDocumentation: JSON
 	returnStatus: String
 	productType: String
 	productDescription: String
 	explanation: String
-	expectedAt: StripeUnionInput
 	cancellationReason: String
-	cancellationPolicyProvided: StripeUnionInput
-	canceledAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeCanceledEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesDisputeCanceledEvidenceInput: StripePostIssuingDisputesDisputeCanceledEvidenceInput
 }
 input StripePostIssuingDisputesDisputeDuplicateEvidenceInput {
+	checkImage: JSON
+	cashReceipt: JSON
+	cardStatement: JSON
+	additionalDocumentation: JSON
 	originalTransaction: String
 	explanation: String
-	checkImage: StripeUnionInput
-	cashReceipt: StripeUnionInput
-	cardStatement: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeDuplicateEvidenceUnionInput {
 	string: String
@@ -19324,47 +19324,47 @@ input StripePostIssuingDisputesDisputeEvidenceInput {
 	canceled: StripePostIssuingDisputesDisputeCanceledEvidenceUnionInput
 }
 input StripePostIssuingDisputesDisputeFraudulentEvidenceInput {
+	additionalDocumentation: JSON
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeFraudulentEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesDisputeFraudulentEvidenceInput: StripePostIssuingDisputesDisputeFraudulentEvidenceInput
 }
 input StripePostIssuingDisputesDisputeInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	evidence: StripePostIssuingDisputesDisputeEvidenceInput
 	amount: Int
 }
 input StripePostIssuingDisputesDisputeMerchandiseNotAsDescribedEvidenceInput {
-	returnedAt: StripeUnionInput
+	returnedAt: JSON
+	receivedAt: JSON
+	additionalDocumentation: JSON
 	returnStatus: String
 	returnDescription: String
-	receivedAt: StripeUnionInput
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeMerchandiseNotAsDescribedEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesDisputeMerchandiseNotAsDescribedEvidenceInput: StripePostIssuingDisputesDisputeMerchandiseNotAsDescribedEvidenceInput
 }
 input StripePostIssuingDisputesDisputeNotReceivedEvidenceInput {
+	expectedAt: JSON
+	additionalDocumentation: JSON
 	productType: String
 	productDescription: String
 	explanation: String
-	expectedAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeNotReceivedEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesDisputeNotReceivedEvidenceInput: StripePostIssuingDisputesDisputeNotReceivedEvidenceInput
 }
 input StripePostIssuingDisputesDisputeOtherEvidenceInput {
+	additionalDocumentation: JSON
 	productType: String
 	productDescription: String
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeOtherEvidenceUnionInput {
 	string: String
@@ -19380,27 +19380,27 @@ enum StripePostIssuingDisputesDisputeReasonEvidence {
 	SERVICE_NOT_AS_DESCRIBED
 }
 input StripePostIssuingDisputesDisputeServiceNotAsDescribedEvidenceInput {
-	receivedAt: StripeUnionInput
+	receivedAt: JSON
+	canceledAt: JSON
+	additionalDocumentation: JSON
 	explanation: String
 	cancellationReason: String
-	canceledAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDisputeServiceNotAsDescribedEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesDisputeServiceNotAsDescribedEvidenceInput: StripePostIssuingDisputesDisputeServiceNotAsDescribedEvidenceInput
 }
 input StripePostIssuingDisputesDisputeSubmitInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostIssuingDisputesDuplicateEvidenceInput {
+	checkImage: JSON
+	cashReceipt: JSON
+	cardStatement: JSON
+	additionalDocumentation: JSON
 	originalTransaction: String
 	explanation: String
-	checkImage: StripeUnionInput
-	cashReceipt: StripeUnionInput
-	cardStatement: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesDuplicateEvidenceUnionInput {
 	string: String
@@ -19417,8 +19417,8 @@ input StripePostIssuingDisputesEvidenceInput {
 	canceled: StripePostIssuingDisputesCanceledEvidenceUnionInput
 }
 input StripePostIssuingDisputesFraudulentEvidenceInput {
+	additionalDocumentation: JSON
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesFraudulentEvidenceUnionInput {
 	string: String
@@ -19433,33 +19433,33 @@ input StripePostIssuingDisputesInput {
 	amount: Int
 }
 input StripePostIssuingDisputesMerchandiseNotAsDescribedEvidenceInput {
-	returnedAt: StripeUnionInput
+	returnedAt: JSON
+	receivedAt: JSON
+	additionalDocumentation: JSON
 	returnStatus: String
 	returnDescription: String
-	receivedAt: StripeUnionInput
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesMerchandiseNotAsDescribedEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesMerchandiseNotAsDescribedEvidenceInput: StripePostIssuingDisputesMerchandiseNotAsDescribedEvidenceInput
 }
 input StripePostIssuingDisputesNotReceivedEvidenceInput {
+	expectedAt: JSON
+	additionalDocumentation: JSON
 	productType: String
 	productDescription: String
 	explanation: String
-	expectedAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesNotReceivedEvidenceUnionInput {
 	string: String
 	stripePostIssuingDisputesNotReceivedEvidenceInput: StripePostIssuingDisputesNotReceivedEvidenceInput
 }
 input StripePostIssuingDisputesOtherEvidenceInput {
+	additionalDocumentation: JSON
 	productType: String
 	productDescription: String
 	explanation: String
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesOtherEvidenceUnionInput {
 	string: String
@@ -19475,11 +19475,11 @@ enum StripePostIssuingDisputesReasonEvidence {
 	SERVICE_NOT_AS_DESCRIBED
 }
 input StripePostIssuingDisputesServiceNotAsDescribedEvidenceInput {
-	receivedAt: StripeUnionInput
+	receivedAt: JSON
+	canceledAt: JSON
+	additionalDocumentation: JSON
 	explanation: String
 	cancellationReason: String
-	canceledAt: StripeUnionInput
-	additionalDocumentation: StripeUnionInput
 }
 input StripePostIssuingDisputesServiceNotAsDescribedEvidenceUnionInput {
 	string: String
@@ -19493,7 +19493,7 @@ input StripePostIssuingSettlementsSettlementInput {
 	expand: [String!]
 }
 input StripePostIssuingTransactionsTransactionInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostLinkAccountSessionsAccountHolderInput {
@@ -19737,9 +19737,9 @@ input StripePostPaymentIntentsBankTransferCustomerBalancePaymentMethodOptionsInp
 	euBankTransfer: StripePostPaymentIntentsEuBankTransferBankTransferCustomerBalancePaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostPaymentIntentsAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostPaymentIntentsBlikPaymentMethodOptionsInput {
@@ -19765,8 +19765,8 @@ enum StripePostPaymentIntentsCaptureMethod {
 	MANUAL
 }
 input StripePostPaymentIntentsCardPaymentMethodOptionsInput {
-	statementDescriptorSuffixKanji: StripeUnionInput
-	statementDescriptorSuffixKana: StripeUnionInput
+	statementDescriptorSuffixKanji: JSON
+	statementDescriptorSuffixKana: JSON
 	setupFutureUsage: String
 	requestThreeDSecure: StripePostPaymentIntentsRequestThreeDSecureCardPaymentMethodOptions
 	network: StripePostPaymentIntentsNetworkCardPaymentMethodOptions
@@ -19879,6 +19879,7 @@ input StripePostPaymentIntentsIdealPaymentMethodOptionsUnionInput {
 	stripePostPaymentIntentsIdealPaymentMethodOptionsInput: StripePostPaymentIntentsIdealPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsInput {
+	offSession: JSON
 	useStripeSdk: Boolean
 	transferGroup: String
 	transferData: StripePostPaymentIntentsTransferDataInput
@@ -19894,7 +19895,6 @@ input StripePostPaymentIntentsInput {
 	paymentMethodData: StripePostPaymentIntentsPaymentMethodDataInput
 	paymentMethod: String
 	onBehalfOf: String
-	offSession: StripeUnionInput
 	metadata: JSON
 	mandateData: StripePostPaymentIntentsMandateDataInput
 	mandate: String
@@ -20121,9 +20121,9 @@ input StripePostPaymentIntentsIntentBankTransferCustomerBalancePaymentMethodOpti
 	euBankTransfer: StripePostPaymentIntentsIntentEuBankTransferBankTransferCustomerBalancePaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostPaymentIntentsIntentAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostPaymentIntentsIntentBlikPaymentMethodOptionsInput {
@@ -20170,8 +20170,8 @@ input StripePostPaymentIntentsIntentCaptureTransferDataInput {
 	amount: Int
 }
 input StripePostPaymentIntentsIntentCardPaymentMethodOptionsInput {
-	statementDescriptorSuffixKanji: StripeUnionInput
-	statementDescriptorSuffixKana: StripeUnionInput
+	statementDescriptorSuffixKanji: JSON
+	statementDescriptorSuffixKana: JSON
 	setupFutureUsage: String
 	requestThreeDSecure: StripePostPaymentIntentsIntentRequestThreeDSecureCardPaymentMethodOptions
 	network: StripePostPaymentIntentsIntentNetworkCardPaymentMethodOptions
@@ -20399,9 +20399,9 @@ input StripePostPaymentIntentsIntentConfirmBankTransferCustomerBalancePaymentMet
 	euBankTransfer: StripePostPaymentIntentsIntentConfirmEuBankTransferBankTransferCustomerBalancePaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentConfirmBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostPaymentIntentsIntentConfirmAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostPaymentIntentsIntentConfirmBlikPaymentMethodOptionsInput {
@@ -20427,8 +20427,8 @@ enum StripePostPaymentIntentsIntentConfirmCaptureMethod {
 	MANUAL
 }
 input StripePostPaymentIntentsIntentConfirmCardPaymentMethodOptionsInput {
-	statementDescriptorSuffixKanji: StripeUnionInput
-	statementDescriptorSuffixKana: StripeUnionInput
+	statementDescriptorSuffixKanji: JSON
+	statementDescriptorSuffixKana: JSON
 	setupFutureUsage: String
 	requestThreeDSecure: StripePostPaymentIntentsIntentConfirmRequestThreeDSecureCardPaymentMethodOptions
 	network: StripePostPaymentIntentsIntentConfirmNetworkCardPaymentMethodOptions
@@ -20535,17 +20535,17 @@ input StripePostPaymentIntentsIntentConfirmIdealPaymentMethodOptionsUnionInput {
 	stripePostPaymentIntentsIntentConfirmIdealPaymentMethodOptionsInput: StripePostPaymentIntentsIntentConfirmIdealPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentConfirmInput {
+	receiptEmail: JSON
+	offSession: JSON
 	useStripeSdk: Boolean
 	shipping: StripePostPaymentIntentsIntentConfirmShippingUnionInput
 	setupFutureUsage: String
 	returnUrl: String
-	receiptEmail: StripeUnionInput
 	radarOptions: StripePostPaymentIntentsIntentConfirmRadarOptionsInput
 	paymentMethodTypes: [String!]
 	paymentMethodOptions: StripePostPaymentIntentsIntentConfirmPaymentMethodOptionsInput
 	paymentMethodData: StripePostPaymentIntentsIntentConfirmPaymentMethodDataInput
 	paymentMethod: String
-	offSession: StripeUnionInput
 	mandateData: StripePostPaymentIntentsIntentConfirmMandateDataOrStripePostPaymentIntentsIntentConfirmMandateDataUnionInput
 	mandate: String
 	expand: [String!]
@@ -20580,10 +20580,10 @@ input StripePostPaymentIntentsIntentConfirmKlarnaPaymentMethodOptionsUnionInput 
 	stripePostPaymentIntentsIntentConfirmKlarnaPaymentMethodOptionsInput: StripePostPaymentIntentsIntentConfirmKlarnaPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentConfirmKonbiniPaymentMethodOptionsInput {
+	expiresAt: JSON
+	expiresAfterDays: JSON
 	setupFutureUsage: StripePostPaymentIntentsIntentConfirmSetupFutureUsageKonbiniPaymentMethodOptions
 	productDescription: String
-	expiresAt: StripeUnionInput
-	expiresAfterDays: StripeUnionInput
 	confirmationNumber: String
 }
 input StripePostPaymentIntentsIntentConfirmKonbiniPaymentMethodOptionsUnionInput {
@@ -20606,10 +20606,10 @@ input StripePostPaymentIntentsIntentConfirmMandateDataOrStripePostPaymentIntents
 	stripePostPaymentIntentsIntentConfirmMandateDataInput: StripePostPaymentIntentsIntentConfirmMandateDataInput
 }
 input StripePostPaymentIntentsIntentConfirmMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostPaymentIntentsIntentConfirmTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostPaymentIntentsIntentConfirmPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
-	customMandateUrl: StripeUnionInput
 }
 input StripePostPaymentIntentsIntentConfirmMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostPaymentIntentsIntentConfirmSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -20695,6 +20695,7 @@ input StripePostPaymentIntentsIntentConfirmPaymentMethodDataInput {
 	acssDebit: StripePostPaymentIntentsIntentConfirmAcssDebitPaymentMethodDataInput
 }
 input StripePostPaymentIntentsIntentConfirmPaymentMethodOptionsInput {
+	interacPresent: JSON
 	wechatPay: StripePostPaymentIntentsIntentConfirmWechatPayPaymentMethodOptionsUnionInput
 	usBankAccount: StripePostPaymentIntentsIntentConfirmUsBankAccountPaymentMethodOptionsUnionInput
 	sofort: StripePostPaymentIntentsIntentConfirmSofortPaymentMethodOptionsUnionInput
@@ -20707,7 +20708,6 @@ input StripePostPaymentIntentsIntentConfirmPaymentMethodOptionsInput {
 	link: StripePostPaymentIntentsIntentConfirmLinkPaymentMethodOptionsUnionInput
 	konbini: StripePostPaymentIntentsIntentConfirmKonbiniPaymentMethodOptionsUnionInput
 	klarna: StripePostPaymentIntentsIntentConfirmKlarnaPaymentMethodOptionsUnionInput
-	interacPresent: StripeUnionInput
 	ideal: StripePostPaymentIntentsIntentConfirmIdealPaymentMethodOptionsUnionInput
 	grabpay: StripePostPaymentIntentsIntentConfirmGrabpayPaymentMethodOptionsUnionInput
 	giropay: StripePostPaymentIntentsIntentConfirmGiropayPaymentMethodOptionsUnionInput
@@ -21093,24 +21093,24 @@ input StripePostPaymentIntentsIntentIncrementAuthorizationTransferDataInput {
 	amount: Int
 }
 input StripePostPaymentIntentsIntentInput {
+	receiptEmail: JSON
+	metadata: JSON
+	applicationFeeAmount: JSON
 	transferGroup: String
 	transferData: StripePostPaymentIntentsIntentTransferDataInput
 	statementDescriptorSuffix: String
 	statementDescriptor: String
 	shipping: StripePostPaymentIntentsIntentShippingUnionInput
 	setupFutureUsage: String
-	receiptEmail: StripeUnionInput
 	paymentMethodTypes: [String!]
 	paymentMethodOptions: StripePostPaymentIntentsIntentPaymentMethodOptionsInput
 	paymentMethodData: StripePostPaymentIntentsIntentPaymentMethodDataInput
 	paymentMethod: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	description: String
 	customer: String
 	currency: String
 	captureMethod: StripePostPaymentIntentsIntentCaptureMethod
-	applicationFeeAmount: StripeUnionInput
 	amount: Int
 }
 input StripePostPaymentIntentsIntentInstallmentsCardPaymentMethodOptionsInput {
@@ -21140,10 +21140,10 @@ input StripePostPaymentIntentsIntentKlarnaPaymentMethodOptionsUnionInput {
 	stripePostPaymentIntentsIntentKlarnaPaymentMethodOptionsInput: StripePostPaymentIntentsIntentKlarnaPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentKonbiniPaymentMethodOptionsInput {
+	expiresAt: JSON
+	expiresAfterDays: JSON
 	setupFutureUsage: StripePostPaymentIntentsIntentSetupFutureUsageKonbiniPaymentMethodOptions
 	productDescription: String
-	expiresAt: StripeUnionInput
-	expiresAfterDays: StripeUnionInput
 	confirmationNumber: String
 }
 input StripePostPaymentIntentsIntentKonbiniPaymentMethodOptionsUnionInput {
@@ -21160,10 +21160,10 @@ input StripePostPaymentIntentsIntentLinkPaymentMethodOptionsUnionInput {
 	stripePostPaymentIntentsIntentLinkPaymentMethodOptionsInput: StripePostPaymentIntentsIntentLinkPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsIntentMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostPaymentIntentsIntentTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostPaymentIntentsIntentPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
-	customMandateUrl: StripeUnionInput
 }
 input StripePostPaymentIntentsIntentMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostPaymentIntentsIntentSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -21245,6 +21245,7 @@ input StripePostPaymentIntentsIntentPaymentMethodDataInput {
 	acssDebit: StripePostPaymentIntentsIntentAcssDebitPaymentMethodDataInput
 }
 input StripePostPaymentIntentsIntentPaymentMethodOptionsInput {
+	interacPresent: JSON
 	wechatPay: StripePostPaymentIntentsIntentWechatPayPaymentMethodOptionsUnionInput
 	usBankAccount: StripePostPaymentIntentsIntentUsBankAccountPaymentMethodOptionsUnionInput
 	sofort: StripePostPaymentIntentsIntentSofortPaymentMethodOptionsUnionInput
@@ -21257,7 +21258,6 @@ input StripePostPaymentIntentsIntentPaymentMethodOptionsInput {
 	link: StripePostPaymentIntentsIntentLinkPaymentMethodOptionsUnionInput
 	konbini: StripePostPaymentIntentsIntentKonbiniPaymentMethodOptionsUnionInput
 	klarna: StripePostPaymentIntentsIntentKlarnaPaymentMethodOptionsUnionInput
-	interacPresent: StripeUnionInput
 	ideal: StripePostPaymentIntentsIntentIdealPaymentMethodOptionsUnionInput
 	grabpay: StripePostPaymentIntentsIntentGrabpayPaymentMethodOptionsUnionInput
 	giropay: StripePostPaymentIntentsIntentGiropayPaymentMethodOptionsUnionInput
@@ -21580,10 +21580,10 @@ input StripePostPaymentIntentsKlarnaPaymentMethodOptionsUnionInput {
 	stripePostPaymentIntentsKlarnaPaymentMethodOptionsInput: StripePostPaymentIntentsKlarnaPaymentMethodOptionsInput
 }
 input StripePostPaymentIntentsKonbiniPaymentMethodOptionsInput {
+	expiresAt: JSON
+	expiresAfterDays: JSON
 	setupFutureUsage: StripePostPaymentIntentsSetupFutureUsageKonbiniPaymentMethodOptions
 	productDescription: String
-	expiresAt: StripeUnionInput
-	expiresAfterDays: StripeUnionInput
 	confirmationNumber: String
 }
 input StripePostPaymentIntentsKonbiniPaymentMethodOptionsUnionInput {
@@ -21603,10 +21603,10 @@ input StripePostPaymentIntentsMandateDataInput {
 	customerAcceptance: StripePostPaymentIntentsCustomerAcceptanceMandateDataInput!
 }
 input StripePostPaymentIntentsMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostPaymentIntentsTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostPaymentIntentsPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
-	customMandateUrl: StripeUnionInput
 }
 input StripePostPaymentIntentsMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostPaymentIntentsSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -21692,6 +21692,7 @@ input StripePostPaymentIntentsPaymentMethodDataInput {
 	acssDebit: StripePostPaymentIntentsAcssDebitPaymentMethodDataInput
 }
 input StripePostPaymentIntentsPaymentMethodOptionsInput {
+	interacPresent: JSON
 	wechatPay: StripePostPaymentIntentsWechatPayPaymentMethodOptionsUnionInput
 	usBankAccount: StripePostPaymentIntentsUsBankAccountPaymentMethodOptionsUnionInput
 	sofort: StripePostPaymentIntentsSofortPaymentMethodOptionsUnionInput
@@ -21704,7 +21705,6 @@ input StripePostPaymentIntentsPaymentMethodOptionsInput {
 	link: StripePostPaymentIntentsLinkPaymentMethodOptionsUnionInput
 	konbini: StripePostPaymentIntentsKonbiniPaymentMethodOptionsUnionInput
 	klarna: StripePostPaymentIntentsKlarnaPaymentMethodOptionsUnionInput
-	interacPresent: StripeUnionInput
 	ideal: StripePostPaymentIntentsIdealPaymentMethodOptionsUnionInput
 	grabpay: StripePostPaymentIntentsGrabpayPaymentMethodOptionsUnionInput
 	giropay: StripePostPaymentIntentsGiropayPaymentMethodOptionsUnionInput
@@ -22321,12 +22321,12 @@ input StripePostPaymentLinksInvoiceCreationInput {
 	enabled: Boolean!
 }
 input StripePostPaymentLinksInvoiceDataInvoiceCreationInput {
+	metadata: JSON
+	accountTaxIds: JSON
 	renderingOptions: StripePostPaymentLinksRenderingOptionsInvoiceDataInvoiceCreationUnionInput
-	metadata: StripeUnionInput
 	footer: String
 	description: String
 	customFields: StripePostPaymentLinksCustomFieldsInvoiceDataInvoiceCreationUnionInput
-	accountTaxIds: StripeUnionInput
 }
 input StripePostPaymentLinksLineItemsInput {
 	quantity: Int!
@@ -22613,8 +22613,8 @@ input StripePostPaymentLinksPaymentLinkHostedConfirmationAfterCompletionInput {
 	customMessage: String
 }
 input StripePostPaymentLinksPaymentLinkInput {
+	paymentMethodTypes: JSON
 	shippingAddressCollection: StripePostPaymentLinksPaymentLinkShippingAddressCollectionUnionInput
-	paymentMethodTypes: StripeUnionInput
 	paymentMethodCollection: StripePostPaymentLinksPaymentLinkPaymentMethodCollection
 	metadata: JSON
 	lineItems: [StripePostPaymentLinksPaymentLinkLineItemsInput!]
@@ -22633,12 +22633,12 @@ input StripePostPaymentLinksPaymentLinkInvoiceCreationInput {
 	enabled: Boolean!
 }
 input StripePostPaymentLinksPaymentLinkInvoiceDataInvoiceCreationInput {
+	metadata: JSON
+	accountTaxIds: JSON
 	renderingOptions: StripePostPaymentLinksPaymentLinkRenderingOptionsInvoiceDataInvoiceCreationUnionInput
-	metadata: StripeUnionInput
 	footer: String
 	description: String
 	customFields: StripePostPaymentLinksPaymentLinkCustomFieldsInvoiceDataInvoiceCreationUnionInput
-	accountTaxIds: StripeUnionInput
 }
 input StripePostPaymentLinksPaymentLinkLineItemsInput {
 	quantity: Int
@@ -22911,9 +22911,9 @@ enum StripePostPaymentMethodsBankP24 {
 	VOLKSWAGEN_BANK
 }
 input StripePostPaymentMethodsBillingDetailsInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostPaymentMethodsAddressBillingDetailsUnionInput
 }
 input StripePostPaymentMethodsBoletoInput {
@@ -23012,9 +23012,9 @@ input StripePostPaymentMethodsPaymentMethodAttachInput {
 	customer: String!
 }
 input StripePostPaymentMethodsPaymentMethodBillingDetailsInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostPaymentMethodsPaymentMethodAddressBillingDetailsUnionInput
 }
 input StripePostPaymentMethodsPaymentMethodCardInput {
@@ -23025,8 +23025,8 @@ input StripePostPaymentMethodsPaymentMethodDetachInput {
 	expand: [String!]
 }
 input StripePostPaymentMethodsPaymentMethodInput {
+	metadata: JSON
 	usBankAccount: StripePostPaymentMethodsPaymentMethodUsBankAccountInput
-	metadata: StripeUnionInput
 	link: JSON
 	expand: [String!]
 	card: StripePostPaymentMethodsPaymentMethodCardInput
@@ -23100,7 +23100,7 @@ input StripePostPayoutsPayoutCancelInput {
 	expand: [String!]
 }
 input StripePostPayoutsPayoutInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostPayoutsPayoutReverseInput {
@@ -23123,6 +23123,7 @@ enum StripePostPlansBillingScheme {
 	TIERED
 }
 input StripePostPlansInput {
+	metadata: JSON
 	usageType: StripePostPlansUsageType
 	trialPeriodDays: Int
 	transformUsage: StripePostPlansTransformUsageInput
@@ -23130,7 +23131,6 @@ input StripePostPlansInput {
 	tiers: [StripePostPlansTiersInput!]
 	product: StripePostPlansProductUnionInput
 	nickname: String
-	metadata: StripeUnionInput
 	intervalCount: Int
 	interval: StripePostPlansInterval!
 	id: String
@@ -23149,10 +23149,10 @@ enum StripePostPlansInterval {
 	YEAR
 }
 input StripePostPlansPlanInput {
+	metadata: JSON
 	trialPeriodDays: Int
 	product: String
 	nickname: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	active: Boolean
 }
@@ -23174,7 +23174,7 @@ enum StripePostPlansRoundTransformUsage {
 	UP
 }
 input StripePostPlansTiersInput {
-	upTo: StripeUnionInput!
+	upTo: JSON!
 	unitAmountDecimal: String
 	unitAmount: Int
 	flatAmountDecimal: String
@@ -23236,13 +23236,13 @@ enum StripePostPricesIntervalRecurring {
 	YEAR
 }
 input StripePostPricesPriceInput {
+	metadata: JSON
+	currencyOptions: JSON
 	transferLookupKey: Boolean
 	taxBehavior: StripePostPricesPriceTaxBehavior
 	nickname: String
-	metadata: StripeUnionInput
 	lookupKey: String
 	expand: [String!]
-	currencyOptions: StripeUnionInput
 	active: Boolean
 }
 enum StripePostPricesPriceTaxBehavior {
@@ -23275,7 +23275,7 @@ enum StripePostPricesTaxBehavior {
 	UNSPECIFIED
 }
 input StripePostPricesTiersInput {
-	upTo: StripeUnionInput!
+	upTo: JSON!
 	unitAmountDecimal: String
 	unitAmount: Int
 	flatAmountDecimal: String
@@ -23302,15 +23302,15 @@ input StripePostProductsDefaultPriceDataInput {
 	currency: String!
 }
 input StripePostProductsIdInput {
-	url: StripeUnionInput
+	url: JSON
+	taxCode: JSON
+	metadata: JSON
+	images: JSON
 	unitLabel: String
-	taxCode: StripeUnionInput
 	statementDescriptor: String
 	shippable: Boolean
 	packageDimensions: StripePostProductsIdPackageDimensionsUnionInput
 	name: String
-	metadata: StripeUnionInput
-	images: StripeUnionInput
 	expand: [String!]
 	description: String
 	defaultPrice: String
@@ -23375,8 +23375,8 @@ input StripePostPromotionCodesInput {
 	active: Boolean
 }
 input StripePostPromotionCodesPromotionCodeInput {
+	metadata: JSON
 	restrictions: StripePostPromotionCodesPromotionCodeRestrictionsInput
-	metadata: StripeUnionInput
 	expand: [String!]
 	active: Boolean
 }
@@ -23409,10 +23409,13 @@ input StripePostQuotesFromQuoteInput {
 	isRevision: Boolean
 }
 input StripePostQuotesInput {
+	onBehalfOf: JSON
+	defaultTaxRates: JSON
+	applicationFeePercent: JSON
+	applicationFeeAmount: JSON
 	transferData: StripePostQuotesTransferDataUnionInput
 	testClock: String
 	subscriptionData: StripePostQuotesSubscriptionDataInput
-	onBehalfOf: StripeUnionInput
 	metadata: JSON
 	lineItems: [StripePostQuotesLineItemsInput!]
 	invoiceSettings: StripePostQuotesInvoiceSettingsInput
@@ -23423,12 +23426,9 @@ input StripePostQuotesInput {
 	expand: [String!]
 	discounts: StripePostQuotesDiscountsUnionInput
 	description: String
-	defaultTaxRates: StripeUnionInput
 	customer: String
 	collectionMethod: StripePostQuotesCollectionMethod
 	automaticTax: StripePostQuotesAutomaticTaxInput
-	applicationFeePercent: StripeUnionInput
-	applicationFeeAmount: StripeUnionInput
 }
 enum StripePostQuotesIntervalRecurringPriceDataLineItems {
 	DAY
@@ -23440,7 +23440,7 @@ input StripePostQuotesInvoiceSettingsInput {
 	daysUntilDue: Int
 }
 input StripePostQuotesLineItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostQuotesPriceDataLineItemsInput
 	price: String
@@ -23479,9 +23479,12 @@ input StripePostQuotesQuoteFinalizeInput {
 	expand: [String!]
 }
 input StripePostQuotesQuoteInput {
+	onBehalfOf: JSON
+	defaultTaxRates: JSON
+	applicationFeePercent: JSON
+	applicationFeeAmount: JSON
 	transferData: StripePostQuotesQuoteTransferDataUnionInput
 	subscriptionData: StripePostQuotesQuoteSubscriptionDataInput
-	onBehalfOf: StripeUnionInput
 	metadata: JSON
 	lineItems: [StripePostQuotesQuoteLineItemsInput!]
 	invoiceSettings: StripePostQuotesQuoteInvoiceSettingsInput
@@ -23491,12 +23494,9 @@ input StripePostQuotesQuoteInput {
 	expand: [String!]
 	discounts: StripePostQuotesQuoteDiscountsUnionInput
 	description: String
-	defaultTaxRates: StripeUnionInput
 	customer: String
 	collectionMethod: StripePostQuotesQuoteCollectionMethod
 	automaticTax: StripePostQuotesQuoteAutomaticTaxInput
-	applicationFeePercent: StripeUnionInput
-	applicationFeeAmount: StripeUnionInput
 }
 enum StripePostQuotesQuoteIntervalRecurringPriceDataLineItems {
 	DAY
@@ -23508,7 +23508,7 @@ input StripePostQuotesQuoteInvoiceSettingsInput {
 	daysUntilDue: Int
 }
 input StripePostQuotesQuoteLineItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostQuotesQuotePriceDataLineItemsInput
 	price: String
@@ -23527,8 +23527,8 @@ input StripePostQuotesQuoteRecurringPriceDataLineItemsInput {
 	interval: StripePostQuotesQuoteIntervalRecurringPriceDataLineItems!
 }
 input StripePostQuotesQuoteSubscriptionDataInput {
-	trialPeriodDays: StripeUnionInput
-	effectiveDate: StripeUnionInput
+	trialPeriodDays: JSON
+	effectiveDate: JSON
 	description: String
 }
 enum StripePostQuotesQuoteTaxBehaviorPriceDataLineItems {
@@ -23550,8 +23550,8 @@ input StripePostQuotesRecurringPriceDataLineItemsInput {
 	interval: StripePostQuotesIntervalRecurringPriceDataLineItems!
 }
 input StripePostQuotesSubscriptionDataInput {
-	trialPeriodDays: StripeUnionInput
-	effectiveDate: StripeUnionInput
+	trialPeriodDays: JSON
+	effectiveDate: JSON
 	description: String
 }
 enum StripePostQuotesTaxBehaviorPriceDataLineItems {
@@ -23597,12 +23597,12 @@ input StripePostRadarValueListsValueListInput {
 	alias: String
 }
 input StripePostRefundsInput {
+	metadata: JSON
 	reverseTransfer: Boolean
 	refundApplicationFee: Boolean
 	reason: StripePostRefundsReason
 	paymentIntent: String
 	origin: StripePostRefundsOrigin
-	metadata: StripeUnionInput
 	instructionsEmail: String
 	expand: [String!]
 	customer: String
@@ -23622,7 +23622,7 @@ input StripePostRefundsRefundCancelInput {
 	expand: [String!]
 }
 input StripePostRefundsRefundInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostReportingReportRunsInput {
@@ -24404,9 +24404,9 @@ enum StripePostSetupIntentsBankP24PaymentMethodData {
 	VOLKSWAGEN_BANK
 }
 input StripePostSetupIntentsBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostSetupIntentsAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostSetupIntentsBlikPaymentMethodOptionsInput {
@@ -24621,9 +24621,9 @@ enum StripePostSetupIntentsIntentBankP24PaymentMethodData {
 	VOLKSWAGEN_BANK
 }
 input StripePostSetupIntentsIntentBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostSetupIntentsIntentAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostSetupIntentsIntentBlikPaymentMethodOptionsInput {
@@ -24785,9 +24785,9 @@ enum StripePostSetupIntentsIntentConfirmBankP24PaymentMethodData {
 	VOLKSWAGEN_BANK
 }
 input StripePostSetupIntentsIntentConfirmBillingDetailsPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostSetupIntentsIntentConfirmAddressBillingDetailsPaymentMethodDataUnionInput
 }
 input StripePostSetupIntentsIntentConfirmBlikPaymentMethodOptionsInput {
@@ -24868,11 +24868,11 @@ input StripePostSetupIntentsIntentConfirmMandateDataOrStripePostSetupIntentsInte
 	stripePostSetupIntentsIntentConfirmMandateDataInput: StripePostSetupIntentsIntentConfirmMandateDataInput
 }
 input StripePostSetupIntentsIntentConfirmMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostSetupIntentsIntentConfirmTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostSetupIntentsIntentConfirmPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
 	defaultFor: [StripePostSetupIntentsIntentConfirmDefaultForMandateOptionsAcssDebitPaymentMethodOptions!]
-	customMandateUrl: StripeUnionInput
 }
 input StripePostSetupIntentsIntentConfirmMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostSetupIntentsIntentConfirmSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -25081,11 +25081,11 @@ input StripePostSetupIntentsIntentIdealPaymentMethodDataInput {
 	bank: StripePostSetupIntentsIntentBankIdealPaymentMethodData
 }
 input StripePostSetupIntentsIntentInput {
+	metadata: JSON
 	paymentMethodTypes: [String!]
 	paymentMethodOptions: StripePostSetupIntentsIntentPaymentMethodOptionsInput
 	paymentMethodData: StripePostSetupIntentsIntentPaymentMethodDataInput
 	paymentMethod: String
-	metadata: StripeUnionInput
 	flowDirections: [StripePostSetupIntentsIntentFlowDirections!]
 	expand: [String!]
 	description: String
@@ -25106,11 +25106,11 @@ input StripePostSetupIntentsIntentLinkPaymentMethodOptionsInput {
 	persistentToken: String
 }
 input StripePostSetupIntentsIntentMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostSetupIntentsIntentTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostSetupIntentsIntentPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
 	defaultFor: [StripePostSetupIntentsIntentDefaultForMandateOptionsAcssDebitPaymentMethodOptions!]
-	customMandateUrl: StripeUnionInput
 }
 input StripePostSetupIntentsIntentMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostSetupIntentsIntentSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -25296,11 +25296,11 @@ input StripePostSetupIntentsMandateDataInput {
 	customerAcceptance: StripePostSetupIntentsCustomerAcceptanceMandateDataInput!
 }
 input StripePostSetupIntentsMandateOptionsAcssDebitPaymentMethodOptionsInput {
+	customMandateUrl: JSON
 	transactionType: StripePostSetupIntentsTransactionTypeMandateOptionsAcssDebitPaymentMethodOptions
 	paymentSchedule: StripePostSetupIntentsPaymentScheduleMandateOptionsAcssDebitPaymentMethodOptions
 	intervalDescription: String
 	defaultFor: [StripePostSetupIntentsDefaultForMandateOptionsAcssDebitPaymentMethodOptions!]
-	customMandateUrl: StripeUnionInput
 }
 input StripePostSetupIntentsMandateOptionsCardPaymentMethodOptionsInput {
 	supportedTypes: [StripePostSetupIntentsSupportedTypesMandateOptionsCardPaymentMethodOptions!]
@@ -25510,8 +25510,8 @@ input StripePostShippingRatesShippingRateTokenFixedAmountInput {
 	currencyOptions: JSON
 }
 input StripePostShippingRatesShippingRateTokenInput {
+	metadata: JSON
 	taxBehavior: StripePostShippingRatesShippingRateTokenTaxBehavior
-	metadata: StripeUnionInput
 	fixedAmount: StripePostShippingRatesShippingRateTokenFixedAmountInput
 	expand: [String!]
 	active: Boolean
@@ -25606,10 +25606,10 @@ input StripePostSourcesItemsSourceOrderInput {
 	amount: Int
 }
 input StripePostSourcesMandateInput {
+	amount: JSON
 	notificationMethod: StripePostSourcesNotificationMethodMandate
 	interval: StripePostSourcesIntervalMandate
 	currency: String
-	amount: StripeUnionInput
 	acceptance: StripePostSourcesAcceptanceMandateInput
 }
 enum StripePostSourcesNotificationMethodMandate {
@@ -25677,9 +25677,9 @@ input StripePostSourcesSourceAddressShippingSourceOrderInput {
 	city: String
 }
 input StripePostSourcesSourceInput {
+	metadata: JSON
 	sourceOrder: StripePostSourcesSourceSourceOrderInput
 	owner: StripePostSourcesSourceOwnerInput
-	metadata: StripeUnionInput
 	mandate: StripePostSourcesSourceMandateInput
 	expand: [String!]
 	amount: Int
@@ -25698,10 +25698,10 @@ input StripePostSourcesSourceItemsSourceOrderInput {
 	amount: Int
 }
 input StripePostSourcesSourceMandateInput {
+	amount: JSON
 	notificationMethod: StripePostSourcesSourceNotificationMethodMandate
 	interval: StripePostSourcesSourceIntervalMandate
 	currency: String
-	amount: StripeUnionInput
 	acceptance: StripePostSourcesSourceAcceptanceMandateInput
 }
 enum StripePostSourcesSourceNotificationMethodMandate {
@@ -25788,7 +25788,7 @@ input StripePostSubscriptionItemsBillingThresholdsUnionInput {
 	stripePostSubscriptionItemsBillingThresholdsInput: StripePostSubscriptionItemsBillingThresholdsInput
 }
 input StripePostSubscriptionItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	subscription: String!
 	quantity: Int
 	prorationDate: Int
@@ -25814,7 +25814,8 @@ input StripePostSubscriptionItemsItemBillingThresholdsUnionInput {
 	stripePostSubscriptionItemsItemBillingThresholdsInput: StripePostSubscriptionItemsItemBillingThresholdsInput
 }
 input StripePostSubscriptionItemsItemInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
+	metadata: JSON
 	quantity: Int
 	prorationDate: Int
 	prorationBehavior: StripePostSubscriptionItemsItemProrationBehavior
@@ -25822,7 +25823,6 @@ input StripePostSubscriptionItemsItemInput {
 	price: String
 	paymentBehavior: StripePostSubscriptionItemsItemPaymentBehavior
 	offSession: Boolean
-	metadata: StripeUnionInput
 	expand: [String!]
 	billingThresholds: StripePostSubscriptionItemsItemBillingThresholdsUnionInput
 }
@@ -25888,7 +25888,7 @@ enum StripePostSubscriptionItemsSubscriptionItemUsageRecordsAction {
 	SET
 }
 input StripePostSubscriptionItemsSubscriptionItemUsageRecordsInput {
-	timestamp: StripeUnionInput
+	timestamp: JSON
 	quantity: Int!
 	expand: [String!]
 	action: StripePostSubscriptionItemsSubscriptionItemUsageRecordsAction
@@ -25899,7 +25899,7 @@ enum StripePostSubscriptionItemsTaxBehaviorPriceData {
 	UNSPECIFIED
 }
 input StripePostSubscriptionSchedulesAddInvoiceItemsPhasesInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionSchedulesPriceDataAddInvoiceItemsPhasesInput
 	price: String
@@ -25950,8 +25950,8 @@ enum StripePostSubscriptionSchedulesCollectionMethodPhases {
 	SEND_INVOICE
 }
 input StripePostSubscriptionSchedulesDefaultSettingsInput {
+	onBehalfOf: JSON
 	transferData: StripePostSubscriptionSchedulesTransferDataDefaultSettingsUnionInput
-	onBehalfOf: StripeUnionInput
 	invoiceSettings: StripePostSubscriptionSchedulesInvoiceSettingsDefaultSettingsInput
 	description: String
 	defaultPaymentMethod: String
@@ -25968,9 +25968,9 @@ enum StripePostSubscriptionSchedulesEndBehavior {
 	RENEW
 }
 input StripePostSubscriptionSchedulesInput {
-	startDate: StripeUnionInput
+	startDate: JSON
+	metadata: JSON
 	phases: [StripePostSubscriptionSchedulesPhasesInput!]
-	metadata: StripeUnionInput
 	fromSubscription: String
 	expand: [String!]
 	endBehavior: StripePostSubscriptionSchedulesEndBehavior
@@ -25990,7 +25990,7 @@ input StripePostSubscriptionSchedulesInvoiceSettingsPhasesInput {
 	daysUntilDue: Int
 }
 input StripePostSubscriptionSchedulesItemsPhasesInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionSchedulesPriceDataItemsPhasesInput
 	price: String
@@ -25998,6 +25998,7 @@ input StripePostSubscriptionSchedulesItemsPhasesInput {
 	billingThresholds: StripePostSubscriptionSchedulesBillingThresholdsItemsPhasesUnionInput
 }
 input StripePostSubscriptionSchedulesPhasesInput {
+	defaultTaxRates: JSON
 	trialEnd: Int
 	trial: Boolean
 	transferData: StripePostSubscriptionSchedulesTransferDataPhasesInput
@@ -26009,7 +26010,6 @@ input StripePostSubscriptionSchedulesPhasesInput {
 	invoiceSettings: StripePostSubscriptionSchedulesInvoiceSettingsPhasesInput
 	endDate: Int
 	description: String
-	defaultTaxRates: StripeUnionInput
 	defaultPaymentMethod: String
 	currency: String
 	coupon: String
@@ -26045,7 +26045,7 @@ input StripePostSubscriptionSchedulesRecurringPriceDataItemsPhasesInput {
 	interval: StripePostSubscriptionSchedulesIntervalRecurringPriceDataItemsPhases!
 }
 input StripePostSubscriptionSchedulesScheduleAddInvoiceItemsPhasesInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionSchedulesSchedulePriceDataAddInvoiceItemsPhasesInput
 	price: String
@@ -26101,8 +26101,8 @@ enum StripePostSubscriptionSchedulesScheduleCollectionMethodPhases {
 	SEND_INVOICE
 }
 input StripePostSubscriptionSchedulesScheduleDefaultSettingsInput {
+	onBehalfOf: JSON
 	transferData: StripePostSubscriptionSchedulesScheduleTransferDataDefaultSettingsUnionInput
-	onBehalfOf: StripeUnionInput
 	invoiceSettings: StripePostSubscriptionSchedulesScheduleInvoiceSettingsDefaultSettingsInput
 	description: String
 	defaultPaymentMethod: String
@@ -26119,9 +26119,9 @@ enum StripePostSubscriptionSchedulesScheduleEndBehavior {
 	RENEW
 }
 input StripePostSubscriptionSchedulesScheduleInput {
+	metadata: JSON
 	prorationBehavior: StripePostSubscriptionSchedulesScheduleProrationBehavior
 	phases: [StripePostSubscriptionSchedulesSchedulePhasesInput!]
-	metadata: StripeUnionInput
 	expand: [String!]
 	endBehavior: StripePostSubscriptionSchedulesScheduleEndBehavior
 	defaultSettings: StripePostSubscriptionSchedulesScheduleDefaultSettingsInput
@@ -26139,7 +26139,7 @@ input StripePostSubscriptionSchedulesScheduleInvoiceSettingsPhasesInput {
 	daysUntilDue: Int
 }
 input StripePostSubscriptionSchedulesScheduleItemsPhasesInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionSchedulesSchedulePriceDataItemsPhasesInput
 	price: String
@@ -26147,19 +26147,19 @@ input StripePostSubscriptionSchedulesScheduleItemsPhasesInput {
 	billingThresholds: StripePostSubscriptionSchedulesScheduleBillingThresholdsItemsPhasesUnionInput
 }
 input StripePostSubscriptionSchedulesSchedulePhasesInput {
-	trialEnd: StripeUnionInput
+	trialEnd: JSON
+	startDate: JSON
+	endDate: JSON
+	defaultTaxRates: JSON
 	trial: Boolean
 	transferData: StripePostSubscriptionSchedulesScheduleTransferDataPhasesInput
-	startDate: StripeUnionInput
 	prorationBehavior: StripePostSubscriptionSchedulesScheduleProrationBehaviorPhases
 	onBehalfOf: String
 	metadata: JSON
 	iterations: Int
 	items: [StripePostSubscriptionSchedulesScheduleItemsPhasesInput!]!
 	invoiceSettings: StripePostSubscriptionSchedulesScheduleInvoiceSettingsPhasesInput
-	endDate: StripeUnionInput
 	description: String
-	defaultTaxRates: StripeUnionInput
 	defaultPaymentMethod: String
 	coupon: String
 	collectionMethod: StripePostSubscriptionSchedulesScheduleCollectionMethodPhases
@@ -26255,7 +26255,7 @@ input StripePostSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsUnionIn
 	stripePostSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsInput: StripePostSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostSubscriptionsAddInvoiceItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionsPriceDataAddInvoiceItemsInput
 	price: String
@@ -26324,23 +26324,23 @@ input StripePostSubscriptionsFinancialConnectionsUsBankAccountPaymentMethodOptio
 	permissions: [StripePostSubscriptionsPermissionsFinancialConnectionsUsBankAccountPaymentMethodOptionsPaymentSettings!]
 }
 input StripePostSubscriptionsInput {
+	trialEnd: JSON
+	onBehalfOf: JSON
+	metadata: JSON
+	defaultTaxRates: JSON
 	trialSettings: StripePostSubscriptionsTrialSettingsInput
 	trialPeriodDays: Int
 	trialFromPlan: Boolean
-	trialEnd: StripeUnionInput
 	transferData: StripePostSubscriptionsTransferDataInput
 	prorationBehavior: StripePostSubscriptionsProrationBehavior
 	promotionCode: String
 	pendingInvoiceItemInterval: StripePostSubscriptionsPendingInvoiceItemIntervalUnionInput
 	paymentSettings: StripePostSubscriptionsPaymentSettingsInput
 	paymentBehavior: StripePostSubscriptionsPaymentBehavior
-	onBehalfOf: StripeUnionInput
 	offSession: Boolean
-	metadata: StripeUnionInput
 	items: [StripePostSubscriptionsItemsInput!]
 	expand: [String!]
 	description: String
-	defaultTaxRates: StripeUnionInput
 	defaultSource: String
 	defaultPaymentMethod: String
 	daysUntilDue: Int
@@ -26370,7 +26370,7 @@ enum StripePostSubscriptionsIntervalRecurringPriceDataItems {
 	YEAR
 }
 input StripePostSubscriptionsItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionsPriceDataItemsInput
 	price: String
@@ -26409,16 +26409,16 @@ enum StripePostSubscriptionsPaymentBehavior {
 	PENDING_IF_INCOMPLETE
 }
 input StripePostSubscriptionsPaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostSubscriptionsUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostSubscriptionsCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostSubscriptionsCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostSubscriptionsBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostSubscriptionsAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostSubscriptionsPaymentSettingsInput {
+	paymentMethodTypes: JSON
 	saveDefaultPaymentMethod: StripePostSubscriptionsSaveDefaultPaymentMethodPaymentSettings
-	paymentMethodTypes: StripeUnionInput
 	paymentMethodOptions: StripePostSubscriptionsPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostSubscriptionsPendingInvoiceItemIntervalInput {
@@ -26482,7 +26482,7 @@ input StripePostSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsP
 	stripePostSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsInput: StripePostSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostSubscriptionsSubscriptionExposedIdAddInvoiceItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionsSubscriptionExposedIdPriceDataAddInvoiceItemsInput
 	price: String
@@ -26560,9 +26560,13 @@ input StripePostSubscriptionsSubscriptionExposedIdFinancialConnectionsUsBankAcco
 	permissions: [StripePostSubscriptionsSubscriptionExposedIdPermissionsFinancialConnectionsUsBankAccountPaymentMethodOptionsPaymentSettings!]
 }
 input StripePostSubscriptionsSubscriptionExposedIdInput {
+	trialEnd: JSON
+	onBehalfOf: JSON
+	metadata: JSON
+	defaultTaxRates: JSON
+	cancelAt: JSON
 	trialSettings: StripePostSubscriptionsSubscriptionExposedIdTrialSettingsInput
 	trialFromPlan: Boolean
-	trialEnd: StripeUnionInput
 	transferData: StripePostSubscriptionsSubscriptionExposedIdTransferDataUnionInput
 	prorationDate: Int
 	prorationBehavior: StripePostSubscriptionsSubscriptionExposedIdProrationBehavior
@@ -26571,20 +26575,16 @@ input StripePostSubscriptionsSubscriptionExposedIdInput {
 	paymentSettings: StripePostSubscriptionsSubscriptionExposedIdPaymentSettingsInput
 	paymentBehavior: StripePostSubscriptionsSubscriptionExposedIdPaymentBehavior
 	pauseCollection: StripePostSubscriptionsSubscriptionExposedIdPauseCollectionUnionInput
-	onBehalfOf: StripeUnionInput
 	offSession: Boolean
-	metadata: StripeUnionInput
 	items: [StripePostSubscriptionsSubscriptionExposedIdItemsInput!]
 	expand: [String!]
 	description: String
-	defaultTaxRates: StripeUnionInput
 	defaultSource: String
 	defaultPaymentMethod: String
 	daysUntilDue: Int
 	coupon: String
 	collectionMethod: StripePostSubscriptionsSubscriptionExposedIdCollectionMethod
 	cancelAtPeriodEnd: Boolean
-	cancelAt: StripeUnionInput
 	billingThresholds: StripePostSubscriptionsSubscriptionExposedIdBillingThresholdsUnionInput
 	billingCycleAnchor: StripePostSubscriptionsSubscriptionExposedIdBillingCycleAnchor
 	automaticTax: StripePostSubscriptionsSubscriptionExposedIdAutomaticTaxInput
@@ -26604,11 +26604,11 @@ enum StripePostSubscriptionsSubscriptionExposedIdIntervalRecurringPriceDataItems
 	YEAR
 }
 input StripePostSubscriptionsSubscriptionExposedIdItemsInput {
-	taxRates: StripeUnionInput
+	taxRates: JSON
+	metadata: JSON
 	quantity: Int
 	priceData: StripePostSubscriptionsSubscriptionExposedIdPriceDataItemsInput
 	price: String
-	metadata: StripeUnionInput
 	id: String
 	deleted: Boolean
 	clearUsage: Boolean
@@ -26654,16 +26654,16 @@ enum StripePostSubscriptionsSubscriptionExposedIdPaymentBehavior {
 	PENDING_IF_INCOMPLETE
 }
 input StripePostSubscriptionsSubscriptionExposedIdPaymentMethodOptionsPaymentSettingsInput {
+	konbini: JSON
 	usBankAccount: StripePostSubscriptionsSubscriptionExposedIdUsBankAccountPaymentMethodOptionsPaymentSettingsUnionInput
-	konbini: StripeUnionInput
 	customerBalance: StripePostSubscriptionsSubscriptionExposedIdCustomerBalancePaymentMethodOptionsPaymentSettingsUnionInput
 	card: StripePostSubscriptionsSubscriptionExposedIdCardPaymentMethodOptionsPaymentSettingsUnionInput
 	bancontact: StripePostSubscriptionsSubscriptionExposedIdBancontactPaymentMethodOptionsPaymentSettingsUnionInput
 	acssDebit: StripePostSubscriptionsSubscriptionExposedIdAcssDebitPaymentMethodOptionsPaymentSettingsUnionInput
 }
 input StripePostSubscriptionsSubscriptionExposedIdPaymentSettingsInput {
+	paymentMethodTypes: JSON
 	saveDefaultPaymentMethod: StripePostSubscriptionsSubscriptionExposedIdSaveDefaultPaymentMethodPaymentSettings
-	paymentMethodTypes: StripeUnionInput
 	paymentMethodOptions: StripePostSubscriptionsSubscriptionExposedIdPaymentMethodOptionsPaymentSettingsInput
 }
 input StripePostSubscriptionsSubscriptionExposedIdPendingInvoiceItemIntervalInput {
@@ -26829,9 +26829,9 @@ input StripePostTaxRatesInput {
 	active: Boolean
 }
 input StripePostTaxRatesTaxRateInput {
+	metadata: JSON
 	taxType: StripePostTaxRatesTaxRateTaxType
 	state: String
-	metadata: StripeUnionInput
 	jurisdiction: String
 	expand: [String!]
 	displayName: String
@@ -26865,7 +26865,7 @@ input StripePostTerminalConfigurationsAudTippingInput {
 	fixedAmounts: [Int!]
 }
 input StripePostTerminalConfigurationsBbposWiseposEInput {
-	splashscreen: StripeUnionInput
+	splashscreen: JSON
 }
 input StripePostTerminalConfigurationsCadTippingInput {
 	smartTipThreshold: Int
@@ -26883,7 +26883,7 @@ input StripePostTerminalConfigurationsConfigurationAudTippingInput {
 	fixedAmounts: [Int!]
 }
 input StripePostTerminalConfigurationsConfigurationBbposWiseposEInput {
-	splashscreen: StripeUnionInput
+	splashscreen: JSON
 }
 input StripePostTerminalConfigurationsConfigurationBbposWiseposEUnionInput {
 	string: String
@@ -26981,7 +26981,7 @@ input StripePostTerminalConfigurationsConfigurationUsdTippingInput {
 	fixedAmounts: [Int!]
 }
 input StripePostTerminalConfigurationsConfigurationVerifoneP400Input {
-	splashscreen: StripeUnionInput
+	splashscreen: JSON
 }
 input StripePostTerminalConfigurationsConfigurationVerifoneP400UnionInput {
 	string: String
@@ -27069,7 +27069,7 @@ input StripePostTerminalConfigurationsUsdTippingInput {
 	fixedAmounts: [Int!]
 }
 input StripePostTerminalConfigurationsVerifoneP400Input {
-	splashscreen: StripeUnionInput
+	splashscreen: JSON
 }
 input StripePostTerminalConnectionTokensInput {
 	location: String
@@ -27084,7 +27084,7 @@ input StripePostTerminalLocationsAddressInput {
 	city: String
 }
 input StripePostTerminalLocationsInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	displayName: String!
 	configurationOverrides: String
@@ -27099,15 +27099,15 @@ input StripePostTerminalLocationsLocationAddressInput {
 	city: String
 }
 input StripePostTerminalLocationsLocationInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	displayName: String
 	configurationOverrides: String
 	address: StripePostTerminalLocationsLocationAddressInput
 }
 input StripePostTerminalReadersInput {
+	metadata: JSON
 	registrationCode: String!
-	metadata: StripeUnionInput
 	location: String
 	label: String
 	expand: [String!]
@@ -27116,7 +27116,7 @@ input StripePostTerminalReadersReaderCancelActionInput {
 	expand: [String!]
 }
 input StripePostTerminalReadersReaderInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	label: String
 	expand: [String!]
 }
@@ -27521,12 +27521,13 @@ input StripePostTokensDocumentsPersonInput {
 	companyAuthorization: StripePostTokensCompanyAuthorizationDocumentsPersonInput
 }
 input StripePostTokensIndividualAccountInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostTokensVerificationIndividualAccountInput
 	ssnLast4: String
 	registeredAddress: StripePostTokensRegisteredAddressIndividualAccountInput
 	politicalExposure: StripePostTokensPoliticalExposureIndividualAccount
 	phone: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -27534,7 +27535,6 @@ input StripePostTokensIndividualAccountInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -27563,6 +27563,8 @@ input StripePostTokensPassportDocumentsPersonInput {
 	files: [String!]
 }
 input StripePostTokensPersonInput {
+	metadata: JSON
+	fullNameAliases: JSON
 	verification: StripePostTokensVerificationPersonInput
 	ssnLast4: String
 	relationship: StripePostTokensRelationshipPersonInput
@@ -27570,7 +27572,6 @@ input StripePostTokensPersonInput {
 	politicalExposure: String
 	phone: String
 	nationality: String
-	metadata: StripeUnionInput
 	maidenName: String
 	lastNameKanji: String
 	lastNameKana: String
@@ -27578,7 +27579,6 @@ input StripePostTokensPersonInput {
 	idNumberSecondary: String
 	idNumber: String
 	gender: String
-	fullNameAliases: StripeUnionInput
 	firstNameKanji: String
 	firstNameKana: String
 	firstName: String
@@ -27613,9 +27613,9 @@ input StripePostTokensRegisteredAddressPersonInput {
 	city: String
 }
 input StripePostTokensRelationshipPersonInput {
+	percentOwnership: JSON
 	title: String
 	representative: Boolean
-	percentOwnership: StripeUnionInput
 	owner: Boolean
 	executive: Boolean
 	director: Boolean
@@ -27635,10 +27635,10 @@ input StripePostTokensVisaDocumentsPersonInput {
 	files: [String!]
 }
 input StripePostTopupsInput {
+	metadata: JSON
 	transferGroup: String
 	statementDescriptor: String
 	source: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	description: String
 	currency: String!
@@ -27648,13 +27648,13 @@ input StripePostTopupsTopupCancelInput {
 	expand: [String!]
 }
 input StripePostTopupsTopupInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	description: String
 }
 input StripePostTransfersIdReversalsInput {
+	metadata: JSON
 	refundApplicationFee: Boolean
-	metadata: StripeUnionInput
 	expand: [String!]
 	description: String
 	amount: Int
@@ -27676,12 +27676,12 @@ enum StripePostTransfersSourceType {
 	FPX
 }
 input StripePostTransfersTransferInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 	description: String
 }
 input StripePostTransfersTransferReversalsIdInput {
-	metadata: StripeUnionInput
+	metadata: JSON
 	expand: [String!]
 }
 input StripePostTreasuryCreditReversalsInput {
@@ -27865,9 +27865,9 @@ input StripePostTreasuryOutboundPaymentsAddressBillingDetailsDestinationPaymentM
 	stripePostTreasuryOutboundPaymentsAddressBillingDetailsDestinationPaymentMethodDataInput: StripePostTreasuryOutboundPaymentsAddressBillingDetailsDestinationPaymentMethodDataInput
 }
 input StripePostTreasuryOutboundPaymentsBillingDetailsDestinationPaymentMethodDataInput {
+	email: JSON
 	phone: String
 	name: String
-	email: StripeUnionInput
 	address: StripePostTreasuryOutboundPaymentsAddressBillingDetailsDestinationPaymentMethodDataUnionInput
 }
 input StripePostTreasuryOutboundPaymentsDestinationPaymentMethodDataInput {
@@ -27952,8 +27952,8 @@ input StripePostTreasuryOutboundTransfersUsBankAccountDestinationPaymentMethodOp
 	stripePostTreasuryOutboundTransfersUsBankAccountDestinationPaymentMethodOptionsInput: StripePostTreasuryOutboundTransfersUsBankAccountDestinationPaymentMethodOptionsInput
 }
 input StripePostWebhookEndpointsInput {
+	metadata: JSON
 	url: String!
-	metadata: StripeUnionInput
 	expand: [String!]
 	enabledEvents: [String!]!
 	description: String
@@ -27961,8 +27961,8 @@ input StripePostWebhookEndpointsInput {
 	apiVersion: String
 }
 input StripePostWebhookEndpointsWebhookEndpointInput {
+	metadata: JSON
 	url: String
-	metadata: StripeUnionInput
 	expand: [String!]
 	enabledEvents: [String!]
 	disabled: Boolean
@@ -30849,7 +30849,7 @@ enum StripeTreasuryTransactionsResourceFlowDetailsType {
 }
 input StripeUnionInput {
 	int: Int
-	stripePostAccountsDelayDaysSchedulePayoutsSettings: StripePostAccountsDelayDaysSchedulePayoutsSettings
+	stripeGetInvoicesUpcomingSubscriptionTrialEnd: StripeGetInvoicesUpcomingSubscriptionTrialEnd
 }
 type StripeUsBankAccountNetworks {
 	supported: [StripeUsBankAccountNetworksSupported!]!

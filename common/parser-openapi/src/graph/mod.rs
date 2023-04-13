@@ -2,11 +2,13 @@ use std::borrow::Cow;
 
 use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
 use inflector::Inflector;
+use once_cell::sync::Lazy;
 use petgraph::{
     graph::NodeIndex,
     visit::{EdgeFiltered, EdgeRef, IntoEdges, Reversed},
     Graph,
 };
+use regex::Regex;
 use serde_json::Value;
 
 use crate::parsing::operations::OperationDetails;
@@ -18,6 +20,7 @@ mod operations;
 mod output_type;
 mod parameters;
 mod scalar;
+mod transforms;
 
 pub use self::{
     enums::Enum,
@@ -40,11 +43,15 @@ pub struct OpenApiGraph {
 
 impl OpenApiGraph {
     pub fn new(parsed: crate::parsing::Context, metadata: crate::ApiMetadata) -> Self {
-        OpenApiGraph {
+        let mut this = OpenApiGraph {
             graph: parsed.graph,
             operation_indices: parsed.operation_indices,
             metadata,
-        }
+        };
+
+        transforms::impossible_unions_to_json(&mut this);
+
+        this
     }
 }
 
@@ -431,8 +438,17 @@ impl<'a> std::fmt::Display for FieldName<'a> {
 }
 
 impl<'a> FieldName<'a> {
+    pub fn from_openapi_name(name: &'a str) -> Self {
+        FieldName(Cow::Borrowed(name))
+    }
+
     pub fn openapi_name(&self) -> &str {
         self.0.as_ref()
+    }
+
+    pub fn will_be_valid_graphql(&self) -> bool {
+        static REGEX: Lazy<Regex> = Lazy::new(|| Regex::new("^[A-Za-z_][A-Za-z0-9_]*$").unwrap());
+        REGEX.is_match(&self.0.to_camel_case())
     }
 }
 
@@ -460,5 +476,14 @@ mod tests {
 
         // Check that we can't double wrap things in required
         assert_eq!(required.clone().wrap_with(required.clone()), required);
+    }
+
+    #[test]
+    fn test_will_be_valid_graphql() {
+        assert!(!FieldName::from_openapi_name("+1").will_be_valid_graphql());
+        assert!(!FieldName::from_openapi_name("-1").will_be_valid_graphql());
+        assert!(FieldName::from_openapi_name("some_field").will_be_valid_graphql());
+        assert!(FieldName::from_openapi_name("someField").will_be_valid_graphql());
+        assert!(FieldName::from_openapi_name("someField123").will_be_valid_graphql());
     }
 }
