@@ -112,6 +112,14 @@ pub enum ServerError {
     #[error("could not create a project cache directory")]
     CreateCacheDir,
 
+    /// returned if the `.grafbase/database` directory cannot be created
+    #[error("could not create a project database directory\ncaused by: {0}")]
+    CreateDatabaseDir(IoError),
+
+    /// returned if the `.grafbase/database` directory cannot be read
+    #[error("could not read the project database directory\ncaused by: {0}")]
+    ReadDatabaseDir(IoError),
+
     /// returned if an available port cannot be found for the bridge server
     #[error("could not find an available port for the bridge server")]
     AvailablePort,

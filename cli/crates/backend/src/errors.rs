@@ -41,9 +41,9 @@ pub enum BackendError {
     #[error("could not create a schema.graphql file\ncaused by: {0}")]
     WriteSchema(io::Error),
 
-    /// returned if the dot grafbase directory could not be deleted
-    #[error("could not delete the .grafbase directory\ncaused by: {0}")]
-    DeleteDotGrafbaseDirectory(io::Error),
+    /// returned if .grafbase/database could not be deleted
+    #[error("could not delete '.grafbase/database'\ncaused by: {0}")]
+    DeleteDatabaseDirectory(io::Error),
 
     /// returned if the grafbase directory for the project could not be deleted
     #[error("could not delete the grafbase directory\ncaused by: {0}")]

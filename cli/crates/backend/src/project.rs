@@ -354,12 +354,11 @@ async fn stream_github_archive<'a>(
 ///
 /// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
 ///
-/// - returns [`BackendError::DeleteDotGrafbaseDirectory`] if the `.grafbase` directory cannot be deleted
+/// - returns [`BackendError::DeleteDatabaseDirectory`] if the `.grafbase` directory cannot be deleted
 pub fn reset() -> Result<(), BackendError> {
     let environment = Environment::get();
 
-    fs::remove_dir_all(environment.project_dot_grafbase_path.clone())
-        .map_err(BackendError::DeleteDotGrafbaseDirectory)?;
+    fs::remove_dir_all(&environment.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
 
     Ok(())
 }

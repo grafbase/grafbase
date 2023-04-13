@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
 use crate::{
-    consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME},
+    consts::{
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE,
+        RESOLVERS_DIRECTORY_NAME,
+    },
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
@@ -36,6 +39,8 @@ pub struct Environment {
     pub resolvers_source_path: PathBuf,
     /// the path within `$PROJECT/.grafbase/` containing build artifacts for custom resolvers.
     pub resolvers_build_artifact_path: PathBuf,
+    /// the path within '$PROJECT/.grafbase' containing the database
+    pub database_directory_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -71,6 +76,7 @@ impl Environment {
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
+        let database_directory_path = project_dot_grafbase_path.join(DATABASE_DIRECTORY);
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -81,6 +87,7 @@ impl Environment {
                 project_grafbase_registry_path,
                 resolvers_source_path,
                 resolvers_build_artifact_path,
+                database_directory_path,
             })
             .expect("cannot set environment twice");
 

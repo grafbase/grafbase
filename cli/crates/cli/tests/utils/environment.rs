@@ -221,8 +221,8 @@ impl Environment {
         self.commands = vec![];
     }
 
-    pub fn has_dot_grafbase_directory(&mut self) -> bool {
-        fs::metadata(self.directory.clone().join(".grafbase")).is_ok()
+    pub fn has_database_directory(&mut self) -> bool {
+        fs::metadata(self.directory.clone().join(".grafbase/database")).is_ok()
     }
 }
 
