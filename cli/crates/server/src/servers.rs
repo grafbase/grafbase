@@ -7,7 +7,7 @@ use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
-use common::consts::EPHEMERAL_PORT_RANGE;
+use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
@@ -147,7 +147,7 @@ async fn spawn_servers(
     // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
     // in resolvers, and that's a non-trivial problem.
     if !path_changed
-        .map(|path| path == Path::new("grafbase/schema.graphql"))
+        .map(|path| path == Path::new(GRAFBASE_DIRECTORY_NAME).join(GRAFBASE_SCHEMA_FILE_NAME))
         .unwrap_or_default()
     {
         for resolver in &mut resolvers {
