@@ -11,7 +11,7 @@ mod parsing;
 mod validation;
 
 pub fn parse_spec(
-    data: &str,
+    data: String,
     format: Format,
     mut metadata: ApiMetadata,
     registry: &mut Registry,
@@ -20,9 +20,10 @@ pub fn parse_spec(
     ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
 
     let spec = match format {
-        Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
-        Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
+        Format::Json => serde_json::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::JsonParsingError(e)])?,
+        Format::Yaml => serde_yaml::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
+    drop(data);
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata.clone());
 
@@ -205,7 +206,7 @@ mod tests {
         let mut registry = Registry::new();
 
         parse_spec(
-            &std::fs::read_to_string(schema_path).unwrap(),
+            std::fs::read_to_string(schema_path).unwrap(),
             format,
             metadata,
             &mut registry,
