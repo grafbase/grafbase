@@ -149,15 +149,20 @@ async fn parse_connectors<'a>(
 
     visit(&mut connector_rules, ctx, schema);
 
-    let futures = std::mem::take(&mut ctx.openapi_directives)
+    let (directives, positions) = std::mem::take(&mut ctx.openapi_directives)
+        .into_iter()
+        .unzip::<_, _, Vec<_>, Vec<_>>();
+
+    let futures = directives
         .into_iter()
         .map(|directive| connector_parsers.fetch_and_parse_openapi(directive));
 
     let registries = match futures_util::future::try_join_all(futures).await {
         Ok(registries) => registries,
-        Err(_err) => todo!("Not sure how to convert the errors yet"),
+        Err(err) => todo!("still need to do this"),
     };
-    connector_parsers::merge_registries(ctx, registries);
+
+    connector_parsers::merge_registries(ctx, registries.into_iter().zip(positions.into_iter()).collect());
 }
 
 fn parse_relations<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {

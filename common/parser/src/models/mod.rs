@@ -104,6 +104,7 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
     match ty {
         // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
         obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj),
+        MetaType::Union { .. } => from_meta_type_union(registry, ty),
         _ => Err(ConversionError::Unknown),
     }
 }
@@ -136,6 +137,14 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
         "The Type {name} is not an Object, we can't infer the proper schema.",
         name = ty.name()
     )))
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn from_meta_type_union(_registry: &Registry, _ty: &MetaType) -> Result<Schema, ConversionError> {
+    // This is a broken implementation because it's not obvious how to arrowise unions.
+    // The query planning isn't turned on at the moment so this being broken is fine.
+    // We will need to fix this before release though.
+    Ok(Schema::new(vec![]))
 }
 
 /// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out

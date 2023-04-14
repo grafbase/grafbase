@@ -101,7 +101,7 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
         for directive in directives {
             match parse_directive::<OpenApiDirective>(&directive.node, ctx.variables) {
                 Ok(parsed_directive) => {
-                    ctx.openapi_directives.push(parsed_directive);
+                    ctx.openapi_directives.push((parsed_directive, directive.pos));
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }

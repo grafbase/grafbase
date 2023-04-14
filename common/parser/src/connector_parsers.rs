@@ -1,7 +1,11 @@
-use std::sync::Mutex;
+use std::{borrow::Cow, sync::Mutex};
 
 use async_trait::async_trait;
-use dynaql::registry::{MetaField, MetaType, Registry};
+use dynaql::{
+    registry::{MetaField, MetaType, Registry},
+    Name, Pos, Positioned,
+};
+use dynaql_parser::types::{ObjectType, TypeDefinition, TypeKind};
 
 use crate::{rules::visitor::VisitorContext, OpenApiDirective};
 
@@ -37,8 +41,8 @@ impl ConnectorParsers for MockConnectorParsers {
 /// This allows each connector to get it's own registry so we can process them in paralell,
 /// avoiding problems with multiple concurrent &mut Registry, or having to fuck about with
 /// mutexes etc.
-pub(crate) fn merge_registries(ctx: &mut VisitorContext<'_>, src_registries: Vec<Registry>) {
-    for mut src_registry in src_registries {
+pub(crate) fn merge_registries(ctx: &mut VisitorContext<'_>, src_registries: Vec<(Registry, Pos)>) {
+    for (mut src_registry, position) in src_registries {
         ctx.queries.extend(type_fields(
             src_registry.types.remove(&src_registry.query_type).unwrap(),
         ));
@@ -47,6 +51,16 @@ pub(crate) fn merge_registries(ctx: &mut VisitorContext<'_>, src_registries: Vec
             ctx.mutations
                 .extend(type_fields(src_registry.types.remove(mutation_type).unwrap()));
         }
+
+        // The parser relies on `ctx.types` in a few places, which contains parsed SDL
+        // TypeDefinitions (rather than the processed MetaTypes that our connectors give
+        // us).  We hackishly fake these TypeDefinitions here to work around that
+        ctx.types.extend(
+            src_registry
+                .types
+                .iter()
+                .map(|(name, ty)| (name.clone(), Cow::Owned(meta_type_to_type_definition(ty, position)))),
+        );
 
         let mut main_registry = ctx.registry.borrow_mut();
 
@@ -70,4 +84,22 @@ fn type_fields(src_type: MetaType) -> impl Iterator<Item = MetaField> {
         panic!("type_fields should only be called on objects")
     };
     fields.into_iter().map(|(_, field)| field)
+}
+
+fn meta_type_to_type_definition(ty: &MetaType, position: Pos) -> Positioned<TypeDefinition> {
+    Positioned::new(
+        TypeDefinition {
+            extend: false,
+            description: None,
+            name: Positioned::new(Name::new(ty.name()), position),
+            directives: vec![],
+            kind: TypeKind::Object(ObjectType {
+                implements: vec![],
+                // I'm just skipping the fields for now as I don't think we need them.
+                // This is mostly just to tell the rest of the parser that the type exists.
+                fields: vec![],
+            }),
+        },
+        position,
+    )
 }
