@@ -11,7 +11,6 @@ dynaql-value = { path = "../dynaql/value" }
 dynaql = { path = "../dynaql", features = ["tracing_worker"] }
 dynamodb = { path = "../dynamodb" }
 grafbase = { path = "../grafbase", features = ["json"] }
-futures-util = { workspace = true }
 grafbase-runtime = { path = "../grafbase-runtime" }
 case = "1"
 if_chain = "1"
