@@ -3,6 +3,7 @@
 use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
 use std::io;
 use std::process::Output;
@@ -53,7 +54,10 @@ impl Environment {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
-        let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
+        let schema_path = temp_dir
+            .path()
+            .join(GRAFBASE_DIRECTORY_NAME)
+            .join(GRAFBASE_SCHEMA_FILE_NAME);
 
         Self {
             directory: temp_dir.path().to_owned(),
