@@ -83,6 +83,9 @@ pub const DEFAULT_DIRECTIVE_CREATE_USER2: &str = include_str!("../graphql/defaul
 pub const DEFAULT_DIRECTIVE_SCHEMA: &str = include_str!("../graphql/default_directive/schema.graphql");
 
 pub const OWNER_TODO_SCHEMA: &str = include_str!("../graphql/owner/global/todo/todo-schema.graphql");
+pub const OWNER_TODO_MIXED_SCHEMA: &str = include_str!("../graphql/owner/global/todo/todo-mixed-schema.graphql");
+pub const OWNER_TODO_OWNER_CREATE_SCHEMA: &str =
+    include_str!("../graphql/owner/global/todo/todo-owner-create-schema.graphql");
 pub const OWNER_TODO_CREATE: &str = include_str!("../graphql/owner/global/todo/todo-create.graphql");
 pub const OWNER_TODO_GET: &str = include_str!("../graphql/owner/global/todo/todo-get.graphql");
 pub const OWNER_TODO_UPDATE: &str = include_str!("../graphql/owner/global/todo/todo-update.graphql");
@@ -94,6 +97,9 @@ pub const OWNER_TWITTER_USER_CREATE: &str = include_str!("../graphql/owner/globa
 pub const OWNER_TWITTER_USER_GET_BY_ID: &str = include_str!("../graphql/owner/global/twitter/user-get-by-id.graphql");
 pub const OWNER_TWITTER_USER_GET_BY_EMAIL: &str =
     include_str!("../graphql/owner/global/twitter/user-get-by-email.graphql");
+pub const OWNER_TWITTER_TWEET_CREATE: &str = include_str!("../graphql/owner/global/twitter/tweet-create.graphql");
+pub const OWNER_TWITTER_USER_AND_TWEETS_GET_BY_ID: &str =
+    include_str!("../graphql/owner/global/twitter/user-and-tweets-get-by-id.graphql");
 
 pub const COMPILATION_ERROR_SCHEMA: &str = include_str!("../graphql/compilation_error/schema.graphql");
 pub const COMPILATION_ERROR_QUERY: &str = include_str!("../graphql/compilation_error/query.graphql");
