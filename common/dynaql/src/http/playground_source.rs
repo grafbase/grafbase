@@ -56,13 +56,13 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
           href="https://grafbase.com/images/other/grafbase-logo-circle.png"
         />
     
-        <title>Grafbase Playground</title>
+        <title>Grafbase - Pathfinder</title>
         <script
           type="module"
           crossorigin
-          src="{{ASSET_URL}}/assets/index-332c8b8f.js"
+          src="{{ASSET_URL}}/assets/index.js"
         ></script>
-        <link rel="stylesheet" href="{{ASSET_URL}}/assets/index-42766027.css" />
+        <link rel="stylesheet" href="{{ASSET_URL}}/assets/index.css" />
       </head>
       <body>
         <div id="root"></div>
