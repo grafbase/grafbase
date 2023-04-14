@@ -1,11 +1,9 @@
 //! A helper module that supports HTTP
 
-mod graphiql_source;
 mod multipart;
 mod playground_source;
 // mod websocket;
 
-pub use graphiql_source::graphiql_source;
 pub use multipart::MultipartOptions;
 pub use playground_source::{playground_source, GraphQLPlaygroundConfig};
 /*

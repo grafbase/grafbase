@@ -19,8 +19,6 @@ pub fn playground_source(config: GraphQLPlaygroundConfig) -> String {
 }
 
 /// Config for GraphQL Playground
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct GraphQLPlaygroundConfig<'a> {
     endpoint: &'a str,
 }
