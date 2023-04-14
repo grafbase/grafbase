@@ -1,5 +1,3 @@
-use serde::Serialize;
-
 /// Generate the page for GraphQL Playground
 ///
 /// # Example
