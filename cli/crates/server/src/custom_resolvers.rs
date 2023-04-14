@@ -75,7 +75,6 @@ async fn build_resolver(
 
     trace!("building resolver {resolver_name}");
 
-    let resolvers_build_artifact_directory_path = environment.resolvers_build_artifact_path.as_path();
     let resolver_input_file_path_without_extension = environment.resolvers_source_path.join(resolver_name);
 
     let resolver_paths = futures_util::stream::iter(
@@ -178,7 +177,7 @@ async fn build_resolver(
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
     run_npm_command(
         CommandType::Npx,
-        resolvers_build_artifact_directory_path,
+        resolver_build_artifact_directory_path,
         &[
             "wrangler",
             "publish",
