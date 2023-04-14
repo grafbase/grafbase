@@ -1,5 +1,5 @@
 use super::client::create_client;
-use super::consts::{API_URL, GRAFBASE_DIR_NAME, PACKAGE_JSON, PROJECT_METADATA_FILE, TAR_CONTENT_TYPE};
+use super::consts::{API_URL, PACKAGE_JSON, PROJECT_METADATA_FILE, TAR_CONTENT_TYPE};
 use super::errors::{ApiError, DeployError};
 use super::graphql::mutations::{
     ArchiveFileSizeLimitExceededError, DailyDeploymentCountLimitExceededError, DeploymentCreate,
@@ -7,6 +7,7 @@ use super::graphql::mutations::{
 };
 use super::types::ProjectMetadata;
 use crate::consts::USER_AGENT;
+use common::consts::GRAFBASE_DIRECTORY_NAME;
 use common::environment::Environment;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
@@ -52,7 +53,7 @@ pub async fn deploy() -> Result<(), ApiError> {
             .map_err(ApiError::AppendToArchive)?;
     }
 
-    tar.append_dir_all(GRAFBASE_DIR_NAME, &environment.project_grafbase_path)
+    tar.append_dir_all(GRAFBASE_DIRECTORY_NAME, &environment.project_grafbase_path)
         .await
         .map_err(ApiError::AppendToArchive)?;
 

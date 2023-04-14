@@ -2,7 +2,7 @@
 
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA, REGISTRY_FILE,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, REGISTRY_FILE,
         RESOLVERS_DIRECTORY_NAME,
     },
     errors::CommonError,
@@ -125,8 +125,8 @@ impl Environment {
 
                 // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
                 if let Some(first) = path.components().next() {
-                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY) {
-                        path.push(GRAFBASE_SCHEMA);
+                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
+                        path.push(GRAFBASE_SCHEMA_FILE_NAME);
                         if path.is_file() {
                             return Some(path);
                         }
@@ -134,7 +134,11 @@ impl Environment {
                     }
                 }
 
-                path.push([GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA].iter().collect::<PathBuf>());
+                path.push(
+                    [GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME]
+                        .iter()
+                        .collect::<PathBuf>(),
+                );
 
                 if path.is_file() {
                     Some(path)

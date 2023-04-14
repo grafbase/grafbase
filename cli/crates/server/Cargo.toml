@@ -11,19 +11,19 @@ repository = "https://github.com/grafbase/grafbase"
 include = ["/src", "/assets"]
 
 [dependencies]
-strip-ansi-escapes = "0.1"
 anyhow = "1"
-axum = "0.6"
 async-trait = "0.1"
+axum = "0.6"
 base64 = "0.21"
 chrono = { version = "0.4", features = ["serde"] }
 combine = "4"
 dotenv = "0.15"
 exitcode = "1"
+filetime = "0.2"
 futures-util = "0.3"
 hyper = "0.14"
-ipnet = "2"
 integer-encoding = "3"
+ipnet = "2"
 itertools = "0.10"
 log = "0.4"
 notify = "4"
@@ -42,9 +42,10 @@ sqlx = { version = "0.6", features = [
   "sqlite",
   "json",
 ] }
+strip-ansi-escapes = "0.1"
 strum = { version = "0.24", features = ["derive"] }
-tempfile = "3"
 tantivy = "0.19"
+tempfile = "3"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 tower-http = { version = "0.4", features = ["trace"] }

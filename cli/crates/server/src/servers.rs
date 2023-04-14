@@ -7,13 +7,14 @@ use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
-use common::consts::EPHEMERAL_PORT_RANGE;
+use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
 
 use std::env;
+use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
     fs,
@@ -75,7 +76,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
                 } else {
-                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, tracing).await?)
+                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, None, tracing).await?)
                 }
             })
     });
@@ -91,10 +92,11 @@ async fn server_loop(
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
+    let mut path_changed = None;
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), tracing) => {
+            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
             (path, file_event_type) = wait_for_event_and_match(receiver, |event| match event {
@@ -102,6 +104,7 @@ async fn server_loop(
                 Event::BridgeReady => None,
             }) => {
                 trace!("reload");
+                path_changed = Some(path.clone());
                 let _ = sender.send(ServerMessage::Reload(path, file_event_type));
             }
         }
@@ -115,6 +118,7 @@ async fn spawn_servers(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    path_changed: Option<&Path>,
     tracing: bool,
 ) -> Result<(), ServerError> {
     let bridge_event_bus = event_bus.clone();
@@ -125,7 +129,7 @@ async fn spawn_servers(
 
     let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
 
-    let resolvers = match run_schema_parser(&environment_variables).await {
+    let mut resolvers = match run_schema_parser(&environment_variables).await {
         Ok(resolvers) => resolvers,
         Err(error) => {
             let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
@@ -134,6 +138,22 @@ async fn spawn_servers(
             return Ok(());
         }
     };
+
+    // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
+    // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
+    // of the generated schema registry file.
+    // Otherwise, we trigger a rebuild all resolvers. That, individually, will still more often than not be very quick
+    // because the build naturally reuses the intermediate artifacts from node_modules from previous builds.
+    // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
+    // in resolvers, and that's a non-trivial problem.
+    if !path_changed
+        .map(|path| path == Path::new(GRAFBASE_DIRECTORY_NAME).join(GRAFBASE_SCHEMA_FILE_NAME))
+        .unwrap_or_default()
+    {
+        for resolver in &mut resolvers {
+            resolver.fresh = false;
+        }
+    }
 
     let environment = Environment::get();
 
@@ -327,11 +347,16 @@ struct SchemaParserResult {
     versioned_registry: serde_json::Value,
 }
 
+pub struct DetectedResolver {
+    pub resolver_name: String,
+    pub fresh: bool,
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
 async fn run_schema_parser(
     environment_variables: &std::collections::HashMap<String, String>,
-) -> Result<Vec<String>, ServerError> {
+) -> Result<Vec<DetectedResolver>, ServerError> {
     trace!("parsing schema");
 
     let environment = Environment::get();
@@ -389,18 +414,44 @@ async fn run_schema_parser(
     let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
         .await
         .map_err(ServerError::SchemaParserResultRead)?;
-    let parser_result: SchemaParserResult =
-        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+    let SchemaParserResult {
+        versioned_registry,
+        required_resolvers,
+    } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+
+    let registry_mtime = tokio::fs::metadata(&environment.project_grafbase_registry_path)
+        .await
+        .ok()
+        .map(|metadata| metadata.modified().expect("must be supported"));
+
+    let detected_resolvers = futures_util::future::join_all(required_resolvers.into_iter().map(|resolver_name| {
+        // Last file to be written to in the build process.
+        let wrangler_toml_path = environment
+            .resolvers_build_artifact_path
+            .join(&resolver_name)
+            .join("wrangler.toml");
+        async move {
+            let wrangler_toml_mtime = tokio::fs::metadata(&wrangler_toml_path)
+                .await
+                .ok()
+                .map(|metadata| metadata.modified().expect("must be supported"));
+            let fresh = registry_mtime
+                .zip(wrangler_toml_mtime)
+                .map(|(registry_mtime, wrangler_toml_mtime)| wrangler_toml_mtime > registry_mtime)
+                .unwrap_or_default();
+            DetectedResolver { resolver_name, fresh }
+        }
+    }))
+    .await;
 
     tokio::fs::write(
         &environment.project_grafbase_registry_path,
-        serde_json::to_string(&parser_result.versioned_registry)
-            .expect("serde_json::Value serialises just fine for sure"),
+        serde_json::to_string(&versioned_registry).expect("serde_json::Value serialises just fine for sure"),
     )
     .await
     .map_err(ServerError::SchemaRegistryWrite)?;
 
-    Ok(parser_result.required_resolvers)
+    Ok(detected_resolvers)
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {

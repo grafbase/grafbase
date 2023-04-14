@@ -6,7 +6,7 @@ use crate::{
 };
 use backend::types::FileEventType;
 use colored::Colorize;
-use common::consts::LOCALHOST;
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST};
 use common::types::ResolverMessageLevel;
 
 /// reports to stdout that the server has started
@@ -45,7 +45,7 @@ pub fn project_created(name: Option<&str>) {
     if let Some(name) = name {
         watercolor::output!(r#"✨ {name} was successfully initialized!"#, @BrightBlue);
 
-        let schema_path = &[".", name, "grafbase", "schema.graphql"].join(&slash);
+        let schema_path = &[".", name, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME].join(&slash);
 
         println!(
             "The schema for your new project can be found at {}",
@@ -54,7 +54,7 @@ pub fn project_created(name: Option<&str>) {
     } else {
         watercolor::output!(r#"✨ Your project was successfully set up for Grafbase!"#, @BrightBlue);
 
-        let schema_path = &[".", "grafbase", "schema.graphql"].join(&slash);
+        let schema_path = &[".", GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME].join(&slash);
 
         println!(
             "Your new schema can be found at {}",
