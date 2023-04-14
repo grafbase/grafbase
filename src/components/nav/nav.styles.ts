@@ -16,7 +16,7 @@ export const StyledNavSection = styled('nav', {
   alignItems: 'center'
 })
 
-export const StyledGrafbaseIcon = styled('div', {
+export const StyledGrafbaseLink = styled('a', {
   position: 'relative',
   paddingBottom: theme.sizes.ui_04,
   height: theme.sizes.ui_48,
@@ -25,12 +25,6 @@ export const StyledGrafbaseIcon = styled('div', {
   alignItems: 'center',
   justifyContent: 'center',
 
-  svg: {
-    path: {
-      fill: theme.colors.ui_neutral07
-    }
-  },
-
   '&::after': {
     content: '',
     position: 'absolute',
@@ -38,5 +32,12 @@ export const StyledGrafbaseIcon = styled('div', {
     height: 1,
     width: theme.sizes.ui_40,
     backgroundColor: theme.colors.ui_neutral02
+  },
+  '&:hover': {
+    svg: {
+      path: {
+        fill: theme.colors.ui_neutral07
+      }
+    }
   }
 })

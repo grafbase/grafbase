@@ -2,7 +2,7 @@ import { Icon, IconButton } from 'ui'
 
 import { useCliApp } from '../../stores'
 import { ThemeToggle } from '../theme-toggle'
-import { StyledGrafbaseIcon, StyledNav, StyledNavSection } from './nav.styles'
+import { StyledGrafbaseLink, StyledNav, StyledNavSection } from './nav.styles'
 
 const setVisibleTool = useCliApp.getState().setVisibleTool
 
@@ -12,9 +12,13 @@ export const Nav = () => {
   return (
     <StyledNav>
       <StyledNavSection>
-        <StyledGrafbaseIcon>
+        <StyledGrafbaseLink
+          href="https://grafbase.com"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <Icon name="Grafbase" size="large" />
-        </StyledGrafbaseIcon>
+        </StyledGrafbaseLink>
         <IconButton
           action={() => {
             setVisibleTool({ visibleTool: 'Pathfinder' })
