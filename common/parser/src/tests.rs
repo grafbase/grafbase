@@ -535,7 +535,7 @@ fn should_pick_up_required_resolvers() {
         }
     "#;
 
-    let result = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    let result = super::to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
 
     assert_eq!(
         result.required_resolvers,
@@ -675,7 +675,7 @@ fn test_relations_with_underscore_types() {
       }
     "#;
 
-    super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
+    super::to_parse_result_with_variables(schema, &HashMap::new()).expect("must succeed");
 }
 
 #[test]
@@ -689,7 +689,7 @@ fn test_name_clashes_dont_cause_panic() {
             id: ID!
         }
     "#;
-    super::to_registry_with_variables(schema, &HashMap::new()).expect("must succeed");
+    super::to_parse_result_with_variables(schema, &HashMap::new()).expect("must succeed");
 }
 
 #[test]
@@ -713,7 +713,7 @@ fn should_apply_global_cache_rules_and_check_inline_precedence() {
         }
     "#;
 
-    let mut result = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    let mut result = super::to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
 
     // apply caching controls
     if let Err(global_cache_rules_result) = result.global_cache_rules.apply(&mut result.registry) {
@@ -786,7 +786,7 @@ fn should_fail_global_cache_rules_apply_due_to_unknown_type_and_field() {
         mut registry,
         mut global_cache_rules,
         ..
-    } = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    } = super::to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
     global_cache_rules.insert(
         GlobalCacheTarget::Type(Cow::Owned("UnknownType".to_string())),
         CacheControl::default(),
@@ -840,7 +840,7 @@ fn should_fail_global_cache_rules_apply_due_to_mutation_rule() {
         mut registry,
         mut global_cache_rules,
         ..
-    } = super::to_registry_with_variables(SCHEMA, &variables).expect("must succeed");
+    } = super::to_parse_result_with_variables(SCHEMA, &variables).expect("must succeed");
     global_cache_rules.insert(
         GlobalCacheTarget::Type(Cow::Owned(MUTATION_TYPE.to_string())),
         CacheControl::default(),

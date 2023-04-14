@@ -46,7 +46,7 @@ pub struct VisitorContext<'a> {
     pub registry: RefCell<Registry>,
     pub variables: &'a HashMap<String, String>,
     pub(crate) required_resolvers: HashSet<String>,
-    pub(crate) openapi_directives: Vec<OpenApiDirective>,
+    pub(crate) openapi_directives: Vec<(OpenApiDirective, Pos)>,
     pub(crate) global_cache_rules: GlobalCacheRules<'static>,
 }
 
@@ -247,7 +247,6 @@ impl<'a> VisitorContext<'a> {
         ParseResult {
             registry,
             required_resolvers: self.required_resolvers,
-            openapi_directives: self.openapi_directives,
             global_cache_rules: self.global_cache_rules,
         }
     }

@@ -1308,6 +1308,30 @@ pub mod vectorize {
 }
 
 impl Registry {
+    pub fn new() -> Registry {
+        let mut registry = Registry {
+            query_type: "Query".to_string(),
+            ..Registry::default()
+        };
+        registry.types.insert(
+            "Query".to_string(),
+            MetaType::Object {
+                name: "Query".to_string(),
+                description: None,
+                fields: IndexMap::new(),
+                cache_control: Default::default(),
+                extends: false,
+                keys: None,
+                visible: None,
+                is_subscription: false,
+                is_node: false,
+                rust_typename: "Query".to_string(),
+                constraints: vec![],
+            },
+        );
+        registry
+    }
+
     pub fn query_root(&self) -> &MetaType {
         self.types.get(&self.query_type).unwrap()
     }

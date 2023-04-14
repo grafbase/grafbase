@@ -101,7 +101,7 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
         for directive in directives {
             match parse_directive::<OpenApiDirective>(&directive.node, ctx.variables) {
                 Ok(parsed_directive) => {
-                    ctx.openapi_directives.push(parsed_directive);
+                    ctx.openapi_directives.push((parsed_directive, directive.pos));
                 }
                 Err(err) => ctx.report_error(vec![directive.pos], err.to_string()),
             }
@@ -113,7 +113,7 @@ impl<'a> Visitor<'a> for OpenApiVisitor {
 mod tests {
     use rstest::rstest;
 
-    use crate::rules::visitor::RuleError;
+    use crate::{connector_parsers::MockConnectorParsers, rules::visitor::RuleError};
 
     use super::OpenApiQueryNamingStrategy;
 
@@ -122,8 +122,8 @@ mod tests {
         let variables = maplit::hashmap! {
                 "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
         };
-        let result = crate::to_registry_with_variables(
-            r#"
+        let connector_parsers = MockConnectorParsers::default();
+        let schema = r#"
             extend schema
               @openapi(
                 name: "stripe",
@@ -131,12 +131,10 @@ mod tests {
                 schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [{ name: "authorization", value: "Bearer {{env.STRIPE_API_KEY}}"}],
               )
-            "#,
-            &variables,
-        )
-        .unwrap();
+            "#;
+        futures::executor::block_on(crate::parse(schema, &variables, &connector_parsers)).unwrap();
 
-        insta::assert_debug_snapshot!(result.openapi_directives, @r###"
+        insta::assert_debug_snapshot!(connector_parsers.openapi_directives.lock().unwrap(), @r###"
         [
             OpenApiDirective {
                 name: "stripe",
@@ -177,9 +175,8 @@ mod tests {
         let variables = maplit::hashmap! {
                 "STRIPE_API_KEY".to_string() => "i_am_a_key".to_string()
         };
-        let result = crate::to_registry_with_variables(
-            format!(
-                r#"
+        let schema = format!(
+            r#"
                     extend schema
                       @openapi(
                         name: "stripe",
@@ -190,13 +187,19 @@ mod tests {
                         }}
                       )
             "#
-            ),
-            &variables,
-        )
-        .unwrap();
+        );
+        let connector_parsers = MockConnectorParsers::default();
+        futures::executor::block_on(crate::parse(&schema, &variables, &connector_parsers)).unwrap();
 
         assert_eq!(
-            result.openapi_directives.first().unwrap().transforms.query_naming,
+            connector_parsers
+                .openapi_directives
+                .lock()
+                .unwrap()
+                .first()
+                .unwrap()
+                .transforms
+                .query_naming,
             expected
         );
     }

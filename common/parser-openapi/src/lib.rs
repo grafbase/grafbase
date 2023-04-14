@@ -11,7 +11,7 @@ mod parsing;
 mod validation;
 
 pub fn parse_spec(
-    data: &str,
+    data: String,
     format: Format,
     mut metadata: ApiMetadata,
     registry: &mut Registry,
@@ -20,9 +20,10 @@ pub fn parse_spec(
     ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
 
     let spec = match format {
-        Format::Json => serde_json::from_str::<OpenAPI>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
-        Format::Yaml => serde_yaml::from_str::<OpenAPI>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
+        Format::Json => serde_json::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::JsonParsingError(e)])?,
+        Format::Yaml => serde_yaml::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::YamlParsingError(e)])?,
     };
+    drop(data);
 
     let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata.clone());
 
@@ -163,7 +164,6 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 
 #[cfg(test)]
 mod tests {
-    use dynaql::indexmap::IndexMap;
 
     use super::*;
 
@@ -203,10 +203,10 @@ mod tests {
     }
 
     fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Registry {
-        let mut registry = default_registry();
+        let mut registry = Registry::new();
 
         parse_spec(
-            &std::fs::read_to_string(schema_path).unwrap(),
+            std::fs::read_to_string(schema_path).unwrap(),
             format,
             metadata,
             &mut registry,
@@ -223,30 +223,5 @@ mod tests {
             headers: vec![],
             query_naming: QueryNamingStrategy::SchemaName,
         }
-    }
-
-    fn default_registry() -> Registry {
-        let mut registry = Registry {
-            query_type: "Query".to_string(),
-            ..Registry::default()
-        };
-        registry.types.insert(
-            "Query".to_string(),
-            dynaql::registry::MetaType::Object {
-                name: "Query".to_string(),
-                description: None,
-                fields: IndexMap::new(),
-                cache_control: Default::default(),
-                extends: false,
-                keys: None,
-                visible: None,
-                is_subscription: false,
-                is_node: false,
-                rust_typename: "Query".to_string(),
-                constraints: vec![],
-            },
-        );
-
-        registry
     }
 }

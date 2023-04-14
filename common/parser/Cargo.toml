@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait = "0.1"
 arrow-schema = { version = "31", features = ["serde"] }
 dynaql-parser = { path = "../dynaql/parser" }
 dynaql-value = { path = "../dynaql/value" }
@@ -26,6 +27,7 @@ thiserror = { workspace = true }
 tuple = "0.5"
 
 [dev-dependencies]
+futures = "0.3"
 insta = { version = "1", features = ["json"] }
 pretty_assertions = "1"
 serde_json = { workspace = true }
