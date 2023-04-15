@@ -117,10 +117,12 @@ pub struct CustomerDeploymentConfig {
     #[serde(default)]
     /// Customer's dedicated subdomain
     pub subdomain: String,
-    // FIXME: 2023-04-05: Optional for now for legacy projects being deployed. Change me back to a
-    // String later on.
+    // FIXME: 2023-04-05: Optional for now until legacy projects are redeployed.
     #[serde(default)]
     pub account_id: Option<String>,
+    // FIXME: 2023-04-15: Optional for now until legacy projects are redeployed.
+    #[serde(default)]
+    pub account_plan: Option<grafbase::Plan>,
 }
 
 impl CustomerDeploymentConfig {
