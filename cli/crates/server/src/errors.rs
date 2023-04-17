@@ -11,6 +11,8 @@ use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
 
+use crate::custom_resolvers::JavaScriptPackageManager;
+
 #[derive(Error, Debug)]
 pub enum ServerError {
     /// returned if the current directory path cannot be read
@@ -89,12 +91,12 @@ pub enum ServerError {
     ResolverDoesNotExist(PathBuf),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("npm encountered an error: {0}")]
-    ResolverPackageManagerCommandError(IoError),
+    #[error("{0} encountered an error: {1}")]
+    ResolverPackageManagerCommandError(JavaScriptPackageManager, IoError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
-    #[error("npm failed with output:\n{0}")]
-    ResolverPackageManagerError(String),
+    #[error("{0} failed with output:\n{1}")]
+    ResolverPackageManagerError(JavaScriptPackageManager, String),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]

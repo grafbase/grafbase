@@ -29,17 +29,18 @@ async fn run_command<P: AsRef<Path>>(
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(current_directory.as_ref())
         .spawn()
-        .map_err(ServerError::ResolverPackageManagerCommandError)?;
+        .map_err(|err| ServerError::ResolverPackageManagerCommandError(command_type, err))?;
 
     let output = command
         .wait_with_output()
         .await
-        .map_err(ServerError::ResolverPackageManagerCommandError)?;
+        .map_err(|err| ServerError::ResolverPackageManagerCommandError(command_type, err))?;
 
     if output.status.success() {
         Ok(())
     } else {
         Err(ServerError::ResolverPackageManagerError(
+            command_type,
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
@@ -179,7 +180,7 @@ async fn build_resolver(
             resolver_build_artifact_directory_path.join("package.json"),
         )
         .await
-        .map_err(ServerError::ResolverPackageManagerCommandError)?;
+        .map_err(ServerError::CreateResolverArtifactFile)?;
     }
 
     let artifact_directory_path_string = resolver_build_artifact_directory_path
@@ -327,7 +328,7 @@ async fn build_resolver(
     )
     .await
     .map_err(|err| match err {
-        ServerError::ResolverPackageManagerError(output) => {
+        ServerError::ResolverPackageManagerError(_, output) => {
             ServerError::ResolverBuild(resolver_name.to_owned(), output)
         }
         other => other,
