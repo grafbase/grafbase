@@ -255,7 +255,6 @@ use utils::environment::Environment;
         }
     "#)
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
@@ -364,7 +363,6 @@ fn test_field_resolver(
         ),
     ],
 )]
-#[cfg_attr(target_os = "windows", ignore)]
 fn test_query_mutation_resolver(
     #[case] case_index: usize,
     #[case] schema: &str,
