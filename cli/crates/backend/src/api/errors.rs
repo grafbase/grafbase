@@ -64,7 +64,6 @@ pub enum ApiError {
     #[error("could not write the project metadata file\ncaused by: {0}")]
     WriteProjectMetadataFile(io::Error),
 
-    // TODO hint regarding CLI version
     /// returned if a cynic request could not be completed
     #[error("could not complete a request")]
     RequestError,
@@ -156,7 +155,6 @@ pub enum CreateError {
     #[error("could not create a new project as invalid regions were selected")]
     InvalidDatabaseRegions { invalid: Vec<String> },
 
-    // TODO add hint regarding CLI version
     /// returned if an unknown error occurs
     #[error("could not create a new project, encountered an unknown error")]
     Unknown,
@@ -176,7 +174,6 @@ pub enum DeployError {
     #[error("could not deploy as you have reached the allowed daily deployemnt amount of {limit}")]
     DailyDeploymentCountLimitExceeded { limit: i32 },
 
-    // TODO add hint regarding CLI version
     /// returned if an unknown error occurs
     #[error("could not deploy, encountered an unknown error")]
     Unknown,
