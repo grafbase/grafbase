@@ -112,11 +112,14 @@ jobs:
 
       - name: Publish npm
         shell: bash
+        env:
+          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
           cd cli/npm
           PUBLISH_ARGUMENTS=()
           if [[ $INPUT_PRERELEASE != "false" ]]; then
+              echo "Running prerelease: $INPUT_PRERELEASE"
               PUBLISH_ARGUMENTS+=(--tag next)
           fi
           (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
