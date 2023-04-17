@@ -12,7 +12,6 @@ use utils::consts::{
 use utils::environment::Environment;
 
 #[test]
-#[cfg_attr(target_os = "windows", ignore)]
 fn compilation_error_schema() {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
@@ -68,7 +67,6 @@ fn compilation_error_schema() {
 }
 
 #[test]
-#[cfg_attr(target_os = "windows", ignore)]
 fn compilation_error_resolvers() {
     let mut env = Environment::init();
     env.grafbase_init(ConfigType::GraphQL);
