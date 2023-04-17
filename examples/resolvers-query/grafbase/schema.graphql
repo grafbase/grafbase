@@ -4,5 +4,4 @@ extend type Query {
 
 type Choice {
   text: String
-  finish_reason: String
 }
