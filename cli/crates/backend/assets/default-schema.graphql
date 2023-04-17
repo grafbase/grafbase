@@ -1,14 +1,14 @@
 # Welcome to Grafbase!
-# Build your own database, integrate auth, permission rules, custom resolvers, search, and more with Grafbase.
+# Define your data models, integrate auth, permission rules, custom resolvers, search, and more with Grafbase.
 
-# Configure Auth
+# Integrate Auth
 # https://grafbase.com/docs/auth
 #
 # schema @auth(providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }], rules: [{ allow: private }]) {
 #   query: Query
 # }
 
-# Define Data Model(s)
+# Define Data Models
 # https://grafbase.com/docs/database
 type Post @model @search {
   title: String!
@@ -33,6 +33,7 @@ type User @model {
   email: Email
   posts: [Post]
   comments: [Comment]
+
   # Extend models with resolvers
   # https://grafbase.com/docs/edge-gateway/resolvers
   # gravatar: URL @resolver(name: "user/gravatar")
