@@ -303,7 +303,11 @@ async fn build_resolver(
         resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
     ];
 
-    let wrangler_environment = &[("FORCE_COLOR", "0"), ("WRANGLER_SEND_METRICS", "false")];
+    let wrangler_environment = &[
+        ("CLOUDFLARE_API_TOKEN", "STUB"),
+        ("FORCE_COLOR", "0"),
+        ("WRANGLER_SEND_METRICS", "false"),
+    ];
 
     // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
