@@ -1,11 +1,11 @@
 //! A helper module that supports HTTP
 
 mod multipart;
-mod playground_source;
+mod pathfinder_source;
 // mod websocket;
 
 pub use multipart::MultipartOptions;
-pub use playground_source::{playground_source, GraphQLPlaygroundConfig};
+pub use pathfinder_source::{pathfinder_source, PathfinderConfig};
 /*
 pub use websocket::{
     ClientMessage, Protocols as WebSocketProtocols, WebSocket, WsMessage, ALL_WEBSOCKET_PROTOCOLS,
