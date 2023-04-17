@@ -13,51 +13,89 @@ use crate::errors::ServerError;
 use crate::servers::DetectedResolver;
 use crate::types::ServerMessage;
 
-#[derive(strum::AsRefStr, strum::Display)]
-#[strum(serialize_all = "lowercase")]
-enum CommandType {
-    Npm,
-    Npx,
-}
-
-async fn run_npm_command<P: AsRef<Path>>(
-    command_type: CommandType,
-    artifact_directory_path: P,
-    extra_arguments: &[&str],
+async fn run_command<P: AsRef<Path>>(
+    command_type: JavaScriptPackageManager,
+    arguments: &[&str],
+    current_directory: P,
     tracing: bool,
-    environment: &[(&'static str, &'static str)],
+    environment: &[(&'static str, &str)],
 ) -> Result<(), ServerError> {
-    let artifact_directory_path_string = artifact_directory_path
-        .as_ref()
-        .to_str()
-        .ok_or(ServerError::CachePath)?;
-
-    let mut arguments = vec!["--prefix", artifact_directory_path_string];
-    arguments.extend(extra_arguments);
-
     trace!("running '{command_type} {}'", arguments.iter().format(" "));
 
-    let npm_command = Command::new(command_type.as_ref())
+    let command = Command::new(command_type.to_string())
         .envs(environment.iter().copied())
         .args(arguments)
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(artifact_directory_path)
+        .current_dir(current_directory.as_ref())
         .spawn()
-        .map_err(ServerError::NpmCommandError)?;
+        .map_err(ServerError::ResolverPackageManagerCommandError)?;
 
-    let output = npm_command
+    let output = command
         .wait_with_output()
         .await
-        .map_err(ServerError::NpmCommandError)?;
+        .map_err(ServerError::ResolverPackageManagerCommandError)?;
 
     if output.status.success() {
         Ok(())
     } else {
-        Err(ServerError::NpmCommand(
+        Err(ServerError::ResolverPackageManagerError(
             String::from_utf8_lossy(&output.stderr).into_owned(),
         ))
     }
+}
+
+#[derive(Clone, Copy, Debug, strum::Display, strum::EnumString)]
+#[strum(serialize_all = "lowercase")]
+pub enum JavaScriptPackageManager {
+    Npm,
+    Pnpm,
+    Yarn,
+}
+
+async fn guess_package_manager_from_package_json(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
+    let path = path.as_ref();
+    // FIXME: In the future, we may honour the version too.
+    // "packageManager": "^pnpm@1.2.3"
+    // "packageManager": "^yarn@2.3.4"
+    // etc.
+    let object = match serde_json::from_slice(&tokio::fs::read(&path).await.ok()?) {
+        Ok(serde_json::Value::Object(object)) => object,
+        other => {
+            warn!("Invalid package.json contents: {other:?} in path {}.", path.display());
+            return None;
+        }
+    };
+    object
+        .get("packageManager")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|value| value.trim_start_matches('^').split('@').next().unwrap().parse().ok())
+}
+
+pub const LOCK_FILES: &[(&str, JavaScriptPackageManager)] = &[
+    ("package-lock.json", JavaScriptPackageManager::Npm),
+    ("pnpm-lock.yaml", JavaScriptPackageManager::Pnpm),
+    ("yarn.lock", JavaScriptPackageManager::Yarn),
+];
+
+async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Option<JavaScriptPackageManager> {
+    let package_root = path.as_ref();
+
+    futures_util::future::join_all(LOCK_FILES.iter().map(|(file_name, package_manager)| {
+        let path_to_check = package_root.join(file_name);
+        async move {
+            let file_exists = tokio::fs::try_exists(&path_to_check).await.ok().unwrap_or_default();
+            if file_exists {
+                Some(*package_manager)
+            } else {
+                None
+            }
+        }
+    }))
+    .await
+    .into_iter()
+    .flatten()
+    .next()
 }
 
 #[allow(clippy::too_many_lines)]
@@ -75,6 +113,7 @@ async fn build_resolver(
 
     trace!("building resolver {resolver_name}");
 
+    let package_root_path = environment.project_grafbase_path.as_path();
     let resolver_input_file_path_without_extension = environment.resolvers_source_path.join(resolver_name);
 
     let resolver_paths = futures_util::stream::iter(
@@ -94,7 +133,7 @@ async fn build_resolver(
 
     trace!("locating package.json…");
 
-    let package_json_file_path = {
+    let package_json_path = {
         let paths = futures_util::stream::iter(
             resolver_input_file_path
                 .ancestors()
@@ -113,42 +152,106 @@ async fn build_resolver(
         paths.next().await
     };
 
+    let package_manager = (|| async {
+        let package_json_path = package_json_path.as_deref()?;
+        if tokio::fs::try_exists(&package_json_path).await.ok()? {
+            let (guessed_from_package_json, guessed_from_package_root) = futures_util::join!(
+                guess_package_manager_from_package_json(package_json_path),
+                guess_package_manager_from_package_root(package_root_path)
+            );
+            guessed_from_package_json.or(guessed_from_package_root)
+        } else {
+            None
+        }
+    })()
+    .await
+    .unwrap_or(JavaScriptPackageManager::Npm);
+
     tokio::fs::create_dir_all(&resolver_build_artifact_directory_path)
         .await
         .map_err(ServerError::CreateTemporaryFile)?;
     let resolver_build_entrypoint_path = resolver_build_artifact_directory_path.join("entrypoint.js");
 
-    if let Some(package_json_file_path) = package_json_file_path {
+    if let Some(package_json_file_path) = package_json_path.as_deref() {
         trace!("copying package.json from {}", package_json_file_path.display());
         tokio::fs::copy(
             package_json_file_path,
             resolver_build_artifact_directory_path.join("package.json"),
         )
         .await
-        .map_err(ServerError::NpmCommandError)?;
+        .map_err(ServerError::ResolverPackageManagerCommandError)?;
     }
 
-    // FIXME: Drop the dependency on wrangler.
-    run_npm_command(
-        CommandType::Npm,
-        resolver_build_artifact_directory_path,
-        &["add", "--save-dev", "wrangler"],
-        tracing,
-        &[],
-    )
-    .await?;
-    run_npm_command(
-        CommandType::Npm,
-        resolver_build_artifact_directory_path,
-        &["install"],
-        tracing,
-        &[],
-    )
-    .await?;
+    let artifact_directory_path_string = resolver_build_artifact_directory_path
+        .to_str()
+        .ok_or(ServerError::CachePath)?;
+
+    let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
+    let artifact_directory_modules_path_string =
+        artifact_directory_modules_path.to_str().ok_or(ServerError::CachePath)?;
+
+    {
+        let arguments = match package_manager {
+            JavaScriptPackageManager::Npm => vec![
+                "--prefix",
+                artifact_directory_path_string,
+                "add",
+                "--save-dev",
+                "wrangler",
+            ],
+            JavaScriptPackageManager::Pnpm => {
+                vec!["add", "-D", "wrangler"]
+            }
+            JavaScriptPackageManager::Yarn => {
+                vec![
+                    "add",
+                    "--modules-folder",
+                    artifact_directory_modules_path_string,
+                    "-D",
+                    "wrangler",
+                ]
+            }
+        };
+        run_command(
+            package_manager,
+            &arguments,
+            resolver_build_artifact_directory_path,
+            tracing,
+            &[],
+        )
+        .await?;
+    }
+
+    {
+        let arguments = match package_manager {
+            JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
+            JavaScriptPackageManager::Pnpm => vec!["install"],
+            JavaScriptPackageManager::Yarn => {
+                vec!["install", "--modules-folder", artifact_directory_modules_path_string]
+            }
+        };
+        run_command(
+            package_manager,
+            &arguments,
+            resolver_build_artifact_directory_path,
+            tracing,
+            &[],
+        )
+        .await?;
+    }
+
+    // FIXME: This is probably rather fragile. Need to re-check why the wrangler build isn't propagating search paths properly.
+    let resolver_js_file_path = resolver_build_artifact_directory_path.join("resolver.js");
+
+    trace!("Copying the main file of the resolver");
+
+    tokio::fs::copy(resolver_input_file_path, &resolver_js_file_path)
+        .await
+        .map_err(ServerError::CreateResolverArtifactFile)?;
 
     let entrypoint_contents = resolver_wrapper_worker_contents.replace(
         "${RESOLVER_MAIN_FILE_PATH}",
-        resolver_input_file_path.to_str().expect("must be valid utf-8"),
+        resolver_js_file_path.to_str().expect("must be valid utf-8"),
     );
     tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
         .await
@@ -162,9 +265,22 @@ async fn build_resolver(
 
     trace!("writing the package.json file for '{resolver_name}' used by wrangler");
 
+    let package_json_contents = tokio::fs::read(resolver_build_artifact_directory_path.join("package.json"))
+        .await
+        .map_err(ServerError::CreateResolverArtifactFile)?;
+    let mut package_json: serde_json::Value =
+        serde_json::from_slice(&package_json_contents).expect("must be valid JSON");
+    package_json.as_object_mut().expect("must be an object").insert(
+        "module".to_owned(),
+        serde_json::Value::String("wrangler/entrypoint.js".to_owned()),
+    );
+
+    let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
+    trace!("new package.json contents:\n{new_package_json_contents}");
+
     tokio::fs::write(
         resolver_build_artifact_directory_path.join("package.json"),
-        r#"{ "module": "wrangler/entrypoint.js" }"#,
+        new_package_json_contents,
     )
     .await
     .map_err(ServerError::CreateResolverArtifactFile)?;
@@ -173,32 +289,42 @@ async fn build_resolver(
 
     let _ = tokio::fs::remove_file(&wrangler_toml_file_path).await;
 
+    let wrangler_arguments = &[
+        "wrangler",
+        "publish",
+        "--dry-run",
+        &outdir_argument,
+        "--compatibility-date",
+        "2023-02-08",
+        "--name",
+        "STUB",
+        "--node-compat",
+        resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
+    ];
+
+    let wrangler_environment = &[("FORCE_COLOR", "0"), ("WRANGLER_SEND_METRICS", "false")];
+
     // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
-    run_npm_command(
-        CommandType::Npx,
+    let mut arguments = match package_manager {
+        JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "exec", "--"],
+        JavaScriptPackageManager::Pnpm => vec!["exec"],
+        JavaScriptPackageManager::Yarn => vec!["run"],
+    };
+    arguments.extend(wrangler_arguments);
+
+    run_command(
+        package_manager,
+        &arguments,
         resolver_build_artifact_directory_path,
-        &[
-            "wrangler",
-            "publish",
-            "--dry-run",
-            &outdir_argument,
-            "--compatibility-date",
-            "2023-02-08",
-            "--name",
-            "STUB",
-            resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
-        ],
         tracing,
-        &[
-            ("CLOUDFLARE_API_TOKEN", "STUB"),
-            ("FORCE_COLOR", "0"),
-            ("WRANGLER_SEND_METRICS", "false"),
-        ],
+        wrangler_environment,
     )
     .await
     .map_err(|err| match err {
-        ServerError::NpmCommand(output) => ServerError::ResolverBuild(resolver_name.to_owned(), output),
+        ServerError::ResolverPackageManagerError(output) => {
+            ServerError::ResolverBuild(resolver_name.to_owned(), output)
+        }
         other => other,
     })?;
 

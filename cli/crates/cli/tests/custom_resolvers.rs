@@ -22,6 +22,7 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { text } }", "data.post.text")
     ],
+    None,
 )]
 #[case(
     2,
@@ -46,6 +47,7 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { fetchResult } }", "data.post.fetchResult")
     ],
+    None,
 )]
 #[case(
     3,
@@ -83,6 +85,7 @@ use utils::environment::Environment;
             "data.post.variable"
         ),
     ],
+    None,
 )]
 #[case(
     4,
@@ -112,6 +115,7 @@ use utils::environment::Environment;
             "data.post.variable"
         ),
     ],
+    None,
 )]
 #[case(
     5,
@@ -131,6 +135,7 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { object } }", "data.post.object")
     ],
+    None,
 )]
 #[case(
     6,
@@ -149,6 +154,7 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { title2 } }", "data.post.title2")
     ],
+    None,
 )]
 #[case(
     7,
@@ -167,6 +173,87 @@ use utils::environment::Environment;
     &[
         ("query GetPost($id: ID!) { post(by: { id: $id }) { headerValue(name: \"x-test-header\") } }", "data.post.headerValue")
     ],
+    None,
+)]
+#[case(
+    8,
+    r#"
+        type Post @model {
+            title: String!
+            isTitlePalindrome: Boolean! @resolver(name: "resolver")
+        }
+    "#,
+    "resolver.js",
+    r#"
+        const isPalindrome = require('is-palindrome');
+        export default function Resolver(parent, args, context, info) {
+            return isPalindrome(parent.title);
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+    ],
+    Some(r#"
+        {
+            "dependencies": {
+                "is-palindrome": "^0.3.0"
+            }
+        }
+    "#)
+)]
+#[case(
+    9,
+    r#"
+        type Post @model {
+            title: String!
+            isTitlePalindrome: Boolean! @resolver(name: "resolver")
+        }
+    "#,
+    "resolver.js",
+    r#"
+        const isPalindrome = require('is-palindrome');
+        export default function Resolver(parent, args, context, info) {
+            return isPalindrome(parent.title);
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+    ],
+    Some(r#"
+        {
+            "dependencies": {
+                "is-palindrome": "^0.3.0"
+            },
+            "packageManager": "^pnpm@8.2.0"
+        }
+    "#)
+)]
+#[case(
+    10,
+    r#"
+        type Post @model {
+            title: String!
+            isTitlePalindrome: Boolean! @resolver(name: "resolver")
+        }
+    "#,
+    "resolver.js",
+    r#"
+        const isPalindrome = require('is-palindrome');
+        export default function Resolver(parent, args, context, info) {
+            return isPalindrome(parent.title);
+        }
+    "#,
+    &[
+        ("query GetPost($id: ID!) { post(by: { id: $id }) { isTitlePalindrome } }", "data.post.isTitlePalindrome")
+    ],
+    Some(r#"
+        {
+            "dependencies": {
+                "is-palindrome": "^0.3.0"
+            },
+            "packageManager": "^yarn@1.22.0"
+        }
+    "#)
 )]
 #[cfg_attr(target_os = "windows", ignore)]
 fn test_field_resolver(
@@ -175,12 +262,16 @@ fn test_field_resolver(
     #[case] resolver_name: &str,
     #[case] resolver_contents: &str,
     #[case] queries: &[(&str, &str)],
+    #[case] package_json: Option<&str>,
 ) {
     let mut env = Environment::init();
     env.grafbase_init();
     std::fs::write(env.directory.join("grafbase/.env"), "MY_OWN_VARIABLE=test_value").unwrap();
     env.write_schema(schema);
     env.write_resolver(resolver_name, resolver_contents);
+    if let Some(package_json) = package_json {
+        env.write_file("package.json", package_json);
+    }
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
     client.poll_endpoint(60, 300);

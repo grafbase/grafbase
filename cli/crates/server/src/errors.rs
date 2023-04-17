@@ -90,11 +90,11 @@ pub enum ServerError {
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("npm encountered an error: {0}")]
-    NpmCommandError(IoError),
+    ResolverPackageManagerCommandError(IoError),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("npm failed with output:\n{0}")]
-    NpmCommand(String),
+    ResolverPackageManagerError(String),
 
     /// returned if any of the npm commands ran during resolver build exits unsuccessfully
     #[error("resolver {0} failed to build:\n{1}")]
