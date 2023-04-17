@@ -241,7 +241,9 @@ async fn build_resolver(
     }
 
     // FIXME: This is probably rather fragile. Need to re-check why the wrangler build isn't propagating search paths properly.
-    let resolver_js_file_path = resolver_build_artifact_directory_path.join("resolver.js");
+    let resolver_js_file_path = resolver_build_artifact_directory_path
+        .join("resolver")
+        .with_extension(resolver_input_file_path.extension().unwrap());
 
     trace!("Copying the main file of the resolver");
 
