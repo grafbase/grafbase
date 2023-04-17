@@ -15,7 +15,7 @@ pub async fn create_client() -> Result<reqwest::Client, ApiError> {
 
     match user_dot_grafbase_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => return Err(ApiError::LoggedOut),
+        Ok(false) => return Err(ApiError::NotLoggedIn),
         Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
@@ -23,7 +23,7 @@ pub async fn create_client() -> Result<reqwest::Client, ApiError> {
 
     match credentials_file_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => return Err(ApiError::LoggedOut),
+        Ok(false) => return Err(ApiError::NotLoggedIn),
         Err(error) => return Err(ApiError::ReadCredentialsFile(error)),
     }
 
