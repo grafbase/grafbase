@@ -1,8 +1,8 @@
-use crate::consts::{DEFAULT_SCHEMA, USER_AGENT};
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::Environment;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
 use reqwest::{header, Client};
@@ -64,6 +64,7 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
+    let env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
 
     if grafbase_path.exists() {
         Err(BackendError::AlreadyAProject(grafbase_path))
@@ -91,15 +92,19 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
         tokio::fs::create_dir_all(&grafbase_path)
             .await
             .map_err(BackendError::CreateGrafbaseDirectory)?;
-        let write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
+        let schema_write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
+        let dot_env_write_result = fs::write(env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
 
-        if write_result.is_err() {
+        if schema_write_result.is_err() || dot_env_write_result.is_err() {
             tokio::fs::remove_dir_all(&grafbase_path)
                 .await
                 .map_err(BackendError::DeleteGrafbaseDirectory)?;
         }
 
-        write_result
+        schema_write_result?;
+        dot_env_write_result?;
+
+        Ok(())
     }
 }
 
