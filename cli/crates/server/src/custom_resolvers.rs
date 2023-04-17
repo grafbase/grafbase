@@ -298,7 +298,6 @@ async fn build_resolver(
         "2023-02-08",
         "--name",
         "STUB",
-        "--node-compat",
         resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
     ];
 
