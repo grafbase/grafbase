@@ -21,7 +21,7 @@ env:
 
 jobs:
   sanitize:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
