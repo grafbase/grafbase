@@ -41,6 +41,10 @@ pub enum BackendError {
     #[error("could not create a schema.graphql file\ncaused by: {0}")]
     WriteSchema(io::Error),
 
+    /// returned if a .env file could not be created
+    #[error("could not create a .env file\ncaused by: {0}")]
+    WriteEnvFile(io::Error),
+
     /// returned if .grafbase/database could not be deleted
     #[error("could not delete '.grafbase/database'\ncaused by: {0}")]
     DeleteDatabaseDirectory(io::Error),

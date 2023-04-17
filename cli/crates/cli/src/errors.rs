@@ -1,4 +1,4 @@
-use backend::api::errors::{ApiError, LoginApiError};
+use backend::api::errors::{ApiError, CreateError, DeployError, LoginApiError};
 use backend::errors::{BackendError, ServerError};
 use common::errors::CommonError;
 use std::io::{self, ErrorKind};
@@ -79,6 +79,12 @@ impl CliError {
             Self::CommonError(CommonError::FindGrafbaseDirectory) => Some("try running the CLI in your Grafbase project or any nested directory".to_owned()),
             Self::ServerError(ServerError::NodeInPath) => Some("please install Node.js and make sure it is in your $PATH to continue (https://nodejs.org/en/download/)".to_owned()),
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)")),
+            Self::BackendApiError(ApiError::RequestError |
+            ApiError::CreateError(CreateError::Unknown) |
+            ApiError::DeployError(DeployError::Unknown)) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
+            Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
+            Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
+            Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
             _ => None,
         }
     }
