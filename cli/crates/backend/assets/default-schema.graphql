@@ -33,9 +33,11 @@ type User @model {
   email: Email
   posts: [Post]
   comments: [Comment]
+  # Extend models with resolvers
+  # https://grafbase.com/docs/edge-gateway/resolvers
+  # gravatar: URL @resolver(name: "user/gravatar")
 }
 
 # Start your backend
 # https://grafbase.com/docs/cli
-#
 # npx grafbase dev
