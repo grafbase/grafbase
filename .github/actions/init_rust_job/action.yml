@@ -63,8 +63,3 @@ runs:
       shell: bash
       run: |
         curl -LsSf https://get.nexte.st/latest/mac | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
-
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8.2.0
