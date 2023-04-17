@@ -64,7 +64,6 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
-    let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
 
     if grafbase_path.exists() {
         Err(BackendError::AlreadyAProject(grafbase_path))
@@ -92,6 +91,8 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
         tokio::fs::create_dir_all(&grafbase_path)
             .await
             .map_err(BackendError::CreateGrafbaseDirectory)?;
+
+        let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
         let schema_write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
         let dot_env_write_result = fs::write(dot_env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
 
