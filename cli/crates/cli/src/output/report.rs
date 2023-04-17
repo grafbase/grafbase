@@ -30,7 +30,7 @@ pub fn start_server(resolvers_reported: bool, port: u16, start_port: u16) {
     }
     println!("📡 Listening on port {}\n", watercolor!("{port}", @BrightBlue));
     println!(
-        "- Playground: {}",
+        "- Pathfinder: {}",
         watercolor!("http://{LOCALHOST}:{port}", @BrightBlue)
     );
     // TODO: use proper formatting here
