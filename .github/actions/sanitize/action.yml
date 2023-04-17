@@ -32,13 +32,6 @@ runs:
         cd ${{ inputs.working-directory }}
         cargo clippy --locked --all-targets --tests -- -D warnings
 
-    - if: ${{ inputs.test == 'true' }}
-      name: cargo nextest
-      shell: bash
-      run: |
-        cd ${{ inputs.working-directory }}
-        cargo nextest run --profile ci
-
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
@@ -48,5 +41,12 @@ runs:
       uses: pnpm/action-setup@v2
       id: pnpm-install
       with:
-        version: 7
+        version: 8
         run_install: false
+
+    - if: ${{ inputs.test == 'true' }}
+      name: cargo nextest
+      shell: bash
+      run: |
+        cd ${{ inputs.working-directory }}
+        cargo nextest run --profile ci
