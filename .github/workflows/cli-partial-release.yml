@@ -106,7 +106,8 @@ jobs:
           }
 
           (cd common && retryable 'cargo publish --allow-dirty')
-          (cd server && retryable 'cargo publish --allow-dirty')
+          # removing the .gitignore because we want those assets to be published  
+          (cd server && rm assets/.gitignore && retryable 'cargo publish --allow-dirty')
           (cd backend && retryable 'cargo publish --allow-dirty')
           (cd cli && retryable 'cargo publish --allow-dirty')
 
