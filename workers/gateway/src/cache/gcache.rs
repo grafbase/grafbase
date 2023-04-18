@@ -180,7 +180,6 @@ mod tests {
     use crate::cache::{Cache, CacheEntryState, CacheProvider, CacheResponse, CacheResult, Cacheable};
     use crate::platform::config::Config;
     use crate::platform::context::RequestContext;
-    use aws_region_nearby::AwsRegion;
     use futures_util::future::BoxFuture;
     use std::cell::RefCell;
     use std::collections::HashSet;
@@ -227,7 +226,7 @@ mod tests {
             #[cfg(not(feature = "local"))]
             api_key_auth: crate::auth::ApiKeyAuth::default(),
             cloudflare_request_context: CloudflareRequestContext::default(),
-            closest_aws_region: AwsRegion::EuNorth1,
+            closest_aws_region: rusoto_core::Region::EuNorth1,
             config,
             wait_until_promises,
         }
