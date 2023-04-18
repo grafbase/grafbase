@@ -63,7 +63,7 @@ pub struct ExecutionRequest {
 
     #[serde(skip)]
     /// AWS Region closest to the worker Colocation
-    pub closest_aws_region: Option<AwsRegion>,
+    pub closest_aws_region: rusoto_core::Region,
     /// Request headers
     #[serde(skip)]
     pub execution_headers: HashMap<String, String>,
