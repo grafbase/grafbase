@@ -1,4 +1,4 @@
-compatibility_date = "2022-06-22"
+compatibility_date = "2023-04-17"
 name = "graphql"
 type = "javascript"
 workers_dev = true
