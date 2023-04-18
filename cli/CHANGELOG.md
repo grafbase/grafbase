@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.18.1] - 2023-04-17
+
+[CHANGELOG](changelog/0.18.1.md)
+
 ## [0.18.0] - 2023-04-17
 
 [CHANGELOG](changelog/0.18.0.md)

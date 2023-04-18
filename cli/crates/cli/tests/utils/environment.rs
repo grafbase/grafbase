@@ -6,6 +6,7 @@ use super::{cargo_bin::cargo_bin, client::Client};
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
 use std::io;
+use std::path::Path;
 use std::process::Output;
 use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
@@ -95,11 +96,15 @@ impl Environment {
     }
 
     pub fn write_schema(&self, schema: impl AsRef<str>) {
-        fs::write(&self.schema_path, schema.as_ref()).unwrap();
+        self.write_file("schema.graphql", schema);
     }
 
-    pub fn write_resolver(&self, path: impl AsRef<str>, contents: impl AsRef<str>) {
-        let target_path = self.schema_path.parent().unwrap().join("resolvers").join(path.as_ref());
+    pub fn write_resolver(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        self.write_file(Path::new("resolvers").join(path.as_ref()), contents);
+    }
+
+    pub fn write_file(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
         fs::create_dir_all(target_path.parent().unwrap()).unwrap();
         fs::write(target_path, contents.as_ref()).unwrap();
     }
