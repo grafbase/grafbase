@@ -4,7 +4,7 @@ use rust_embed::RustEmbed;
 use std::path::PathBuf;
 
 #[derive(RustEmbed)]
-#[folder = "assets/"]
+#[folder = "$CARGO_MANIFEST_DIR/assets/"]
 pub struct Assets;
 
 #[derive(Clone, Debug)]
