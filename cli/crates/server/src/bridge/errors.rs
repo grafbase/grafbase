@@ -1,3 +1,4 @@
+use super::api_counterfeit::search;
 use super::sqlite::extended_error_codes;
 use super::types::Constraint;
 use super::types::Operation;
@@ -17,10 +18,11 @@ pub enum ApiError {
     User(UserError),
     /// used to return a 500 status to the worker for bugs / logic errors
     #[error(transparent)]
-    SqlError(SqlxError),
-
+    SqlError(#[from] SqlxError),
     #[error("server error")]
     ServerError,
+    #[error("resolver {0} is invalid")]
+    ResolverInvalid(String),
 }
 
 #[derive(Serialize, Debug)]
@@ -28,9 +30,10 @@ pub enum UserError {
     ConstraintViolation(Constraint),
 }
 
-impl From<SqlxError> for ApiError {
-    fn from(error: SqlxError) -> Self {
-        Self::SqlError(error)
+impl From<search::SearchError> for ApiError {
+    fn from(error: search::SearchError) -> Self {
+        error!("Search Error: {error:?}");
+        Self::ServerError
     }
 }
 
@@ -45,7 +48,10 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         match self {
             ApiError::User(user_error) => (StatusCode::CONFLICT, Json(user_error)).into_response(),
-            ApiError::SqlError(_) | ApiError::ServerError => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+
+            ApiError::SqlError(_) | ApiError::ServerError | ApiError::ResolverInvalid(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
+            }
         }
     }
 }

@@ -67,42 +67,8 @@ pub struct RecordDocument {
     pub document: Value,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SearchRequest {
-    pub raw_query: String,
-    pub limit: u64,
-    pub entity_type: String,
-    pub schema: SearchSchema,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SearchResponse {
-    pub matching_records: Vec<String>,
-}
-
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub struct SearchSchema {
-    pub fields: Vec<SearchField>,
-}
-
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub struct SearchField {
-    pub name: String,
-    pub scalar: SearchScalar,
-}
-
-#[allow(clippy::upper_case_acronyms)] // for URL which has the same name as the GraphQL scalar.
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub enum SearchScalar {
-    URL,
-    Email,
-    PhoneNumber,
-    String,
-    Date,
-    DateTime,
-    Timestamp,
-    Int,
-    Float,
-    Boolean,
-    IPAddress,
+#[derive(Deserialize, Debug)]
+pub struct ResolverInvocation {
+    pub resolver_name: String,
+    pub payload: serde_json::Value,
 }

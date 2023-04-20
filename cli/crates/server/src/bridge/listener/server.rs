@@ -1,6 +1,6 @@
-use super::super::consts::DB_FILE;
+use super::super::consts::DATABASE_FILE;
 use super::types::{EventRecord, Modification, StreamRecord};
-use crate::bridge::consts::DB_URL_PREFIX;
+use crate::bridge::consts::DATABASE_URL_PREFIX;
 use crate::bridge::listener::consts::{
     CLI_API_KEY, DEFAULT_AWS_REGION, MODIFICATIONS_TABLE_NAME, MODIFICATION_POLL_INTERVAL, RECORDS_TABLE_NAME,
 };
@@ -17,14 +17,15 @@ use uuid::Uuid;
 
 async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
     let environment = Environment::get();
-    let db_file = environment.project_dot_grafbase_path.join(DB_FILE);
+    // existence is already guaranteed by the bridge server
+    let database_file = environment.database_directory_path.join(DATABASE_FILE);
 
-    let db_url = match db_file.to_str() {
-        Some(db_file) => format!("{DB_URL_PREFIX}{db_file}"),
+    let database_url = match database_file.to_str() {
+        Some(database_file) => format!("{DATABASE_URL_PREFIX}{database_file}"),
         None => return Err(ServerError::ProjectPath),
     };
 
-    let mut connection = SqliteConnection::connect(&db_url).await?;
+    let mut connection = SqliteConnection::connect(&database_url).await?;
 
     let client = Client::new();
 
@@ -94,7 +95,7 @@ pub async fn start(worker_port: u16, event_bus: Sender<Event>) -> Result<(), Ser
     trace!("starting db event listener");
 
     tokio::select! {
-        _ = wait_for_event(event_bus.subscribe(), Event::Reload) => {}
+        _ = wait_for_event(event_bus.subscribe(), |event| matches!(event, Event::Reload(_, _))) => {}
         event_listener_result = event_listener(worker_port) => {  event_listener_result? }
     }
 

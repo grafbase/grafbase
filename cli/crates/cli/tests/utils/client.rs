@@ -2,6 +2,7 @@
 use reqwest::header::HeaderMap;
 use serde_json::json;
 use std::{
+    marker::PhantomData,
     thread::sleep,
     time::{Duration, SystemTime},
 };
@@ -10,15 +11,17 @@ use crate::utils::consts::INTROSPECTION_QUERY;
 
 pub struct Client {
     endpoint: String,
+    playground_endpoint: String,
     headers: HeaderMap,
     client: reqwest::blocking::Client,
     snapshot: Option<String>,
 }
 
 impl Client {
-    pub fn new(endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
         Self {
             endpoint,
+            playground_endpoint,
             headers: HeaderMap::new(),
             client: reqwest::blocking::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
@@ -29,23 +32,33 @@ impl Client {
         }
     }
 
+    pub fn with_api_key(self) -> Self {
+        self.with_header("x-api-key", "any")
+    }
+
     pub fn with_header(mut self, key: &'static str, value: &str) -> Self {
         self.headers.insert(key, value.parse().unwrap());
         self
     }
 
-    pub fn gql<T>(&self, body: String) -> T
+    pub fn with_cleared_headers(mut self) -> Self {
+        self.headers.clear();
+        self
+    }
+
+    pub fn gql<Response>(&self, query: impl Into<String>) -> GqlRequestBuilder<Response>
     where
-        T: for<'de> serde::de::Deserialize<'de>,
+        Response: for<'de> serde::de::Deserialize<'de>,
     {
-        self.client
-            .post(&self.endpoint)
-            .body(body)
-            .headers(self.headers.clone())
-            .send()
-            .unwrap()
-            .json::<T>()
-            .unwrap()
+        let reqwest_builder = self.client.post(&self.endpoint).headers(self.headers.clone());
+
+        GqlRequestBuilder {
+            query: query.into(),
+            variables: None,
+            phantom: PhantomData,
+            reqwest_builder,
+            bearer: None,
+        }
     }
 
     fn introspect(&self) -> String {
@@ -116,5 +129,79 @@ impl Client {
             assert!(start.elapsed().unwrap().as_secs() < timeout_secs, "timeout");
             sleep(Duration::from_millis(interval_millis));
         }
+    }
+
+    pub fn get_playground_html(&self) -> String {
+        self.client
+            .get(&self.playground_endpoint)
+            .send()
+            .unwrap()
+            .text()
+            .unwrap()
+    }
+}
+
+#[derive(serde::Serialize)]
+#[must_use]
+pub struct GqlRequestBuilder<Response> {
+    // These two will be serialized into the request
+    query: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    variables: Option<serde_json::Value>,
+
+    // These won't
+    #[serde(skip)]
+    phantom: PhantomData<fn() -> Response>,
+    #[serde(skip)]
+    reqwest_builder: reqwest::blocking::RequestBuilder,
+    #[serde(skip)]
+    bearer: Option<String>,
+}
+
+impl<Response> GqlRequestBuilder<Response> {
+    pub fn variables(mut self, variables: impl serde::Serialize) -> Self {
+        self.variables = Some(serde_json::to_value(variables).expect("to be able to serialize variables"));
+        self
+    }
+
+    pub fn bearer(mut self, token: &str) -> Self {
+        self.bearer = Some(format!("Bearer {token}"));
+        self
+    }
+
+    pub fn header(self, name: &str, value: &str) -> Self {
+        let Self {
+            bearer,
+            phantom,
+            query,
+            mut reqwest_builder,
+            variables,
+        } = self;
+        reqwest_builder = reqwest_builder.header(name, value);
+        Self {
+            query,
+            variables,
+            phantom,
+            reqwest_builder,
+            bearer,
+        }
+    }
+
+    pub fn send(self) -> Response
+    where
+        Response: for<'de> serde::de::Deserialize<'de>,
+    {
+        let json = serde_json::to_value(&self).expect("to be able to serialize gql request");
+
+        if let Some(bearer) = self.bearer {
+            self.reqwest_builder.header("authorization", bearer)
+        } else {
+            self.reqwest_builder
+        }
+        .json(&json)
+        .send()
+        .unwrap()
+        .json::<Response>()
+        .unwrap()
     }
 }

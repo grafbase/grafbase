@@ -6,30 +6,13 @@ use utils::client::Client;
 use utils::consts::{SCALARS_CREATE_OPTIONAL, SCALARS_CREATE_REQUIRED, SCALARS_SCHEMA};
 use utils::environment::Environment;
 
-trait ClientScalarExt {
-    fn create_opt(&self, variables: Value) -> Value;
-    fn create_req(&self, variables: Value) -> Value;
-}
-
-impl ClientScalarExt for Client {
+impl Client {
     fn create_opt(&self, variables: Value) -> Value {
-        self.gql::<Value>(
-            json!({
-                "query": SCALARS_CREATE_OPTIONAL,
-                "variables": variables
-            })
-            .to_string(),
-        )
+        self.gql::<Value>(SCALARS_CREATE_OPTIONAL).variables(variables).send()
     }
 
     fn create_req(&self, variables: Value) -> Value {
-        self.gql::<Value>(
-            json!({
-                "query": SCALARS_CREATE_REQUIRED,
-                "variables": variables
-            })
-            .to_string(),
-        )
+        self.gql::<Value>(SCALARS_CREATE_REQUIRED).variables(variables).send()
     }
 }
 
@@ -68,11 +51,11 @@ fn error_matching(pattern: &str) -> Result<Value, Regex> {
 #[allow(clippy::too_many_lines)]
 #[test]
 fn scalars() {
-    let mut env = Environment::init(4011);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(SCALARS_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let variables = json!({
@@ -100,7 +83,6 @@ fn scalars() {
             client.create_req(variables.clone()),
         ),
     ] {
-        dbg!(&response);
         assert_eq!(
             dot_get!(response, &format!("{prefix}.ip"), String),
             dot_get!(variables, "ip", String)

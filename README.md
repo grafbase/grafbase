@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  GraphQL backends made easy.
+  The unified data layer
 </p>
 
 <p align="center">
@@ -23,6 +23,6 @@
 
 ## Welcome to Grafbase!
 
-Grafbase accelerates backend development with next-generation tooling.
+Combine your data sources into a centralized GraphQL endpoint. 
 
 Deploy globally fast GraphQL APIs with a top-notch developer experience.

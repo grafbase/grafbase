@@ -6,17 +6,17 @@ use utils::environment::Environment;
 
 #[test]
 fn dev() {
-    let mut env = Environment::init(4000);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(DEFAULT_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     //
     // CREATE
     //
-    let response = client.gql::<Value>(json!({ "query": DEFAULT_CREATE }).to_string());
+    let response = client.gql::<Value>(DEFAULT_CREATE).send();
     let todo_list: Value = dot_get!(response, "data.todoListCreate.todoList");
     let todo_list_id: String = dot_get!(todo_list, "id");
     assert!(!todo_list_id.is_empty());
@@ -41,7 +41,7 @@ fn dev() {
     //
     // QUERY
     //
-    let response = client.gql::<Value>(json!({ "query": DEFAULT_QUERY }).to_string());
+    let response = client.gql::<Value>(DEFAULT_QUERY).send();
     let edges: Value = dot_get!(response, "data.todoListCollection.edges");
     assert_eq!(edges.as_array().map(Vec::len).unwrap(), 1);
 
@@ -75,8 +75,10 @@ fn dev() {
     //
     // UPDATE
     //
-    let response =
-        client.gql::<Value>(json!({ "query": DEFAULT_UPDATE, "variables": { "id": todo_list_id } }).to_string());
+    let response = client
+        .gql::<Value>(DEFAULT_UPDATE)
+        .variables(json!({ "id": todo_list_id }))
+        .send();
     let updated_todo_list: Value = dot_get!(response, "data.todoListUpdate.todoList");
     assert_eq!(dot_get!(updated_todo_list, "title", String), "Updated Title");
 }

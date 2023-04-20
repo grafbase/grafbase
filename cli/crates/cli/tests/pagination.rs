@@ -41,13 +41,11 @@ struct Todo {
 
 fn generate_todos(client: &Client, n: usize) -> Vec<Todo> {
     (0..n).fold(Vec::new(), |mut buffer, number| {
-        let response = client.gql::<Value>(
-            json!({
-                "query": PAGINATION_CREATE_TODO,
-                "variables": { "title": format!("Todo#{number}") }
-            })
-            .to_string(),
-        );
+        let response = client
+            .gql::<Value>(PAGINATION_CREATE_TODO)
+            .variables(json!({ "title": format!("Todo#{number}") }))
+            .send();
+
         buffer.push(dot_get!(response, "data.todoCreate.todo", Todo));
         buffer
     })
@@ -55,28 +53,25 @@ fn generate_todos(client: &Client, n: usize) -> Vec<Todo> {
 
 #[test]
 fn pagination() {
-    let mut env = Environment::init(4010);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let todos = generate_todos(&client, 3);
 
     for number in 0..3 {
-        client.gql::<Value>(
-            json!({
-                "query": PAGINATION_CREATE_TODO_LIST,
-                "variables": {
+        client
+            .gql::<Value>(PAGINATION_CREATE_TODO_LIST)
+            .variables(json!({
                 "title": (number + 1).to_string() ,
                 "todo0": todos[0].id,
                 "todo1": todos[1].id,
                 "todo2": todos[2].id,
-            }
-            })
-            .to_string(),
-        );
+            }))
+            .send();
     }
 
     for (query, path) in &[
@@ -87,13 +82,7 @@ fn pagination() {
         ),
     ] {
         let todo_collection = |variables: Value| {
-            let response = client.gql::<Value>(
-                json!({
-                    "query": query,
-                    "variables": variables
-                })
-                .to_string(),
-            );
+            let response = client.gql::<Value>(*query).variables(variables).send();
             dot_get!(response, path, Collection<Todo>)
         };
 
@@ -224,11 +213,11 @@ macro_rules! assert_same_todos {
 
 #[test]
 fn pagination_order() {
-    let mut env = Environment::init(4019);
+    let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(PAGINATION_SCHEMA);
     env.grafbase_dev();
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
 
     let todos = generate_todos(&client, 5);
@@ -239,13 +228,10 @@ fn pagination_order() {
     };
 
     let todo_collection = |variables: Value| {
-        let response = client.gql::<Value>(
-            json!({
-                "query": PAGINATION_PAGINATE_TODOS,
-                "variables": variables
-            })
-            .to_string(),
-        );
+        let response = client
+            .gql::<Value>(PAGINATION_PAGINATE_TODOS)
+            .variables(variables)
+            .send();
         dot_get!(response, "data.todoCollection", Collection<Todo>)
     };
 

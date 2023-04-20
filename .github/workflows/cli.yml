@@ -17,7 +17,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/b26cf30-2023-03-16'
+  ASSETS_VERSION: 'release/4539a63-2023-04-17'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
@@ -26,9 +26,9 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     outputs:
-      cli: ${{ steps.filter.outputs.cli }}
+      build: ${{ steps.filter.outputs.build }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -38,13 +38,14 @@ jobs:
         id: filter
         with:
           filters: |
-            cli:
-              - 'cli/**'
+            build:
+              - 'cli/**/*'
+              - '.github/**/*'
 
   lint:
     needs: [detect-change-type]
-    if: ${{ needs.detect-change-type.outputs.cli == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -82,7 +83,7 @@ jobs:
 
   windows:
     needs: [lint]
-    runs-on: windows-latest
+    runs-on: windows-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -120,7 +121,7 @@ jobs:
 
   linux:
     needs: [lint]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -159,6 +160,10 @@ jobs:
   darwin:
     needs: [lint]
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -181,29 +186,17 @@ jobs:
         with:
           lint: false
 
-      - name: Build aarch64 release
+      - name: Build ${{ matrix.target }} release
         run: |
           cd cli
-          cargo build --release --target aarch64-apple-darwin
-
-      - name: Build x86_64 release
-        run: |
-          cd cli
-          cargo build --release --target x86_64-apple-darwin
+          cargo build --release --target ${{ matrix.target }}
 
       - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload aarch binary
+        name: Upload ${{ matrix.target }} binary
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.ref_name }}-aarch64-apple-darwin
-          path: cli/target/aarch64-apple-darwin/release/grafbase
-
-      - if: startsWith(github.ref, 'refs/tags/')
-        name: Upload x86_64 binary
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ github.ref_name }}-x86_64-apple-darwin
-          path: cli/target/x86_64-apple-darwin/release/grafbase
+          name: ${{ github.ref_name }}-${{ matrix.target }}
+          path: cli/target/${{ matrix.target }}/release/grafbase
 
   release:
     needs: [windows, linux, darwin]
@@ -212,6 +205,7 @@ jobs:
     with:
       draft: false
       tag: ${{ github.ref_name }}
+      prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}

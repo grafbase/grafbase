@@ -4,7 +4,7 @@ use utils::environment::Environment;
 
 #[test]
 fn reset() {
-    let mut env = Environment::init(4004);
+    let mut env = Environment::init();
 
     env.grafbase_init();
     env.grafbase_dev();
@@ -15,9 +15,9 @@ fn reset() {
 
     env.kill_processes();
 
-    assert!(env.has_dot_grafbase_directory());
+    assert!(env.has_database_directory());
 
     env.grafbase_reset();
 
-    assert!(!env.has_dot_grafbase_directory());
+    assert!(!env.has_database_directory());
 }

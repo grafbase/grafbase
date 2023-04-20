@@ -3,9 +3,10 @@
 use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
-use std::collections::HashMap;
 use std::io;
+use std::path::Path;
 use std::process::Output;
 use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
@@ -13,39 +14,73 @@ use tempfile::{tempdir, TempDir};
 
 pub struct Environment {
     pub endpoint: String,
+    pub playground_endpoint: String,
     pub directory: PathBuf,
+    pub port: u16,
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    port: u16,
 }
 
 const DOT_ENV_FILE: &str = ".env";
 
+fn get_free_port() -> u16 {
+    const INITIAL_PORT: u16 = 4000;
+
+    let test_state_directory_path = std::env::temp_dir().join("grafbase/cli-tests");
+    std::fs::create_dir_all(&test_state_directory_path).unwrap();
+    let lock_file_path = test_state_directory_path.join("port-number.lock");
+    let port_number_file_path = test_state_directory_path.join("port-number.txt");
+    let mut lock_file = fslock::LockFile::open(&lock_file_path).unwrap();
+    lock_file.lock().unwrap();
+    let port_number = if port_number_file_path.exists() {
+        std::fs::read_to_string(&port_number_file_path)
+            .unwrap()
+            .trim()
+            .parse::<u16>()
+            .unwrap()
+            + 1
+    } else {
+        INITIAL_PORT
+    };
+    std::fs::write(&port_number_file_path, port_number.to_string()).unwrap();
+    lock_file.unlock().unwrap();
+    port_number
+}
+
 impl Environment {
-    pub fn init(port: u16) -> Self {
+    pub fn init() -> Self {
+        let port = get_free_port();
+
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
-        let schema_path = temp_dir.path().join("grafbase").join("schema.graphql");
+        let schema_path = temp_dir
+            .path()
+            .join(GRAFBASE_DIRECTORY_NAME)
+            .join(GRAFBASE_SCHEMA_FILE_NAME);
 
         Self {
             directory: temp_dir.path().to_owned(),
             commands: vec![],
             endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            playground_endpoint: format!("http://127.0.0.1:{port}"),
             schema_path,
             temp_dir,
             port,
         }
     }
 
-    pub fn from(other: &Environment, port: u16) -> Self {
+    pub fn from(other: &Environment) -> Self {
+        let port = get_free_port();
+
         let temp_dir = other.temp_dir.clone();
 
         Self {
             directory: other.directory.clone(),
             commands: vec![],
             endpoint: format!("http://127.0.0.1:{port}/graphql"),
+            playground_endpoint: format!("http://127.0.0.1:{port}"),
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
@@ -53,15 +88,25 @@ impl Environment {
     }
 
     pub fn create_client(&self) -> Client {
-        Client::new(self.endpoint.clone())
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
-        AsyncClient::new(self.endpoint.clone())
+        AsyncClient::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
-    pub fn write_schema(&self, schema: &'static str) {
-        fs::write(&self.schema_path, schema).unwrap();
+    pub fn write_schema(&self, schema: impl AsRef<str>) {
+        self.write_file("schema.graphql", schema);
+    }
+
+    pub fn write_resolver(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        self.write_file(Path::new("resolvers").join(path.as_ref()), contents);
+    }
+
+    pub fn write_file(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
+        let target_path = self.schema_path.parent().unwrap().join(path.as_ref());
+        fs::create_dir_all(target_path.parent().unwrap()).unwrap();
+        fs::write(target_path, contents.as_ref()).unwrap();
     }
 
     pub fn grafbase_init(&self) {
@@ -109,6 +154,8 @@ impl Environment {
     pub fn grafbase_dev(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),
+            "--trace",
+            "2",
             "dev",
             "--disable-watch",
             "--port",
@@ -134,7 +181,11 @@ impl Environment {
         .into_output()
     }
 
-    pub fn set_variables(&mut self, variables: HashMap<String, String>) {
+    pub fn set_variables<K, V>(&mut self, variables: impl IntoIterator<Item = (K, V)>)
+    where
+        K: std::fmt::Display,
+        V: std::fmt::Display,
+    {
         let env_file = variables
             .into_iter()
             .map(|(key, value)| format!(r#"{key}="{value}""#))
@@ -179,8 +230,8 @@ impl Environment {
         self.commands = vec![];
     }
 
-    pub fn has_dot_grafbase_directory(&mut self) -> bool {
-        fs::metadata(self.directory.clone().join(".grafbase")).is_ok()
+    pub fn has_database_directory(&mut self) -> bool {
+        fs::metadata(self.directory.clone().join(".grafbase/database")).is_ok()
     }
 }
 

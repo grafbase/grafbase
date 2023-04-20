@@ -1,0 +1,10 @@
+{
+  todoCollection(first: 10) {
+    edges {
+      node {
+        title
+        complete
+      }
+    }
+  }
+}

@@ -1,11 +1,11 @@
-use crate::consts::DEFAULT_SCHEMA;
+use crate::consts::{DEFAULT_DOT_ENV, DEFAULT_SCHEMA, USER_AGENT};
 use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
-use common::consts::{GRAFBASE_DIRECTORY, GRAFBASE_SCHEMA};
+use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::Environment;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
-use reqwest::Client;
+use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
 use serde::Deserialize;
 use std::env;
@@ -62,8 +62,8 @@ use url::Url;
 #[tokio::main]
 pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendError> {
     let project_path = to_project_path(name)?;
-    let grafbase_path = project_path.join(GRAFBASE_DIRECTORY);
-    let schema_path = grafbase_path.join(GRAFBASE_SCHEMA);
+    let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
+    let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
 
     if grafbase_path.exists() {
         Err(BackendError::AlreadyAProject(grafbase_path))
@@ -91,15 +91,21 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
         tokio::fs::create_dir_all(&grafbase_path)
             .await
             .map_err(BackendError::CreateGrafbaseDirectory)?;
-        let write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
 
-        if write_result.is_err() {
+        let dot_env_path = grafbase_path.join(GRAFBASE_ENV_FILE_NAME);
+        let schema_write_result = fs::write(schema_path, DEFAULT_SCHEMA).map_err(BackendError::WriteSchema);
+        let dot_env_write_result = fs::write(dot_env_path, DEFAULT_DOT_ENV).map_err(BackendError::WriteSchema);
+
+        if schema_write_result.is_err() || dot_env_write_result.is_err() {
             tokio::fs::remove_dir_all(&grafbase_path)
                 .await
                 .map_err(BackendError::DeleteGrafbaseDirectory)?;
         }
 
-        write_result
+        schema_write_result?;
+        dot_env_write_result?;
+
+        Ok(())
     }
 }
 
@@ -169,12 +175,10 @@ struct RepoInfo {
 async fn get_default_branch(org: &str, repo: &str) -> Result<String, BackendError> {
     let client = Client::new();
 
-    let cargo_version = env!("CARGO_PKG_VERSION");
-
     let response = client
         .get(format!("https://api.github.com/repos/{org}/{repo}"))
         // api.github.com requires a user agent header to be present
-        .header("User-Agent", format!("Grafbase-CLI-{cargo_version}"))
+        .header(header::USER_AGENT, USER_AGENT)
         .send()
         .await
         .map_err(|_| BackendError::StartGetRepositoryInformation(format!("{org}/{repo}")))?;
@@ -356,12 +360,11 @@ async fn stream_github_archive<'a>(
 ///
 /// - returns [`BackendError::ReadCurrentDirectory`] if the current directory cannot be read
 ///
-/// - returns [`BackendError::DeleteDotGrafbaseDirectory`] if the `.grafbase` directory cannot be deleted
+/// - returns [`BackendError::DeleteDatabaseDirectory`] if the `.grafbase` directory cannot be deleted
 pub fn reset() -> Result<(), BackendError> {
     let environment = Environment::get();
 
-    fs::remove_dir_all(environment.project_dot_grafbase_path.clone())
-        .map_err(BackendError::DeleteDotGrafbaseDirectory)?;
+    fs::remove_dir_all(&environment.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
 
     Ok(())
 }

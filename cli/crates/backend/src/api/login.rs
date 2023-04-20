@@ -1,8 +1,6 @@
-use crate::{
-    consts::{AUTH_URL, CREDENTIALS_FILE},
-    errors::{BackendError, LoginApiError},
-    types::LoginMessage,
-};
+use super::consts::{AUTH_URL, CREDENTIALS_FILE};
+use super::errors::{ApiError, LoginApiError};
+use super::types::{Credentials, LoginMessage};
 use axum::{
     extract::{Query, State},
     response::Redirect,
@@ -13,7 +11,7 @@ use common::{
     consts::EPHEMERAL_PORT_RANGE, environment::get_user_dot_grafbase_path, types::LocalAddressType,
     utils::find_available_port_in_range,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::{
     fs::create_dir_all,
     net::{Ipv4Addr, SocketAddr},
@@ -28,18 +26,6 @@ use urlencoding::encode;
 #[serde(rename_all = "camelCase")]
 struct TokenQueryParams {
     token: String,
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct Credentials<'a> {
-    access_token: &'a str,
-}
-
-impl<'a> ToString for Credentials<'a> {
-    fn to_string(&self) -> String {
-        serde_json::to_string(&self).expect("must parse")
-    }
 }
 
 async fn token<'a>(
@@ -91,17 +77,17 @@ struct LoginApiState {
 /// - returns [`BackendError::StartLoginServer`] if the login server could not be started
 #[allow(clippy::needless_pass_by_value)] // &Sender is not Sync
 #[tokio::main]
-pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), BackendError> {
-    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(BackendError::FindUserDotGrafbaseFolder)?;
+pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiError> {
+    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::FindUserDotGrafbaseFolder)?;
 
     match user_dot_grafbase_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => create_dir_all(&user_dot_grafbase_path).map_err(BackendError::CreateUserDotGrafbaseFolder)?,
-        Err(error) => return Err(BackendError::ReadUserDotGrafbaseFolder(error)),
+        Ok(false) => create_dir_all(&user_dot_grafbase_path).map_err(ApiError::CreateUserDotGrafbaseFolder)?,
+        Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
     let port = find_available_port_in_range(EPHEMERAL_PORT_RANGE, LocalAddressType::Localhost)
-        .ok_or(BackendError::FindAvailablePort)?;
+        .ok_or(ApiError::FindAvailablePort)?;
 
     let url = &format!("{AUTH_URL}?callback={}", encode(&format!("http://127.0.0.1:{port}")));
 
@@ -132,7 +118,7 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), Backe
             }
         });
 
-    server.await.map_err(|_| BackendError::StartLoginServer)?;
+    server.await.map_err(|_| ApiError::StartLoginServer)?;
 
     Ok(())
 }

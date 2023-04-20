@@ -1,8 +1,8 @@
 use crate::{errors::CliError, output::report};
-use backend::logout;
+use backend::api::logout;
 
 pub fn logout() -> Result<(), CliError> {
-    logout::logout().map_err(CliError::BackendError)?;
+    logout::logout().map_err(CliError::BackendApiError)?;
     report::logout();
     Ok(())
 }

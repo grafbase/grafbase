@@ -1,17 +1,20 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, DOT_ENV_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR,
-    SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
 };
-use crate::event::{wait_for_event, Event};
+use crate::custom_resolvers::build_resolvers;
+use crate::error_server;
+use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
-use common::consts::EPHEMERAL_PORT_RANGE;
+use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::Environment;
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
+
 use std::env;
+use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::{
     fs,
@@ -65,12 +68,15 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                 if watch {
                     let watch_event_bus = event_bus.clone();
 
-                     tokio::select! {
-                        result = start_watcher(environment.project_grafbase_schema_path.clone(),  move || watch_event_bus.send(Event::Reload).expect("cannot fail")) => { result }
+                    tokio::select! {
+                        result = start_watcher(environment.project_grafbase_path.clone(),  move |path, event_type| {
+                            let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
+                            watch_event_bus.send(Event::Reload(relative_path, event_type)).expect("cannot fail");
+                        }) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
                 } else {
-                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, tracing).await?)
+                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, None, tracing).await?)
                 }
             })
     });
@@ -86,15 +92,20 @@ async fn server_loop(
     event_bus: broadcast::Sender<Event>,
     tracing: bool,
 ) -> Result<(), ServerError> {
+    let mut path_changed = None;
     loop {
         let receiver = event_bus.subscribe();
         tokio::select! {
-            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), tracing) => {
+            result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
-            _ = wait_for_event(receiver, Event::Reload) => {
+            (path, file_event_type) = wait_for_event_and_match(receiver, |event| match event {
+                Event::Reload(path, file_event_type) => Some((path, file_event_type)),
+                Event::BridgeReady => None,
+            }) => {
                 trace!("reload");
-                let _ = sender.send(ServerMessage::Reload);
+                path_changed = Some(path.clone());
+                let _ = sender.send(ServerMessage::Reload(path, file_event_type));
             }
         }
     }
@@ -107,24 +118,75 @@ async fn spawn_servers(
     watch: bool,
     sender: Sender<ServerMessage>,
     event_bus: broadcast::Sender<Event>,
+    path_changed: Option<&Path>,
     tracing: bool,
 ) -> Result<(), ServerError> {
-    let bridge_sender = event_bus.clone();
+    let bridge_event_bus = event_bus.clone();
 
     let receiver = event_bus.subscribe();
 
     validate_dependencies().await?;
 
-    run_schema_parser().await?;
+    let environment_variables: std::collections::HashMap<_, _> = crate::environment::variables().collect();
+
+    let mut resolvers = match run_schema_parser(&environment_variables).await {
+        Ok(resolvers) => resolvers,
+        Err(error) => {
+            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
+                .await??;
+            return Ok(());
+        }
+    };
+
+    // If the rebuild has been triggered by a change in the schema file, we can honour the freshness of resolvers
+    // determined by inspecting the modified time of final artifacts of detected resolvers compared to the modified time
+    // of the generated schema registry file.
+    // Otherwise, we trigger a rebuild all resolvers. That, individually, will still more often than not be very quick
+    // because the build naturally reuses the intermediate artifacts from node_modules from previous builds.
+    // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
+    // in resolvers, and that's a non-trivial problem.
+    if !path_changed
+        .map(|path| path == Path::new(GRAFBASE_DIRECTORY_NAME).join(GRAFBASE_SCHEMA_FILE_NAME))
+        .unwrap_or_default()
+    {
+        for resolver in &mut resolvers {
+            resolver.fresh = false;
+        }
+    }
 
     let environment = Environment::get();
 
+    let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
+        Ok(resolver_paths) => resolver_paths,
+        Err(error) => {
+            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            // TODO consider disabling colored output from wrangler
+            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+                .ok()
+                .and_then(|stripped| String::from_utf8(stripped).ok())
+                .unwrap_or_else(|| error.to_string());
+            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+            return Ok(());
+        }
+    };
+
+    let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
+
     let mut bridge_handle =
-        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender).await }).fuse();
+        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus).await })
+            .fuse();
+
+    let sender_cloned = sender.clone();
+    tokio::spawn(async move {
+        while let Some(message) = bridge_receiver.recv().await {
+            sender_cloned.send(message).unwrap();
+        }
+    });
 
     trace!("waiting for bridge ready");
     tokio::select! {
-        _ = wait_for_event(receiver, Event::BridgeReady) => (),
+        _ = wait_for_event(receiver, |event| *event == Event::BridgeReady) => (),
         result = &mut bridge_handle => {result??; return Ok(());}
     };
     trace!("bridge ready");
@@ -134,42 +196,65 @@ async fn spawn_servers(
         .to_str()
         .ok_or(ServerError::ProjectPath)?;
 
-    trace!("spawning miniflare");
+    trace!("spawning miniflare for the main worker");
 
-    let miniflare = Command::new("node")
+    let worker_port_string = worker_port.to_string();
+    let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
+    let registry_text_blob_string = format!("REGISTRY={registry_path}");
+
+    let mut miniflare_arguments: Vec<_> = [
+        // used by miniflare when running normally as well
+        "--experimental-vm-modules",
+        "./node_modules/miniflare/dist/src/cli.js",
+        "--modules",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        &worker_port_string,
+        "--no-update-check",
+        "--no-cf-fetch",
+        "--do-persist",
+        "--wrangler-config",
+        "./wrangler.toml",
+        "--binding",
+        &bridge_port_binding_string,
+        "--text-blob",
+        &registry_text_blob_string,
+        "--mount",
+        "stream-router=./stream-router",
+    ]
+    .into_iter()
+    .map(std::borrow::Cow::Borrowed)
+    .collect();
+    miniflare_arguments.extend(resolver_paths.into_iter().flat_map(|(resolver_name, resolver_path)| {
+        [
+            "--mount".into(),
+            format!(
+                "{resolver_name}={resolver_path}",
+                resolver_name = slug::slugify(resolver_name),
+                resolver_path = resolver_path.display()
+            )
+            .into(),
+        ]
+    }));
+
+    let mut miniflare = Command::new("node");
+    miniflare
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args([
-            // used by miniflare when running normally as well
-            "--experimental-vm-modules",
-            "./packages/miniflare/dist/src/cli.js",
-            "--host",
-            "127.0.0.1",
-            "--port",
-            &worker_port.to_string(),
-            "--no-update-check",
-            "--no-cf-fetch",
-            "--do-persist",
-            "--wrangler-config",
-            "../wrangler.toml",
-            "--binding",
-            &format!("BRIDGE_PORT={bridge_port}"),
-            "--text-blob",
-            &format!("REGISTRY={registry_path}"),
-        ])
+        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
-        .current_dir(environment.user_dot_grafbase_path.join("miniflare"))
-        .kill_on_drop(watch)
-        .spawn()
-        .map_err(ServerError::MiniflareCommandError)?;
+        .current_dir(&environment.user_dot_grafbase_path)
+        .kill_on_drop(watch);
+    trace!("Spawning {miniflare:?}");
+    let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
 
     let _ = sender.send(ServerMessage::Ready(worker_port));
 
     let miniflare_output_result = miniflare.wait_with_output();
 
     tokio::select! {
-        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
         result = miniflare_output_result => {
             let output = result.map_err(ServerError::MiniflareCommandError)?;
 
@@ -179,6 +264,7 @@ async fn spawn_servers(
                 .then_some(())
                 .ok_or_else(|| ServerError::MiniflareError(String::from_utf8_lossy(&output.stderr).into_owned()))?;
         }
+        bridge_handle_result = bridge_handle => { bridge_handle_result??; }
     }
 
     Ok(())
@@ -197,7 +283,6 @@ fn export_embedded_files() -> Result<(), ServerError> {
         true
     } else if version_path.exists() {
         let asset_version = fs::read_to_string(&version_path).map_err(|_| ServerError::ReadVersion)?;
-
         current_version != asset_version
     } else {
         true
@@ -219,14 +304,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
             let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
 
             let parent = full_path.parent().expect("must have a parent");
-
-            let parent_exists = parent.metadata().is_ok();
-
-            let create_dir_result = if parent_exists {
-                Ok(())
-            } else {
-                fs::create_dir_all(parent)
-            };
+            let create_dir_result = fs::create_dir_all(parent);
 
             // must be Some(file) since we're iterating over existing paths
             let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));
@@ -262,21 +340,6 @@ fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
     Ok(())
 }
 
-#[allow(deprecated)] // https://github.com/dotenv-rs/dotenv/pull/54
-fn environment_variables() -> impl Iterator<Item = (String, String)> {
-    let environment = Environment::get();
-    let dot_env_file_path = environment.project_grafbase_path.join(DOT_ENV_FILE);
-    // We don't use dotenv::dotenv() as we don't want to pollute the process' environment.
-    // Doing otherwise would make us unable to properly refresh it whenever any of the .env files
-    // changes which is something we may want to do in the future.
-    env::vars().chain(
-        dotenv::from_path_iter(dot_env_file_path)
-            .into_iter()
-            .flatten()
-            .filter_map(Result::ok),
-    )
-}
-
 #[derive(serde::Deserialize)]
 struct SchemaParserResult {
     #[allow(dead_code)]
@@ -284,9 +347,16 @@ struct SchemaParserResult {
     versioned_registry: serde_json::Value,
 }
 
+pub struct DetectedResolver {
+    pub resolver_name: String,
+    pub fresh: bool,
+}
+
 // schema-parser is run via NodeJS due to it being built to run in a Wasm (via wasm-bindgen) environement
 // and due to schema-parser not being open source
-async fn run_schema_parser() -> Result<(), ServerError> {
+async fn run_schema_parser(
+    environment_variables: &std::collections::HashMap<String, String>,
+) -> Result<Vec<DetectedResolver>, ServerError> {
     trace!("parsing schema");
 
     let environment = Environment::get();
@@ -295,8 +365,6 @@ async fn run_schema_parser() -> Result<(), ServerError> {
         .user_dot_grafbase_path
         .join(SCHEMA_PARSER_DIR)
         .join(SCHEMA_PARSER_INDEX);
-
-    let environment_variables: std::collections::HashMap<_, _> = environment_variables().collect();
 
     let parser_result_path = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
@@ -321,12 +389,13 @@ async fn run_schema_parser() -> Result<(), ServerError> {
             .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
             .spawn()
             .map_err(ServerError::SchemaParserError)?;
 
         let node_command_stdin = node_command.stdin.as_mut().expect("stdin must be available");
         node_command_stdin
-            .write_all(&serde_json::to_vec(&environment_variables).expect("must serialise to JSON just fine"))
+            .write_all(&serde_json::to_vec(environment_variables).expect("must serialise to JSON just fine"))
             .await
             .map_err(ServerError::SchemaParserError)?;
 
@@ -345,18 +414,44 @@ async fn run_schema_parser() -> Result<(), ServerError> {
     let parser_result_string = tokio::fs::read_to_string(&parser_result_path)
         .await
         .map_err(ServerError::SchemaParserResultRead)?;
-    let parser_result: SchemaParserResult =
-        serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+    let SchemaParserResult {
+        versioned_registry,
+        required_resolvers,
+    } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
+
+    let registry_mtime = tokio::fs::metadata(&environment.project_grafbase_registry_path)
+        .await
+        .ok()
+        .map(|metadata| metadata.modified().expect("must be supported"));
+
+    let detected_resolvers = futures_util::future::join_all(required_resolvers.into_iter().map(|resolver_name| {
+        // Last file to be written to in the build process.
+        let wrangler_toml_path = environment
+            .resolvers_build_artifact_path
+            .join(&resolver_name)
+            .join("wrangler.toml");
+        async move {
+            let wrangler_toml_mtime = tokio::fs::metadata(&wrangler_toml_path)
+                .await
+                .ok()
+                .map(|metadata| metadata.modified().expect("must be supported"));
+            let fresh = registry_mtime
+                .zip(wrangler_toml_mtime)
+                .map(|(registry_mtime, wrangler_toml_mtime)| wrangler_toml_mtime > registry_mtime)
+                .unwrap_or_default();
+            DetectedResolver { resolver_name, fresh }
+        }
+    }))
+    .await;
 
     tokio::fs::write(
         &environment.project_grafbase_registry_path,
-        serde_json::to_string(&parser_result.versioned_registry)
-            .expect("serde_json::Value serialises just fine for sure"),
+        serde_json::to_string(&versioned_registry).expect("serde_json::Value serialises just fine for sure"),
     )
     .await
     .map_err(ServerError::SchemaRegistryWrite)?;
 
-    Ok(())
+    Ok(detected_resolvers)
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {

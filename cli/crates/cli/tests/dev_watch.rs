@@ -1,13 +1,13 @@
 mod utils;
 
 use json_dotpath::DotPaths;
-use serde_json::{json, Value};
+use serde_json::Value;
 use utils::consts::{DEFAULT_QUERY, DEFAULT_SCHEMA, UPDATED_MUTATION, UPDATED_QUERY, UPDATED_SCHEMA};
 use utils::environment::Environment;
 
 #[test]
 fn dev_watch() {
-    let mut env = Environment::init(4001);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -15,11 +15,11 @@ fn dev_watch() {
 
     env.grafbase_dev_watch();
 
-    let mut client = env.create_client();
+    let mut client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(json!({ "query": DEFAULT_QUERY }).to_string());
+    let response = client.gql::<Value>(DEFAULT_QUERY).send();
 
     let todo_list_collection: Value = dot_get!(response, "data.todoListCollection.edges");
 
@@ -32,9 +32,9 @@ fn dev_watch() {
 
     client.poll_endpoint_for_changes(30, 300);
 
-    client.gql::<Value>(json!({ "query": UPDATED_MUTATION }).to_string());
+    client.gql::<Value>(UPDATED_MUTATION).send();
 
-    let response = client.gql::<Value>(json!({ "query": UPDATED_QUERY }).to_string());
+    let response = client.gql::<Value>(UPDATED_QUERY).send();
 
     let user_id: String = dot_get!(response, "data.userCollection.edges.0.node.id");
     let user_birthday: String = dot_get!(response, "data.userCollection.edges.0.node.birthday");

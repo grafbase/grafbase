@@ -1,0 +1,12 @@
+query UserGetById($id: ID!) {
+  user(by: { id: $id }) {
+    email
+    tweets(first: 10) {
+      edges {
+        node {
+          text
+        }
+      }
+    }
+  }
+}

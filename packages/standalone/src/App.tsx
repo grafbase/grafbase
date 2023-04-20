@@ -8,6 +8,7 @@ function App() {
       <Playground
         logo={<></>}
         endpoint={(window as any).GRAPHQL_URL}
+        defaultHeaders={'{ "x-api-key": "" }'}
       ></Playground>
     </div>
   )

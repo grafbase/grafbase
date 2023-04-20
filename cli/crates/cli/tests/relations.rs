@@ -10,7 +10,7 @@ use utils::environment::Environment;
 
 #[test]
 fn relations() {
-    let mut env = Environment::init(4002);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -18,14 +18,14 @@ fn relations() {
 
     env.grafbase_dev_watch();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     // wait for node to be ready
     client.poll_endpoint(30, 300);
 
-    client.gql::<Value>(json!({ "query": RELATIONS_MUTATION }).to_string());
+    client.gql::<Value>(RELATIONS_MUTATION).send();
 
-    let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
+    let response = client.gql::<Value>(RELATIONS_QUERY).send();
 
     let blog: Value = dot_get!(response, "data.blogCollection.edges.0.node");
     let blog_id: String = dot_get!(blog, "id");
@@ -41,13 +41,10 @@ fn relations() {
     assert_eq!(first_author_name, "1");
     assert!(first_authors_blogs.is_empty());
 
-    client.gql::<Value>(
-        json!({
-            "query": RELATIONS_LINK_BLOG_TO_AUTHOR,
-            "variables": { "id": first_author_id, "blogId": blog_id}
-        })
-        .to_string(),
-    );
+    client
+        .gql::<Value>(RELATIONS_LINK_BLOG_TO_AUTHOR)
+        .variables(json!({ "id": first_author_id, "blogId": blog_id}))
+        .send();
 
     // disabled due to a pending issue in live queries where an item exists in the graph more than once
 
@@ -64,15 +61,12 @@ fn relations() {
     // assert_eq!(blog_id, first_authors_first_blog_id);
     // assert_eq!(blog_id, first_authors_first_blog_id);
 
-    client.gql::<Value>(
-        json!({
-            "query": RELATIONS_UNLINK_BLOG_FROM_AUTHOR,
-            "variables": { "id": first_author_id, "blogId": blog_id}
-        })
-        .to_string(),
-    );
+    client
+        .gql::<Value>(RELATIONS_UNLINK_BLOG_FROM_AUTHOR)
+        .variables(json!({ "id": first_author_id, "blogId": blog_id}))
+        .send();
 
-    let response = client.gql::<Value>(json!({ "query": RELATIONS_QUERY }).to_string());
+    let response = client.gql::<Value>(RELATIONS_QUERY).send();
 
     let current_first_author_id: String =
         dot_get!(response, "data.blogCollection.edges.0.node.authors.edges.0.node.id");
@@ -84,29 +78,20 @@ fn relations() {
     assert_eq!(current_first_author_id, first_author_id);
     assert!(first_authors_blogs.is_empty());
 
-    client.gql::<Value>(
-        json!({
-            "query": RELATIONS_LINK_BLOG_TO_AUTHOR,
-            "variables": { "id": first_author_id, "blogId": blog_id}
-        })
-        .to_string(),
-    );
+    client
+        .gql::<Value>(RELATIONS_LINK_BLOG_TO_AUTHOR)
+        .variables(json!({ "id": first_author_id, "blogId": blog_id}))
+        .send();
 
-    client.gql::<Value>(
-        json!({
-            "query": REALTIONS_LINK_SECONDARY_AUTHOR_TO_BLOG,
-            "variables": { "id": blog_id, "authorId": first_author_id }
-        })
-        .to_string(),
-    );
+    client
+        .gql::<Value>(REALTIONS_LINK_SECONDARY_AUTHOR_TO_BLOG)
+        .variables(json!({ "id": blog_id, "authorId": first_author_id }))
+        .send();
 
-    client.gql::<Value>(
-        json!({
-            "query": REALTIONS_RENAME_AUTHOR,
-            "variables": { "id": second_author_id, "name": "renamed"  }
-        })
-        .to_string(),
-    );
+    client
+        .gql::<Value>(REALTIONS_RENAME_AUTHOR)
+        .variables(json!({ "id": second_author_id, "name": "renamed" }))
+        .send();
 
     // disabled due to the race condition between mutations and response payloads
 
@@ -114,17 +99,14 @@ fn relations() {
 
     // assert_eq!(current_author_name, "renamed");
 
-    let response = client.gql::<Value>(
-        json!({
-            "query": RELATIONS_UNLINK_AUTHORS_FROM_BLOG,
-            "variables": {
+    let response = client
+        .gql::<Value>(RELATIONS_UNLINK_AUTHORS_FROM_BLOG)
+        .variables(json!({
                 "id": blog_id,
                 "author1": first_author_id,
                 "author2": second_author_id
-            }
-        })
-        .to_string(),
-    );
+        }))
+        .send();
 
     let errors: Option<Value> = dot_get_opt!(response, "errors");
 

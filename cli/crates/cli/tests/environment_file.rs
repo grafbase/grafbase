@@ -6,15 +6,11 @@ use utils::environment::Environment;
 
 #[test]
 fn environment_file() {
-    let mut env = Environment::init(4012);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
     env.write_schema(ENVIRONMENT_SCHEMA);
-
-    let dev_output = env.grafbase_dev_output();
-
-    assert!(dev_output.is_err());
 
     env.set_variables(HashMap::from([(
         "ISSUER_URL".to_owned(),

@@ -2,7 +2,6 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::Json;
-use common::traits::ToExitCode;
 use hyper::Error as HyperError;
 use notify::Error as NotifyError;
 use serde_json::json;
@@ -11,6 +10,8 @@ use std::io::Error as IoError;
 use std::path::PathBuf;
 use thiserror::Error;
 use tokio::task::JoinError;
+
+use crate::custom_resolvers::JavaScriptPackageManager;
 
 #[derive(Error, Debug)]
 pub enum ServerError {
@@ -44,7 +45,7 @@ pub enum ServerError {
 
     /// returned if the sqlite bridge cannot be started
     #[error("the bridge api encountered an error: {0}")]
-    BridgeApi(HyperError),
+    BridgeApi(#[from] HyperError),
 
     /// returned if the miniflare command returns an error
     #[error("miniflare encountered an error: {0}")]
@@ -74,9 +75,32 @@ pub enum ServerError {
     #[error("could not create a temporary file for the parser result: {0}")]
     CreateTemporaryFile(IoError),
 
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not create an output artifact file during a resolver build")]
+    CreateResolverArtifactFile(IoError),
+
+    /// returned if the schema parser command exits unsuccessfully
+    #[error("could not extract the resolver wrapper worker contents")]
+    ExtractResolverWrapperWorkerContents(String),
+
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
+
+    #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
+    ResolverDoesNotExist(PathBuf),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("{0} encountered an error: {1}")]
+    ResolverPackageManagerCommandError(JavaScriptPackageManager, IoError),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("{0} failed with output:\n{1}")]
+    ResolverPackageManagerError(JavaScriptPackageManager, String),
+
+    /// returned if any of the npm commands ran during resolver build exits unsuccessfully
+    #[error("resolver {0} failed to build:\n{1}")]
+    ResolverBuild(String, String),
 
     /// returned if the user project path is not valid utf-8
     #[error("non utf-8 path used for project")]
@@ -90,13 +114,21 @@ pub enum ServerError {
     #[error("could not create a project cache directory")]
     CreateCacheDir,
 
+    /// returned if the `.grafbase/database` directory cannot be created
+    #[error("could not create a project database directory\ncaused by: {0}")]
+    CreateDatabaseDir(IoError),
+
+    /// returned if the `.grafbase/database` directory cannot be read
+    #[error("could not read the project database directory\ncaused by: {0}")]
+    ReadDatabaseDir(IoError),
+
     /// returned if an available port cannot be found for the bridge server
     #[error("could not find an available port for the bridge server")]
     AvailablePort,
 
     /// returned if a spawned task panics
     #[error(transparent)]
-    SpawnedTaskPanic(JoinError),
+    SpawnedTaskPanic(#[from] JoinError),
 
     /// returned if node is not in the user $PATH
     #[error("Node.js does not seem to be installed")]
@@ -112,37 +144,7 @@ pub enum ServerError {
 
     /// returned if a file watcher could not be initialized
     #[error("Could not initialize a file watcher: {0}")]
-    FileWatcherInit(NotifyError),
-}
-
-impl ToExitCode for ServerError {
-    fn to_exit_code(&self) -> i32 {
-        match &self {
-            Self::CreateDir(_)
-            | Self::CreateCacheDir
-            | Self::WriteFile(_)
-            | Self::ReadVersion
-            | Self::ParseSchema(_)
-            | Self::NodeInPath
-            | Self::OutdatedNode(_, _)
-            | Self::FileWatcherInit(_)
-            | Self::SchemaParserResultJson(_)
-            | Self::SchemaParserResultRead(_)
-            | Self::SchemaRegistryWrite(_) => exitcode::DATAERR,
-            Self::CreateDatabase(_)
-            | Self::QueryDatabase(_)
-            | Self::BridgeApi(_)
-            | Self::ConnectToDatabase(_)
-            | Self::UnknownSqliteError(_)
-            | Self::MiniflareCommandError(_)
-            | Self::MiniflareError(_)
-            | Self::SpawnedTaskPanic(_)
-            | Self::SchemaParserError(_)
-            | Self::CheckNodeVersion => exitcode::SOFTWARE,
-            Self::ProjectPath | Self::CachePath | Self::CreateTemporaryFile(_) => exitcode::CANTCREAT,
-            Self::AvailablePort => exitcode::UNAVAILABLE,
-        }
-    }
+    FileWatcherInit(#[from] NotifyError),
 }
 
 impl From<SqlxError> for ServerError {
@@ -171,12 +173,6 @@ impl From<SqlxError> for ServerError {
     }
 }
 
-impl From<HyperError> for ServerError {
-    fn from(error: HyperError) -> Self {
-        Self::BridgeApi(error)
-    }
-}
-
 impl IntoResponse for ServerError {
     fn into_response(self) -> Response {
         let body = Json(json!({
@@ -184,17 +180,5 @@ impl IntoResponse for ServerError {
         }));
 
         (StatusCode::INTERNAL_SERVER_ERROR, body).into_response()
-    }
-}
-
-impl From<JoinError> for ServerError {
-    fn from(error: JoinError) -> Self {
-        Self::SpawnedTaskPanic(error)
-    }
-}
-
-impl From<NotifyError> for ServerError {
-    fn from(notify_error: NotifyError) -> Self {
-        Self::FileWatcherInit(notify_error)
     }
 }

@@ -6,6 +6,9 @@ on:
       draft:
         type: boolean
         required: true
+      prerelease:
+        type: boolean
+        required: true
       tag:
         type: string
         required: true
@@ -18,7 +21,7 @@ on:
 jobs:
   release:
     name: Release CLI
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -87,7 +90,7 @@ jobs:
         run: |
           set -e
           set -o pipefail
-          
+
           cd cli/crates
 
           retryable() {
@@ -103,20 +106,28 @@ jobs:
           }
 
           (cd common && retryable 'cargo publish --allow-dirty')
-          (cd server && retryable 'cargo publish --allow-dirty')
+          # removing the .gitignore because we want those assets to be published  
+          (cd server && rm assets/.gitignore && retryable 'cargo publish --allow-dirty')
           (cd backend && retryable 'cargo publish --allow-dirty')
           (cd cli && retryable 'cargo publish --allow-dirty')
 
       - name: Publish npm
         shell: bash
+        env:
+          INPUT_PRERELEASE: ${{ inputs.prerelease && 'true' || 'false' }}
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
           cd cli/npm
-          (cd aarch64-apple-darwin && npm publish)
-          (cd x86_64-apple-darwin && npm publish)
-          (cd x86_64-pc-windows-msvc && npm publish)
-          (cd x86_64-unknown-linux-musl && npm publish)
-          (cd cli && npm publish)
+          PUBLISH_ARGUMENTS=()
+          if [[ $INPUT_PRERELEASE != "false" ]]; then
+              echo "Running prerelease: $INPUT_PRERELEASE"
+              PUBLISH_ARGUMENTS+=(--tag next)
+          fi
+          (cd aarch64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-apple-darwin && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-pc-windows-msvc && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd x86_64-unknown-linux-musl && npm publish "${PUBLISH_ARGUMENTS[@]}")
+          (cd cli && npm publish "${PUBLISH_ARGUMENTS[@]}")
 
       - name: Github Release
         id: gh-release
@@ -124,6 +135,7 @@ jobs:
         with:
           body_path: cli/changelog/${{ inputs.tag }}.md
           draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
           files: |
             cli/licenses.html
             cli/npm/github/grafbase-aarch64-apple-darwin

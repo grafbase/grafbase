@@ -7,7 +7,7 @@ use utils::environment::Environment;
 
 #[test]
 fn length() {
-    let mut env = Environment::init(4014);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -15,13 +15,14 @@ fn length() {
 
     env.grafbase_dev();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 
-    let response = client.gql::<Value>(
-        json!({ "query": LENGTH_CREATE_MUTATION, "variables": { "name": "hello", "age": 30 } }).to_string(),
-    );
+    let response = client
+        .gql::<Value>(LENGTH_CREATE_MUTATION)
+        .variables(json!({ "name": "hello", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
     assert!(errors.is_none());
@@ -29,7 +30,9 @@ fn length() {
     let first_author_id: String = dot_get!(response, "data.authorCreate.author.id");
 
     let response = client
-        .gql::<Value>(json!({ "query": LENGTH_CREATE_MUTATION, "variables": { "name": "1", "age": 30 } }).to_string());
+        .gql::<Value>(LENGTH_CREATE_MUTATION)
+        .variables(json!({ "name": "1", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
     assert!(errors.is_some());
@@ -40,17 +43,19 @@ fn length() {
     assert!(error.contains("length"));
     assert!(error.contains("short"));
 
-    let response = client.gql::<Value>(
-        json!({ "query": LENGTH_CREATE_MUTATION, "variables": { "name": "helloworld!", "age": 30 } }).to_string(),
-    );
+    let response = client
+        .gql::<Value>(LENGTH_CREATE_MUTATION)
+        .variables(json!({ "name": "helloworld!", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_some());
 
-    client.gql::<Value>(
-        json!({ "query": LENGTH_UPDATE_MUTATION, "variables": { "id": first_author_id, "name": "helloworld!", "age": 40 } }).to_string(),
-    );
+    client
+        .gql::<Value>(LENGTH_UPDATE_MUTATION)
+        .variables(json!({ "id": first_author_id, "name": "helloworld!", "age": 40 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 

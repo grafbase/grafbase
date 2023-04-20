@@ -61,6 +61,10 @@ pub const SEARCH_CREATE_REQUIRED: &str = include_str!("../graphql/search/create-
 pub const SEARCH_SEARCH_REQUIRED: &str = include_str!("../graphql/search/search-required.graphql");
 pub const SEARCH_CREATE_OPTIONAL: &str = include_str!("../graphql/search/create-optional.graphql");
 pub const SEARCH_SEARCH_OPTIONAL: &str = include_str!("../graphql/search/search-optional.graphql");
+pub const SEARCH_PAGINATION: &str = include_str!("../graphql/search/search-pagination.graphql");
+pub const SEARCH_METADATA_FIELDS: &str = include_str!("../graphql/search/search-metadata-fields.graphql");
+pub const SEARCH_CREATE_PERSON: &str = include_str!("../graphql/search/create-person.graphql");
+pub const SEARCH_SEARCH_PERSON: &str = include_str!("../graphql/search/search-person.graphql");
 
 pub const ENVIRONMENT_SCHEMA: &str = include_str!("../graphql/environment/schema.graphql");
 
@@ -77,3 +81,29 @@ pub const RESERVED_DATES_CREATE_TODO_LIST: &str = include_str!("../graphql/reser
 pub const DEFAULT_DIRECTIVE_CREATE_USER1: &str = include_str!("../graphql/default_directive/create-user1.graphql");
 pub const DEFAULT_DIRECTIVE_CREATE_USER2: &str = include_str!("../graphql/default_directive/create-user2.graphql");
 pub const DEFAULT_DIRECTIVE_SCHEMA: &str = include_str!("../graphql/default_directive/schema.graphql");
+
+pub const OWNER_TODO_SCHEMA: &str = include_str!("../graphql/owner/global/todo/todo-schema.graphql");
+pub const OWNER_TODO_MIXED_SCHEMA: &str = include_str!("../graphql/owner/global/todo/todo-mixed-schema.graphql");
+pub const OWNER_TODO_OWNER_CREATE_SCHEMA: &str =
+    include_str!("../graphql/owner/global/todo/todo-owner-create-schema.graphql");
+pub const OWNER_TODO_CREATE: &str = include_str!("../graphql/owner/global/todo/todo-create.graphql");
+pub const OWNER_TODO_GET: &str = include_str!("../graphql/owner/global/todo/todo-get.graphql");
+pub const OWNER_TODO_UPDATE: &str = include_str!("../graphql/owner/global/todo/todo-update.graphql");
+pub const OWNER_TODO_LIST: &str = include_str!("../graphql/owner/global/todo/todo-list.graphql");
+pub const OWNER_TODO_DELETE: &str = include_str!("../graphql/owner/global/todo/todo-delete.graphql");
+
+pub const OWNER_TWITTER_SCHEMA: &str = include_str!("../graphql/owner/global/twitter/twitter-schema.graphql");
+pub const OWNER_TWITTER_USER_CREATE: &str = include_str!("../graphql/owner/global/twitter/user-create.graphql");
+pub const OWNER_TWITTER_USER_GET_BY_ID: &str = include_str!("../graphql/owner/global/twitter/user-get-by-id.graphql");
+pub const OWNER_TWITTER_USER_GET_BY_EMAIL: &str =
+    include_str!("../graphql/owner/global/twitter/user-get-by-email.graphql");
+pub const OWNER_TWITTER_TWEET_CREATE: &str = include_str!("../graphql/owner/global/twitter/tweet-create.graphql");
+pub const OWNER_TWITTER_USER_AND_TWEETS_GET_BY_ID: &str =
+    include_str!("../graphql/owner/global/twitter/user-and-tweets-get-by-id.graphql");
+
+pub const COMPILATION_ERROR_SCHEMA: &str = include_str!("../graphql/compilation_error/schema.graphql");
+pub const COMPILATION_ERROR_QUERY: &str = include_str!("../graphql/compilation_error/query.graphql");
+pub const COMPILATION_ERROR_RESOLVER_SCHEMA: &str =
+    include_str!("../graphql/compilation_error/resolver-schema.graphql");
+pub const COMPILATION_ERROR_RESOLVER_MUTATION: &str =
+    include_str!("../graphql/compilation_error/resolver-mutation.graphql");

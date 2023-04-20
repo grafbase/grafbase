@@ -1,5 +1,5 @@
 use crate::{errors::CliError, output::report};
-use backend::{login, types::LoginMessage};
+use backend::api::{login, types::LoginMessage};
 use common::utils::get_thread_panic_message;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::{
@@ -11,7 +11,7 @@ use std::{
 pub fn login() -> Result<(), CliError> {
     let (message_sender, message_receiver) = channel();
 
-    let login_handle = spawn(|| login::login(message_sender).map_err(CliError::BackendError));
+    let login_handle = spawn(|| login::login(message_sender).map_err(CliError::BackendApiError));
 
     if let Ok(LoginMessage::CallbackUrl(url)) = message_receiver.recv() {
         report::login(&url);
@@ -23,7 +23,7 @@ pub fn login() -> Result<(), CliError> {
     };
 
     let spinner = ProgressBar::new_spinner()
-        .with_message("waiting for authentication to be completed")
+        .with_message("Waiting for authentication to be completed")
         .with_style(
             ProgressStyle::with_template("{spinner} {wide_msg:.dim}")
                 .expect("must parse")
@@ -33,11 +33,11 @@ pub fn login() -> Result<(), CliError> {
     loop {
         match message_receiver.recv_timeout(Duration::from_millis(250)) {
             Ok(LoginMessage::Done) => {
-                spinner.finish_with_message("token received");
+                spinner.finish_with_message("Token received");
                 report::login_success();
             }
             Ok(LoginMessage::Error(error)) => {
-                spinner.finish_with_message("token received");
+                spinner.finish_with_message("Token received");
                 report::login_error(&CliError::LoginApiError(error));
             }
             Err(error) => match error {

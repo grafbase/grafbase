@@ -8,7 +8,7 @@ This examples shows how to connect Clerk as your Identity Provider with your Gra
 2. Change directory into the new folder `cd grafbase-with-nextjs-clerk`
 3. Run `cp .env.example .env`
 4. Run `cp grafbase/.env.example grafbase/.env`
-5. Open `.env` in your code editor, and provide your Grafbase API endpoint and [Clerk frontend and backend API keys](https://dashboard.clerk.dev/last-active?path=api-keys)
+5. Open `.env` in your code editor, and provide your Grafbase API endpoint and [Clerk API Keys](https://dashboard.clerk.com/last-active?path=api-keys)
 6. Open `grafbase/.env` in your code editor, and provide your Clerk issuer URL
 7. Run `npm install`, or `yarn install` to install dependencies
 8. Run `npx grafbase dev` to start local dev server with your schema

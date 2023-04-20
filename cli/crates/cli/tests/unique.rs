@@ -10,8 +10,9 @@ use utils::consts::{
 use utils::{client::Client, environment::Environment};
 
 #[test]
+#[allow(clippy::too_many_lines)]
 fn unique() {
-    let mut env = Environment::init(4003);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -19,21 +20,25 @@ fn unique() {
 
     env.grafbase_dev();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 
     client
-        .gql::<Value>(json!({ "query": UNIQUE_CREATE_MUTATION, "variables": { "name": "1", "age": 30 } }).to_string());
+        .gql::<Value>(UNIQUE_CREATE_MUTATION)
+        .variables(json!({ "name": "1", "age": 30 }))
+        .send();
 
-    let response = client.gql::<Value>(json!({ "query": UNIQUE_PAGINATED_QUERY }).to_string());
+    let response = client.gql::<Value>(UNIQUE_PAGINATED_QUERY).send();
 
     let first_author_id: String = dot_get!(response, "data.authorCollection.edges.0.node.id");
 
     assert!(first_author_id.starts_with("author_"));
 
-    let response =
-        client.gql::<Value>(json!({ "query": UNIQUE_QUERY, "variables": { "id": first_author_id } }).to_string());
+    let response = client
+        .gql::<Value>(UNIQUE_QUERY)
+        .variables(json!({ "id": first_author_id }))
+        .send();
 
     let updated_at: String = dot_get!(response, "data.author.updatedAt");
     assert!(
@@ -53,14 +58,18 @@ fn unique() {
     assert_eq!(first_author_name, "1");
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": { "name": first_author_name } }).to_string());
+        .gql::<Value>(UNIQUE_QUERY_BY_NAME)
+        .variables(json!({ "name": first_author_name }))
+        .send();
 
     let first_query_author_id: String = dot_get!(response, "data.author.id");
 
     assert_eq!(first_query_author_id, first_author_id);
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_CREATE_MUTATION, "variables": { "name": "1", "age": 30 } }).to_string());
+        .gql::<Value>(UNIQUE_CREATE_MUTATION)
+        .variables(json!({ "name": "1", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
@@ -72,22 +81,27 @@ fn unique() {
     assert!(error.contains("field"));
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_CREATE_MUTATION, "variables": { "name": "2", "age": 30 } }).to_string());
+        .gql::<Value>(UNIQUE_CREATE_MUTATION)
+        .variables(json!({ "name": "2", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_none(), "Expected no errors, but got {errors:?}");
 
-    let response = client.gql::<Value>(
-        json!({ "query": UNIQUE_UPDATE_MUTATION, "variables": { "id": first_author_id, "age": 40 } }).to_string(),
-    );
+    let response = client
+        .gql::<Value>(UNIQUE_UPDATE_MUTATION)
+        .variables(json!({ "id": first_author_id, "age": 40 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_none(), "Expected no errors, but got {errors:?}");
 
-    let response =
-        client.gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": {"name": "1" } }).to_string());
+    let response = client
+        .gql::<Value>(UNIQUE_QUERY_BY_NAME)
+        .variables(json!({"name": "1" }))
+        .send();
 
     let query_author_id: String = dot_get!(response, "data.author.id");
     let query_author_age: usize = dot_get!(response, "data.author.age");
@@ -96,13 +110,15 @@ fn unique() {
     assert_eq!(query_author_id, first_author_id);
     assert_eq!(query_author_age, 40);
 
-    client.gql::<Value>(
-        json!({ "query": UNIQUE_UPDATE_BY_NAME_MUTATION, "variables": { "name": query_author_name, "age": 50 } })
-            .to_string(),
-    );
+    client
+        .gql::<Value>(UNIQUE_UPDATE_BY_NAME_MUTATION)
+        .variables(json!({ "name": query_author_name, "age": 50 }))
+        .send();
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": {"name": query_author_name } }).to_string());
+        .gql::<Value>(UNIQUE_QUERY_BY_NAME)
+        .variables(json!({ "name": query_author_name }))
+        .send();
 
     let query_author_id: String = dot_get!(response, "data.author.id");
     let query_author_age: usize = dot_get!(response, "data.author.age");
@@ -110,13 +126,15 @@ fn unique() {
     assert_eq!(query_author_id, first_author_id);
     assert_eq!(query_author_age, 50);
 
-    client.gql::<Value>(
-        json!({ "query": UNIQUE_UPDATE_UNIQUE_MUTATION, "variables": { "id": first_author_id, "name": "3" } })
-            .to_string(),
-    );
+    client
+        .gql::<Value>(UNIQUE_UPDATE_UNIQUE_MUTATION)
+        .variables(json!({ "id": first_author_id, "name": "3" }))
+        .send();
 
-    let response =
-        client.gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": { "name": "3" } }).to_string());
+    let response = client
+        .gql::<Value>(UNIQUE_QUERY_BY_NAME)
+        .variables(json!({ "name": "3" }))
+        .send();
 
     let query_author_id: String = dot_get!(response, "data.author.id");
     let query_author_name: String = dot_get!(response, "data.author.name");
@@ -124,13 +142,15 @@ fn unique() {
     assert_eq!(query_author_id, first_author_id);
     assert_eq!(query_author_name, "3");
 
-    client.gql::<Value>(
-        json!({ "query": UNIQUE_UPDATE_UNIQUE_BY_NAME_MUTATION, "variables": { "queryName": query_author_name, "name": "4" } })
-            .to_string(),
-    );
+    client
+        .gql::<Value>(UNIQUE_UPDATE_UNIQUE_BY_NAME_MUTATION)
+        .variables(json!({ "queryName": query_author_name, "name": "4" }))
+        .send();
 
-    let response =
-        client.gql::<Value>(json!({ "query": UNIQUE_QUERY_BY_NAME, "variables": { "name": "4" } }).to_string());
+    let response = client
+        .gql::<Value>(UNIQUE_QUERY_BY_NAME)
+        .variables(json!({ "name": "4" }))
+        .send();
 
     let query_author_id: String = dot_get!(response, "data.author.id");
     let query_author_name: String = dot_get!(response, "data.author.name");
@@ -139,21 +159,27 @@ fn unique() {
     assert_eq!(query_author_name, "4");
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_DELETE_MUTATION, "variables": { "id": first_author_id } }).to_string());
+        .gql::<Value>(UNIQUE_DELETE_MUTATION)
+        .variables(json!({ "id": first_author_id }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_none(), "Expected no errors, but got {errors:?}");
 
     let response = client
-        .gql::<Value>(json!({ "query": UNIQUE_CREATE_MUTATION, "variables": { "name": "1", "age": 30 } }).to_string());
+        .gql::<Value>(UNIQUE_CREATE_MUTATION)
+        .variables(json!({ "name": "1", "age": 30 }))
+        .send();
 
     let errors: Option<Value> = response.dot_get("errors").unwrap();
 
     assert!(errors.is_none(), "Expected no errors, but got {errors:?}");
 
-    let response =
-        client.gql::<Value>(json!({ "query": UNIQUE_QUERY, "variables": { "id": first_author_id } }).to_string());
+    let response = client
+        .gql::<Value>(UNIQUE_QUERY)
+        .variables(json!({ "id": first_author_id }))
+        .send();
 
     let first_author: Option<Value> = response.dot_get("data.author").unwrap();
 
@@ -168,7 +194,7 @@ pub const ACCOUNT_QUERY_PAGINATED: &str = include_str!("graphql/unique/multiple-
 
 #[test]
 fn unique_with_multiple_fields() {
-    let mut env = Environment::init(4021);
+    let mut env = Environment::init();
 
     env.grafbase_init();
 
@@ -176,7 +202,7 @@ fn unique_with_multiple_fields() {
 
     env.grafbase_dev();
 
-    let client = env.create_client();
+    let client = env.create_client().with_api_key();
 
     client.poll_endpoint(30, 300);
 
@@ -272,46 +298,24 @@ fn unique_with_multiple_fields() {
 
 impl Client {
     fn get_account(&self, by: &Value) -> Value {
-        self.gql(
-            json!({
-                "query": ACCOUNT_QUERY_ONE,
-                "variables": { "by": by }
-            })
-            .to_string(),
-        )
+        self.gql(ACCOUNT_QUERY_ONE).variables(json!({ "by": by })).send()
     }
 
     fn account_collection(&self) -> Value {
-        self.gql(json!({ "query": ACCOUNT_QUERY_PAGINATED }).to_string())
+        self.gql(ACCOUNT_QUERY_PAGINATED).send()
     }
 
     fn create_account(&self, input: &Value) -> Value {
-        self.gql(
-            json!({
-                "query": ACCOUNT_CREATE_MUTATION,
-                "variables": {"input": input}
-            })
-            .to_string(),
-        )
+        self.gql(ACCOUNT_CREATE_MUTATION)
+            .variables(json!({ "input": input }))
+            .send()
     }
 
     fn update_account(&self, vars: &Value) -> Value {
-        self.gql(
-            json!({
-                "query": ACCOUNT_CREATE_MUTATION,
-                "variables": vars
-            })
-            .to_string(),
-        )
+        self.gql(ACCOUNT_CREATE_MUTATION).variables(vars).send()
     }
 
     fn delete_account(&self, by: &Value) -> Value {
-        self.gql(
-            json!({
-                "query": ACCOUNT_DELETE_MUTATION,
-                "variables": { "by": by }
-            })
-            .to_string(),
-        )
+        self.gql(ACCOUNT_DELETE_MUTATION).variables(json!({ "by": by })).send()
     }
 }
