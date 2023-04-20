@@ -1,4 +1,4 @@
-## OpenAPI + Strpipe Template
+## OpenAPI + Stripe Template
 
 This is a OpenAPI connector + Stripe template that deploys to Grafbase.
 
