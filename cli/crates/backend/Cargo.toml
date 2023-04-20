@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-backend"
-version = "0.18.1"
+version = "0.18.2"
 edition = "2021"
 description = "The local backend for grafbase developer tools"
 license = "Apache-2.0"
@@ -36,5 +36,5 @@ url = "2"
 urlencoding = "2"
 webbrowser = "0.8"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.18.1" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.18.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.18.2" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.18.2" }
