@@ -1,25 +1,29 @@
 {
-    "name": "@grafbase/client",
-    "version": "0.1.0",
-    "description": "Auto-generated GraphQL client for Grafbase.",
-    "repository": "https://github.com/grafbase/grafbase",
-    "homepage": "https://github.com/grafbase/grafbase/blob/main/packages/grafbase-client/README.md",
-    "main": "index.js",
-    "browser": "browser.js",
-    "types": "index.d.ts",
-    "license": "MIT",
-    "files": [
-        "README.md",
-        "index.js",
-        "index.d.ts",
-        "browser.js"
-    ],
-    "peerDependencies": {
-        "grafbase": "*"
-    },
-    "peerDependenciesMeta": {
-        "grafbase": {
-            "optional": true
-        }
+  "name": "@grafbase/client",
+  "version": "0.1.0",
+  "description": "Grafbase Client",
+  "repository": "https://github.com/grafbase/grafbase",
+  "homepage": "https://github.com/grafbase/grafbase/blob/main/packages/grafbase-client/README.md",
+  "main": "index.js",
+  "license": "MIT",
+  "files": [
+    "README.md",
+    "lib",
+    "dist"
+  ],
+  "peerDependenciesMeta": {
+    "grafbase": {
+      "optional": true
     }
+  },
+  "devDependencies": {
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "graphql-request": "6.0.0",
+    "json-to-graphql-query": "2.2.5"
+  },
+  "scripts": {
+    "build": "tsc"
+  }
 }
