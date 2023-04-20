@@ -1,0 +1,9 @@
+extend schema
+  @openapi(
+    name: "OpenAI"
+    url: "https://api.openai.com/v1/"
+    schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.OPENAI_API_KEY }}" }
+    ]
+  )
