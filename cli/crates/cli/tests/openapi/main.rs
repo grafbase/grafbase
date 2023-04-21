@@ -97,6 +97,7 @@ async fn openapi_test() {
     "###
     );
 
+    // Make sure we got the request body we were expecting
     insta::assert_yaml_snapshot!(request_body_spy.drain_requests(), @r###"
     ---
     - category: {}
