@@ -38,3 +38,7 @@ yarn-error.log*
 .idea
 .vscode
 .now
+
+# moon
+.moon/cache
+.moon/docker
