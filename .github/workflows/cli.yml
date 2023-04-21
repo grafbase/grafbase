@@ -206,6 +206,8 @@ jobs:
       draft: false
       tag: ${{ github.ref_name }}
       prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') || contains(github.ref, 'rc') }}
+      prod_assets: ${{ env.PROD_ASSETS }}
+      assets_version: ${{ env.ASSETS_VERSION }}
     secrets:
       CRATES_ACCESS_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
       NPM_ACCESS_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
