@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-server"
-version = "0.18.1"
+version = "0.18.5"
 edition = "2021"
 description = "A wrapper for the grafbase worker"
 license = "Apache-2.0"
@@ -33,7 +33,9 @@ reqwest = { version = "0.11", features = [
   "rustls-tls",
   "json",
 ], default-features = false }
-rust-embed = { version = "6", features = ["compression"] }
+rust-embed = { version = "6", features = [
+  "compression",
+] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 slug = "0.1"
@@ -55,7 +57,7 @@ uuid = { version = "1", features = ["v4"] }
 version-compare = "0.1"
 which = "4"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.18.1" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.18.5" }
 
 [dev-dependencies]
 serde_json = "1"
