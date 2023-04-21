@@ -35,7 +35,7 @@ runs:
       run: |
         rustup target list
         
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
       with:
         workspaces: |
           cli
