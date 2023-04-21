@@ -154,7 +154,7 @@ importers:
       '@n1ru4l/graphql-live-query-patch-json-patch': 0.7.0
       '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
       '@repeaterjs/repeater': 3.0.4
-      '@urql/core': 3.1.1
+      '@urql/core': 4.0.6
       eslint: ^8.0.0
       eslint-config-grafbase: workspace:*
       graphql: 16.6.0
@@ -168,7 +168,7 @@ importers:
       '@n1ru4l/graphql-live-query-patch-json-patch': 0.7.0_graphql@16.6.0
       '@n1ru4l/push-pull-async-iterable-iterator': 3.2.0
       '@repeaterjs/repeater': 3.0.4
-      '@urql/core': 3.1.1_graphql@16.6.0
+      '@urql/core': 4.0.6_graphql@16.6.0
       graphql: 16.6.0
       reconnecting-eventsource: 1.6.2
       wonka: 6.2.3
@@ -312,6 +312,17 @@ importers:
     specifiers: {}
 
 packages:
+
+  /@0no-co/graphql.web/1.0.0_graphql@16.6.0:
+    resolution: {integrity: sha512-JBq2pWyDchE1vVjj/+c4dzZ8stbpew4RrzpZ3vYdn1WJFGHfYg6YIX1fDdMKtSXJJM9FUlsoDOxemr9WMM2p+A==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
+    peerDependenciesMeta:
+      graphql:
+        optional: true
+    dependencies:
+      graphql: 16.6.0
+    dev: false
 
   /@adobe/css-tools/4.1.0:
     resolution: {integrity: sha512-mMVJ/j/GbZ/De4ZHWbQAQO1J6iVnjtZLc9WEdkUQb8S/Bu2cAF2bETXUgMAdvMG3/ngtKmcNBe+Zms9bg6jnQQ==}
@@ -4975,13 +4986,13 @@ packages:
       eslint-visitor-keys: 3.3.0
     dev: true
 
-  /@urql/core/3.1.1_graphql@16.6.0:
-    resolution: {integrity: sha512-Mnxtq4I4QeFJsgs7Iytw+HyhiGxISR6qtyk66c9tipozLZ6QVxrCiUPF2HY4BxNIabaxcp+rivadvm8NAnXj4Q==}
-    peerDependencies:
-      graphql: ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
+  /@urql/core/4.0.6_graphql@16.6.0:
+    resolution: {integrity: sha512-RxlX5nxWZsvS1lPCvOdgdYbIVVfih/DrjPzGZ0ThP1GuVycaxw5t0O7XEXXYHICeXNKj95HJBxW0o/37zg+z6Q==}
     dependencies:
-      graphql: 16.6.0
-      wonka: 6.2.3
+      '@0no-co/graphql.web': 1.0.0_graphql@16.6.0
+      wonka: 6.3.1
+    transitivePeerDependencies:
+      - graphql
     dev: false
 
   /@webassemblyjs/ast/1.11.1:
@@ -13361,6 +13372,10 @@ packages:
 
   /wonka/6.2.3:
     resolution: {integrity: sha512-EFOYiqDeYLXSzGYt2X3aVe9Hq1XJG+Hz/HjTRRT4dZE9q95khHl5+7pzUSXI19dbMO1/2UMrTf7JT7/7JrSQSQ==}
+    dev: false
+
+  /wonka/6.3.1:
+    resolution: {integrity: sha512-nJyGPcjuBiaLFn8QAlrHd+QjV9AlPO7snOWAhgx6aX0nQLMV6Wi0nqfrkmsXIH0efngbDOroOz2QyLnZMF16Hw==}
     dev: false
 
   /word-wrap/1.2.3:
