@@ -12,6 +12,12 @@ on:
       tag:
         type: string
         required: true
+      prod_assets:
+        type: string
+        required: true
+      assets_verison:
+        type: string
+        required: true
     secrets:
       CRATES_ACCESS_TOKEN:
         required: true
@@ -82,6 +88,12 @@ jobs:
           (cd cli && cargo about generate -o "licenses.html" about.hbs)
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
+          
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
+          cdn: ${{ inputs.prod_assets }}
+          assets_version: ${{ inputs.assets_version }}
 
       - name: Publish cargo
         shell: bash
