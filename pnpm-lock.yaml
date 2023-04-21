@@ -172,16 +172,6 @@ importers:
         version: 4.9.4
 
   packages/grafbase-nextjs-plugin:
-    dependencies:
-      grafbase:
-        specifier: '*'
-        version: 0.1.0
-      react:
-        specifier: '*'
-        version: 18.2.0
-      react-dom:
-        specifier: '*'
-        version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
         specifier: ^18.11.18
@@ -8309,10 +8299,6 @@ packages:
 
   /graceful-fs@4.2.10:
     resolution: {integrity: sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==}
-
-  /grafbase@0.1.0:
-    resolution: {integrity: sha512-R5QSAyI2VtUQFG8njRS0a+fe8DTXMVUDXxrelR18NcBc11yx56clI8oYr1wTkqdPJAZ6BxF67SCSEBpgwjm57A==}
-    dev: false
 
   /grapheme-splitter@1.0.4:
     resolution: {integrity: sha512-bzh50DW9kTPM00T8y4o8vQg89Di9oLJVLW/KaOGIXJWP/iqCN6WKYkbNOF04vFLJhwcpYUh9ydh/+5vpOqV4YQ==}

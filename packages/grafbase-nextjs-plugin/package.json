@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/nextjs-plugin",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -18,7 +18,7 @@
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint src/*.ts*"
   },
-  "peerDependencies": {
+  "pe erDependencies": {
     "next": "^12 || ^13",
     "react": "*",
     "react-dom": "*",
