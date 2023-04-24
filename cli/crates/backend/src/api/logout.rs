@@ -1,5 +1,5 @@
 use super::{consts::CREDENTIALS_FILE, errors::ApiError};
-use common::environment::get_user_dot_grafbase_path;
+use common::environment::Environment;
 use std::fs;
 
 /// Deletes the login credentials file
@@ -12,9 +12,8 @@ use std::fs;
 ///
 /// - returns [`BackendError::ReadCredentialsFile`] if ~/.grafbase/credentials.json could not be read
 pub fn logout() -> Result<(), ApiError> {
-    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::NotLoggedIn)?;
-
-    let credentials_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
+    let environment = Environment::get();
+    let credentials_path = environment.user_dot_grafbase_path.join(CREDENTIALS_FILE);
 
     match credentials_path.try_exists() {
         Ok(true) => fs::remove_file(credentials_path).map_err(ApiError::DeleteCredentialsFile),

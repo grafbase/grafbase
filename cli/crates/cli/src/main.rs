@@ -72,7 +72,7 @@ fn try_main() -> Result<(), CliError> {
         report::cli_header();
     }
 
-    if let Some(("dev" | "create" | "deploy" | "link" | "unlink", ..)) = subcommand {
+    if let Some(("dev" | "create" | "deploy" | "link" | "unlink" | "login" | "logout", _)) = subcommand {
         Environment::try_init().map_err(CliError::CommonError)?;
     }
 
