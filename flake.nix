@@ -55,14 +55,18 @@
           [
             # I gave up, it's just too cumbersome over time with rust-analyzer because of:
             # https://github.com/rust-lang/cargo/issues/10096
-            # So I ended up using rustup (installed through Nix obviously :P).
-            # rustToolChain rustToolChain
+            # So I ended up using rustup
+            # rustToolChain
+            rustup
             sccache
             pkg-config
             # for sqlx-macros
             libiconv
 
             cargo-nextest
+            # Used for resolver tests
+            nodePackages.pnpm
+            nodePackages.yarn
 
             # Miniflare
             nodejs
