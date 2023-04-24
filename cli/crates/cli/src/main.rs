@@ -72,8 +72,13 @@ fn try_main() -> Result<(), CliError> {
         report::cli_header();
     }
 
-    if let Some(("dev" | "create" | "deploy" | "link" | "unlink" | "login" | "logout", _)) = subcommand {
-        Environment::try_init().map_err(CliError::CommonError)?;
+    if let Some(("dev" | "create" | "deploy" | "link" | "unlink" | "login" | "logout" | "reset", _)) = subcommand {
+        let no_home = matches
+            .try_get_one::<bool>("nohome")
+            .unwrap_or_default()
+            .copied()
+            .unwrap_or_default();
+        Environment::try_init(no_home).map_err(CliError::CommonError)?;
     }
 
     match subcommand {

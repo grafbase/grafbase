@@ -54,7 +54,7 @@ impl Environment {
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
-    pub fn try_init() -> Result<(), CommonError> {
+    pub fn try_init(no_home: bool) -> Result<(), CommonError> {
         let project_grafbase_schema_path =
             Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
         let project_grafbase_path = project_grafbase_schema_path
@@ -66,9 +66,12 @@ impl Environment {
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
         let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
-        let user_dot_grafbase_path = dirs::home_dir()
-            .map(|home| home.join(DOT_GRAFBASE_DIRECTORY))
-            .unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
+        let user_dot_grafbase_path = if no_home {
+            None
+        } else {
+            dirs::home_dir().map(|home| home.join(DOT_GRAFBASE_DIRECTORY))
+        }
+        .unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);

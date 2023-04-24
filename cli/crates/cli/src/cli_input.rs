@@ -4,7 +4,20 @@ use indoc::indoc;
 /// creates the cli interface
 #[must_use]
 pub fn build_cli() -> Command {
-    command!()
+    cfg_if::cfg_if! {
+        if #[cfg(debug_assertions)] {
+            let command_builder = command!()
+                .arg(
+                    arg!(-n --nohome "Disable using .grafbase folder in user's home directory")
+                        .default_value("false")
+                        .value_parser(value_parser!(bool)),
+                );
+        } else {
+            let command_builder = command!();
+        }
+    };
+
+    command_builder
         .arg(
             arg!(-t --trace <level> "Set tracing level")
                 .default_value("0")
