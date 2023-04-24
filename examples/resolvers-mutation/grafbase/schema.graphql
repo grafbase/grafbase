@@ -1,9 +1,8 @@
 extend type Mutation {
-  checkout(input: CheckoutSessionInput!): CheckoutSession!
-    @resolver(name: "checkout")
+  checkout(input: CheckoutInput!): CheckoutSession! @resolver(name: "checkout")
 }
 
-input CheckoutSessionInput {
+input CheckoutInput {
   lineItems: [CheckoutLineItem]
 }
 
@@ -13,5 +12,5 @@ input CheckoutLineItem {
 }
 
 type CheckoutSession {
-  url: Int!
+  url: String!
 }
