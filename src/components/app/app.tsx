@@ -46,7 +46,6 @@ export const App = () => {
                 protocol: 'EVENT_SOURCE'
               }
             }}
-            withTabs={false}
             withVisualOperationBuilder={true}
           />
         </StyledToolDisplayWrapper>
