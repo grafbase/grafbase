@@ -42,26 +42,27 @@ pub fn extract_components(ctx: &mut Context, components: &openapiv3::Components)
 }
 
 pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: Components) {
-    for (path, item) in &paths.paths {
+    for (path, path_item) in &paths.paths {
         // Also going to assume that paths can't be references for now
-        let Some(item) = item.as_item() else {
+        let Some(path_item) = path_item.as_item() else {
             ctx.errors.push(Error::TopLevelPathWasReference(path.clone()));
             continue;
         };
 
-        for (method, operation) in item.iter() {
+        for (method, operation) in path_item.iter() {
             let Ok(method) = method.parse() else {
                 ctx.errors.push(Error::UnknownHttpMethod(method.to_string()));
                 continue;
             };
 
-            let operation = match OperationDetails::new(path.clone(), method, operation, &components) {
-                Ok(operation) => operation,
-                Err(e) => {
-                    ctx.errors.push(e);
-                    continue;
-                }
-            };
+            let operation =
+                match OperationDetails::new(path.clone(), method, operation, &components, &path_item.parameters) {
+                    Ok(operation) => operation,
+                    Err(e) => {
+                        ctx.errors.push(e);
+                        continue;
+                    }
+                };
             let operation_index = ctx.graph.add_node(Node::Operation(operation.clone()));
 
             for parameter in operation.path_parameters {
