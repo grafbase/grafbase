@@ -36,6 +36,7 @@ impl OperationDetails {
         http_method: HttpMethod,
         operation: &openapiv3::Operation,
         components: &Components,
+        inherited_parameters: &[ReferenceOr<Parameter>],
     ) -> Result<Self, Error> {
         let request_bodies = match &operation.request_body {
             None => Rc::new(vec![]),
@@ -84,46 +85,35 @@ impl OperationDetails {
         let mut path_parameters = Vec::new();
         let mut query_parameters = Vec::new();
         for parameter in &operation.parameters {
-            let parameter = match parameter {
-                ReferenceOr::Reference { reference } => {
-                    let reference = Ref::absolute(reference);
-                    components
-                        .parameters
-                        .get(&reference)
-                        .ok_or(Error::UnresolvedReference(reference))?
-                }
-                ReferenceOr::Item(parameter) => parameter,
-            };
+            let parameter = resolve_parameter(parameter, components)?;
+            register_parameter(parameter, &mut path_parameters, &mut query_parameters, operation)?;
+        }
+
+        // We need to handle the parameters that were declared on the parent
+        // of this operation.  These can be overriden by the parameters on the
+        // operation so we need to skip any we've already seen.
+        for parameter in inherited_parameters {
+            let parameter = resolve_parameter(parameter, components)?;
             match parameter {
-                Parameter::Path { parameter_data, .. } => {
-                    path_parameters.push(PathParameter {
-                        name: parameter_data.name.clone(),
-                        schema: match &parameter_data.format {
-                            ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
-                            ParameterSchemaOrContent::Content(_) => None,
-                        },
-                    });
+                Parameter::Query { parameter_data, .. } => {
+                    if query_parameters
+                        .iter()
+                        .any(|existing_param| existing_param.name == parameter_data.name)
+                    {
+                        continue;
+                    }
                 }
-                Parameter::Query {
-                    parameter_data, style, ..
-                } => query_parameters.push(QueryParameter {
-                    name: parameter_data.name.clone(),
-                    schema: match &parameter_data.format {
-                        ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
-                        ParameterSchemaOrContent::Content(_) => None,
-                    },
-                    encoding_style: query_param_encoding_style(style, parameter_data.explode.unwrap_or(true))
-                        .ok_or_else(|| {
-                            Error::UnsupportedQueryParameterStyle(
-                                parameter_data.name.clone(),
-                                operation.operation_id.clone().unwrap_or_default(),
-                                query_style_description(style).to_owned(),
-                            )
-                        })?,
-                    required: parameter_data.required,
-                }),
+                Parameter::Path { parameter_data, .. } => {
+                    if path_parameters
+                        .iter()
+                        .any(|existing_param| existing_param.name == parameter_data.name)
+                    {
+                        continue;
+                    }
+                }
                 _ => {}
             }
+            register_parameter(parameter, &mut path_parameters, &mut query_parameters, operation)?;
         }
 
         Ok(OperationDetails {
@@ -136,6 +126,64 @@ impl OperationDetails {
             query_parameters,
         })
     }
+}
+
+fn resolve_parameter<'a>(
+    parameter: &'a ReferenceOr<Parameter>,
+    components: &'a Components,
+) -> Result<&'a Parameter, Error> {
+    let parameter = match parameter {
+        ReferenceOr::Reference { reference } => {
+            let reference = Ref::absolute(reference);
+            components
+                .parameters
+                .get(&reference)
+                .ok_or(Error::UnresolvedReference(reference))?
+        }
+        ReferenceOr::Item(parameter) => parameter,
+    };
+    Ok(parameter)
+}
+
+fn register_parameter(
+    parameter: &Parameter,
+    path_parameters: &mut Vec<PathParameter>,
+    query_parameters: &mut Vec<QueryParameter>,
+    operation: &openapiv3::Operation,
+) -> Result<(), Error> {
+    match parameter {
+        Parameter::Path { parameter_data, .. } => {
+            path_parameters.push(PathParameter {
+                name: parameter_data.name.clone(),
+                schema: match &parameter_data.format {
+                    ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
+                    ParameterSchemaOrContent::Content(_) => None,
+                },
+            });
+        }
+        Parameter::Query {
+            parameter_data, style, ..
+        } => query_parameters.push(QueryParameter {
+            name: parameter_data.name.clone(),
+            schema: match &parameter_data.format {
+                ParameterSchemaOrContent::Schema(schema) => Some(schema.clone()),
+                ParameterSchemaOrContent::Content(_) => None,
+            },
+            encoding_style: query_param_encoding_style(style, parameter_data.explode.unwrap_or(true)).ok_or_else(
+                || {
+                    Error::UnsupportedQueryParameterStyle(
+                        parameter_data.name.clone(),
+                        operation.operation_id.clone().unwrap_or_default(),
+                        query_style_description(style).to_owned(),
+                    )
+                },
+            )?,
+            required: parameter_data.required,
+        }),
+        _ => {}
+    }
+
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::Display)]
