@@ -1,3 +1,9 @@
+# FIXME: https://github.com/grafbase/api/pull/2099#discussion_r1176200512
+# Due to cyclic dependency, we have to create this crate, the idea would be to
+# move the dynaql registry into another crate to avoid having to import dynaql
+# directly inside `gateway-protocol`.
+# While moving the Dynaql Registry into another crate, it would be interesting
+# to also move the VersionnedRegistry.
 [package]
 name = "registry-provider"
 version = "0.1.0"
