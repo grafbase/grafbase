@@ -721,11 +721,6 @@ impl Schema {
                 let exec_future = execute_stream.into_future();
                 let (first_result, _rest) = exec_future.await;
 
-                let a = format!("{first_result:?}");
-
-                #[cfg(feature = "tracing_worker")]
-                logworker::info!("", "{a}",);
-
                 // Some unwrap here, behind a feature flag, not an issue to crash the worker.
                 let mut first_response: serde_json::Value =
                     first_result.unwrap().unwrap().to_json();
