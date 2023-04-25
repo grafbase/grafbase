@@ -1487,6 +1487,7 @@ dependencies = [
  "fslock",
  "grafbase-local-backend",
  "grafbase-local-common",
+ "grafbase-local-server",
  "hex-literal",
  "humantime",
  "indicatif",

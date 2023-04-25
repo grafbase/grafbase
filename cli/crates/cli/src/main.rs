@@ -71,13 +71,12 @@ fn try_main() -> Result<(), CliError> {
     {
         report::cli_header();
     }
-
+    let no_home = matches
+        .try_get_one::<bool>("nohome")
+        .unwrap_or_default()
+        .copied()
+        .unwrap_or_default();
     if let Some(("dev" | "create" | "deploy" | "link" | "unlink" | "login" | "logout" | "reset", _)) = subcommand {
-        let no_home = matches
-            .try_get_one::<bool>("nohome")
-            .unwrap_or_default()
-            .copied()
-            .unwrap_or_default();
         Environment::try_init(no_home).map_err(CliError::CommonError)?;
     }
 
@@ -103,7 +102,7 @@ fn try_main() -> Result<(), CliError> {
         Some(("init", matches)) => {
             let name = matches.get_one::<String>("name").map(AsRef::as_ref);
             let template = matches.get_one::<String>("template").map(AsRef::as_ref);
-            init(name, template)
+            init(name, template, no_home)
         }
         Some(("reset", _)) => reset(),
         Some(("login", _)) => login(),

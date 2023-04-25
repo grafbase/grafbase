@@ -51,7 +51,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
     let environment = Environment::get();
 
     let handle = thread::spawn(move || {
-        export_embedded_files()?;
+        export_embedded_files(&environment.user_dot_grafbase_path)?;
 
         create_project_dot_grafbase_directory()?;
 
@@ -270,12 +270,24 @@ async fn spawn_servers(
     Ok(())
 }
 
-fn export_embedded_files() -> Result<(), ServerError> {
-    let environment = Environment::get();
-
+/// Writes the assets to `Environment.user_dot_grafbase_path` based on following conditions:
+///
+/// * skip if environment variable `GRAFBASE_SKIP_ASSET_VERSION_CHECK` is set
+/// * write if environment variable `GRAFBASE_FORCE_EXPORT_FILES` is set
+/// * skip if version file in `Environment.user_dot_grafbase_path` and current version are same
+/// * write otherwise
+///
+/// # Errors
+///
+/// returns [`ServerError::ReadVersion`] if the version file for the extracted worker files cannot be read
+///
+/// returns [`ServerError::CreateCacheDir`] if the `Environment::user_dot_grafbase_path` cannot be created
+///
+/// returns [`ServerError::WriteFile`] if a file cannot be written into `Environment.user_dot_grafbase_path`
+pub fn export_embedded_files(user_dot_grafbase_path: &Path) -> Result<(), ServerError> {
     let current_version = env!("CARGO_PKG_VERSION");
 
-    let version_path = environment.user_dot_grafbase_path.join(ASSET_VERSION_FILE);
+    let version_path = user_dot_grafbase_path.join(ASSET_VERSION_FILE);
 
     let export_files = if env::var("GRAFBASE_SKIP_ASSET_VERSION_CHECK").is_ok() {
         false
@@ -291,23 +303,27 @@ fn export_embedded_files() -> Result<(), ServerError> {
     if export_files {
         trace!("writing worker files");
 
-        fs::create_dir_all(&environment.user_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
+        fs::create_dir_all(user_dot_grafbase_path).map_err(|_| ServerError::CreateCacheDir)?;
 
-        let gitignore_path = &environment.user_dot_grafbase_path.join(GIT_IGNORE_FILE);
+        let gitignore_path = user_dot_grafbase_path.join(GIT_IGNORE_FILE);
 
-        fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
+        fs::write(&gitignore_path, GIT_IGNORE_CONTENTS)
             .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
 
-            let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
+            let full_path = user_dot_grafbase_path.join(path.as_ref());
 
             let parent = full_path.parent().expect("must have a parent");
             let create_dir_result = fs::create_dir_all(parent);
 
-            // must be Some(file) since we're iterating over existing paths
-            let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));
+            let write_result = create_dir_result.and_then(|_| {
+                fs::write(
+                    &full_path,
+                    file.expect("must exist since we're iterating over existing paths").data,
+                )
+            });
 
             (write_result, full_path)
         });

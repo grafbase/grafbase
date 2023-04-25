@@ -33,4 +33,4 @@ mod servers;
 pub mod errors;
 pub mod types;
 
-pub use servers::start;
+pub use servers::{export_embedded_files, start};
