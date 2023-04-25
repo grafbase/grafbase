@@ -21,6 +21,7 @@ use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::directive::Directives;
 use rules::enum_type::EnumType;
 use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
+use rules::input_object::InputObjectVisitor;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
 use rules::one_of_directive::OneOfDirective;
@@ -178,6 +179,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(AuthDirective)
         .with(ResolverDirective)
         .with(CacheVisitor)
+        .with(InputObjectVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)
         .with(EnumType)
