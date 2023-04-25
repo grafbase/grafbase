@@ -37,8 +37,21 @@ impl ResolverTrait for CustomResolver {
         // We take the first item as the parent has a struct like: { type: Value }.
         let parent_data = parent_data
             .as_object()
-            .and_then(|x| x.iter().next())
-            .map(|(_, x)| x.clone())
+            .and_then(|parent_object| {
+                // parent_object might also contain relations so we need to find the
+                // correct key to take.  We're currently resolving a field so we look
+                // two levels up the resolver chain to find the current type we're within.
+                ctx.resolver_node
+                    .as_ref()
+                    .and_then(|node| Some(node.parent?.ty?.name()))
+                    .and_then(|current_type_name| parent_object.get(current_type_name))
+                    .or_else(|| {
+                        // If we can't find a type name or there's no entry of that type
+                        // we'll just fallback to the first value and hope for the best
+                        parent_object.values().next()
+                    })
+            })
+            .cloned()
             .unwrap_or(serde_json::json!({}));
 
         // Magic function to convert the dynamodb format to the format we want to have on the
