@@ -153,6 +153,7 @@ impl FieldsGraph {
                         }
                     }
 
+                    // ADD Auth check here.
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                     let plan = ctx_field
                         .registry()
