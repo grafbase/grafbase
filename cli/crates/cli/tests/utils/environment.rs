@@ -3,7 +3,7 @@
 use super::async_client::AsyncClient;
 use super::kill_with_children::kill_with_children;
 use super::{cargo_bin::cargo_bin, client::Client};
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
+use common::consts::{DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use duct::{cmd, Handle};
 use std::io;
 use std::path::Path;
@@ -59,9 +59,10 @@ impl Environment {
             .path()
             .join(GRAFBASE_DIRECTORY_NAME)
             .join(GRAFBASE_SCHEMA_FILE_NAME);
-
+        let directory = temp_dir.path().to_owned();
+        println!("Using temporary directory {:?}", directory.as_os_str());
         Self {
-            directory: temp_dir.path().to_owned(),
+            directory,
             commands: vec![],
             endpoint: format!("http://127.0.0.1:{port}/graphql"),
             playground_endpoint: format!("http://127.0.0.1:{port}"),
@@ -71,6 +72,7 @@ impl Environment {
         }
     }
 
+    /// Same environment but different port.
     pub fn from(other: &Environment) -> Self {
         let port = get_free_port();
 
@@ -110,40 +112,111 @@ impl Environment {
     }
 
     pub fn grafbase_init(&self) {
-        cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
+        cmd!(cargo_bin("grafbase"), "--nohome", "init")
+            .dir(&self.directory)
+            .run()
+            .unwrap();
+        self.create_database(None);
     }
 
     pub fn grafbase_init_output(&self) -> Output {
-        cmd!(cargo_bin("grafbase"), "init")
+        let output = cmd!(cargo_bin("grafbase"), "--nohome", "init")
             .dir(&self.directory)
             .stderr_capture()
             .unchecked()
             .run()
-            .unwrap()
+            .unwrap();
+        self.create_database(None);
+        output
     }
 
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {
-        if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
+        let output = if let Some(name) = name {
+            cmd!(cargo_bin("grafbase"), "--nohome", "init", name, "--template", template)
         } else {
-            cmd!(cargo_bin("grafbase"), "init", "--template", template)
+            cmd!(cargo_bin("grafbase"), "--nohome", "init", "--template", template)
         }
         .dir(&self.directory)
         .stderr_capture()
         .unchecked()
         .run()
-        .unwrap()
+        .unwrap();
+        self.create_database(name);
+        output
     }
 
     pub fn grafbase_init_template(&self, name: Option<&str>, template: &str) {
         if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
+            cmd!(cargo_bin("grafbase"), "--nohome", "init", name, "--template", template)
         } else {
-            cmd!(cargo_bin("grafbase"), "init", "--template", template)
+            cmd!(cargo_bin("grafbase"), "--nohome", "init", "--template", template)
         }
         .dir(&self.directory)
         .run()
         .unwrap();
+        self.create_database(name);
+    }
+
+    fn create_database(&self, name: Option<&str>) {
+        // Read dynamo configuration from wrangler.toml
+        let mut dot_grafbase_path = self.directory.clone();
+        if let Some(name) = name {
+            dot_grafbase_path = dot_grafbase_path.join(name);
+        }
+        dot_grafbase_path = dot_grafbase_path
+            .join(GRAFBASE_DIRECTORY_NAME)
+            .join(DOT_GRAFBASE_DIRECTORY);
+        assert!(dot_grafbase_path.exists(), "{dot_grafbase_path:?} must exist");
+        let wrangler_toml = dot_grafbase_path.join("wrangler.toml");
+        assert!(dot_grafbase_path.exists(), "{wrangler_toml:?} must exist");
+
+        let mut toml: toml::Table =
+            toml::from_str(&fs::read_to_string(&wrangler_toml).unwrap()).expect("toml must be parseable");
+
+        let vars = toml
+            .get_mut("vars")
+            .expect("vars must exist")
+            .as_table_mut()
+            .expect("vars must be a table");
+        fn get<'a>(vars: &'a toml::map::Map<String, toml::Value>, key: &str) -> &'a str {
+            vars.get(key)
+                .unwrap_or_else(|| panic!("{key} must exist"))
+                .as_str()
+                .unwrap_or_else(|| panic!("{key} must be a string"))
+        }
+
+        let table_name = get(vars, "DYNAMODB_TABLE_NAME");
+        let table_name = format!("{table_name}_test_{port}", port = self.port);
+        vars.insert(
+            "DYNAMODB_TABLE_NAME".to_string(),
+            toml::Value::String(table_name.clone()),
+        );
+        let aws_access_key_id = get(vars, "AWS_ACCESS_KEY_ID");
+        let aws_secret_access_key = get(vars, "AWS_SECRET_ACCESS_KEY");
+        let dynamodb_region = get(vars, "DYNAMODB_REPLICATION_REGIONS");
+
+        let dynamodb_region = match dynamodb_region.strip_prefix("custom:") {
+            Some(suffix) => rusoto_core::Region::Custom {
+                name: "local".to_string(),
+                endpoint: suffix.to_string(),
+            },
+            None => <rusoto_core::Region as std::str::FromStr>::from_str(dynamodb_region).unwrap(),
+        };
+        let aws_credentials =
+            rusoto_core::credential::AwsCredentials::new(aws_access_key_id, aws_secret_access_key, None, None);
+
+        let _dynamodb_client = {
+            let http_client = rusoto_core::HttpClient::new().expect("failed to create HTTP client");
+            let credentials_provider = rusoto_core::credential::StaticProvider::from(aws_credentials);
+            rusoto_dynamodb::DynamoDbClient::new_with(http_client, credentials_provider, dynamodb_region)
+        };
+        // Save wrangler.toml
+        let toml = toml::to_string(&toml).expect("toml serialization must succeed");
+        std::fs::write(wrangler_toml, toml).expect("saving wrangler.toml must succeed");
+
+        // recreate db, GSIs
+
+        println!("Using DYNAMODB_TABLE_NAME: {table_name}");
     }
 
     pub fn remove_grafbase_dir(&self, name: Option<&str>) {
@@ -156,6 +229,7 @@ impl Environment {
             cargo_bin("grafbase"),
             "--trace",
             "2",
+            "--nohome",
             "dev",
             "--disable-watch",
             "--port",
@@ -171,6 +245,7 @@ impl Environment {
     pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
         cmd!(
             cargo_bin("grafbase"),
+            "--nohome",
             "dev",
             "--disable-watch",
             "--port",
@@ -200,14 +275,23 @@ impl Environment {
     }
 
     pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "reset").dir(&self.directory).run().unwrap();
+        cmd!(cargo_bin("grafbase"), "--nohome", "reset")
+            .dir(&self.directory)
+            .run()
+            .unwrap();
     }
 
     pub fn grafbase_dev_watch(&mut self) {
-        let command = cmd!(cargo_bin("grafbase"), "dev", "--port", self.port.to_string())
-            .dir(&self.directory)
-            .start()
-            .unwrap();
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--nohome",
+            "dev",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory)
+        .start()
+        .unwrap();
 
         self.commands.push(command);
     }
@@ -231,7 +315,7 @@ impl Environment {
     }
 
     pub fn has_database_directory(&mut self) -> bool {
-        fs::metadata(self.directory.clone().join(".grafbase/database")).is_ok()
+        fs::metadata(self.directory.join(".grafbase/database")).is_ok()
     }
 }
 
