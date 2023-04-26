@@ -61,9 +61,7 @@ impl<'a> AuthContext<'a> {
             if let Some(required_op) = required_operation {
                 if !model_ops.contains(*required_op) {
                     let msg = format!(
-                    "Unauthorized to access {parent_type}.{name} (missing {required_op} operation)",
-                    parent_type = parent_type,
-                    name = field_name
+                    "Unauthorized to access {parent_type}.{field_name} (missing {required_op} operation)"
                 );
                     warn!(self.trace_id, "{msg} auth={auth:?}", auth = auth);
                     return Err(ServerError::new(msg, None));
@@ -83,9 +81,7 @@ impl<'a> AuthContext<'a> {
 
                 if !field_ops.intersects(Operations::READ) {
                     let msg = format!(
-                        "Unauthorized to access {type_name}.{field_name}",
-                        type_name = parent_type,
-                        field_name = field_name,
+                        "Unauthorized to access {parent_type}.{field_name}",
                     );
                     warn!(self.trace_id, "{msg} field_ops={field_ops:?}");
                     return Err(ServerError::new(msg, None));
@@ -110,8 +106,8 @@ impl<'a> AuthContext<'a> {
     /// inside the plan fetching the actual entities.
     pub fn auth_middleware_logical_plan(
         &self,
-        ctx: &'_ Context<'a>,
-        root: &MetaType,
+        _ctx: &'_ Context<'a>,
+        _root: &MetaType,
         lp: Positioned<LogicalPlan>,
     ) -> ServerResult<LogicalPlan> {
         // Not implemented yet.
