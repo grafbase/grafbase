@@ -1,7 +1,5 @@
 use async_trait::async_trait;
-use gateway_protocol::VersionedRegistry;
-use registry_provider::{RegistryError, RegistryProvider, RegistryResult};
-use worker::wasm_bindgen::JsValue;
+use grafbase_runtime::registry::{RegistryError, RegistryProvider, RegistryResult};
 use worker::Env;
 
 pub struct Registry<'a> {
@@ -17,17 +15,12 @@ impl<'a> Registry<'a> {
 
 #[async_trait(?Send)]
 impl RegistryProvider for Registry<'_> {
-    async fn get_registry(&self) -> RegistryResult<VersionedRegistry<'static>> {
+    async fn get_registry(&self) -> RegistryResult<worker::wasm_bindgen::JsValue> {
         use worker_utils::{EnvExt, VarType};
-        let registry = self
+        let registry: String = self
             .env
-            .js_var_get(VarType::Var, self.var_name)
+            .var_get(VarType::Var, self.var_name)
             .map_err(|_err| RegistryError::MissingEnvVar(self.var_name.to_string()))?;
-
-        let registry = Into::<JsValue>::into(registry)
-            .as_string()
-            .expect("Failed while parsing registry as String.");
-
-        Ok(serde_json::from_str(&registry).expect("Couldn't parse the registry into a VersionedRegistry."))
+        Ok(worker::js_sys::JSON::parse(&registry).unwrap())
     }
 }
