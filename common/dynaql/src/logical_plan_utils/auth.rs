@@ -13,12 +13,15 @@ use crate::registry::MetaType;
 use crate::{Context, ServerError, ServerResult};
 use dynaql_parser::Positioned;
 use grafbase::auth::{ExecutionAuth, Operations};
-use logworker::warn;
 use query_planning::logical_plan::LogicalPlan;
+
+#[cfg(feature = "tracing_worker")]
+use logworker::warn;
 
 pub struct AuthContext<'a> {
     exec: Option<&'a ExecutionAuth>,
     // TODO: We should really remove that and put a proper tracing integration.
+    #[cfg_attr(not(feature = "tracing_worker"), allow(dead_code))]
     trace_id: String,
 }
 
@@ -63,6 +66,7 @@ impl<'a> AuthContext<'a> {
                     let msg = format!(
                     "Unauthorized to access {parent_type}.{field_name} (missing {required_op} operation)"
                 );
+                    #[cfg(feature = "tracing_worker")]
                     warn!(self.trace_id, "{msg} auth={auth:?}", auth = auth);
                     return Err(ServerError::new(msg, None));
                 }
@@ -80,9 +84,8 @@ impl<'a> AuthContext<'a> {
                 let field_ops = auth.allowed_ops(groups_from_token);
 
                 if !field_ops.intersects(Operations::READ) {
-                    let msg = format!(
-                        "Unauthorized to access {parent_type}.{field_name}",
-                    );
+                    let msg = format!("Unauthorized to access {parent_type}.{field_name}");
+                    #[cfg(feature = "tracing_worker")]
                     warn!(self.trace_id, "{msg} field_ops={field_ops:?}");
                     return Err(ServerError::new(msg, None));
                 }
