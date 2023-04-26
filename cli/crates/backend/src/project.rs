@@ -18,7 +18,7 @@ use tokio_util::compat::TokioAsyncReadCompatExt;
 use tokio_util::io::StreamReader;
 use url::Url;
 
-/// initializes a new project in the current or a new directory, optionally from a template
+/// initializes a new project in the current or a new directory, optionally from a template, returning the project path.
 ///
 /// # Errors
 ///
@@ -60,7 +60,7 @@ use url::Url;
 ///
 /// - returns [`BackendError::ReadRepositoryInformation`] if the request to get the information for a repository returned a response that could not be parsed
 #[tokio::main]
-pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), BackendError> {
+pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<PathBuf, BackendError> {
     let project_path = to_project_path(name)?;
     let grafbase_path = project_path.join(GRAFBASE_DIRECTORY_NAME);
     let schema_path = grafbase_path.join(GRAFBASE_SCHEMA_FILE_NAME);
@@ -78,7 +78,7 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
                     _ => Err(BackendError::UnsupportedTemplateURL(template.to_string())),
                 }
             } else {
-                return Err(BackendError::MalformedTemplateURL(template.to_owned()));
+                Err(BackendError::MalformedTemplateURL(template.to_owned()))
             }
         } else {
             download_github_template(
@@ -107,6 +107,7 @@ pub async fn init(name: Option<&str>, template: Option<&str>) -> Result<(), Back
 
         Ok(())
     }
+    .map(|_| project_path)
 }
 
 async fn handle_github_repo_url(grafbase_path: PathBuf, repo_url: &Url) -> Result<(), BackendError> {

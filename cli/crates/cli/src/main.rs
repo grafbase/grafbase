@@ -77,7 +77,7 @@ fn try_main() -> Result<(), CliError> {
         .copied()
         .unwrap_or_default();
     if let Some(("dev" | "create" | "deploy" | "link" | "unlink" | "login" | "logout" | "reset", _)) = subcommand {
-        Environment::try_init(no_home).map_err(CliError::CommonError)?;
+        Environment::try_init(no_home, None).map_err(CliError::CommonError)?;
     }
 
     match subcommand {

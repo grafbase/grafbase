@@ -54,9 +54,9 @@ impl Environment {
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
-    pub fn try_init(no_home: bool) -> Result<(), CommonError> {
+    pub fn try_init(no_home: bool, project_path: Option<PathBuf>) -> Result<(), CommonError> {
         let project_grafbase_schema_path =
-            Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+            Self::get_project_grafbase_path(project_path)?.ok_or(CommonError::FindGrafbaseDirectory)?;
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
             .expect("the schema directory must have a parent by definiton")
@@ -115,36 +115,38 @@ impl Environment {
     /// # Errors
     ///
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-    fn get_project_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
-        let project_grafbase_path = env::current_dir()
-            .map_err(|_| CommonError::ReadCurrentDirectory)?
-            .ancestors()
-            .find_map(|ancestor| {
-                let mut path = PathBuf::from(ancestor);
+    fn get_project_grafbase_path(project_path: Option<PathBuf>) -> Result<Option<PathBuf>, CommonError> {
+        let project_grafbase_path = match project_path {
+            Some(project_path) => Ok(project_path),
+            None => env::current_dir().map_err(|_| CommonError::ReadCurrentDirectory),
+        }?
+        .ancestors()
+        .find_map(|ancestor| {
+            let mut path = PathBuf::from(ancestor);
 
-                // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
-                if let Some(first) = path.components().next() {
-                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
-                        path.push(GRAFBASE_SCHEMA_FILE_NAME);
-                        if path.is_file() {
-                            return Some(path);
-                        }
-                        path.pop();
+            // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
+            if let Some(first) = path.components().next() {
+                if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
+                    path.push(GRAFBASE_SCHEMA_FILE_NAME);
+                    if path.is_file() {
+                        return Some(path);
                     }
+                    path.pop();
                 }
+            }
 
-                path.push(
-                    [GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME]
-                        .iter()
-                        .collect::<PathBuf>(),
-                );
+            path.push(
+                [GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME]
+                    .iter()
+                    .collect::<PathBuf>(),
+            );
 
-                if path.is_file() {
-                    Some(path)
-                } else {
-                    None
-                }
-            });
+            if path.is_file() {
+                Some(path)
+            } else {
+                None
+            }
+        });
 
         Ok(project_grafbase_path)
     }
