@@ -14,6 +14,8 @@ use crate::parser::types::Selection;
 use crate::registry::MetaType;
 use crate::{ContextSelectionSet, ServerError, ServerResult};
 
+use super::auth::AuthContext;
+
 /// Resolve an container by executing each of the fields concurrently.
 pub async fn resolve_logical_plan_container<'a>(
     ctx: &ContextSelectionSet<'a>,
@@ -153,8 +155,11 @@ impl FieldsGraph {
                         }
                     }
 
-                    // ADD Auth check here.
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+
+                    let auth_ctx = AuthContext::new(&ctx_field);
+                    auth_ctx.check_resolving_logical_query(&ctx_field, root)?;
+
                     let plan = ctx_field
                         .registry()
                         .resolve_logic_field(&ctx_field, root, parent_logical_plan.clone())
