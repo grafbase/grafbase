@@ -1240,7 +1240,8 @@ expression: req_string_b
               "Related": {
                 "from": null,
                 "relation_name": null,
-                "to": 0
+                "to": 0,
+                "ty": "Product"
               }
             },
             "provides": null,
