@@ -8,7 +8,7 @@ use duct::{cmd, Handle};
 use std::io;
 use std::path::Path;
 use std::process::Output;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::{env, fs, io::Write, path::PathBuf};
 use tempfile::{tempdir, TempDir};
 
@@ -20,7 +20,9 @@ pub struct Environment {
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    dynamodb_client: Mutex<Option<rusoto_dynamodb::DynamoDbClient>>, // updated when grafbase init is called
+    // cfg dynamodb
+    dynamodb_client: Option<rusoto_dynamodb::DynamoDbClient>, // If set, will be used for db cleanup on drop.
+    wrangler: toml::Value, // When grafbase init is called, replace wrangler.toml with the correct db configuration.
 }
 
 const DOT_ENV_FILE: &str = ".env";
@@ -51,8 +53,26 @@ fn get_free_port() -> u16 {
 
 impl Environment {
     pub fn init() -> Self {
-        let port = get_free_port();
+        tokio::runtime::Runtime::new().unwrap().block_on(async move {
+            let port = get_free_port();
+            let (dynamodb_client, wrangler) = Self::create_database(port).await;
+            Self::init_internal(Some(dynamodb_client), wrangler, port).await
+        })
+    }
 
+    pub async fn init_async() -> (Self, impl std::future::Future<Output = ()>) {
+        let port = get_free_port();
+        let (dynamodb_client, wrangler) = Self::create_database(port).await;
+        let ret = Self::init_internal(None, wrangler, port).await;
+        let cleanup_fut = Self::delete_database_async(dynamodb_client, port);
+        (ret, cleanup_fut)
+    }
+
+    async fn init_internal(
+        dynamodb_client: Option<rusoto_dynamodb::DynamoDbClient>,
+        wrangler: toml::Value,
+        port: u16,
+    ) -> Self {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
@@ -70,7 +90,8 @@ impl Environment {
             schema_path,
             temp_dir,
             port,
-            dynamodb_client: Mutex::new(None),
+            dynamodb_client,
+            wrangler,
         }
     }
 
@@ -88,7 +109,8 @@ impl Environment {
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
-            dynamodb_client: Mutex::new(None),
+            dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
+            wrangler: other.wrangler.clone(),
         }
     }
 
@@ -119,7 +141,7 @@ impl Environment {
             .dir(&self.directory)
             .run()
             .unwrap();
-        self.create_database(None);
+        self.update_wrangler_toml(None);
     }
 
     pub fn grafbase_init_output(&self) -> Output {
@@ -129,7 +151,7 @@ impl Environment {
             .unchecked()
             .run()
             .unwrap();
-        self.create_database(None);
+        self.update_wrangler_toml(None);
         output
     }
 
@@ -144,7 +166,9 @@ impl Environment {
         .unchecked()
         .run()
         .unwrap();
-        self.create_database(name);
+        if output.status.success() {
+            self.update_wrangler_toml(name);
+        }
         output
     }
 
@@ -157,28 +181,35 @@ impl Environment {
         .dir(&self.directory)
         .run()
         .unwrap();
-        self.create_database(name);
+        self.update_wrangler_toml(name);
     }
 
-    fn dynamodb_table_name(&self) -> String {
-        format!("gateway_test_{port}", port = self.port)
+    fn dynamodb_table_name(port: u16) -> String {
+        format!("gateway_test_{port}")
     }
 
-    fn create_database(&self, name: Option<&str>) {
-        // Read dynamo configuration from wrangler.toml
-        let mut dot_grafbase_path = self.directory.clone();
-        if let Some(name) = name {
-            dot_grafbase_path = dot_grafbase_path.join(name);
+    fn update_wrangler_toml(&self, project_name: Option<&str>) {
+        let dot_grafbase_path = if let Some(project_name) = project_name {
+            self.directory.clone().join(project_name)
+        } else {
+            self.directory.clone() // TODO join "."
         }
-        dot_grafbase_path = dot_grafbase_path
-            .join(GRAFBASE_DIRECTORY_NAME)
-            .join(DOT_GRAFBASE_DIRECTORY);
+        .join(GRAFBASE_DIRECTORY_NAME)
+        .join(DOT_GRAFBASE_DIRECTORY);
         assert!(dot_grafbase_path.exists(), "{dot_grafbase_path:?} must exist");
-        let wrangler_toml = dot_grafbase_path.join("wrangler.toml");
-        assert!(dot_grafbase_path.exists(), "{wrangler_toml:?} must exist");
+        let wrangler_toml_path = dot_grafbase_path.join("wrangler.toml");
+        assert!(wrangler_toml_path.exists(), "{wrangler_toml_path:?} must exist");
+        let content = toml::to_string(&self.wrangler).expect("wrangler.toml must be serializable");
+        std::fs::write(wrangler_toml_path, content).expect("saving wrangler.toml must succeed");
+    }
 
-        let mut toml: toml::Table =
-            toml::from_str(&fs::read_to_string(&wrangler_toml).unwrap()).expect("toml must be parseable");
+    async fn create_database(port: u16) -> (rusoto_dynamodb::DynamoDbClient, toml::Value) {
+        // Read dynamo configuration from assets' wrangler.toml
+        let wrangler_toml = server::types::Assets::get("wrangler.toml")
+            .expect("wrangler.toml must exist")
+            .data;
+        let wrangler_toml = String::from_utf8(wrangler_toml.into_owned()).expect("wrangler.toml must be in UTF-8");
+        let mut toml: toml::Table = toml::from_str(&wrangler_toml).expect("toml must be parseable");
 
         let vars = toml
             .get_mut("vars")
@@ -192,7 +223,7 @@ impl Environment {
                 .unwrap_or_else(|| panic!("{key} must be a string"))
         }
 
-        let table_name = self.dynamodb_table_name();
+        let table_name = Self::dynamodb_table_name(port);
         vars.insert(
             "DYNAMODB_TABLE_NAME".to_string(),
             toml::Value::String(table_name.clone()),
@@ -216,100 +247,88 @@ impl Environment {
             let credentials_provider = rusoto_core::credential::StaticProvider::from(aws_credentials);
             rusoto_dynamodb::DynamoDbClient::new_with(http_client, credentials_provider, dynamodb_region)
         };
-        // Save wrangler.toml
-        let toml = toml::to_string(&toml).expect("toml serialization must succeed");
-        std::fs::write(wrangler_toml, toml).expect("saving wrangler.toml must succeed");
 
         println!("Initializing dynamodb table name: {table_name}");
-        tokio::runtime::Runtime::new().unwrap().block_on(async move {
-            use rusoto_dynamodb::{
-                AttributeDefinition, CreateTableInput, DeleteTableInput, DescribeTableInput, DynamoDb,
-                GlobalSecondaryIndex, KeySchemaElement, Projection,
-            };
-            if dynamodb_client
-                .describe_table(DescribeTableInput {
-                    table_name: table_name.clone(),
-                })
-                .await
-                .is_ok()
-            {
-                println!("Deleting the table");
-                dynamodb_client
-                    .delete_table(DeleteTableInput {
-                        table_name: table_name.clone(),
-                    })
-                    .await
-                    .unwrap();
-            }
-            fn attr_def(names: Vec<&str>) -> Vec<AttributeDefinition> {
-                names
-                    .into_iter()
-                    .map(|name| AttributeDefinition {
-                        attribute_name: name.to_string(),
-                        attribute_type: "S".to_string(),
-                    })
-                    .collect()
-            }
-            fn key_schema(infix: &str) -> Vec<KeySchemaElement> {
-                vec![
-                    KeySchemaElement {
-                        attribute_name: format!("__{infix}pk"),
-                        key_type: "HASH".to_string(),
-                    },
-                    KeySchemaElement {
-                        attribute_name: format!("__{infix}sk"),
-                        key_type: "RANGE".to_string(),
-                    },
-                ]
-            }
-            fn gsi(name: &str) -> GlobalSecondaryIndex {
-                GlobalSecondaryIndex {
-                    index_name: name.to_string(),
-                    key_schema: key_schema(name),
-                    projection: Projection {
-                        projection_type: Some("ALL".to_string()),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                }
-            }
-
+        // let dynamodb_client =
+        //tokio::runtime::Runtime::new().unwrap().block_on(async move {
+        use rusoto_dynamodb::{
+            AttributeDefinition, CreateTableInput, DeleteTableInput, DescribeTableInput, DynamoDb,
+            GlobalSecondaryIndex, KeySchemaElement, Projection,
+        };
+        if dynamodb_client
+            .describe_table(DescribeTableInput {
+                table_name: table_name.clone(),
+            })
+            .await
+            .is_ok()
+        {
+            println!("Deleting the table");
             dynamodb_client
-                .create_table(CreateTableInput {
+                .delete_table(DeleteTableInput {
                     table_name: table_name.clone(),
-                    key_schema: key_schema(""),
-                    attribute_definitions: attr_def(vec![
-                        "__pk", "__sk", "__gsi1pk", "__gsi1sk", "__gsi2pk", "__gsi2sk",
-                    ]),
-                    global_secondary_indexes: Some(vec![gsi("gsi1"), gsi("gsi2")]),
-                    billing_mode: Some("PAY_PER_REQUEST".to_string()),
-                    ..Default::default()
                 })
                 .await
                 .unwrap();
+        }
+        fn attr_def(names: Vec<&str>) -> Vec<AttributeDefinition> {
+            names
+                .into_iter()
+                .map(|name| AttributeDefinition {
+                    attribute_name: name.to_string(),
+                    attribute_type: "S".to_string(),
+                })
+                .collect()
+        }
+        fn key_schema(infix: &str) -> Vec<KeySchemaElement> {
+            vec![
+                KeySchemaElement {
+                    attribute_name: format!("__{infix}pk"),
+                    key_type: "HASH".to_string(),
+                },
+                KeySchemaElement {
+                    attribute_name: format!("__{infix}sk"),
+                    key_type: "RANGE".to_string(),
+                },
+            ]
+        }
+        fn gsi(name: &str) -> GlobalSecondaryIndex {
+            GlobalSecondaryIndex {
+                index_name: name.to_string(),
+                key_schema: key_schema(name),
+                projection: Projection {
+                    projection_type: Some("ALL".to_string()),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        }
 
-            // Save dynamodb_client for deleting the table later.
-            let _ = self.dynamodb_client.lock().unwrap().insert(dynamodb_client);
-        });
+        dynamodb_client
+            .create_table(CreateTableInput {
+                table_name: table_name.clone(),
+                key_schema: key_schema(""),
+                attribute_definitions: attr_def(vec!["__pk", "__sk", "__gsi1pk", "__gsi1sk", "__gsi2pk", "__gsi2sk"]),
+                global_secondary_indexes: Some(vec![gsi("gsi1"), gsi("gsi2")]),
+                billing_mode: Some("PAY_PER_REQUEST".to_string()),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        //     dynamodb_client
+        // });
+        (dynamodb_client, toml::Value::Table(toml))
     }
 
-    fn delete_database(&self) {
-        let table_name = self.dynamodb_table_name();
-        tokio::runtime::Runtime::new().unwrap().block_on(async move {
-            use rusoto_dynamodb::{DeleteTableInput, DynamoDb};
-            let dynamodb_client_guard = self.dynamodb_client.lock().unwrap();
-            if dynamodb_client_guard.is_some() {
-                println!("Deleting dynamodb table name: {table_name}");
-                dynamodb_client_guard
-                    .as_ref()
-                    .unwrap()
-                    .delete_table(DeleteTableInput {
-                        table_name: table_name.clone(),
-                    })
-                    .await
-                    .unwrap();
-            }
-        });
+    async fn delete_database_async(dynamodb_client: rusoto_dynamodb::DynamoDbClient, port: u16) {
+        use rusoto_dynamodb::{DeleteTableInput, DynamoDb};
+        let table_name = Self::dynamodb_table_name(port);
+        println!("Deleting dynamodb table name: {table_name}");
+        dynamodb_client
+            .delete_table(DeleteTableInput {
+                table_name: table_name.clone(),
+            })
+            .await
+            .unwrap();
     }
 
     pub fn remove_grafbase_dir(&self, name: Option<&str>) {
@@ -415,6 +434,10 @@ impl Environment {
 impl Drop for Environment {
     fn drop(&mut self) {
         self.kill_processes();
-        self.delete_database();
+        if let Some(dynamodb_client) = self.dynamodb_client.take() {
+            tokio::runtime::Runtime::new().unwrap().block_on(async move {
+                Self::delete_database_async(dynamodb_client, self.port).await;
+            });
+        }
     }
 }

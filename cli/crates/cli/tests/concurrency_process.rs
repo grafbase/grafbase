@@ -8,7 +8,7 @@ use utils::environment::Environment;
 
 #[tokio::test]
 async fn concurrency_process() {
-    let mut env1 = Environment::init();
+    let (mut env1, cleanup_fut) = Environment::init_async().await;
     let mut env2 = Environment::from(&env1);
 
     env1.grafbase_init();
@@ -43,4 +43,5 @@ async fn concurrency_process() {
 
     assert_eq!(result_list1.len(), 30);
     assert_eq!(result_list2.len(), 30);
+    cleanup_fut.await;
 }

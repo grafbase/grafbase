@@ -18,7 +18,7 @@ async fn openapi_test() {
     let mock_server = wiremock::MockServer::start().await;
     mount_petstore_spec(&mock_server).await;
 
-    let mut env = Environment::init();
+    let (mut env, cleanup_fut) = Environment::init_async().await;
     let client = start_grafbase_with_petstore_schema(&mut env, mock_server.address()).await;
 
     Mock::given(method("GET"))
@@ -108,6 +108,8 @@ async fn openapi_test() {
       status: available
       tags: []
     "###);
+
+    cleanup_fut.await;
 }
 
 #[derive(Clone)]

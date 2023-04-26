@@ -8,7 +8,7 @@ use utils::environment::Environment;
 
 #[tokio::test]
 async fn concurrency_thread() {
-    let mut env = Environment::init();
+    let (mut env, cleanup_fut) = Environment::init_async().await;
 
     env.grafbase_init();
     env.write_schema(CONCURRENCY_SCHEMA);
@@ -50,4 +50,5 @@ async fn concurrency_thread() {
     assert_eq!(result_list1.len(), 30);
     assert_eq!(result_list2.len(), 30);
     assert_eq!(result_list3.len(), 30);
+    cleanup_fut.await;
 }
