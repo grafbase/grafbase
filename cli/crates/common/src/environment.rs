@@ -30,7 +30,9 @@ pub struct Environment {
     /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
     /// in the nearest ancestor directory with said directory and file
     pub project_grafbase_schema_path: PathBuf,
-    /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
+    /// the path of `.grafbase` folder, contains local developer tool cache.
+    /// By default placed in $HOME, if that fails or `--nohome` is supplied, will be under the project's grafbase folder.
+    // TODO: rename to dot_grafbase_path
     pub user_dot_grafbase_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
     /// in the nearest ancestor directory with a `grabase/schema.graphql` file

@@ -70,8 +70,10 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
                     tokio::select! {
                         result = start_watcher(environment.project_grafbase_path.clone(),  move |path, event_type| {
-                            let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
-                            watch_event_bus.send(Event::Reload(relative_path, event_type)).expect("cannot fail");
+                            if !path.starts_with(&environment.user_dot_grafbase_path) {
+                                let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
+                                watch_event_bus.send(Event::Reload(relative_path, event_type)).expect("cannot fail");
+                            }
                         }) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
