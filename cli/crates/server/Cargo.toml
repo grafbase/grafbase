@@ -62,3 +62,7 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.1
 
 [dev-dependencies]
 serde_json = "1"
+
+[features]
+default = ["sqlite"]
+sqlite = []

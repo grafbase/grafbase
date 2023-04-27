@@ -58,11 +58,11 @@ impl Environment {
         cfg_if!(
             if #[cfg(not(feature = "sqlite"))] {
                 return tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                    let (dynamodb_client, wrangler) = dynamodb::create_database(port).await;
-                    Self::init_internal(Some(dynamodb_client), Some(wrangler), port)
+                    let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
+                    Self::init_internal(dynamodb_env, port)
                 });
             } else {
-                return Self::init_internal(None, None, port);
+                return Self::init_internal(port);
             }
         );
     }
@@ -72,22 +72,18 @@ impl Environment {
         let port = get_free_port();
         cfg_if!(
             if #[cfg(not(feature = "sqlite"))] {
-                let (dynamodb_client, wrangler) = dynamodb::create_database(port).await;
-                let ret = Self::init_internal(None, Some(wrangler), port);
-                let cleanup_fut = dynamodb::delete_database_async(dynamodb_client, port);
-                return (ret, cleanup_fut);
+                let mut dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
+                let cleanup_fut = dynamodb::delete_database_async(dynamodb_env.dynamodb_client.take().unwrap(), dynamodb_env.table_name.clone());
+                let myself = Self::init_internal(dynamodb_env, port);
+                return (myself, cleanup_fut);
             } else {
-                return (Self::init_internal(None, None, port), std::future::ready(()));
+                return (Self::init_internal(port), std::future::ready(()));
             }
         );
     }
 
-    #[allow(unused_variables, clippy::needless_return, clippy::needless_pass_by_value)]
-    fn init_internal(
-        dynamodb_client: Option<rusoto_dynamodb::DynamoDbClient>,
-        wrangler: Option<toml::Value>,
-        port: u16,
-    ) -> Self {
+    #[cfg(not(feature = "sqlite"))]
+    fn init_internal(dynamodb_env: dynamodb::DynamoDbEnvironment, port: u16) -> Self {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
@@ -100,33 +96,40 @@ impl Environment {
         let commands = vec![];
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
-        cfg_if!(
-            if #[cfg(not(feature = "sqlite"))] {
-                return Self {
-                    endpoint,
-                    playground_endpoint,
-                    directory,
-                    port,
-                    temp_dir,
-                    schema_path,
-                    commands,
-                    dynamodb_env: dynamodb::DynamoDbEnvironment {
-                        dynamodb_client,
-                        wrangler,
-                    },
-                };
-            } else {
-                return Self {
-                    endpoint,
-                    playground_endpoint,
-                    directory,
-                    port,
-                    temp_dir,
-                    schema_path,
-                    commands,
-                };
-            }
-        );
+        Self {
+            endpoint,
+            playground_endpoint,
+            directory,
+            port,
+            temp_dir,
+            schema_path,
+            commands,
+            dynamodb_env,
+        }
+    }
+
+    #[cfg(feature = "sqlite")]
+    fn init_internal(port: u16) -> Self {
+        let temp_dir = Arc::new(tempdir().unwrap());
+        env::set_current_dir(temp_dir.path()).unwrap();
+        let schema_path = temp_dir
+            .path()
+            .join(GRAFBASE_DIRECTORY_NAME)
+            .join(GRAFBASE_SCHEMA_FILE_NAME);
+        let directory = temp_dir.path().to_owned();
+        println!("Using temporary directory {:?}", directory.as_os_str());
+        let commands = vec![];
+        let endpoint = format!("http://127.0.0.1:{port}/graphql");
+        let playground_endpoint = format!("http://127.0.0.1:{port}");
+        Self {
+            endpoint,
+            playground_endpoint,
+            directory,
+            port,
+            temp_dir,
+            schema_path,
+            commands,
+        }
     }
 
     /// Same environment but different port.
@@ -149,7 +152,7 @@ impl Environment {
                     port,
                     dynamodb_env: dynamodb::DynamoDbEnvironment {
                         dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
-                        wrangler: None,        // No need to update the toml twice.
+                        table_name: other.dynamodb_env.table_name.clone(),
                     },
                 };
             } else {
@@ -189,74 +192,40 @@ impl Environment {
     }
 
     pub fn grafbase_init(&self) {
-        cmd!(cargo_bin("grafbase"), "--nohome", "init")
-            .dir(&self.directory)
-            .run()
-            .unwrap();
-        #[cfg(not(feature = "sqlite"))]
-        self.update_wrangler_toml(None);
+        cmd!(cargo_bin("grafbase"), "init").dir(&self.directory).run().unwrap();
     }
 
-    #[allow(clippy::let_and_return)]
     pub fn grafbase_init_output(&self) -> Output {
-        let output = cmd!(cargo_bin("grafbase"), "--nohome", "init")
+        cmd!(cargo_bin("grafbase"), "init")
             .dir(&self.directory)
             .stderr_capture()
             .unchecked()
             .run()
-            .unwrap();
-        #[cfg(not(feature = "sqlite"))]
-        self.update_wrangler_toml(None);
-        output
+            .unwrap()
     }
 
-    #[allow(clippy::let_and_return)]
     pub fn grafbase_init_template_output(&self, name: Option<&str>, template: &str) -> Output {
-        let output = if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "--nohome", "init", name, "--template", template)
+        if let Some(name) = name {
+            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
         } else {
-            cmd!(cargo_bin("grafbase"), "--nohome", "init", "--template", template)
+            cmd!(cargo_bin("grafbase"), "init", "--template", template)
         }
         .dir(&self.directory)
         .stderr_capture()
         .unchecked()
         .run()
-        .unwrap();
-        #[cfg(not(feature = "sqlite"))]
-        if output.status.success() {
-            self.update_wrangler_toml(name);
-        }
-        output
+        .unwrap()
     }
 
     pub fn grafbase_init_template(&self, name: Option<&str>, template: &str) {
         if let Some(name) = name {
-            cmd!(cargo_bin("grafbase"), "--nohome", "init", name, "--template", template)
+            cmd!(cargo_bin("grafbase"), "init", name, "--template", template)
         } else {
-            cmd!(cargo_bin("grafbase"), "--nohome", "init", "--template", template)
+            cmd!(cargo_bin("grafbase"), "init", "--template", template)
         }
         .dir(&self.directory)
         .run()
         .unwrap();
-        #[cfg(not(feature = "sqlite"))]
-        self.update_wrangler_toml(name);
-    }
-
-    #[cfg(not(feature = "sqlite"))]
-    fn update_wrangler_toml(&self, project_name: Option<&str>) {
-        if let Some(content) = self.dynamodb_env.wrangler.as_ref() {
-            let dot_grafbase_path = self
-                .directory
-                .clone()
-                .join(project_name.unwrap_or(""))
-                .join(GRAFBASE_DIRECTORY_NAME)
-                .join(common::consts::DOT_GRAFBASE_DIRECTORY);
-            assert!(dot_grafbase_path.exists(), "{dot_grafbase_path:?} must exist");
-            let wrangler_toml_path = dot_grafbase_path.join("wrangler.toml");
-            assert!(wrangler_toml_path.exists(), "{wrangler_toml_path:?} must exist");
-            let content = toml::to_string(content).expect("wrangler.toml must be serializable");
-            std::fs::write(wrangler_toml_path, content).expect("saving wrangler.toml must succeed");
-        }
     }
 
     pub fn remove_grafbase_dir(&self, name: Option<&str>) {
@@ -269,31 +238,31 @@ impl Environment {
             cargo_bin("grafbase"),
             "--trace",
             "2",
-            "--nohome",
             "dev",
             "--disable-watch",
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory)
-        .start()
-        .unwrap();
+        .dir(&self.directory);
+        #[cfg(not(feature = "sqlite"))]
+        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+        let command = command.start().unwrap();
 
         self.commands.push(command);
     }
 
     pub fn grafbase_dev_output(&mut self) -> io::Result<Output> {
-        cmd!(
+        let command = cmd!(
             cargo_bin("grafbase"),
-            "--nohome",
             "dev",
             "--disable-watch",
             "--port",
             self.port.to_string()
         )
-        .dir(&self.directory)
-        .start()?
-        .into_output()
+        .dir(&self.directory);
+        #[cfg(not(feature = "sqlite"))]
+        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+        command.start()?.into_output()
     }
 
     pub fn set_variables<K, V>(&mut self, variables: impl IntoIterator<Item = (K, V)>)
@@ -315,23 +284,14 @@ impl Environment {
     }
 
     pub fn grafbase_reset(&mut self) {
-        cmd!(cargo_bin("grafbase"), "--nohome", "reset")
-            .dir(&self.directory)
-            .run()
-            .unwrap();
+        cmd!(cargo_bin("grafbase"), "reset").dir(&self.directory).run().unwrap();
     }
 
     pub fn grafbase_dev_watch(&mut self) {
-        let command = cmd!(
-            cargo_bin("grafbase"),
-            "--nohome",
-            "dev",
-            "--port",
-            self.port.to_string()
-        )
-        .dir(&self.directory)
-        .start()
-        .unwrap();
+        let command = cmd!(cargo_bin("grafbase"), "dev", "--port", self.port.to_string()).dir(&self.directory);
+        #[cfg(not(feature = "sqlite"))]
+        let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
+        let command = command.start().unwrap();
 
         self.commands.push(command);
     }
@@ -365,45 +325,34 @@ mod dynamodb {
 
     pub struct DynamoDbEnvironment {
         pub dynamodb_client: Option<rusoto_dynamodb::DynamoDbClient>, // If set, will be used for db cleanup on drop.
-        pub wrangler: Option<toml::Value>, // When grafbase init is called, replace wrangler.toml with the correct db configuration.
+        pub table_name: String,
     }
 
-    fn dynamodb_table_name(port: u16) -> String {
-        format!("gateway_test_{port}")
+    impl DynamoDbEnvironment {
+        pub async fn new(port: u16) -> Self {
+            let table_name = format!("gateway_test_{port}");
+            let dynamodb_client = create_database(&table_name).await;
+            Self {
+                dynamodb_client: Some(dynamodb_client),
+                table_name,
+            }
+        }
     }
 
-    #[allow(clippy::panic)]
-    pub async fn create_database(port: u16) -> (rusoto_dynamodb::DynamoDbClient, toml::Value) {
-        use rusoto_utils::{attr_def, get, gsi, key_schema};
+    // #[allow(clippy::panic)]
+    pub async fn create_database(table_name: &String) -> rusoto_dynamodb::DynamoDbClient {
+        use rusoto_utils::{attr_def, gsi, key_schema};
 
-        // Read dynamo configuration from assets' wrangler.toml
-        let wrangler_toml = server::types::Assets::get("wrangler.toml")
-            .expect("wrangler.toml must exist")
-            .data;
-        let wrangler_toml = String::from_utf8(wrangler_toml.into_owned()).expect("wrangler.toml must be in UTF-8");
-        let mut toml: toml::Table = toml::from_str(&wrangler_toml).expect("toml must be parseable");
-
-        let vars = toml
-            .get_mut("vars")
-            .expect("vars must exist")
-            .as_table_mut()
-            .expect("vars must be a table");
-
-        let table_name = dynamodb_table_name(port);
-        vars.insert(
-            "DYNAMODB_TABLE_NAME".to_string(),
-            toml::Value::String(table_name.clone()),
-        );
-        let aws_access_key_id = get(vars, "AWS_ACCESS_KEY_ID");
-        let aws_secret_access_key = get(vars, "AWS_SECRET_ACCESS_KEY");
-        let dynamodb_region = get(vars, "DYNAMODB_REPLICATION_REGIONS");
+        let aws_access_key_id = std::env::var("AWS_ACCESS_KEY_ID").unwrap();
+        let aws_secret_access_key = std::env::var("AWS_SECRET_ACCESS_KEY").unwrap();
+        let dynamodb_region = std::env::var("DYNAMODB_REPLICATION_REGIONS").unwrap();
 
         let dynamodb_region = match dynamodb_region.strip_prefix("custom:") {
             Some(suffix) => rusoto_core::Region::Custom {
                 name: "local".to_string(),
                 endpoint: suffix.to_string(),
             },
-            None => <rusoto_core::Region as std::str::FromStr>::from_str(dynamodb_region).unwrap(),
+            None => <rusoto_core::Region as std::str::FromStr>::from_str(&dynamodb_region).unwrap(),
         };
         let aws_credentials =
             rusoto_core::credential::AwsCredentials::new(aws_access_key_id, aws_secret_access_key, None, None);
@@ -444,16 +393,13 @@ mod dynamodb {
             .await
             .unwrap();
 
-        (dynamodb_client, toml::Value::Table(toml))
+        dynamodb_client
     }
 
-    pub async fn delete_database_async(dynamodb_client: rusoto_dynamodb::DynamoDbClient, port: u16) {
-        let table_name = dynamodb_table_name(port);
+    pub async fn delete_database_async(dynamodb_client: rusoto_dynamodb::DynamoDbClient, table_name: String) {
         println!("Deleting dynamodb table name: {table_name}");
         dynamodb_client
-            .delete_table(DeleteTableInput {
-                table_name: table_name.clone(),
-            })
+            .delete_table(DeleteTableInput { table_name })
             .await
             .unwrap();
     }
@@ -495,14 +441,6 @@ mod dynamodb {
                 ..Default::default()
             }
         }
-
-        #[allow(clippy::panic)]
-        pub fn get<'a>(vars: &'a toml::map::Map<String, toml::Value>, key: &str) -> &'a str {
-            vars.get(key)
-                .unwrap_or_else(|| panic!("{key} must exist"))
-                .as_str()
-                .unwrap_or_else(|| panic!("{key} must be a string"))
-        }
     }
 }
 
@@ -512,7 +450,7 @@ impl Drop for Environment {
         #[cfg(not(feature = "sqlite"))]
         if let Some(dynamodb_client) = self.dynamodb_env.dynamodb_client.take() {
             tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                dynamodb::delete_database_async(dynamodb_client, self.port).await;
+                dynamodb::delete_database_async(dynamodb_client, self.dynamodb_env.table_name.clone()).await;
             });
         }
     }
