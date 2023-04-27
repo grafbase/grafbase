@@ -1223,7 +1223,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                 Some(value) => self.resolve_input_value(value)?,
                 None => Value::Null,
             };
-            resolve_input(self, meta_input_value, const_value)
+            resolve_input(self, name, meta_input_value, const_value)
         } else {
             Err(ServerError::new(
                 &format!("Internal Error: Unknown argument '{name}'"),

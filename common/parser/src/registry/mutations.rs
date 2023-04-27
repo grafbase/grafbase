@@ -369,7 +369,11 @@ fn register_mutation_input_type(
                             .to_string(),
                             validators: super::get_length_validator(&field.node).map(|val| vec![val]),
                             visible: None,
-                            default_value: DefaultDirective::default_value_of(&field.node),
+                            default_value: (if mutation_kind.is_update() {
+                                None
+                            } else {
+                                DefaultDirective::default_value_of(&field.node)
+                            }),
                             is_secret: false,
                             rename: None,
                         },

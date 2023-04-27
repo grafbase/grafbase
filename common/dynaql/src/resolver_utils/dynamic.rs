@@ -8,6 +8,7 @@ use crate::{Context, Error, ServerResult};
 
 pub fn resolve_input(
     ctx_field: &Context<'_>,
+    arg_name: &str,
     meta_input_value: &MetaInputValue,
     value: ConstValue,
 ) -> ServerResult<ConstValue> {
@@ -15,14 +16,15 @@ pub fn resolve_input(
     // as it allows casting to either T or Option<T> later.
     resolve_input_inner(
         &ctx_field.schema_env.registry,
-        &mut Vec::new(),
+        &mut vec![arg_name.to_string()],
         &meta_input_value.into(),
         value,
     )
     .map_err(|err| err.into_server_error(ctx_field.item.pos))
 }
 
-struct InputContext<'a> {
+#[derive(Debug, Clone)]
+pub struct InputContext<'a> {
     /// Expected GraphQL type
     ty: &'a str,
     /// Whether we allow list coercion at this point:
@@ -43,13 +45,15 @@ impl<'a> From<&'a MetaInputValue> for InputContext<'a> {
     }
 }
 
-fn resolve_input_inner(
+// public for tests
+pub fn resolve_input_inner(
     registry: &Registry,
     path: &mut Vec<String>,
     ctx: &InputContext<'_>,
     mut value: ConstValue,
 ) -> Result<ConstValue, Error> {
     if value == ConstValue::Null {
+        // Propagating default value to resolve enums, etc.
         value = match ctx.default_value {
             Some(v) => v.clone(),
             None => match MetaTypeName::create(&ctx.ty) {
@@ -94,13 +98,14 @@ fn resolve_input_inner(
                 Err(input_error("Expected a List", path))
             }
         }
+        // A this point we know that the current value is not null, so we just remove the NonNull
+        // marker.
         MetaTypeName::NonNull(type_name) => resolve_input_inner(
             registry,
             path,
             &InputContext {
                 ty: type_name,
-                allow_list_coercion: true,
-                default_value: None,
+                ..ctx.clone()
             },
             value,
         ),

@@ -139,8 +139,8 @@ mod tests {
         &[]
     )]
     fn test(#[case] from: &str, #[case] to: &str, #[case] expected_required_migrations: &[RequiredMigration]) {
-        let from_registry = crate::to_registry(from).unwrap();
-        let to_registry = crate::to_registry(to).unwrap();
+        let from_registry = crate::parse_registry(from).unwrap();
+        let to_registry = crate::parse_registry(to).unwrap();
         assert_eq!(
             super::required_migrations(&from_registry, &to_registry),
             expected_required_migrations

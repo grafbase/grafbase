@@ -49,10 +49,7 @@ derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
 fnv = "1"
-futures-util = { workspace = true, features = [
-  "io",
-  "sink",
-] }
+futures-util = { workspace = true, features = ["io", "sink"] }
 http = "0.2"
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 ipnet = "2.7"
@@ -122,7 +119,10 @@ zxcvbn = { version = "2", optional = true }
 reqwest = { version = "0.11", default-features = false, features = ["json"] }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-reqwest = { version = "0.11", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", default-features = false, features = [
+  "json",
+  "rustls-tls",
+] }
 
 [dev-dependencies]
 # tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }

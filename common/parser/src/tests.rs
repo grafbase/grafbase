@@ -15,7 +15,7 @@ use crate::{GlobalCacheTarget, ParseResult};
 macro_rules! assert_validation_error {
     ($schema:literal, $expected_message:literal) => {
         assert_matches!(
-            super::to_registry($schema)
+            super::parse_registry($schema)
                 .err()
                 .and_then(super::Error::validation_errors)
                 // We don't care whether there are more errors or not.
@@ -56,7 +56,7 @@ fn assert_snapshot(name: &str, registry: Registry) {
 #[test]
 #[named]
 fn test_simple_product() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Product @model {
             id: ID!
@@ -77,7 +77,7 @@ fn test_simple_product() {
 #[test]
 #[named]
 fn test_simple_todo() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Todo @model {
           id: ID!
@@ -106,7 +106,7 @@ fn test_simple_todo() {
 #[test]
 #[named]
 fn test_simple_todo_from_template() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type TodoList @model {
           id: ID!
@@ -132,7 +132,7 @@ fn test_simple_todo_from_template() {
 #[test]
 #[named]
 fn test_simple_todo_with_vec() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Todo @model {
           id: ID!
@@ -162,7 +162,7 @@ fn test_simple_todo_with_vec() {
 #[test]
 #[named]
 fn test_simple_todo_with_enum() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         """
         A TodoType
@@ -205,7 +205,7 @@ fn test_simple_todo_with_enum() {
 #[test]
 #[named]
 fn test_simple_post_with_relation() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         enum Country {
           FRANCE
@@ -244,7 +244,7 @@ fn test_simple_post_with_relation() {
 #[test]
 #[named]
 fn test_multiple_relations() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Author @model {
           id: ID!
@@ -279,7 +279,7 @@ fn test_multiple_relations() {
 #[test]
 #[named]
 fn test_many_to_many() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type User @model {
             name: String!
@@ -301,7 +301,7 @@ fn test_many_to_many() {
 
 #[test]
 fn should_ensure_lowercase() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Blog @model {
           id: ID!
@@ -352,7 +352,7 @@ fn should_forbid_use_of_reserved_fields() {
 #[test]
 #[named]
 fn test_model_reserved_fields() {
-    let with_metadata_fields = super::to_registry(
+    let with_metadata_fields = super::parse_registry(
         r#"
         type Product @model {
             title: String
@@ -364,7 +364,7 @@ fn test_model_reserved_fields() {
     )
     .unwrap();
 
-    let without_metadata_fields = super::to_registry(
+    let without_metadata_fields = super::parse_registry(
         r#"
         type Product @model {
             title: String
@@ -393,7 +393,7 @@ fn test_model_reserved_fields() {
 
 #[test]
 fn should_not_allow_same_enum_and_type() {
-    let result = super::to_registry(
+    let result = super::parse_registry(
         r#"
         type Product @model {
             id: ID!
@@ -441,7 +441,7 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
     );
 
     assert!(
-        super::to_registry(
+        super::parse_registry(
             r#"
             type Product @model {
                 id: ID!
@@ -455,7 +455,7 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
     );
 
     assert!(
-        super::to_registry(
+        super::parse_registry(
             r#"
             type Product @model {
                 name: String
@@ -467,7 +467,7 @@ fn should_ensure_reserved_fields_have_correct_type_if_present() {
     );
 
     assert!(
-        super::to_registry(
+        super::parse_registry(
             r#"
             type Product {
                 id: Int
@@ -546,7 +546,7 @@ fn should_pick_up_required_resolvers() {
 #[test]
 #[named]
 fn should_support_search_directive() {
-    let simple = super::to_registry(
+    let simple = super::parse_registry(
         r#"
             type Product @model {
                 title: String @search
@@ -558,7 +558,7 @@ fn should_support_search_directive() {
     assert_registry_schema_generation(&simple);
     assert_snapshot(&format!("{}-simple", function_name!()), simple);
 
-    let complex = super::to_registry(
+    let complex = super::parse_registry(
         r#"
             type Product @model {
               ip: IPAddress @search
@@ -581,7 +581,7 @@ fn should_support_search_directive() {
     assert_registry_schema_generation(&complex);
     assert_snapshot(&format!("{}-complex", function_name!()), complex);
 
-    let model_directive = super::to_registry(
+    let model_directive = super::parse_registry(
         r#"
             type Product @model @search {
               ip: IPAddress
@@ -608,7 +608,7 @@ fn should_support_search_directive() {
     assert_registry_schema_generation(&model_directive);
     assert_snapshot(&format!("{}-model_directive", function_name!()), model_directive);
 
-    let enum_field = super::to_registry(
+    let enum_field = super::parse_registry(
         r#"
             enum Status {
                 ACTIVE

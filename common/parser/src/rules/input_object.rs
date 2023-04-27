@@ -59,7 +59,7 @@ mod tests {
             }
             "#;
 
-        insta::assert_snapshot!(crate::to_registry(schema).unwrap().export_sdl(false), @r###"
+        insta::assert_snapshot!(crate::parse_registry(schema).unwrap().export_sdl(false), @r###"
         input CheckoutInput {
         	price: String!
         	quantity: Int = 1

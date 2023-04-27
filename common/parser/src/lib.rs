@@ -195,8 +195,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
     visit(&mut second_pass_rules, ctx, schema);
 }
 
-#[cfg(test)]
-fn to_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
+pub fn parse_registry<S: AsRef<str>>(input: S) -> Result<Registry, Error> {
     let input = input.as_ref();
     Ok(futures::executor::block_on(async move {
         let variables = HashMap::new();

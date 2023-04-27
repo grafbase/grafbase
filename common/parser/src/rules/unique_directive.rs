@@ -213,7 +213,7 @@ mod tests {
     macro_rules! assert_validation_error {
         ($schema:literal, $expected_message:literal) => {
             assert_matches!(
-                crate::to_registry($schema)
+                crate::parse_registry($schema)
                     .err()
                     .and_then(crate::Error::validation_errors)
                     // We don't care whether there are more errors or not.
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_usable_on_non_nullable_fields() {
-        let registry = crate::to_registry(
+        let registry = crate::parse_registry(
             r#"
             type Product @model {
                 id: ID!
@@ -288,7 +288,7 @@ mod tests {
 
     #[test]
     fn test_multifield() {
-        let registry = crate::to_registry(
+        let registry = crate::parse_registry(
             r#"
             type Product @model {
                 id: ID!
