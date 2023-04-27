@@ -238,8 +238,9 @@ async fn spawn_servers(
         ]
     }));
 
-    #[cfg(not(feature = "sqlite"))]
+    #[cfg(feature = "dynamodb")]
     {
+        #[allow(clippy::panic)]
         fn get_env(key: &str) -> String {
             let val = std::env::var(key).unwrap_or_else(|_| panic!("Environment variable not found:{key}"));
             format!("{key}={val}")

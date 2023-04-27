@@ -21,7 +21,7 @@ pub struct Environment {
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    #[cfg(not(feature = "sqlite"))]
+    #[cfg(feature = "dynamodb")]
     dynamodb_env: dynamodb::DynamoDbEnvironment,
 }
 
@@ -56,7 +56,7 @@ impl Environment {
     pub fn init() -> Self {
         let port = get_free_port();
         cfg_if!(
-            if #[cfg(not(feature = "sqlite"))] {
+            if #[cfg(feature = "dynamodb")] {
                 return tokio::runtime::Runtime::new().unwrap().block_on(async move {
                     let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
                     Self::init_internal(dynamodb_env, port)
@@ -71,7 +71,7 @@ impl Environment {
     pub async fn init_async() -> (Self, impl std::future::Future<Output = ()>) {
         let port = get_free_port();
         cfg_if!(
-            if #[cfg(not(feature = "sqlite"))] {
+            if #[cfg(feature = "dynamodb")] {
                 let mut dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
                 let cleanup_fut = dynamodb::delete_database_async(dynamodb_env.dynamodb_client.take().unwrap(), dynamodb_env.table_name.clone());
                 let myself = Self::init_internal(dynamodb_env, port);
@@ -82,7 +82,7 @@ impl Environment {
         );
     }
 
-    #[cfg(not(feature = "sqlite"))]
+    #[cfg(feature = "dynamodb")]
     fn init_internal(dynamodb_env: dynamodb::DynamoDbEnvironment, port: u16) -> Self {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
@@ -108,7 +108,7 @@ impl Environment {
         }
     }
 
-    #[cfg(feature = "sqlite")]
+    #[cfg(not(feature = "dynamodb"))]
     fn init_internal(port: u16) -> Self {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
@@ -141,7 +141,7 @@ impl Environment {
         let playground_endpoint = format!("http://127.0.0.1:{port}");
         let commands = vec![];
         cfg_if!(
-            if #[cfg(not(feature = "sqlite"))] {
+            if #[cfg(feature = "dynamodb")] {
                 return Self {
                     directory: other.directory.clone(),
                     commands,
@@ -244,7 +244,7 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory);
-        #[cfg(not(feature = "sqlite"))]
+        #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
@@ -260,7 +260,7 @@ impl Environment {
             self.port.to_string()
         )
         .dir(&self.directory);
-        #[cfg(not(feature = "sqlite"))]
+        #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         command.start()?.into_output()
     }
@@ -289,7 +289,7 @@ impl Environment {
 
     pub fn grafbase_dev_watch(&mut self) {
         let command = cmd!(cargo_bin("grafbase"), "dev", "--port", self.port.to_string()).dir(&self.directory);
-        #[cfg(not(feature = "sqlite"))]
+        #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
 
@@ -319,7 +319,7 @@ impl Environment {
     }
 }
 
-#[cfg(not(feature = "sqlite"))]
+#[cfg(feature = "dynamodb")]
 mod dynamodb {
     use rusoto_dynamodb::{CreateTableInput, DeleteTableInput, DescribeTableInput, DynamoDb};
 
@@ -447,7 +447,7 @@ mod dynamodb {
 impl Drop for Environment {
     fn drop(&mut self) {
         self.kill_processes();
-        #[cfg(not(feature = "sqlite"))]
+        #[cfg(feature = "dynamodb")]
         if let Some(dynamodb_client) = self.dynamodb_env.dynamodb_client.take() {
             tokio::runtime::Runtime::new().unwrap().block_on(async move {
                 dynamodb::delete_database_async(dynamodb_client, self.dynamodb_env.table_name.clone()).await;

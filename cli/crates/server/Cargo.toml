@@ -64,5 +64,4 @@ common = { package = "grafbase-local-common", path = "../common", version = "0.1
 serde_json = "1"
 
 [features]
-default = ["sqlite"]
-sqlite = []
+dynamodb = []

@@ -69,7 +69,5 @@ wiremock = "0.5"
 [[bin]]
 name = "grafbase"
 
-
 [features]
-default = ["sqlite"]
-sqlite = []
+dynamodb = ["backend/dynamodb"]
