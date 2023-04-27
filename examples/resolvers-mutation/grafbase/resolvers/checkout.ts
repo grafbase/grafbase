@@ -1,15 +1,19 @@
 import Stripe from 'stripe'
 
-export default async function Resolver(_, { input }) {
-  const stripe = Stripe(process.env.STRIPE_SECRET_KEY)
+// eslint-disable-next-line turbo/no-undeclared-env-vars
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2022-11-15',
+  typescript: true
+})
 
+export default async function Resolver(_, { input }) {
   const { lineItems } = input
 
-  const { url } = await stripe.checkout.sessions.create({
+  const data = await stripe.checkout.sessions.create({
     success_url: 'https://example.com/success',
     line_items: lineItems,
     mode: 'payment'
   })
 
-  return { url }
+  return { url: data.url }
 }
