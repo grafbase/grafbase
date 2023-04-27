@@ -1,19 +1,15 @@
-use cfg_if::cfg_if;
 use clap::{arg, command, value_parser, Arg, ArgAction, Command};
 use indoc::indoc;
 
 /// creates the cli interface
 #[must_use]
 pub fn build_cli() -> Command {
-    cfg_if! {
-        if #[cfg(debug_assertions)] {
-            let command_builder = command!().arg(arg!(-t --trace <level> "Set tracing level").default_value("0").value_parser(value_parser!(u16)));
-        } else {
-            let command_builder = command!();
-        }
-    }
-
-    command_builder
+    command!()
+        .arg(
+            arg!(-t --trace <level> "Set tracing level")
+                .default_value("0")
+                .value_parser(value_parser!(u16)),
+        )
         .subcommand_required(true)
         .arg_required_else_help(true)
         .subcommand(
