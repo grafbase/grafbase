@@ -20,10 +20,7 @@ fnv = "1"
 futures = "0.3"
 futures-channel = { version = "0.3" }
 futures-timer = { version = "3", features = ["wasm-bindgen"] }
-futures-util = { workspace = true, features = [
-  "std",
-  "async-await",
-] }
+futures-util = { workspace = true, features = ["std", "async-await"] }
 grafbase = { path = "../grafbase", features = ["json"] }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
@@ -33,6 +30,7 @@ lru = { version = "0.10" }
 quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
+serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 wasm-timer = { version = "0.2" }
@@ -51,7 +49,6 @@ maplit = { version = "1", optional = true }
 once_cell = { version = "1", optional = true }
 regex = { version = "1", optional = true }
 send_wrapper = { version = "0.6", optional = true }
-serde = { workspace = true, optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 reqwest = { version = "0.11", default-features = false, optional = true, features = [
@@ -75,15 +72,7 @@ tokio = { version = "1", features = [
 [features]
 default = ["wasm_runtime"]
 local = []
-sqlite = [
-  "indoc",
-  "maplit",
-  "once_cell",
-  "regex",
-  "reqwest",
-  "send_wrapper",
-  "serde",
-]
+sqlite = ["indoc", "maplit", "once_cell", "regex", "reqwest", "send_wrapper"]
 tokio_runtime = ["tokio"]
 wasm_runtime = ["wasm-bindgen-futures"]
 tracing = ["dep:tracing"]

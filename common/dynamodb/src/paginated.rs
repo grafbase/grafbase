@@ -378,18 +378,19 @@ where
                 }
             };
             log::debug!(trace_id, "QueryPaginated Input {:?}", input);
-            let req = self
-                .query(QueryInput {
+            let request_fut = crate::retry::rusoto_retry(|| {
+                self.query(QueryInput {
                     exclusive_start_key: exclusive_start_key.clone(),
                     ..input.clone()
                 })
                 .inspect_err(|err| {
                     log::error!(trace_id, "Query Paginated Error {:?}", err);
-                });
-            #[cfg(feature = "tracing")]
-            let req = req.instrument(info_span!("fetch paginated"));
+                })
+            });
 
-            let resp = req.await?;
+            #[cfg(feature = "tracing")]
+            let request_fut = request_fut.instrument(info_span!("fetch paginated"));
+            let resp = request_fut.await?;
 
             // For each items in the result, we'll group them by pk.
             // As soon as we have more than limit items, we return.
