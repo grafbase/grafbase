@@ -59,7 +59,7 @@ impl Environment {
             if #[cfg(feature = "dynamodb")] {
                 return tokio::runtime::Runtime::new().unwrap().block_on(async move {
                     let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                    Self::init_internal(dynamodb_env, port)
+                    Self::init_internal(port, dynamodb_env)
                 });
             } else {
                 return Self::init_internal(port);
@@ -74,7 +74,7 @@ impl Environment {
             if #[cfg(feature = "dynamodb")] {
                 let mut dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
                 let cleanup_fut = dynamodb::delete_database_async(dynamodb_env.dynamodb_client.take().unwrap(), dynamodb_env.table_name.clone());
-                let myself = Self::init_internal(dynamodb_env, port);
+                let myself = Self::init_internal(port, dynamodb_env);
                 return (myself, cleanup_fut);
             } else {
                 return (Self::init_internal(port), std::future::ready(()));
@@ -82,8 +82,7 @@ impl Environment {
         );
     }
 
-    #[cfg(feature = "dynamodb")]
-    fn init_internal(dynamodb_env: dynamodb::DynamoDbEnvironment, port: u16) -> Self {
+    fn init_internal(port: u16, #[cfg(feature = "dynamodb")] dynamodb_env: dynamodb::DynamoDbEnvironment) -> Self {
         let temp_dir = Arc::new(tempdir().unwrap());
         env::set_current_dir(temp_dir.path()).unwrap();
 
@@ -104,69 +103,33 @@ impl Environment {
             temp_dir,
             schema_path,
             commands,
+            #[cfg(feature = "dynamodb")]
             dynamodb_env,
         }
     }
 
-    #[cfg(not(feature = "dynamodb"))]
-    fn init_internal(port: u16) -> Self {
-        let temp_dir = Arc::new(tempdir().unwrap());
-        env::set_current_dir(temp_dir.path()).unwrap();
-        let schema_path = temp_dir
-            .path()
-            .join(GRAFBASE_DIRECTORY_NAME)
-            .join(GRAFBASE_SCHEMA_FILE_NAME);
-        let directory = temp_dir.path().to_owned();
-        println!("Using temporary directory {:?}", directory.as_os_str());
-        let commands = vec![];
-        let endpoint = format!("http://127.0.0.1:{port}/graphql");
-        let playground_endpoint = format!("http://127.0.0.1:{port}");
-        Self {
-            endpoint,
-            playground_endpoint,
-            directory,
-            port,
-            temp_dir,
-            schema_path,
-            commands,
-        }
-    }
-
     /// Same environment but different port.
-    #[allow(clippy::needless_return)]
     pub fn from(other: &Environment) -> Self {
         let port = get_free_port();
         let temp_dir = other.temp_dir.clone();
         let endpoint = format!("http://127.0.0.1:{port}/graphql");
         let playground_endpoint = format!("http://127.0.0.1:{port}");
         let commands = vec![];
-        cfg_if!(
-            if #[cfg(feature = "dynamodb")] {
-                return Self {
-                    directory: other.directory.clone(),
-                    commands,
-                    endpoint,
-                    playground_endpoint,
-                    schema_path: other.schema_path.clone(),
-                    temp_dir,
-                    port,
-                    dynamodb_env: dynamodb::DynamoDbEnvironment {
-                        dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
-                        table_name: other.dynamodb_env.table_name.clone(),
-                    },
-                };
-            } else {
-                return Self {
-                    directory: other.directory.clone(),
-                    commands,
-                    endpoint,
-                    playground_endpoint,
-                    schema_path: other.schema_path.clone(),
-                    temp_dir,
-                    port,
-                };
-            }
-        );
+
+        Self {
+            directory: other.directory.clone(),
+            commands,
+            endpoint,
+            playground_endpoint,
+            schema_path: other.schema_path.clone(),
+            temp_dir,
+            port,
+            #[cfg(feature = "dynamodb")]
+            dynamodb_env: dynamodb::DynamoDbEnvironment {
+                dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
+                table_name: other.dynamodb_env.table_name.clone(),
+            },
+        }
     }
 
     pub fn create_client(&self) -> Client {
