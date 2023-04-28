@@ -54,7 +54,7 @@ impl OperationDetails {
 
         let mut responses = Vec::with_capacity(operation.responses.responses.len());
         for (status_code, response) in &operation.responses.responses {
-            match response {
+            match &response {
                 ReferenceOr::Reference { reference } => {
                     let reference = Ref::absolute(reference);
                     let response_components = components

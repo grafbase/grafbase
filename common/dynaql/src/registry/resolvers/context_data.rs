@@ -7,7 +7,7 @@ use super::{ResolvedPaginationInfo, ResolvedValue, ResolverTrait};
 use crate::registry::resolvers::ResolverContext;
 use crate::registry::transformers::Transformer;
 use crate::registry::variables::VariableResolveDefinition;
-use crate::registry::{MetaEnumValue, MetaType};
+use crate::registry::{MetaEnumValue, MetaType, UnionDiscriminator};
 use crate::{context::resolver_data_get_opt_ref, Context, Error, Value};
 use std::hash::Hash;
 use std::sync::Arc;
@@ -68,6 +68,8 @@ pub enum ContextDataResolver {
     PaginationData,
     /// Resolves the correct values of a remote enum using the given enum name
     RemoteEnum,
+    /// Resolves the __typename of a remote union type
+    RemoteUnion,
 }
 
 #[async_trait::async_trait]
@@ -223,6 +225,37 @@ impl ResolverTrait for ContextDataResolver {
 
                 return Ok(result);
             }
+            ContextDataResolver::RemoteUnion => {
+                let discriminators = ctx
+                    .current_discriminators()
+                    .ok_or_else(|| Error::new("Internal error resolving remote union"))?;
+
+                let resolved_value = last_resolver_value
+                    .ok_or_else(|| Error::new("Internal error resolving remote union"))?;
+
+                if !resolved_value.data_resolved.is_object() {
+                    // We can't add a __typename to something that's not an object so just pass
+                    // it through...
+                    return Ok(resolved_value.clone());
+                }
+
+                let typename = discriminators
+                    .iter()
+                    .find(|(_, discriminator)| {
+                        dbg!(dbg!(discriminator)
+                            .matches(dbg!(resolved_value.data_resolved.as_ref())))
+                    })
+                    .map(|(name, _)| name)
+                    .ok_or_else(|| Error::new("Could not determine __typename on remote union"))?;
+
+                let mut new_value = (*resolved_value.data_resolved).clone();
+                new_value.as_object_mut().unwrap().insert(
+                    "__typename".into(),
+                    serde_json::Value::String(typename.clone()),
+                );
+
+                Ok(ResolvedValue::new(Arc::new(new_value)))
+            }
         }
     }
 }
@@ -231,6 +264,13 @@ impl Context<'_> {
     fn current_enum_values(&self) -> Option<&IndexMap<String, MetaEnumValue>> {
         match self.resolver_node.as_ref()?.ty? {
             MetaType::Enum { enum_values, .. } => Some(enum_values),
+            _ => None,
+        }
+    }
+
+    fn current_discriminators(&self) -> Option<&Vec<(String, UnionDiscriminator)>> {
+        match self.resolver_node.as_ref()?.ty? {
+            MetaType::Union { discriminators, .. } => discriminators.as_ref(),
             _ => None,
         }
     }

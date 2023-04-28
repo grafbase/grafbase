@@ -74,7 +74,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     Some(schema) => extract_types(ctx, &schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false, None);
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
                     }
                 }
             }
@@ -90,7 +90,7 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                     Some(schema) => extract_types(ctx, &schema, parent),
                     None => {
                         // If the parameter has no schema we just assume it's a string.
-                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false, None);
+                        ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), false);
                     }
                 }
             }
@@ -169,16 +169,11 @@ enum ParentNode {
 }
 
 impl Context {
-    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool, default: Option<&Value>) -> NodeIndex {
+    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool) -> TypeNode<'_> {
         let dest_index = self.graph.add_node(node);
         self.add_type_edge(parent, dest_index, nullable);
 
-        if let Some(default_value) = default {
-            let default_index = self.graph.add_node(Node::Default(default_value.clone()));
-            self.graph.add_edge(dest_index, default_index, Edge::HasDefault);
-        }
-
-        dest_index
+        TypeNode(dest_index, self)
     }
 
     fn add_type_edge(&mut self, parent: ParentNode, dest_index: NodeIndex, nullable: bool) {
@@ -189,6 +184,35 @@ impl Context {
         }
         self.graph
             .add_edge(src_index, dest_index, parent.create_edge_weight(wrapping));
+    }
+}
+
+struct TypeNode<'a>(NodeIndex, &'a mut Context);
+
+impl<'a> TypeNode<'a> {
+    fn node_index(self) -> NodeIndex {
+        self.0
+    }
+
+    fn add_default(self, default: Option<&Value>) -> Self {
+        if let Some(default_value) = default {
+            let default_index = self.1.graph.add_node(Node::Default(default_value.clone()));
+            self.1.graph.add_edge(self.0, default_index, Edge::HasDefault);
+        }
+        self
+    }
+
+    fn add_possible_values<T>(self, values: &[T]) -> Self
+    where
+        T: serde::Serialize,
+    {
+        for value in values {
+            let value_index = self.1.graph.add_node(Node::PossibleValue(
+                serde_json::to_value(value).expect("default valueto be serializable"),
+            ));
+            self.1.graph.add_edge(self.0, value_index, Edge::HasPossibleValue);
+        }
+        self
     }
 }
 
@@ -282,46 +306,28 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         ReferenceOr::Item(schema) => match &schema.schema_kind {
             SchemaKind::Type(Type::String(ty)) => {
                 if ty.enumeration.is_empty() || !ty.enumeration.iter().all(is_valid_enum_value) {
-                    ctx.add_type_node(
-                        parent,
-                        Node::Scalar(ScalarKind::String),
-                        schema.schema_data.nullable,
-                        schema.schema_data.default.as_ref(),
-                    );
+                    ctx.add_type_node(parent, Node::Scalar(ScalarKind::String), schema.schema_data.nullable)
+                        .add_default(schema.schema_data.default.as_ref())
+                        .add_possible_values(&ty.enumeration);
                 } else {
-                    ctx.add_type_node(
-                        parent,
-                        Node::Enum {
-                            values: ty.enumeration.iter().flatten().cloned().collect(),
-                        },
-                        schema.schema_data.nullable,
-                        schema.schema_data.default.as_ref(),
-                    );
+                    ctx.add_type_node(parent, Node::Enum, schema.schema_data.nullable)
+                        .add_default(schema.schema_data.default.as_ref())
+                        .add_possible_values(&ty.enumeration.iter().flatten().rev().cloned().collect::<Vec<_>>());
                 }
             }
             SchemaKind::Type(Type::Boolean {}) => {
-                ctx.add_type_node(
-                    parent,
-                    Node::Scalar(ScalarKind::Boolean),
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
-                );
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Boolean), schema.schema_data.nullable)
+                    .add_default(schema.schema_data.default.as_ref());
             }
-            SchemaKind::Type(Type::Integer(_)) => {
-                ctx.add_type_node(
-                    parent,
-                    Node::Scalar(ScalarKind::Integer),
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
-                );
+            SchemaKind::Type(Type::Integer(integer)) => {
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Integer), schema.schema_data.nullable)
+                    .add_default(schema.schema_data.default.as_ref())
+                    .add_possible_values(&integer.enumeration);
             }
-            SchemaKind::Type(Type::Number(_)) => {
-                ctx.add_type_node(
-                    parent,
-                    Node::Scalar(ScalarKind::Float),
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
-                );
+            SchemaKind::Type(Type::Number(number)) => {
+                ctx.add_type_node(parent, Node::Scalar(ScalarKind::Float), schema.schema_data.nullable)
+                    .add_default(schema.schema_data.default.as_ref())
+                    .add_possible_values(&number.enumeration);
             }
             SchemaKind::Type(Type::Object(obj)) => {
                 extract_object(
@@ -357,12 +363,10 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
                     return;
                 }
 
-                let union_index = ctx.add_type_node(
-                    parent,
-                    Node::Union,
-                    schema.schema_data.nullable,
-                    schema.schema_data.default.as_ref(),
-                );
+                let union_index = ctx
+                    .add_type_node(parent, Node::Union, schema.schema_data.nullable)
+                    .add_default(schema.schema_data.default.as_ref())
+                    .node_index();
 
                 for schema in schemas {
                     extract_types(ctx, schema, ParentNode::Union(union_index));
@@ -406,7 +410,7 @@ fn extract_object(
         // emiting an object for it.  Not sure if this is a good idea - could be some APIs
         // that _require_ an empty object.  But lets see what happens
         if additional_properties != Some(&AdditionalProperties::Any(false)) {
-            ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
+            ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
         }
         return;
     }
@@ -418,11 +422,14 @@ fn extract_object(
         // There's an edge case where field names are made up entirely of symbols and numbers,
         // making it tricky to generate a good GQL name for those fields.
         // For now, I'm just making those objects JSON.
-        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false, None);
+        ctx.add_type_node(parent, Node::Scalar(ScalarKind::JsonObject), false);
         return;
     }
 
-    let object_index = ctx.add_type_node(parent, Node::Object, schema_data.nullable, schema_data.default.as_ref());
+    let object_index = ctx
+        .add_type_node(parent, Node::Object, schema_data.nullable)
+        .add_default(schema_data.default.as_ref())
+        .node_index();
 
     for (field_name, field_schema_or_ref) in properties {
         let required = required_fields.contains(field_name);

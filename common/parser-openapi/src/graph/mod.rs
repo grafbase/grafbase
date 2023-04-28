@@ -83,12 +83,13 @@ pub enum Node {
     Union,
 
     /// An enum type
-    Enum {
-        values: Vec<String>,
-    },
+    Enum,
 
     // The default value for a type node, linked via a HasDefault edge
     Default(Value),
+
+    // A possible value for a given scalar/enum
+    PossibleValue(Value),
 }
 
 #[derive(Debug)]
@@ -143,6 +144,9 @@ pub enum Edge {
 
     /// An edge between any type node and its associated default
     HasDefault,
+
+    // An edge between a scalar type and its possible values.
+    HasPossibleValue,
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -196,9 +200,10 @@ impl std::fmt::Debug for Node {
             Self::Operation(details) => f.debug_tuple("Operation").field(details).finish(),
             Self::Object => write!(f, "Object"),
             Self::Scalar(kind) => f.debug_tuple("Scalar").field(kind).finish(),
-            Self::Enum { values } => f.debug_struct("Enum").field("values", values).finish(),
+            Self::Enum => f.debug_struct("Enum").finish(),
             Self::Union => write!(f, "Union"),
             Self::Default(value) => f.debug_tuple("Default").field(value).finish(),
+            Self::PossibleValue(value) => f.debug_tuple("PossibleValue").field(value).finish(),
         }
     }
 }
@@ -294,7 +299,7 @@ impl OpenApiGraph {
     fn type_name(&self, node: NodeIndex) -> Option<String> {
         match &self.graph[node] {
             schema @ Node::Schema { .. } => Some(schema.name()?),
-            Node::Operation(_) | Node::Default(_) => None,
+            Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) => None,
             Node::Object | Node::Enum { .. } => {
                 // OpenAPI objects are generally anonymous so we walk back up the graph to the
                 // nearest named thing, and construct a name based on the fields in-betweeen.

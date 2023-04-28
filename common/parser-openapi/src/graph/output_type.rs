@@ -2,22 +2,27 @@ use petgraph::{
     graph::NodeIndex,
     visit::{Dfs, EdgeFiltered, EdgeRef, IntoEdges, Walker},
 };
+use serde_json::Value;
 
 use crate::{graph::Arity, output::OutputFieldKind};
 
 use super::{Edge, Enum, Node, OpenApiGraph, Scalar, WrappingType};
 
-#[derive(Clone, Copy, Debug)]
+/// A node that represents a composite output type in GraphQL
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OutputType {
     Object(NodeIndex),
     Union(NodeIndex),
 }
 
+/// A field of a GraphQL object
 pub struct OutputField {
-    pub name: String,
+    pub openapi_name: String,
     pub ty: OutputFieldType,
 }
 
+/// The type of a field of a GraphQL object - this contains wrapping information, and
+/// points at some underlying OutputType/Enum/Scalar
 pub struct OutputFieldType {
     pub wrapping: WrappingType,
     target_index: NodeIndex,
@@ -48,13 +53,20 @@ impl OutputType {
         graph.type_name(self.index())
     }
 
+    pub fn field(self, openapi_name: &str, graph: &OpenApiGraph) -> Option<OutputField> {
+        // Find other_types equivalent to field if it exists
+        self.fields(graph)
+            .into_iter()
+            .find(|field| field.openapi_name == openapi_name)
+    }
+
     pub fn fields(self, graph: &OpenApiGraph) -> Vec<OutputField> {
         graph
             .graph
             .edges(self.index())
             .filter_map(|edge| match edge.weight() {
                 super::Edge::HasField { name, wrapping } => Some(OutputField {
-                    name: name.clone(),
+                    openapi_name: name.clone(),
                     ty: OutputFieldType::from_index(edge.target(), wrapping),
                 }),
                 _ => None,
@@ -104,7 +116,7 @@ impl OutputField {
     /// This function tries to detect those fields so we can rename them.
     pub fn looks_like_nodes_field(&self, graph: &OpenApiGraph) -> bool {
         // For now we're only considering list fields that have the very generic name "data"
-        if self.name != "data" || self.ty.wrapping.arity() != Some(Arity::Many) {
+        if self.openapi_name != "data" || self.ty.wrapping.arity() != Some(Arity::Many) {
             return false;
         }
 
@@ -146,8 +158,25 @@ impl OutputFieldType {
     pub fn inner_kind(&self, graph: &OpenApiGraph) -> OutputFieldKind {
         if Enum::from_index(self.target_index, graph).is_some() {
             OutputFieldKind::Enum
+        } else if let Some(OutputType::Union(_)) = OutputType::from_index(self.target_index, graph) {
+            OutputFieldKind::Union
         } else {
             OutputFieldKind::Other
         }
+    }
+
+    pub fn is_required(&self) -> bool {
+        matches!(self.wrapping, WrappingType::NonNull(_))
+    }
+
+    pub fn possible_values<'a>(&self, graph: &'a OpenApiGraph) -> Vec<&'a Value> {
+        graph
+            .graph
+            .neighbors(self.target_index)
+            .filter_map(|index| match &graph.graph[index] {
+                Node::PossibleValue(value) => Some(value),
+                _ => None,
+            })
+            .collect()
     }
 }

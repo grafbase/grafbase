@@ -183,6 +183,7 @@ pub fn generate(union_args: &args::Union) -> GeneratorResult<TokenStream> {
                         },
                         visible: #visible,
                         rust_typename: ::std::borrow::ToOwned::to_owned(::std::any::type_name::<Self>()),
+                        discriminators: None
                     }
                 })
             }

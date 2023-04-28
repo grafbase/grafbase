@@ -41,7 +41,7 @@ impl InputValue {
 
                 InputValue::from_index(inner_index, wrapping, graph)
             }
-            Node::Operation(_) | Node::Default(_) => None,
+            Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) => None,
         }
     }
 
@@ -51,7 +51,7 @@ impl InputValue {
             Node::Object => Some(InputValueKind::InputObject),
             Node::Enum { .. } => Some(InputValueKind::Enum),
             Node::Union => Some(InputValueKind::Union),
-            Node::Schema(_) | Node::Operation(_) | Node::Default(_) => None,
+            Node::Schema(_) | Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) => None,
         }
     }
 
@@ -60,7 +60,7 @@ impl InputValue {
             Node::Scalar(s) => Some(s.type_name()),
             Node::Enum { .. } => Enum::from_index(self.index, graph)?.name(graph),
             Node::Object | Node::Union => InputObject::from_index(self.index, graph)?.name(graph),
-            Node::Schema(_) | Node::Operation(_) | Node::Default(_) => {
+            Node::Schema(_) | Node::Operation(_) | Node::Default(_) | Node::PossibleValue(_) => {
                 // These shouldn't really happen
                 None
             }
