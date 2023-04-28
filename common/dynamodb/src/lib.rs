@@ -44,10 +44,12 @@ use rusoto_core::credential::StaticProvider;
 use rusoto_core::{HttpClient, RusotoError};
 use rusoto_dynamodb::{DynamoDbClient, GetItemError, PutItemError, QueryError, TransactWriteItemsError};
 use std::sync::Arc;
+use std::time::Duration;
 use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
 pub mod dataloader;
+mod retry;
 
 pub mod export {
     pub use graph_entities;
@@ -73,7 +75,7 @@ pub use transaction::{TransactionError, TxItem};
 pub struct DynamoDBContext {
     // TODO: When going with tracing, remove this trace_id, useless.
     pub trace_id: String,
-    pub dynamodb_client: rusoto_dynamodb::DynamoDbClient,
+    pub dynamodb_client: dynomite::retry::RetryingDynamoDb<rusoto_dynamodb::DynamoDbClient>,
     pub dynamodb_table_name: String,
     pub closest_region: rusoto_core::Region,
     // FIXME: Move this to `grafbase-runtime`!
@@ -221,7 +223,12 @@ impl DynamoDBContext {
         let provider = StaticProvider::new_minimal(access_key_id, secret_access_key);
 
         let http_client = HttpClient::new().expect("failed to create HTTP client");
-        let client = DynamoDbClient::new_with(http_client, provider, region.clone());
+        let client = dynomite::retry::RetryingDynamoDb::new(
+            DynamoDbClient::new_with(http_client, provider, region.clone()),
+            // Haven't seen internal errors for DynamoDB yet for projects, but a single retry can't
+            // hurt. As DynamoDB will return internal errors when repartitioning.
+            dynomite::retry::Policy::Exponential(1, Duration::from_millis(200)),
+        );
 
         Self {
             trace_id,

@@ -77,19 +77,23 @@ impl Loader<(String, String)> for BatchGetItemLoader {
         };
 
         request_items.insert(self.ctx.dynamodb_table_name.clone(), keys_and_attributes);
-
-        let get_items = self.ctx.dynamodb_client.batch_get_item(BatchGetItemInput {
-            request_items,
-            return_consumed_capacity: None,
-        });
-        #[cfg(feature = "tracing")]
-        let get_items = get_items.instrument(info_span!("fetch batch_get_item"));
         let owned_by = match self.ctx.authorize_operation(RequestedOperation::Get)? {
             OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
             _ => None,
         };
-        let get_items = get_items
-            .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
+
+        let request_fut = crate::retry::rusoto_retry(|| {
+            self.ctx
+                .dynamodb_client
+                .batch_get_item(BatchGetItemInput {
+                    request_items: request_items.clone(),
+                    return_consumed_capacity: None,
+                })
+                .inspect_err(|err| log::error!(self.ctx.trace_id, "Error while getting items: {:?}", err))
+        });
+        #[cfg(feature = "tracing")]
+        let request_fut = request_fut.instrument(info_span!("fetch batch_get_item"));
+        let get_items = request_fut
             .await
             .map_err(|_| BatchGetItemLoaderError::DynamoError)?
             .responses
