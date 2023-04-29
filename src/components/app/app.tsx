@@ -46,6 +46,7 @@ export const App = () => {
                 protocol: 'EVENT_SOURCE'
               }
             }}
+            withPolling={true}
             withVisualOperationBuilder={true}
           />
         </StyledToolDisplayWrapper>
