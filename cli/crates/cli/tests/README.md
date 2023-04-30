@@ -17,6 +17,8 @@ docker run -p 8000:8000 --rm --name dynamodb -d amazon/dynamodb-local
 Testing tables are created and deleted on the fly.
 To execute the CLI, one must create a table:
 
+## Preparing the table for the CLI
+
 ```sh
 export AWS_ACCESS_KEY_ID="fakeMyKeyId"
 export AWS_SECRET_ACCESS_KEY="fakeSecretAccessKey"

@@ -68,16 +68,14 @@ impl Environment {
     }
 
     #[allow(clippy::needless_return, clippy::unused_async)]
-    pub async fn init_async() -> (Self, impl std::future::Future<Output = ()>) {
+    pub async fn init_async() -> Self {
         let port = get_free_port();
         cfg_if!(
             if #[cfg(feature = "dynamodb")] {
-                let mut dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
-                let cleanup_fut = dynamodb::delete_database_async(dynamodb_env.dynamodb_client.take().unwrap(), dynamodb_env.table_name.clone());
-                let myself = Self::init_internal(port, dynamodb_env);
-                return (myself, cleanup_fut);
+                let dynamodb_env = dynamodb::DynamoDbEnvironment::new(port).await;
+                return Self::init_internal(port, dynamodb_env);
             } else {
-                return (Self::init_internal(port), std::future::ready(()));
+                return Self::init_internal(port);
             }
         );
     }
@@ -302,7 +300,6 @@ mod dynamodb {
         }
     }
 
-    // #[allow(clippy::panic)]
     pub async fn create_database(table_name: &String) -> rusoto_dynamodb::DynamoDbClient {
         use rusoto_utils::{attr_def, gsi, key_schema};
 
@@ -412,9 +409,15 @@ impl Drop for Environment {
         self.kill_processes();
         #[cfg(feature = "dynamodb")]
         if let Some(dynamodb_client) = self.dynamodb_env.dynamodb_client.take() {
-            tokio::runtime::Runtime::new().unwrap().block_on(async move {
-                dynamodb::delete_database_async(dynamodb_client, self.dynamodb_env.table_name.clone()).await;
-            });
+            let cleanup_future = dynamodb::delete_database_async(dynamodb_client, self.dynamodb_env.table_name.clone());
+            match tokio::runtime::Handle::try_current() {
+                Ok(handle) => {
+                    tokio::task::block_in_place(|| handle.block_on(cleanup_future));
+                }
+                Err(_) => {
+                    tokio::runtime::Runtime::new().unwrap().block_on(cleanup_future);
+                }
+            }
         }
     }
 }

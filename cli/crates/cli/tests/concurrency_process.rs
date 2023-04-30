@@ -6,9 +6,9 @@ use serde_json::Value;
 use utils::consts::{CONCURRENCY_MUTATION, CONCURRENCY_QUERY, CONCURRENCY_SCHEMA};
 use utils::environment::Environment;
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn concurrency_process() {
-    let (mut env1, cleanup_fut) = Environment::init_async().await;
+    let mut env1 = Environment::init_async().await;
     let mut env2 = Environment::from(&env1);
 
     env1.grafbase_init();
@@ -43,5 +43,4 @@ async fn concurrency_process() {
 
     assert_eq!(result_list1.len(), 30);
     assert_eq!(result_list2.len(), 30);
-    cleanup_fut.await;
 }
