@@ -1,27 +1,5 @@
 //! Extensions for schema
 
-mod analyzer;
-#[cfg(feature = "apollo_persisted_queries")]
-pub mod apollo_persisted_queries;
-#[cfg(feature = "apollo_tracing")]
-mod apollo_tracing;
-#[cfg(feature = "log")]
-mod logger;
-#[cfg(feature = "opentelemetry")]
-mod opentelemetry;
-#[cfg(feature = "tracing")]
-mod tracing;
-
-pub use self::analyzer::Analyzer;
-#[cfg(feature = "apollo_tracing")]
-pub use self::apollo_tracing::ApolloTracing;
-#[cfg(feature = "log")]
-pub use self::logger::Logger;
-#[cfg(feature = "opentelemetry")]
-pub use self::opentelemetry::OpenTelemetry;
-#[cfg(feature = "tracing")]
-pub use self::tracing::Tracing;
-
 use std::any::{Any, TypeId};
 use std::future::Future;
 use std::sync::Arc;
