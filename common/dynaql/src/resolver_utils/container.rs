@@ -644,11 +644,8 @@ async fn resolve_typename<'a>(
     registry: &crate::registry::Registry,
 ) -> String {
     if let MetaType::Union { .. } = root {
-        match resolve_union_typename(ctx, field, root).await {
-            None => {
-                // Fallback to whatever the registry says
-            }
-            Some(typename) => return typename,
+        if let Some(typename) = resolve_union_typename(ctx, field, root).await {
+            return typename;
         }
     }
 
