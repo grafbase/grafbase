@@ -45,6 +45,9 @@ runs:
       run: |
         rustup target list
 
+    - name: Moon
+      uses: moonrepo/setup-moon-action@v1
+
     - name: Install cargo-nextest & libs linux
       if: ${{ inputs.platform == 'linux' }}
       shell: bash

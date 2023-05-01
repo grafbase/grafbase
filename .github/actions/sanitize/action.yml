@@ -23,14 +23,14 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.working-directory }}
-        cargo fmt --check
+        moon run format
 
     - if: ${{ inputs.lint == 'true' }}
       name: cargo clippy
       shell: bash
       run: |
         cd ${{ inputs.working-directory }}
-        cargo clippy --locked --all-targets --tests -- -D warnings
+        moon run lint
 
     - name: Setup Node.js
       uses: actions/setup-node@v3

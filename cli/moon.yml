@@ -1,8 +1,18 @@
 language: 'rust'
 
 tasks:
+  format:
+    command: 'cargo fmt --check'
+    inputs:
+      - 'src/**/*'
+      - 'Cargo.toml'
   build:
     command: 'cargo build'
+    inputs:
+      - 'src/**/*'
+      - 'Cargo.toml'
+  lint:
+    command: 'cargo clippy --locked --all-targets --tests -- -D warnings'
     inputs:
       - 'src/**/*'
       - 'Cargo.toml'
