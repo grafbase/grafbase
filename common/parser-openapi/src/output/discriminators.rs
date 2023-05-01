@@ -44,7 +44,7 @@ impl crate::graph::OutputType {
         // The above strategies aren't always good enough but we can support one single variant
         // without a discriminator as a fallback if none of the others match.
         // We sort by Some/None so these end up at the end of the list.
-        discriminators.sort_by_key(|(discriminator, _)| discriminator.is_some());
+        discriminators.sort_by_key(|(discriminator, _)| !discriminator.is_some());
 
         if let Some((fallback, _)) = discriminators
             .iter_mut()
@@ -109,9 +109,9 @@ impl crate::graph::OutputType {
                     .map(|value| value.to_string())
                     .collect::<HashSet<_>>();
 
-                possible_types
+                !possible_types
                     .iter()
-                    .filter(|other_type| **other_type == self)
+                    .filter(|other_type| **other_type != self)
                     .filter_map(|other_type| {
                         // Find other_types equivalent to field if it exists
                         other_type.field(&field.openapi_name, graph)
