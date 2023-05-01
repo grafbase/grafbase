@@ -290,7 +290,7 @@ async fn build_resolver(
 
     let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
 
-    let _ = tokio::fs::remove_file(&wrangler_toml_file_path).await;
+    let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
 
     let wrangler_arguments = &[
         "wrangler",
@@ -431,7 +431,7 @@ pub async fn build_resolvers(
                     .expect("must succeed");
                 } else {
                     let start = std::time::Instant::now();
-                    let _ = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
+                    let _: Result<_, _> = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
                     build_resolver(
                         environment,
                         environment_variables,
@@ -441,7 +441,7 @@ pub async fn build_resolvers(
                         tracing,
                     )
                     .await?;
-                    let _ = sender.send(ServerMessage::CompleteResolverBuild {
+                    let _: Result<_, _> = sender.send(ServerMessage::CompleteResolverBuild {
                         name: resolver_name.clone(),
                         duration: start.elapsed(),
                     });

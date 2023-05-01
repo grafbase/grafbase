@@ -19,7 +19,7 @@ pub fn login() -> Result<(), CliError> {
         sleep(Duration::from_secs(1));
         // as we show the URL in the CLI output, not being able
         // to open the browser needs no handling
-        let _ = webbrowser::open(&url);
+        let _: Result<_, _> = webbrowser::open(&url);
     };
 
     let spinner = ProgressBar::new_spinner()

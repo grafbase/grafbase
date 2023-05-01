@@ -65,11 +65,11 @@ impl Report {
         //if it is available
         for (idx, frame) in Backtrace::new().frames().iter().skip(SKIP_FRAMES_NUM).enumerate() {
             let ip = frame.ip();
-            let _ = write!(backtrace, "\n{idx:4}: {ip:HEX_WIDTH$?}");
+            let _: Result<_, _> = write!(backtrace, "\n{idx:4}: {ip:HEX_WIDTH$?}");
 
             let symbols = frame.symbols();
             if symbols.is_empty() {
-                let _ = write!(backtrace, " - <unresolved>");
+                let _: Result<_, _> = write!(backtrace, " - <unresolved>");
                 continue;
             }
 
@@ -78,18 +78,18 @@ impl Report {
                 //if there are several addresses
                 //we need to put it on next line
                 if idx != 0 {
-                    let _ = write!(backtrace, "\n{:NEXT_SYMBOL_PADDING$}", "");
+                    let _: Result<_, _> = write!(backtrace, "\n{:NEXT_SYMBOL_PADDING$}", "");
                 }
 
                 if let Some(name) = symbol.name() {
-                    let _ = write!(backtrace, " - {name}");
+                    let _: Result<_, _> = write!(backtrace, " - {name}");
                 } else {
-                    let _ = write!(backtrace, " - <unknown>");
+                    let _: Result<_, _> = write!(backtrace, " - <unknown>");
                 }
 
                 //See if there is debug information with file name and line
                 if let (Some(file), Some(line)) = (symbol.filename(), symbol.lineno()) {
-                    let _ = write!(
+                    let _: Result<_, _> = write!(
                         backtrace,
                         "\n{:3$}at {}:{}",
                         "",
