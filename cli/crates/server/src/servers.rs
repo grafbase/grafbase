@@ -105,7 +105,7 @@ async fn server_loop(
             }) => {
                 trace!("reload");
                 path_changed = Some(path.clone());
-                let _ = sender.send(ServerMessage::Reload(path, file_event_type));
+                let _: Result<_, _> = sender.send(ServerMessage::Reload(path, file_event_type));
             }
         }
     }
@@ -132,7 +132,7 @@ async fn spawn_servers(
     let mut resolvers = match run_schema_parser(&environment_variables).await {
         Ok(resolvers) => resolvers,
         Err(error) => {
-            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
             tokio::spawn(async move { error_server::start(worker_port, error.to_string(), bridge_event_bus).await })
                 .await??;
             return Ok(());
@@ -160,7 +160,7 @@ async fn spawn_servers(
     let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
         Ok(resolver_paths) => resolver_paths,
         Err(error) => {
-            let _ = sender.send(ServerMessage::CompilationError(error.to_string()));
+            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
             // TODO consider disabling colored output from wrangler
             let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
                 .ok()
@@ -250,7 +250,7 @@ async fn spawn_servers(
     trace!("Spawning {miniflare:?}");
     let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
 
-    let _ = sender.send(ServerMessage::Ready(worker_port));
+    let _: Result<_, _> = sender.send(ServerMessage::Ready(worker_port));
 
     let miniflare_output_result = miniflare.wait_with_output();
 
