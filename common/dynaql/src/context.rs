@@ -955,6 +955,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     let last = last.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
                     let order_by = order_by.expect_oneof::<OrderByDirection>(self, None)?;
 
+                    // We know it has to be `createdAt` for now.
                     let direction = match order_by.map(|x| x.value) {
                         Some(OrderByDirection::ASC) => Direction::Forward,
                         Some(OrderByDirection::DESC) => Direction::Backward,
