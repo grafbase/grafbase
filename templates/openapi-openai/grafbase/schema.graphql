@@ -6,4 +6,7 @@ extend schema
     headers: [
       { name: "Authorization", value: "Bearer {{ env.OPENAI_API_KEY }}" }
     ]
+    transforms: {
+      queryNaming: OPERATION_ID
+    }
   )
