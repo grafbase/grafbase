@@ -2,7 +2,7 @@
 
 ## [0.18.4] - 2023-04-21
 
-[CHANGELOG](changelog/0.18.4.md
+[CHANGELOG](changelog/0.18.4.md)
 
 ## [0.18.3] - 2023-04-20
 
