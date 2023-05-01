@@ -1,4 +1,4 @@
-use dynaql_parser::Positioned;
+use dynaql_parser::{Pos, Positioned};
 use futures_util::FutureExt;
 use graph_entities::{
     CompactValue, NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId,
@@ -7,9 +7,11 @@ use graph_entities::{
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
+use ulid::Ulid;
 
 use crate::extensions::ResolveInfo;
 use crate::parser::types::Selection;
+use crate::registry::resolvers::{ResolvedValue, ResolverContext, ResolverTrait};
 use crate::registry::MetaType;
 use crate::{
     relations_edges, Context, ContextBase, ContextSelectionSet, Error, Name, OutputType,
@@ -167,7 +169,7 @@ async fn resolve_container_inner<'a>(
     let mut fields = FieldsGraph(Vec::new());
     fields.add_set(ctx, root, node_id.clone())?;
 
-    let res = if parallel {
+    let results = if parallel {
         futures_util::future::try_join_all(fields.0).await?
     } else {
         let mut results = Vec::with_capacity(fields.0.len());
@@ -177,11 +179,13 @@ async fn resolve_container_inner<'a>(
         results
     };
 
+    let results = results.flatten();
+
     let relations = relations_edges(ctx, root);
 
     if let Some(node_id) = node_id {
         let mut container = ResponseContainer::new_node(node_id);
-        for ((alias, name), value) in res {
+        for ((alias, name), value) in results {
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
             // Temp: little hack while we rework the execution step, we should not do that here to
@@ -213,7 +217,7 @@ async fn resolve_container_inner<'a>(
             .new_node_unchecked(QueryResponseNode::from(container)))
     } else {
         let mut container = ResponseContainer::new_container();
-        for ((alias, name), value) in res {
+        for ((alias, name), value) in results {
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
 
@@ -276,8 +280,22 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         .await
         .new_node_unchecked(QueryResponseNode::from(container)))
 }
+
+/// We take individual selections from our selection set and convert those into futures.
+///
+/// Each of those futures will put out one of these.
+#[derive(Debug)]
+enum GraphFutureOutput {
+    /// Field selections are going to put out one of these variants.
+    Field((Option<Name>, Name), ResponseNodeId),
+    /// Spreads or fragments are going to put out one of these because each spread can
+    /// resolve to multiple inner fields.
+    MultipleFields(Vec<((Option<Name>, Name), ResponseNodeId)>),
+}
+
 type BoxFieldGraphFuture<'a> =
-    Pin<Box<dyn Future<Output = ServerResult<((Option<Name>, Name), ResponseNodeId)>> + 'a + Send>>;
+    Pin<Box<dyn Future<Output = ServerResult<GraphFutureOutput>> + 'a + Send>>;
+
 /// A set of fields on an container that are being selected.
 pub struct FieldsGraph<'a>(Vec<BoxFieldGraphFuture<'a>>);
 
@@ -305,8 +323,6 @@ impl<'a> FieldsGraph<'a> {
         root: &'a MetaType,
         current_node_id: Option<NodeID<'a>>,
     ) -> ServerResult<()> {
-        let registry = ctx.registry();
-
         for selection in &ctx.item.node.items {
             let current_node_id = current_node_id.clone();
             match &selection.node {
@@ -317,20 +333,25 @@ impl<'a> FieldsGraph<'a> {
                         let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
                         let field_name = ctx_field.item.node.name.node.clone();
                         let alias = ctx_field.item.node.alias.clone().map(|x| x.node);
-                        let typename = registry.introspection_type_name(root).to_owned();
 
-                        self.0.push(Box::pin(async move {
-                            let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                CompactValue::String(typename),
-                            ));
-                            Ok((
-                                (alias, field_name),
-                                ctx_field
-                                    .response_graph
-                                    .write()
-                                    .await
-                                    .new_node_unchecked(node),
-                            ))
+                        self.0.push(Box::pin({
+                            let ctx = ctx.clone();
+                            async move {
+                                let registry = ctx.registry();
+                                let node = QueryResponseNode::from(ResponsePrimitive::new(
+                                    CompactValue::String(
+                                        resolve_typename(&ctx, field, root, registry).await,
+                                    ),
+                                ));
+                                Ok(GraphFutureOutput::Field(
+                                    (alias, field_name),
+                                    ctx_field
+                                        .response_graph
+                                        .write()
+                                        .await
+                                        .new_node_unchecked(node),
+                                ))
+                            }
                         }));
                         continue;
                     }
@@ -354,7 +375,7 @@ impl<'a> FieldsGraph<'a> {
                                 .collect();
 
                             if extensions.is_empty() && field.node.directives.is_empty() {
-                                Ok((
+                                Ok(GraphFutureOutput::Field(
                                     (alias, field_name),
                                     response_id_unwrap_or_null(
                                         &ctx_field,
@@ -407,7 +428,7 @@ impl<'a> FieldsGraph<'a> {
 
                                 if field.node.directives.is_empty() {
                                     futures_util::pin_mut!(resolve_fut);
-                                    Ok((
+                                    Ok(GraphFutureOutput::Field(
                                         (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
@@ -449,7 +470,7 @@ impl<'a> FieldsGraph<'a> {
                                         }
                                     }
 
-                                    Ok((
+                                    Ok(GraphFutureOutput::Field(
                                         (alias, field_name),
                                         response_id_unwrap_or_null(
                                             &ctx_field,
@@ -467,7 +488,7 @@ impl<'a> FieldsGraph<'a> {
                     self.0.push(resolve_fut);
                 }
                 selection => {
-                    let (type_condition, selection_set) = match selection {
+                    let (type_condition, selection_set, position) = match selection {
                         Selection::Field(_) => unreachable!(),
                         Selection::FragmentSpread(spread) => {
                             let fragment =
@@ -487,45 +508,176 @@ impl<'a> FieldsGraph<'a> {
                             (
                                 Some(&fragment.node.type_condition),
                                 &fragment.node.selection_set,
+                                fragment.pos,
                             )
                         }
                         Selection::InlineFragment(fragment) => (
                             fragment.node.type_condition.as_ref(),
                             &fragment.node.selection_set,
+                            fragment.pos,
                         ),
                     };
                     let type_condition =
                         type_condition.map(|condition| condition.node.on.node.as_str());
 
-                    let introspection_type_name = registry.introspection_type_name(root);
+                    match root {
+                        MetaType::Union { .. } => {
+                            let type_condition = type_condition.ok_or_else(|| {
+                                ServerError::new(
+                                    "Spreads on union types require a type condition",
+                                    Some(position),
+                                )
+                            })?;
 
-                    let applies_concrete_object = type_condition.map_or(false, |condition| {
-                        introspection_type_name == condition
-                            || ctx
-                                .schema_env
-                                .registry
-                                .implements
-                                .get(introspection_type_name)
-                                .map_or(false, |interfaces| interfaces.contains(condition))
-                    });
-                    if applies_concrete_object {
-                        collect_all_fields_graph_meta(
-                            root,
-                            &ctx.with_selection_set(selection_set),
-                            self,
-                            current_node_id,
-                        )?;
-                    } else if type_condition.map_or(true, |condition| root.name() == condition) {
-                        // The fragment applies to an interface type.
-                        let _ctx = ctx.with_selection_set(selection_set);
-                        // self.add_set(&ctx, root)?;
-                        todo!()
+                            self.0.push(Box::pin({
+                                let ctx = ctx.clone();
+                                async move {
+                                    resolve_union_spread(
+                                        ctx,
+                                        type_condition,
+                                        root,
+                                        selection_set,
+                                        current_node_id,
+                                    )
+                                    .await
+                                }
+                            }));
+                        }
+                        _ => {
+                            let registry = ctx.registry();
+                            self.add_spread_fields(
+                                registry,
+                                root,
+                                type_condition,
+                                &ctx.with_selection_set(selection_set),
+                                current_node_id,
+                            )?;
+                        }
                     }
                 }
             }
         }
         Ok(())
     }
+
+    /// Adds spread fields to the current set in the case where we're not on a union.
+    fn add_spread_fields(
+        &mut self,
+        registry: &crate::registry::Registry,
+        root: &'a MetaType,
+        type_condition: Option<&str>,
+        ctx: &ContextSelectionSet<'a>,
+        current_node_id: Option<NodeID<'a>>,
+    ) -> Result<(), ServerError> {
+        let introspection_type_name = registry.introspection_type_name(root);
+        let applies_concrete_object = type_condition.map_or(false, |condition| {
+            introspection_type_name == condition
+                || ctx
+                    .schema_env
+                    .registry
+                    .implements
+                    .get(introspection_type_name)
+                    .map_or(false, |interfaces| interfaces.contains(condition))
+        });
+
+        if applies_concrete_object {
+            collect_all_fields_graph_meta(root, ctx, self, current_node_id)?;
+        } else if type_condition.map_or(true, |condition| root.name() == condition) {
+            // The fragment applies to an interface type.
+            // self.add_set(&ctx, root)?;
+            todo!()
+        }
+
+        Ok(())
+    }
+}
+
+async fn resolve_union_spread<'a>(
+    ctx: ContextSelectionSet<'a>,
+    type_condition: &str,
+    union_type: &'a MetaType,
+    selection_set: &Positioned<dynaql_parser::types::SelectionSet>,
+    current_node_id: Option<NodeID<'a>>,
+) -> ServerResult<GraphFutureOutput> {
+    let registry = ctx.registry();
+    let field = Positioned::new(
+        dynaql_parser::types::Field {
+            alias: None,
+            name: Positioned::new(Name::new("__typename"), Pos::default()),
+            arguments: vec![],
+            directives: vec![],
+            selection_set: Positioned::new(
+                dynaql_parser::types::SelectionSet::default(),
+                Pos::default(),
+            ),
+        },
+        Pos::default(),
+    );
+    let typename = resolve_typename(&ctx, &field, union_type, registry).await;
+    if typename != type_condition {
+        return Ok(GraphFutureOutput::MultipleFields(vec![]));
+    }
+    let union_member = registry.types.get(&typename).ok_or_else(|| {
+        ServerError::new(
+            format!(r#"Found an unknown typename: "{typename}"."#,),
+            None,
+        )
+    })?;
+    let mut subfields = FieldsGraph(Vec::new());
+    subfields.add_set(
+        &ctx.with_selection_set(selection_set),
+        union_member,
+        current_node_id,
+    )?;
+
+    Ok(GraphFutureOutput::MultipleFields(
+        futures_util::future::try_join_all(subfields.0)
+            .await?
+            .flatten(),
+    ))
+}
+
+async fn resolve_typename<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    field: &'a Positioned<dynaql_parser::types::Field>,
+    root: &'a MetaType,
+    registry: &crate::registry::Registry,
+) -> String {
+    if let MetaType::Union { .. } = root {
+        if let Some(typename) = resolve_union_typename(ctx, field, root).await {
+            return typename;
+        }
+    }
+
+    registry.introspection_type_name(root).to_owned()
+}
+
+/// Union types are currently only used in OpenAPI types, which put the __typename into the JSON
+/// they return.  This function returns that if present
+async fn resolve_union_typename<'a>(
+    ctx: &ContextSelectionSet<'a>,
+    field: &Positioned<dynaql_parser::types::Field>,
+    root: &MetaType,
+) -> Option<String> {
+    let value = ResolvedValue::new(Arc::new(serde_json::Value::Null));
+    let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+    let execution_id = Ulid::from_datetime(ctx.query_env.current_datetime.clone().into());
+    let resolver_ctx = ResolverContext::new(&execution_id);
+    let resolved_value = ctx
+        .resolver_node
+        .as_ref()?
+        .resolve(&ctx_field, &resolver_ctx, Some(&value))
+        .await
+        .ok()?;
+
+    Some(
+        resolved_value
+            .data_resolved
+            .as_object()?
+            .get("__typename")?
+            .as_str()?
+            .to_owned(),
+    )
 }
 
 type BoxFieldFuture<'a> =
@@ -746,5 +898,20 @@ impl<'a> Fields<'a> {
             }
         }
         Ok(())
+    }
+}
+
+trait VecGraphFutureOutputExt {
+    fn flatten(self) -> Vec<((Option<Name>, Name), ResponseNodeId)>;
+}
+
+impl VecGraphFutureOutputExt for Vec<GraphFutureOutput> {
+    fn flatten(self) -> Vec<((Option<Name>, Name), ResponseNodeId)> {
+        self.into_iter()
+            .flat_map(|result| match result {
+                GraphFutureOutput::Field(names, value) => vec![(names, value)],
+                GraphFutureOutput::MultipleFields(fields) => fields,
+            })
+            .collect()
     }
 }
