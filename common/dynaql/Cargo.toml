@@ -59,7 +59,7 @@ multer = "2"
 nom = "7.1"
 num-traits = "0.2"
 pin-project-lite = "0.2"
-regex = "1"
+regex = { workspace = true }
 send_wrapper = { version = "0.6", features = ["futures"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
