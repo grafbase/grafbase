@@ -49,23 +49,34 @@ impl TryFrom<GatewayRequest> for worker::Request {
     }
 }
 
-/// Self-contained execution request
+/// Owned execution request
 #[derive(serde::Deserialize, serde::Serialize)]
-pub struct ExecutionRequest<'a> {
+pub struct ExecutionRequest {
     /// The versioned registry to be used when executing the request
-    pub versioned_registry: VersionedRegistry<'a>,
+    pub versioned_registry: VersionedRegistry<'static>,
     /// The request to execute
     pub request: dynaql::Request,
     /// Customer specific configuration needed to execute the request
     pub config: CustomerDeploymentConfig,
     /// Authorization details
     pub auth: ExecutionAuth,
+
+    #[serde(skip)]
+    /// AWS Region closest to the worker Colocation
+    pub closest_aws_region: Option<AwsRegion>,
+    /// Request headers
+    #[serde(skip)]
+    pub execution_headers: HashMap<String, String>,
 }
 
 /// Execution health request with the necessary data to perform a health check for a given deployment
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExecutionHealthRequest {
+    /// Customer specific configuration needed to execute the request
     pub config: CustomerDeploymentConfig,
+    /// Request headers
+    #[serde(skip)]
+    pub execution_headers: HashMap<String, String>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]

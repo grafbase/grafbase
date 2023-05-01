@@ -48,8 +48,8 @@ impl Response {
         }
     }
 
-    pub fn into_graphql_response(self) -> GraphQlResponse {
-        GraphQlResponse(self)
+    pub fn to_graphql_response(&self) -> GraphQlResponse {
+        GraphQlResponse(&self)
     }
 
     /// Create a new successful response with the data.
@@ -180,11 +180,11 @@ impl BatchResponse {
         match self {
             Self::Batch(multiple) => serde_json::to_value(
                 multiple
-                    .into_iter()
-                    .map(Response::into_graphql_response)
+                    .iter()
+                    .map(Response::to_graphql_response)
                     .collect::<Vec<_>>(),
             ),
-            Self::Single(single) => serde_json::to_value(single.into_graphql_response()),
+            Self::Single(single) => serde_json::to_value(single.to_graphql_response()),
         }
     }
 }
@@ -202,9 +202,9 @@ impl From<Vec<Response>> for BatchResponse {
 }
 
 /// A wrapper around Response that Serialises in GraphQL format
-pub struct GraphQlResponse(Response);
+pub struct GraphQlResponse<'a>(&'a Response);
 
-impl serde::Serialize for GraphQlResponse {
+impl serde::Serialize for GraphQlResponse<'_> {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
