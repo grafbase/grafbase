@@ -42,4 +42,3 @@ node:
   # Sync `node.version` to a 3rd-party version manager's config file.
   # Accepts "nodenv" (.node-version), "nvm" (.nvmrc), or none.
   # syncVersionManagerConfig: 'nvm'
-  
