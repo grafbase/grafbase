@@ -6,13 +6,15 @@ use serde_json::Value;
 
 use crate::{graph::Arity, output::OutputFieldKind};
 
-use super::{Edge, Enum, Node, OpenApiGraph, Scalar, WrappingType};
+use super::{Edge, Enum, Node, OpenApiGraph, Scalar, ScalarKind, WrappingType};
 
 /// A node that represents a composite output type in GraphQL
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OutputType {
     Object(NodeIndex),
     Union(NodeIndex),
+    /// A wrapper type for a scalar so it can appear in a union
+    ScalarWrapper(NodeIndex),
 }
 
 /// A field of a GraphQL object
@@ -86,16 +88,24 @@ impl OutputType {
                 // OpenAPI unions can contain other unions, GraphQL unions cannot.
                 // So we flatten any nested unions down here.
                 match output_type {
-                    OutputType::Object(_) => vec![output_type],
+                    OutputType::Object(_) | OutputType::ScalarWrapper(_) => vec![output_type],
                     OutputType::Union(_) => output_type.possible_types(graph),
                 }
             })
             .collect()
     }
 
+    // Returns the inner scalar kind of this type if it's a ScalarWrapper
+    pub fn inner_scalar_kind(self, graph: &OpenApiGraph) -> Option<ScalarKind> {
+        match graph.graph[self.index()] {
+            Node::UnionWrappedScalar(scalar_kind) => Some(scalar_kind),
+            _ => None,
+        }
+    }
+
     fn index(self) -> NodeIndex {
         match self {
-            OutputType::Object(idx) | OutputType::Union(idx) => idx,
+            OutputType::Object(idx) | OutputType::Union(idx) | OutputType::ScalarWrapper(idx) => idx,
         }
     }
 
@@ -103,6 +113,7 @@ impl OutputType {
         match graph.graph[index] {
             Node::Object => Some(OutputType::Object(index)),
             Node::Union => Some(OutputType::Union(index)),
+            Node::UnionWrappedScalar(_) => Some(OutputType::ScalarWrapper(index)),
             Node::Schema(_) => OutputType::from_index(graph.schema_target(index)?, graph),
             _ => None,
         }

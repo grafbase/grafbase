@@ -24,9 +24,12 @@ impl InputObject {
             Node::Object => Some(InputObject { index, one_of: false }),
             Node::Union => Some(InputObject { index, one_of: true }),
             Node::Schema(_) => InputObject::from_index(graph.schema_target(index)?, graph),
-            Node::Operation(_) | Node::Scalar(_) | Node::Enum { .. } | Node::Default(_) | Node::PossibleValue(_) => {
-                None
-            }
+            Node::Operation(_)
+            | Node::Scalar(_)
+            | Node::Enum { .. }
+            | Node::Default(_)
+            | Node::PossibleValue(_)
+            | Node::UnionWrappedScalar(_) => None,
         }
     }
 

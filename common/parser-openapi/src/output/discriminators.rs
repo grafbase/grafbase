@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use dynaql::registry::UnionDiscriminator;
 use itertools::Itertools;
 
-use crate::graph::OpenApiGraph;
+use crate::graph::{OpenApiGraph, ScalarKind};
 
 impl crate::graph::OutputType {
     /// Tries to find discriminators for a union - fields we can use to tell which variant
@@ -35,7 +35,8 @@ impl crate::graph::OutputType {
         let mut discriminators = possible_types
             .iter()
             .map(|ty| {
-                ty.unique_field_discriminator(&unsuitable_names, graph)
+                ty.scalar_wrapper_discriminator(graph)
+                    .or_else(|| ty.unique_field_discriminator(&unsuitable_names, graph))
                     .or_else(|| ty.possible_value_discriminator(graph, &possible_types))
             })
             .zip(&possible_types)
@@ -67,6 +68,12 @@ impl crate::graph::OutputType {
                 Some((ty.name(graph)?, discriminator?))
             })
             .collect()
+    }
+
+    fn scalar_wrapper_discriminator(self, graph: &OpenApiGraph) -> Option<UnionDiscriminator> {
+        Some(UnionDiscriminator::IsAScalar(
+            self.inner_scalar_kind(graph)?.try_into().ok()?,
+        ))
     }
 
     /// Finds a required field thats name is unique to this member of a union, which
@@ -138,5 +145,22 @@ impl crate::graph::OutputType {
                 field.ty.possible_values(graph).into_iter().cloned().collect(),
             )
         })
+    }
+}
+
+impl TryFrom<ScalarKind> for dynaql::registry::union_discriminator::ScalarKind {
+    type Error = ();
+
+    fn try_from(value: ScalarKind) -> Result<Self, Self::Error> {
+        use dynaql::registry::union_discriminator::ScalarKind as DynaqlScalarKind;
+        match value {
+            ScalarKind::String => Ok(DynaqlScalarKind::String),
+            ScalarKind::Integer | ScalarKind::Float => Ok(DynaqlScalarKind::Number),
+            ScalarKind::Boolean => Ok(DynaqlScalarKind::Boolean),
+            ScalarKind::JsonObject => {
+                // I'm really hoping there are no schemas that do this...
+                Err(())
+            }
+        }
     }
 }
