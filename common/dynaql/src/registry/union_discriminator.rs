@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 /// Specifies how to determine which possible_type a union represents.
 ///
 /// This is mostly useful for remote unions (such as those `@openapi` generates)
@@ -7,20 +9,34 @@ pub enum UnionDiscriminator {
     /// If the named field is present then this is the correct variant
     FieldPresent(String),
     /// This is the correct variant if the given field has one of the provided values
-    FieldHasValue(String, Vec<serde_json::Value>),
+    FieldHasValue(String, Vec<Value>),
+    /// This is the correct variant if the input is of a particular type
+    IsAScalar(ScalarKind),
     /// Fallback on this type if no others match
     Fallback,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+pub enum ScalarKind {
+    String,
+    Number,
+    Boolean,
+}
+
 impl UnionDiscriminator {
     /// Checks if the provided data matches this discriminator
-    pub fn matches(&self, data: &serde_json::Value) -> bool {
-        if let UnionDiscriminator::Fallback = self {
-            return true;
+    pub fn matches(&self, data: &Value) -> bool {
+        match (self, data) {
+            (UnionDiscriminator::Fallback, _) => return true,
+            (UnionDiscriminator::IsAScalar(ScalarKind::Boolean), Value::Bool(_)) => return true,
+            (UnionDiscriminator::IsAScalar(ScalarKind::String), Value::String(_)) => return true,
+            (UnionDiscriminator::IsAScalar(ScalarKind::Number), Value::Number(_)) => return true,
+            (UnionDiscriminator::IsAScalar(_), _) => return false,
+            _ => {}
         }
 
-        let serde_json::Value::Object(object) = data else {
-            // Currently we only discriminate against objects
+        let Value::Object(object) = data else {
+            // The other discriminators only support objects.
             return false;
         };
 
@@ -35,7 +51,7 @@ impl UnionDiscriminator {
                     .iter()
                     .any(|expected_value| expected_value == actual_value)
             }
-            UnionDiscriminator::Fallback => {
+            UnionDiscriminator::Fallback | UnionDiscriminator::IsAScalar(_) => {
                 unreachable!()
             }
         }
@@ -54,6 +70,7 @@ impl std::hash::Hash for UnionDiscriminator {
                     value.to_string().hash(state)
                 }
             }
+            UnionDiscriminator::IsAScalar(inner) => inner.hash(state),
             UnionDiscriminator::Fallback => {}
         }
     }

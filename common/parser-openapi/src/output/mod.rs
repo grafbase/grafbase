@@ -99,6 +99,21 @@ impl IntoMetaType for OutputType {
                 rust_typename: name,
                 discriminators: Some(self.discriminators(graph)),
             }),
+            OutputType::ScalarWrapper(_) => {
+                let scalar_name = self.inner_scalar_kind(graph)?.type_name();
+                Some(object(
+                    name,
+                    vec![MetaField {
+                        resolve: Some(Resolver {
+                            id: None,
+                            r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
+                                key: "data".into(),
+                            }),
+                        }),
+                        ..meta_field("data".into(), scalar_name)
+                    }],
+                ))
+            }
         }
     }
 }

@@ -4,62 +4,7 @@ expression: discriminators
 ---
 [
   [
-    "StripeAccountUnion",
-    [
-      [
-        "StripeAccount",
-        {
-          "FieldPresent": "object"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeApplicationFeeUnion",
-    [
-      [
-        "StripeApplicationFee",
-        {
-          "FieldPresent": "refunds"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeApplicationUnion",
-    [
-      [
-        "StripeApplication",
-        {
-          "FieldPresent": "object"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeBalanceTransactionUnion",
-    [
-      [
-        "StripeBalanceTransaction",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeBillingPortalConfigurationUnion",
-    [
-      [
-        "StripeBillingPortalConfiguration",
-        {
-          "FieldPresent": "updated"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeCardOrStripeBankAccountUnion",
+    "StripeCardOrBankAccountUnion",
     [
       [
         "StripeCard",
@@ -81,98 +26,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeChargeUnion",
-    [
-      [
-        "StripeCharge",
-        {
-          "FieldPresent": "status"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeCreditNoteUnion",
-    [
-      [
-        "StripeCreditNote",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeCustomerBalanceTransactionUnion",
-    [
-      [
-        "StripeCustomerBalanceTransaction",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeCustomerUnion",
-    [
-      [
-        "StripeCustomer",
-        {
-          "FieldPresent": "object"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedApplicationOrStripeApplicationUnion",
-    [
-      [
-        "StripeDeletedApplication",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeApplication",
-        "Fallback"
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedCardOrStripeDeletedBankAccountOrStripeCardOrStripeBankAccountUnion",
-    [
-      [
-        "StripeCard",
-        {
-          "FieldPresent": "funding"
-        }
-      ],
-      [
-        "StripeDeletedCard",
-        "Fallback"
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedCouponOrStripeCouponUnion",
-    [
-      [
-        "StripeDeletedCoupon",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeCoupon",
-        {
-          "FieldPresent": "valid"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedCustomerOrStripeCustomerUnion",
+    "StripeDeletedCustomerOrCustomerUnion",
     [
       [
         "StripeDeletedCustomer",
@@ -185,21 +39,6 @@ expression: discriminators
         {
           "FieldPresent": "livemode"
         }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedDiscountOrStripeDiscountUnion",
-    [
-      [
-        "StripeDeletedDiscount",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeDiscount",
-        "Fallback"
       ]
     ]
   ],
@@ -231,24 +70,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeDeletedInvoiceOrStripeInvoiceUnion",
-    [
-      [
-        "StripeDeletedInvoice",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeInvoice",
-        {
-          "FieldPresent": "total_tax_amounts"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedPaymentSourceOrStripePaymentSourceUnion",
+    "StripeDeletedPaymentSourceOrPaymentSourceUnion",
     [
       [
         "StripeSource",
@@ -282,58 +104,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeDeletedPriceOrStripePriceUnion",
-    [
-      [
-        "StripeDeletedPrice",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripePrice",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedProductOrStripeProductUnion",
-    [
-      [
-        "StripeDeletedProduct",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeProduct",
-        {
-          "FieldPresent": "updated"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedTaxIdOrStripeTaxIdUnion",
-    [
-      [
-        "StripeDeletedTaxId",
-        {
-          "FieldPresent": "deleted"
-        }
-      ],
-      [
-        "StripeTaxId",
-        {
-          "FieldPresent": "value"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDeletedTerminalConfigurationOrStripeTerminalConfigurationUnion",
+    "StripeDeletedTerminalConfigurationOrTerminalConfigurationUnion",
     [
       [
         "StripeDeletedTerminalConfiguration",
@@ -350,7 +121,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeDeletedTerminalLocationOrStripeTerminalLocationUnion",
+    "StripeDeletedTerminalLocationOrTerminalLocationUnion",
     [
       [
         "StripeDeletedTerminalLocation",
@@ -367,7 +138,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeDeletedTerminalReaderOrStripeTerminalReaderUnion",
+    "StripeDeletedTerminalReaderOrTerminalReaderUnion",
     [
       [
         "StripeDeletedTerminalReader",
@@ -379,17 +150,6 @@ expression: discriminators
         "StripeTerminalReader",
         {
           "FieldPresent": "serial_number"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeDiscountUnion",
-    [
-      [
-        "StripeDiscount",
-        {
-          "FieldPresent": "start"
         }
       ]
     ]
@@ -417,117 +177,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeFileUnion",
-    [
-      [
-        "StripeFile",
-        {
-          "FieldPresent": "size"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeFinancialConnectionsAccountOwnershipUnion",
-    [
-      [
-        "StripeFinancialConnectionsAccountOwnership",
-        {
-          "FieldPresent": "owners"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIdentityVerificationReportUnion",
-    [
-      [
-        "StripeIdentityVerificationReport",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeInvoiceUnion",
-    [
-      [
-        "StripeInvoice",
-        {
-          "FieldPresent": "total_tax_amounts"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIssuingAuthorizationUnion",
-    [
-      [
-        "StripeIssuingAuthorization",
-        {
-          "FieldPresent": "verification_data"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIssuingCardUnion",
-    [
-      [
-        "StripeIssuingCard",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIssuingCardholderUnion",
-    [
-      [
-        "StripeIssuingCardholder",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIssuingDisputeUnion",
-    [
-      [
-        "StripeIssuingDispute",
-        {
-          "FieldPresent": "transaction"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeIssuingTransactionUnion",
-    [
-      [
-        "StripeIssuingTransaction",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeMandateUnion",
-    [
-      [
-        "StripeMandate",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsAcssDebitUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAcssDebitUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -548,7 +198,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsAuBecsDebitUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsAuBecsDebitUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -570,7 +220,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsCardUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsCardUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -601,7 +251,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsEpsUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsEpsUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -623,7 +273,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsLinkUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsLinkUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -645,7 +295,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsSepaDebitUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsSepaDebitUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -667,7 +317,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentIntentPaymentMethodOptionsUsBankAccountUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentIntentPaymentMethodOptionsUsBankAccountUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -688,7 +338,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsAffirmUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAffirmUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -710,7 +360,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsAfterpayClearpayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAfterpayClearpayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -732,7 +382,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsAlipayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsAlipayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -754,7 +404,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsBacsDebitUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBacsDebitUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -776,7 +426,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsBancontactUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBancontactUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -800,7 +450,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsBoletoUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsBoletoUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -824,7 +474,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsCardPresentUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCardPresentUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -846,7 +496,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsCustomerBalanceUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsCustomerBalanceUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -875,7 +525,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsFpxUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsFpxUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -897,7 +547,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsGiropayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGiropayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -919,7 +569,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsGrabpayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsGrabpayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -941,7 +591,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsIdealUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsIdealUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -963,7 +613,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsKlarnaUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKlarnaUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -985,7 +635,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsKonbiniUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsKonbiniUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1007,7 +657,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsOxxoUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsOxxoUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1031,7 +681,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsP24Union",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsP24Union",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1053,7 +703,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsPaynowUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPaynowUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1075,7 +725,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsPixUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPixUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1097,7 +747,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsPromptpayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsPromptpayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1119,7 +769,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsSofortUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsSofortUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1154,7 +804,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrStripePaymentMethodOptionsWechatPayUnion",
+    "StripePaymentIntentTypeSpecificPaymentMethodOptionsClientOrPaymentMethodOptionsWechatPayUnion",
     [
       [
         "StripePaymentIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1203,39 +853,6 @@ expression: discriminators
     ]
   ],
   [
-    "StripePaymentIntentUnion",
-    [
-      [
-        "StripePaymentIntent",
-        {
-          "FieldPresent": "status"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripePaymentLinkUnion",
-    [
-      [
-        "StripePaymentLink",
-        {
-          "FieldPresent": "url"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripePaymentMethodUnion",
-    [
-      [
-        "StripePaymentMethod",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
     "StripePaymentSource",
     [
       [
@@ -1277,95 +894,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripePayoutUnion",
-    [
-      [
-        "StripePayout",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripePriceUnion",
-    [
-      [
-        "StripePrice",
-        {
-          "FieldPresent": "type"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripePromotionCodeUnion",
-    [
-      [
-        "StripePromotionCode",
-        {
-          "FieldPresent": "times_redeemed"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeQuoteUnion",
-    [
-      [
-        "StripeQuote",
-        {
-          "FieldPresent": "total_details"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeRefundUnion",
-    [
-      [
-        "StripeRefund",
-        {
-          "FieldPresent": "object"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeReviewUnion",
-    [
-      [
-        "StripeReview",
-        {
-          "FieldPresent": "reason"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeRuleUnion",
-    [
-      [
-        "StripeRule",
-        {
-          "FieldPresent": "predicate"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeSetupAttemptUnion",
-    [
-      [
-        "StripeSetupAttempt",
-        {
-          "FieldPresent": "usage"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrStripeSetupIntentPaymentMethodOptionsAcssDebitUnion",
+    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsAcssDebitUnion",
     [
       [
         "StripeSetupIntentPaymentMethodOptionsAcssDebit",
@@ -1386,7 +915,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrStripeSetupIntentPaymentMethodOptionsBlikUnion",
+    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsBlikUnion",
     [
       [
         "StripeSetupIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1408,7 +937,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrStripeSetupIntentPaymentMethodOptionsLinkUnion",
+    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsLinkUnion",
     [
       [
         "StripeSetupIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1430,7 +959,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrStripeSetupIntentPaymentMethodOptionsSepaDebitUnion",
+    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsSepaDebitUnion",
     [
       [
         "StripeSetupIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1452,7 +981,7 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrStripeSetupIntentPaymentMethodOptionsUsBankAccountUnion",
+    "StripeSetupIntentTypeSpecificPaymentMethodOptionsClientOrSetupIntentPaymentMethodOptionsUsBankAccountUnion",
     [
       [
         "StripeSetupIntentTypeSpecificPaymentMethodOptionsClient",
@@ -1461,8 +990,798 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSetupIntentUnion",
+    "StripeSourceOrBankAccountOrCardUnion",
     [
+      [
+        "StripeSource",
+        {
+          "FieldPresent": "type"
+        }
+      ],
+      [
+        "StripeBankAccount",
+        {
+          "FieldHasValue": [
+            "object",
+            [
+              "bank_account"
+            ]
+          ]
+        }
+      ],
+      [
+        "StripeCard",
+        {
+          "FieldPresent": "funding"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeSourceOrCardOrBankAccountUnion",
+    [
+      [
+        "StripeSource",
+        {
+          "FieldPresent": "type"
+        }
+      ],
+      [
+        "StripeCard",
+        {
+          "FieldPresent": "funding"
+        }
+      ],
+      [
+        "StripeBankAccount",
+        {
+          "FieldHasValue": [
+            "object",
+            [
+              "bank_account"
+            ]
+          ]
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrAccountUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeAccount",
+        {
+          "FieldPresent": "object"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrApplicationFeeUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeApplicationFee",
+        {
+          "FieldPresent": "refunds"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrApplicationUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeApplication",
+        {
+          "FieldPresent": "object"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrBalanceTransactionUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeBalanceTransaction",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrBillingPortalConfigurationUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeBillingPortalConfiguration",
+        {
+          "FieldPresent": "updated"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrChargeUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeCharge",
+        {
+          "FieldPresent": "status"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrCreditNoteUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeCreditNote",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrCustomerBalanceTransactionUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeCustomerBalanceTransaction",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrCustomerUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeCustomer",
+        {
+          "FieldPresent": "object"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedApplicationOrApplicationUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedApplication",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeApplication",
+        "Fallback"
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedCardOrDeletedBankAccountOrCardOrBankAccountUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeCard",
+        {
+          "FieldPresent": "funding"
+        }
+      ],
+      [
+        "StripeDeletedCard",
+        "Fallback"
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedCouponOrCouponUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedCoupon",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeCoupon",
+        {
+          "FieldPresent": "valid"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedCustomerOrCustomerUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedCustomer",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeCustomer",
+        {
+          "FieldPresent": "livemode"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedDiscountOrDiscountUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedDiscount",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeDiscount",
+        "Fallback"
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedInvoiceOrInvoiceUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedInvoice",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeInvoice",
+        {
+          "FieldPresent": "total_tax_amounts"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedPriceOrPriceUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedPrice",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripePrice",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedProductOrProductUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedProduct",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeProduct",
+        {
+          "FieldPresent": "updated"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDeletedTaxIdOrTaxIdUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDeletedTaxId",
+        {
+          "FieldPresent": "deleted"
+        }
+      ],
+      [
+        "StripeTaxId",
+        {
+          "FieldPresent": "value"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrDiscountUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeDiscount",
+        {
+          "FieldPresent": "start"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrFileUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeFile",
+        {
+          "FieldPresent": "size"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrFinancialConnectionsAccountOwnershipUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeFinancialConnectionsAccountOwnership",
+        {
+          "FieldPresent": "owners"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIdentityVerificationReportUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIdentityVerificationReport",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrInvoiceUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeInvoice",
+        {
+          "FieldPresent": "total_tax_amounts"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIssuingAuthorizationUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIssuingAuthorization",
+        {
+          "FieldPresent": "verification_data"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIssuingCardUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIssuingCard",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIssuingCardholderUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIssuingCardholder",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIssuingDisputeUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIssuingDispute",
+        {
+          "FieldPresent": "transaction"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrIssuingTransactionUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeIssuingTransaction",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrMandateUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeMandate",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPaymentIntentUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePaymentIntent",
+        {
+          "FieldPresent": "status"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPaymentLinkUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePaymentLink",
+        {
+          "FieldPresent": "url"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPaymentMethodUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePaymentMethod",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPayoutUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePayout",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPriceUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePrice",
+        {
+          "FieldPresent": "type"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrPromotionCodeUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripePromotionCode",
+        {
+          "FieldPresent": "times_redeemed"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrQuoteUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeQuote",
+        {
+          "FieldPresent": "total_details"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrRefundUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeRefund",
+        {
+          "FieldPresent": "object"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrReviewUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeReview",
+        {
+          "FieldPresent": "reason"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrRuleUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeRule",
+        {
+          "FieldPresent": "predicate"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrSetupAttemptUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
+      [
+        "StripeSetupAttempt",
+        {
+          "FieldPresent": "usage"
+        }
+      ]
+    ]
+  ],
+  [
+    "StripeStringOrSetupIntentUnion",
+    [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeSetupIntent",
         {
@@ -1472,8 +1791,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeShippingRateUnion",
+    "StripeStringOrShippingRateUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeShippingRate",
         {
@@ -1483,36 +1808,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSourceOrStripeBankAccountOrStripeCardUnion",
+    "StripeStringOrSourceOrCardOrBankAccountUnion",
     [
       [
-        "StripeSource",
+        "StripeString",
         {
-          "FieldPresent": "type"
+          "IsAScalar": "String"
         }
       ],
-      [
-        "StripeBankAccount",
-        {
-          "FieldHasValue": [
-            "object",
-            [
-              "bank_account"
-            ]
-          ]
-        }
-      ],
-      [
-        "StripeCard",
-        {
-          "FieldPresent": "funding"
-        }
-      ]
-    ]
-  ],
-  [
-    "StripeSourceOrStripeCardOrStripeBankAccountUnion",
-    [
       [
         "StripeSource",
         {
@@ -1539,8 +1842,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSubscriptionScheduleUnion",
+    "StripeStringOrSubscriptionScheduleUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeSubscriptionSchedule",
         {
@@ -1550,8 +1859,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeSubscriptionUnion",
+    "StripeStringOrSubscriptionUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeSubscription",
         {
@@ -1561,8 +1876,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTaxCodeUnion",
+    "StripeStringOrTaxCodeUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTaxCode",
         {
@@ -1572,8 +1893,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTaxRateUnion",
+    "StripeStringOrTaxRateUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTaxRate",
         {
@@ -1583,8 +1910,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTerminalLocationUnion",
+    "StripeStringOrTerminalLocationUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTerminalLocation",
         {
@@ -1594,8 +1927,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTestHelpersTestClockUnion",
+    "StripeStringOrTestHelpersTestClockUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTestHelpersTestClock",
         {
@@ -1605,8 +1944,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTransferReversalOrStripeTransferOrStripeTopupOrStripeTaxDeductedAtSourceOrStripeReserveTransactionOrStripeRefundOrStripePlatformTaxFeeOrStripePayoutOrStripeIssuingTransactionOrStripeIssuingDisputeOrStripeIssuingAuthorizationOrStripeFeeRefundOrStripeDisputeOrStripeConnectCollectionTransferOrStripeChargeOrStripeApplicationFeeUnion",
+    "StripeStringOrTransferReversalOrTransferOrTopupOrTaxDeductedAtSourceOrReserveTransactionOrRefundOrPlatformTaxFeeOrPayoutOrIssuingTransactionOrIssuingDisputeOrIssuingAuthorizationOrFeeRefundOrDisputeOrConnectCollectionTransferOrChargeOrApplicationFeeUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTransferReversal",
         {
@@ -1746,8 +2091,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTransferReversalUnion",
+    "StripeStringOrTransferReversalUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTransferReversal",
         {
@@ -1757,8 +2108,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTransferUnion",
+    "StripeStringOrTransferUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTransfer",
         {
@@ -1768,8 +2125,14 @@ expression: discriminators
     ]
   ],
   [
-    "StripeTreasuryTransactionUnion",
+    "StripeStringOrTreasuryTransactionUnion",
     [
+      [
+        "StripeString",
+        {
+          "IsAScalar": "String"
+        }
+      ],
       [
         "StripeTreasuryTransaction",
         {

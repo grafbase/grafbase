@@ -49,7 +49,7 @@ impl OpenApiGraph {
             metadata,
         };
 
-        transforms::impossible_unions_to_json(&mut this);
+        transforms::run(&mut this);
 
         this
     }
@@ -78,6 +78,9 @@ pub enum Node {
 
     /// A scalar
     Scalar(ScalarKind),
+
+    /// A scalar that appears inside a union, so needs additional wrapping
+    UnionWrappedScalar(ScalarKind),
 
     /// A union type that may be needed in the output.
     Union,
@@ -164,19 +167,17 @@ impl Node {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ScalarKind {
     String,
     Integer,
     Float,
     Boolean,
-    #[allow(dead_code)]
-    Id,
     JsonObject,
 }
 
 impl ScalarKind {
-    fn type_name(&self) -> String {
+    pub fn type_name(self) -> String {
         use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
 
         match self {
@@ -184,7 +185,6 @@ impl ScalarKind {
             ScalarKind::Integer => "Int".to_string(),
             ScalarKind::Float => "Float".to_string(),
             ScalarKind::Boolean => "Boolean".to_string(),
-            ScalarKind::Id => "ID".to_string(),
             ScalarKind::JsonObject => JSONScalar::name().expect("JSONScalar to have a name").to_owned(),
         }
     }
@@ -200,6 +200,7 @@ impl std::fmt::Debug for Node {
             Self::Operation(details) => f.debug_tuple("Operation").field(details).finish(),
             Self::Object => write!(f, "Object"),
             Self::Scalar(kind) => f.debug_tuple("Scalar").field(kind).finish(),
+            Self::UnionWrappedScalar(kind) => f.debug_tuple("ScalarWrapper").field(kind).finish(),
             Self::Enum => f.debug_struct("Enum").finish(),
             Self::Union => write!(f, "Union"),
             Self::Default(value) => f.debug_tuple("Default").field(value).finish(),
@@ -354,6 +355,9 @@ impl OpenApiGraph {
                 Some(name_components.join("_").to_pascal_case())
             }
             Node::Scalar(kind) => Some(kind.type_name()),
+            Node::UnionWrappedScalar(kind) => {
+                Some(format!("{}{}", self.metadata.name, kind.type_name()).to_pascal_case())
+            }
             Node::Union => {
                 // First we check if this union has an immediate schema parent.
                 // If so we use it's name for the union
@@ -376,17 +380,13 @@ impl OpenApiGraph {
                     })
                     .collect::<Vec<_>>();
 
-                let mut name;
                 let prefix = self.metadata.name.to_string().to_pascal_case();
-                if name_components
-                    .first()
-                    .filter(|name| name.starts_with(&prefix))
-                    .is_some()
-                {
-                    name = String::new();
-                } else {
-                    name = prefix;
-                }
+                let name_components = name_components
+                    .iter()
+                    .map(|name| name.strip_prefix(&prefix).unwrap_or(name))
+                    .collect::<Vec<_>>();
+
+                let mut name = prefix;
                 name.push_str(&name_components.join("Or"));
                 name.push_str("Union");
 

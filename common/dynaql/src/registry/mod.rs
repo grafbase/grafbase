@@ -8,7 +8,7 @@ pub mod resolvers;
 pub mod scalars;
 mod stringify_exec_doc;
 pub mod transformers;
-mod union_discriminator;
+pub mod union_discriminator;
 pub mod utils;
 pub mod variables;
 

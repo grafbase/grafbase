@@ -233,22 +233,23 @@ impl ResolverTrait for ContextDataResolver {
                 let resolved_value = last_resolver_value
                     .ok_or_else(|| Error::new("Internal error resolving remote union"))?;
 
-                if !resolved_value.data_resolved.is_object() {
-                    // We can't add a __typename to something that's not an object so just pass
-                    // it through...
-                    return Ok(resolved_value.clone());
-                }
-
                 let typename = discriminators
                     .iter()
                     .find(|(_, discriminator)| {
-                        dbg!(dbg!(discriminator)
-                            .matches(dbg!(resolved_value.data_resolved.as_ref())))
+                        discriminator.matches(resolved_value.data_resolved.as_ref())
                     })
                     .map(|(name, _)| name)
                     .ok_or_else(|| Error::new("Could not determine __typename on remote union"))?;
 
                 let mut new_value = (*resolved_value.data_resolved).clone();
+                if !new_value.is_object() {
+                    // The OpenAPI integration has union members that are not objects.
+                    //
+                    // We've handled those by wrapping them in fake objects in our schema.
+                    // So we're also implementing that transform here.
+                    new_value = serde_json::json!({ "data": new_value });
+                }
+
                 new_value.as_object_mut().unwrap().insert(
                     "__typename".into(),
                     serde_json::Value::String(typename.clone()),
