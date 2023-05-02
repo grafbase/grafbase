@@ -8,6 +8,7 @@ pub mod resolvers;
 pub mod scalars;
 mod stringify_exec_doc;
 pub mod transformers;
+mod union_discriminator;
 pub mod utils;
 pub mod variables;
 
@@ -36,7 +37,7 @@ use crate::{
 };
 use grafbase::auth::Operations;
 
-pub use cache_control::CacheControl;
+pub use self::{cache_control::CacheControl, union_discriminator::UnionDiscriminator};
 
 use self::plan::SchemaPlan;
 use self::relations::MetaRelation;
@@ -774,6 +775,8 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         rust_typename: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        discriminators: Option<Vec<(String, UnionDiscriminator)>>,
     },
     Enum {
         name: String,
@@ -870,11 +873,13 @@ impl Hash for MetaType {
                 possible_types,
                 visible: _,
                 rust_typename,
+                discriminators,
             } => {
                 name.hash(state);
                 description.hash(state);
                 possible_types.as_slice().hash(state);
                 rust_typename.hash(state);
+                discriminators.hash(state);
             }
             Self::InputObject {
                 name,
@@ -1015,6 +1020,7 @@ impl PartialEq for MetaType {
                     possible_types,
                     visible: _,
                     rust_typename,
+                    discriminators,
                 },
                 Self::Union {
                     name: o_name,
@@ -1022,12 +1028,14 @@ impl PartialEq for MetaType {
                     possible_types: o_possible_types,
                     visible: _,
                     rust_typename: o_rust_typename,
+                    discriminators: o_discrimnators,
                 },
             ) => {
                 name.eq(o_name)
                     && description.eq(o_description)
                     && possible_types.as_slice().eq(o_possible_types.as_slice())
                     && rust_typename.eq(o_rust_typename)
+                    && discriminators.eq(o_discrimnators)
             }
             (
                 Self::InputObject {
@@ -1719,6 +1727,7 @@ impl Registry {
                     possible_types,
                     visible: None,
                     rust_typename: "dynaql::federation::Entity".to_string(),
+                    discriminators: None,
                 },
             );
 

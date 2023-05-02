@@ -1,3 +1,4 @@
+mod discriminators;
 mod namespacing;
 
 use std::borrow::Cow;
@@ -96,6 +97,7 @@ impl IntoMetaType for OutputType {
                     .collect(),
                 visible: None,
                 rust_typename: name,
+                discriminators: Some(self.discriminators(graph)),
             }),
         }
     }
@@ -125,30 +127,30 @@ impl IntoMetaType for InputObject {
 
 pub enum OutputFieldKind {
     Enum,
+    Union,
 
-    // For now we only really care about enums here
+    // For now we only really care about enums & unions here
     Other,
 }
 
 impl OutputField {
-    fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
-        let api_name = &self.name;
-        let mut graphql_name = api_name.to_camel_case();
-
+    fn graphql_name(&self, graph: &OpenApiGraph) -> String {
+        let graphql_name = self.openapi_name.to_camel_case();
         if self.looks_like_nodes_field(graph) {
-            graphql_name = "nodes".to_string();
+            return "nodes".to_string();
         }
+        graphql_name
+    }
+
+    fn into_meta_field(self, graph: &OpenApiGraph) -> Option<MetaField> {
+        let api_name = &self.openapi_name;
+        let graphql_name = self.graphql_name(graph);
 
         let mut resolver_type = ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
             key: api_name.to_string(),
         });
 
-        if let OutputFieldKind::Enum = &self.ty.inner_kind(graph) {
-            resolver_type = ResolverType::Composition(vec![
-                resolver_type,
-                ResolverType::ContextDataResolver(ContextDataResolver::RemoteEnum),
-            ]);
-        }
+        resolver_type = resolver_type.and_then_maybe(self.ty.transforming_resolver(graph));
 
         let resolve = Some(Resolver {
             id: None,
@@ -162,6 +164,18 @@ impl OutputField {
                 TypeDisplay::from_output_field_type(&self.ty, graph)?.to_string(),
             )
         })
+    }
+}
+
+impl OutputFieldType {
+    /// Some output types require transformation between their remote representation and their
+    /// GraphQL representation.  This function returns an appropriate resolver to do that.
+    pub fn transforming_resolver(&self, graph: &OpenApiGraph) -> Option<ResolverType> {
+        match self.inner_kind(graph) {
+            OutputFieldKind::Enum => Some(ResolverType::ContextDataResolver(ContextDataResolver::RemoteEnum)),
+            OutputFieldKind::Union => Some(ResolverType::ContextDataResolver(ContextDataResolver::RemoteUnion)),
+            OutputFieldKind::Other => None,
+        }
     }
 }
 
@@ -233,47 +247,58 @@ impl Operation {
         Some(MetaField {
             resolve: Some(Resolver {
                 id: None,
-                r#type: ResolverType::Http(HttpResolver {
-                    method: self.http_method(graph),
-                    url: self.url(graph),
-                    api_name: graph.metadata.name.clone(),
-                    expected_status: self.expected_status(graph)?,
-                    path_parameters: path_parameters
-                        .iter()
-                        .map(|param| {
-                            let name = param.openapi_name(graph).unwrap().to_string();
-                            let input_name = param.graphql_name(graph).unwrap().to_string();
-                            http::PathParameter {
-                                name,
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
-                            }
-                        })
-                        .collect(),
-                    query_parameters: query_parameters
-                        .iter()
-                        .map(|param| {
-                            let name = param.openapi_name(graph).unwrap().to_string();
-                            let input_name = param.graphql_name(graph).unwrap().to_string();
-                            http::QueryParameter {
-                                name,
-                                variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
-                                encoding_style: param.encoding_style(graph).unwrap(),
-                            }
-                        })
-                        .collect(),
-                    request_body: self.request_body(graph).map(|request_body| {
-                        dynaql::registry::resolvers::http::RequestBody {
-                            variable_resolve_definition: VariableResolveDefinition::InputTypeName(
-                                request_body.argument_name().to_owned(),
-                            ),
-                            content_type: request_body.content_type(graph),
-                        }
-                    }),
-                }),
+                r#type: self
+                    .http_resolver(graph, path_parameters, query_parameters)?
+                    .and_then_maybe(output_type.transforming_resolver(graph)),
             }),
             args,
             ..meta_field(self.name(graph)?.to_string(), type_string)
         })
+    }
+
+    fn http_resolver(
+        self,
+        graph: &OpenApiGraph,
+        path_parameters: Vec<PathParameter>,
+        query_parameters: Vec<QueryParameter>,
+    ) -> Option<ResolverType> {
+        Some(ResolverType::Http(HttpResolver {
+            method: self.http_method(graph),
+            url: self.url(graph),
+            api_name: graph.metadata.name.clone(),
+            expected_status: self.expected_status(graph)?,
+            path_parameters: path_parameters
+                .iter()
+                .map(|param| {
+                    let name = param.openapi_name(graph).unwrap().to_string();
+                    let input_name = param.graphql_name(graph).unwrap().to_string();
+                    http::PathParameter {
+                        name,
+                        variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
+                    }
+                })
+                .collect(),
+            query_parameters: query_parameters
+                .iter()
+                .map(|param| {
+                    let name = param.openapi_name(graph).unwrap().to_string();
+                    let input_name = param.graphql_name(graph).unwrap().to_string();
+                    http::QueryParameter {
+                        name,
+                        variable_resolve_definition: VariableResolveDefinition::InputTypeName(input_name),
+                        encoding_style: param.encoding_style(graph).unwrap(),
+                    }
+                })
+                .collect(),
+            request_body: self
+                .request_body(graph)
+                .map(|request_body| dynaql::registry::resolvers::http::RequestBody {
+                    variable_resolve_definition: VariableResolveDefinition::InputTypeName(
+                        request_body.argument_name().to_owned(),
+                    ),
+                    content_type: request_body.content_type(graph),
+                }),
+        }))
     }
 }
 
@@ -319,12 +344,12 @@ impl InputValue {
 impl IntoMetaType for Enum {
     fn into_meta_type(self, graph: &OpenApiGraph) -> Option<MetaType> {
         let name = self.name(graph)?;
-        let values = self.values(graph)?;
+        let values = self.values(graph);
         Some(MetaType::Enum {
             name: name.clone(),
             description: None,
             enum_values: values
-                .iter()
+                .into_iter()
                 .map(|value| {
                     let name = value.to_screaming_snake_case();
                     (
@@ -334,7 +359,7 @@ impl IntoMetaType for Enum {
                             description: None,
                             deprecation: NoDeprecated,
                             visible: None,
-                            value: Some(value.clone()),
+                            value: Some(value.to_string()),
                         },
                     )
                 })
@@ -397,4 +422,28 @@ fn register_scalars(registry: &mut Registry) {
             specified_by_url: JSONScalar::specified_by().map(ToString::to_string),
         },
     );
+}
+
+trait ResolverTypeExt {
+    fn and_then(self, other_resolver: ResolverType) -> Self;
+    fn and_then_maybe(self, other_resolver: Option<ResolverType>) -> Self;
+}
+
+impl ResolverTypeExt for ResolverType {
+    fn and_then(mut self, other_resolver: ResolverType) -> Self {
+        match &mut self {
+            ResolverType::Composition(resolvers) => {
+                resolvers.push(other_resolver);
+                self
+            }
+            _ => ResolverType::Composition(vec![self, other_resolver]),
+        }
+    }
+
+    fn and_then_maybe(self, other_resolver: Option<ResolverType>) -> Self {
+        match other_resolver {
+            Some(other) => self.and_then(other),
+            None => self,
+        }
+    }
 }

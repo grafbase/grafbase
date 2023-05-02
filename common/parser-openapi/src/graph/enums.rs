@@ -21,11 +21,15 @@ impl Enum {
         graph.type_name(self.0)
     }
 
-    pub fn values(self, graph: &super::OpenApiGraph) -> Option<&[String]> {
-        match &graph.graph[self.0] {
-            Node::Enum { values } => Some(values.as_slice()),
-            _ => None,
-        }
+    pub fn values(self, graph: &super::OpenApiGraph) -> Vec<&str> {
+        graph
+            .graph
+            .neighbors(self.0)
+            .filter_map(|index| match &graph.graph[index] {
+                Node::PossibleValue(value) => value.as_str(),
+                _ => None,
+            })
+            .collect()
     }
 }
 

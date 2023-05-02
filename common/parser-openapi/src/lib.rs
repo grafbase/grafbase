@@ -3,6 +3,7 @@ use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use parsing::components::Ref;
+use tracing as _;
 use url::Url;
 
 mod graph;
@@ -165,6 +166,8 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 #[cfg(test)]
 mod tests {
 
+    use dynaql::registry::MetaType;
+
     use super::*;
 
     #[test]
@@ -200,6 +203,23 @@ mod tests {
         insta::assert_snapshot!(
             build_registry("test_data/impossible-unions.json", Format::Json, metadata("petstore")).export_sdl(false)
         );
+    }
+
+    #[test]
+    fn test_stripe_discrimnator_detection() {
+        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe"));
+        let discriminators = registry
+            .types
+            .values()
+            .filter_map(|ty| match ty {
+                MetaType::Union {
+                    name, discriminators, ..
+                } => Some((name, discriminators)),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+
+        insta::assert_json_snapshot!(discriminators);
     }
 
     fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Registry {
