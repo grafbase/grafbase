@@ -21,7 +21,7 @@ fslock = "0.2"
 indicatif = "0.17"
 inquire = "0.6"
 exitcode = "1"
-hex-literal = "0.3"
+hex-literal = "0.4"
 humantime = "2"
 indoc = "2"
 log = "0.4"
@@ -46,7 +46,7 @@ crossbeam-channel = "0.5"
 duct = "0.13"
 insta = { version = "1.28", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
-jwt-compact = { version = "0.6", default-features = false, features = [
+jwt-compact = { version = "0.7", default-features = false, features = [
   "clock",
 ] }
 rand = "0.8"

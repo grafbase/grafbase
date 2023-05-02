@@ -1,13 +1,11 @@
-use std::path::Path;
-
 use crate::{
     errors::CliError,
     watercolor::{self, watercolor},
 };
-use backend::types::FileEventType;
 use colored::Colorize;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST};
 use common::types::ResolverMessageLevel;
+use std::path::Path;
 
 /// reports to stdout that the server has started
 pub fn cli_header() {
@@ -103,7 +101,7 @@ pub fn resolver_message(resolver_name: &str, message: &str, level: ResolverMessa
     }
 }
 
-pub fn reload<P: AsRef<Path>>(path: P, _file_event_type: FileEventType) {
+pub fn reload<P: AsRef<Path>>(path: P) {
     println!(
         "🔄 Detected a change in {path}, reloading",
         path = path.as_ref().display()

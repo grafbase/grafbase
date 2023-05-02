@@ -95,7 +95,7 @@ pub async fn start(worker_port: u16, event_bus: Sender<Event>) -> Result<(), Ser
     trace!("starting db event listener");
 
     tokio::select! {
-        _ = wait_for_event(event_bus.subscribe(), |event| matches!(event, Event::Reload(_, _))) => {}
+        _ = wait_for_event(event_bus.subscribe(), |event| matches!(event, Event::Reload(_))) => {}
         event_listener_result = event_listener(worker_port) => {  event_listener_result? }
     }
 

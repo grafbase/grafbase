@@ -142,9 +142,9 @@ pub enum ServerError {
     #[error("Could not retrive the installed version of Node.js")]
     CheckNodeVersion,
 
-    /// returned if a file watcher could not be initialized
-    #[error("Could not initialize a file watcher: {0}")]
-    FileWatcherInit(#[from] NotifyError),
+    /// returned if a file watcher could not be initialized or was stopped due to an error
+    #[error("Could not initialize or had to stop a file watcher\ncaused by: {0}")]
+    FileWatcher(#[from] NotifyError),
 }
 
 impl From<SqlxError> for ServerError {

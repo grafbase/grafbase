@@ -50,7 +50,7 @@ pub async fn start(
     let server = axum::Server::bind(&socket_address)
         .serve(router.into_make_service())
         .with_graceful_shutdown(wait_for_event(event_bus.subscribe(), |event| {
-            matches!(event, Event::Reload(_, _))
+            matches!(event, Event::Reload(_))
         }));
 
     server.await?;
