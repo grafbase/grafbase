@@ -59,7 +59,9 @@ where
 }
 
 const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE];
-const EXTENSION_WHITELIST: [&str; 10] = ["js", "ts", "jsx", "tsx", "mjs", "mts", "cjs", "json", "yaml", "yml"];
+const EXTENSION_WHITELIST: [&str; 11] = [
+    "js", "ts", "jsx", "tsx", "mjs", "mts", ".wasm", "cjs", "json", "yaml", "yml",
+];
 const DIRECTORY_BLACKLIST: [&str; 1] = ["node_modules"];
 
 fn non_ignored_path(path: &Path, root: &Path) -> bool {
