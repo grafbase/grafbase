@@ -35,16 +35,18 @@ where
                         on_change(&event.path);
                     }
                 }
-                // an error with the root path, non recoverable
-                Ok(Err(errors))
-                    if errors
-                        .iter()
-                        .any(|error| error.paths.contains(&path.as_ref().to_owned())) =>
-                {
-                    return Err(ServerError::FileWatcher(errors.into_iter().last().expect("must exist")))
+
+                Ok(Err(errors)) => {
+                    if let Some(error) = errors
+                        .into_iter()
+                        .find(|error| error.paths.contains(&path.as_ref().to_owned()))
+                    {
+                        // an error with the root path, non recoverable
+                        return Err(ServerError::FileWatcher(error));
+                    }
+                    // errors for specific files, ignored
                 }
-                // errors for specific files
-                Ok(Err(_)) => {}
+
                 // since `watcher` will go out of scope once the runtime restarts, we'll get a `RecvError`
                 // here on reload, which allows us to stop the loop
                 Err(_) => {

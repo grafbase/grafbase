@@ -143,7 +143,7 @@ pub enum ServerError {
     CheckNodeVersion,
 
     /// returned if a file watcher could not be initialized or was stopped due to an error
-    #[error("Could not initialize or had to stop a file watcher\ncaused by: {0}")]
+    #[error("A file watcher encountered an error\ncaused by: {0}")]
     FileWatcher(#[from] NotifyError),
 }
 
