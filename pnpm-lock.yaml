@@ -73,7 +73,7 @@ importers:
       graphiql: 2.2.0
       graphql: 16.6.0
       postcss: ^8.4.19
-      postcss-nesting: 10.2.0
+      postcss-nesting: 11.2.2
       react: 18.2.0
       react-dom: 18.2.0
       reconnecting-eventsource: 1.6.2
@@ -96,7 +96,7 @@ importers:
       graphiql: 2.2.0_4hkbjrep5ureiqkcwz4kv7433y
       graphql: 16.6.0
       postcss: 8.4.21
-      postcss-nesting: 10.2.0_postcss@8.4.21
+      postcss-nesting: 11.2.2_postcss@8.4.21
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
       tsconfig: link:../tsconfig
@@ -10890,6 +10890,17 @@ packages:
     engines: {node: ^12 || ^14 || >=16}
     peerDependencies:
       postcss: ^8.2
+    dependencies:
+      '@csstools/selector-specificity': 2.1.0_wajs5nedgkikc5pcuwett7legi
+      postcss: 8.4.21
+      postcss-selector-parser: 6.0.11
+    dev: true
+
+  /postcss-nesting/11.2.2_postcss@8.4.21:
+    resolution: {integrity: sha512-aOTiUniAB1bcPE6GGiynWRa6PZFPhOTAm5q3q5cem6QeSijIHHkWr6gs65ukCZMXeak8yXeZVbBJET3VM+HlhA==}
+    engines: {node: ^14 || ^16 || >=18}
+    peerDependencies:
+      postcss: ^8.4
     dependencies:
       '@csstools/selector-specificity': 2.1.0_wajs5nedgkikc5pcuwett7legi
       postcss: 8.4.21
