@@ -9,7 +9,7 @@ importers:
       turbo: latest
     devDependencies:
       eslint-config-grafbase: link:packages/eslint-config-grafbase
-      prettier: 2.8.7
+      prettier: 2.8.8
       turbo: 1.9.3
 
   packages/eslint-config-grafbase:
@@ -220,7 +220,7 @@ importers:
       mini-css-extract-plugin: ^2.4.5
       postcss: ^8.4.4
       postcss-flexbugs-fixes: ^5.0.2
-      postcss-loader: ^6.2.1
+      postcss-loader: ^7.0.0
       postcss-normalize: ^10.0.1
       postcss-preset-env: ^7.0.1
       prompts: ^2.4.2
@@ -289,7 +289,7 @@ importers:
       mini-css-extract-plugin: 2.7.2_webpack@5.75.0
       postcss: 8.4.21
       postcss-flexbugs-fixes: 5.0.2_postcss@8.4.21
-      postcss-loader: 6.2.1_6jdsrmfenkuhhw3gx4zvjlznce
+      postcss-loader: 7.3.0_6jdsrmfenkuhhw3gx4zvjlznce
       postcss-normalize: 10.0.1_5kwwozqejd6kse3tlstkrpsc6y
       postcss-preset-env: 7.8.3_postcss@8.4.21
       react-refresh: 0.14.0
@@ -9512,6 +9512,11 @@ packages:
       - utf-8-validate
     dev: true
 
+  /jiti/1.18.2:
+    resolution: {integrity: sha512-QAdOptna2NYiSSpv0O/BwoHBSmz4YhpzJHyi+fnMRTXFjp7B8i/YG5Z8IfusxB1ufjcD2Sre1F3R+nX3fvy7gg==}
+    hasBin: true
+    dev: true
+
   /joycon/3.1.1:
     resolution: {integrity: sha512-34wB/Y7MW7bzjKRjUKTa46I2Z7eV62Rkhva+KkopW7Qvv/OSWBqvkSY7vusOPrNuZcUG3tApvdVgNB8POj3SPw==}
     engines: {node: '>=10'}
@@ -10728,14 +10733,15 @@ packages:
       yaml: 1.10.2
     dev: true
 
-  /postcss-loader/6.2.1_6jdsrmfenkuhhw3gx4zvjlznce:
-    resolution: {integrity: sha512-WbbYpmAaKcux/P66bZ40bpWsBucjx/TTgVVzRZ9yUO8yQfVBlameJ0ZGVaPfH64hNSBh63a+ICP5nqOpBA0w+Q==}
-    engines: {node: '>= 12.13.0'}
+  /postcss-loader/7.3.0_6jdsrmfenkuhhw3gx4zvjlznce:
+    resolution: {integrity: sha512-qLAFjvR2BFNz1H930P7mj1iuWJFjGey/nVhimfOAAQ1ZyPpcClAxP8+A55Sl8mBvM+K2a9Pjgdj10KpANWrNfw==}
+    engines: {node: '>= 14.15.0'}
     peerDependencies:
       postcss: ^7.0.0 || ^8.0.1
       webpack: ^5.0.0
     dependencies:
-      cosmiconfig: 7.1.0
+      cosmiconfig: 8.1.3
+      jiti: 1.18.2
       klona: 2.0.6
       postcss: 8.4.21
       semver: 7.3.8
@@ -11217,8 +11223,8 @@ packages:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
     engines: {node: '>= 0.8.0'}
 
-  /prettier/2.8.7:
-    resolution: {integrity: sha512-yPngTo3aXUUmyuTjeTUT75txrf+aMh9FiD7q9ZE/i6r0bPb22g4FsE6Y338PQX1bmfy08i9QQCB7/rcUAVntfw==}
+  /prettier/2.8.8:
+    resolution: {integrity: sha512-tdN8qQGvNjw4CHbY+XXk0JgCXn9QiF21a55rBe5LJAU+kDyC4WQn4+awm2Xfk2lQMk5fKup9XgzTZtGkjBdP9Q==}
     engines: {node: '>=10.13.0'}
     hasBin: true
     dev: true
