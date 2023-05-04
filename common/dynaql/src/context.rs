@@ -969,7 +969,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     let elt_to_fetch = cursor.elt_to_fetch();
                     let pagination = PaginationArgumentsBuilder::default()
                         .cursor(cursor)
-                        .order_by(direction)
+                        .order_by(direction.clone())
                         .build()
                         .map_err(|err| {
                             Error::new_with_source(err).into_server_error(self.item.pos)
@@ -984,7 +984,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             pagination,
                             vec![ty.clone()],
                         )
-                        .and_then(|x| x.limit(0, Some(elt_to_fetch)))
+                        .and_then(|x| {
+                            x.sort(direction, Some(elt_to_fetch), "createdAt".to_string())
+                        })
                         .map_err(|err| {
                             Error::new_with_source(err).into_server_error(self.item.pos)
                         })?
@@ -1010,7 +1012,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             Datasource::gb(),
                             vec![ty.clone()],
                         )
-                        .and_then(|x| x.limit(0, Some(elt_to_fetch)))
+                        .and_then(|x| {
+                            x.sort(direction, Some(elt_to_fetch), "createdAt".to_string())
+                        })
                         .map_err(|err| {
                             Error::new_with_source(err).into_server_error(self.item.pos)
                         })?
@@ -1065,9 +1069,11 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                         .map(traverse_logical_plan)
                         .unwrap_or_else(|| Box::new(std::iter::empty()))
                         .find_map(|logic_plan| match logic_plan.as_ref() {
-                            LogicalPlan::Related(related) => Some(related.direction.clone()),
+                            LogicalPlan::Related(related) => Some(related.cursor.clone()),
+                            LogicalPlan::Scan(scan) => Some(scan.cursor.clone()),
                             _ => None,
                         })
+                        .map(|x| x.is_forward())
                         .unwrap_or_default();
 
                     let previous = previous_plan.ok_or_else(|| {
@@ -1075,8 +1081,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     })?;
 
                     match (page, iteration_order) {
-                        (PaginationPage::Next, Direction::Forward)
-                        | (PaginationPage::Previous, Direction::Backward) => {
+                        (PaginationPage::Next, true) | (PaginationPage::Previous, false) => {
                             LogicalPlanBuilder::from(previous)
                                 .metadata_has_next()
                                 .map_err(|err| {
@@ -1084,8 +1089,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                                 })?
                                 .build()
                         }
-                        (PaginationPage::Next, Direction::Backward)
-                        | (PaginationPage::Previous, Direction::Forward) => {
+                        (PaginationPage::Next, false) | (PaginationPage::Previous, true) => {
                             LogicalPlanBuilder::from(previous)
                                 .projection_default(vec![(
                                     "__val",
