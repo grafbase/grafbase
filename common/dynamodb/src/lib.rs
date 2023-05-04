@@ -1,3 +1,9 @@
+pub mod reexport {
+    pub use dynomite;
+    #[cfg(feature = "sqlite")]
+    pub use maplit;
+}
+
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "sqlite"))] {
         mod batch_getitem;
@@ -20,11 +26,6 @@ cfg_if::cfg_if! {
     } else {
         #[doc(hidden)]
         pub mod local;
-
-        pub mod reexport {
-            pub use maplit;
-            pub use dynomite;
-        }
 
         use local::batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
         use local::query::get_loader_query;
