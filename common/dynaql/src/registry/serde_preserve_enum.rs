@@ -250,6 +250,17 @@ mod tests {
     }
 
     #[test]
+    fn test_deser_plain_object() {
+        let value = ConstValue::Object([(Name::new("hello"), ConstValue::Null)].into());
+        assert_eq!(
+            serde_json::from_value::<OwnedConstValueWrapper>(serde_json::to_value(&value).unwrap())
+                .unwrap()
+                .0,
+            value
+        );
+    }
+
+    #[test]
     fn test_input_default_value() {
         let input = MetaInputValue {
             default_value: Some(ConstValue::Enum(Name::new("A_VALUE"))),

@@ -53,7 +53,13 @@ fn operations_to_fields<'a>(
 ) -> impl Iterator<Item = (String, MetaField)> + 'a {
     operations
         .into_iter()
-        .filter_map(|op| op.into_meta_field(graph))
+        .filter_map(|op| {
+            let metafield = op.into_meta_field(graph);
+            if metafield.is_none() {
+                tracing::info!("Couldn't generate a MetaField for {:?}, skipping", op.name(graph));
+            }
+            metafield
+        })
         .map(|meta_field| (meta_field.name.clone(), meta_field))
 }
 

@@ -1,3 +1,5 @@
+mod grouping;
+mod v2;
 mod v3;
 mod version;
 
@@ -17,7 +19,9 @@ pub fn parse(data: String, format: Format) -> Result<Context, Vec<Error>> {
 
     match version {
         OpenApiVersion::V2 => {
-            todo!("parse v2")
+            let spec = from_str(&data, format)?;
+            drop(data);
+            v2::parse(spec)
         }
         OpenApiVersion::V3 => {
             let spec = from_str(&data, format)?;
@@ -41,6 +45,10 @@ pub struct Context {
 struct Ref(pub(self) String);
 
 impl Ref {
+    fn absolute(absolute: &str) -> Ref {
+        Ref(absolute.to_string())
+    }
+
     fn to_unresolved_error(&self) -> Error {
         Error::UnresolvedReference(self.to_string())
     }

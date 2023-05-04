@@ -15,8 +15,9 @@ use crate::{
 
 use self::{components::Components, operations::OperationDetails};
 
+use super::grouping;
+
 pub mod components;
-mod grouping;
 pub mod operations;
 
 pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
@@ -53,12 +54,12 @@ fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
             .graph
             .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), schema.clone()))));
 
-        ctx.schema_index.insert(Ref::schema(name), index);
+        ctx.schema_index.insert(Ref::v3_schema(name), index);
     }
 
     // Now we want to extract the spec for each of these schemas into our graph
     for (name, schema) in &components.schemas {
-        extract_types(ctx, schema, ParentNode::Schema(ctx.schema_index[&Ref::schema(name)]));
+        extract_types(ctx, schema, ParentNode::Schema(ctx.schema_index[&Ref::v3_schema(name)]));
     }
 }
 
@@ -333,23 +334,19 @@ fn is_valid_field_name(value: &str) -> bool {
 }
 
 impl Ref {
-    fn absolute(absolute: &str) -> Ref {
-        Ref(absolute.to_string())
-    }
-
-    fn schema(name: &str) -> Ref {
+    fn v3_schema(name: &str) -> Ref {
         Ref(format!("#/components/schemas/{name}"))
     }
 
-    fn response(name: &str) -> Ref {
+    fn v3_response(name: &str) -> Ref {
         Ref(format!("#/components/responses/{name}"))
     }
 
-    fn request_body(name: &str) -> Ref {
+    fn v3_request_body(name: &str) -> Ref {
         Ref(format!("#/components/request_bodies/{name}"))
     }
 
-    fn parameter(name: &str) -> Ref {
+    fn v3_parameter(name: &str) -> Ref {
         Ref(format!("#/components/parameters/{name}"))
     }
 }

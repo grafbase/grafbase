@@ -146,6 +146,7 @@ pub enum Error {
 fn is_ok(status: &ExpectedStatusCode) -> bool {
     match status {
         ExpectedStatusCode::Exact(200) => true,
+        ExpectedStatusCode::Exact(other) if (200..300).contains(other) => true,
         ExpectedStatusCode::Range(range) => *range == (200u16..300),
         _ => false,
     }
@@ -190,6 +191,19 @@ mod tests {
             ApiMetadata {
                 query_naming: QueryNamingStrategy::OperationId,
                 ..metadata("openai")
+            }
+        )
+        .export_sdl(false));
+    }
+
+    #[test]
+    fn test_planetscale() {
+        insta::assert_snapshot!(build_registry(
+            "test_data/planetscale.json",
+            Format::Json,
+            ApiMetadata {
+                // query_naming: QueryNamingStrategy::OperationId,
+                ..metadata("planetscale")
             }
         )
         .export_sdl(false));
