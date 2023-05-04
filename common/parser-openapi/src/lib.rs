@@ -2,7 +2,6 @@ use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
 use openapiv3::OpenAPI;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
-use parsing::components::Ref;
 use tracing as _;
 use url::Url;
 
@@ -125,7 +124,7 @@ pub enum Error {
     #[error("Encountered an allOf schema, which we don't currently support")]
     AllOfSchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
-    UnresolvedReference(Ref),
+    UnresolvedReference(String),
     #[error("Received an invalid URL: {0} ")]
     InvalidUrl(String),
     #[error("The path parameter {0} on operation {1} is an object, which is currently unsupported")]

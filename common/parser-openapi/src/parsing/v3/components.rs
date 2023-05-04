@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, rc::Rc};
 
 use openapiv3::{Parameter, ReferenceOr};
 
-use crate::Error;
+use crate::{parsing::Ref, Error};
 
 use super::{operations::RequestBody, Context};
 
@@ -34,8 +34,10 @@ impl Components {
                 ctx.errors.push(Error::TopLevelRequestBodyWasReference(name.clone()));
                 continue;
             };
-            self.request_bodies
-                .insert(Ref::response(name), Rc::new(RequestBody::from_openapi(request_body)));
+            self.request_bodies.insert(
+                Ref::request_body(name),
+                Rc::new(RequestBody::from_openapi(request_body)),
+            );
         }
 
         for (name, parameter) in &components.parameters {
@@ -57,35 +59,4 @@ fn convert_response(response: &openapiv3::Response) -> Vec<ResponseComponent> {
             content_type: content_type.clone(),
         })
         .collect()
-}
-
-#[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Ref(String);
-
-impl std::fmt::Display for Ref {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl Ref {
-    pub fn absolute(absolute: &str) -> Ref {
-        Ref(absolute.to_string())
-    }
-
-    pub fn schema(name: &str) -> Ref {
-        Ref(format!("#/components/schemas/{name}"))
-    }
-
-    pub fn response(name: &str) -> Ref {
-        Ref(format!("#/components/responses/{name}"))
-    }
-
-    pub fn request_body(name: &str) -> Ref {
-        Ref(format!("#/components/request_bodies/{name}"))
-    }
-
-    pub fn parameter(name: &str) -> Ref {
-        Ref(format!("#/components/parameters/{name}"))
-    }
 }

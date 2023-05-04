@@ -82,9 +82,9 @@ impl RequestBody {
         }
     }
 
-    pub fn content_type(self, graph: &super::OpenApiGraph) -> RequestBodyContentType {
+    pub fn content_type(self, graph: &super::OpenApiGraph) -> &RequestBodyContentType {
         match graph.graph.edge_weight(self.0).unwrap() {
-            Edge::HasRequestType { content_type, .. } => content_type.clone(),
+            Edge::HasRequestType { content_type, .. } => content_type.as_ref(),
             _ => {
                 unreachable!()
             }

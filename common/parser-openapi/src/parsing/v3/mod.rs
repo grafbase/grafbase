@@ -1,24 +1,45 @@
-use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodingStyle, RequestBodyContentType};
+//! This module handles parsing a v3 OpenAPI spec into our intermediate graph
+
 use indexmap::IndexMap;
 use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapiv3::{AdditionalProperties, ReferenceOr, Type};
-use petgraph::graph::NodeIndex;
 use regex::Regex;
-use serde_json::Value;
 
 use crate::{
-    graph::{FieldName, ScalarKind, SchemaDetails, WrappingType},
-    parsing::{
-        components::{Components, Ref},
-        operations::OperationDetails,
-    },
+    graph::construction::ParentNode,
+    graph::{FieldName, Node, ScalarKind, SchemaDetails},
+    parsing::{Context, Ref},
     Error,
 };
 
-use super::{Context, Edge, Node};
+use self::{components::Components, operations::OperationDetails};
 
-pub fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
+pub mod components;
+mod grouping;
+pub mod operations;
+
+pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
+    let mut ctx = Context::default();
+
+    let mut components = Components::default();
+    if let Some(spec_components) = &spec.components {
+        components.extend(&mut ctx, spec_components);
+        extract_components(&mut ctx, spec_components);
+    }
+
+    extract_operations(&mut ctx, &spec.paths, components);
+
+    grouping::determine_resource_relationships(&mut ctx);
+
+    if ctx.errors.is_empty() {
+        Ok(ctx)
+    } else {
+        Err(ctx.errors)
+    }
+}
+
+fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
     for (name, schema) in &components.schemas {
         // I'm just going to assume that a top-level schema won't be a reference for now.
         // I think the only case where a user would do that is to reference a remote schema,
@@ -30,7 +51,7 @@ pub fn extract_components(ctx: &mut Context, components: &openapiv3::Components)
 
         let index = ctx
             .graph
-            .add_node(Node::Schema(SchemaDetails::new(name.clone(), schema.clone())));
+            .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), schema.clone()))));
 
         ctx.schema_index.insert(Ref::schema(name), index);
     }
@@ -41,7 +62,7 @@ pub fn extract_components(ctx: &mut Context, components: &openapiv3::Components)
     }
 }
 
-pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: Components) {
+fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, components: Components) {
     for (path, path_item) in &paths.paths {
         // Also going to assume that paths can't be references for now
         let Some(path_item) = path_item.as_item() else {
@@ -63,7 +84,13 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
                         continue;
                     }
                 };
-            let operation_index = ctx.graph.add_node(Node::Operation(operation.clone()));
+            let operation_index = ctx
+                .graph
+                .add_node(Node::Operation(Box::new(crate::graph::OperationDetails {
+                    path: operation.path,
+                    http_method: operation.http_method,
+                    operation_id: operation.operation_id.clone(),
+                })));
 
             for parameter in operation.path_parameters {
                 let parent = ParentNode::PathParameter {
@@ -133,163 +160,6 @@ pub fn extract_operations(ctx: &mut Context, paths: &openapiv3::Paths, component
     }
 }
 
-enum ParentNode {
-    Schema(NodeIndex),
-    OperationRequest {
-        content_type: RequestBodyContentType,
-        operation_index: NodeIndex,
-        required: bool,
-    },
-    OperationResponse {
-        status_code: ExpectedStatusCode,
-        content_type: String,
-        operation_index: NodeIndex,
-    },
-    Field {
-        object_index: NodeIndex,
-        field_name: String,
-        // Whether the field is required (which is a separate concept from nullable)
-        required: bool,
-    },
-    List {
-        nullable: bool,
-        parent: Box<ParentNode>,
-    },
-    Union(NodeIndex),
-    PathParameter {
-        name: String,
-        operation_index: NodeIndex,
-    },
-    QueryParameter {
-        name: String,
-        operation_index: NodeIndex,
-        encoding_style: QueryParameterEncodingStyle,
-        required: bool,
-    },
-}
-
-impl Context {
-    fn add_type_node(&mut self, parent: ParentNode, node: Node, nullable: bool) -> TypeNode<'_> {
-        let dest_index = self.graph.add_node(node);
-        self.add_type_edge(parent, dest_index, nullable);
-
-        TypeNode(dest_index, self)
-    }
-
-    fn add_type_edge(&mut self, parent: ParentNode, dest_index: NodeIndex, nullable: bool) {
-        let src_index = parent.node_index();
-        let mut wrapping = WrappingType::Named;
-        if !nullable {
-            wrapping = wrapping.wrap_required();
-        }
-        self.graph
-            .add_edge(src_index, dest_index, parent.create_edge_weight(wrapping));
-    }
-}
-
-struct TypeNode<'a>(NodeIndex, &'a mut Context);
-
-impl<'a> TypeNode<'a> {
-    fn node_index(self) -> NodeIndex {
-        self.0
-    }
-
-    fn add_default(self, default: Option<&Value>) -> Self {
-        if let Some(default_value) = default {
-            let default_index = self.1.graph.add_node(Node::Default(default_value.clone()));
-            self.1.graph.add_edge(self.0, default_index, Edge::HasDefault);
-        }
-        self
-    }
-
-    fn add_possible_values<T>(self, values: &[T]) -> Self
-    where
-        T: serde::Serialize,
-    {
-        for value in values {
-            let value_index = self.1.graph.add_node(Node::PossibleValue(
-                serde_json::to_value(value).expect("default valueto be serializable"),
-            ));
-            self.1.graph.add_edge(self.0, value_index, Edge::HasPossibleValue);
-        }
-        self
-    }
-}
-
-impl ParentNode {
-    fn node_index(&self) -> NodeIndex {
-        match self {
-            ParentNode::Union(idx) | ParentNode::Schema(idx) => *idx,
-            ParentNode::OperationResponse { operation_index, .. }
-            | ParentNode::OperationRequest { operation_index, .. }
-            | ParentNode::PathParameter { operation_index, .. }
-            | ParentNode::QueryParameter { operation_index, .. } => *operation_index,
-            ParentNode::Field { object_index, .. } => *object_index,
-            ParentNode::List { parent, .. } => parent.node_index(),
-        }
-    }
-
-    fn create_edge_weight(&self, wrapping: WrappingType) -> Edge {
-        match self {
-            ParentNode::Schema(_) => Edge::HasType { wrapping },
-            ParentNode::OperationRequest {
-                content_type, required, ..
-            } => Edge::HasRequestType {
-                content_type: content_type.clone(),
-                // If a parameter is marked as not required, we need to make sure that we
-                // don't record it as required, regardless of what the schema says.
-                wrapping: wrapping.set_required(*required),
-            },
-            ParentNode::OperationResponse {
-                status_code,
-                content_type,
-                ..
-            } => Edge::HasResponseType {
-                content_type: content_type.clone(),
-                status_code: status_code.clone(),
-                wrapping,
-            },
-            ParentNode::Field {
-                field_name, required, ..
-            } => Edge::HasField {
-                name: field_name.clone(),
-                // wrapping will have had the nullability of a field applied at this
-                // point.  But OpenAPI schemas often don't bother specifying the
-                // nullability of object fields and just use required, so we're better
-                // off ignoring `nullable` and just relying on `required` here.
-                wrapping: wrapping.set_required(*required),
-            },
-            ParentNode::List { nullable, parent } => {
-                // Ok, so call parent.to_edge_weight and then modifiy the wrapping in it.
-                // Wrapping the wrapping in a List(Required()) or just List() as appropriate.
-                let mut wrapping = wrapping.wrap_list();
-                if !nullable {
-                    wrapping = wrapping.wrap_required();
-                }
-                parent.create_edge_weight(wrapping)
-            }
-            ParentNode::Union { .. } => Edge::HasUnionMember,
-            ParentNode::PathParameter { name, .. } => Edge::HasPathParameter {
-                name: name.clone(),
-                // Path parameters are always required, so lets make sure they are here too.
-                wrapping: wrapping.wrap_required(),
-            },
-            ParentNode::QueryParameter {
-                name,
-                encoding_style,
-                required,
-                ..
-            } => Edge::HasQueryParameter {
-                name: name.clone(),
-                // If a parameter is marked as not required, we need to make sure that we
-                // don't record it as required, regardless of what the schema says.
-                wrapping: wrapping.set_required(*required),
-                encoding_style: *encoding_style,
-            },
-        }
-    }
-}
-
 fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schema>, parent: ParentNode) {
     use openapiv3::SchemaKind;
 
@@ -297,7 +167,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         ReferenceOr::Reference { reference } => {
             let reference = Ref::absolute(reference);
             let Some(schema) = ctx.schema_index.get(&reference) else {
-                ctx.errors.push(Error::UnresolvedReference(reference));
+                ctx.errors.push(unresolved_reference(reference));
                 return;
             };
 
@@ -460,4 +330,30 @@ fn is_valid_enum_value(value: &Option<String>) -> bool {
 /// in GraphQL.  This checks if this name is valid in GraphQL or not.
 fn is_valid_field_name(value: &str) -> bool {
     FieldName::from_openapi_name(value).will_be_valid_graphql()
+}
+
+pub fn unresolved_reference(reference: Ref) -> Error {
+    Error::UnresolvedReference(reference.to_string())
+}
+
+impl Ref {
+    fn absolute(absolute: &str) -> Ref {
+        Ref(absolute.to_string())
+    }
+
+    fn schema(name: &str) -> Ref {
+        Ref(format!("#/components/schemas/{name}"))
+    }
+
+    fn response(name: &str) -> Ref {
+        Ref(format!("#/components/responses/{name}"))
+    }
+
+    fn request_body(name: &str) -> Ref {
+        Ref(format!("#/components/request_bodies/{name}"))
+    }
+
+    fn parameter(name: &str) -> Ref {
+        Ref(format!("#/components/parameters/{name}"))
+    }
 }

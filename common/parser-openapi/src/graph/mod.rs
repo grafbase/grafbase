@@ -11,8 +11,6 @@ use petgraph::{
 use regex::Regex;
 use serde_json::Value;
 
-use crate::parsing::operations::OperationDetails;
-
 mod enums;
 mod input_object;
 mod input_value;
@@ -21,6 +19,8 @@ mod output_type;
 mod parameters;
 mod scalar;
 mod transforms;
+
+pub mod construction;
 
 pub use self::{
     enums::Enum,
@@ -57,21 +57,34 @@ impl OpenApiGraph {
 
 pub struct SchemaDetails {
     openapi_name: String,
-    openapi: openapiv3::Schema,
+    resource_id: Option<String>,
 }
 
 impl SchemaDetails {
     pub fn new(openapi_name: String, openapi: openapiv3::Schema) -> Self {
-        SchemaDetails { openapi_name, openapi }
+        // There's a title property on schemas that we _could_ use for a name,
+        // but the spec doesn't enforce that it's unique and (certainly in stripes case) it is not.
+        // Might do some stuff to work around htat, but for now it's either "x-resourceId"
+        // which stripe use or the name of the schema in components.
+        let resource_id = openapi
+            .schema_data
+            .extensions
+            .get("x-resourceId")
+            .map(|value| value.to_string());
+
+        SchemaDetails {
+            openapi_name,
+            resource_id,
+        }
     }
 }
 
 pub enum Node {
     /// A schema in the OpenApi spec.
-    Schema(SchemaDetails),
+    Schema(Box<SchemaDetails>),
 
     /// An individual HTTP operation in the OpenApi spec.
-    Operation(OperationDetails),
+    Operation(Box<OperationDetails>),
 
     /// A GraphQL Object that may be needed in the output.
     Object,
@@ -124,7 +137,7 @@ pub enum Edge {
 
     /// An edge bewteen an operation and it's request type
     HasRequestType {
-        content_type: RequestBodyContentType,
+        content_type: Box<RequestBodyContentType>,
         wrapping: WrappingType,
     },
 
@@ -207,6 +220,23 @@ impl std::fmt::Debug for Node {
             Self::PossibleValue(value) => f.debug_tuple("PossibleValue").field(value).finish(),
         }
     }
+}
+
+#[derive(Debug)]
+pub struct OperationDetails {
+    pub path: String,
+    pub http_method: HttpMethod,
+    pub operation_id: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::Display)]
+#[strum(serialize_all = "UPPERCASE", ascii_case_insensitive)]
+pub enum HttpMethod {
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
 }
 
 // The GraphQL spec calls the "NonNull"/"List" types "wrapping types" so I'm borrowing
@@ -413,16 +443,11 @@ impl Node {
     fn name(&self) -> Option<String> {
         match self {
             Node::Schema(schema) => Some(
-                // There's a title property that we _could_ use for a name, but the spec doesn't
-                // enforce that it's unique and (certainly in stripes case) it is not.
-                // Might do some stuff to work around htat, but for now it's either "x-resourceId"
-                // which stripe use or the name of the schema in components.
+                // We either use the resourceId if it's present or just take the name of the schema
+                // in the document
                 schema
-                    .openapi
-                    .schema_data
-                    .extensions
-                    .get("x-resourceId")
-                    .and_then(|v| v.as_str())
+                    .resource_id
+                    .as_deref()
                     .unwrap_or(schema.openapi_name.as_str())
                     .to_pascal_case(),
             ),
@@ -490,5 +515,13 @@ mod tests {
         assert!(FieldName::from_openapi_name("some_field").will_be_valid_graphql());
         assert!(FieldName::from_openapi_name("someField").will_be_valid_graphql());
         assert!(FieldName::from_openapi_name("someField123").will_be_valid_graphql());
+    }
+
+    #[test]
+    fn test_graph_size() {
+        // Our graph can end up with a ton of nodes & edges so it's important
+        // that they don't get too big.
+        assert!(std::mem::size_of::<Node>() <= 48);
+        assert!(std::mem::size_of::<Edge>() <= 48);
     }
 }

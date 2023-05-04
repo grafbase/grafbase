@@ -311,7 +311,7 @@ impl Operation {
                     variable_resolve_definition: VariableResolveDefinition::InputTypeName(
                         request_body.argument_name().to_owned(),
                     ),
-                    content_type: request_body.content_type(graph),
+                    content_type: request_body.content_type(graph).clone(),
                 }),
         }))
     }

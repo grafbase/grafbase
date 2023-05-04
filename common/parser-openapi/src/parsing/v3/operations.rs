@@ -4,9 +4,9 @@ use dynaql::registry::resolvers::http::{ExpectedStatusCode, QueryParameterEncodi
 use indexmap::IndexMap;
 use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, ReferenceOr, StatusCode};
 
-use crate::Error;
+use crate::{graph::HttpMethod, parsing::Ref, Error};
 
-use super::components::{Components, Ref};
+use super::{components::Components, unresolved_reference};
 
 #[non_exhaustive]
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl OperationDetails {
                     components
                         .request_bodies
                         .get(&reference)
-                        .ok_or(Error::UnresolvedReference(reference))?,
+                        .ok_or_else(|| unresolved_reference(reference))?,
                 )
             }
             Some(ReferenceOr::Item(request_body)) => Rc::new(RequestBody::from_openapi(request_body)),
@@ -60,7 +60,7 @@ impl OperationDetails {
                     let response_components = components
                         .responses
                         .get(&reference)
-                        .ok_or(Error::UnresolvedReference(reference))?;
+                        .ok_or_else(|| unresolved_reference(reference))?;
 
                     for response_component in response_components {
                         responses.push(Response {
@@ -138,7 +138,7 @@ fn resolve_parameter<'a>(
             components
                 .parameters
                 .get(&reference)
-                .ok_or(Error::UnresolvedReference(reference))?
+                .ok_or_else(|| unresolved_reference(reference))?
         }
         ReferenceOr::Item(parameter) => parameter,
     };
@@ -184,16 +184,6 @@ fn register_parameter(
     }
 
     Ok(())
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, strum::EnumString, strum::Display)]
-#[strum(serialize_all = "UPPERCASE", ascii_case_insensitive)]
-pub enum HttpMethod {
-    Get,
-    Post,
-    Put,
-    Delete,
-    Patch,
 }
 
 #[derive(Clone, Debug)]
