@@ -167,7 +167,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         ReferenceOr::Reference { reference } => {
             let reference = Ref::absolute(reference);
             let Some(schema) = ctx.schema_index.get(&reference) else {
-                ctx.errors.push(unresolved_reference(reference));
+                ctx.errors.push(reference.to_unresolved_error());
                 return;
             };
 
@@ -330,10 +330,6 @@ fn is_valid_enum_value(value: &Option<String>) -> bool {
 /// in GraphQL.  This checks if this name is valid in GraphQL or not.
 fn is_valid_field_name(value: &str) -> bool {
     FieldName::from_openapi_name(value).will_be_valid_graphql()
-}
-
-pub fn unresolved_reference(reference: Ref) -> Error {
-    Error::UnresolvedReference(reference.to_string())
 }
 
 impl Ref {

@@ -1,6 +1,5 @@
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
-use openapiv3::OpenAPI;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
 use url::Url;
@@ -19,13 +18,9 @@ pub fn parse_spec(
     // Make sure we have a trailing slash on metadata so that Url::join works correctly.
     ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
 
-    let spec = match format {
-        Format::Json => serde_json::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::JsonParsingError(e)])?,
-        Format::Yaml => serde_yaml::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::YamlParsingError(e)])?,
-    };
-    drop(data);
+    let spec = parsing::parse(data, format)?;
 
-    let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata.clone());
+    let graph = OpenApiGraph::new(spec, metadata.clone());
 
     validation::validate(&graph)?;
 
@@ -55,6 +50,7 @@ impl From<parser::OpenApiDirective> for ApiMetadata {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum Format {
     Json,
     Yaml,
@@ -95,6 +91,8 @@ fn extract_extension(url: &str) -> Option<String> {
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("We don't support version {0} of OpenAPI currently.  Please contact support")]
+    UnsupportedVersion(String),
     #[error("Could not parse the open api spec: {0}")]
     JsonParsingError(serde_json::Error),
     #[error("Could not parse the open api spec: {0}")]

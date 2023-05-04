@@ -9,9 +9,9 @@ use super::{operations::RequestBody, Context};
 /// Re-usable components that can be referenced in an OpenAPI schema.
 #[derive(Default)]
 pub struct Components {
-    pub responses: BTreeMap<Ref, Vec<ResponseComponent>>,
-    pub request_bodies: BTreeMap<Ref, Rc<Vec<RequestBody>>>,
-    pub parameters: BTreeMap<Ref, Parameter>,
+    pub(super) responses: BTreeMap<Ref, Vec<ResponseComponent>>,
+    pub(super) request_bodies: BTreeMap<Ref, Rc<Vec<RequestBody>>>,
+    pub(super) parameters: BTreeMap<Ref, Parameter>,
 }
 
 pub struct ResponseComponent {
