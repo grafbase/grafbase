@@ -1,5 +1,6 @@
 ---
 source: common/parser/src/tests.rs
+assertion_line: 383
 expression: req_string_a
 ---
 {
@@ -1239,7 +1240,8 @@ expression: req_string_a
               "Related": {
                 "from": null,
                 "relation_name": null,
-                "to": 0
+                "to": 0,
+                "ty": "Product"
               }
             },
             "provides": null,
