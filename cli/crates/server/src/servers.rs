@@ -69,9 +69,9 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                     let watch_event_bus = event_bus.clone();
 
                     tokio::select! {
-                        result = start_watcher(environment.project_grafbase_path.clone(),  move |path, event_type| {
+                        result = start_watcher(environment.project_grafbase_path.clone(),  move |path| {
                             let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
-                            watch_event_bus.send(Event::Reload(relative_path, event_type)).expect("cannot fail");
+                            watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
@@ -99,13 +99,13 @@ async fn server_loop(
             result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
-            (path, file_event_type) = wait_for_event_and_match(receiver, |event| match event {
-                Event::Reload(path, file_event_type) => Some((path, file_event_type)),
+            path = wait_for_event_and_match(receiver, |event| match event {
+                Event::Reload(path) => Some(path),
                 Event::BridgeReady => None,
             }) => {
                 trace!("reload");
                 path_changed = Some(path.clone());
-                let _: Result<_, _> = sender.send(ServerMessage::Reload(path, file_event_type));
+                let _: Result<_, _> = sender.send(ServerMessage::Reload(path));
             }
         }
     }
