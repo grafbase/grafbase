@@ -6,12 +6,15 @@ use query_planning::logical_query::{
 };
 use query_planning::reexport::arrow_schema::{DataType, Field};
 use query_planning::reexport::internment::ArcIntern;
+use query_planning::scalar::graphql::GraphQLScalars;
 use query_planning::scalar::ScalarValue;
 
 use crate::parser::types::Selection;
 
 use crate::registry::MetaType;
 use crate::{ContextSelectionSet, ServerError, ServerResult};
+
+use super::auth::AuthContext;
 
 /// Resolve an container by executing each of the fields concurrently.
 pub async fn resolve_logical_plan_container<'a>(
@@ -80,6 +83,7 @@ impl FieldsGraph {
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
                                         array: false,
+                                        ty: Some(GraphQLScalars::String),
                                         name: field
                                             .node
                                             .response_key()
@@ -112,6 +116,7 @@ impl FieldsGraph {
                                     ctx.item.position_node(FieldPlan {
                                         nullable: false,
                                         array: false,
+                                        ty: Some(GraphQLScalars::String),
                                         name: field
                                             .node
                                             .response_key()
@@ -151,6 +156,10 @@ impl FieldsGraph {
                     }
 
                     let ctx_field = ctx.with_field(field, Some(root), Some(&ctx.item.node));
+
+                    let auth_ctx = AuthContext::new(&ctx_field);
+                    auth_ctx.check_resolving_logical_query(&ctx_field, root)?;
+
                     let plan = ctx_field
                         .registry()
                         .resolve_logic_field(&ctx_field, root, parent_logical_plan.clone())
