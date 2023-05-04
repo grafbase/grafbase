@@ -1,9 +1,3 @@
-pub mod reexport {
-    pub use dynomite;
-    #[cfg(feature = "sqlite")]
-    pub use maplit;
-}
-
 cfg_if::cfg_if! {
     if #[cfg(not(feature = "sqlite"))] {
         mod batch_getitem;
@@ -24,8 +18,7 @@ cfg_if::cfg_if! {
         pub use query_by_type_paginated::{QueryTypePaginatedKey, QueryTypePaginatedValue};
         pub use query_single_by_relation::{QuerySingleRelationKey, QuerySingleRelationLoader, QuerySingleRelationLoaderError};
     } else {
-        #[doc(hidden)]
-        pub mod local;
+        mod local;
 
         use local::batch_getitem::{get_loader_batch_transaction, BatchGetItemLoader};
         use local::query::get_loader_query;

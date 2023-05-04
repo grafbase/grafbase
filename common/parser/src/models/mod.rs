@@ -120,7 +120,7 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
     if let MetaType::Object { ref fields, .. } = ty {
         let mut arrow_fields = Vec::with_capacity(fields.len());
         for (_key, field) in fields {
-            if field.relation.is_none() && field.plan.as_ref().map(|x| x.is_from_maindb()).unwrap_or(true) {
+            if field.relation.is_none() {
                 let ty = Type::new(&field.ty).ok_or_else(|| {
                     ConversionError::ParsingSchema(format!("The Type {ty} is not a proper GraphQL type", ty = field.ty))
                 })?;

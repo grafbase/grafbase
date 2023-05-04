@@ -676,14 +676,14 @@ impl Schema {
         };
 
         #[cfg(feature = "query-planning")]
-        let _engine =
+        let engine =
             ctx.data_unchecked::<grafbase_runtime::custom_resolvers::CustomResolversEngine>();
 
         #[cfg(feature = "query-planning")]
-        let _req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();
+        let req = ctx.data_unchecked::<grafbase_runtime::GraphqlRequestExecutionContext>();
 
         #[cfg(feature = "query-planning")]
-        let exec_context = ctx.data_unchecked::<Arc<ExecutionContext>>().clone();
+        let exec_context = Arc::new(ExecutionContext::new(engine.clone(), req.clone()).unwrap());
 
         let query = ctx.registry().query_root();
 
@@ -724,9 +724,8 @@ impl Schema {
                 // Some unwrap here, behind a feature flag, not an issue to crash the worker.
                 let mut first_response: serde_json::Value =
                     first_result.unwrap().unwrap().to_json();
-
-                let mut root = QueryResponse::default();
                 let c = first_response.get_mut("data").unwrap().take();
+                let mut root = QueryResponse::default();
                 let id = root.from_serde_value(c);
                 root.set_root_unchecked(id);
 
