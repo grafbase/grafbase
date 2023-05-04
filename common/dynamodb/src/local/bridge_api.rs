@@ -14,8 +14,11 @@ pub enum ApiErrorKind {
 }
 
 #[allow(dead_code)]
+#[derive(Debug, thiserror::Error)]
 pub enum QueryError {
+    #[error("request err: {0:?}")]
     Reqwest(reqwest::Error),
+    #[error("internal server error")]
     InternalServerError,
 }
 

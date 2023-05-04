@@ -360,7 +360,12 @@ pub fn add_query_paginated_collection(
     let field = MetaNames::query_collection(model_type_definition);
     let cache_control = CacheDirective::parse(&model_type_definition.directives);
 
-    let plan = Some(SchemaPlan::related(None, ctx.get_schema_id(&type_name), None));
+    let plan = Some(SchemaPlan::related(
+        None,
+        ctx.get_schema_id(&type_name),
+        None,
+        type_name.clone(),
+    ));
 
     ctx.queries.push(MetaField {
         name: field.clone(),

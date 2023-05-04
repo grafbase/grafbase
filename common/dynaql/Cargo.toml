@@ -72,7 +72,7 @@ grafbase = { path = "../grafbase", features = ["json"] }
 arrow-schema = { version = "31", features = ["serde"] }
 
 # API dependencies
-query-planning = { path = "../query-planning", optional = true }
+query-planning = { path = "../query-planning", optional = true, default-features = false}
 dynamodb = { path = "../dynamodb" }
 graph-entities = { path = "../graph-entities" }
 logworker = { path = "../log", package = "log", optional = true }

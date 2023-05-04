@@ -939,6 +939,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     from,
                     to,
                     relation_name,
+                    ty,
                 }) => {
                     // For a [`PlanRelated`] plan, we have to infer the local pagination arguments
                     // We removed them from the schema definition as it shouldn't change.
@@ -954,6 +955,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     let last = last.expect_opt_int(self, None, Some(PAGINATION_LIMIT))?;
                     let order_by = order_by.expect_oneof::<OrderByDirection>(self, None)?;
 
+                    // We know it has to be `createdAt` for now.
                     let direction = match order_by.map(|x| x.value) {
                         Some(OrderByDirection::ASC) => Direction::Forward,
                         Some(OrderByDirection::DESC) => Direction::Backward,
@@ -973,6 +975,22 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             Error::new_with_source(err).into_server_error(self.item.pos)
                         })?;
 
+                    let schema = self.registry().get_schema(*to, Some(self.item.pos))?;
+
+                    // If we are in a Related ()->Node, it means we want a Type select by a Match
+                    if from.is_none() && relation_name.is_none() {
+                        return Ok(LogicalPlanBuilder::match_ty(
+                            schema.as_ref(),
+                            pagination,
+                            vec![ty.clone()],
+                        )
+                        .and_then(|x| x.limit(0, Some(elt_to_fetch)))
+                        .map_err(|err| {
+                            Error::new_with_source(err).into_server_error(self.item.pos)
+                        })?
+                        .build());
+                    }
+
                     let previous = if from.is_some() {
                         previous_plan.ok_or_else(|| {
                         ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos))
@@ -980,8 +998,6 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     } else {
                         LogicalPlanBuilder::empty().build()
                     };
-
-                    let schema = self.registry().get_schema(*to, Some(self.item.pos))?;
 
                     LogicalPlanBuilder::from(previous)
                         .related(
@@ -992,6 +1008,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                             schema.as_ref(),
                             pagination,
                             Datasource::gb(),
+                            vec![ty.clone()],
                         )
                         .and_then(|x| x.limit(0, Some(elt_to_fetch)))
                         .map_err(|err| {

@@ -1458,6 +1458,7 @@ impl Registry {
         };
 
         use dynaql_parser::types::Type;
+        use query_planning::scalar::graphql::as_graphql_scalar;
         let ty = Type::new(&associated_meta_field.ty).ok_or_else(|| {
             ServerError::new(
                 format!(
@@ -1470,6 +1471,7 @@ impl Registry {
 
         let plan = field.position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
             nullable: ty.nullable,
+            ty: as_graphql_scalar(ty.base.to_base_type_str()),
             array: ty.base.is_list(),
             name: field.node.response_key().clone().map(|x| x.to_string()),
             logic_plan: actual_logic_plan,
