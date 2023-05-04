@@ -19,28 +19,6 @@ pub enum SchemaPlan {
 }
 
 impl SchemaPlan {
-    pub fn is_from_maindb(&self) -> bool {
-        match self {
-            SchemaPlan::Projection(_) => true, // We don't know in fact.
-            SchemaPlan::Related(_) => true,
-            SchemaPlan::Apply(ref input) => input.plan.as_ref().is_from_maindb(),
-            SchemaPlan::First(ref input) => input
-                .plan
-                .as_ref()
-                .map(|x| x.is_from_maindb())
-                .unwrap_or(true),
-            SchemaPlan::Last(ref input) => input
-                .plan
-                .as_ref()
-                .map(|x| x.is_from_maindb())
-                .unwrap_or(true),
-            SchemaPlan::PaginationPage(_) => true,
-            SchemaPlan::Resolver(_) => false,
-        }
-    }
-}
-
-impl SchemaPlan {
     pub fn projection(fields: Vec<String>) -> Self {
         Self::Projection(PlanProjection { fields })
     }
@@ -49,17 +27,11 @@ impl SchemaPlan {
         Self::Resolver(Resolver { resolver_name })
     }
 
-    pub fn related(
-        from: Option<SchemaID>,
-        to: SchemaID,
-        relation_name: Option<String>,
-        ty: String,
-    ) -> Self {
+    pub fn related(from: Option<SchemaID>, to: SchemaID, relation_name: Option<String>) -> Self {
         Self::Related(PlanRelated {
             from,
             to,
             relation_name,
-            ty,
         })
     }
 
@@ -97,14 +69,11 @@ pub struct PlanProjection {
 }
 
 /// Describe the relation
-/// TODO: When handling Union for GraphQL: We need to sort an Union of multiple Schema.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanRelated {
     pub(crate) from: Option<SchemaID>,
     pub(crate) to: SchemaID,
     pub(crate) relation_name: Option<String>,
-    /// Type name for the output Schema.
-    pub(crate) ty: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
