@@ -220,15 +220,19 @@ impl QueryResponse {
         let mut count_containers = 0;
         let mut count_primitives = 0;
         let mut count_lists = 0;
+        let mut count_relations = 0;
         for value in self.data.values() {
             match value {
-                QueryResponseNode::Container(_) => count_containers += 1,
+                QueryResponseNode::Container(container) => {
+                    count_relations += container.children.len();
+                    count_containers += 1;
+                }
                 QueryResponseNode::List(_) => count_lists += 1,
                 QueryResponseNode::Primitive(_) => count_primitives += 1,
             }
         }
 
-        println!("Containers: {count_containers}\nLists: {count_lists}\nPrimitives: {count_primitives}");
+        println!("Containers: {count_containers}\nRelations: {count_relations}\nLists: {count_lists}\nPrimitives: {count_primitives}");
     }
 
     fn next_id(&mut self) -> ResponseNodeId {
@@ -660,6 +664,8 @@ mod tests {
 
         // TODO: Can I make this smaller?
         assert_eq!(std::mem::size_of::<ResponseContainer>(), 56);
+
+        assert_eq!(std::mem::size_of::<ResponseNodeRelation>(), 32);
     }
 
     #[test]
