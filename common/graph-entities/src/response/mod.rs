@@ -33,9 +33,12 @@ use serde::{Deserialize, Serialize};
 use std::borrow::Borrow;
 use std::collections::HashMap;
 
+mod builders;
 mod se;
 
 mod graph;
+pub use self::builders::{ResponseContainerBuilder, ResponseNodeBuilder};
+use self::graph::ResponseIdLookup;
 pub use self::graph::ResponseNodeId;
 pub use se::GraphQlResponseSerializer;
 
@@ -46,6 +49,24 @@ pub struct QueryResponse {
     /// Storage of every nodes
     #[serde(with = "vectorize")]
     data: HashMap<ResponseNodeId, QueryResponseNode>,
+
+    entity_ids: HashMap<ArcIntern<String>, ResponseNodeId>,
+
+    /// The next id we can use when we add a node.
+    next_id: u32,
+    // TODO: An alternative:
+    // nodes: HashMap<u32, QueryResponseNode>
+    // where QueryResponseNode is {Primitive(Value), List, Object{}}
+    // Object can have the relation _and_ a Vec of the relation keys?
+    // relationships: HashMap<u32, Vec<u32>>
+    //
+    // Ofc relationships could maybe still just live inside Object & List?
+    // Not sure if denormalising helps?
+    // It
+    //
+    // where keys only gets populated if this is a "named" entity?
+    // keys: HashMap<ResponseNodeId, u32>
+    //
 }
 
 pub mod vectorize {
@@ -78,17 +99,17 @@ impl<'a> Iterator for Children<'a> {
     type Item = &'a QueryResponseNode;
 
     fn next(&mut self) -> Option<&'a QueryResponseNode> {
-        let node = self.nodes.pop().and_then(|x| self.response.get_node(&x));
+        let node = self.nodes.pop().and_then(|x| self.response.get_node(x));
         match node {
             base @ Some(QueryResponseNode::Container(container)) => {
                 container.children.iter().for_each(|(_, elt)| {
-                    self.nodes.push(elt.clone());
+                    self.nodes.push(*elt);
                 });
                 base
             }
             base @ Some(QueryResponseNode::List(container)) => {
                 container.children.iter().for_each(|elt| {
-                    self.nodes.push(elt.clone());
+                    self.nodes.push(*elt);
                 });
                 base
             }
@@ -113,7 +134,7 @@ impl QueryResponse {
         Children {
             response: self,
             nodes: if let Some(root) = &self.root {
-                vec![root.clone()]
+                vec![*root]
             } else {
                 Vec::new()
             },
@@ -131,9 +152,9 @@ impl QueryResponse {
 // TODO: iterator are little flawed right now as it's just a draft impl; it'll be switched to a
 // more compact and efficient form later.
 impl<'a> Iterator for Relations<'a> {
-    type Item = (ResponseNodeRelation, ResponseNodeId);
+    type Item = (ResponseNodeRelation, ArcIntern<String>);
 
-    fn next(&mut self) -> Option<(ResponseNodeRelation, ResponseNodeId)> {
+    fn next(&mut self) -> Option<(ResponseNodeRelation, ArcIntern<String>)> {
         loop {
             if let Some(relation) = self.relations.pop() {
                 return Some(relation);
@@ -142,13 +163,13 @@ impl<'a> Iterator for Relations<'a> {
             if let Some(node) = self.nodes.next() {
                 match node {
                     QueryResponseNode::Container(container) => {
-                        container
-                            .children
-                            .iter()
-                            .filter(|(rel, _)| matches!(rel, ResponseNodeRelation::Relation { .. }))
-                            .for_each(|(rel, _elt)| {
-                                self.relations.push((rel.clone(), container.id.clone()));
-                            });
+                        self.relations.extend(
+                            container
+                                .children
+                                .iter()
+                                .filter(|(rel, _)| matches!(rel, ResponseNodeRelation::Relation { .. }))
+                                .filter_map(|(rel, _)| Some((rel.clone(), container.id.clone()?))),
+                        );
                         continue;
                     }
                     _ => {
@@ -165,7 +186,7 @@ impl<'a> Iterator for Relations<'a> {
 /// An iterator of the IDs of the children of a given node with forward depth-first
 pub struct Relations<'a> {
     nodes: Children<'a>,
-    relations: Vec<(ResponseNodeRelation, ResponseNodeId)>,
+    relations: Vec<(ResponseNodeRelation, ArcIntern<String>)>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -180,12 +201,26 @@ pub enum QueryResponseErrors {
 
 impl QueryResponse {
     /// Initialize a new response
-    pub fn new_root(node: QueryResponseNode) -> Self {
-        let id = node.id().unwrap_or_default();
-        Self {
-            root: Some(id.clone()),
-            data: HashMap::from_iter(vec![(id, node)]),
-        }
+    pub fn new_root<T>(node: T) -> Self
+    where
+        T: builders::ResponseNodeBuilder,
+    {
+        let id = ResponseNodeId(0);
+        let mut this = Self {
+            root: Some(id),
+            entity_ids: HashMap::new(),
+            data: HashMap::new(),
+            next_id: 0,
+        };
+        this.new_node_unchecked(node);
+        this
+    }
+
+    fn next_id(&mut self) -> ResponseNodeId {
+        let id = ResponseNodeId(self.next_id);
+        self.next_id += 1;
+        assert!(self.next_id != 0, "Oh no, an ID Overflow");
+        id
     }
 
     /// Set the new root node
@@ -195,41 +230,69 @@ impl QueryResponse {
 
     /// Create a new node, replace if the node already exist
     /// (A new node is not in the response)
-    pub fn new_node_unchecked(&mut self, node: QueryResponseNode) -> ResponseNodeId {
-        let id = node.id().unwrap_or_default();
+    pub fn new_node_unchecked<T>(&mut self, node: T) -> ResponseNodeId
+    where
+        T: builders::ResponseNodeBuilder,
+    {
+        let next_id = self.next_id();
+        self.new_node_unchecked_impl(node.entity_id(), node.into_node(), next_id)
+    }
+
+    fn new_node_unchecked_impl(
+        &mut self,
+        entity_id: Option<ArcIntern<String>>,
+        node: QueryResponseNode,
+        node_id: ResponseNodeId,
+    ) -> ResponseNodeId {
+        if let Some(entity_id) = entity_id {
+            if let Some(old_id) = self.entity_ids.insert(entity_id, node_id) {
+                self.data.remove(&old_id);
+            }
+        }
+
         println!("Len: {}, Capacity: {}", self.data.len(), self.data.capacity());
-        self.data.insert(id.clone(), node);
-        id
+        self.data.insert(node_id, node);
+        node_id
     }
 
     /// Get a Node by his ID
-    pub fn get_node(&self, id: &ResponseNodeId) -> Option<&QueryResponseNode> {
-        self.data.get(id)
+    pub fn get_node<S: ResponseIdLookup>(&self, id: S) -> Option<&QueryResponseNode> {
+        // TODO: might want to look this up, not sure?
+        self.data.get(&id.lookup_actual_id(self)?)
     }
 
     /// Get a Node by his ID
-    pub fn get_node_mut(&mut self, id: &ResponseNodeId) -> Option<&mut QueryResponseNode> {
-        self.data.get_mut(id)
+    pub fn get_node_mut(&mut self, id: ResponseNodeId) -> Option<&mut QueryResponseNode> {
+        // TODO: might want to look this up, not sure?
+        self.data.get_mut(&id)
     }
 
     /// Delete a Node by his ID
-    pub fn delete_node<S: Borrow<ResponseNodeId>>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
-        self.data.remove(id.borrow()).ok_or(QueryResponseErrors::NodeNotFound)
+    pub fn delete_node<S: ResponseIdLookup>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
+        let actual_id = id.lookup_actual_id(self).ok_or(QueryResponseErrors::NodeNotFound)?;
+        if let Some(entity_id) = id.node_id() {
+            // TODO: Do I need to do a sanity check that actual_id & the value in entity_ids match?  Maybe...
+            self.entity_ids.remove(&entity_id);
+        }
+        self.data.remove(&actual_id).ok_or(QueryResponseErrors::NodeNotFound)
     }
 
     /// Append a new node to another node which has to be a `Container`
     /// replace if the node already exist
-    pub fn append_unchecked(
+    pub fn append_unchecked<T>(
         &mut self,
-        from_id: &ResponseNodeId,
-        to: QueryResponseNode,
+        from_id: ResponseNodeId,
+        to: T,
         relation: ResponseNodeRelation,
-    ) -> Result<ResponseNodeId, QueryResponseErrors> {
+    ) -> Result<ResponseNodeId, QueryResponseErrors>
+    where
+        T: ResponseNodeBuilder,
+    {
         let id = self.new_node_unchecked(to);
         let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::Container(container) = from_node {
-            container.insert(relation, id.clone());
+            container.insert(relation, id);
         } else {
             return Err(QueryResponseErrors::NotAContainer);
         }
@@ -238,16 +301,15 @@ impl QueryResponse {
     }
 
     /// Push a new node to another node which has to be a `List`
-    pub fn push(
-        &mut self,
-        from_id: &ResponseNodeId,
-        to: QueryResponseNode,
-    ) -> Result<ResponseNodeId, QueryResponseErrors> {
+    pub fn push<T>(&mut self, from_id: ResponseNodeId, to: T) -> Result<ResponseNodeId, QueryResponseErrors>
+    where
+        T: ResponseNodeBuilder,
+    {
         let id = self.new_node_unchecked(to);
         let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::List(list) = from_node {
-            list.children.push(id.clone());
+            list.children.push(id);
         } else {
             return Err(QueryResponseErrors::NotAContainer);
         }
@@ -256,7 +318,7 @@ impl QueryResponse {
     }
 
     pub fn into_compact_value(mut self) -> serde_json::Result<CompactValue> {
-        Ok(match self.root.clone() {
+        Ok(match self.root {
             Some(root_id) => self
                 .take_node_into_const_value(root_id)
                 .expect("graph root should always exist"),
@@ -305,22 +367,23 @@ impl QueryResponse {
         }
     }
 
-    fn node_exists(&self, id: &ResponseNodeId) -> bool {
+    fn node_exists(&self, id: ResponseNodeId) -> bool {
         self.get_node(id).is_some()
     }
 }
 
+// TODO: Wrap ArcIntern<String> somehow?
+
 impl QueryResponseNode {
-    pub fn id(&self) -> Option<ResponseNodeId> {
+    pub fn id(&self) -> Option<ArcIntern<String>> {
         match self {
-            QueryResponseNode::Container(value) => Some(value.id.clone()),
-            QueryResponseNode::List(value) => Some(value.id.clone()),
-            QueryResponseNode::Primitive(_) => None,
+            QueryResponseNode::Container(value) => value.id.clone(),
+            QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None,
         }
     }
 
     pub fn is_node(&self) -> bool {
-        matches!(self.id(), Some(ResponseNodeId::NodeID(_)))
+        matches!(self.id(), Some(_))
     }
 
     pub const fn is_list(&self) -> bool {
@@ -358,10 +421,8 @@ impl QueryResponseNode {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct ResponseList {
-    id: ResponseNodeId,
-
     // Right now children are in an order based on the created_at which can be derived.
     // What we should do is to add a a OrderedBy field where we would specified Ord applied to this
     // List. Then on insert we'll be able to add new elements based on the Ord.
@@ -370,19 +431,10 @@ pub struct ResponseList {
     children: Vec<ResponseNodeId>,
 }
 
-impl Default for ResponseList {
-    fn default() -> Self {
-        Self {
-            id: ResponseNodeId::internal(),
-            children: vec![],
-        }
-    }
-}
-
 impl ResponseList {
     pub fn with_children(children: Vec<ResponseNodeId>) -> Box<Self> {
         Box::new(Self {
-            id: ResponseNodeId::internal(),
+            // id: ResponseNodeId::internal(),
             children,
         })
     }
@@ -410,24 +462,6 @@ impl ResponsePrimitive {
 impl Default for ResponsePrimitive {
     fn default() -> Self {
         ResponsePrimitive(CompactValue::Null)
-    }
-}
-
-impl From<Box<ResponsePrimitive>> for QueryResponseNode {
-    fn from(value: Box<ResponsePrimitive>) -> Self {
-        Self::Primitive(value)
-    }
-}
-
-impl From<Box<ResponseContainer>> for QueryResponseNode {
-    fn from(value: Box<ResponseContainer>) -> Self {
-        Self::Container(value)
-    }
-}
-
-impl From<Box<ResponseList>> for QueryResponseNode {
-    fn from(value: Box<ResponseList>) -> Self {
-        Self::List(value)
     }
 }
 
@@ -500,7 +534,8 @@ pub enum RelationOrigin {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseContainer {
-    id: ResponseNodeId,
+    // TODO: should this be an optional NodeID?  Maybe?
+    id: Option<ArcIntern<String>>,
     /// Children which are (relation_rame, node)
     #[serde(rename = "c")]
     children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
@@ -527,36 +562,36 @@ pub struct ResponseContainer {
 }
 
 impl ResponseContainer {
-    pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Box<Self> {
-        Box::new(Self {
-            id: ResponseNodeId::node(id),
-            children: Default::default(),
-            relation: None,
-            // errors: Vec::new(),
-        })
-    }
+    //     pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Box<Self> {
+    //         Box::new(Self {
+    //             id: ResponseNodeId::node(id),
+    //             children: Default::default(),
+    //             relation: None,
+    //             // errors: Vec::new(),
+    //         })
+    //     }
 
-    pub fn new_container() -> Box<Self> {
-        Box::new(Self {
-            id: ResponseNodeId::internal(),
-            children: Default::default(),
-            relation: None,
-            // errors: Vec::new(),
-        })
-    }
+    //     pub fn new_container() -> Box<Self> {
+    //         Box::new(Self {
+    //             id: ResponseNodeId::internal(),
+    //             children: Default::default(),
+    //             relation: None,
+    //             // errors: Vec::new(),
+    //         })
+    //     }
 
-    pub fn set_relation(&mut self, rel: Option<(RelationOrigin, ArcIntern<String>)>) {
-        self.relation = rel;
-    }
+    //     pub fn set_relation(&mut self, rel: Option<(RelationOrigin, ArcIntern<String>)>) {
+    //         self.relation = rel;
+    //     }
 
-    pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Box<Self> {
-        Box::new(Self {
-            id: ResponseNodeId::internal(),
-            children: children.into_iter().collect(),
-            relation: None,
-            // errors: Vec::new(),
-        })
-    }
+    //     pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Box<Self> {
+    //         Box::new(Self {
+    //             id: ResponseNodeId::internal(),
+    //             children: children.into_iter().collect(),
+    //             relation: None,
+    //             // errors: Vec::new(),
+    //         })
+    //     }
 
     /// Insert a new node with a relation, if an Old Node was present, the Old node will be
     /// replaced
@@ -580,8 +615,11 @@ pub enum QueryResponseNode {
     #[serde(rename = "C")]
     Container(Box<ResponseContainer>),
     #[serde(rename = "L")]
+    // TODO: can probably unbox this one...
     List(Box<ResponseList>),
     #[serde(rename = "P")]
+    // TODO: think about unboxing this since there's
+    // always going to be the most of these....
     Primitive(Box<ResponsePrimitive>),
 }
 
@@ -590,8 +628,8 @@ mod tests {
     use internment::ArcIntern;
 
     use crate::{
-        CompactValue, NodeID, QueryResponse, QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId,
-        ResponseNodeRelation, ResponsePrimitive,
+        response::ResponseContainerBuilder, CompactValue, NodeID, QueryResponse, QueryResponseNode, ResponseContainer,
+        ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
     };
 
     #[test]
@@ -606,7 +644,7 @@ mod tests {
     #[test]
     fn should_transform_into_simple_json() {
         let primitive_node = ResponsePrimitive::new(CompactValue::String("blbl".into()));
-        let response = QueryResponse::new_root(primitive_node.into());
+        let response = QueryResponse::new_root(primitive_node);
 
         assert_eq!(
             response.to_json_value().unwrap().to_string(),
@@ -616,14 +654,14 @@ mod tests {
 
     #[test]
     fn should_transform_example_json() {
-        let root: QueryResponseNode = ResponseContainer::new_container().into();
-        let root_id = root.id().unwrap();
+        let root = ResponseContainerBuilder::new_container();
         let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.unwrap();
 
         let glossary_container = response
             .append_unchecked(
-                &root_id,
-                ResponseContainer::new_container().into(),
+                root_id,
+                ResponseContainerBuilder::new_container(),
                 ResponseNodeRelation::NotARelation {
                     response_key: None,
                     field: "glossary".to_string().into(),
@@ -631,14 +669,14 @@ mod tests {
             )
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
             field: "title".to_string().into(),
         };
 
         response
-            .append_unchecked(&glossary_container, example_primitive, relation)
+            .append_unchecked(glossary_container, example_primitive, relation)
             .unwrap();
 
         let output_json = serde_json::json!({
@@ -652,15 +690,15 @@ mod tests {
 
     #[test]
     fn should_be_able_to_delete_a_node() {
-        let root: QueryResponseNode = ResponseContainer::new_container().into();
-        let root_id = root.id().unwrap();
+        let root = ResponseContainerBuilder::new_container();
         let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.unwrap();
 
         let glossary_id = NodeID::new("type", "a_id");
         let glossary_container = response
             .append_unchecked(
-                &root_id,
-                ResponseContainer::new_node(&glossary_id).into(),
+                root_id,
+                ResponseContainerBuilder::new_node(&glossary_id),
                 ResponseNodeRelation::NotARelation {
                     response_key: None,
                     field: "glossary".to_string().into(),
@@ -668,7 +706,7 @@ mod tests {
             )
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
@@ -676,7 +714,7 @@ mod tests {
         };
 
         response
-            .append_unchecked(&glossary_container, example_primitive, relation)
+            .append_unchecked(glossary_container, example_primitive, relation)
             .unwrap();
 
         let output_json = serde_json::json!({
@@ -686,34 +724,33 @@ mod tests {
         });
 
         assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_node(ResponseNodeId::node(glossary_id)).unwrap();
+        response.delete_node(glossary_id).unwrap();
         assert_eq!(response.to_json_value().unwrap().to_string(), "{}");
     }
 
     #[test]
     fn delete_list_json() {
-        let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
+        let root = ResponseList::with_children(Vec::new());
         let mut response = QueryResponse::new_root(root);
-        let root_id = response.root.clone().unwrap();
+        let root_id = response.root.unwrap();
 
         let node = response
-            .push(&root_id, ResponseContainer::new_container().into())
+            .push(root_id, ResponseContainerBuilder::new_container())
             .unwrap();
 
-        let example_primitive =
-            QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::String("example".to_string())));
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
             field: "test".to_string().into(),
         };
         response
-            .append_unchecked(&node, example_primitive.clone(), relation)
+            .append_unchecked(node, example_primitive.clone(), relation)
             .unwrap();
 
         let glossary_id = NodeID::new("type", "a_id");
         let glossary_container = response
-            .push(&root_id, ResponseContainer::new_node(&glossary_id).into())
+            .push(root_id, ResponseContainerBuilder::new_node(&glossary_id))
             .unwrap();
 
         let relation = ResponseNodeRelation::NotARelation {
@@ -722,7 +759,7 @@ mod tests {
         };
 
         response
-            .append_unchecked(&glossary_container, example_primitive, relation)
+            .append_unchecked(glossary_container, example_primitive, relation)
             .unwrap();
 
         let output_json = serde_json::Value::Array(vec![
@@ -735,7 +772,7 @@ mod tests {
         ]);
 
         assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_node(ResponseNodeId::node(glossary_id)).unwrap();
+        response.delete_node(glossary_id).unwrap();
         assert_eq!(
             response.to_json_value().unwrap().to_string(),
             "[{\"test\":\"example\"}]"
@@ -744,22 +781,22 @@ mod tests {
 
     #[test]
     fn transform_list_json() {
-        let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
+        let root = ResponseList::with_children(Vec::new());
         let mut response = QueryResponse::new_root(root);
-        let root_id = response.root.clone().unwrap();
+        let root_id = response.root.unwrap();
 
         let node = response
-            .push(&root_id, ResponseContainer::new_container().into())
+            .push(root_id, ResponseContainerBuilder::new_container())
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
             field: "test".to_string().into(),
         };
 
-        response.append_unchecked(&node, example_primitive, relation).unwrap();
+        response.append_unchecked(node, example_primitive, relation).unwrap();
 
         let output_json = serde_json::Value::Array(vec![serde_json::json!({
             "test": "example"
@@ -770,27 +807,26 @@ mod tests {
 
     #[test]
     fn print_list_json() {
-        let root: QueryResponseNode = ResponseList::with_children(Vec::new()).into();
+        let root = ResponseList::with_children(Vec::new());
         let mut response = QueryResponse::new_root(root);
-        let root_id = response.root.clone().unwrap();
+        let root_id = response.root.unwrap();
 
         let node = response
-            .push(&root_id, ResponseContainer::new_container().into())
+            .push(root_id, ResponseContainerBuilder::new_container())
             .unwrap();
 
-        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string())).into();
+        let example_primitive = ResponsePrimitive::new(CompactValue::String("example".to_string()));
 
-        let example_primitive_enum =
-            ResponsePrimitive::new(CompactValue::Enum(ArcIntern::new("example".to_owned()))).into();
+        let example_primitive_enum = ResponsePrimitive::new(CompactValue::Enum(ArcIntern::new("example".to_owned())));
 
         let relation = ResponseNodeRelation::NotARelation {
             response_key: None,
             field: "test".to_string().into(),
         };
 
-        response.append_unchecked(&node, example_primitive, relation).unwrap();
+        response.append_unchecked(node, example_primitive, relation).unwrap();
 
-        response.push(&root_id, example_primitive_enum).unwrap();
+        response.push(root_id, example_primitive_enum).unwrap();
 
         let output = response.to_json_value().unwrap().to_string();
 

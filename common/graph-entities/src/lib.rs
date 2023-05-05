@@ -1,7 +1,7 @@
 mod response;
 pub use response::{
     GraphQlResponseSerializer, QueryResponse, QueryResponseErrors, QueryResponseNode, RelationOrigin,
-    ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
+    ResponseContainer, ResponseContainerBuilder, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
 };
 
 mod id;

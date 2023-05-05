@@ -1,29 +1,50 @@
 use crate::NodeID;
-use getrandom::getrandom;
 use internment::ArcIntern;
+use serde::{Deserialize, Serialize};
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Debug, Hash)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, Hash, Serialize, Deserialize)]
 /// A node identifier within a particular [`Tree`].
 ///
 /// This ID is used to get [`Node`] references from an [`Tree`].
 /// Cheap to clone.
-pub enum ResponseNodeId {
-    // TODO: For compaction, it could be interesting to have a counter of reference for this ID,
-    // (so let's switch the id: u64 by an ArcIntern)
-    /// An ID which describe an Internal Node which isn't an Entity, like a primitive.
-    Internal {
-        id: u64,
-    },
-    // An ID which describe an Entity
-    NodeID(ArcIntern<String>),
+pub struct ResponseNodeId(pub(crate) u32);
+
+pub trait ResponseIdLookup {
+    fn node_id(&self) -> Option<ArcIntern<String>>;
+    fn lookup_actual_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId>;
 }
 
-impl Default for ResponseNodeId {
-    fn default() -> Self {
-        Self::internal()
+impl ResponseIdLookup for ResponseNodeId {
+    fn node_id(&self) -> Option<ArcIntern<String>> {
+        None
+    }
+
+    fn lookup_actual_id(&self, _response: &super::QueryResponse) -> Option<ResponseNodeId> {
+        Some(*self)
     }
 }
 
+impl ResponseIdLookup for NodeID<'_> {
+    fn node_id(&self) -> Option<ArcIntern<String>> {
+        Some(ArcIntern::new(self.as_ref().to_string()))
+    }
+
+    fn lookup_actual_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
+        response.entity_ids.get(&self.node_id().unwrap()).copied()
+    }
+}
+
+impl ResponseIdLookup for ArcIntern<String> {
+    fn node_id(&self) -> Option<ArcIntern<String>> {
+        Some(self.clone())
+    }
+
+    fn lookup_actual_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
+        response.entity_ids.get(self).copied()
+    }
+}
+
+/*
 impl ResponseNodeId {
     /// Generate a new Internal NodeID
     pub fn internal() -> Self {
@@ -119,3 +140,4 @@ mod tests {
         );
     }
 }
+ */

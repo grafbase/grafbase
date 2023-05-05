@@ -74,20 +74,12 @@ impl<T: OutputType + Sync> OutputType for Option<T> {
                 Err(err) => {
                     ctx.add_error(err);
                     let mut graph = ctx.response_graph.write().await;
-                    Ok(
-                        graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-                            ResponsePrimitive::new(CompactValue::Null),
-                        )),
-                    )
+                    Ok(graph.new_node_unchecked(CompactValue::Null))
                 }
             }
         } else {
             let mut graph = ctx.response_graph.write().await;
-            Ok(
-                graph.new_node_unchecked(graph_entities::QueryResponseNode::Primitive(
-                    ResponsePrimitive::new(CompactValue::Null),
-                )),
-            )
+            Ok(graph.new_node_unchecked(CompactValue::Null))
         }
     }
 }
