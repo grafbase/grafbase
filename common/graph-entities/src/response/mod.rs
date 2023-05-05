@@ -550,10 +550,13 @@ pub enum RelationOrigin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseContainer {
     // TODO: should this be an optional NodeID?  Maybe?
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     id: Option<ArcIntern<String>>,
+
     /// Children which are (relation_rame, node)
     #[serde(rename = "c")]
     children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
+
     // /// Errors, not as `ServerError` yet as we do not have the position.
     // errors: Vec<Error>,
     /// # Hack
