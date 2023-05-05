@@ -31,8 +31,5 @@
     "@grafbase/cli-x86_64-apple-darwin": "^0.18.10",
     "@grafbase/cli-x86_64-pc-windows-msvc": "^0.18.10",
     "@grafbase/cli-x86_64-unknown-linux-musl": "^0.18.10"
-  },
-  "engines": {
-    "node": ">=16.13.0"
   }
 }
