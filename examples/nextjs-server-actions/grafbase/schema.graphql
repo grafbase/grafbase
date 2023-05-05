@@ -1,4 +1,4 @@
-type Message @model @search {
+type Message @model {
   author: String!
   body: String
 }
