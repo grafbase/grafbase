@@ -99,7 +99,7 @@ impl<'a> Iterator for Children<'a> {
     type Item = &'a QueryResponseNode;
 
     fn next(&mut self) -> Option<&'a QueryResponseNode> {
-        let node = self.nodes.pop().and_then(|x| self.response.get_node(x));
+        let node = self.nodes.pop().and_then(|x| self.response.get_node(&x));
         match node {
             base @ Some(QueryResponseNode::Container(container)) => {
                 container.children.iter().for_each(|(_, elt)| {
@@ -235,6 +235,10 @@ impl QueryResponse {
         println!("Containers: {count_containers}\nRelations: {count_relations}\nLists: {count_lists}\nPrimitives: {count_primitives}");
     }
 
+    pub fn id_for_node<S: ResponseIdLookup>(&self, node: &S) -> Option<ResponseNodeId> {
+        node.lookup_actual_id(self)
+    }
+
     fn next_id(&mut self) -> ResponseNodeId {
         let id = ResponseNodeId(self.next_id);
         self.next_id += 1;
@@ -275,15 +279,15 @@ impl QueryResponse {
     }
 
     /// Get a Node by his ID
-    pub fn get_node<S: ResponseIdLookup>(&self, id: S) -> Option<&QueryResponseNode> {
+    pub fn get_node<S: ResponseIdLookup>(&self, id: &S) -> Option<&QueryResponseNode> {
         // TODO: might want to look this up, not sure?
         self.data.get(&id.lookup_actual_id(self)?)
     }
 
     /// Get a Node by his ID
-    pub fn get_node_mut(&mut self, id: ResponseNodeId) -> Option<&mut QueryResponseNode> {
+    pub fn get_node_mut<S: ResponseIdLookup>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
         // TODO: might want to look this up, not sure?
-        self.data.get_mut(&id)
+        self.data.get_mut(&id.lookup_actual_id(self)?)
     }
 
     /// Delete a Node by his ID
@@ -308,7 +312,7 @@ impl QueryResponse {
         T: ResponseNodeBuilder,
     {
         let id = self.new_node_unchecked(to);
-        let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
+        let from_node = self.get_node_mut(&from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::Container(container) = from_node {
             container.insert(relation, id);
@@ -325,7 +329,7 @@ impl QueryResponse {
         T: ResponseNodeBuilder,
     {
         let id = self.new_node_unchecked(to);
-        let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
+        let from_node = self.get_node_mut(&from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::List(list) = from_node {
             list.children.push(id);
@@ -387,7 +391,7 @@ impl QueryResponse {
     }
 
     fn node_exists(&self, id: ResponseNodeId) -> bool {
-        self.get_node(id).is_some()
+        self.get_node(&id).is_some()
     }
 }
 
@@ -557,7 +561,7 @@ pub struct ResponseContainer {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     id: Option<ArcIntern<String>>,
 
-    /// Children which are (relation_rame, node)
+    /// Children which are (relation_name, node)
     #[serde(rename = "c")]
     children: Vec<(ResponseNodeRelation, ResponseNodeId)>,
 
@@ -649,10 +653,7 @@ pub enum QueryResponseNode {
 mod tests {
     use internment::ArcIntern;
 
-    use crate::{
-        response::ResponseContainerBuilder, CompactValue, NodeID, QueryResponse, QueryResponseNode, ResponseContainer,
-        ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
-    };
+    use super::*;
 
     #[test]
     fn check_size_of_query_response_node() {

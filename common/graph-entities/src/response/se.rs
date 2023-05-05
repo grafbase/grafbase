@@ -76,7 +76,7 @@ impl serde::Serialize for NodeSerializer<'_> {
     {
         let node = self
             .graph
-            .get_node(self.node_id)
+            .get_node(&self.node_id)
             .expect("node presence to be checked before NodeSerializer");
 
         match node {
