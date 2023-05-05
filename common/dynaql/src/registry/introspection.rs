@@ -12,10 +12,6 @@
 //!
 //! [GraphQL specification]: https://spec.graphql.org
 
-use cynic_introspection::Type;
-
-use crate::CacheControl;
-
 use super::{
     Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
     __DirectiveLocation,
@@ -91,7 +87,6 @@ impl From<cynic_introspection::Field> for MetaField {
                 .collect(),
             ty: field.ty.to_string(),
             deprecation: field.deprecated.into(),
-            cache_control: CacheControl::default(),
             ..Default::default()
         }
     }
@@ -141,15 +136,17 @@ impl From<cynic_introspection::DirectiveLocation> for __DirectiveLocation {
     }
 }
 
-impl From<Type> for MetaType {
-    fn from(ty: Type) -> Self {
+impl From<cynic_introspection::Type> for MetaType {
+    fn from(ty: cynic_introspection::Type) -> Self {
+        use cynic_introspection::Type::*;
+
         match ty {
-            Type::Object(v) => v.into(),
-            Type::InputObject(v) => v.into(),
-            Type::Enum(v) => v.into(),
-            Type::Interface(v) => v.into(),
-            Type::Union(v) => v.into(),
-            Type::Scalar(v) => v.into(),
+            Object(v) => v.into(),
+            InputObject(v) => v.into(),
+            Enum(v) => v.into(),
+            Interface(v) => v.into(),
+            Union(v) => v.into(),
+            Scalar(v) => v.into(),
             _ => unimplemented!("unknown graphql type"),
         }
     }
@@ -165,7 +162,7 @@ impl From<cynic_introspection::ObjectType> for MetaType {
                 .into_iter()
                 .map(|v| (v.name.clone(), v.into()))
                 .collect(),
-            cache_control: CacheControl::default(),
+            cache_control: Default::default(),
             extends: false,
             keys: None,
             visible: None,
@@ -276,5 +273,23 @@ impl From<cynic_introspection::ScalarType> for MetaType {
             visible: None,
             specified_by_url: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cynic_introspection::query::IntrospectionQuery;
+
+    use super::*;
+
+    #[test]
+    fn conversion() {
+        let data = include_str!("../../tests/swapi_introspection.json");
+        let schema = serde_json::from_str::<IntrospectionQuery>(data)
+            .unwrap()
+            .into_schema()
+            .unwrap();
+
+        insta::assert_debug_snapshot!(Registry::from(schema))
     }
 }
