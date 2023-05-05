@@ -40,6 +40,8 @@ chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
 ] }
+# TODO(@JeanMertz): Point to release version once latest fixes in `cynic-introspection` have been released.
+cynic-introspection = { git = "https://github.com/obmarg/cynic", rev = "bcae54818b6e4e9d6b720534a8b082edb128d267" }
 derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
