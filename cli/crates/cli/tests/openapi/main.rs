@@ -1,6 +1,8 @@
 #[path = "../utils/mod.rs"]
 mod utils;
 
+mod remote_unions;
+
 use std::net::SocketAddr;
 
 use crossbeam_channel::{Receiver, Sender};

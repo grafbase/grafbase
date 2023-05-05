@@ -10,10 +10,10 @@
 .vscode-test
 .idea
 
-# DynamoDB
+## DynamoDB
 .dynamodb/
 
-# SQLite
+## SQLite
 *.sqlite
 *.sqlite-*
 
@@ -30,7 +30,7 @@ coverage
 *.profraw
 .nyc_output
 
-# grafbase directories
+## Grafbase directories
 grafbase/
 .grafbase/
 

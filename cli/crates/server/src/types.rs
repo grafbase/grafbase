@@ -1,4 +1,3 @@
-pub use crate::file_watcher::FileEventType;
 use common::types::ResolverMessageLevel;
 use rust_embed::RustEmbed;
 use std::path::PathBuf;
@@ -10,7 +9,7 @@ pub struct Assets;
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready(u16),
-    Reload(PathBuf, FileEventType),
+    Reload(PathBuf),
     StartResolverBuild(String),
     CompleteResolverBuild {
         name: String,

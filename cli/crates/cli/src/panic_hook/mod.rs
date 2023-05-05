@@ -117,7 +117,7 @@ pub fn handle_dump(meta: &Metadata, panic_info: &PanicInfo<'_>) -> Option<PathBu
 
     match panic_info.location() {
         Some(location) => {
-            let _ = writeln!(
+            let _: Result<_, _> = writeln!(
                 explanation,
                 "Panic occurred in file '{}' at line {}",
                 location.file(),

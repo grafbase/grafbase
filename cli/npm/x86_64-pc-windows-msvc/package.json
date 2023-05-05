@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/cli-x86_64-pc-windows-msvc",
-  "version": "0.18.6",
+  "version": "0.18.11",
   "description": "x86_64-pc-windows-msvc binary for Grafbase CLI",
   "keywords": [
     "grafbase",
@@ -15,9 +15,6 @@
     "directory": "cli"
   },
   "license": "Apache-2.0",
-  "engines": {
-    "node": ">=16.13.0"
-  },
   "os": [
     "win32"
   ],
