@@ -74,8 +74,8 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
-  build:
-    name: Build
+  build-and-test:
+    name: Build and test
     needs: [lint]
     runs-on: ubuntu-latest-8-cores
     steps:
@@ -113,3 +113,6 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Run tests
+        run: pnpm turbo test
