@@ -46,15 +46,19 @@ jobs:
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest-8-cores
+    env:
+      MOONBASE_SECRET_KEY: ${{ secrets.MOONBASE_SECRET_KEY }}
+      MOONBASE_ACCESS_KEY: ${{ secrets.MOONBASE_ACCESS_KEY }}
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -71,28 +75,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cd cli/crates
           # The actual features used for each dependency depends on what is being built simultaneously.
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
           # See: https://github.com/rust-lang/cargo/issues/4463
-          (cd common && cargo check)
-          (cd server && cargo check)
-          (cd backend && cargo check)
-          (cd cli && cargo check)
+          moon run --concurrency 1 :check
 
   windows:
     needs: [lint]
     runs-on: windows-latest-8-cores
+    env:
+      MOONBASE_SECRET_KEY: ${{ secrets.MOONBASE_SECRET_KEY }}
+      MOONBASE_ACCESS_KEY: ${{ secrets.MOONBASE_ACCESS_KEY }}
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
           platform: windows
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -109,7 +113,7 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-pc-windows-msvc
+          moon run --concurrency 1 :build -- --release --target x86_64-pc-windows-msvc
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
@@ -122,15 +126,19 @@ jobs:
   linux:
     needs: [lint]
     runs-on: ubuntu-latest-8-cores
+    env:
+      MOONBASE_SECRET_KEY: ${{ secrets.MOONBASE_SECRET_KEY }}
+      MOONBASE_ACCESS_KEY: ${{ secrets.MOONBASE_ACCESS_KEY }}
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -147,7 +155,7 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-unknown-linux-musl
+          moon run --concurrency 1 :build -- --release --target x86_64-unknown-linux-musl
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
@@ -160,6 +168,9 @@ jobs:
   darwin:
     needs: [lint]
     runs-on: macos-latest
+    env:
+      MOONBASE_SECRET_KEY: ${{ secrets.MOONBASE_SECRET_KEY }}
+      MOONBASE_ACCESS_KEY: ${{ secrets.MOONBASE_ACCESS_KEY }}
     strategy:
       fail-fast: false
       matrix:
@@ -167,12 +178,13 @@ jobs:
     steps:
       - name: Get sources
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
           platform: macos
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -189,7 +201,7 @@ jobs:
       - name: Build ${{ matrix.target }} release
         run: |
           cd cli
-          cargo build --release --target ${{ matrix.target }}
+          moon run --concurrency 1 :build -- --release --target ${{ matrix.target }}
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload ${{ matrix.target }} binary

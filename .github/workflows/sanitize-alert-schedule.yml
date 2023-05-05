@@ -30,7 +30,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets

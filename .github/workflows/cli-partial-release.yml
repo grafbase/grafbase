@@ -30,7 +30,6 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
 
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3
