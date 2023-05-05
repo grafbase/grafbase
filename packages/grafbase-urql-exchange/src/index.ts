@@ -50,8 +50,8 @@ const subscription = subscriptionExchange({
           )
           const searchParams = new URLSearchParams({
             ...headers,
-            query: JSON.stringify(request.query || {}),
-            variables: JSON.stringify(request.variables || {})
+            query: JSON.stringify(request.query ?? ''),
+            variables: JSON.stringify(request.variables ?? {})
           })
           const url = new URL(operation.context.url)
           url.search = searchParams.toString()
