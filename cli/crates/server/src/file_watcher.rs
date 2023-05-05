@@ -49,15 +49,10 @@ where
                 }
                 // errors for specific files, ignored
             }
-            // since `watcher` will go out of scope once the runtime restarts, we'll get a `None`
-            // here on reload, which allows us to stop the loop
-            None => {
-                debouncer.watcher().unwatch(path.as_ref())?;
-                break;
-            }
+            // unreachable, should always be stopped externally by `select!`
+            None => {}
         }
     }
-    Ok(())
 }
 
 const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE];
