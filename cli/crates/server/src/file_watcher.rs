@@ -5,8 +5,8 @@ use notify::RecursiveMode;
 use notify_debouncer_mini::new_debouncer;
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
-use std::sync::mpsc;
 use std::time::Duration;
+use tokio::runtime::Handle;
 
 const FILE_WATCHER_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -16,48 +16,49 @@ where
     P: AsRef<Path> + Send + 'static,
     T: Fn(&PathBuf) + Send + 'static,
 {
-    let (notify_sender, notify_receiver) = mpsc::channel();
+    let (notify_sender, mut notify_receiver) = tokio::sync::mpsc::channel(1);
 
-    let mut debouncer = new_debouncer(FILE_WATCHER_INTERVAL, None, notify_sender)?;
+    let handle = Handle::current();
+
+    let mut debouncer = new_debouncer(FILE_WATCHER_INTERVAL, None, move |res| {
+        let _guard = handle.enter();
+        handle.block_on(async { notify_sender.send(res).await.expect("must be open") })
+    })?;
 
     debouncer.watcher().watch(path.as_ref(), RecursiveMode::Recursive)?;
 
-    tokio::task::spawn_blocking(move || -> Result<(), ServerError> {
-        loop {
-            match notify_receiver.recv() {
-                Ok(Ok(events)) => {
-                    // for the purposes of display, we need the last non ignored event
-                    if let Some(event) = events
-                        .iter()
-                        .rev()
-                        .find(|event| non_ignored_path(&event.path, path.as_ref()))
-                    {
-                        on_change(&event.path);
-                    }
-                }
-
-                Ok(Err(errors)) => {
-                    if let Some(error) = errors
-                        .into_iter()
-                        .find(|error| error.paths.contains(&path.as_ref().to_owned()))
-                    {
-                        // an error with the root path, non recoverable
-                        return Err(ServerError::FileWatcher(error));
-                    }
-                    // errors for specific files, ignored
-                }
-
-                // since `watcher` will go out of scope once the runtime restarts, we'll get a `RecvError`
-                // here on reload, which allows us to stop the loop
-                Err(_) => {
-                    debouncer.watcher().unwatch(path.as_ref())?;
-                    break;
+    loop {
+        match notify_receiver.recv().await {
+            Some(Ok(events)) => {
+                // for the purposes of display, we need the last non ignored event
+                if let Some(event) = events
+                    .iter()
+                    .rev()
+                    .find(|event| non_ignored_path(&event.path, path.as_ref()))
+                {
+                    on_change(&event.path);
                 }
             }
+
+            Some(Err(errors)) => {
+                if let Some(error) = errors
+                    .into_iter()
+                    .find(|error| error.paths.contains(&path.as_ref().to_owned()))
+                {
+                    // an error with the root path, non recoverable
+                    return Err(ServerError::FileWatcher(error));
+                }
+                // errors for specific files, ignored
+            }
+            // since `watcher` will go out of scope once the runtime restarts, we'll get a `None`
+            // here on reload, which allows us to stop the loop
+            None => {
+                debouncer.watcher().unwatch(path.as_ref())?;
+                break;
+            }
         }
-        Ok(())
-    })
-    .await?
+    }
+    Ok(())
 }
 
 const ROOT_FILE_WHITELIST: [&str; 2] = [GRAFBASE_SCHEMA_FILE_NAME, DOT_ENV_FILE];
