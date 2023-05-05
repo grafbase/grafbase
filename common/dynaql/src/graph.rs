@@ -19,7 +19,7 @@ pub async fn selection_set_into_node<'a>(
                 let id = selection_set_into_node(value, ctx, root).await;
                 container.push(id);
             }
-            QueryResponseNode::List(container)
+            QueryResponseNode::List(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -63,7 +63,7 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 let id = field_into_node(value, ctx).await;
                 container.push(id);
             }
-            QueryResponseNode::List(container)
+            QueryResponseNode::List(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();

@@ -197,6 +197,7 @@ impl QueryResponse {
     /// (A new node is not in the response)
     pub fn new_node_unchecked(&mut self, node: QueryResponseNode) -> ResponseNodeId {
         let id = node.id().unwrap_or_default();
+        println!("Len: {}, Capacity: {}", self.data.len(), self.data.capacity());
         self.data.insert(id.clone(), node);
         id
     }
@@ -274,7 +275,8 @@ impl QueryResponse {
     /// Removes a node and it's children from the Graph, and returns a CompactValue of its data.
     pub fn take_node_into_const_value(&mut self, node_id: ResponseNodeId) -> Option<CompactValue> {
         match self.delete_node(node_id).ok()? {
-            QueryResponseNode::Container(ResponseContainer { children, .. }) => {
+            QueryResponseNode::Container(container) => {
+                let ResponseContainer { children, .. } = *container;
                 let mut fields = Vec::with_capacity(children.len());
 
                 for (relation, nested_id) in children {
@@ -288,14 +290,18 @@ impl QueryResponse {
                 }
                 Some(CompactValue::Object(fields))
             }
-            QueryResponseNode::List(ResponseList { children, .. }) => {
+            QueryResponseNode::List(list) => {
+                let ResponseList { children, .. } = *list;
                 let mut list = Vec::with_capacity(children.len());
                 for node in children {
                     list.push(self.take_node_into_const_value(node)?);
                 }
                 Some(CompactValue::List(list))
             }
-            QueryResponseNode::Primitive(ResponsePrimitive(value)) => Some(value),
+            QueryResponseNode::Primitive(primitive) => {
+                let ResponsePrimitive(value) = *primitive;
+                Some(value)
+            }
         }
     }
 
@@ -374,11 +380,11 @@ impl Default for ResponseList {
 }
 
 impl ResponseList {
-    pub fn with_children(children: Vec<ResponseNodeId>) -> Self {
-        Self {
+    pub fn with_children(children: Vec<ResponseNodeId>) -> Box<Self> {
+        Box::new(Self {
             id: ResponseNodeId::internal(),
             children,
-        }
+        })
     }
 
     /// Element at the specified index
@@ -396,8 +402,8 @@ impl ResponseList {
 pub struct ResponsePrimitive(CompactValue);
 
 impl ResponsePrimitive {
-    pub fn new(value: CompactValue) -> Self {
-        ResponsePrimitive(value)
+    pub fn new(value: CompactValue) -> Box<Self> {
+        Box::new(ResponsePrimitive(value))
     }
 }
 
@@ -407,20 +413,20 @@ impl Default for ResponsePrimitive {
     }
 }
 
-impl From<ResponsePrimitive> for QueryResponseNode {
-    fn from(value: ResponsePrimitive) -> Self {
+impl From<Box<ResponsePrimitive>> for QueryResponseNode {
+    fn from(value: Box<ResponsePrimitive>) -> Self {
         Self::Primitive(value)
     }
 }
 
-impl From<ResponseContainer> for QueryResponseNode {
-    fn from(value: ResponseContainer) -> Self {
+impl From<Box<ResponseContainer>> for QueryResponseNode {
+    fn from(value: Box<ResponseContainer>) -> Self {
         Self::Container(value)
     }
 }
 
-impl From<ResponseList> for QueryResponseNode {
-    fn from(value: ResponseList) -> Self {
+impl From<Box<ResponseList>> for QueryResponseNode {
+    fn from(value: Box<ResponseList>) -> Self {
         Self::List(value)
     }
 }
@@ -521,35 +527,35 @@ pub struct ResponseContainer {
 }
 
 impl ResponseContainer {
-    pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Self {
-        Self {
+    pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Box<Self> {
+        Box::new(Self {
             id: ResponseNodeId::node(id),
             children: Default::default(),
             relation: None,
             // errors: Vec::new(),
-        }
+        })
     }
 
-    pub fn new_container() -> Self {
-        Self {
+    pub fn new_container() -> Box<Self> {
+        Box::new(Self {
             id: ResponseNodeId::internal(),
             children: Default::default(),
             relation: None,
             // errors: Vec::new(),
-        }
+        })
     }
 
     pub fn set_relation(&mut self, rel: Option<(RelationOrigin, ArcIntern<String>)>) {
         self.relation = rel;
     }
 
-    pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Self {
-        Self {
+    pub fn with_children(children: impl IntoIterator<Item = (ResponseNodeRelation, ResponseNodeId)>) -> Box<Self> {
+        Box::new(Self {
             id: ResponseNodeId::internal(),
             children: children.into_iter().collect(),
             relation: None,
             // errors: Vec::new(),
-        }
+        })
     }
 
     /// Insert a new node with a relation, if an Old Node was present, the Old node will be
@@ -572,11 +578,11 @@ impl ResponseContainer {
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub enum QueryResponseNode {
     #[serde(rename = "C")]
-    Container(ResponseContainer),
+    Container(Box<ResponseContainer>),
     #[serde(rename = "L")]
-    List(ResponseList),
+    List(Box<ResponseList>),
     #[serde(rename = "P")]
-    Primitive(ResponsePrimitive),
+    Primitive(Box<ResponsePrimitive>),
 }
 
 #[cfg(test)]
@@ -591,9 +597,10 @@ mod tests {
     #[test]
     fn check_size_of_query_response_node() {
         // Each node of the response graph gets a QueryResponseNode.  These graphs can
-        // get big (220k nodes in a large introspection query) so we need to keep
+        // get big (230k nodes in a large introspection query) so we need to keep
         // QueryResponseNode as small as possible to avoid running out of memory.
-        assert_eq!(std::mem::size_of::<QueryResponseNode>(), 64);
+        assert_eq!(std::mem::size_of::<QueryResponseNode>(), 16);
+        assert_eq!(std::mem::size_of::<ResponseNodeId>(), 16);
     }
 
     #[test]
