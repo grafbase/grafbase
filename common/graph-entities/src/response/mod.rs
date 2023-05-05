@@ -24,7 +24,7 @@
 //! to be careful to keep both the in memory size and serialization size down.  As a result most
 //! of the types in this file have some serde attrs that make them more compact when serialized
 
-use crate::{CompactValue, NodeID};
+use crate::{value, CompactValue, NodeID};
 use core::fmt::{self, Display, Formatter};
 use derivative::Derivative;
 use dynaql_value::Name;
@@ -214,6 +214,21 @@ impl QueryResponse {
         };
         this.new_node_unchecked(node);
         this
+    }
+
+    pub fn debug_stats(&self) {
+        let mut count_containers = 0;
+        let mut count_primitives = 0;
+        let mut count_lists = 0;
+        for value in self.data.values() {
+            match value {
+                QueryResponseNode::Container(_) => count_containers += 1,
+                QueryResponseNode::List(_) => count_lists += 1,
+                QueryResponseNode::Primitive(_) => count_primitives += 1,
+            }
+        }
+
+        println!("Containers: {count_containers}\nLists: {count_lists}\nPrimitives: {count_primitives}");
     }
 
     fn next_id(&mut self) -> ResponseNodeId {
@@ -638,7 +653,10 @@ mod tests {
         // get big (230k nodes in a large introspection query) so we need to keep
         // QueryResponseNode as small as possible to avoid running out of memory.
         assert_eq!(std::mem::size_of::<QueryResponseNode>(), 16);
-        assert_eq!(std::mem::size_of::<ResponseNodeId>(), 16);
+        assert_eq!(std::mem::size_of::<ResponseNodeId>(), 4);
+
+        // TODO: Can I make this smaller?
+        assert_eq!(std::mem::size_of::<ResponseContainer>(), 56);
     }
 
     #[test]
