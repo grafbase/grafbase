@@ -21,7 +21,6 @@ where
     let handle = Handle::current();
 
     let mut debouncer = new_debouncer(FILE_WATCHER_INTERVAL, None, move |res| {
-        let _guard = handle.enter();
         handle.block_on(async { notify_sender.send(res).await.expect("must be open") });
     })?;
 
