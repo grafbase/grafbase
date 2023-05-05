@@ -5,14 +5,11 @@ use petgraph::{
     visit::{EdgeRef, IntoEdges, Reversed},
 };
 
-use crate::{
-    is_ok,
-    parsing::operations::{HttpMethod, OperationDetails},
-    QueryNamingStrategy,
-};
+use crate::{is_ok, QueryNamingStrategy};
 
 use super::{
-    output_type::OutputFieldType, Arity, Edge, Node, PathParameter, QueryParameter, RequestBody, RequestBodyContentType,
+    output_type::OutputFieldType, Arity, Edge, HttpMethod, Node, OperationDetails, PathParameter, QueryParameter,
+    RequestBody, RequestBodyContentType,
 };
 
 #[derive(Clone, Copy, Debug)]
@@ -190,7 +187,7 @@ impl Operation {
             .collect::<Vec<_>>();
 
         // Sort the bodies such that we prefer JSON over form encoded
-        potential_bodies.sort_by_key(|(content_type, _)| match content_type {
+        potential_bodies.sort_by_key(|(content_type, _)| match content_type.as_ref() {
             RequestBodyContentType::Json => 2,
             RequestBodyContentType::FormEncoded(_) => 1,
         });
