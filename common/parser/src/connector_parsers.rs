@@ -5,7 +5,7 @@ use dynaql::{
     registry::{MetaField, MetaType, Registry},
     Name, Pos, Positioned,
 };
-use dynaql_parser::types::{ObjectType, TypeDefinition, TypeKind};
+use dynaql_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeDefinition, TypeKind, UnionType};
 
 use crate::{rules::visitor::VisitorContext, OpenApiDirective};
 
@@ -91,12 +91,22 @@ fn meta_type_to_type_definition(ty: &MetaType, position: Pos) -> Positioned<Type
             description: None,
             name: Positioned::new(Name::new(ty.name()), position),
             directives: vec![],
-            kind: TypeKind::Object(ObjectType {
-                implements: vec![],
-                // I'm just skipping the fields for now as I don't think we need them.
-                // This is mostly just to tell the rest of the parser that the type exists.
-                fields: vec![],
-            }),
+            // These are just meant to be dummy entries to keep the parser happy
+            // that they types exist so I"m not filling most of the details in for now
+            kind: match ty {
+                MetaType::Scalar { .. } => TypeKind::Scalar,
+                MetaType::Object { .. } => TypeKind::Object(ObjectType {
+                    implements: vec![],
+                    fields: vec![],
+                }),
+                MetaType::Interface { .. } => TypeKind::Interface(InterfaceType {
+                    implements: vec![],
+                    fields: vec![],
+                }),
+                MetaType::Union { .. } => TypeKind::Union(UnionType { members: vec![] }),
+                MetaType::Enum { .. } => TypeKind::Enum(EnumType { values: vec![] }),
+                MetaType::InputObject { .. } => TypeKind::InputObject(InputObjectType { fields: vec![] }),
+            },
         },
         position,
     )

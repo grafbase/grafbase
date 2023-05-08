@@ -2,10 +2,6 @@
 source: common/parser-openapi/src/lib.rs
 expression: "build_registry(\"test_data/openai.yaml\", Format::Yaml,\n        ApiMetadata {\n            query_naming: QueryNamingStrategy::OperationId,\n            ..metadata(\"openai\")\n        }).export_sdl(false)"
 ---
-"""
-A JSON Value
-"""
-scalar JSON
 type Mutation {
 	openai: OpenaiMutation!
 }

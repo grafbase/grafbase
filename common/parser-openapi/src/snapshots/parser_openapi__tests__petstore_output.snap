@@ -2,10 +2,6 @@
 source: common/parser-openapi/src/lib.rs
 expression: registry.export_sdl(false)
 ---
-"""
-A JSON Value
-"""
-scalar JSON
 type Mutation {
 	petstore: PetstoreMutation!
 }
