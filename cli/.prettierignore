@@ -1,1 +1,3 @@
 target
+crates/cli/tests/graphql/compilation_error/schema.graphql
+about.hbs
