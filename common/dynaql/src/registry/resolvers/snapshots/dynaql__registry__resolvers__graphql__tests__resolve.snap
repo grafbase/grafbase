@@ -1,0 +1,16 @@
+---
+source: common/dynaql/src/registry/resolvers/graphql.rs
+expression: want
+---
+{
+  "data": {
+    "github": {
+      "repository": {
+        "issueOrPullRequest": {
+          "changedFiles": 1,
+          "id": "PR_kwDOEn_gEs5PlTvR"
+        }
+      }
+    }
+  }
+}
