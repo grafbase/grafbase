@@ -5,6 +5,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::cmp::Ordering;
 use std::fmt;
 use std::hash::{Hash, Hasher};
+use std::ops::Deref;
 use std::str::Chars;
 
 /// Original position of an element in source code.
@@ -45,6 +46,14 @@ pub struct Positioned<T: ?Sized> {
     pub pos: Pos,
     /// The node itself.
     pub node: T,
+}
+
+impl<T> Deref for Positioned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.node
+    }
 }
 
 impl<T, E> Positioned<Result<T, E>> {
