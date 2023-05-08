@@ -38,11 +38,11 @@ sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/c
 
 [tasks.release]
 script = '''
+git switch main
+git pull
 cd crates/cli
 VERSION=$(cargo pkgid | cut -d "@" -f 2)
 cd ../..
-git switch main
-git pull
 git tag $VERSION
 git push --tags
 '''
