@@ -12,7 +12,6 @@ install_crate = { crate_name = "sd", binary = "sd", test_arg = [
     "--version",
 ], version = "0.7.6" }
 
-
 [tasks.bump]
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
@@ -35,4 +34,15 @@ sd "@grafbase/cli-aarch64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aa
 sd "@grafbase/cli-x86_64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-apple-darwin\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-pc-windows-msvc\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
+'''
+
+[tasks.release]
+script = '''
+git switch main
+git pull
+cd crates/cli
+VERSION=$(cargo pkgid | cut -d "@" -f 2)
+cd ../..
+git tag $VERSION
+git push --tags
 '''
