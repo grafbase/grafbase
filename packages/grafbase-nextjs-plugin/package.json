@@ -18,7 +18,7 @@
     "dev": "tsup src/index.ts --format esm,cjs --watch --dts",
     "lint": "eslint src/*.ts*"
   },
-  "pe erDependencies": {
+  "peerDependencies": {
     "next": "^12 || ^13",
     "react": "*",
     "react-dom": "*",
