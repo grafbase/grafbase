@@ -30,9 +30,9 @@ impl DynamicParse for IDScalar {
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
             serde_json::Value::String(v) => Ok(ConstValue::String(v)),
-            _ => Err(Error::new(
-                "Data violation: Cannot coerce the initial value to an ID",
-            )),
+            v => Err(Error::new(format!(
+                "Data violation: Cannot coerce the initial value to an ID, got {v}"
+            ))),
         }
     }
 
