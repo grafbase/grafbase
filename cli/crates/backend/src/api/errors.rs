@@ -8,8 +8,8 @@ pub enum ApiError {
     #[error("could not start the login server")]
     StartLoginServer,
 
-    /// returned if the user is not logged in when attempting to log out
-    #[error("could not log out as you are not logged in")]
+    /// returned if the user is not logged in when attempting to use a command requiring auth
+    #[error("could not proceed as you are not logged in")]
     NotLoggedIn,
 
     /// returned if ~/.grafbase/credentials.json could not be deleted
