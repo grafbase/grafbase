@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/cli-x86_64-unknown-linux-musl",
-  "version": "0.18.11",
+  "version": "0.18.12",
   "description": "x86_64-unknown-linux-musl binary for Grafbase CLI",
   "keywords": [
     "grafbase",
