@@ -250,7 +250,7 @@ async fn spawn_servers(
             vec![
                 "AWS_ACCESS_KEY_ID",
                 "AWS_SECRET_ACCESS_KEY",
-                "DYNAMODB_REPLICATION_REGIONS",
+                "DYNAMODB_REGION",
                 "DYNAMODB_TABLE_NAME",
             ]
             .iter()

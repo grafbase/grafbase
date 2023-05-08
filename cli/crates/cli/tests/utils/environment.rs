@@ -305,7 +305,7 @@ mod dynamodb {
 
         let aws_access_key_id = std::env::var("AWS_ACCESS_KEY_ID").unwrap();
         let aws_secret_access_key = std::env::var("AWS_SECRET_ACCESS_KEY").unwrap();
-        let dynamodb_region = std::env::var("DYNAMODB_REPLICATION_REGIONS").unwrap();
+        let dynamodb_region = std::env::var("DYNAMODB_REGION").unwrap();
 
         let dynamodb_region = match dynamodb_region.strip_prefix("custom:") {
             Some(suffix) => rusoto_core::Region::Custom {

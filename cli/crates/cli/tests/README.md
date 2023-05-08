@@ -32,7 +32,7 @@ dy -r local admin create index gsi2 -t gateway --keys __gsi2pk __gsi2sk
 ```sh
 export AWS_ACCESS_KEY_ID="fakeMyKeyId"
 export AWS_SECRET_ACCESS_KEY="fakeSecretAccessKey"
-export DYNAMODB_REPLICATION_REGIONS="custom:http://localhost:8000"
+export DYNAMODB_REGION="custom:http://localhost:8000"
 export DYNAMODB_TABLE_NAME=gateway
 
 rm -rf ~/.grafbase # version is the same so the cache can contain the wrong wasm variant
@@ -45,7 +45,7 @@ cargo run -p grafbase --features=dynamodb -- -t 2 dev
 ```sh
 export AWS_ACCESS_KEY_ID="fakeMyKeyId"
 export AWS_SECRET_ACCESS_KEY="fakeSecretAccessKey"
-export DYNAMODB_REPLICATION_REGIONS="custom:http://localhost:8000"
+export DYNAMODB_REGION="custom:http://localhost:8000"
 
 cargo nextest run --features=dynamodb  -P ci
 ```
