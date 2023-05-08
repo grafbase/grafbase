@@ -32,6 +32,7 @@ pub mod custom;
 pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
+pub mod graphql;
 pub mod http;
 pub mod query;
 
@@ -175,7 +176,12 @@ impl ResolvedPaginationInfo {
 #[derive(Debug, Derivative, Clone)]
 #[derivative(Hash)]
 pub struct ResolvedValue {
-    /// Data Resolved by the current Resolver
+    /// Data Resolved by the current Resolver.
+    ///
+    /// This is expected to be in the same shape of the actual query to fetch the data.
+    ///
+    /// That is, a resolver that resolves a `user { name }` query, is expected to return a `{
+    /// "user": { "name" "..." } }` JSON object.
     #[derivative(Hash = "ignore")]
     pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
@@ -329,6 +335,38 @@ impl ResolverType {
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
+            ResolverType::Graphql(resolver) => {
+                let headers = ctx
+                    .registry()
+                    .http_headers
+                    .get(&resolver.api_name)
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+
+                let fragment_definitions = ctx
+                    .query_env
+                    .fragments
+                    .iter()
+                    .map(|(k, v)| (k, v.as_ref().node))
+                    .collect();
+
+                let selection_set = ctx
+                    .item
+                    .node
+                    .selection_set
+                    .node
+                    .items
+                    .as_slice()
+                    .iter()
+                    .map(|v| &v.node);
+
+                let operation = ctx.query_env.operation.node.ty;
+
+                resolver
+                    .resolve(operation, headers, fragment_definitions, selection_set)
+                    .await
+                    .map_err(Into::into)
+            }
         }
     }
 }
@@ -344,6 +382,7 @@ pub enum ResolverType {
     CustomResolver(CustomResolver),
     Composition(Vec<ResolverType>),
     Http(http::HttpResolver),
+    Graphql(graphql::Resolver),
 }
 
 impl Constraint {
