@@ -48,8 +48,14 @@ jobs:
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest-8-cores
     steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
       - name: Run prettier on workspace
-        run: npx prettier --check .
+        shell: bash
+        run: |
+          cd cli
+          npx prettier --check .
 
   lint:
     needs: [detect-change-type]
