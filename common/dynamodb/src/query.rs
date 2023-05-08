@@ -85,7 +85,7 @@ impl Loader<QueryKey> for QueryLoader {
                 exp_attr.insert("#type".to_string(), TYPE.to_string());
             }
 
-            let mut sk_string = if edges_len > 0 {
+            let mut filter_expression = if edges_len > 0 {
                 let edges = query_key
                     .edges
                     .iter()
@@ -99,28 +99,26 @@ impl Loader<QueryKey> for QueryLoader {
                 let ty_attr = pk.ty().into_attr();
 
                 exp.insert(":type".to_string(), ty_attr);
-                Some(format!("begins_with(#type, :type) OR {edges}"))
+                vec![format!("(begins_with(#type, :type) OR {edges})")]
             } else {
-                None
+                vec![]
             };
 
             if let Some(owned_by) = owned_by {
                 exp_attr.insert("#owned_by_name".to_string(), OWNED_BY.to_string());
                 exp.insert(":owned_by_value".to_string(), owned_by.to_string().into_attr());
-
-                if let Some(filter_expression) = sk_string {
-                    sk_string = Some(format!(
-                        "{filter_expression} AND contains(#owned_by_name, :owned_by_value)"
-                    ));
-                } else {
-                    sk_string = Some("contains(#owned_by_name, :owned_by_value)".to_string());
-                }
+                filter_expression.push("contains(#owned_by_name, :owned_by_value)".to_string());
             }
 
+            let filter_expression = if filter_expression.is_empty() {
+                None
+            } else {
+                Some(filter_expression.join(" AND "))
+            };
             let input: QueryInput = QueryInput {
                 table_name: self.ctx.dynamodb_table_name.clone(),
                 key_condition_expression: Some("#pk = :pk".to_string()),
-                filter_expression: sk_string,
+                filter_expression,
                 index_name: self.index.to_index_name(),
                 expression_attribute_values: Some(exp),
                 expression_attribute_names: Some(exp_attr),
