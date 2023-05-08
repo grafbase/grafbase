@@ -41,7 +41,7 @@ script = '''
 git switch main
 git pull
 cd crates/cli
-VERSION=$(cargo pkgid | cut -d "@" -f 2)
+VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
 cd ../..
 git tag $VERSION
 git push --tags
