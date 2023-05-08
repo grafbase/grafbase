@@ -25,6 +25,8 @@
 #![deny(unused)]
 #![deny(rustdoc::all)]
 
+pub mod serializer;
+
 use std::{collections::HashMap, sync::Arc};
 
 use dynaql_parser::types::{FragmentDefinition, OperationType, Selection};
@@ -32,6 +34,8 @@ use dynaql_value::Name;
 use http::header::USER_AGENT;
 use inflector::Inflector;
 use url::Url;
+
+use self::serializer::Serializer;
 
 use super::ResolvedValue;
 
@@ -90,9 +94,10 @@ impl Resolver {
         let prefix = self.api_name.to_pascal_case();
 
         {
+            let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
             match operation {
-                OperationType::Query => query.push_str("query {}"),
-                OperationType::Mutation => query.push_str("mutation {}"),
+                OperationType::Query => serializer.query(selection_set)?,
+                OperationType::Mutation => serializer.mutation(selection_set)?,
                 OperationType::Subscription => {
                     return Err(Error::UnsupportedOperation("subscription"))
                 }
@@ -125,6 +130,9 @@ pub enum Error {
     #[error("the provided operation type is not supported by this resolver: {0}")]
     UnsupportedOperation(&'static str),
 
+    #[error("could not serialize execution plan: {0}")]
+    SerializerError(#[from] serializer::Error),
+
     #[error("request to upstream server failed: {0}")]
     RequestError(#[from] reqwest::Error),
 
@@ -148,5 +156,117 @@ fn prefix_result_typename(value: &mut serde_json::Value, prefix: &str) {
             _ => prefix_result_typename(v, prefix),
         }),
         _ => {}
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use indoc::indoc;
+    use serde_json::{json, Value};
+    use wiremock::MockServer;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn resolve() {
+        let server = MockServer::start().await;
+
+        let query = indoc! {r#"
+            query {
+                github {
+                    repository(name: "api", owner: "grafbase") {
+                        issueOrPullRequest(number: 2129) {
+                            ... on GithubIssue {
+                                    id
+                            }
+                            ... on GithubPullRequest {
+                                    id
+                                    changedFiles
+                            }
+                        }
+                    }
+                }
+            }"#};
+
+        let response = json!({
+            "data": {
+                "github": {
+                    "repository": {
+                        "issueOrPullRequest": {
+                            "id": "PR_kwDOEn_gEs5PlTvR",
+                            "changedFiles": 1
+                        }
+                    }
+                }
+            }
+        });
+
+        let result = run_resolve(&server, query, response).await.unwrap();
+
+        insta::assert_json_snapshot!(result)
+    }
+
+    async fn run_resolve(
+        server: &MockServer,
+        query: &str,
+        response: Value,
+    ) -> Result<Value, Error> {
+        use dynaql_parser::parse_query;
+        use wiremock::matchers::{header, method, path};
+        use wiremock::{Mock, ResponseTemplate};
+
+        Mock::given(method("POST"))
+            .and(path("/"))
+            .and(header("User-Agent", "Grafbase"))
+            .and(header("Authorization", "Bearer FOOBAR"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(response.clone()))
+            .expect(1)
+            .mount(&server)
+            .await;
+
+        let resolver = Resolver {
+            api_name: "myApi".to_owned(),
+            url: Url::parse(&server.uri()).unwrap(),
+        };
+
+        let headers = vec![("Authorization".to_string(), "Bearer FOOBAR".to_string())];
+        let document = parse_query(query).unwrap();
+
+        let fragment_definitions = document
+            .fragments
+            .iter()
+            .map(|(k, v)| (k, v.as_ref().node))
+            .collect();
+
+        let operation = document
+            .operations
+            .iter()
+            .next()
+            .unwrap()
+            .1
+            .clone()
+            .into_inner();
+
+        let selection_set = operation
+            .selection_set
+            .node
+            .items
+            .as_slice()
+            .iter()
+            .map(|v| &v.node);
+
+        let value = resolver
+            .resolve(
+                OperationType::Query,
+                &headers,
+                fragment_definitions,
+                selection_set,
+            )
+            .await?
+            .data_resolved;
+
+        let data = Arc::try_unwrap(value).unwrap();
+
+        Ok(json!({ "data": data }))
     }
 }

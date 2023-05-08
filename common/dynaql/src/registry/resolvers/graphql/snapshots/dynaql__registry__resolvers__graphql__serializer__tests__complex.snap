@@ -1,0 +1,21 @@
+---
+source: common/dynaql/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	repository(name: "api", owner: "grafbase") {
+		issueOrPullRequest(number: 2129) {
+			... on Issue {
+				id
+			}
+			... on PullRequest {
+				id
+				changedFiles
+			}
+			__typename
+		}
+
+	}
+
+}
+
