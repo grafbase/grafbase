@@ -1,6 +1,6 @@
 [package]
 name = "grafbase"
-version = "0.18.5"
+version = "0.18.11"
 edition = "2021"
 description = "The Grafbase command line interface"
 license = "Apache-2.0"
@@ -21,7 +21,7 @@ fslock = "0.2"
 indicatif = "0.17"
 inquire = "0.6"
 exitcode = "1"
-hex-literal = "0.3"
+hex-literal = "0.4"
 humantime = "2"
 indoc = "2"
 log = "0.4"
@@ -37,8 +37,8 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 webbrowser = "0.8"
 
-backend = { package = "grafbase-local-backend", path = "../backend", version = "0.18.5" }
-common = { package = "grafbase-local-common", path = "../common", version = "0.18.5" }
+backend = { package = "grafbase-local-backend", path = "../backend", version = "0.18.11" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.18.11" }
 
 [dev-dependencies]
 chrono = "0.4"
@@ -46,7 +46,7 @@ crossbeam-channel = "0.5"
 duct = "0.13"
 insta = { version = "1.28", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
-jwt-compact = { version = "0.6", default-features = false, features = [
+jwt-compact = { version = "0.7", default-features = false, features = [
   "clock",
 ] }
 rand = "0.8"

@@ -6,73 +6,73 @@ import {
 } from '@n1ru4l/push-pull-async-iterable-iterator'
 import { Repeater } from '@repeaterjs/repeater'
 import {
-    Exchange,
-    ExecutionResult,
-    Operation,
-    subscriptionExchange
+  Exchange,
+  ExecutionResult,
+  Operation,
+  subscriptionExchange
 } from '@urql/core'
 import ReconnectingEventSource from 'reconnecting-eventsource'
-import {filter, merge, pipe, share} from 'wonka'
+import { filter, merge, pipe, share } from 'wonka'
 
 const makeEventStreamSource = (url: string) => {
-    const eventSource = new ReconnectingEventSource(url)
-    return applyLiveQueryJSONPatch(
-        new Repeater<ExecutionResult>(async (push, end) => {
-            eventSource.onmessage = (event) => {
-                const data = JSON.parse(event.data)
-                push(data)
-                if (eventSource.readyState === 2) {
-                    end()
-                }
-            }
-            eventSource.onerror = (error) => {
-                end(error)
-            }
-            await end
-            eventSource.close()
-        })
-    )
+  const eventSource = new ReconnectingEventSource(url)
+  return applyLiveQueryJSONPatch(
+    new Repeater<ExecutionResult>(async (push, end) => {
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        push(data)
+        if (eventSource.readyState === 2) {
+          end()
+        }
+      }
+      eventSource.onerror = (error) => {
+        end(error)
+      }
+      await end
+      eventSource.close()
+    })
+  )
 }
 
 const subscription = subscriptionExchange({
-    enableAllOperations: true,
-    forwardSubscription: (request, operation) => ({
-        subscribe: (sink) => ({
-            unsubscribe: applyAsyncIterableIteratorToSink(
-                makeAsyncIterableIteratorFromSink<ExecutionResult>((sink) => {
-                    const fetchOptions =
-                        typeof operation.context.fetchOptions === 'function'
-                            ? operation.context.fetchOptions()
-                            : operation.context.fetchOptions ?? {}
-                    const headers = Object.entries(fetchOptions.headers ?? {}).reduce(
-                        (headers, [key, value]) => ({...headers, [key]: value}),
-                        {} as Record<string, string>
-                    )
-                    const searchParams = new URLSearchParams({
-                        ...headers,
-                        query: JSON.stringify(request.query || {}),
-                        variables: JSON.stringify(request.variables || {})
-                    })
-                    const url = new URL(operation.context.url)
-                    url.search = searchParams.toString()
-                    const client = makeEventStreamSource(url.toString())
-                    return applyAsyncIterableIteratorToSink(client, sink)
-                }),
-                sink
-            )
-        })
+  enableAllOperations: true,
+  forwardSubscription: (request, operation) => ({
+    subscribe: (sink) => ({
+      unsubscribe: applyAsyncIterableIteratorToSink(
+        makeAsyncIterableIteratorFromSink<ExecutionResult>((sink) => {
+          const fetchOptions =
+            typeof operation.context.fetchOptions === 'function'
+              ? operation.context.fetchOptions()
+              : operation.context.fetchOptions ?? {}
+          const headers = Object.entries(fetchOptions.headers ?? {}).reduce(
+            (headers, [key, value]) => ({ ...headers, [key]: value }),
+            {} as Record<string, string>
+          )
+          const searchParams = new URLSearchParams({
+            ...headers,
+            query: JSON.stringify(request.query ?? ''),
+            variables: JSON.stringify(request.variables ?? {})
+          })
+          const url = new URL(operation.context.url)
+          url.search = searchParams.toString()
+          const client = makeEventStreamSource(url.toString())
+          return applyAsyncIterableIteratorToSink(client, sink)
+        }),
+        sink
+      )
     })
+  })
 })
 
 const isLiveOperation = (operation: Operation) =>
-    operation.query.definitions.some((definition) =>
-        // @ts-ignore types mismatch
-        isLiveQueryOperationDefinitionNode(definition, operation.variables)
-    )
+  operation.query.definitions.some((definition) =>
+    // @ts-ignore types mismatch
+    isLiveQueryOperationDefinitionNode(definition, operation.variables)
+  )
 
 export const sseExchange: Exchange = (input) => {
-    const forwardSubscription = subscription(input)
-    const filterOperation = (operation: Operation) => isLiveOperation(operation)
+  const forwardSubscription = subscription(input)
+  const filterOperation = (operation: Operation) => isLiveOperation(operation)
 
   return (ops$) => {
     const sharedOps$ = share(ops$)
