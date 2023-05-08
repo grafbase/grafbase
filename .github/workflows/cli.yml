@@ -49,9 +49,7 @@ jobs:
     runs-on: ubuntu-latest-8-cores
     steps:
       - name: Run prettier on workspace
-        run: |
-          cd cli
-          npx prettier --check .
+        run: npx prettier --check .
 
   lint:
     needs: [detect-change-type]
