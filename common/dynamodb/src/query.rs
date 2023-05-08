@@ -1,8 +1,9 @@
-use crate::constant::{PK, RELATION_NAMES, SK, TYPE};
+use crate::constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE};
 use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
+use crate::{OperationAuthorization, OperationAuthorizationError};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use graph_entities::{NodeID, ID};
@@ -21,6 +22,12 @@ pub enum QueryLoaderError {
     UnknownError,
     #[error("An internal error happened while fetching a list of entities")]
     QueryError,
+    #[error("{0}")]
+    Unauthorized(
+        #[from]
+        #[source]
+        OperationAuthorizationError,
+    ),
 }
 
 pub struct QueryLoader {
@@ -55,6 +62,10 @@ impl Loader<QueryKey> for QueryLoader {
         log::debug!(self.ctx.trace_id, "Query Dataloader invoked {:?}", keys);
         let mut h = HashMap::new();
         let mut concurrent_f = vec![];
+        let owned_by = match self.ctx.authorize_operation(crate::RequestedOperation::Get)? {
+            OperationAuthorization::OwnerBased(owned_by) => Some(owned_by),
+            _ => None,
+        };
         for query_key in keys {
             // TODO: Handle this when dealing with Custom ID
             let Ok(pk) = NodeID::from_borrowed(&query_key.pk) else {
@@ -74,7 +85,7 @@ impl Loader<QueryKey> for QueryLoader {
                 exp_attr.insert("#type".to_string(), TYPE.to_string());
             }
 
-            let sk_string = if edges_len > 0 {
+            let mut sk_string = if edges_len > 0 {
                 let edges = query_key
                     .edges
                     .iter()
@@ -92,6 +103,19 @@ impl Loader<QueryKey> for QueryLoader {
             } else {
                 None
             };
+
+            if let Some(owned_by) = owned_by {
+                exp_attr.insert("#owned_by_name".to_string(), OWNED_BY.to_string());
+                exp.insert(":owned_by_value".to_string(), owned_by.to_string().into_attr());
+
+                if let Some(filter_expression) = sk_string {
+                    sk_string = Some(format!(
+                        "{filter_expression} AND contains(#owned_by_name, :owned_by_value)"
+                    ));
+                } else {
+                    sk_string = Some("contains(#owned_by_name, :owned_by_value)".to_string());
+                }
+            }
 
             let input: QueryInput = QueryInput {
                 table_name: self.ctx.dynamodb_table_name.clone(),
