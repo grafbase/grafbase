@@ -41,6 +41,8 @@ pub async fn create(arguments: &Option<CreateArguments<'_>>) -> Result<(), CliEr
 }
 
 async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError> {
+    report::create();
+
     // TODO do this with a separate mutation that accepts an account slug
     let (accounts, ..) = create::get_viewer_data_for_creation()
         .await
@@ -56,7 +58,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .await
         .map_err(CliError::BackendApiError)?;
 
-    report::created(arguments.name, &domains);
+    report::create_success(arguments.name, &domains);
 
     Ok(())
 }
@@ -118,7 +120,7 @@ async fn interactive() -> Result<(), CliError> {
             .await
             .map_err(CliError::BackendApiError)?;
 
-        report::created(&project_name, &domains);
+        report::create_success(&project_name, &domains);
     }
 
     Ok(())
