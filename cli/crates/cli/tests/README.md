@@ -1,6 +1,7 @@
 # Running with DynamoDB Local
 
 ## Assets
+
 Assets in the API repo need to be built:
 
 ```sh
@@ -8,6 +9,7 @@ RELEASE_FLAG="--dev" GATEWAY_FEATURES=local ./scripts/dev/build-cli-assets.sh
 ```
 
 ## Set up
+
 DynamoDB Local must be running:
 
 ```sh
