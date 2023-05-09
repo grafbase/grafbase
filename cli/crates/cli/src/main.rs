@@ -111,13 +111,12 @@ fn try_main() -> Result<(), CliError> {
         Some(("login", _)) => login(),
         Some(("logout", _)) => logout(),
         Some(("create", matches)) => {
-            let account_slug = matches.get_one::<String>("account").map(AsRef::as_ref);
-            let name = matches.get_one::<String>("name").map(AsRef::as_ref);
-            // TODO change this once we support multiple regions from the CLI
-            let regions = matches.get_one::<String>("regions").map(AsRef::as_ref);
-            let arguments = account_slug
-                .zip(name)
-                .zip(regions)
+            let arguments = matches
+                .get_one::<String>("account")
+                .map(AsRef::as_ref)
+                .zip(matches.get_one::<String>("name").map(AsRef::as_ref))
+                // TODO change this once we support multiple regions from the CLI
+                .zip(matches.get_one::<String>("regions").map(AsRef::as_ref))
                 .map(|((account_slug, name), regions)| CreateArguments {
                     account_slug,
                     name,
