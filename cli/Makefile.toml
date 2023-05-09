@@ -2,12 +2,14 @@
 default_to_workspace = false
 
 [tasks.install-cargo-release]
+private = true
 install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
     "release",
     "--version",
 ], version = "0.24.10" }
 
 [tasks.install-sd]
+private = true
 install_crate = { crate_name = "sd", binary = "sd", test_arg = [
     "--version",
 ], version = "0.7.6" }
@@ -45,4 +47,49 @@ VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
 cd ../..
 git tag $VERSION
 git push --tags
+'''
+
+[tasks.prettier]
+script = '''
+npx prettier --write .
+'''
+
+[tasks.test]
+clear = true
+script = '''
+cargo nextest run
+'''
+
+[tasks.clippy]
+clear = true
+command = "cargo"
+args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
+
+[tasks.clippy-nightly]
+toolchain = "nightly"
+command = "cargo"
+args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
+
+[tasks.run]
+clear = true
+command = "cargo"
+args = ["run", "--", "${@}"]
+
+[tasks.run-release]
+clear = true
+command = "cargo"
+args = ["run", "--release", "--", "${@}"]
+
+[tasks.update-workers]
+script = '''
+cd ../../api/workers/gateway
+../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-workers-main]
+script = '''
+cd ../../api/workers/gateway
+git switch main
+git pull
+../../scripts/dev/build-cli-assets.sh
 '''
