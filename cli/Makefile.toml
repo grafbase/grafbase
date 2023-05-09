@@ -56,9 +56,8 @@ npx prettier --write .
 
 [tasks.test]
 clear = true
-script = '''
-cargo nextest run
-'''
+command = "cargo"
+args = ["nextest", "run"]
 
 [tasks.clippy]
 clear = true
