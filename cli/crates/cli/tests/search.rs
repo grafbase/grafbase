@@ -115,6 +115,7 @@ struct Edge<N> {
     node: N,
 }
 
+#[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_enums() {
     let mut env = Environment::init();
@@ -168,6 +169,7 @@ fn search_enums() {
     assert_hits_unordered!(search_text("shroidnger"), cat_person);
 }
 
+#[cfg(not(feature = "dynamodb"))] // GB-3636
 #[rstest]
 #[case("fields", SEARCH_CREATE_OPTIONAL, SEARCH_SEARCH_OPTIONAL)]
 #[case("requiredFields", SEARCH_CREATE_REQUIRED, SEARCH_SEARCH_REQUIRED)]
@@ -443,6 +445,7 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
     }
 }
 
+#[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_created_updated_at() {
     let mut env = Environment::init();
@@ -504,6 +507,7 @@ fn search_created_updated_at() {
     );
 }
 
+#[cfg(not(feature = "dynamodb"))] // GB-3636
 #[test]
 fn search_pagination_and_total_hits() {
     let mut env = Environment::init();

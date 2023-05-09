@@ -238,6 +238,29 @@ async fn spawn_servers(
         ]
     }));
 
+    #[cfg(feature = "dynamodb")]
+    {
+        #[allow(clippy::panic)]
+        fn get_env(key: &str) -> String {
+            let val = std::env::var(key).unwrap_or_else(|_| panic!("Environment variable not found:{key}"));
+            format!("{key}={val}")
+        }
+
+        miniflare_arguments.extend(
+            vec![
+                "AWS_ACCESS_KEY_ID",
+                "AWS_SECRET_ACCESS_KEY",
+                "DYNAMODB_REGION",
+                "DYNAMODB_TABLE_NAME",
+            ]
+            .iter()
+            .map(|key| get_env(key))
+            .flat_map(|env| {
+                std::iter::once(std::borrow::Cow::Borrowed("--binding")).chain(std::iter::once(env.into()))
+            }),
+        );
+    }
+
     let mut miniflare = Command::new("node");
     miniflare
         // Unbounded worker limit
