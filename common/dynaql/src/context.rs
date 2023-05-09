@@ -815,6 +815,11 @@ impl<'a, T> ContextBase<'a, T> {
     }
 }
 
+pub enum QueryByVariables {
+    ID(String),
+    Constraint { key: String, value: Value },
+}
+
 impl<'a> ContextBase<'a, &'a Positioned<Field>> {
     pub fn get_schema_id(&self, id: SchemaID) -> ServerResult<Arc<ArrowSchema>> {
         self.registry().get_schema(id, Some(self.item.pos))
@@ -896,6 +901,56 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         }
     }
 
+    #[cfg(feature = "query-planning")]
+    /// Convert a [`VariableResolveDefinition`] an associated ID or an associated constraint.
+    pub fn by_from_variable_resolution(
+        &self,
+        _previous_plan: Option<ArcIntern<LogicalPlan>>,
+        variable: &VariableResolveDefinition,
+    ) -> ServerResult<QueryByVariables> {
+        let pos = self.item.pos;
+
+        match variable {
+            VariableResolveDefinition::InputTypeName(value) => {
+                // The issue here is: we should be able to infer if the value will be nullable or
+                // not, but we don't do it right now, so TODO.
+                let resolved_value = self.param_value_dynamic(&value)?;
+
+                match resolved_value {
+                    Value::Object(map) => {
+                        if let Some((first_key, first_val)) = map.iter().next() {
+                            let result = match (first_key.as_str(), first_val) {
+                                ("id", Value::String(s)) => Ok(QueryByVariables::ID(s.clone())),
+                                (key, val) => Ok(QueryByVariables::Constraint {
+                                    key: key.to_string(),
+                                    value: val.clone(),
+                                }),
+                            };
+
+                            return result;
+                        };
+                        Err(ServerError::new(
+                            "An error happened while infering the associated input for a query by.",
+                            Some(pos),
+                        ))
+                    }
+                    _ => Err(ServerError::new(
+                        "An error happened while infering the associated input for a query by.",
+                        Some(pos),
+                    )),
+                }
+            }
+            #[allow(deprecated)] // Only temporary while we move to the new resolution engine.
+            VariableResolveDefinition::ResolverData(_) => unreachable!("Shouldn't be used anymore"),
+            VariableResolveDefinition::DebugString(_) | VariableResolveDefinition::LocalData(_) => {
+                Err(ServerError::new(
+                    "An error happened while infering the associated input for a query by.",
+                    Some(pos),
+                ))
+            }
+        }
+    }
+
     pub fn trace_id(&self) -> String {
         self.data::<Arc<DynamoDBBatchersData>>()
             .map(|x| x.ctx.trace_id.clone())
@@ -917,6 +972,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         use query_planning::logical_plan::cursor::Cursor;
         use query_planning::logical_plan::{traverse_logical_plan, Datasource, Direction};
         use query_planning::scalar::ScalarValue;
+        use tuple_combinator::TupleCombinator;
 
         use crate::registry::enums::OrderByDirection;
         use crate::registry::plan::{
@@ -1136,43 +1192,67 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                     .get_entity_by_id(&schema, Datasource::gb())
                 }
                 ResolverType::DynamoResolver(DynamoResolver::QueryBy { by, schema }) => {
-                    let by =
-                        LogicalPlanBuilder::from(self.from_variable_resolution(previous_plan, by)?)
-                            .flatten()
-                            .map_err(|err| {
-                                Error::new_with_source(err).into_server_error(self.item.pos)
-                            })?
-                            .build();
-                    let by_schema = by.schema();
+                    let by = self.by_from_variable_resolution(previous_plan, by)?;
 
+                    // Output schema
                     let schema = self
                         .get_schema_id(schema.ok_or_else(|| {
                             ServerError::new("No schema id", Some(self.item.pos))
                         })?)?;
 
-                    let first_field = by_schema.fields().iter().next();
+                    match by {
+                        QueryByVariables::ID(id) => {
+                            let plan = LogicalPlanBuilder::values(
+                                vec![arrow_schema::Field::new(
+                                    "id",
+                                    arrow_schema::DataType::Utf8,
+                                    false,
+                                )],
+                                vec![vec![ScalarValue::new_utf8(id)]],
+                            )
+                            .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                            .build();
 
-                    match first_field {
-                        Some(field) => {
-                            let name = field.name();
-
-                            if name == "id" {
-                                // GetByID
-                                LogicalPlanBuilder::from(by)
-                                    .get_entity_by_id(&schema, Datasource::gb())
-                            } else {
-                                // GetByUnique
-
-                                //TODO: Need to propagate constraints too and flatten the type here
-                                LogicalPlanBuilder::from(by)
-                                    .get_entity_by_unique(&schema, Datasource::gb())
-                            }
+                            LogicalPlanBuilder::from(plan)
+                                .get_entity_by_id(&schema, Datasource::gb())
                         }
-                        _ => {
-                            return Err(ServerError::new(
-                                "By should be a struct",
-                                Some(self.item.pos),
-                            ));
+                        QueryByVariables::Constraint { key, value } => {
+                            let meta_ty = self.resolver_node.as_ref().and_then(|x| x.ty);
+
+                            // Take the associated constraint
+                            let constraint = meta_ty
+                                .clone()
+                                .map(|x| x.constraints())
+                                .into_iter()
+                                .flat_map(|x| x.iter())
+                                .find(|constraint| constraint.name() == key);
+
+                            // The expected constraint_id.
+                            let constraint_id = (meta_ty, constraint)
+                                .transpose()
+                                .and_then(|(ty, constraint)| {
+                                    constraint.extract_id_from_by_input_field(ty.name(), &value)
+                                })
+                                .ok_or_else(|| {
+                                    ServerError::new(
+                                        "You can select this Node like that.",
+                                        Some(self.item.pos),
+                                    )
+                                })?;
+
+                            let plan = LogicalPlanBuilder::values(
+                                vec![arrow_schema::Field::new(
+                                    "id",
+                                    arrow_schema::DataType::Utf8,
+                                    false,
+                                )],
+                                vec![vec![ScalarValue::new_utf8(constraint_id.to_string())]],
+                            )
+                            .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
+                            .build();
+
+                            LogicalPlanBuilder::from(plan)
+                                .get_entity_by_id(&schema, Datasource::gb())
                         }
                     }
                 }
