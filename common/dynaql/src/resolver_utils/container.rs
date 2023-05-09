@@ -1,8 +1,7 @@
 use dynaql_parser::{Pos, Positioned};
 use futures_util::FutureExt;
 use graph_entities::{
-    CompactValue, NodeID, QueryResponseNode, ResponseContainer, ResponseNodeId,
-    ResponseNodeRelation, ResponsePrimitive,
+    CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -214,7 +213,7 @@ async fn resolve_container_inner<'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(QueryResponseNode::from(container)))
+            .new_node_unchecked(container))
     } else {
         let mut container = ResponseContainer::new_container();
         for ((alias, name), value) in results {
@@ -245,7 +244,7 @@ async fn resolve_container_inner<'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(QueryResponseNode::from(container)))
+            .new_node_unchecked(container))
     }
 }
 
@@ -278,7 +277,7 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         .response_graph
         .write()
         .await
-        .new_node_unchecked(QueryResponseNode::from(container)))
+        .new_node_unchecked(container))
 }
 
 /// We take individual selections from our selection set and convert those into futures.
@@ -309,9 +308,7 @@ async fn response_id_unwrap_or_null(
         ctx.response_graph
             .write()
             .await
-            .new_node_unchecked(QueryResponseNode::Primitive(ResponsePrimitive::new(
-                CompactValue::Null,
-            )))
+            .new_node_unchecked(CompactValue::Null)
     }
 }
 
@@ -338,11 +335,9 @@ impl<'a> FieldsGraph<'a> {
                             let ctx = ctx.clone();
                             async move {
                                 let registry = ctx.registry();
-                                let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                    CompactValue::String(
-                                        resolve_typename(&ctx, field, root, registry).await,
-                                    ),
-                                ));
+                                let node = CompactValue::String(
+                                    resolve_typename(&ctx, field, root, registry).await,
+                                );
                                 Ok(GraphFutureOutput::Field(
                                     (alias, field_name),
                                     ctx_field
@@ -703,9 +698,7 @@ impl<'a> Fields<'a> {
                         let typename = root.introspection_type_name().into_owned();
 
                         self.0.push(Box::pin(async move {
-                            let node = QueryResponseNode::from(ResponsePrimitive::new(
-                                CompactValue::String(typename),
-                            ));
+                            let node = CompactValue::String(typename);
                             Ok((
                                 field_name,
                                 ctx_field
