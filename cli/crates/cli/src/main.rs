@@ -113,10 +113,9 @@ fn try_main() -> Result<(), CliError> {
         Some(("create", matches)) => {
             let arguments = matches
                 .get_one::<String>("account")
-                .map(AsRef::as_ref)
-                .zip(matches.get_one::<String>("name").map(AsRef::as_ref))
+                .zip(matches.get_one::<String>("name"))
                 // TODO change this once we support multiple regions from the CLI
-                .zip(matches.get_one::<String>("regions").map(AsRef::as_ref))
+                .zip(matches.get_one::<String>("regions"))
                 .map(|((account_slug, name), regions)| CreateArguments {
                     account_slug,
                     name,
