@@ -37,7 +37,7 @@ mod into_response_node;
 mod response_node_id;
 mod se;
 
-use self::response_node_id::ResponseNodeReference;
+use self::response_node_id::{ToEntityId, ToResponseNodeId};
 
 pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 pub use se::GraphQlResponseSerializer;
@@ -202,8 +202,8 @@ impl QueryResponse {
         this
     }
 
-    pub fn id_for_node<S: ResponseIdLookup>(&self, node: &S) -> Option<ResponseNodeId> {
-        node.response_node_id(self)
+    pub fn id_for_node(&self, node: &EntityId) -> Option<ResponseNodeId> {
+        self.entity_ids.get(node).copied()
     }
 
     fn next_id(&mut self) -> ResponseNodeId {
@@ -244,23 +244,32 @@ impl QueryResponse {
         node_id
     }
 
+    // TODO: Make this use index
+
     /// Get a Node by his ID
-    pub fn get_node<S: ResponseNodeReference>(&self, id: &S) -> Option<&QueryResponseNode> {
+    pub fn get_node<S: ToResponseNodeId>(&self, id: &S) -> Option<&QueryResponseNode> {
         self.data.get(&id.response_node_id(self)?)
     }
 
     /// Get a Node by his ID
-    pub fn get_node_mut<S: ResponseNodeReference>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
+    pub fn get_node_mut<S: ToResponseNodeId>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
         self.data.get_mut(&id.response_node_id(self)?)
     }
 
-    /// Delete a Node by his ID
-    pub fn delete_node<S: ResponseNodeReference>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
-        let actual_id = id.response_node_id(self).ok_or(QueryResponseErrors::NodeNotFound)?;
-        if let Some(entity_id) = id.entity_id() {
-            self.entity_ids.remove(&entity_id);
-        }
-        self.data.remove(&actual_id).ok_or(QueryResponseErrors::NodeNotFound)
+    /// Delete a Node by entity ID
+    pub fn delete_entity<S: ToEntityId>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
+        let entity_id = id.entity_id();
+        let node_id = self
+            .entity_ids
+            .remove(&entity_id)
+            .ok_or(QueryResponseErrors::NodeNotFound)?;
+
+        self.data.remove(&node_id).ok_or(QueryResponseErrors::NodeNotFound)
+    }
+
+    // /// Delete a Node by node ID
+    pub fn delete_node(&mut self, id: ResponseNodeId) -> Result<QueryResponseNode, QueryResponseErrors> {
+        self.data.remove(&id).ok_or(QueryResponseErrors::NodeNotFound)
     }
 
     /// Append a new node to another node which has to be a `Container`
@@ -711,7 +720,7 @@ mod tests {
         });
 
         assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_node(glossary_id).unwrap();
+        response.delete_entity(glossary_id).unwrap();
         assert_eq!(response.to_json_value().unwrap().to_string(), "{}");
     }
 
@@ -757,7 +766,7 @@ mod tests {
         ]);
 
         assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
-        response.delete_node(glossary_id).unwrap();
+        response.delete_entity(glossary_id).unwrap();
         assert_eq!(
             response.to_json_value().unwrap().to_string(),
             "[{\"test\":\"example\"}]"

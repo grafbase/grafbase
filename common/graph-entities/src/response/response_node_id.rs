@@ -11,50 +11,52 @@ use super::EntityId;
 /// a node to its children
 pub struct ResponseNodeId(pub(crate) u32);
 
-/// A type that can look up a ResponseNode inside a Response.
-pub trait ResponseNodeReference {
-    /// The EntityId if this type has one
-    fn entity_id(&self) -> Option<EntityId>;
-    /// The id of this node in the response if it has one
+pub trait ToEntityId {
+    fn entity_id(&self) -> EntityId;
+}
+
+impl ToEntityId for NodeID<'_> {
+    fn entity_id(&self) -> EntityId {
+        self.clone().into()
+    }
+}
+
+impl ToEntityId for EntityId {
+    fn entity_id(&self) -> EntityId {
+        self.clone()
+    }
+}
+
+impl ToEntityId for ArcIntern<String> {
+    fn entity_id(&self) -> EntityId {
+        self.clone().into()
+    }
+}
+
+pub trait ToResponseNodeId {
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId>;
 }
 
-impl ResponseNodeReference for ResponseNodeId {
-    fn entity_id(&self) -> Option<EntityId> {
-        None
-    }
-
+impl ToResponseNodeId for ResponseNodeId {
     fn response_node_id(&self, _response: &super::QueryResponse) -> Option<ResponseNodeId> {
         Some(*self)
     }
 }
 
-impl ResponseNodeReference for NodeID<'_> {
-    fn entity_id(&self) -> Option<EntityId> {
-        Some(self.clone().into())
-    }
-
+impl ToResponseNodeId for NodeID<'_> {
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(&self.entity_id().unwrap()).copied()
+        response.entity_ids.get(&self.entity_id()).copied()
     }
 }
 
-impl ResponseNodeReference for EntityId {
-    fn entity_id(&self) -> Option<EntityId> {
-        Some(self.clone())
-    }
-
+impl ToResponseNodeId for EntityId {
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
         response.entity_ids.get(self).copied()
     }
 }
 
-impl ResponseNodeReference for ArcIntern<String> {
-    fn entity_id(&self) -> Option<EntityId> {
-        Some(self.clone().into())
-    }
-
+impl ToResponseNodeId for ArcIntern<String> {
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(&self.entity_id().unwrap()).copied()
+        response.entity_ids.get(&self.entity_id()).copied()
     }
 }
