@@ -85,6 +85,7 @@ impl<'a> Index<'a> {
         let id_field = index.schema().get_field(search::ID_FIELD).unwrap();
 
         let mut writer = index.writer_with_num_threads(1, 20_000_000)?;
+        // FIXME: GB-3636 Implement DynamoDB variant
         let mut fut = sqlx::query_as(
             r#"
         SELECT pk AS id, document

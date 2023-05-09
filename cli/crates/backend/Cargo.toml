@@ -38,3 +38,6 @@ webbrowser = "0.8"
 
 common = { package = "grafbase-local-common", path = "../common", version = "0.18.12" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.18.12" }
+
+[features]
+dynamodb = ["server/dynamodb"]
