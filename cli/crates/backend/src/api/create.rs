@@ -70,11 +70,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 /// # Errors
 ///
 /// See [`ApiError`]
-pub async fn create(
-    account_id: &str,
-    project_slug: &str,
-    database_regions: &[DatabaseRegion],
-) -> Result<Vec<String>, ApiError> {
+pub async fn create(account_id: &str, project_slug: &str, database_regions: &[&str]) -> Result<Vec<String>, ApiError> {
     let environment = Environment::get();
 
     match environment.project_dot_grafbase_path.try_exists() {

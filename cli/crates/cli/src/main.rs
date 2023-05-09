@@ -21,7 +21,14 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    create::create, deploy::deploy, dev::dev, init::init, link::link, login::login, logout::logout, reset::reset,
+    create::{create, CreateArguments},
+    deploy::deploy,
+    dev::dev,
+    init::init,
+    link::link,
+    login::login,
+    logout::logout,
+    reset::reset,
     unlink::unlink,
 };
 use cli_input::build_cli;
@@ -103,7 +110,20 @@ fn try_main() -> Result<(), CliError> {
         Some(("reset", _)) => reset(),
         Some(("login", _)) => login(),
         Some(("logout", _)) => logout(),
-        Some(("create", _)) => create(),
+        Some(("create", matches)) => {
+            let arguments = matches
+                .get_one::<String>("account")
+                .zip(matches.get_one::<String>("name"))
+                // TODO change this once we support multiple regions from the CLI
+                .zip(matches.get_one::<String>("regions"))
+                .map(|((account_slug, name), regions)| CreateArguments {
+                    account_slug,
+                    name,
+                    // TODO change this once we support multiple regions from the CLI
+                    regions: vec![regions],
+                });
+            create(&arguments)
+        }
         Some(("deploy", _)) => deploy(),
         Some(("link", _)) => link(),
         Some(("unlink", _)) => unlink(),

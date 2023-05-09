@@ -25,9 +25,45 @@ impl Display for RegionSelection {
     }
 }
 
-/// # Errors
+#[allow(clippy::module_name_repetitions)]
+pub struct CreateArguments<'a> {
+    pub account_slug: &'a str,
+    pub name: &'a str,
+    pub regions: Vec<&'a str>,
+}
+
 #[tokio::main]
-pub async fn create() -> Result<(), CliError> {
+pub async fn create(arguments: &Option<CreateArguments<'_>>) -> Result<(), CliError> {
+    match arguments {
+        Some(arguments) => from_arguments(arguments).await,
+        None => interactive().await,
+    }
+}
+
+async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError> {
+    report::create();
+
+    // TODO do this with a separate mutation that accepts an account slug
+    let (accounts, ..) = create::get_viewer_data_for_creation()
+        .await
+        .map_err(CliError::BackendApiError)?;
+
+    let account_id = accounts
+        .into_iter()
+        .find(|account| account.slug == arguments.account_slug)
+        .ok_or(CliError::NoAccountFound)?
+        .id;
+
+    let domains = create::create(&account_id, arguments.name, &arguments.regions)
+        .await
+        .map_err(CliError::BackendApiError)?;
+
+    report::create_success(arguments.name, &domains);
+
+    Ok(())
+}
+
+async fn interactive() -> Result<(), CliError> {
     let environment = Environment::get();
 
     let (accounts, available_regions, closest_region) = create::get_viewer_data_for_creation()
@@ -80,11 +116,11 @@ pub async fn create() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let domains = create::create(&selected_account.id, &project_name, &[selected_region.0])
+        let domains = create::create(&selected_account.id, &project_name, &[&selected_region.0.name])
             .await
             .map_err(CliError::BackendApiError)?;
 
-        report::created(&project_name, &domains);
+        report::create_success(&project_name, &domains);
     }
 
     Ok(())

@@ -70,7 +70,7 @@ pub fn error(error: &CliError) {
 }
 
 pub fn goodbye() {
-    watercolor::output_error!("\n👋 See you next time!", @BrightBlue);
+    watercolor::output!("\n👋 See you next time!", @BrightBlue);
 }
 
 pub fn start_resolver_build(resolver_name: &str) {
@@ -122,39 +122,44 @@ pub fn login(url: &str) {
 }
 
 pub fn login_success() {
-    watercolor::output_error!("\n\n✨ Successfully logged in!", @BrightBlue);
+    watercolor::output!("\n\n✨ Successfully logged in!", @BrightBlue);
 }
 
 // TODO: better handling of spinner position to avoid this extra function
 pub fn login_error(error: &CliError) {
-    watercolor::output_error!("\n\nError: {error}", @BrightRed);
+    watercolor::output!("\n\nError: {error}", @BrightRed);
     if let Some(hint) = error.to_hint() {
-        watercolor::output_error!("Hint: {hint}", @BrightBlue);
+        watercolor::output!("Hint: {hint}", @BrightBlue);
     }
 }
 
 pub fn logout() {
-    watercolor::output_error!("✨ Successfully logged out!", @BrightBlue);
+    watercolor::output!("✨ Successfully logged out!", @BrightBlue);
 }
 
 // TODO change this to a spinner that is removed on success
 pub fn deploy() {
-    watercolor::output_error!("🕒 Your project is being deployed", @BrightBlue);
+    watercolor::output!("🕒 Your project is being deployed", @BrightBlue);
+}
+
+// TODO change this to a spinner that is removed on success
+pub fn create() {
+    watercolor::output!("🕒 Your project is being created", @BrightBlue);
 }
 
 pub fn deploy_success() {
-    watercolor::output_error!("\n✨ Your project has been deployed successfully!", @BrightBlue);
+    watercolor::output!("\n✨ Your project has been deployed successfully!", @BrightBlue);
 }
 
 pub fn linked(name: &str) {
-    watercolor::output_error!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
+    watercolor::output!("\n✨ Successfully linked your local project to {name}!", @BrightBlue);
 }
 
 pub fn unlinked() {
-    watercolor::output_error!("✨ Successfully unlinked your project!", @BrightBlue);
+    watercolor::output!("✨ Successfully unlinked your project!", @BrightBlue);
 }
 
-pub fn created(name: &str, urls: &[String]) {
+pub fn create_success(name: &str, urls: &[String]) {
     watercolor::output!("\n✨ {name} was successfully created!\n", @BrightBlue);
     watercolor::output!("Endpoints:", @BrightBlue);
     for url in urls {
