@@ -34,10 +34,9 @@ pub struct CreateArguments<'a> {
 
 #[tokio::main]
 pub async fn create(arguments: &Option<CreateArguments<'_>>) -> Result<(), CliError> {
-    if let Some(arguments) = arguments {
-        from_arguments(arguments).await
-    } else {
-        interactive().await
+    match arguments {
+        Some(arguments) => from_arguments(arguments).await,
+        None => interactive().await,
     }
 }
 
