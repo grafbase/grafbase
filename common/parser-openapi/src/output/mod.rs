@@ -26,8 +26,6 @@ use crate::graph::{
 use self::namespacing::RegistryExt;
 
 pub fn output(graph: &OpenApiGraph, registry: &mut Registry) {
-    register_scalars(registry);
-
     registry.types.extend(types_to_metatypes(graph.output_types(), graph));
     registry.types.extend(types_to_metatypes(graph.input_objects(), graph));
     registry.types.extend(types_to_metatypes(graph.enums(), graph));
@@ -422,21 +420,6 @@ fn object(name: String, fields: impl IntoIterator<Item = MetaField>) -> MetaType
         rust_typename: name,
         constraints: vec![],
     }
-}
-
-fn register_scalars(registry: &mut Registry) {
-    use dynaql::registry::scalars::{JSONScalar, SDLDefinitionScalar};
-
-    registry.types.insert(
-        JSONScalar::name().unwrap().to_string(),
-        MetaType::Scalar {
-            name: JSONScalar::name().unwrap().to_string(),
-            description: JSONScalar::description().map(ToString::to_string),
-            is_valid: None,
-            visible: None,
-            specified_by_url: JSONScalar::specified_by().map(ToString::to_string),
-        },
-    );
 }
 
 trait ResolverTypeExt {

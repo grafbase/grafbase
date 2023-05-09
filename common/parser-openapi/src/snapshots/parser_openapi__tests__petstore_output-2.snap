@@ -4,13 +4,6 @@ expression: registry
 ---
 Registry {
     types: {
-        "JSON": Scalar {
-            name: "JSON",
-            description: Some(
-                "A JSON Value",
-            ),
-            specified_by_url: None,
-        },
         "Mutation": Object {
             name: "Mutation",
             description: None,
