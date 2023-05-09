@@ -1,22 +1,21 @@
 use crate::{CompactValue, ResponseContainer, ResponseList, ResponsePrimitive};
-use internment::ArcIntern;
 
-use super::QueryResponseNode;
+use super::{EntityId, QueryResponseNode};
 
 /// Converts things into a QueryResponseNode
 ///
 /// Implementations are defined for all the different node types
 pub trait IntoResponseNode {
-    /// The `NodeId` of this node in the database (if it has one)
+    /// The `EntityId` for this node if it has one
     ///
     /// Not to be confused with the ResponseNodeId
-    fn id(&self) -> Option<ArcIntern<String>>;
+    fn entity_id(&self) -> Option<EntityId>;
     /// Converts self into a QueryResponseNode
     fn into_node(self) -> QueryResponseNode;
 }
 
 impl IntoResponseNode for Box<ResponsePrimitive> {
-    fn id(&self) -> Option<ArcIntern<String>> {
+    fn entity_id(&self) -> Option<EntityId> {
         None
     }
 
@@ -26,7 +25,7 @@ impl IntoResponseNode for Box<ResponsePrimitive> {
 }
 
 impl IntoResponseNode for Box<ResponseList> {
-    fn id(&self) -> Option<ArcIntern<String>> {
+    fn entity_id(&self) -> Option<EntityId> {
         None
     }
 
@@ -36,7 +35,7 @@ impl IntoResponseNode for Box<ResponseList> {
 }
 
 impl IntoResponseNode for ResponseContainer {
-    fn id(&self) -> Option<ArcIntern<String>> {
+    fn entity_id(&self) -> Option<EntityId> {
         self.id.clone()
     }
 
@@ -46,7 +45,7 @@ impl IntoResponseNode for ResponseContainer {
 }
 
 impl IntoResponseNode for CompactValue {
-    fn id(&self) -> Option<ArcIntern<String>> {
+    fn entity_id(&self) -> Option<EntityId> {
         None
     }
 

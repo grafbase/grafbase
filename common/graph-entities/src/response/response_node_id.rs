@@ -2,6 +2,8 @@ use crate::NodeID;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 
+use super::EntityId;
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug, Hash, Serialize, Deserialize)]
 /// The identifier of a node within a [`QueryResponse`].
 ///
@@ -17,14 +19,14 @@ pub struct ResponseNodeId(pub(crate) u32);
 /// The QueryResponse uses this trait to allow that code to just pass in a
 /// `NodeId` (or the `ArcIntern<String>` version of a `NodeId`).
 pub trait ResponseIdLookup {
-    /// The database `NodeId` if it has one
-    fn node_id(&self) -> Option<ArcIntern<String>>;
+    /// The EntityId if this type has one
+    fn entity_id(&self) -> Option<EntityId>;
     /// The id of this node in the response if it has one
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId>;
 }
 
 impl ResponseIdLookup for ResponseNodeId {
-    fn node_id(&self) -> Option<ArcIntern<String>> {
+    fn entity_id(&self) -> Option<EntityId> {
         None
     }
 
@@ -34,21 +36,31 @@ impl ResponseIdLookup for ResponseNodeId {
 }
 
 impl ResponseIdLookup for NodeID<'_> {
-    fn node_id(&self) -> Option<ArcIntern<String>> {
-        Some(ArcIntern::new(self.as_ref().to_string()))
+    fn entity_id(&self) -> Option<EntityId> {
+        Some(self.clone().into())
     }
 
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(&self.node_id().unwrap()).copied()
+        response.entity_ids.get(&self.entity_id().unwrap()).copied()
     }
 }
 
-impl ResponseIdLookup for ArcIntern<String> {
-    fn node_id(&self) -> Option<ArcIntern<String>> {
+impl ResponseIdLookup for EntityId {
+    fn entity_id(&self) -> Option<EntityId> {
         Some(self.clone())
     }
 
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
         response.entity_ids.get(self).copied()
+    }
+}
+
+impl ResponseIdLookup for ArcIntern<String> {
+    fn entity_id(&self) -> Option<EntityId> {
+        Some(self.clone().into())
+    }
+
+    fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
+        response.entity_ids.get(&self.entity_id().unwrap()).copied()
     }
 }

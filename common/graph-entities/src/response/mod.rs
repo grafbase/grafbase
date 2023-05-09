@@ -24,7 +24,7 @@
 //! to be careful to keep both the in memory size and serialization size down.  As a result most
 //! of the types in this file have some serde attrs that make them more compact when serialized
 
-use crate::{CompactValue, NodeID};
+use crate::CompactValue;
 use core::fmt::{self, Display, Formatter};
 use derivative::Derivative;
 use dynaql_value::Name;
@@ -32,13 +32,14 @@ use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+mod entity_id;
 mod into_response_node;
+mod response_node_id;
 mod se;
 
-mod graph;
-use self::graph::ResponseIdLookup;
-pub use self::graph::ResponseNodeId;
-pub use self::into_response_node::IntoResponseNode;
+use self::response_node_id::ResponseIdLookup;
+
+pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 pub use se::GraphQlResponseSerializer;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -49,7 +50,7 @@ pub struct QueryResponse {
     #[serde(with = "vectorize")]
     data: HashMap<ResponseNodeId, QueryResponseNode>,
     /// Map of database NodeId to the ID used in data
-    entity_ids: HashMap<ArcIntern<String>, ResponseNodeId>,
+    entity_ids: HashMap<EntityId, ResponseNodeId>,
     /// The next id we can use when we add a node.
     next_id: u32,
 }
@@ -137,9 +138,9 @@ impl QueryResponse {
 // TODO: iterator are little flawed right now as it's just a draft impl; it'll be switched to a
 // more compact and efficient form later.
 impl<'a> Iterator for Relations<'a> {
-    type Item = (ResponseNodeRelation, ArcIntern<String>);
+    type Item = (ResponseNodeRelation, EntityId);
 
-    fn next(&mut self) -> Option<(ResponseNodeRelation, ArcIntern<String>)> {
+    fn next(&mut self) -> Option<(ResponseNodeRelation, EntityId)> {
         loop {
             if let Some(relation) = self.relations.pop() {
                 return Some(relation);
@@ -171,7 +172,7 @@ impl<'a> Iterator for Relations<'a> {
 /// An iterator of the IDs of the children of a given node with forward depth-first
 pub struct Relations<'a> {
     nodes: Children<'a>,
-    relations: Vec<(ResponseNodeRelation, ArcIntern<String>)>,
+    relations: Vec<(ResponseNodeRelation, EntityId)>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -224,12 +225,12 @@ impl QueryResponse {
         T: IntoResponseNode,
     {
         let next_id = self.next_id();
-        self.new_node_unchecked_impl(node.id(), node.into_node(), next_id)
+        self.new_node_unchecked_impl(node.entity_id(), node.into_node(), next_id)
     }
 
     fn new_node_unchecked_impl(
         &mut self,
-        entity_id: Option<ArcIntern<String>>,
+        entity_id: Option<EntityId>,
         node: QueryResponseNode,
         node_id: ResponseNodeId,
     ) -> ResponseNodeId {
@@ -239,7 +240,6 @@ impl QueryResponse {
             }
         }
 
-        println!("Len: {}, Capacity: {}", self.data.len(), self.data.capacity());
         self.data.insert(node_id, node);
         node_id
     }
@@ -257,7 +257,7 @@ impl QueryResponse {
     /// Delete a Node by his ID
     pub fn delete_node<S: ResponseIdLookup>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
         let actual_id = id.response_node_id(self).ok_or(QueryResponseErrors::NodeNotFound)?;
-        if let Some(entity_id) = id.node_id() {
+        if let Some(entity_id) = id.entity_id() {
             self.entity_ids.remove(&entity_id);
         }
         self.data.remove(&actual_id).ok_or(QueryResponseErrors::NodeNotFound)
@@ -358,10 +358,8 @@ impl QueryResponse {
     }
 }
 
-// TODO: Wrap ArcIntern<String> somehow?
-
 impl QueryResponseNode {
-    pub fn id(&self) -> Option<ArcIntern<String>> {
+    pub fn id(&self) -> Option<EntityId> {
         match self {
             QueryResponseNode::Container(value) => value.id.clone(),
             QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None,
@@ -521,7 +519,7 @@ pub enum RelationOrigin {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ResponseContainer {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    id: Option<ArcIntern<String>>,
+    id: Option<EntityId>,
 
     /// Children which are (relation_name, node)
     #[serde(rename = "c")]
@@ -550,9 +548,9 @@ pub struct ResponseContainer {
 }
 
 impl ResponseContainer {
-    pub fn new_node<'a, S: AsRef<NodeID<'a>>>(id: S) -> Self {
+    pub fn new_node(id: impl Into<EntityId>) -> Self {
         Self {
-            id: Some(ArcIntern::new(id.as_ref().to_string())),
+            id: Some(id.into()),
             children: Default::default(),
             relation: None,
             // errors: Vec::new(),
@@ -611,6 +609,8 @@ pub enum QueryResponseNode {
 #[cfg(test)]
 mod tests {
     use internment::ArcIntern;
+
+    use crate::NodeID;
 
     use super::*;
 
