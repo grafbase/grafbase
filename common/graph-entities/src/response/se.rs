@@ -5,8 +5,6 @@ use crate::{
     ResponseNodeRelation, ResponsePrimitive,
 };
 
-use super::ResponseContainerBuilder;
-
 impl QueryResponse {
     /// Recursive function which take a `serde_json::Value` and transform it into a Node ready to
     /// be used.
@@ -35,7 +33,7 @@ impl QueryResponse {
                     })
                     .collect::<Vec<(ResponseNodeRelation, ResponseNodeId)>>();
 
-                self.new_node_unchecked(ResponseContainerBuilder::with_children(nodes))
+                self.new_node_unchecked(ResponseContainer::with_children(nodes))
             }
         }
     }

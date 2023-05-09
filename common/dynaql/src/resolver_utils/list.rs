@@ -5,7 +5,7 @@ use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
 use crate::{ContextSelectionSet, Error, OutputType, Positioned, ServerError, ServerResult, Value};
 use dynaql_value::Name;
-use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{ResponseList, ResponseNodeId, ResponsePrimitive};
 
 /// Resolve an list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(

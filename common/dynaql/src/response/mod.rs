@@ -49,7 +49,6 @@ impl Response {
     }
 
     pub fn to_graphql_response(&self) -> GraphQlResponse {
-        self.data.debug_stats();
         GraphQlResponse(&self)
     }
 

@@ -1,8 +1,7 @@
 use dynaql_parser::{Pos, Positioned};
 use futures_util::FutureExt;
 use graph_entities::{
-    CompactValue, NodeID, QueryResponseNode, ResponseContainer, ResponseContainerBuilder,
-    ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
+    CompactValue, NodeID, ResponseContainer, ResponseNodeId, ResponseNodeRelation,
 };
 use std::future::Future;
 use std::pin::Pin;
@@ -184,7 +183,7 @@ async fn resolve_container_inner<'a>(
     let relations = relations_edges(ctx, root);
 
     if let Some(node_id) = node_id {
-        let mut container = ResponseContainerBuilder::new_node(node_id);
+        let mut container = ResponseContainer::new_node(node_id);
         for ((alias, name), value) in results {
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
@@ -216,7 +215,7 @@ async fn resolve_container_inner<'a>(
             .await
             .new_node_unchecked(container))
     } else {
-        let mut container = ResponseContainerBuilder::new_container();
+        let mut container = ResponseContainer::new_container();
         for ((alias, name), value) in results {
             let name = name.to_string();
             let alias = alias.map(|x| x.to_string().into());
@@ -267,13 +266,12 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         results
     };
 
-    let container =
-        ResponseContainerBuilder::with_children(res.into_iter().map(|(name, value)| {
-            (
-                ResponseNodeRelation::not_a_relation(name.to_string().into(), None),
-                value,
-            )
-        }));
+    let container = ResponseContainer::with_children(res.into_iter().map(|(name, value)| {
+        (
+            ResponseNodeRelation::not_a_relation(name.to_string().into(), None),
+            value,
+        )
+    }));
 
     Ok(ctx
         .response_graph

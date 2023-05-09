@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId};
 
 use crate::parser::types::Field;
 use crate::registry::Registry;

@@ -398,7 +398,7 @@ pub fn generate(
 
                                 let mut resp = match query_env.extensions.resolve(ri, &mut resolve_fut).await {
                                     Ok(Some(value)) => {
-                                        let mut container = #crate_name::graph_entities::ResponseContainerBuilder::new_container();
+                                        let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
                                         container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, value);
                                         let response = &mut *ctx.response_graph.write().await;
                                         let container_id = response.new_node_unchecked(container);
@@ -408,7 +408,7 @@ pub fn generate(
                                         #crate_name::Response::new(b)
                                     }
                                     Ok(None) => {
-                                        let mut container = #crate_name::graph_entities::ResponseContainerBuilder::new_container();
+                                        let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
                                         let response = &mut *ctx.response_graph.write().await;
                                         let primitive_node_id = response.new_node_unchecked(Box::new(#crate_name::graph_entities::ResponsePrimitive::default()));
                                         container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, primitive_node_id);

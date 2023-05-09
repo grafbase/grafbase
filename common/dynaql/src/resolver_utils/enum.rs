@@ -1,4 +1,4 @@
-use graph_entities::{CompactValue, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{CompactValue, ResponseNodeId};
 use query_planning::reexport::internment::ArcIntern;
 
 use crate::{
