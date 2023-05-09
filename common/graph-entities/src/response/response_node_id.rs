@@ -11,21 +11,15 @@ use super::EntityId;
 /// a node to its children
 pub struct ResponseNodeId(pub(crate) u32);
 
-/// An abstraction around the various IDs we need to use with a QueryResponse
-///
-/// Internal to the QueryResponse we use a ResponseNodeId, but code that's
-/// interacting with a QueryResponse might only know an entity by its `NodeId`.
-///
-/// The QueryResponse uses this trait to allow that code to just pass in a
-/// `NodeId` (or the `ArcIntern<String>` version of a `NodeId`).
-pub trait ResponseIdLookup {
+/// A type that can look up a ResponseNode inside a Response.
+pub trait ResponseNodeReference {
     /// The EntityId if this type has one
     fn entity_id(&self) -> Option<EntityId>;
     /// The id of this node in the response if it has one
     fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId>;
 }
 
-impl ResponseIdLookup for ResponseNodeId {
+impl ResponseNodeReference for ResponseNodeId {
     fn entity_id(&self) -> Option<EntityId> {
         None
     }
@@ -35,7 +29,7 @@ impl ResponseIdLookup for ResponseNodeId {
     }
 }
 
-impl ResponseIdLookup for NodeID<'_> {
+impl ResponseNodeReference for NodeID<'_> {
     fn entity_id(&self) -> Option<EntityId> {
         Some(self.clone().into())
     }
@@ -45,7 +39,7 @@ impl ResponseIdLookup for NodeID<'_> {
     }
 }
 
-impl ResponseIdLookup for EntityId {
+impl ResponseNodeReference for EntityId {
     fn entity_id(&self) -> Option<EntityId> {
         Some(self.clone())
     }
@@ -55,7 +49,7 @@ impl ResponseIdLookup for EntityId {
     }
 }
 
-impl ResponseIdLookup for ArcIntern<String> {
+impl ResponseNodeReference for ArcIntern<String> {
     fn entity_id(&self) -> Option<EntityId> {
         Some(self.clone().into())
     }

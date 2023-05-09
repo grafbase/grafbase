@@ -37,7 +37,7 @@ mod into_response_node;
 mod response_node_id;
 mod se;
 
-use self::response_node_id::ResponseIdLookup;
+use self::response_node_id::ResponseNodeReference;
 
 pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 pub use se::GraphQlResponseSerializer;
@@ -245,17 +245,17 @@ impl QueryResponse {
     }
 
     /// Get a Node by his ID
-    pub fn get_node<S: ResponseIdLookup>(&self, id: &S) -> Option<&QueryResponseNode> {
+    pub fn get_node<S: ResponseNodeReference>(&self, id: &S) -> Option<&QueryResponseNode> {
         self.data.get(&id.response_node_id(self)?)
     }
 
     /// Get a Node by his ID
-    pub fn get_node_mut<S: ResponseIdLookup>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
+    pub fn get_node_mut<S: ResponseNodeReference>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
         self.data.get_mut(&id.response_node_id(self)?)
     }
 
     /// Delete a Node by his ID
-    pub fn delete_node<S: ResponseIdLookup>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
+    pub fn delete_node<S: ResponseNodeReference>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
         let actual_id = id.response_node_id(self).ok_or(QueryResponseErrors::NodeNotFound)?;
         if let Some(entity_id) = id.entity_id() {
             self.entity_ids.remove(&entity_id);
