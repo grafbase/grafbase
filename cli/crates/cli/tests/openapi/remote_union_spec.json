@@ -88,9 +88,7 @@
   "components": {
     "schemas": {
       "Pet": {
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "type": "object",
         "properties": {
           "id": {
@@ -114,9 +112,7 @@
         ]
       },
       "Person": {
-        "required": [
-          "id"
-        ],
+        "required": ["id"],
         "type": "object",
         "properties": {
           "id": {

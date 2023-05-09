@@ -46,3 +46,8 @@ cd ../..
 git tag $VERSION
 git push --tags
 '''
+
+[tasks.prettier]
+script = '''
+npx prettier --write .
+'''
