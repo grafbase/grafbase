@@ -143,6 +143,37 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                 })
                 .collect(),
 
+            jwks_providers: auth
+                .providers
+                .iter()
+                .filter_map(|provider| match provider {
+                    AuthProvider::Jwks {
+                        issuer,
+                        jwks_endpoint,
+                        groups_claim,
+                        client_id,
+                    } => {
+                        const JWKS_PATH: &str = "/.well-known/jwks.json";
+                        let issuer = issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string();
+                        Some(dynaql::JwksProvider {
+                            jwks_endpoint: jwks_endpoint
+                                .as_ref()
+                                .map(|s| s.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap())
+                                .unwrap_or_else(|| {
+                                    let issuer: url::Url = issuer.parse().unwrap();
+                                    issuer.join(JWKS_PATH).unwrap()
+                                }),
+                            issuer,
+                            groups_claim: groups_claim.clone(),
+                            client_id: client_id
+                                .as_ref()
+                                .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
+                        })
+                    }
+                    _ => None,
+                })
+                .collect(),
+
             jwt_providers: auth
                 .providers
                 .iter()

@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 383
 expression: req_string_a
 ---
 {
@@ -8,6 +7,7 @@ expression: req_string_a
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
+    "jwks_providers": [],
     "jwt_providers": [],
     "oidc_providers": []
   },
