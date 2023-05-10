@@ -2,7 +2,8 @@ use crate::registry::MetaType;
 use crate::{relations_edges, Context, ContextSelectionSet};
 use dynaql_value::ConstValue;
 use graph_entities::{
-    ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation, ResponsePrimitive,
+    QueryResponseNode, ResponseContainer, ResponseList, ResponseNodeId, ResponseNodeRelation,
+    ResponsePrimitive,
 };
 
 #[async_recursion::async_recursion]
@@ -11,17 +12,14 @@ pub async fn selection_set_into_node<'a>(
     ctx: &ContextSelectionSet<'a>,
     root: &MetaType,
 ) -> ResponseNodeId {
-    match value {
+    let node = match value {
         ConstValue::List(list) => {
             let mut container = ResponseList::default();
             for value in list {
                 let id = selection_set_into_node(value, ctx, root).await;
                 container.push(id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(Box::new(container))
+            QueryResponseNode::List(container)
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -44,32 +42,28 @@ pub async fn selection_set_into_node<'a>(
                 };
                 container.insert(rel, id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(container)
+            QueryResponseNode::Container(container)
         }
         rest => {
             let node = ResponsePrimitive::new(rest.into());
-            ctx.response_graph.write().await.new_node_unchecked(node)
+            QueryResponseNode::Primitive(node)
         }
-    }
+    };
+
+    ctx.response_graph.write().await.new_node_unchecked(node)
 }
 
 // TODO: Function is not proper, but own't really matter in the usage, still should be fixed later.
 #[async_recursion::async_recursion]
 pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> ResponseNodeId {
-    match value {
+    let node = match value {
         ConstValue::List(list) => {
             let mut container = ResponseList::default();
             for value in list {
                 let id = field_into_node(value, ctx).await;
                 container.push(id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(Box::new(container))
+            QueryResponseNode::List(container)
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -82,14 +76,13 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 };
                 container.insert(rel, id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(container)
+            QueryResponseNode::Container(container)
         }
         rest => {
             let node = ResponsePrimitive::new(rest.into());
-            ctx.response_graph.write().await.new_node_unchecked(node)
+            QueryResponseNode::Primitive(node)
         }
-    }
+    };
+
+    ctx.response_graph.write().await.new_node_unchecked(node)
 }

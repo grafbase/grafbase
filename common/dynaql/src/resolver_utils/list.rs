@@ -5,7 +5,7 @@ use crate::registry::MetaType;
 use crate::resolver_utils::resolve_container;
 use crate::{ContextSelectionSet, Error, OutputType, Positioned, ServerError, ServerResult, Value};
 use dynaql_value::Name;
-use graph_entities::{ResponseList, ResponseNodeId, ResponsePrimitive};
+use graph_entities::{QueryResponseNode, ResponseList, ResponseNodeId, ResponsePrimitive};
 
 /// Resolve an list by executing each of the items concurrently.
 pub async fn resolve_list<'a>(
@@ -55,34 +55,35 @@ pub async fn resolve_list<'a>(
                         input_values: args_values,
                     };
 
-                    let resolve_fut =
-                        async {
-                            match ty {
-                                MetaType::Scalar { .. } | MetaType::Enum { .. } => {
-                                    let mut result = Value::try_from(item).map_err(|err| {
-                                        ctx_idx.set_error_path(ServerError::new(
-                                            format!("{err:?}"),
-                                            Some(field.pos),
-                                        ))
-                                    })?;
-                                    // Yes it's ugly...
-                                    if let MetaType::Scalar { .. } = ty {
-                                        result = resolve_scalar(result, type_name)
-                                            .map_err(|err| err.into_server_error(field.pos))?;
-                                    }
-                                    Ok(Some(
-                                        ctx_idx.response_graph.write().await.new_node_unchecked(
-                                            ResponsePrimitive::new(result.into()),
-                                        ),
+                    let resolve_fut = async {
+                        match ty {
+                            MetaType::Scalar { .. } | MetaType::Enum { .. } => {
+                                let mut result = Value::try_from(item).map_err(|err| {
+                                    ctx_idx.set_error_path(ServerError::new(
+                                        format!("{err:?}"),
+                                        Some(field.pos),
                                     ))
+                                })?;
+                                // Yes it's ugly...
+                                if let MetaType::Scalar { .. } = ty {
+                                    result = resolve_scalar(result, type_name)
+                                        .map_err(|err| err.into_server_error(field.pos))?;
                                 }
-                                // TODO: node_step
-                                _ => resolve_container(&ctx_idx, ty, None)
-                                    .await
-                                    .map(Option::Some)
-                                    .map_err(|err| ctx_idx.set_error_path(err)),
+                                Ok(Some(
+                                    ctx_idx.response_graph.write().await.new_node_unchecked(
+                                        QueryResponseNode::Primitive(ResponsePrimitive::new(
+                                            result.into(),
+                                        )),
+                                    ),
+                                ))
                             }
-                        };
+                            // TODO: node_step
+                            _ => resolve_container(&ctx_idx, ty, None)
+                                .await
+                                .map(Option::Some)
+                                .map_err(|err| ctx_idx.set_error_path(err)),
+                        }
+                    };
                     futures_util::pin_mut!(resolve_fut);
                     extensions
                         .resolve(resolve_info, &mut resolve_fut)
@@ -91,7 +92,9 @@ pub async fn resolve_list<'a>(
                 }
             });
         }
-        let node = ResponseList::with_children(futures_util::future::try_join_all(futures).await?);
+        let node = QueryResponseNode::List(ResponseList::with_children(
+            futures_util::future::try_join_all(futures).await?,
+        ));
 
         Ok(ctx.response_graph.write().await.new_node_unchecked(node))
     } else {
@@ -108,11 +111,9 @@ pub async fn resolve_list<'a>(
                             ))
                         })?;
 
-                        Ok(ctx_idx
-                            .response_graph
-                            .write()
-                            .await
-                            .new_node_unchecked(ResponsePrimitive::new(result.into())))
+                        Ok(ctx_idx.response_graph.write().await.new_node_unchecked(
+                            QueryResponseNode::Primitive(ResponsePrimitive::new(result.into())),
+                        ))
                     }
                     // TODO: node_step
                     _ => resolve_container(&ctx_idx, ty, None)
@@ -122,7 +123,9 @@ pub async fn resolve_list<'a>(
             });
         }
 
-        let node = ResponseList::with_children(futures_util::future::try_join_all(futures).await?);
+        let node = QueryResponseNode::List(ResponseList::with_children(
+            futures_util::future::try_join_all(futures).await?,
+        ));
 
         Ok(ctx.response_graph.write().await.new_node_unchecked(node))
     }
@@ -202,7 +205,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(ResponseList::with_children(children));
+            .new_node_unchecked(ResponseList::with_children(children).into());
 
         Ok(node_id)
     } else {
@@ -222,7 +225,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(ResponseList::with_children(children));
+            .new_node_unchecked(ResponseList::with_children(children).into());
 
         Ok(node_id)
     }
