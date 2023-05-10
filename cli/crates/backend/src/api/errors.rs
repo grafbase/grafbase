@@ -44,6 +44,10 @@ pub enum ApiError {
     #[error("could not complete the action as your credential file is corrupt")]
     CorruptCredentialsFile,
 
+    /// returned if the provided access token is corrupt
+    #[error("could not complete the action as your access token is corrupt")]
+    CorruptAccessToken,
+
     /// returned if the contents of the project metadata file are corrupt
     #[error("could not complete the action as your project metadata file are corrupt")]
     CorruptProjectMetadataFile,
