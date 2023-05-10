@@ -366,7 +366,8 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             }],
@@ -443,7 +444,8 @@ mod tests {
         ]),
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
             }],
@@ -589,7 +591,8 @@ mod tests {
       "#,
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
             }],

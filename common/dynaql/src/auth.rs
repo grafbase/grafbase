@@ -21,7 +21,8 @@ pub struct AuthConfig {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OidcProvider {
-    pub issuer: url::Url, // Used for deriving the OIDC discovery URL as well as for verifying the "iss" claim.
+    pub issuer: String,            // For verifying the "iss" claim.
+    pub issuer_base_url: url::Url, // For deriving the OIDC discovery URL.
     pub groups_claim: String, // Name of the claim containing the groups the subject belongs to.
     pub client_id: Option<String>, // Used for verifying that the supplied value is in the "aud" claim.
 }
@@ -29,7 +30,7 @@ pub struct OidcProvider {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct JwksProvider {
     pub jwks_endpoint: url::Url, // URL of the JWKS endpoint. E.g. https://example.com/.well-known/jwks.json
-    pub issuer: String,          // Used for verifying the "iss" claim.
+    pub issuer: Option<String>,  // Used for verifying the "iss" claim.
     pub groups_claim: String,    // Name of the claim containing the groups the subject belongs to.
     pub client_id: Option<String>, // Used for verifying that the supplied value is in the "aud" claim.
 }

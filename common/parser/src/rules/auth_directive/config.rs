@@ -132,13 +132,18 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                         issuer,
                         groups_claim,
                         client_id,
-                    } => Some(dynaql::OidcProvider {
-                        issuer: issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap(),
-                        groups_claim: groups_claim.clone(),
-                        client_id: client_id
-                            .as_ref()
-                            .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
-                    }),
+                    } => {
+                        let issuer: String = issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap();
+                        let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
+                        Some(dynaql::OidcProvider {
+                            issuer,
+                            issuer_base_url,
+                            groups_claim: groups_claim.clone(),
+                            client_id: client_id
+                                .as_ref()
+                                .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
+                        })
+                    }
                     _ => None,
                 })
                 .collect(),
@@ -153,16 +158,17 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                         groups_claim,
                         client_id,
                     } => {
-                        const JWKS_PATH: &str = "/.well-known/jwks.json";
-                        let issuer = issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string();
+                        let jwks_endpoint = jwks_endpoint
+                            .as_ref()
+                            .expect("must have been set")
+                            .as_fully_evaluated_str()
+                            .expect("must be evaluated");
+                        let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
+                        let issuer = issuer
+                            .as_ref()
+                            .map(|issuer| issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string());
                         Some(dynaql::JwksProvider {
-                            jwks_endpoint: jwks_endpoint
-                                .as_ref()
-                                .map(|s| s.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap())
-                                .unwrap_or_else(|| {
-                                    let issuer: url::Url = issuer.parse().unwrap();
-                                    issuer.join(JWKS_PATH).unwrap()
-                                }),
+                            jwks_endpoint,
                             issuer,
                             groups_claim: groups_claim.clone(),
                             client_id: client_id

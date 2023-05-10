@@ -26,7 +26,8 @@ pub enum AuthProvider {
 
     #[serde(rename_all = "camelCase")]
     Jwks {
-        issuer: DynamicString,
+        // at least one of issuer, jwks_endpoint must be set
+        issuer: Option<DynamicString>,
 
         jwks_endpoint: Option<DynamicString>,
 
@@ -54,16 +55,15 @@ fn default_groups_claim() -> String {
 }
 
 impl AuthProvider {
-    fn validate_url(dynamic_string: &DynamicString, error_prefix: &'static str) -> Result<(), ServerError> {
+    fn validate_url(dynamic_string: &DynamicString, error_prefix: &'static str) -> Result<url::Url, ServerError> {
         dynamic_string
             .as_fully_evaluated_str()
             .map(|s| s.parse::<url::Url>())
-            .transpose()
+            .expect("must be evaluated")
             .map_err(|err| {
                 // FIXME: Pass in the proper location here and everywhere above as it's not done properly now.
                 ServerError::new(format!("{error_prefix}: {err}"), None)
             })
-            .map(|_| ())
     }
 
     pub fn from_value(ctx: &VisitorContext<'_>, value: &ConstValue) -> Result<Self, ServerError> {
@@ -98,15 +98,30 @@ impl AuthProvider {
                 ref mut client_id,
                 ..
             } => {
-                ctx.partially_evaluate_literal(issuer)?;
-
-                if let Some(jwks_endpoint) = jwks_endpoint {
-                    ctx.partially_evaluate_literal(jwks_endpoint)?;
-                    Self::validate_url(jwks_endpoint, "JWKS provider")?;
-                } else {
-                    // issuer must be a URL in this case
-                    Self::validate_url(issuer, "JWKS provider")?;
-                }
+                match (issuer, jwks_endpoint.as_mut()) {
+                    (None, None) => Err(ServerError::new(
+                        "JWKS provider: at least one of 'issuer', 'jwks_endpoint' must be set.".to_string(),
+                        None,
+                    )),
+                    (Some(issuer), None) => {
+                        ctx.partially_evaluate_literal(issuer)?;
+                        // issuer must be a URL in this case so that jwks_endpoint can be constructed.
+                        let url = Self::validate_url(issuer, "JWKS provider")?;
+                        const JWKS_PATH: &str = "/.well-known/jwks.json";
+                        let url = url.join(JWKS_PATH).expect("cannot fail");
+                        *jwks_endpoint = Some(DynamicString::from_string_literal(url.to_string()));
+                        Ok(())
+                    }
+                    (None, Some(jwks_endpoint)) => {
+                        ctx.partially_evaluate_literal(jwks_endpoint)?;
+                        Self::validate_url(jwks_endpoint, "JWKS provider").map(|_| ())
+                    }
+                    (Some(issuer), Some(jwks_endpoint)) => {
+                        ctx.partially_evaluate_literal(issuer)?;
+                        ctx.partially_evaluate_literal(jwks_endpoint)?;
+                        Self::validate_url(jwks_endpoint, "JWKS provider").map(|_| ())
+                    }
+                }?;
 
                 if let Some(client_id) = client_id {
                     ctx.partially_evaluate_literal(client_id)?;
