@@ -1,5 +1,6 @@
 [config]
 default_to_workspace = false
+skip_core_tasks = true
 
 [tasks.install-cargo-release]
 private = true
@@ -65,13 +66,11 @@ npx prettier --write .
 
 [tasks.test]
 description = "Runs cargo-nextest"
-clear = true
 command = "cargo"
 args = ["nextest", "run"]
 
 [tasks.clippy]
 description = "Runs Clippy"
-clear = true
 command = "cargo"
 args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
 
@@ -83,13 +82,11 @@ args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
 
 [tasks.run]
 description = "Runs the CLI"
-clear = true
 command = "cargo"
 args = ["run", "--", "${@}"]
 
 [tasks.run-release]
 description = "Runs the CLI in release mode"
-clear = true
 command = "cargo"
 args = ["run", "--release", "--", "${@}"]
 
