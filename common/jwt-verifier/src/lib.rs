@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{borrow::Borrow, collections::HashSet};
 
 use json_dotpath::DotPaths;
 use jwt_compact::{alg::Rsa, jwk::JsonWebKey, prelude::*, TimeOptions};
@@ -48,10 +48,11 @@ struct JsonWebKeySet<'a> {
 
 #[serde_as]
 #[derive(Serialize, Deserialize, Debug)]
-// FIXME: Get rid of <ISS> https://linear.app/grafbase/issue/GB-3298/fix-issuer-comparison-in-oidcconfig-as-stated-by-the-fixme
-struct CustomClaims<ISS> {
+
+struct CustomClaims {
+    // optional as per https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
     #[serde(rename = "iss")]
-    issuer: ISS,
+    issuer: Option<String>,
 
     #[serde(rename = "sub")]
     subject: Option<String>,
@@ -71,7 +72,6 @@ pub struct Client<'a> {
     pub trace_id: &'a str,
     pub http_client: reqwest::Client,
     pub time_opts: TimeOptions,        // used for testing
-    pub ignore_iss_claim: bool,        // used for testing
     pub groups_claim: Option<&'a str>, // The name of the claim (json attribute) that stores groups.
     pub client_id: Option<&'a str>,    // The name of the application that must be present in the "aud" claim.
     pub jwks_cache: Option<worker::kv::KvStore>,
@@ -89,7 +89,8 @@ impl<'a> Client<'a> {
     pub async fn verify_rs_token_using_oidc_discovery<S: AsRef<str>>(
         &self,
         token: S,
-        issuer: &'a Url,
+        issuer_base_url: &url::Url,
+        expected_issuer: &'a str,
     ) -> Result<VerifiedToken, VerificationError> {
         use futures_util::TryFutureExt;
         use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
@@ -99,10 +100,10 @@ impl<'a> Client<'a> {
         let rsa = Self::get_rsa_algorithm(&token)?;
 
         let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
-
         // Use JWK from cache if available
+        let discovery_url = issuer_base_url.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
         let cached_jwk = self
-            .get_jwk_from_cache(kid, &issuer)
+            .get_jwk_from_cache(kid, &discovery_url)
             .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
             .await
             .ok()
@@ -113,10 +114,9 @@ impl<'a> Client<'a> {
             cached_jwk
         } else {
             // Get JWKS endpoint from OIDC config
-            let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
             let oidc_config: OidcConfig = self
                 .http_client
-                .get(discovery_url)
+                .get(discovery_url.clone())
                 .send()
                 .await
                 .map_err(VerificationError::HttpRequest)?
@@ -128,10 +128,10 @@ impl<'a> Client<'a> {
 
             // SECURITY: This check is important to make sure that an issuer cannot
             // assume another identity
-            if oidc_config.issuer != *issuer {
-                return Err(VerificationError::InvalidIssuerUrl);
+            // FIXME: GB-3298 compare with expected_issuer
+            if oidc_config.issuer != *issuer_base_url {
+                return Err(VerificationError::IssuerClaimMismatch);
             }
-
             // Get JWKS
             let jwks: JsonWebKeySet<'_> = self
                 .http_client
@@ -153,7 +153,7 @@ impl<'a> Client<'a> {
             // Add JWK to cache
             log::debug!(self.trace_id, "Adding JWK {kid} to cache");
             let _ = self
-                .add_jwk_to_cache(&jwk, issuer)
+                .add_jwk_to_cache(&jwk, &discovery_url)
                 .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
                 .await;
 
@@ -165,10 +165,10 @@ impl<'a> Client<'a> {
         let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
         let rsa = StrongAlg(rsa);
         let token = rsa
-            .validate_integrity::<CustomClaims<Url>>(&token, &pub_key)
+            .validate_integrity::<CustomClaims>(&token, &pub_key)
             .map_err(VerificationError::Integrity)?;
 
-        self.verify_claims(token.claims(), issuer)
+        self.verify_claims(token.claims(), Some(expected_issuer))
     }
 
     /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
@@ -177,7 +177,7 @@ impl<'a> Client<'a> {
         &self,
         token: S,
         jwks_uri: &'a Url,
-        issuer: &'a str,
+        expected_issuer: Option<&'a str>,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
 
@@ -211,10 +211,10 @@ impl<'a> Client<'a> {
         let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
         let rsa = StrongAlg(rsa);
         let token = rsa
-            .validate_integrity::<CustomClaims<String>>(&token, &pub_key)
+            .validate_integrity::<CustomClaims>(&token, &pub_key)
             .map_err(VerificationError::Integrity)?;
 
-        self.verify_claims::<String, str>(token.claims(), issuer)
+        self.verify_claims(token.claims(), expected_issuer)
     }
 
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
@@ -222,7 +222,7 @@ impl<'a> Client<'a> {
     pub fn verify_hs_token<S: AsRef<str>>(
         &self,
         token: S,
-        issuer: &str,
+        expected_issuer: &str,
         signing_key: &SecretString,
     ) -> Result<VerifiedToken, VerificationError> {
         use jwt_compact::alg::{Hs256, Hs256Key, Hs384, Hs384Key, Hs512, Hs512Key};
@@ -233,13 +233,13 @@ impl<'a> Client<'a> {
 
         let token = match token.algorithm() {
             "HS256" => Hs256
-                .validate_integrity::<CustomClaims<String>>(&token, &Hs256Key::from(key))
+                .validate_integrity::<CustomClaims>(&token, &Hs256Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS384" => Hs384
-                .validate_integrity::<CustomClaims<String>>(&token, &Hs384Key::from(key))
+                .validate_integrity::<CustomClaims>(&token, &Hs384Key::from(key))
                 .map_err(VerificationError::Integrity),
             "HS512" => Hs512
-                .validate_integrity::<CustomClaims<String>>(&token, &Hs512Key::from(key))
+                .validate_integrity::<CustomClaims>(&token, &Hs512Key::from(key))
                 .map_err(VerificationError::Integrity),
             other => {
                 return Err(VerificationError::UnsupportedAlgorithm {
@@ -248,7 +248,7 @@ impl<'a> Client<'a> {
             }
         }?;
 
-        self.verify_claims::<String, str>(token.claims(), issuer)
+        self.verify_claims(token.claims(), Some(expected_issuer))
     }
 
     fn get_rsa_algorithm(token: &UntrustedToken<'_>) -> Result<Rsa, VerificationError> {
@@ -262,18 +262,31 @@ impl<'a> Client<'a> {
         }
     }
 
-    fn verify_claims<ISS, C>(
+    fn verify_claims(
         &self,
-        claims: &Claims<CustomClaims<ISS>>,
-        issuer: &C,
-    ) -> Result<VerifiedToken, VerificationError>
-    where
-        C: ?Sized,
-        ISS: std::borrow::Borrow<C> + PartialEq<C>,
-    {
-        // Check "iss" claim
-        if !self.ignore_iss_claim && claims.custom.issuer != *issuer {
-            return Err(VerificationError::InvalidIssuerUrl);
+        claims: &Claims<CustomClaims>,
+        expected_issuer: Option<&str>,
+    ) -> Result<VerifiedToken, VerificationError> {
+        // Check "iss" claim if expected_issuer is set.
+        if expected_issuer.is_some() && claims.custom.issuer.as_ref().map(Borrow::borrow) != expected_issuer {
+            // TODO simplify to a string comparison if no warnings show up in logs.
+            // Backwards compatibility: Previously the issuer was first parsed as URL and then compared which is against the spec:
+            // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
+            // Attempt to convert both sides to URLs and compare them.
+            match (
+                expected_issuer.map(url::Url::parse),
+                claims.custom.issuer.as_ref().map(|s| url::Url::parse(s)),
+            ) {
+                (Some(Ok(expected_issuer_url)), Some(Ok(actual_issuer_url)))
+                    if expected_issuer_url == actual_issuer_url =>
+                {
+                    log::warn!(self.trace_id,
+                        "Passing issuer verification although expected '{expected_issuer:?}' does not match exactly the actual '{:?}'",
+                        claims.custom.issuer);
+                    Ok(())
+                }
+                _ => Err(VerificationError::IssuerClaimMismatch),
+            }?;
         }
 
         // Check "exp" claim
@@ -333,11 +346,11 @@ impl<'a> Client<'a> {
     async fn get_jwk_from_cache(
         &self,
         kid: &str,
-        issuer: impl std::fmt::Display,
+        discovery_url: &url::Url,
     ) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
         if let Some(cache) = &self.jwks_cache {
             cache
-                .get(&format!("{issuer}|{kid}"))
+                .get(&format!("{discovery_url}|{kid}"))
                 .cache_ttl(JWKS_CACHE_TTL)
                 .json::<ExtendedJsonWebKey<'_>>()
                 .await
@@ -346,16 +359,12 @@ impl<'a> Client<'a> {
         }
     }
 
-    async fn add_jwk_to_cache(
-        &self,
-        jwk: &ExtendedJsonWebKey<'_>,
-        issuer: impl std::fmt::Display,
-    ) -> Result<(), KvError> {
+    async fn add_jwk_to_cache(&self, jwk: &ExtendedJsonWebKey<'_>, discovery_url: &url::Url) -> Result<(), KvError> {
         if let Some(cache) = &self.jwks_cache {
             // SECURITY: To prevent cache poisining, we not only use the kid but also the issuer
             // url. This two issuer can use the same kid without interferring with each other
             cache
-                .put(&format!("{issuer}|{}", jwk.id), jwk)
+                .put(&format!("{discovery_url}|{}", jwk.id), jwk)
                 .expect("cannot fail")
                 .expiration_ttl(JWKS_CACHE_TTL)
                 .execute()

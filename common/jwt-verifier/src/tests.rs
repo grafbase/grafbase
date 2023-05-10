@@ -83,7 +83,7 @@ async fn set_up_jwks_server(jwks_path: &str, server: &MockServer) {
 }
 
 macro_rules! verify_test {
-    ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $expect:expr) => {
+    ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $expected_issuer:expr, $expect:expr) => {
         #[tokio::test]
         async fn $fn_name() {
             let client = {
@@ -91,27 +91,26 @@ macro_rules! verify_test {
                 let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
                 Client {
                     time_opts: TimeOptions::new(leeway, clock_fn),
-                    ignore_iss_claim: true,
                     groups_claim: $groups_claim,
                     client_id: $client_id,
                     ..Default::default()
                 }
             };
             let server = MockServer::start().await;
-            let issuer: Url = server.uri().parse().unwrap();
+            let issuer_url: Url = server.uri().parse().unwrap();
             for use_oidc in [false, true] {
                 let actual = if use_oidc {
-                    set_up_oidc_server(&issuer, &server).await;
+                    set_up_oidc_server(&issuer_url, &server).await;
                     client
-                        .verify_rs_token_using_oidc_discovery($token, &issuer)
+                        .verify_rs_token_using_oidc_discovery($token, &issuer_url, $expected_issuer)
                         .await
                         .unwrap()
                 } else {
                     // jwks endpoint
-                    let jwks_uri = issuer.join(JWKS_PATH).unwrap();
+                    let jwks_uri = issuer_url.join(JWKS_PATH).unwrap();
                     set_up_jwks_server(jwks_uri.path(), &server).await;
                     client
-                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, &issuer.to_string())
+                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, Some($expected_issuer))
                         .await
                         .unwrap()
                 };
@@ -123,7 +122,7 @@ macro_rules! verify_test {
 }
 
 macro_rules! verify_fail {
-    ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $err:literal) => {
+    ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $expected_issuer:expr, $err:literal) => {
         #[tokio::test]
         async fn $fn_name() {
             let client = {
@@ -131,29 +130,28 @@ macro_rules! verify_fail {
                 let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
                 Client {
                     time_opts: TimeOptions::new(leeway, clock_fn),
-                    ignore_iss_claim: true,
                     groups_claim: $groups_claim,
                     client_id: $client_id,
                     ..Default::default()
                 }
             };
             let server = MockServer::start().await;
-            let issuer: Url = server.uri().parse().unwrap();
+            let issuer_url: Url = server.uri().parse().unwrap();
 
-            for use_oidc in [false, true] {
+            for use_oidc in [true] {
                 let actual = if use_oidc {
-                    set_up_oidc_server(&issuer, &server).await;
+                    set_up_oidc_server(&issuer_url, &server).await;
                     client
-                        .verify_rs_token_using_oidc_discovery($token, &issuer)
+                        .verify_rs_token_using_oidc_discovery($token, &issuer_url, $expected_issuer)
                         .await
                         .unwrap_err()
                         .to_string()
                 } else {
                     // jwks endpoint
-                    let jwks_uri = issuer.join(JWKS_PATH).unwrap();
+                    let jwks_uri = issuer_url.join(JWKS_PATH).unwrap();
                     set_up_jwks_server(jwks_uri.path(), &server).await;
                     client
-                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, &issuer.to_string())
+                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, Some($expected_issuer))
                         .await
                         .unwrap_err()
                         .to_string()
@@ -193,6 +191,20 @@ verify_test!(
     TOKEN_IAT,
     None,
     None,
+    "https://clerk.b74v0.5y6hj.lcl.dev",
+    VerifiedToken {
+        identity: Some(TOKEN_SUB.to_string()),
+        groups: HashSet::new(),
+    }
+);
+
+verify_test!(
+    issuer_with_additional_slash_should_verify_for_backwards_compatibility,
+    TOKEN,
+    TOKEN_IAT,
+    None,
+    None,
+    "https://clerk.b74v0.5y6hj.lcl.dev/",
     VerifiedToken {
         identity: Some(TOKEN_SUB.to_string()),
         groups: HashSet::new(),
@@ -205,6 +217,7 @@ verify_fail!(
     TOKEN_IAT - 10,
     None,
     None,
+    "https://clerk.b74v0.5y6hj.lcl.dev",
     "invalid issue time"
 );
 
@@ -214,7 +227,18 @@ verify_fail!(
     TOKEN_IAT,
     None,
     Some("some-id"),
+    "https://clerk.b74v0.5y6hj.lcl.dev",
     "audience does not match client ID"
+);
+
+verify_fail!(
+    invalid_issuer_should_fail,
+    TOKEN,
+    TOKEN_IAT - 10,
+    None,
+    None,
+    "https://example.com",
+    "issuer claim mismatch"
 );
 
 /*
@@ -244,6 +268,7 @@ verify_test!(
         1_658_141_914,
         Some("groups"),
         None,
+        "https://clerk.b74v0.5y6hj.lcl.dev".parse::<url::Url>().unwrap().as_ref(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
             groups: vec!["admin", "moderator"].into_iter().map(String::from).collect(),
@@ -269,16 +294,17 @@ verify_test!(
 }
 */
 verify_test!(
-        token_with_null_groups,
-        "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg",
-        1_660_040_974,
-        Some("groups"),
-        None,
-        VerifiedToken {
-            identity: Some(TOKEN_SUB.to_string()),
-            groups: HashSet::new(),
-        }
-    );
+    token_with_null_groups,
+    "eyJhbGciOiJSUzI1NiIsImtpZCI6Imluc18yM2k2V0dJRFdobFBjTGVlc3hibWNVTkxaeUoiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE2NjAwNDE1NzQsImdyb3VwcyI6bnVsbCwiaWF0IjoxNjYwMDQwOTc0LCJpc3MiOiJodHRwczovL2NsZXJrLmI3NHYwLjV5NmhqLmxjbC5kZXYiLCJqdGkiOiIxYzk3NmYzNTg2ZmUzNDNjMTQ2YiIsIm5iZiI6MTY2MDA0MDk2OSwic3ViIjoidXNlcl8yNXNZU1ZEWENyV1c1OE91c1JFWHlsNHpwMzAifQ.vQp09Lu_z55WnrXHxC5-sy6IXSgJfjn5RnswHC8cWWDjf6xvY8x1YsSGz0IOSBOI8-_yhSyT8YJiLsGZUblPvuiD1R91Bep3ADz107t7JV0D21FgZUSsVcp-94B4vEo84lfLWynxYGf7kJ-fFgQKH9mXvZNHpcno5-xf_Ywkdjq-IhL3LnTLdpVrVuNTyWutpPL47CMfs3W71lJJ62hmLIVV3BQIDYezb9GlPXzSI4m5Rdx72lLSVjVr41rHtqdEWXAiIQ7FiKBCrMteyUoIJ12kQowEjbCGfA58L06Jk5IHBrjXnv5-ZNNnQA7pSJ6ouOHHVeBN4zhvUdhxW1mMsg",
+    1_660_040_974,
+    Some("groups"),
+    None,
+    "https://clerk.b74v0.5y6hj.lcl.dev",
+    VerifiedToken {
+        identity: Some(TOKEN_SUB.to_string()),
+        groups: HashSet::new(),
+    }
+);
 
 /*
 {
@@ -307,6 +333,7 @@ verify_test!(
         1_664_960_674,
         Some("https://grafbase\\.com/jwt/claims/groups"),
         Some("https://grafbase.com"),
+        "https://gb-oidc.eu.auth0.com/",
         VerifiedToken {
             identity: Some("SvXr1yUivxX08Ajjjgxx462jJY9wqP1P@clients".to_string()),
             groups: vec!["admin".to_string()].into_iter().collect(),
@@ -343,6 +370,7 @@ verify_test!(
         1_666_714_483,
         Some("https://grafbase\\.com/jwt/claims.x-grafbase-allowed-roles"),
         None,
+        "https://clerk.grafbase-vercel.dev".parse::<url::Url>().unwrap().as_ref(),
         VerifiedToken {
             identity: Some("user_2E4sRjokn2r14RLwhEvjVsHgCmG".to_string()),
             groups: vec!["editor", "user", "mod"].into_iter().map(String::from).collect(),
@@ -388,6 +416,7 @@ async fn token_signed_with_secret() {
 
     let token = "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXBwMSIsImFwcDIiXSwiZXhwIjoxNjczMzY5MzYzLCJncm91cHMiOlsiYWRtaW4iLCJiYWNrZW5kIl0sImlhdCI6MTY3MzM2ODc2MywiaXNzIjoiaHR0cHM6Ly9jbGVyay5iNzR2MC41eTZoai5sY2wuZGV2IiwianRpIjoiMDY5NmJlNDJiZTNmYzNiMjIxMmQiLCJuYmYiOjE2NzMzNjg3NTgsInN1YiI6InVzZXJfMkU3bldheTNmRlhoME1SZ3pCSlpVeDU5VXpQIn0.x6eAgltLZqhUjT1Lr9sPLItiv0hJ4dvhuoIPMYZM4_eEB-hmmqIxxS5tdZddvDzh5jPAkwGjuynfM-WJ3Xgxcg";
     let issuer = "https://clerk.b74v0.5y6hj.lcl.dev".to_string();
+    let issuer_url = issuer.parse().unwrap();
     let secret = SecretString::new("topsecret".to_string());
 
     assert_eq!(
@@ -413,7 +442,7 @@ async fn token_signed_with_secret() {
 
     assert_eq!(
         new_client
-            .verify_rs_token_using_oidc_discovery(token, &Url::parse(&issuer).unwrap())
+            .verify_rs_token_using_oidc_discovery(token, &issuer_url, &issuer)
             .await
             .unwrap_err()
             .to_string(),
@@ -576,6 +605,53 @@ fn token_with_groups_set_to_null_should_be_interpreted_as_empty_groups() {
         client.verify_hs_token(token, issuer, &secret).unwrap(),
         VerifiedToken {
             identity: Some(TOKEN_SUB.to_string()),
+            groups: HashSet::default(),
+        }
+    );
+}
+
+/*
+{
+  "header": {
+    "alg": "RS256",
+    "kid": "71f19172-229c-4de5-9b08-c533fd2cee8a",
+    "typ": "JWT"
+  },
+  "payload": {
+    "exp": 1683725226,
+    "iat": 1683721626,
+    "sub": "0cbc7311-2286-4a97-a6fd-460e4ec06fa4"
+  }
+}
+*/
+const HANKO_JWT: &str = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjcxZjE5MTcyLTIyOWMtNGRlNS05YjA4LWM1MzNmZDJjZWU4YSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODM3MjUyMjYsImlhdCI6MTY4MzcyMTYyNiwic3ViIjoiMGNiYzczMTEtMjI4Ni00YTk3LWE2ZmQtNDYwZTRlYzA2ZmE0In0.JtnAcRJBF4-Nz1O3bOsN6yyQQXJfaVdohHzptlrk0oM14IjjHIirtJBAnxoJTCY8WTqngOwliDt0YX1KiRGIXxcdJgRLXNlMVwSbLh3KRK6dax7kUZaK_MQkUuYg9j2cdWl-bl39NEvyYL8QFwRq9BBhvdHpptPtWJtzMFS7l0wjqGrItG1S91csldh0IStTZDkscTk3Kq-xjdRez7mWOFOC4v-9fTjm743Txu2MOyNUHvnPf1HjSyfk2Mxw-JulIjNIezzXG2H_Z7P9WJSZPwfaGOpfFMBr5NG6qXefrNDyWaflZoaYtnYMWh4V0HcwgmQyIG_dEWCaoRWczIruCWDidSmpKwjfl3yZaru7jV2kTdhfI2w-UKXJ-7vxYP-wmdFBUuBl18ksDYsra1qNgY4iF95M-k7wsr2thfB9JiOgmDsxVtoauO6V7T3kyuSTLf6dp5OtlsW7Ep0LssfRJ5Q86VpUG6Z54zsRTtZQCT5tjyHhM5ezLxXhTwKbuo-TSekfMd18n49k1qj0t3-_CMuDcsN_t0G0uBLoog_SJ24u9G0MZ-23INe4pqSUu5wX8iasiz4dlhZPFdLoEqi5mt2bDKny1Ys5gJDxp_AJv40DdGHqwm7QU4E1CPrp2ZwxjSnfs6Xov_HLERJOnIQaDSmQtMS-wOvoXnrNIn9G6DQ";
+
+#[tokio::test]
+async fn jwks_from_hanko_should_verify() {
+    let client = {
+        let leeway = Duration::seconds(5);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_683_721_626, 0).unwrap(), Utc);
+        Client {
+            time_opts: TimeOptions::new(leeway, clock_fn),
+            ..Default::default()
+        }
+    };
+    let server = MockServer::start().await;
+    let issuer: Url = server.uri().parse().unwrap();
+
+    let actual = {
+        // jwks endpoint
+        let jwks_uri = issuer.join(JWKS_PATH).unwrap();
+        set_up_jwks_server(jwks_uri.path(), &server).await;
+        client
+            .verify_rs_token_using_jwks_endpoint(HANKO_JWT, &jwks_uri, None)
+            .await
+            .unwrap()
+    };
+    assert_eq!(
+        actual,
+        VerifiedToken {
+            identity: Some("0cbc7311-2286-4a97-a6fd-460e4ec06fa4".to_string()),
             groups: HashSet::default(),
         }
     );

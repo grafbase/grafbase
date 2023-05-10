@@ -4,8 +4,8 @@ pub enum VerificationError {
     HttpRequest(reqwest::Error),
     #[error("{0}")]
     Integrity(jwt_compact::ValidationError),
-    #[error("issuer URL mismatch")]
-    InvalidIssuerUrl,
+    #[error("issuer claim mismatch")]
+    IssuerClaimMismatch,
     #[error("invalid issue time")]
     InvalidIssueTime,
     #[error("audience does not match client ID")]
@@ -20,4 +20,6 @@ pub enum VerificationError {
     JwkNotFound { kid: String },
     #[error("invalid JWK format")]
     JwkFormat,
+    #[error("{0}")]
+    IssuerFormat(url::ParseError),
 }
