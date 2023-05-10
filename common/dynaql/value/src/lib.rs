@@ -19,7 +19,7 @@ use std::hash::Hash;
 use std::ops::Deref;
 use std::sync::Arc;
 
-use arrow_schema::Field;
+use arrow_schema::{Field, Fields};
 use bytes::Bytes;
 use indexmap::IndexMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -182,21 +182,23 @@ impl ConstValue {
     }
 }
 
-fn mandatory_fields(fields: Vec<Field>) -> Vec<Field> {
-    fields
-        .into_iter()
-        .map(|x| x.with_nullable(false))
-        .map(|x| match x.data_type() {
-            arrow_schema::DataType::Struct(fields) => Field::new(
-                x.name(),
-                arrow_schema::DataType::Struct(mandatory_fields(
-                    fields.iter().map(Clone::clone).collect(),
-                )),
-                false,
-            ),
-            datatype => Field::new(x.name(), datatype.clone(), false),
-        })
-        .collect::<Vec<Field>>()
+fn mandatory_fields(fields: Fields) -> Fields {
+    Fields::from(
+        fields
+            .into_iter()
+            .map(|x| x.as_ref().clone().with_nullable(false))
+            .map(|x| match x.data_type() {
+                arrow_schema::DataType::Struct(fields) => Field::new(
+                    x.name(),
+                    arrow_schema::DataType::Struct(mandatory_fields(
+                        fields.iter().map(Clone::clone).collect(),
+                    )),
+                    false,
+                ),
+                datatype => Field::new(x.name(), datatype.clone(), false),
+            })
+            .collect::<Vec<Field>>(),
+    )
 }
 
 fn mandatory(schema: Schema) -> Schema {
@@ -243,15 +245,19 @@ impl ConstValue {
 
     /// Give the RecordBatch for the Value if it's an object
     pub fn arrow(self) -> Result<Option<RecordBatch>, ArrowError> {
-        use arrow_json::reader::{Decoder, DecoderOptions};
+        use arrow_json::ReaderBuilder;
         let schema = Arc::new(self.to_schema()?);
-        let mut value = std::iter::once(
-            self.into_json()
-                .map_err(|err| ArrowError::JsonError(err.to_string())),
-        );
+        let value = self
+            .into_json()
+            .map_err(|err| ArrowError::JsonError(err.to_string()))?;
 
-        let decoder = Decoder::new(schema, DecoderOptions::new().with_batch_size(1));
-        decoder.next_batch(&mut value)
+        let mut decoder = ReaderBuilder::new(schema)
+            .with_batch_size(1)
+            .build_decoder()?;
+
+        // TODO: Change it to something more efficient later
+        decoder.serialize(&[value])?;
+        decoder.flush()
     }
 
     /// Returns a str of the kind of value this is.  Useful for error messages.
