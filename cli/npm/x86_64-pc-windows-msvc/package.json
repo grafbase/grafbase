@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/cli-x86_64-pc-windows-msvc",
-  "version": "0.18.11",
+  "version": "0.18.13",
   "description": "x86_64-pc-windows-msvc binary for Grafbase CLI",
   "keywords": [
     "grafbase",

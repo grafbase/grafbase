@@ -208,7 +208,7 @@ importers:
         specifier: ^6.5.0
         version: 6.5.0(typescript@5.0.4)
       typescript:
-        specifier: ^5.0.0
+        specifier: 5.0.4
         version: 5.0.4
 
   packages/grafbase-urql-exchange:
@@ -226,8 +226,8 @@ importers:
         specifier: 3.0.4
         version: 3.0.4
       '@urql/core':
-        specifier: 3.1.1
-        version: 3.1.1(graphql@16.6.0)
+        specifier: 4.0.6
+        version: 4.0.6(graphql@16.6.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -235,8 +235,8 @@ importers:
         specifier: 1.6.2
         version: 1.6.2
       wonka:
-        specifier: 6.2.3
-        version: 6.2.3
+        specifier: 6.3.1
+        version: 6.3.1
     devDependencies:
       eslint:
         specifier: ^8.0.0
@@ -258,6 +258,17 @@ importers:
 
 packages:
 
+  /@0no-co/graphql.web@1.0.1(graphql@16.6.0):
+    resolution: {integrity: sha512-6Yaxyv6rOwRkLIvFaL0NrLDgfNqC/Ng9QOPmTmlqW4mORXMEKmh5NYGkIvvt5Yw8fZesnMAqkj8cIqTj8f40cQ==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
+    peerDependenciesMeta:
+      graphql:
+        optional: true
+    dependencies:
+      graphql: 16.6.0
+    dev: false
+
   /@apollo/client@3.7.9(graphql@16.6.0):
     resolution: {integrity: sha512-YnJvrJOVWrp4y/zdNvUaM8q4GuSHCEIecsRDTJhK/veT33P/B7lfqGJ24NeLdKMj8tDEuXYF7V0t+th4+rgC+Q==}
     peerDependencies:
@@ -276,7 +287,7 @@ packages:
       subscriptions-transport-ws:
         optional: true
     dependencies:
-      '@graphql-typed-document-node/core': 3.1.1(graphql@16.6.0)
+      '@graphql-typed-document-node/core': 3.2.0(graphql@16.6.0)
       '@wry/context': 0.7.0
       '@wry/equality': 0.5.3
       '@wry/trie': 0.3.2
@@ -288,7 +299,7 @@ packages:
       response-iterator: 0.2.6
       symbol-observable: 4.0.0
       ts-invariant: 0.10.3
-      tslib: 2.4.1
+      tslib: 2.5.0
       zen-observable-ts: 1.2.5
     dev: false
 
@@ -586,7 +597,7 @@ packages:
     dependencies:
       ajv: 6.12.6
       debug: 4.3.4
-      espree: 9.4.1
+      espree: 9.5.1
       globals: 13.19.0
       ignore: 5.2.1
       import-fresh: 3.3.0
@@ -597,13 +608,13 @@ packages:
       - supports-color
     dev: true
 
-  /@eslint/eslintrc@2.0.0:
-    resolution: {integrity: sha512-fluIaaV+GyV24CCu/ggiHdV+j4RNh85yQnAYS/G2mZODZgGmmlrgCydjUcV3YvxCm9x8nMAfThsqTni4KiXT4A==}
+  /@eslint/eslintrc@2.0.2:
+    resolution: {integrity: sha512-3W4f5tDUra+pA+FzgugqL2pRimUTDJWKr7BINqOpkZrC0uYI0NIc0/JFgBROCU07HR6GieA5m3/rsPIhDmCXTQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
       ajv: 6.12.6
       debug: 4.3.4
-      espree: 9.4.1
+      espree: 9.5.1
       globals: 13.19.0
       ignore: 5.2.1
       import-fresh: 3.3.0
@@ -632,10 +643,10 @@ packages:
       '@reach/tooltip': 0.17.0(react-dom@18.2.0)(react@18.2.0)
       '@reach/visually-hidden': 0.17.0(react-dom@18.2.0)(react@18.2.0)
       codemirror: 5.65.11
-      codemirror-graphql: 2.0.3(@codemirror/language@6.0.0)(codemirror@5.65.11)(graphql@16.6.0)
+      codemirror-graphql: 2.0.6(@codemirror/language@6.0.0)(codemirror@5.65.11)(graphql@16.6.0)
       copy-to-clipboard: 3.3.3
       graphql: 16.6.0
-      graphql-language-service: 5.1.1(graphql@16.6.0)
+      graphql-language-service: 5.1.4(graphql@16.6.0)
       markdown-it: 12.3.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -669,7 +680,7 @@ packages:
     dependencies:
       '@graphql-tools/utils': 9.2.1(graphql@15.8.0)
       graphql: 15.8.0
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /@graphql-tools/schema@9.0.16(graphql@15.8.0):
@@ -680,7 +691,7 @@ packages:
       '@graphql-tools/merge': 8.3.18(graphql@15.8.0)
       '@graphql-tools/utils': 9.2.1(graphql@15.8.0)
       graphql: 15.8.0
-      tslib: 2.4.1
+      tslib: 2.5.0
       value-or-promise: 1.0.12
     dev: false
 
@@ -691,15 +702,7 @@ packages:
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@15.8.0)
       graphql: 15.8.0
-      tslib: 2.4.1
-    dev: false
-
-  /@graphql-typed-document-node/core@3.1.1(graphql@16.6.0):
-    resolution: {integrity: sha512-NQ17ii0rK1b34VZonlmT2QMJFI70m0TRwbknO/ihlbatXyaktDhN/98vBiUU6kNBPljqGqyIrl2T4nY2RpFANg==}
-    peerDependencies:
-      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
-    dependencies:
-      graphql: 16.6.0
+      tslib: 2.5.0
     dev: false
 
   /@graphql-typed-document-node/core@3.2.0(graphql@15.8.0):
@@ -708,6 +711,14 @@ packages:
       graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
     dependencies:
       graphql: 15.8.0
+    dev: false
+
+  /@graphql-typed-document-node/core@3.2.0(graphql@16.6.0):
+    resolution: {integrity: sha512-mB9oAsNCm9aM3/SOv4YtBMqZbYj10R7dkq8byBqxGY/ncFwhf2oQzMV+LCRlWoDSEBJ3COiR1yeDvMtsoOsuFQ==}
+    peerDependencies:
+      graphql: ^0.8.0 || ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
+    dependencies:
+      graphql: 16.6.0
     dev: false
 
   /@humanwhocodes/config-array@0.11.8:
@@ -951,7 +962,7 @@ packages:
       '@reach/utils': 0.17.0(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/combobox@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-2mYvU5agOBCQBMdlM4cri+P1BbNwp05P1OuDyc33xJSNiBG7BMy4+ZSHJ0X4fyle6rHwSgCAOCLOeWV1XUYjoQ==}
@@ -968,7 +979,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/descendants@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-c7lUaBfjgcmKFZiAWqhG+VnXDMEhPkI4kAav/82XKZD6NVvFjsQOTH+v3tUkskrAPV44Yuch0mFW/u5Ntifr7Q==}
@@ -979,7 +990,7 @@ packages:
       '@reach/utils': 0.17.0(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/dialog@0.17.0(@types/react@18.0.28)(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-AnfKXugqDTGbeG3c8xDcrQDE4h9b/vnc27Sa118oQSquz52fneUeX9MeFb5ZEiBJK8T5NJpv7QUTBIKnFCAH5A==}
@@ -994,7 +1005,7 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
       react-focus-lock: 2.9.2(@types/react@18.0.28)(react@18.2.0)
       react-remove-scroll: 2.5.5(@types/react@18.0.28)(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
     transitivePeerDependencies:
       - '@types/react'
 
@@ -1010,7 +1021,7 @@ packages:
       '@reach/utils': 0.17.0(react-dom@18.2.0)(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/listbox@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-AMnH1P6/3VKy2V/nPb4Es441arYR+t4YRdh9jdcFVrCOD6y7CQrlmxsYjeg9Ocdz08XpdoEBHM3PKLJqNAUr7A==}
@@ -1037,7 +1048,7 @@ packages:
       '@xstate/fsm': 1.4.0
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/menu-button@0.17.0(react-dom@18.2.0)(react-is@17.0.2)(react@18.2.0):
     resolution: {integrity: sha512-YyuYVyMZKamPtivoEI6D0UEILYH3qZtg4kJzEAuzPmoR/aHN66NZO75Fx0gtjG1S6fZfbiARaCOZJC0VEiDOtQ==}
@@ -1054,7 +1065,7 @@ packages:
       react-dom: 18.2.0(react@18.2.0)
       react-is: 17.0.2
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/observe-rect@1.2.0:
     resolution: {integrity: sha512-Ba7HmkFgfQxZqqaeIWWkNK0rEhpxVQHIoVyW1YDSkGsGIXzcaW4deC8B0pZrNSSyLTdIk7y+5olKt5+g0GmFIQ==}
@@ -1071,7 +1082,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tabbable: 4.0.0
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/portal@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-+IxsgVycOj+WOeNPL2NdgooUdHPSY285wCtj/iWID6akyr4FgGUK7sMhRM9aGFyrGpx2vzr+eggbUmAVZwOz+A==}
@@ -1083,7 +1094,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/rect@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-3YB7KA5cLjbLc20bmPkJ06DIfXSK06Cb5BbD2dHgKXjUkT9WjZaLYIbYCO8dVjwcyO3GCNfOmPxy62VsPmZwYA==}
@@ -1097,7 +1108,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/tooltip@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-HP8Blordzqb/Cxg+jnhGmWQfKgypamcYLBPlcx6jconyV5iLJ5m93qipr1giK7MqKT2wlsKWy44ZcOrJ+Wrf8w==}
@@ -1114,7 +1125,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/utils@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-M5y8fCBbrWeIsxedgcSw6oDlAMQDkl5uv3VnMVJ7guwpf4E48Xlh1v66z/1BgN/WYe2y8mB/ilFD2nysEfdGeA==}
@@ -1125,7 +1136,7 @@ packages:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       tiny-warning: 1.0.3
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@reach/visually-hidden@0.17.0(react-dom@18.2.0)(react@18.2.0):
     resolution: {integrity: sha512-T6xF3Nv8vVnjVkGU6cm0+kWtvliLqPAo8PcZ+WxkKacZsaHTjaZb4v1PaCcyQHmuTNT/vtTVNOJLG0SjQOIb7g==}
@@ -1136,7 +1147,7 @@ packages:
       prop-types: 15.8.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /@repeaterjs/repeater@3.0.4:
     resolution: {integrity: sha512-AW8PKd6iX3vAZ0vA43nOUOnbq/X5ihgU+mSXXqunMkeQADGiqw/PY0JNeYtD5sr0PAy51YPgAPbDoeapv9r8WA==}
@@ -1149,7 +1160,7 @@ packages:
   /@swc/helpers@0.4.14:
     resolution: {integrity: sha512-4C7nX/dvpzB7za4Ql9K81xK3HPxCpHMgwTZVyf+9JQ6VUbn9jjZVN7/Nkdz/Ugzs2CSjqnL/UPXroiVBVHUWUw==}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: true
 
   /@types/braces@3.0.1:
@@ -1278,37 +1289,37 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     dependencies:
       '@typescript-eslint/types': 5.46.1
-      eslint-visitor-keys: 3.3.0
+      eslint-visitor-keys: 3.4.0
     dev: false
 
-  /@urql/core@3.1.1(graphql@16.6.0):
-    resolution: {integrity: sha512-Mnxtq4I4QeFJsgs7Iytw+HyhiGxISR6qtyk66c9tipozLZ6QVxrCiUPF2HY4BxNIabaxcp+rivadvm8NAnXj4Q==}
-    peerDependencies:
-      graphql: ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
+  /@urql/core@4.0.6(graphql@16.6.0):
+    resolution: {integrity: sha512-RxlX5nxWZsvS1lPCvOdgdYbIVVfih/DrjPzGZ0ThP1GuVycaxw5t0O7XEXXYHICeXNKj95HJBxW0o/37zg+z6Q==}
     dependencies:
-      graphql: 16.6.0
-      wonka: 6.2.3
+      '@0no-co/graphql.web': 1.0.1(graphql@16.6.0)
+      wonka: 6.3.1
+    transitivePeerDependencies:
+      - graphql
     dev: false
 
   /@wry/context@0.7.0:
     resolution: {integrity: sha512-LcDAiYWRtwAoSOArfk7cuYvFXytxfVrdX7yxoUmK7pPITLk5jYh2F8knCwS7LjgYL8u1eidPlKKV6Ikqq0ODqQ==}
     engines: {node: '>=8'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /@wry/equality@0.5.3:
     resolution: {integrity: sha512-avR+UXdSrsF2v8vIqIgmeTY0UR91UT+IyablCyKe/uk22uOJ8fusKZnH9JH9e1/EtLeNJBtagNmL3eJdnOV53g==}
     engines: {node: '>=8'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /@wry/trie@0.3.2:
     resolution: {integrity: sha512-yRTyhWSls2OY/pYLfwff867r8ekooZ4UI+/gxot5Wj8EFwSf2rG+n+Mo/6LoLQm1TKA4GRj2+LCpbfS937dClQ==}
     engines: {node: '>=8'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /@xstate/fsm@1.4.0:
@@ -1429,7 +1440,7 @@ packages:
     resolution: {integrity: sha512-6t10qk83GOG8p0vKmaCr8eiilZwO171AvbROMtvvNiwrTly62t+7XkA8RdIIVbpMhCASAsxgAzdRSwh6nw/5Dg==}
     engines: {node: '>=4'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /available-typed-arrays@1.0.5:
@@ -1544,8 +1555,8 @@ packages:
     resolution: {integrity: sha512-IV3Ou0jSMzZrd3pZ48nLkT9DA7Ag1pnPzaiQhpW7c3RbcqqzvzzVu+L8gfqMp/8IM2MQtSiqaCxrrcfu8I8rMA==}
     dev: true
 
-  /codemirror-graphql@2.0.3(@codemirror/language@6.0.0)(codemirror@5.65.11)(graphql@16.6.0):
-    resolution: {integrity: sha512-T58f+XQVKE6/6goAADJfu56wPRcdF2RUZMHITUol6h6Uo1KKUmknV4muKNFOl6GM15BjBraysF6HATp4oY6kyA==}
+  /codemirror-graphql@2.0.6(@codemirror/language@6.0.0)(codemirror@5.65.11)(graphql@16.6.0):
+    resolution: {integrity: sha512-ZuvT4+iBYabyLWaqVHdsGyiB2atvu0v1eSnGUuziX7x7tJmo5WziZGvc2j6w6EnL5aUjvYnJU0aCBhTgCdzJVg==}
     peerDependencies:
       '@codemirror/language': 6.0.0
       codemirror: ^5.65.3
@@ -1554,7 +1565,7 @@ packages:
       '@codemirror/language': 6.0.0
       codemirror: 5.65.11
       graphql: 16.6.0
-      graphql-language-service: 5.1.1(graphql@16.6.0)
+      graphql-language-service: 5.1.4(graphql@16.6.0)
 
   /codemirror@5.65.11:
     resolution: {integrity: sha512-Gp62g2eKSCHYt10axmGhKq3WoJSvVpvhXmowNq7pZdRVowwtvBR/hi2LSP5srtctKkRT33T6/n8Kv1UGp7JW4A==}
@@ -1579,7 +1590,7 @@ packages:
     dev: false
 
   /concat-map@0.0.1:
-    resolution: {integrity: sha1-2Klr13/Wjfd5OnMDajug1UBdR3s=}
+    resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
 
   /copy-to-clipboard@3.3.3:
     resolution: {integrity: sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==}
@@ -1707,10 +1718,6 @@ packages:
 
   /entities@2.1.0:
     resolution: {integrity: sha512-hCx1oky9PFrJ611mf0ifBLBRW8lUUVRlFolb5gWRfIELabBlbp9xZvrqZLZAs+NxFnbfQoeGd8wDkygjg7U85w==}
-
-  /entities@2.2.0:
-    resolution: {integrity: sha512-p92if5Nz619I0w+akJrLZH0MX0Pb5DX39XOwQTtXSdQQOaYH03S1uIQp4mhOZtAXrxq4ViO67YTiLBo2638o9A==}
-    dev: true
 
   /es-abstract@1.20.5:
     resolution: {integrity: sha512-7h8MM2EQhsCA7pU/Nv78qOXFpD8Rhqd12gYiSJVkrH9+e8VuA8JlPJK/hQjjlLv6pJvx/z1iRFKzYb0XT/RuAQ==}
@@ -2208,6 +2215,14 @@ packages:
     dependencies:
       esrecurse: 4.3.0
       estraverse: 5.3.0
+    dev: true
+
+  /eslint-scope@7.2.0:
+    resolution: {integrity: sha512-DYj5deGlHBfMt15J7rdtyKNq/Nqlv5KfU4iodrQ019XESsRnwXH9KAE0y3cwtUHDo2ob7CypAnCqefh6vioWRw==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dependencies:
+      esrecurse: 4.3.0
+      estraverse: 5.3.0
 
   /eslint-utils@3.0.0(eslint@8.29.0):
     resolution: {integrity: sha512-uuQC43IGctw68pJA1RgbQS8/NP7rch6Cwd4j3ZBtgo4/8Flj4eGE7ZYSZRN3iq5pVUv6GPdW5Z1RFleo84uLDA==}
@@ -2234,6 +2249,11 @@ packages:
 
   /eslint-visitor-keys@3.3.0:
     resolution: {integrity: sha512-mQ+suqKJVyeuwGYHAdjMFqjCyfl8+Ldnxuyp3ldiMBFKkvytrXUZWaiPCEav8qDHKty44bD+qV1IP4T+w+xXRA==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dev: true
+
+  /eslint-visitor-keys@3.4.0:
+    resolution: {integrity: sha512-HPpKPUBQcAsZOsHAFwTtIKcYlCje62XB7SEAcxjtmW6TD1WVpkS6i6/hOVtTZIl4zGj/mBqpFVGvaDneik+VoQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
   /eslint@8.29.0:
@@ -2289,7 +2309,7 @@ packages:
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
     hasBin: true
     dependencies:
-      '@eslint/eslintrc': 2.0.0
+      '@eslint/eslintrc': 2.0.2
       '@eslint/js': 8.35.0
       '@humanwhocodes/config-array': 0.11.8
       '@humanwhocodes/module-importer': 1.0.1
@@ -2300,10 +2320,10 @@ packages:
       debug: 4.3.4
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
-      eslint-scope: 7.1.1
+      eslint-scope: 7.2.0
       eslint-utils: 3.0.0(eslint@8.35.0)
-      eslint-visitor-keys: 3.3.0
-      espree: 9.4.1
+      eslint-visitor-keys: 3.4.0
+      espree: 9.5.1
       esquery: 1.4.2
       esutils: 2.0.3
       fast-deep-equal: 3.1.3
@@ -2338,7 +2358,16 @@ packages:
     dependencies:
       acorn: 8.8.2
       acorn-jsx: 5.3.2(acorn@8.8.2)
-      eslint-visitor-keys: 3.3.0
+      eslint-visitor-keys: 3.4.0
+    dev: true
+
+  /espree@9.5.1:
+    resolution: {integrity: sha512-5yxtHSZXRSW5pvv3hAlXM5+/Oswi1AUFqBmbibKb5s6bp3rGIDkyXU6xCoyuuLhijr4SFwPrXRoZjz0AZDN9tg==}
+    engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    dependencies:
+      acorn: 8.8.2
+      acorn-jsx: 5.3.2(acorn@8.8.2)
+      eslint-visitor-keys: 3.4.0
 
   /esprima@4.0.1:
     resolution: {integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==}
@@ -2478,7 +2507,7 @@ packages:
     resolution: {integrity: sha512-LzZWJcOBIcHslQ46N3SUu/760iLPSrUtp8omM4gh9du438V2CQdks8TcOu1yvmu2C68nVOBnl1WFiKGPbQ8L6g==}
     engines: {node: '>=10'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /for-each@0.3.3:
     resolution: {integrity: sha512-jqYfLp7mo9vIyQf8ykW2v7A+2N4QjeCeI5+Dz9XraiO1ign81wjiH7Fb9vSOWvQfNtmSa4H2RoQTrrXivdUZmw==}
@@ -2680,9 +2709,9 @@ packages:
     dependencies:
       '@graphiql/react': 0.15.0(@codemirror/language@6.0.0)(@types/react@18.0.28)(graphql@16.6.0)(react-dom@18.2.0)(react-is@17.0.2)(react@18.2.0)
       '@graphiql/toolkit': 0.8.0(graphql@16.6.0)
-      entities: 2.2.0
+      entities: 2.1.0
       graphql: 16.6.0
-      graphql-language-service: 5.1.1(graphql@16.6.0)
+      graphql-language-service: 5.1.4(graphql@16.6.0)
       markdown-it: 12.3.2
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
@@ -2694,8 +2723,8 @@ packages:
       - react-is
     dev: true
 
-  /graphql-language-service@5.1.1(graphql@16.6.0):
-    resolution: {integrity: sha512-gpaDT9E3+3eWhoqO4C81CGhkzr7Vp2jH/eq+ykoUbgfvMEpqhGTfCeNmrf+S4K/+4WTkAAJBsYT0/ZPZkqe/Hg==}
+  /graphql-language-service@5.1.4(graphql@16.6.0):
+    resolution: {integrity: sha512-i6cYIDL8dFd6e9LqpRFJRoVa+MZ/egMzUERsZlK65S/M7ra9SxKrZuclKgmPOq0KqHypInsEaI4D7dN5a+yEAA==}
     hasBin: true
     peerDependencies:
       graphql: ^15.5.0 || ^16.0.0
@@ -2711,7 +2740,7 @@ packages:
       graphql: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
     dependencies:
       graphql: 16.6.0
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /graphql@15.8.0:
@@ -3624,7 +3653,7 @@ packages:
       '@types/react': 18.0.28
       react: 18.2.0
       react-style-singleton: 2.2.1(@types/react@18.0.28)(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /react-remove-scroll@2.5.5(@types/react@18.0.28)(react@18.2.0):
     resolution: {integrity: sha512-ImKhrzJJsyXJfBZ4bzu8Bwpka14c/fQt0k+cyFp/PBhTfyDnU5hjOtM4AG/0AMyy8oKzOTR0lDgJIM7pYXI0kw==}
@@ -3640,7 +3669,7 @@ packages:
       react: 18.2.0
       react-remove-scroll-bar: 2.3.4(@types/react@18.0.28)(react@18.2.0)
       react-style-singleton: 2.2.1(@types/react@18.0.28)(react@18.2.0)
-      tslib: 2.4.1
+      tslib: 2.5.0
       use-callback-ref: 1.3.0(@types/react@18.0.28)(react@18.2.0)
       use-sidecar: 1.1.2(@types/react@18.0.28)(react@18.2.0)
 
@@ -3658,7 +3687,7 @@ packages:
       get-nonce: 1.0.1
       invariant: 2.2.4
       react: 18.2.0
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /react@18.2.0:
     resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
@@ -3681,7 +3710,7 @@ packages:
       ast-types: 0.16.1
       esprima: 4.0.1
       source-map: 0.6.1
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /reconnecting-eventsource@1.6.2:
@@ -4027,7 +4056,7 @@ packages:
     resolution: {integrity: sha512-uivwYcQaxAucv1CzRp2n/QdYPo4ILf9VXgH19zEIjFx2EJufV16P0JtJVpYHy89DItG6Kwj2oIUjrcK5au+4tQ==}
     engines: {node: '>=8'}
     dependencies:
-      tslib: 2.4.1
+      tslib: 2.5.0
     dev: false
 
   /tsconfig-paths@3.14.1:
@@ -4043,12 +4072,8 @@ packages:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
     dev: false
 
-  /tslib@2.4.1:
-    resolution: {integrity: sha512-tGyy4dAjRIEwI7BzsB0lynWgOpfqjUdq91XXAlIWD2OwKBH7oCl/GZG/HT4BOHrTlPMOASlMQ7veyTqpmRcrNA==}
-
   /tslib@2.5.0:
     resolution: {integrity: sha512-336iVw3rtn2BUK7ORdIAHTyxHGRIHVReokCR3XjbckJMK7ms8FysBfhLR8IXnAgy7T0PTPNBWKiH514FOW/WSg==}
-    dev: false
 
   /tsup@6.5.0(typescript@5.0.4):
     resolution: {integrity: sha512-36u82r7rYqRHFkD15R20Cd4ercPkbYmuvRkz3Q1LCm5BsiFNUgpo36zbjVhCOgvjyxNBWNKHsaD5Rl8SykfzNA==}
@@ -4243,7 +4268,7 @@ packages:
     dependencies:
       '@types/react': 18.0.28
       react: 18.2.0
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /use-sidecar@1.1.2(@types/react@18.0.28)(react@18.2.0):
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
@@ -4258,7 +4283,7 @@ packages:
       '@types/react': 18.0.28
       detect-node-es: 1.1.0
       react: 18.2.0
-      tslib: 2.4.1
+      tslib: 2.5.0
 
   /util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
@@ -4345,8 +4370,8 @@ packages:
     dependencies:
       isexe: 2.0.0
 
-  /wonka@6.2.3:
-    resolution: {integrity: sha512-EFOYiqDeYLXSzGYt2X3aVe9Hq1XJG+Hz/HjTRRT4dZE9q95khHl5+7pzUSXI19dbMO1/2UMrTf7JT7/7JrSQSQ==}
+  /wonka@6.3.1:
+    resolution: {integrity: sha512-nJyGPcjuBiaLFn8QAlrHd+QjV9AlPO7snOWAhgx6aX0nQLMV6Wi0nqfrkmsXIH0efngbDOroOz2QyLnZMF16Hw==}
     dev: false
 
   /word-wrap@1.2.3:

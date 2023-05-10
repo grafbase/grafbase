@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@grafbase/urql-exchange": "^1.0.1",
+    "@grafbase/urql-exchange": "^1.0.2",
     "@urql/exchange-auth": "^1.0.0",
     "graphql": "^16.6.0",
     "jose": "^4.11.1",

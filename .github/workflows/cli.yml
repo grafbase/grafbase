@@ -17,7 +17,7 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/00d3c49-2023-05-05'
+  ASSETS_VERSION: 'release/bc1f4aa-2023-05-09'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
 
@@ -41,6 +41,21 @@ jobs:
             build:
               - 'cli/**/*'
               - '.github/**/*'
+              - '!.github/workflows/packages.yml'
+
+  prettier:
+    needs: [detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest-8-cores
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Run prettier on workspace
+        shell: bash
+        run: |
+          cd cli
+          npx prettier --check .
 
   lint:
     needs: [detect-change-type]

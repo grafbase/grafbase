@@ -41,6 +41,9 @@ pub enum CliError {
     /// returned if an account selected for linking a project has no projects
     #[error("the selected account has no projects")]
     AccountWithNoProjects,
+    /// returned if the account name argument provided to create is not an existing account
+    #[error("could not find an account with the provided name")]
+    NoAccountFound,
     /// returned if the schema parser failed to compile a file
     #[error("{0}")]
     CompilationError(String),

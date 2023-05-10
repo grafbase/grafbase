@@ -1,4 +1,4 @@
-use clap::{arg, command, value_parser, Arg, ArgAction, Command};
+use clap::{arg, command, value_parser, Arg, ArgAction, ArgGroup, Command};
 use indoc::indoc;
 
 /// creates the cli interface
@@ -51,7 +51,17 @@ pub fn build_cli() -> Command {
         "}))
         .subcommand(Command::new("login").about("Logs into your Grafbase account"))
         .subcommand(Command::new("logout").about("Logs out of your Grafbase account"))
-        .subcommand(Command::new("create").about("Set up and deploy a new project"))
+        .subcommand(
+            Command::new("create").about("Set up and deploy a new project").args(&[
+                arg!(-n --name <name> "The name to use for the new project"),
+                arg!(-a --account <slug> "The slug of the account in which the new project should be created"),
+                arg!(-r --regions <region> "The regions in which the database for the new project should be created")
+            ])
+            .group(ArgGroup::new("create")
+            .args(["regions", "account", "name"])
+            .multiple(true)
+            .requires_all(["regions", "account", "name"])),
+        )
         .subcommand(Command::new("deploy").about("Deploy your project"))
         .subcommand(Command::new("link").about("Connect a local project to a remote project"))
         .subcommand(Command::new("unlink").about("Disconnect a local project from a remote project"))

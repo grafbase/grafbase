@@ -1,7 +1,6 @@
 use crate::{errors::CliError, output::report};
 use backend::api::deploy;
 
-/// # Errors
 #[tokio::main]
 pub async fn deploy() -> Result<(), CliError> {
     report::deploy();

@@ -13,12 +13,12 @@ use wiremock::{
     Match, Mock, ResponseTemplate,
 };
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn openapi_test() {
     let mock_server = wiremock::MockServer::start().await;
     mount_petstore_spec(&mock_server).await;
 
-    let mut env = Environment::init();
+    let mut env = Environment::init_async().await;
     let client = start_grafbase_with_petstore_schema(&mut env, mock_server.address()).await;
 
     Mock::given(method("GET"))

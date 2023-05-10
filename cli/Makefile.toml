@@ -1,25 +1,37 @@
 [config]
 default_to_workspace = false
+skip_core_tasks = true
+skip_git_env_info = true
+skip_rust_env_info = true
+skip_crate_env_info = true
 
 [tasks.install-cargo-release]
+private = true
 install_crate = { crate_name = "cargo-release", binary = "cargo", test_arg = [
     "release",
     "--version",
 ], version = "0.24.10" }
 
 [tasks.install-sd]
+private = true
 install_crate = { crate_name = "sd", binary = "sd", test_arg = [
     "--version",
 ], version = "0.7.6" }
 
+[tasks.mac-install-cargo-instruments]
+private = true
+condition = { platforms = ["mac"] }
+install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg = [
+    "instruments",
+    "--version",
+], version = "0.4.8" }
 
 [tasks.bump]
+description = "Bumps all packages to the specified version"
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
 VERSION=${@}
-
 cargo release version $VERSION --execute --no-confirm
-
 cd npm/cli
 npm version --git-tag-version false $VERSION
 cd ../aarch64-apple-darwin
@@ -35,4 +47,97 @@ sd "@grafbase/cli-aarch64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aa
 sd "@grafbase/cli-x86_64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-apple-darwin\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-pc-windows-msvc\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
+'''
+
+[tasks.release]
+description = "Pushes a tag with the current version"
+script = '''
+git switch main
+git pull
+cd crates/cli
+VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
+cd ../..
+git tag $VERSION
+git push --tags
+'''
+
+[tasks.prettier]
+description = "Runs Prettier and writes the results"
+script = '''
+npx prettier --write .
+'''
+
+[tasks.test]
+description = "Runs cargo-nextest"
+command = "cargo"
+args = ["nextest", "run"]
+
+[tasks.clippy]
+description = "Runs Clippy"
+command = "cargo"
+args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
+
+[tasks.clippy-nightly]
+description = "Runs Clippy on the nightly toolchain"
+toolchain = "nightly"
+command = "cargo"
+args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
+
+[tasks.run]
+description = "Runs the CLI"
+command = "cargo"
+args = ["run", "--", "${@}"]
+
+[tasks.run-release]
+description = "Runs the CLI in release mode"
+command = "cargo"
+args = ["run", "--release", "--", "${@}"]
+
+[tasks.profile-dev]
+description = "Profiles the dev command"
+mac_alias = "mac-profile-dev"
+
+[tasks.mac-profile-dev]
+description = "Profiles the dev command (mac only)"
+condition = { platforms = ["mac"] }
+dependencies = ["mac-install-cargo-instruments"]
+command = "cargo"
+args = ["instruments", "-t", "Leaks", "--time-limit", "30000", "--", "dev"]
+
+[tasks.update-assets]
+description = "Updates the CLI assets"
+script = '''
+cd ../../api/workers/gateway
+RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-assets-main]
+description = "Updates the CLI assets from the API repo main branch"
+script = '''
+cd ../../api/workers/gateway
+git switch main
+git pull
+RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-assets-release]
+description = "Updates the CLI assets built in release mode"
+script = '''
+cd ../../api/workers/gateway
+../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-assets-main-release]
+description = "Updates the CLI assets built in release mode from the API repo main branch"
+script = '''
+cd ../../api/workers/gateway
+git switch main
+git pull
+../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.delete-assets]
+description = "Deletes the exported CLI assets"
+script = '''
+rm -r ~/.grafbase
 '''
