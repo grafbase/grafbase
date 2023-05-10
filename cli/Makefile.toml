@@ -137,3 +137,9 @@ git switch main
 git pull
 ../../scripts/dev/build-cli-assets.sh
 '''
+
+[tasks.delete-assets]
+description = "Deletes the exported CLI assets"
+script = '''
+rm -r ~/.grafbase
+'''
