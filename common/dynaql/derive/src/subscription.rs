@@ -401,7 +401,7 @@ pub fn generate(
                                         let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
                                         container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, value);
                                         let response = &mut *ctx.response_graph.write().await;
-                                        let container_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Container(container));
+                                        let container_id = response.new_node_unchecked(container);
                                         response.set_root_unchecked(container_id);
                                         let a = #crate_name::graph_entities::QueryResponse::default();
                                         let b = std::mem::replace(response, a);
@@ -410,9 +410,9 @@ pub fn generate(
                                     Ok(None) => {
                                         let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
                                         let response = &mut *ctx.response_graph.write().await;
-                                        let primitive_node_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Primitive(#crate_name::graph_entities::ResponsePrimitive::default()));
+                                        let primitive_node_id = response.new_node_unchecked(Box::new(#crate_name::graph_entities::ResponsePrimitive::default()));
                                         container.insert(#crate_name::graph_entities::ResponseNodeRelation::NotARelation { response_key: None, field: ::std::clone::Clone::clone(&field_name).to_string().into() }, primitive_node_id);
-                                        let container_id = response.new_node_unchecked(#crate_name::graph_entities::QueryResponseNode::Container(container));
+                                        let container_id = response.new_node_unchecked(container);
                                         response.set_root_unchecked(container_id);
                                         let a = #crate_name::graph_entities::QueryResponse::default();
                                         let b = std::mem::replace(response, a);
