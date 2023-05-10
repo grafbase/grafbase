@@ -85,7 +85,7 @@ impl CliError {
             Self::BackendApiError(ApiError::RequestError |
             ApiError::CreateError(CreateError::Unknown) |
             ApiError::DeployError(DeployError::Unknown)) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
-            Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptAccessToken) => Some("try running 'grafbase login'".to_owned()),
+            Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
             Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
             _ => None,
