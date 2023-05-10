@@ -224,27 +224,22 @@ impl QueryResponse {
     where
         T: IntoResponseNode,
     {
-        let next_id = self.next_id();
-        self.new_node_unchecked_impl(node.entity_id(), node.into_node(), next_id)
-    }
+        let entity_id = node.entity_id();
+        let node_id = entity_id
+            .as_ref()
+            .and_then(|entity_id| dbg!(self.entity_ids.get(dbg!(entity_id))))
+            .copied()
+            .unwrap_or_else(|| {
+                let next_id = self.next_id();
+                if let Some(entity_id) = entity_id {
+                    self.entity_ids.insert(entity_id, next_id);
+                }
+                next_id
+            });
 
-    fn new_node_unchecked_impl(
-        &mut self,
-        entity_id: Option<EntityId>,
-        node: QueryResponseNode,
-        node_id: ResponseNodeId,
-    ) -> ResponseNodeId {
-        if let Some(entity_id) = entity_id {
-            if let Some(old_id) = self.entity_ids.insert(entity_id, node_id) {
-                self.data.remove(&old_id);
-            }
-        }
-
-        self.data.insert(node_id, node);
+        self.data.insert(node_id, node.into_node());
         node_id
     }
-
-    // TODO: Make this use index
 
     /// Get a Node by his ID
     pub fn get_node<S: ToResponseNodeId>(&self, id: &S) -> Option<&QueryResponseNode> {
@@ -828,5 +823,38 @@ mod tests {
         ]);
 
         assert_eq!(output, output_json.to_string());
+    }
+
+    #[test]
+    fn test_new_node_unchecked_doesnt_duplicate_if_same_id() {
+        let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
+        let container = ResponseContainer::new_node(node_id.clone());
+
+        let mut response = QueryResponse::default();
+
+        let id_one = response.new_node_unchecked(container.clone());
+        let id_two = response.new_node_unchecked(container);
+
+        assert_eq!(id_one, id_two);
+        assert_eq!(response.data.len(), 1);
+        assert_eq!(response.entity_ids.len(), 1);
+    }
+
+    #[test]
+    fn test_new_node_unchecked_handles_different_ids() {
+        let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
+        let node = ResponseContainer::new_node(node_id.clone());
+
+        let node_id_two = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
+        let node_two = ResponseContainer::new_node(node_id_two.clone());
+
+        let mut response = QueryResponse::default();
+
+        let id_one = response.new_node_unchecked(node);
+        let id_two = response.new_node_unchecked(node_two);
+
+        assert!(id_one != id_two);
+        assert_eq!(response.data.len(), 2);
+        assert_eq!(response.entity_ids.len(), 2);
     }
 }
