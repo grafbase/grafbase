@@ -601,6 +601,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
         Box::pin(async {
             // A Unique directive is a Constraint on a specific field
             let InsertUniqueConstraint {
+                ty,
                 target,
                 mut user_defined_item,
                 current_datetime,
@@ -609,6 +610,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             } = self;
 
             let id = ConstraintID::try_from(pk).expect("Wrong Constraint ID");
+            let ty_attr = ty.into_attr();
 
             let exp_att_names = HashMap::from([("#pk".to_string(), constant::PK.to_string())]);
 
@@ -616,6 +618,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
 
             user_defined_item.insert(constant::PK.to_string(), id.to_string().into_attr());
             user_defined_item.insert(constant::SK.to_string(), id.to_string().into_attr());
+            user_defined_item.insert(constant::TYPE.to_string(), ty_attr);
             user_defined_item.insert(constant::INVERTED_INDEX_PK.to_string(), target.into_attr());
             user_defined_item.insert(constant::INVERTED_INDEX_SK.to_string(), id.to_string().into_attr());
             user_defined_item.insert(constant::CREATED_AT.to_string(), now_attr.clone());

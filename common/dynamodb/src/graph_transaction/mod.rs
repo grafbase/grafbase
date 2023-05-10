@@ -262,7 +262,8 @@ impl GetIds for InsertNodeInput {
     ///   - Insert the node
     ///   - Insert the constraints
     fn to_changes<'a>(self, _batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = NodeID::new(&self.ty, &self.id).to_string();
+        let id = NodeID::new(&self.ty, &self.id);
+        let pk = id.to_string();
 
         let mut result = HashMap::with_capacity(1 + self.constraints.len());
 
@@ -290,6 +291,7 @@ impl GetIds for InsertNodeInput {
                     InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                         InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
                             current_datetime: self.current_datetime.clone(),
+                            ty: id.ty().to_string(),
                             target: pk.clone(),
                             user_defined_item: self.user_defined_item.clone(),
                             constraint_values,
@@ -316,7 +318,9 @@ impl GetIds for InsertNodeInput {
 
 impl GetIds for UpdateNodeInput {
     fn to_changes<'a>(self, batchers: &'a DynamoDBBatchersData, _ctx: &'a DynamoDBContext) -> SelectionType<'a> {
-        let pk = NodeID::new(&self.ty, &self.id).to_string();
+        let id = NodeID::new(&self.ty, &self.id);
+        let pk = id.to_string();
+        let ty = id.ty().to_string();
 
         let query_loader_reversed = &batchers.query_reversed;
 
@@ -375,6 +379,7 @@ impl GetIds for UpdateNodeInput {
                         InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                             InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
                                 current_datetime: self.current_datetime.clone(),
+                                ty: ty.clone(),
                                 target: pk,
                                 user_defined_item: self.user_defined_item.clone(),
                                 constraint_values: updated_values.into_iter().map(normalize_constraint_value).collect(),
@@ -460,6 +465,7 @@ impl GetIds for UpdateNodeInput {
                                 InternalChanges::NodeConstraints(InternalNodeConstraintChanges::Insert(
                                     InsertNodeConstraintInternalInput::Unique(InsertUniqueConstraint {
                                         current_datetime: self.current_datetime.clone(),
+                                        ty: ty.clone(),
                                         target: constraint_row
                                             .remove(constant::INVERTED_INDEX_PK)
                                             .and_then(|x| x.s)
@@ -1130,6 +1136,7 @@ pub enum DeleteNodeConstraintInternalInput {
 pub struct InsertUniqueConstraint {
     /// The unique constraint targets one entity
     pub(crate) target: String,
+    pub ty: String,
     #[derivative(Debug = "ignore", PartialEq = "ignore")]
     pub user_defined_item: HashMap<String, AttributeValue>,
     pub current_datetime: CurrentDateTime,
