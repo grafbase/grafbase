@@ -30,10 +30,20 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
         request_context: &RequestContext<'_>,
         cache_key: &str,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
-    ) -> CacheResult<CacheResponse<Arc<CV>>> {
+    ) -> CacheResult<CacheResponse<Arc<CV>>>
+    where
+        CV: Default,
+    {
         let cached_value: CacheResponse<CV> = P::get(&self.cache_name, cache_key)
             .instrument(tracing::info_span!("cache_get"))
-            .await?;
+            .await
+            .unwrap_or_else(|e| {
+                log::warn!(
+                    request_context.cloudflare_request_context.ray_id,
+                    "Error loading {cache_key} from cache: {e}",
+                );
+                CacheResponse::Miss(CV::default())
+            });
 
         match cached_value {
             CacheResponse::Stale {
