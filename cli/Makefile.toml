@@ -48,7 +48,7 @@ sd "@grafbase/cli-x86_64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86
 sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-pc-windows-msvc\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
 cd ../
-touch "changelog/${VERSION}.md"
+touch "changelog/$VERSION.md"
 '''
 
 [tasks.release]
