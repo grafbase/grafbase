@@ -82,10 +82,24 @@ args = ["run", "--release", "--", "${@}"]
 [tasks.update-workers]
 script = '''
 cd ../../api/workers/gateway
-../../scripts/dev/build-cli-assets.sh
+RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
 '''
 
 [tasks.update-workers-main]
+script = '''
+cd ../../api/workers/gateway
+git switch main
+git pull
+RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-workers-release]
+script = '''
+cd ../../api/workers/gateway
+../../scripts/dev/build-cli-assets.sh
+'''
+
+[tasks.update-workers-main-release]
 script = '''
 cd ../../api/workers/gateway
 git switch main
