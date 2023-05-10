@@ -27,9 +27,7 @@ description = "Bumps all packages to the specified version"
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
 VERSION=${@}
-
 cargo release version $VERSION --execute --no-confirm
-
 cd npm/cli
 npm version --git-tag-version false $VERSION
 cd ../aarch64-apple-darwin
