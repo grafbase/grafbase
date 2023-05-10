@@ -21,6 +21,7 @@ use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::directive::Directives;
 use rules::enum_type::EnumType;
 use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
+use rules::graphql_directive::GraphqlVisitor;
 use rules::input_object::InputObjectVisitor;
 use rules::length_directive::LengthDirective;
 use rules::model_directive::ModelDirective;
@@ -40,6 +41,7 @@ pub use connector_parsers::ConnectorParsers;
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
 pub use rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
+pub use rules::graphql_directive::GraphqlDirective;
 pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 
 use crate::rules::scalar_hydratation::ScalarHydratation;
@@ -109,6 +111,7 @@ pub async fn parse<'a>(
         .with::<UniqueDirective>()
         .with::<SearchDirective>()
         .with::<OpenApiDirective>()
+        .with::<GraphqlDirective>()
         .with::<CacheDirective>();
 
     let schema = format!(
@@ -144,9 +147,9 @@ pub async fn parse<'a>(
 async fn parse_connectors<'a>(
     schema: &'a ServiceDocument,
     ctx: &mut VisitorContext<'a>,
-    #[allow(unused_variables)] connector_parsers: &dyn ConnectorParsers,
+    connector_parsers: &dyn ConnectorParsers,
 ) -> Result<(), Error> {
-    let mut connector_rules = rules::visitor::VisitorNil.with(OpenApiVisitor);
+    let mut connector_rules = rules::visitor::VisitorNil.with(OpenApiVisitor).with(GraphqlVisitor);
 
     visit(&mut connector_rules, ctx, schema);
 
@@ -155,6 +158,16 @@ async fn parse_connectors<'a>(
     for (directive, position) in std::mem::take(&mut ctx.openapi_directives) {
         let directive_name = directive.name.clone();
         match connector_parsers.fetch_and_parse_openapi(directive).await {
+            Ok(registry) => {
+                connector_parsers::merge_registry(ctx, registry, position);
+            }
+            Err(errors) => return Err(Error::ConnectorErrors(directive_name, errors, position)),
+        }
+    }
+
+    for (directive, position) in std::mem::take(&mut ctx.graphql_directives) {
+        let directive_name = directive.name.clone();
+        match connector_parsers.fetch_and_parse_graphql(directive).await {
             Ok(registry) => {
                 connector_parsers::merge_registry(ctx, registry, position);
             }

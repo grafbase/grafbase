@@ -7,7 +7,7 @@ use dynaql::{
 };
 use dynaql_parser::types::{EnumType, InputObjectType, InterfaceType, ObjectType, TypeDefinition, TypeKind, UnionType};
 
-use crate::{rules::visitor::VisitorContext, OpenApiDirective};
+use crate::{rules::visitor::VisitorContext, GraphqlDirective, OpenApiDirective};
 
 /// Provides the connector sub-parsers to the parsing process.
 ///
@@ -16,7 +16,8 @@ use crate::{rules::visitor::VisitorContext, OpenApiDirective};
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 pub trait ConnectorParsers: Sync + Send {
-    async fn fetch_and_parse_openapi(&self, openapi_directive: OpenApiDirective) -> Result<Registry, Vec<String>>;
+    async fn fetch_and_parse_openapi(&self, directive: OpenApiDirective) -> Result<Registry, Vec<String>>;
+    async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>>;
 }
 
 /// A mock impl of the Connectors trait for tests and when we don't really care about
@@ -24,13 +25,20 @@ pub trait ConnectorParsers: Sync + Send {
 #[derive(Debug, Default)]
 pub struct MockConnectorParsers {
     pub(crate) openapi_directives: Mutex<Vec<OpenApiDirective>>,
+    pub(crate) graphql_directives: Mutex<Vec<GraphqlDirective>>,
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait)]
 impl ConnectorParsers for MockConnectorParsers {
-    async fn fetch_and_parse_openapi(&self, openapi_directive: OpenApiDirective) -> Result<Registry, Vec<String>> {
-        self.openapi_directives.lock().unwrap().push(openapi_directive);
+    async fn fetch_and_parse_openapi(&self, directive: OpenApiDirective) -> Result<Registry, Vec<String>> {
+        self.openapi_directives.lock().unwrap().push(directive);
+
+        Ok(Registry::new())
+    }
+
+    async fn fetch_and_parse_graphql(&self, directive: GraphqlDirective) -> Result<Registry, Vec<String>> {
+        self.graphql_directives.lock().unwrap().push(directive);
 
         Ok(Registry::new())
     }

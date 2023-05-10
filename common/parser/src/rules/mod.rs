@@ -11,6 +11,7 @@ pub mod default_directive_types;
 pub mod directive;
 pub mod enum_type;
 pub mod extend_query_and_mutation_types;
+pub mod graphql_directive;
 pub mod input_object;
 pub mod length_directive;
 pub mod model_directive;
