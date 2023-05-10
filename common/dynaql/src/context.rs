@@ -965,6 +965,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         resolver: Option<&Resolver>,
         plan: Option<&SchemaPlan>,
     ) -> ServerResult<ArcIntern<LogicalPlan>> {
+        use query_planning::execution_query::execution::constant::INVERTED_INDEX_PK;
         use query_planning::logical_plan::builder::{
             join, LogicalPlanBuilder, PaginationArgumentsBuilder,
         };
@@ -1248,11 +1249,20 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
                                 )],
                                 vec![vec![ScalarValue::new_utf8(constraint_id.to_string())]],
                             )
-                            .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
-                            .build();
+                            .and_then(|plan| plan.get_entity_by_id(&schema, Datasource::gb()))
+                            .and_then(|plan| {
+                                // As we fetch the Constraint Node, we need to replace those two
+                                // columns.
+                                plan.replace(vec![(
+                                    INVERTED_INDEX_PK.to_string(),
+                                    "id".to_string(),
+                                )])
+                            })
+                            .map_err(|err| {
+                                ServerError::new(err.to_string(), Some(self.item.pos))
+                            })?;
 
-                            LogicalPlanBuilder::from(plan)
-                                .get_entity_by_id(&schema, Datasource::gb())
+                            Ok(plan)
                         }
                     }
                 }
