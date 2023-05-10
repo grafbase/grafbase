@@ -123,6 +123,38 @@ expression: req_string_a
             "metadata": {},
             "name": "__type",
             "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__gsi1pk",
+            "nullable": true
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__gsi1sk",
+            "nullable": true
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__gsi2pk",
+            "nullable": false
+          },
+          {
+            "data_type": "Utf8",
+            "dict_id": 0,
+            "dict_is_ordered": false,
+            "metadata": {},
+            "name": "__gsi2sk",
+            "nullable": false
           }
         ],
         "metadata": {}
