@@ -38,6 +38,7 @@
 //! For custom scalar, the schema should reflect the internal coercion in a standarzied type.
 
 use arrow_schema::{DataType, Field, Schema};
+use dynamodb::constant::{INVERTED_INDEX_PK, INVERTED_INDEX_SK, TYPE_INDEX_PK, TYPE_INDEX_SK};
 use dynaql::registry::{MetaType, Registry};
 use dynaql_parser::types::{BaseType, Type};
 use quick_error::quick_error;
@@ -97,7 +98,13 @@ fn scalar_to_datatype(registry: &Registry, field: &str, scalar: &Type) -> Field 
 
 /// System fields for Entities
 pub fn entity_system_fields() -> Vec<Field> {
-    vec![Field::new("__type", DataType::Utf8, false)]
+    vec![
+        Field::new("__type", DataType::Utf8, false),
+        Field::new(TYPE_INDEX_PK, DataType::Utf8, true),
+        Field::new(TYPE_INDEX_SK, DataType::Utf8, true),
+        Field::new(INVERTED_INDEX_PK, DataType::Utf8, false),
+        Field::new(INVERTED_INDEX_SK, DataType::Utf8, false),
+    ]
 }
 
 pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
