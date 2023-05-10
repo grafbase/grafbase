@@ -981,6 +981,7 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
         };
         use crate::registry::resolvers::dynamo_querying::{DynamoResolver, PAGINATION_LIMIT};
         use crate::registry::resolvers::ResolverType;
+        use crate::registry::Constraint;
 
         if let Some(plan) = plan {
             return Ok(match plan {
@@ -1222,10 +1223,9 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
                             // Take the associated constraint
                             let constraint = meta_ty
-                                .clone()
-                                .map(|x| x.constraints())
+                                .map(MetaType::constraints)
                                 .into_iter()
-                                .flat_map(|x| x.iter())
+                                .flat_map(<[Constraint]>::iter)
                                 .find(|constraint| constraint.name() == key);
 
                             // The expected constraint_id.
