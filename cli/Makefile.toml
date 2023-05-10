@@ -23,7 +23,7 @@ install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg =
 ], version = "0.4.8" }
 
 [tasks.bump]
-description = "Bumps all packages to a specified version"
+description = "Bumps all packages to the specified version"
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
 VERSION=${@}
