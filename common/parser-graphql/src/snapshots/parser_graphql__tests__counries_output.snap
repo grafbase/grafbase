@@ -1,0 +1,7893 @@
+---
+source: common/parser-graphql/src/lib.rs
+expression: "parse_schema(\"foo\".to_string(),\n                Url::parse(\"https://api.chargetrip.io/graphql\").unwrap(),\n                HashMap::from([(\"x-client-id\".to_owned(),\n                                \"5ed1175bad06853b3aa1e492\".to_owned()),\n                            (\"x-app-id\".to_owned(),\n                                \"623996f3c35130073829b252\".to_owned())])).await.unwrap().export_sdl(false)"
+---
+enum FooAccelerationUnit {
+	FOO_SECONDS_TO_100_KILOMETERS_PER_HOUR
+	FOO_SECONDS_TO_60_MILES_PER_HOUR
+}
+enum FooAccessType {
+	FOO_PUBLIC
+	FOO_RESTRICTED
+	FOO_PRIVATE
+}
+"""
+Returns 'OK'
+"""
+scalar FooAcknowledgement
+"""
+Information about an address
+"""
+type FooAddress {
+	"""
+	Continent code (2 letters)
+	"""
+	continent: String
+	"""
+	Country code (2 letters)
+	"""
+	country: String
+	"""
+	County code (2 letters)
+	"""
+	county: String
+	"""
+	City
+	"""
+	city: String
+	"""
+	Street name
+	"""
+	street: String
+	"""
+	Street number
+	"""
+	number: String
+	"""
+	Postal code of a location
+	"""
+	postalCode: String
+	"""
+	String composed of 3 words which represent the location of an address on the globe. More details: http://w3w.co/<what3Words>
+	"""
+	what3Words: String
+	"""
+	Human-readable address of a location
+	"""
+	formattedAddress: [String]
+}
+enum FooAdhocAuthorisationMethod {
+	FOO_CREDIT_CARD
+	FOO_DEBIT_CARD
+	FOO_OTHER
+	FOO_OTHER_APPLE_PAY
+	FOO_OTHER_AUTHENTICATION_BY_CAR
+	FOO_OTHER_GOOGLE_PAY
+	FOO_QR_CODE
+	FOO_SMS
+}
+"""
+Amenities available near a station
+"""
+enum FooAmenities {
+	FOO_PARK
+	FOO_RESTAURANT
+	FOO_MUSEUM
+	FOO_COFFEE
+	FOO_HOTEL
+	FOO_SHOPPING
+	FOO_BATHROOM
+	FOO_SUPERMARKET
+	FOO_PLAYGROUND
+	FOO_PHARMACY
+}
+"""
+The amenity model
+"""
+type FooAmenity {
+	"""
+	Unique amenity ID
+	"""
+	id: ID
+	"""
+	ID provided by an amenity data source as the row ID
+	"""
+	externalId: String
+	"""
+	Name of an amenity
+	"""
+	name: String
+	"""
+	Geo location coordinates. This is a GeoJSON Point
+	"""
+	location: FooPoint
+	"""
+	Embedded Address
+	"""
+	address: FooAddress
+	"""
+	Type of amenity. An amenity can belong to multiple categories
+	"""
+	type: [String]
+	"""
+	Rating of an amenity, the value will be between 0.0 and 10.0. If no rating has been given, the value will be set to null
+	"""
+	rating: Float
+	"""
+	Computed distance between station and amenity
+	"""
+	distance: Int
+	"""
+	Full path URL to amenity foursquare page
+	"""
+	foursquareUrl: String
+	"""
+	Date and time when an amenity was created
+	"""
+	createdAt: String
+	"""
+	Date and time when an amenity was last updated
+	"""
+	updatedAt: String
+}
+"""
+Amenity preferences for a route
+"""
+input FooAmenityPreferencesInput {
+	"""
+	Desired amenities near all charge-stops along a route, with a 1 kilometer radius
+	"""
+	all_charge_stops: FooAmenityType
+	"""
+	Scheduled charge stops, with a specified amenity and timeline
+	"""
+	scheduled_charge_stops: FooScheduledChargeStopInput
+}
+"""
+Amenities stats model
+"""
+type FooAmenityStats {
+	"""
+	The amenity type
+	"""
+	type: String
+	"""
+	The total number of stations with the specified amenity
+	"""
+	total: Int
+}
+"""
+A list of amenity types
+"""
+enum FooAmenityType {
+	FOO_PARK
+	FOO_RESTAURANT
+	FOO_MUSEUM
+	FOO_COFFEE
+	FOO_HOTEL
+	FOO_SHOPPING
+	FOO_BATHROOM
+	FOO_SUPERMARKET
+	FOO_PLAYGROUND
+	FOO_PHARMACY
+}
+input FooAuthorizeConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID
+	"""
+	Provider specific options. See the developer portal for more details
+	"""
+	options: FooAuthorizeConnectedVehicleOptions
+}
+input FooAuthorizeConnectedVehicleOptions {
+	"""
+	OAuth code returned as a query parameter on the OAuth callback
+	"""
+	code: FooPlainString
+}
+input FooAuxiliaryConsumptionInput {
+	"""
+	Value of the auxiliary power consumption of the vehicle
+	"""
+	value: Float
+	"""
+	Type of auxiliary power consumption of the vehicle
+	"""
+	type: FooAuxiliaryConsumptionUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooAuxiliaryConsumptionUnit {
+	FOO_KILOWATT_HOUR
+}
+"""
+The type of the battery value
+"""
+enum FooBatteryInputType {
+	FOO_KWH
+	FOO_KM
+	FOO_MILES
+	FOO_PERCENTAGE
+}
+input FooBatteryTemperatureInput {
+	"""
+	Value of the temperature of the battery
+	"""
+	value: Float
+	"""
+	Type of temperature of the battery
+	"""
+	type: FooTemperatureUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+"""
+Output of a car query
+"""
+type FooCar {
+	"""
+	Cars unique ID
+	"""
+	id: ID
+	"""
+	Naming of a car
+	"""
+	naming: FooCarNaming
+	"""
+	Available connectors for a car
+	"""
+	connectors: [FooCarPlug]
+	"""
+	List of adapters of connectors available for a car
+	"""
+	adapters: [FooCarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: FooCarBattery
+	"""
+	Body of a car
+	"""
+	body: FooCarBody
+	"""
+	Availability of a car
+	"""
+	availability: FooCarAvailability
+	"""
+	Performance of a car
+	"""
+	performance: FooCarPerformance
+	"""
+	Range of a car
+	"""
+	range: FooCarRange
+	"""
+	Media of a car
+	"""
+	media: FooCarMedia
+	"""
+	Routing of a car
+	"""
+	routing: FooCarRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: FooConnect
+	"""
+	ID provided by a car data source as the row ID
+	"""
+	externalId: String
+	"""
+	Car manufacturer
+	"""
+	make: String
+	"""
+	Car model
+	"""
+	carModel: String
+	"""
+	Car edition
+	"""
+	edition: String
+	"""
+	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
+	"""
+	chargetripEdition: String
+	"""
+	Car version
+	"""
+	version: String
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetripRange: FooChargetripRange
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fastChargingSupport: Boolean
+	"""
+	Current production mode of a car
+	"""
+	mode: FooCarMode
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Weight in kg
+	"""
+	weight: Float
+	"""
+	Height in mm
+	"""
+	height: Int
+	"""
+	Width in mm
+	"""
+	width: Int
+	"""
+	Usable battery capacity in kWh
+	"""
+	batteryUsableKwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	batteryFullKwh: Float
+	"""
+	Battery efficiency in the city, highway and combined depending on weather conditions
+	"""
+	batteryEfficiency: FooCarBatteryEfficiency
+	"""
+	Acceleration time from 0 to 100 km/h
+	"""
+	acceleration: Float
+	"""
+	Maximum car speed in km/h
+	"""
+	topSpeed: Float
+	"""
+	Power of a car in Kw
+	"""
+	power: Float
+	"""
+	Engine torque
+	"""
+	torque: Float
+	"""
+	Extra consumption model
+	"""
+	consumption: FooCarExtraConsumption
+	"""
+	Amount of petrol a similar petrol car would consume per 100 km
+	"""
+	petrolConsumption: Float
+	"""
+	A list of offset data for different charging speeds
+	"""
+	chargingOffset: FooJSON
+	"""
+	Images of a car
+	"""
+	images: [FooCarImage]
+	"""
+	Images of a car in structured data
+	"""
+	imagesData: FooCarImageData
+}
+type FooCarAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market / region
+	   - 1 = Car currently for sale in at least one market / region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+}
+type FooCarBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+}
+"""
+Deprecated
+"""
+type FooCarBatteryEfficiency {
+	"""
+	Average efficiency measured in kWh/100 km
+	"""
+	average: Float
+	"""
+	Worst conditions are based on -10°C and use of heating, measured in kWh/100 km
+	"""
+	worst: FooCarEstimationData
+	"""
+	Best conditions are based on 23°C and no use of A/C, measured in kWh/100 km
+	"""
+	best: FooCarEstimationData
+}
+"""
+Battery field estimated
+"""
+enum FooCarBatteryFieldEstimations {
+	FOO_B
+	FOO_F
+	FOO_N
+	FOO_U
+}
+type FooCarBody {
+	"""
+	Width with folded mirrors in mm
+	"""
+	width: Int
+	"""
+	Height (average height for adjustable suspensions) in mm
+	"""
+	height: Int
+	"""
+	Weight Unladen EU) in kg
+	"""
+	weight: Int
+	"""
+	Number of seats
+	"""
+	seats: Int
+}
+enum FooCarConnectivityProvider {
+	FOO_ENODE
+}
+"""
+Deprecated
+"""
+type FooCarConsumption {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Float
+}
+"""
+The consumption of the car
+"""
+input FooCarConsumptionInput {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: Float
+}
+"""
+Drivetrain
+"""
+enum FooCarDrivetrain {
+	FOO_BEV
+	FOO_EREV
+}
+"""
+Deprecated
+"""
+type FooCarEstimationData {
+	"""
+	Estimated battery efficiency on a highway or express roads, in km
+	"""
+	highway: Float
+	"""
+	Estimated battery efficiency on city roads, in km
+	"""
+	city: Float
+	"""
+	Estimated battery efficiency on highway and city roads combined, in km
+	"""
+	combined: Float
+}
+"""
+Deprecated
+"""
+type FooCarExtraConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: FooCarConsumption
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: FooCarConsumption
+	"""
+	Consumption, in kWh, of a car in idle mode
+	"""
+	idle: FooCarConsumption
+}
+"""
+Fuel type
+"""
+enum FooCarFuel {
+	FOO_E
+}
+type FooCarImage {
+	"""
+	Image id
+	"""
+	id: ID
+	"""
+	Image type
+	"""
+	type: FooCarImageType
+	"""
+	Full path URL of a large image
+	"""
+	url: String
+	"""
+	Height of a large image in pixels
+	"""
+	height: Int
+	"""
+	Width of a large image in pixels
+	"""
+	width: Int
+	"""
+	Full path URL of a thumbnail image
+	"""
+	thumbnail_url: String
+	"""
+	Height of a thumbnail image in pixels
+	"""
+	thumbnail_height: Int
+	"""
+	Width of a thumbnail image in pixels
+	"""
+	thumbnail_width: Int
+}
+"""
+Deprecated
+"""
+type FooCarImageData {
+	"""
+	Full size image of a car
+	"""
+	image: FooCarImage
+	"""
+	Thumbnail of a full size image
+	"""
+	image_thumbnail: FooCarImage
+	"""
+	Full size logo of the maker of a car
+	"""
+	brand: FooCarImage
+	"""
+	Thumbnail of a full size logo of the maker of a car
+	"""
+	brand_thumbnail: FooCarImage
+}
+"""
+Available types of images which can be found for a car. Each type has specific image sizes
+"""
+enum FooCarImageType {
+	FOO_PROVIDER
+	FOO_IMAGE
+	FOO_IMAGE_THUMBNAIL
+	FOO_BRAND
+	FOO_BRAND_THUMBNAIL
+	FOO_PLACEHOLDER
+}
+"""
+When uploading images to a car, you can select one of this types. The rest of the types are automatically generated by the system
+"""
+enum FooCarImageTypeUploadable {
+	FOO_IMAGE
+}
+"""
+The output element of the carList query
+"""
+type FooCarList {
+	"""
+	Cars unique ID
+	"""
+	id: ID
+	"""
+	Naming of a car
+	"""
+	naming: FooCarListNaming
+	"""
+	Connectors available for a car
+	"""
+	connectors: [FooCarPlug]
+	"""
+	Adapters of connectors available for a car
+	"""
+	adapters: [FooCarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: FooCarListBattery
+	"""
+	Body of a car
+	"""
+	body: FooCarListBody
+	"""
+	Availability of a car
+	"""
+	availability: FooCarListAvailability
+	"""
+	Range of a car
+	"""
+	range: FooCarListRange
+	"""
+	Media of a car
+	"""
+	media: FooCarListMedia
+	"""
+	Routing of a car
+	"""
+	routing: FooCarListRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: FooConnect
+	"""
+	ID provided by a car data source as the row ID
+	"""
+	externalId: String
+	"""
+	Car manufacturer
+	"""
+	make: String
+	"""
+	Car model
+	"""
+	carModel: String
+	"""
+	Car edition
+	"""
+	edition: String
+	"""
+	Car model edition. Added by Chargetrip as an alternative for when a car manufacturer does not provide an edition name, or uses the same edition name across all trims or consecutive years
+	"""
+	chargetripEdition: String
+	"""
+	Car version
+	"""
+	version: String
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetripRange: FooChargetripRange
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fastChargingSupport: Boolean
+	"""
+	Current production mode of a car
+	"""
+	mode: FooCarMode
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Usable battery capacity in kWh
+	"""
+	batteryUsableKwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	batteryFullKwh: Float
+	"""
+	Images of a car in structured data
+	"""
+	imagesData: FooCarImageData
+	power: Float
+	acceleration: Float
+	topSpeed: Float
+	torque: Float
+	batteryEfficiency: FooCarBatteryEfficiency
+	weight: Float
+	height: Int
+	width: Int
+	consumption: FooCarExtraConsumption
+	petrolConsumption: Float
+	chargingOffset: FooJSON
+	auxConsumption: Float
+	bmsConsumption: Float
+	dragCoefficient: Float
+	tirePressure: Float
+	motorEfficiency: Float
+	drivelineEfficiency: Float
+	regenEfficiency: Float
+	images: [FooCarImage]
+}
+type FooCarListAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market / region
+	   - 1 = Car currently for sale in at least one market / region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+}
+type FooCarListBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+}
+type FooCarListBody {
+	"""
+	Number of seats in car
+	"""
+	seats: Int
+}
+input FooCarListFilter {
+	"""
+	Availability of car
+
+Values:
+   - 0 = Car no longer for sale in any market / region
+   - 1 = Car currently for sale in at least one market / region
+   - 2 = Car expected in market from Date_From (estimated), pre-order open
+   - 3 = Car expected in market from Date_From (estimated), pre-order unkown or not open
+   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	availability: Int
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: FooConnectFilter
+}
+type FooCarListMedia {
+	"""
+	Latest image of the car
+	"""
+	image: FooCarImage
+	"""
+	Latest maker logo of the car
+	"""
+	brand: FooCarImage
+	"""
+	Latest video of the car
+	"""
+	video: FooCarVideo
+}
+type FooCarListNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+"""
+Deprecated
+"""
+input FooCarListQuery {
+	"""
+	Deprecated: Not used anymore
+	"""
+	make: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	model: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	version: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	chargetrip_version: String
+	"""
+	Deprecated: Not used anymore
+	"""
+	mode: FooCarMode
+}
+type FooCarListRange {
+	"""
+	 Is an index value of what we consider to be the real-world range.
+	(Comparable to Range_Real from EV Database.) It is essentially a normalized range to display in the front-end.
+	"""
+	chargetrip_range: FooChargetripRange
+	wltp: Float
+	worst: FooCarEstimationData
+	best: FooCarEstimationData
+}
+type FooCarListRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+}
+type FooCarMedia {
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_details_url: String
+	"""
+	Latest image
+	"""
+	image: FooCarImage
+	"""
+	Latest maker logo
+	"""
+	brand: FooCarImage
+	"""
+	All images
+	"""
+	image_list: [FooCarImage]
+	"""
+	Latest video
+	"""
+	video: FooCarVideo
+	"""
+	All videos
+	"""
+	video_list: [FooCarVideo]
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_detail_url: String
+}
+"""
+Mode (state) of the current production
+"""
+enum FooCarMode {
+	FOO_INDEX_ONLY
+	FOO_PRODUCTION
+	FOO_CONCEPT
+}
+type FooCarNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+type FooCarPerformance {
+	"""
+	Acceleration 0-100 km/h in seconds
+	"""
+	acceleration: Float
+	"""
+	Top speed of car in km/h
+	"""
+	top_speed: Int
+}
+"""
+Car plug model
+"""
+type FooCarPlug {
+	"""
+	Plug type, known as connector standard in OCPI
+	"""
+	standard: FooConnectorType
+	"""
+	Usable electric power in kW
+	"""
+	power: Float
+	"""
+	Maximum electric power in kW
+	"""
+	max_electric_power: Float
+	"""
+	Time it takes to charge from 10 to 80% with a fast charger, shown in minutes
+	"""
+	time: Int
+	"""
+	Charging speed in km/h
+	"""
+	speed: Int
+}
+"""
+The output element of the carPremium query
+"""
+type FooCarPremium {
+	"""
+	Unique ID of a car
+	"""
+	id: ID
+	"""
+	Internal ID of the successor car trim
+	"""
+	succesor_id: String
+	"""
+	Naming of a car
+	"""
+	naming: FooCarPremiumNaming
+	"""
+	Connectors available for a car
+	"""
+	connectors: [FooCarPlug]
+	"""
+	Charge details
+	"""
+	charge: FooCarPremiumCharge
+	"""
+	Fast charge details
+	"""
+	fast_charge: FooCarPremiumFastCharge
+	"""
+	Adapters of connectors available for a car
+	"""
+	adapters: [FooCarPlug]
+	"""
+	Battery of a car
+	"""
+	battery: FooCarPremiumBattery
+	"""
+	Body of a car
+	"""
+	body: FooCarPremiumBody
+	"""
+	Availability of a car
+	"""
+	availability: FooCarPremiumAvailability
+	"""
+	Pricing of a car
+	"""
+	price: FooCarPremiumPrice
+	"""
+	Drivetrain of a car
+	"""
+	drivetrain: FooCarPremiumDrivetrain
+	"""
+	Performance of a car
+	"""
+	performance: FooCarPremiumPerformance
+	"""
+	Range of a car
+	"""
+	range: FooCarPremiumRange
+	"""
+	Efficiency of a car
+	"""
+	efficiency: FooCarPremiumEfficiency
+	"""
+	Safety of a car
+	"""
+	safety: FooCarPremiumSafety
+	"""
+	Media of a car
+	"""
+	media: FooCarPremiumMedia
+	"""
+	Routing of a car
+	"""
+	routing: FooCarPremiumRouting
+	"""
+	Information about vehicle connectivity
+	"""
+	connect: FooConnect
+}
+type FooCarPremiumAvailability {
+	"""
+	Availability of car
+	
+	Values:
+	   - 0 = Car no longer for sale in any market/region
+	   - 1 = Car currently for sale in at least one market/region
+	   - 2 = Car expected in market from Date_From (estimated), pre-order open
+	   - 3 = Car expected in market from Date_From (estimated), pre-order unknown or not open
+	   - 12 = Concept car, nearing production and/or confirmed, pre-order open
+	   - 13 = Concept car, nearing production and/or confirmed, pre-order unknown or not open
+	   - 22 = Concept car, not close to production and/or unconfirmed, pre-order open
+	   - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
+	   - 91 = Status uncertain, introduction date and/or pricing unclear
+	"""
+	status: Int
+	"""
+	Date of introduction, mm-yyyy
+	"""
+	date_from: String
+	"""
+	Indicates if date from field is estimated
+	"""
+	date_from_is_estimated: Boolean
+	"""
+	Date last available, mm-yyyy
+	"""
+	date_to: String
+}
+type FooCarPremiumBattery {
+	"""
+	Usable battery capacity in kWh
+	"""
+	usable_kwh: Float
+	"""
+	Full battery capacity in kWh
+	"""
+	full_kwh: Float
+	"""
+	Indicates which battery fields are estimated
+	"""
+	estimated_fields: FooCarBatteryFieldEstimations
+	"""
+	Battery thermal management system (active/passive, air/liquid)
+	"""
+	thermal_management_system: String
+	"""
+	Duration of battery warranty
+	"""
+	warranty_period: Float
+	"""
+	Mileage of battery warranty
+	"""
+	warranty_mileage: Float
+}
+type FooCarPremiumBody {
+	"""
+	Length in mm
+	"""
+	length: Int
+	"""
+	Width with folded mirrors in mm
+	"""
+	width: Int
+	"""
+	Width of vehicle in mm, including mirrors
+	"""
+	full_width: Int
+	"""
+	Height (average height for adjustable suspensions) in mm
+	"""
+	height: Int
+	"""
+	Indicates if length/width/height fields are estimations
+	"""
+	size_is_estimated: Boolean
+	"""
+	Wheelbase in mm
+	"""
+	wheelbase: Int
+	"""
+	Indicates if wheelbase field is estimated
+	"""
+	wheelbase_is_estimated: Boolean
+	"""
+	Weight (unladen EU) in kg
+	"""
+	weight: Int
+	"""
+	Indicates if weight field is estimated
+	"""
+	weight_is_estimated: Boolean
+	"""
+	Maximum payload allowed for vehicle in kg
+	"""
+	weight_max_payload: Int
+	"""
+	Gross Vehicle Weight (GVWR) - (max allowed vehicle weight with payload) in kg
+	"""
+	max_gross_vehicle_weight: Int
+	"""
+	Standard luggage capacity in l
+	"""
+	boot_capacity: Int
+	"""
+	Storage capacity of front trunk/under the hood (frunk)
+	"""
+	boot_front_capacity: Int
+	"""
+	Maximum luggage capacity in l
+	"""
+	boot_capacity_max: Int
+	"""
+	Indicates if a tow hitch/towbar can be fitted according to vehicle homologation
+	"""
+	tow_hitch_compatible: Boolean
+	"""
+	Maximum unbraked towing weight in kg
+	"""
+	tow_weight_unbraked: Int
+	"""
+	Maximum braked towing weight in kg
+	"""
+	tow_weight_braked: Int
+	"""
+	Indicates if tow weight fields are estimations
+	"""
+	tow_weight_is_estimated: Boolean
+	"""
+	Maximum vertical load / noseweight on tow hitch according to vehicle homologation
+	"""
+	tow_weight_vertical_load: Int
+	"""
+	Maximum load on roof of car in kg
+	"""
+	roof_load_max: Int
+	"""
+	Body type, listed in local naming convention where applicable
+	"""
+	body_type: String
+	"""
+	Segment, listed in local naming convention where applicable
+	"""
+	segment: String
+	"""
+	Number of seats
+	"""
+	seats: Int
+	"""
+	Indicates whether a car has roof rails as a standard
+	"""
+	has_roofrails: Boolean
+	"""
+	Turning circle of vehicle kerb-to-kerb
+	"""
+	turning_circle: Float
+	"""
+	Name of vehicle platform used for vehicle (often abbreviated to indicate group platforms)
+	"""
+	vehicle_platform: String
+	"""
+	Indicates if the vehicle platform used for vehicle is a dedicated battery electric vehicle platform
+	"""
+	vehicle_platform_is_dedicated: Boolean
+	"""
+	Indicates whether a car has roof rails as a standard
+	"""
+	rooftrails: Boolean
+}
+type FooCarPremiumCharge {
+	"""
+	Location of charge port
+	"""
+	plug: FooCarPremiumChargePlug
+	"""
+	Location of second charge port
+	"""
+	second_plug: FooCarPremiumChargeSecondPlug
+	"""
+	The car standard charge
+	"""
+	standard: FooCarPremiumChargeStandardOBC
+	"""
+	The car alternative charge
+	"""
+	alternative: FooCarPremiumChargeAlternativeOBC
+	"""
+	The car option charge
+	"""
+	option: FooCarPremiumChargeOptionOBC
+}
+type FooCarPremiumChargeAlternativeOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [FooCarPremiumChargeOBCTable]
+}
+type FooCarPremiumChargeOBCTable {
+	"""
+	Voltage between phase and neutral for this EVSE (phase voltage)
+	"""
+	evse_phase_voltage: Int
+	"""
+	Current per phase for this EVSE (phase current)
+	"""
+	evse_phase_amperage: Int
+	"""
+	Number of phases for this EVSE
+	"""
+	evse_phases: Int
+	"""
+	Voltage between phase and neutral used by standard OBC (phase voltage)
+	"""
+	charge_phase_voltage: Int
+	"""
+	Current per phase used by standard OBC (phase current)
+	"""
+	charge_phase_amperage: Float
+	"""
+	Number of phases used by standard OBC
+	"""
+	charge_phases: Int
+	"""
+	Power used by standard OBC (before OBC losses)
+	"""
+	charge_power: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC with this EVSE)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC with this EVSE)
+	"""
+	charge_speed: Int
+}
+type FooCarPremiumChargeOptionOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [FooCarPremiumChargeOBCTable]
+}
+type FooCarPremiumChargePlug {
+	"""
+	Type of charge port on vehicle
+	"""
+	value: FooConnectorType
+	"""
+	Indicates if value is an estimate
+	"""
+	is_estimated: Boolean
+	"""
+	Location of charge port
+	"""
+	location: String
+}
+type FooCarPremiumChargePower {
+	"""
+	Maximum value
+	"""
+	max: Float
+	"""
+	Average value
+	"""
+	average: Float
+}
+type FooCarPremiumChargeSecondPlug {
+	"""
+	Location of charge port
+	"""
+	location: String
+	"""
+	Indicates if second charge port is optional
+	"""
+	is_optional: Boolean
+}
+type FooCarPremiumChargeStandardOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC)
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC)
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC)
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC)
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC)
+	"""
+	charge_speed: Int
+	"""
+	Indicates if Charge_Standard fields are estimated
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for the standard OBC at several charging points
+	"""
+	table: [FooCarPremiumChargeOBCTable]
+}
+type FooCarPremiumDrivetrain {
+	"""
+	Type of drivetrain
+	"""
+	type: FooCarDrivetrain
+	"""
+	Fuel type
+	"""
+	fuel: FooCarFuel
+	"""
+	Propulsion type
+	"""
+	propulsion: FooCarPropulsion
+	"""
+	Indicates if propulsion field is estimated
+	"""
+	propulsion_is_estimated: Boolean
+	"""
+	Maximum (combined) power output in kw
+	"""
+	power: Int
+	"""
+	Indicates if power field is estimated
+	"""
+	power_is_estimated: Boolean
+	"""
+	Maximum (combined) power output in horsepower (PS)
+	"""
+	power_hp: Int
+	"""
+	Maximum (combined) torque output in newton meter
+	"""
+	torque: Int
+	"""
+	Indicates if torque field is estimated
+	"""
+	torque_is_estimated: Boolean
+}
+type FooCarPremiumEfficiency {
+	"""
+	Rated efficiency in WLTP combined cycle
+	"""
+	wltp: FooCarPremiumEfficiencyWLTP
+	"""
+	Rated efficiency in WLTP combined cycle (TEH / least efficient trim)
+	"""
+	wltp_teh: FooCarPremiumEfficiencyWLTPTEH
+	"""
+	Rated efficiency in NEDC combined cycle
+	"""
+	nedc: FooCarPremiumEfficiencyNEDC
+	"""
+	Car efficiency based on RealRange
+	"""
+	real: FooCarPremiumEfficiencyReal
+}
+type FooCarPremiumEfficiencyNEDC {
+	"""
+	Rated efficiency in NEDC combined cycle in kWh/100 km
+	"""
+	value: Float
+	"""
+	Rated efficiency in NEDC combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle presented in gas equivalent in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in NEDC combined cycle in battery-only mode (NULL if not NEDC rated) in gr/km
+	"""
+	co2: Int
+}
+type FooCarPremiumEfficiencyReal {
+	"""
+	Car efficiency based on RealRange (useable battery/range) in kWh/100 km
+	"""
+	value: Float
+	"""
+	Car efficiency based on RealRange presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: FooCarPremiumEfficiencyRealValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: FooCarPremiumEfficiencyRealValue
+}
+type FooCarPremiumEfficiencyRealValue {
+	"""
+	Estimated value on highway or express roads
+	"""
+	highway: Float
+	"""
+	Estimated value on city roads
+	"""
+	city: Float
+	"""
+	Estimated combined value
+	"""
+	combined: Float
+}
+type FooCarPremiumEfficiencyWLTP {
+	"""
+	Rated efficiency in WLTP combined cycle in kWh/100 km
+	"""
+	value: Float
+	"""
+	Rated efficiency in WLTP combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle presented in gas equivalent, in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in WLTP combined cycle in battery-only mode (NULL if not WLTP rated) in gr/km
+	"""
+	co2: Int
+}
+type FooCarPremiumEfficiencyWLTPTEH {
+	"""
+	Rated efficiency in WLTP TEH combined cycle (TEH/least efficient trim)
+	"""
+	value: Float
+	"""
+	Rated efficiency in WLTP TEH combined cycle presented in gas equivalent, in l/100 km
+	"""
+	fuel_equivalent: Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle (based on value) in kWh/100 km
+	"""
+	vehicle: Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle presented in gas equivalent, in l/100 km
+	"""
+	vehicle_fuel_equivalent: Float
+	"""
+	Rated CO2 emissions in WLTP TEH combined cycle in battery-only mode (NULL if not WLTP TEH rated) in gr/km
+	"""
+	co2: Int
+}
+type FooCarPremiumFastCharge {
+	"""
+	Location of charge port
+	"""
+	plug: FooCarPremiumChargePlug
+	"""
+	Power during fast charging from 10% to 80% SoC (optimal conditions, fastest charger)
+	"""
+	power: FooCarPremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80%, with average charging power (optimal conditions, fastest charger)
+	"""
+	charge_time: Float
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions, fastest charger)
+	"""
+	charge_speed: Float
+	"""
+	Indicates if fast charge is optional in some markets/regions
+	"""
+	is_optional: Boolean
+	"""
+	Indicates what fields are estimated
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for fast charging
+	"""
+	table: [FooCarPremiumFastChargeTable]
+}
+type FooCarPremiumFastChargeTable {
+	"""
+	Charging details for fast charging (format: ChargerPlug-ChargerPower-AC/DC)
+	"""
+	format: String
+	"""
+	Fast charge power
+	"""
+	power: FooCarPremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80% (optimal conditions)
+	"""
+	charge_time: Int
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions)
+	"""
+	charge_speed: Int
+	"""
+	Indicates if maximum power during fast charging is limited by the vehicle
+	"""
+	is_limited: Boolean
+	"""
+	Indicates if average power during fast charging is limited by the vehicle
+	"""
+	average_is_limited: Boolean
+}
+type FooCarPremiumMedia {
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_details_url: String
+	"""
+	Latest image
+	"""
+	image: FooCarImage
+	"""
+	Latest maker logo
+	"""
+	brand: FooCarImage
+	"""
+	All images
+	"""
+	image_list: [FooCarImage]
+	"""
+	Latest video
+	"""
+	video: FooCarVideo
+	"""
+	All videos
+	"""
+	video_list: [FooCarVideo]
+	"""
+	URL to detail page on EV database
+	"""
+	evdb_detail_url: String
+}
+type FooCarPremiumNaming {
+	"""
+	Car manufacturer name
+	"""
+	make: String
+	"""
+	Car model name
+	"""
+	model: String
+	"""
+	Version, edition or submodel of car
+	"""
+	version: String
+	"""
+	Another submodel level of car
+	"""
+	edition: String
+	"""
+	Car model version. Added by Chargetrip as an alternative for when a car manufacturer does not provide a version name, or uses the same version name across all trims or consecutive years
+	"""
+	chargetrip_version: String
+}
+type FooCarPremiumPerformance {
+	"""
+	Acceleration 0-100 km/h in seconds
+	"""
+	acceleration: Float
+	"""
+	Indicates if acceleration field is estimated
+	"""
+	acceleration_is_estimated: Boolean
+	"""
+	Top speed of car in km/h
+	"""
+	top_speed: Int
+	"""
+	Indicates if top_speed field is estimated
+	"""
+	top_speed_is_estimated: Boolean
+}
+type FooCarPremiumPrice {
+	"""
+	Starting price for German market
+	"""
+	de: FooCarPremiumPriceValue
+	"""
+	Starting price for Dutch market
+	"""
+	nl: FooCarPremiumPriceValue
+	"""
+	Starting price for British market
+	"""
+	uk: FooCarPremiumPriceValueWithGrant
+}
+type FooCarPremiumPriceValue {
+	"""
+	Starting price for local market
+	"""
+	value: Int
+	"""
+	Currency name for local market
+	"""
+	currency: String
+	"""
+	Indicates if price value is based on estimates
+	"""
+	is_estimated: Boolean
+	"""
+	Indicates if price value is based on estimates
+	"""
+	estimated: Boolean
+}
+type FooCarPremiumPriceValueWithGrant {
+	"""
+	Starting price for local market
+	"""
+	value: Int
+	"""
+	Currency name for local market
+	"""
+	currency: String
+	"""
+	Indicates if price value is based on estimates
+	"""
+	is_estimated: Boolean
+	"""
+	Grant is applied to value
+	"""
+	grant_applied: Int
+	"""
+	Indicates if price value is based on estimates
+	"""
+	estimated: Boolean
+}
+type FooCarPremiumRange {
+	"""
+	Rated range in WLTP combined cycle (NULL if not WLTP rated) in km
+	"""
+	wltp: Int
+	"""
+	Indicates if WLTP range is estimated (NULL if not WLTP rated)
+	"""
+	wltp_is_estimated: Boolean
+	"""
+	Rated range in WLTP (TEH/least efficient trim) combined cycle (NULL if not WLTP rated)
+	"""
+	wltp_teh: Int
+	"""
+	Rated range in NEDC combined cycle (NULL if not NEDC rated) in km
+	"""
+	nedc: Int
+	"""
+	Indicates if NEDC range is estimated (NULL if not NEDC rated)
+	"""
+	nedc_is_estimated: Boolean
+	"""
+	Index range in EV Database RealRange model in km
+	"""
+	real: Int
+	"""
+	Indicates if real is estimated
+	"""
+	real_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: FooCarPremiumRangeValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: FooCarPremiumRangeValue
+	"""
+	Is an index value of what we consider to be the real-world range. (Comparable to Range_Real from EV Database.) It is essentially a normalized range to display on the front-end.
+	"""
+	chargetrip_range: FooChargetripRange
+}
+type FooCarPremiumRangeValue {
+	"""
+	Estimated value on highway or express roads
+	"""
+	highway: Int
+	"""
+	Estimated value on city roads
+	"""
+	city: Int
+	"""
+	Estimated combined value
+	"""
+	combined: Int
+}
+type FooCarPremiumRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+	"""
+	Drag coefficient
+	"""
+	drag_coefficient: Float
+	"""
+	Tire pressure recommended by manufacturer
+	"""
+	tire_pressure: Float
+	"""
+	Extra consumption model
+	"""
+	consumption: FooCarPremiumRoutingConsumption
+	"""
+	Amount of petrol that an equivalent petrol car would consume in l/100 km
+	"""
+	petrol_consumption: Float
+}
+type FooCarPremiumRoutingConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: FooCarPremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: FooCarPremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the car in idle mode
+	"""
+	idle: FooCarPremiumRoutingConsumptionValue
+}
+type FooCarPremiumRoutingConsumptionValue {
+	"""
+	Best (lowest) consumption in summer
+	"""
+	best: Float
+	"""
+	Best (lowest) consumption in winter
+	"""
+	worst: Float
+}
+type FooCarPremiumSafety {
+	"""
+	Number of seats equipped with ISOFIX
+	"""
+	isofix_seats: Int
+	"""
+	EuroNCAP results
+	"""
+	euro_ncap: FooCarPremiumSafetyEuroNcap
+}
+type FooCarPremiumSafetyEuroNcap {
+	"""
+	EuroNCAP rating (out of 5 stars)
+	"""
+	rating: Int
+	"""
+	EuroNCAP year of rating
+	"""
+	year: Int
+	"""
+	EuroNCAP rating of adult protection (out of 100%)
+	"""
+	adult: Int
+	"""
+	EuroNCAP rating of child protection (out of 100%)
+	"""
+	child: Int
+	"""
+	EuroNCAP rating of vulnerable road users (out of 100%)
+	"""
+	vru: Int
+	"""
+	EuroNCAP rating of safety assists (out of 100%)
+	"""
+	sa: Int
+}
+"""
+Propulsion
+"""
+enum FooCarPropulsion {
+	FOO_AWD
+	FOO_FRONT
+	FOO_REAR
+}
+type FooCarRange {
+	"""
+	Index range in EV Database RealRange model in km
+	"""
+	real: Int
+	"""
+	Indicates if real is estimated
+	"""
+	real_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst: FooCarRangeValue
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best: FooCarRangeValue
+	"""
+	Chargetrip's custom real world range provides a carefully calculated display range for all EV models. This is based on our own research and driving data
+	"""
+	chargetrip_range: FooChargetripRange
+	wltp: Float
+}
+type FooCarRangeValue {
+	"""
+	Estimated value on the highway or express roads
+	"""
+	highway: Int
+	"""
+	Estimated value on the cities road
+	"""
+	city: Int
+	"""
+	Estimated combined value
+	"""
+	combined: Int
+}
+type FooCarRouting {
+	"""
+	Cars that support fast charging have a minimum charging speed of 43 kWh
+	"""
+	fast_charging_support: Boolean
+}
+"""
+Status of a car
+"""
+enum FooCarStatus {
+	FOO_NEW
+	FOO_REVIEW
+	FOO_PUBLIC
+	FOO_REMOVED
+}
+type FooCarVideo {
+	"""
+	Video id
+	"""
+	id: ID
+	"""
+	Full path URL of a video
+	"""
+	url: String
+}
+"""
+Charging mode used at charging stations
+"""
+enum FooChargeMode {
+	FOO_OPTIMIZE_TRAVEL_TIME
+	FOO_ALWAYS_TO_MAX_CHARGE
+}
+input FooChargeSpeedInput {
+	"""
+	Value of the charge speed of the battery
+	"""
+	value: Float
+	"""
+	Type of the charge speed of the battery
+	"""
+	type: FooChargeSpeedUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooChargeSpeedUnit {
+	FOO_KILOWATT_HOUR
+	FOO_KILOMETERS_PER_HOUR
+	FOO_MILES_PER_HOUR
+}
+input FooChargeTotalInput {
+	"""
+	Value of the temperature of the battery
+	"""
+	value: Float
+	"""
+	Type of total charge amount
+	"""
+	type: FooStateOfChargeUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+"""
+A groupped representation of EVSEs
+"""
+type FooCharger {
+	"""
+	Type of charger
+	"""
+	standard: FooConnectorType
+	"""
+	Power of a charger
+	"""
+	power: Float
+	"""
+	Price of a charger
+	"""
+	price: String
+	"""
+	Charging speed
+	"""
+	speed: FooStationSpeedType
+	"""
+	Statuses of all the EVSEs grouped in a charger
+	"""
+	status: FooChargerStatuses
+	"""
+	Total number of EVSEs grouped in a charger
+	"""
+	total: Int
+}
+enum FooChargerStatus {
+	FOO_FREE
+	FOO_BUSY
+	FOO_UNKNOWN
+	FOO_ERROR
+}
+"""
+Groupping by status of the chargers
+"""
+type FooChargerStatuses {
+	"""
+	How many are free
+	"""
+	free: Int
+	"""
+	How many are busy
+	"""
+	busy: Int
+	"""
+	How many are unknown
+	"""
+	unknown: Int
+	"""
+	How many are not available
+	"""
+	error: Int
+}
+"""
+Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+CT range is based on the theoretical distance driven using only the electric engine.
+Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges
+"""
+type FooChargetripRange {
+	"""
+	Worst conditions are based on -10°C and use of heating
+	"""
+	worst(unit: FooDistanceUnit): Float
+	"""
+	Best conditions are based on 23°C and no use of A/C
+	"""
+	best(unit: FooDistanceUnit): Float
+}
+type FooChargingBehaviour {
+	"""
+	Charging behaviour of users divided in groups, based on real-time information
+	"""
+	code: FooChargingBehaviourCode
+	"""
+	Description of charging behaviour
+	"""
+	description: String
+}
+enum FooChargingBehaviourCode {
+	FOO_URBAN_CHARGING
+	FOO_FAST_CHARGING
+	FOO_MIXED_CHARGING
+	FOO_NOISE_CHARGING
+	FOO_OVERNIGHT_CHARGING
+	FOO_OFFICE_CHARGING
+}
+type FooConnect {
+	"""
+	List of connectivity providers to which the vehicle can connect. This field returns null for free users. Please contact customer success for more information.
+	"""
+	providers: [FooConnectProvider!]
+}
+type FooConnectBattery {
+	"""
+	Estimated range by OEM
+	"""
+	range: Float
+	"""
+	Percentage of the battery remaining
+	"""
+	percentage: Float
+	"""
+	Capacity of the battery, in kwh
+	"""
+	capacity: Float
+	"""
+	Date when the battery data was retrieved, as ISO-8601 date
+	"""
+	date: FooDateTime
+}
+type FooConnectCharge {
+	"""
+	Vehicle is plugged in
+	"""
+	is_plugged_in: Boolean
+	"""
+	Vehicle is charging
+	"""
+	is_charging: Boolean
+	"""
+	Battery is fully charged
+	"""
+	is_fully_charged: Boolean
+	"""
+	Charge limit defined by vehicle owner
+	"""
+	limit: Int
+	"""
+	Charge speed, in kwh
+	"""
+	charge_speed: Float
+	"""
+	Estimation when charging is completed, as ISO-8601 date
+	"""
+	fully_charged_at: FooDateTime
+	"""
+	Estimated minutes till charged
+	"""
+	minutes_till_charged: Int
+	"""
+	Date when the charge data was retrieved, as ISO-8601 date
+	"""
+	date: FooDateTime
+}
+input FooConnectFilter {
+	"""
+	List of connectivity providers to which a vehicle can connect
+	"""
+	providers: FooConnectProvider
+}
+"""
+Location of the vehicle
+"""
+type FooConnectLocation {
+	"""
+	Feature type
+	"""
+	type: FooFeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooGeometryPoint!
+	"""
+	Properties object containing meta data about the feature point
+	"""
+	properties: FooConnectLocationProperties
+}
+"""
+Properties of a vehicle location
+"""
+type FooConnectLocationProperties {
+	"""
+	Date when the location was retrieved, as ISO-8601 date
+	"""
+	date: FooDateTime!
+}
+type FooConnectOdometer {
+	"""
+	Odometer value, distance driven, default in km
+	"""
+	distance: Float
+	"""
+	Date when the odometer data was retrieved, as ISO-8601 date
+	"""
+	date: FooDateTime
+}
+enum FooConnectProvider {
+	FOO_ENODE
+}
+enum FooConnectScope {
+	FOO_LOCATION
+	FOO_CHARGE_STATE
+	FOO_ODOMETER
+}
+type FooConnectedVehicle {
+	"""
+	Unique ID of the connected vehicle
+	"""
+	id: ID!
+	"""
+	Unique ID of the vehicle
+	"""
+	vehicle_id: ID!
+	"""
+	Status of the connected vehicle
+	"""
+	status: FooConnectedVehicleStatus!
+	"""
+	URL to connect the vehicle to the connectivity provider
+	"""
+	authorization_url: String
+	"""
+	Connectivity provider
+	"""
+	provider: FooCarConnectivityProvider!
+	"""
+	Scope for accessing the vehicle
+	"""
+	scope: [FooConnectScope]
+	"""
+	Custom label for a connected vehicle that can be assigned by a user
+	"""
+	label: String
+	"""
+	Vehicle identification number, unique identifier for a vehicle
+	"""
+	vin: String
+}
+input FooConnectedVehicleListFilter {
+	"""
+	Status of the connected vehicle
+	"""
+	status: FooConnectedVehicleStatus = "[pending_authorization, pending_removal, authorized]"
+}
+enum FooConnectedVehicleStatus {
+	FOO_PENDING_AUTHORIZATION
+	FOO_AUTHORIZED
+	FOO_PENDING_REMOVAL
+	FOO_REMOVED
+}
+"""
+Connector data which extends OCPI Connector
+"""
+type FooConnector {
+	"""
+	Identifier of a connector within an EVSE. Two connectors may have the same ID as long as they do not belong to the same EVSE object.
+	"""
+	id: String
+	"""
+	Standard of an installed connector.
+	"""
+	standard: FooConnectorType
+	"""
+	Format (socket/cable) of an installed connector.
+	"""
+	format: FooOCPIConnectorFormat
+	"""
+	Type of power of an installed connector. 
+	"""
+	power_type: FooOCPIPowerType
+	"""
+	Maximum voltage of an connector (line to neutral for AC_3_PHASE), in volt [V]. For example: DC Chargers might vary the voltage during charging when battery almost full.
+	"""
+	max_voltage: Int
+	"""
+	Maximum amperage of a connector, in ampere [A].
+	"""
+	max_amperage: Int
+	"""
+	Maximum electric power that can be delivered by a connector, in watt [W]. When the maximum electric power is lower than the calculated value from voltage and amperage, this value should be set.
+	For example: A DC Charge Point which can deliver up to 920V and up to 400A can be limited to a maximum of 150kW. Depending on the vehicle, it may supply maximum voltage or current, but not both at the same time.
+	For AC Charge Points, the amount of phases used can also have influence on the maximum power.
+	"""
+	max_electric_power: Int
+	"""
+	Maximum electric power in kW
+	"""
+	power: Float
+	"""
+	Identifiers of the currently valid charging tariffs. Multiple tariffs are possible, but only one of each Tariff.type can be active at the same time. Tariffs with the same type are only allowed, if they are not active at the same time: start_date_time and end_date_time period not overlapping.
+	When preference-based smart charging is supported, one tariff for every possible ProfileType should be provided. This tells the user about the options they have at this Connector, and what the tariff is for every option.
+	For a "free of charge" tariff, this field should be set and point to a defined "free of charge" tariff.
+	"""
+	tariff_ids: [String]
+	"""
+	URL to an operator’s terms and conditions.
+	"""
+	terms_and_conditions: String
+	"""
+	Timestamp when a connector was last updated (or created).
+	"""
+	last_updated: FooDateTime
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	List of valid charging tariffs
+	"""
+	tariff: [FooOCPITariff]
+	"""
+	Charging prices
+	"""
+	pricing: FooPricing
+	"""
+	Custom properties of a connector. These are vendor specific and will return null values on the fields that are not supported by your station database
+	"""
+	custom_properties: FooConnectorCustomProperties
+}
+"""
+Custom properties for connectors
+"""
+type FooConnectorCustomProperties {
+	"""
+	Charging prices
+	"""
+	pricing: FooPricing
+	"""
+	Custom connector properties for OICP databases. Station databases that not follow the OICP standard return null values
+	"""
+	oicp: FooOICPConnectorCustomProperties
+}
+"""
+The socket or plug standard of the charging point.
+"""
+enum FooConnectorType {
+	FOO_CHADEMO
+	FOO_DOMESTIC_A
+	FOO_DOMESTIC_B
+	FOO_DOMESTIC_C
+	FOO_DOMESTIC_D
+	FOO_DOMESTIC_E
+	FOO_DOMESTIC_F
+	FOO_DOMESTIC_G
+	FOO_DOMESTIC_H
+	FOO_DOMESTIC_I
+	FOO_DOMESTIC_J
+	FOO_DOMESTIC_K
+	FOO_DOMESTIC_L
+	FOO_DOMESTIC_M
+	FOO_DOMESTIC_N
+	FOO_DOMESTIC_O
+	FOO_IEC_60309_2_SINGLE_16
+	FOO_IEC_60309_2_THREE_16
+	FOO_IEC_60309_2_THREE_32
+	FOO_IEC_60309_2_THREE_64
+	FOO_IEC_62196_T1
+	FOO_IEC_62196_T1_COMBO
+	FOO_IEC_62196_T2
+	FOO_IEC_62196_T2_COMBO
+	FOO_IEC_62196_T3A
+	FOO_IEC_62196_T3C
+	FOO_PANTOGRAPH_BOTTOM_UP
+	FOO_PANTOGRAPH_TOP_DOWN
+	FOO_TESLA_R
+	FOO_TESLA_S
+	FOO_GB_T
+	FOO_CHAOJI
+	FOO_NEMA_5_20
+	FOO_NEMA_6_30
+	FOO_NEMA_6_50
+	FOO_NEMA_10_30
+	FOO_NEMA_10_50
+	FOO_NEMA_14_30
+	FOO_NEMA_14_50
+}
+enum FooConsumptionUnit {
+	FOO_KILOWATT_HOURS_PER_100_KILOMETERS
+	FOO_WATT_HOURS_PER_KILOMETER
+	FOO_KILOMETERS_PER_KILOWATT_HOUR
+	FOO_KILOWATT_HOURS_PER_100_MILES
+	FOO_WATT_HOURS_PER_MILE
+	FOO_MILES_PER_KILOWATT_HOUR
+}
+"""
+The complete contact information
+"""
+type FooContact {
+	"""
+	The phone number in international format
+	"""
+	phone: String
+	"""
+	The email address
+	"""
+	email: String
+	"""
+	The absolute URL of the website
+	"""
+	website: String
+	"""
+	The absolute URL of the facebook profile page
+	"""
+	facebook: String
+	"""
+	The absolute URL of the twitter profile page
+	"""
+	twitter: String
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+}
+"""
+ISO-3166 alpha-2 country codes
+"""
+enum FooCountryCodeAlpha2 {
+	FOO_AD
+	FOO_AE
+	FOO_AF
+	FOO_AG
+	FOO_AI
+	FOO_AL
+	FOO_AM
+	FOO_AN
+	FOO_AO
+	FOO_AQ
+	FOO_AR
+	FOO_AS
+	FOO_AT
+	FOO_AU
+	FOO_AW
+	FOO_AX
+	FOO_AZ
+	FOO_BA
+	FOO_BB
+	FOO_BD
+	FOO_BE
+	FOO_BF
+	FOO_BG
+	FOO_BH
+	FOO_BI
+	FOO_BJ
+	FOO_BL
+	FOO_BM
+	FOO_BN
+	FOO_BO
+	FOO_BQ
+	FOO_BR
+	FOO_BS
+	FOO_BT
+	FOO_BV
+	FOO_BW
+	FOO_BY
+	FOO_BZ
+	FOO_CA
+	FOO_CC
+	FOO_CD
+	FOO_CF
+	FOO_CG
+	FOO_CH
+	FOO_CI
+	FOO_CK
+	FOO_CL
+	FOO_CM
+	FOO_CN
+	FOO_CO
+	FOO_CR
+	FOO_CS
+	FOO_CU
+	FOO_CV
+	FOO_CW
+	FOO_CX
+	FOO_CY
+	FOO_CZ
+	FOO_DE
+	FOO_DJ
+	FOO_DK
+	FOO_DM
+	FOO_DO
+	FOO_DZ
+	FOO_EC
+	FOO_EE
+	FOO_EG
+	FOO_EH
+	FOO_ER
+	FOO_ES
+	FOO_ET
+	FOO_FI
+	FOO_FJ
+	FOO_FK
+	FOO_FM
+	FOO_FO
+	FOO_FR
+	FOO_GA
+	FOO_GB
+	FOO_GD
+	FOO_GE
+	FOO_GF
+	FOO_GG
+	FOO_GH
+	FOO_GI
+	FOO_GL
+	FOO_GM
+	FOO_GN
+	FOO_GP
+	FOO_GQ
+	FOO_GR
+	FOO_GS
+	FOO_GT
+	FOO_GU
+	FOO_GW
+	FOO_GY
+	FOO_HK
+	FOO_HM
+	FOO_HN
+	FOO_HR
+	FOO_HT
+	FOO_HU
+	FOO_ID
+	FOO_IE
+	FOO_IL
+	FOO_IM
+	FOO_IN
+	FOO_IO
+	FOO_IQ
+	FOO_IR
+	FOO_IS
+	FOO_IT
+	FOO_JE
+	FOO_JM
+	FOO_JO
+	FOO_JP
+	FOO_KE
+	FOO_KG
+	FOO_KH
+	FOO_KI
+	FOO_KM
+	FOO_KN
+	FOO_KP
+	FOO_KR
+	FOO_KW
+	FOO_KY
+	FOO_KZ
+	FOO_LA
+	FOO_LB
+	FOO_LC
+	FOO_LI
+	FOO_LK
+	FOO_LR
+	FOO_LS
+	FOO_LT
+	FOO_LU
+	FOO_LV
+	FOO_LY
+	FOO_MA
+	FOO_MC
+	FOO_MD
+	FOO_ME
+	FOO_MF
+	FOO_MG
+	FOO_MH
+	FOO_MK
+	FOO_ML
+	FOO_MM
+	FOO_MN
+	FOO_MO
+	FOO_MP
+	FOO_MQ
+	FOO_MR
+	FOO_MS
+	FOO_MT
+	FOO_MU
+	FOO_MV
+	FOO_MW
+	FOO_MX
+	FOO_MY
+	FOO_MZ
+	FOO_NA
+	FOO_NC
+	FOO_NE
+	FOO_NF
+	FOO_NG
+	FOO_NI
+	FOO_NL
+	FOO_NO
+	FOO_NP
+	FOO_NR
+	FOO_NU
+	FOO_NZ
+	FOO_OM
+	FOO_PA
+	FOO_PE
+	FOO_PF
+	FOO_PG
+	FOO_PH
+	FOO_PK
+	FOO_PL
+	FOO_PM
+	FOO_PN
+	FOO_PR
+	FOO_PS
+	FOO_PT
+	FOO_PW
+	FOO_PY
+	FOO_QA
+	FOO_RE
+	FOO_RKS
+	FOO_RO
+	FOO_RS
+	FOO_RU
+	FOO_RW
+	FOO_SA
+	FOO_SB
+	FOO_SC
+	FOO_SD
+	FOO_SE
+	FOO_SG
+	FOO_SH
+	FOO_SI
+	FOO_SJ
+	FOO_SK
+	FOO_SL
+	FOO_SM
+	FOO_SN
+	FOO_SO
+	FOO_SR
+	FOO_SS
+	FOO_ST
+	FOO_SV
+	FOO_SX
+	FOO_SY
+	FOO_SZ
+	FOO_TC
+	FOO_TD
+	FOO_TF
+	FOO_TG
+	FOO_TH
+	FOO_TJ
+	FOO_TK
+	FOO_TL
+	FOO_TM
+	FOO_TN
+	FOO_TO
+	FOO_TR
+	FOO_TT
+	FOO_TV
+	FOO_TW
+	FOO_TZ
+	FOO_UA
+	FOO_UG
+	FOO_UM
+	FOO_US
+	FOO_UY
+	FOO_UZ
+	FOO_VA
+	FOO_VC
+	FOO_VE
+	FOO_VG
+	FOO_VI
+	FOO_VN
+	FOO_VU
+	FOO_WF
+	FOO_WS
+	FOO_YE
+	FOO_YT
+	FOO_ZA
+	FOO_ZM
+	FOO_ZW
+}
+input FooCreateConnectedVehicleInput {
+	"""
+	Id from the vehicle
+	"""
+	vehicle_id: ID
+	"""
+	Connectivity provider used to retrieve data from the vehicle
+	"""
+	provider: FooCarConnectivityProvider
+	"""
+	Label for a connected vehicle
+	"""
+	label: FooPlainString
+	"""
+	Provider specific options. See the developer portal for more details
+	"""
+	options: FooCreateConnectedVehicleOptions
+}
+input FooCreateConnectedVehicleOptions {
+	"""
+	Redirect uri
+	"""
+	redirect_uri: FooPlainString
+	"""
+	Scope
+	"""
+	scope: FooConnectScope
+}
+"""
+Currency according to the ISO 4217 standard
+"""
+enum FooCurrencyUnit {
+	FOO_EUR
+	FOO_USD
+	FOO_GBP
+}
+"""
+The date and time scalar
+"""
+scalar FooDateTime
+enum FooDistanceUnit {
+	FOO_METER
+	FOO_FOOT
+	FOO_KILOMETER
+	FOO_MILE
+}
+"""
+EVSE data which extends OCPI EVSE
+"""
+type FooEVSE {
+	"""
+	Uniquely identifies an EVSE within the CPOs platform (and suboperator platforms). For example a database ID or the actual "EVSE ID". This field can never be changed, modified or renamed. This is the 'technical' identification of the EVSE, not to be used as 'human readable' identification, use the field evse_id for that.
+	This field is named uid instead of id, because id could be confused with evse_id which is an eMI3 defined field.
+	"""
+	uid: String
+	"""
+	Compliant with the following specification for EVSE ID from "eMI3 standard version V1.0" (http://emi3group.com/documents-links/) "Part 2: business objects." Optional because: if an evse_id is to be re-used in the real world, the evse_id can be removed from an EVSE object if the status is set to REMOVED.
+	"""
+	evse_id: String
+	"""
+	Indicates the current status of an EVSE.
+	"""
+	status: FooOCPIStatus
+	"""
+	Indicates a planned status update of a nEVSE.
+	"""
+	status_schedule: [FooOCPIStatusSchedule]
+	"""
+	List of functionalities that an EVSE is capable of.
+	"""
+	capabilities: [FooOCPICapability]
+	"""
+	List of available connectors on an EVSE.
+	"""
+	connectors: [FooConnector]
+	"""
+	Level on which a Charge Point is located (in garage buildings) in the locally displayed numbering scheme.
+	"""
+	floor_level: String
+	"""
+	Coordinates of a EVSE.
+	"""
+	coordinates: FooOCPIGeoLocation
+	"""
+	A number/string printed on the outside of an EVSE for visual identification.
+	"""
+	physical_reference: String
+	"""
+	Restrictions that apply to a parking spot.
+	"""
+	parking_restrictions: [FooOCPIParkingRestriction]
+	"""
+	Links to images related to an EVSE such as photos or logos.
+	"""
+	images: [FooOCPIImage]
+	"""
+	Timestamp when this EVSE or one of its Connectors was last updated (or created).
+	"""
+	last_updated: FooDateTime
+	"""
+	Indicates if parking is free or paid.
+	"""
+	parking_cost: FooParkingCost
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	Custom properties of an EVSE
+	"""
+	custom_properties: FooEvseCustomProperties
+}
+input FooElevationInput {
+	"""
+	Value of the elevation
+	"""
+	value: Float
+	"""
+	Type of the value of elevation
+	"""
+	type: FooDistanceUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooElevationUnit {
+	FOO_METER
+	FOO_FOOT
+}
+"""
+Email address scalar, email regex with HTML sanitization
+"""
+scalar FooEmail
+enum FooEmissionRateUnit {
+	FOO_GRAMS_PER_KILOMETER
+	FOO_OUNCES_PER_MILE
+}
+enum FooEmissionUnit {
+	FOO_GRAM
+	FOO_OUNCE
+}
+"""
+Custom EVSE properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type FooEvseCustomProperties {
+	"""
+	OICP standard custom properties
+	"""
+	oicp: FooOICPEvseCustomProperties
+}
+"""
+A GeoJSON Feature<LineString>
+"""
+type FooFeatureLineString {
+	"""
+	Feature type
+	"""
+	type: FooFeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooLineString!
+}
+"""
+A GeoJSON Feature<MultiPolygon>
+"""
+type FooFeatureMultiPolygon {
+	"""
+	Feature type
+	"""
+	type: FooFeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooMultiPolygon!
+	"""
+	Properties of the MultiPolygon Feature
+	"""
+	properties: FooPolygonProperties
+}
+"""
+A GeoJSON Feature<Point>
+"""
+type FooFeatureMultiPolygonPoint {
+	"""
+	Feature type
+	"""
+	type: FooFeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooPoint!
+	"""
+	Optional object where you can store custom data you need in your application.
+	"""
+	properties: FooJSON
+}
+"""
+A GeoJSON Feature<Point>
+"""
+type FooFeaturePoint {
+	"""
+	Feature ID
+	"""
+	id: String
+	"""
+	Feature type
+	"""
+	type: FooFeatureType!
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooPoint!
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+}
+"""
+A GeoJSON Feature<Point> input
+"""
+input FooFeaturePointInput {
+	"""
+	The feature ID
+	"""
+	id: String
+	"""
+	Feature type
+	"""
+	type: FooFeatureType
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooPointInput
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+}
+"""
+A GeoJSON Feature<Point> input
+"""
+input FooFeaturePointPolygonInput {
+	"""
+	Feature type
+	"""
+	type: FooFeatureType
+	"""
+	Geometry of the feature
+	"""
+	geometry: FooPointInput
+	"""
+	Optional object where you can store custom data you need in your application.
+	"""
+	properties: FooFeaturePointPolygonPropertiesInput
+}
+"""
+Properties for Feature<Point> input
+"""
+type FooFeaturePointPolygonProperties {
+	"""
+	Name of the location
+	"""
+	name: String
+}
+"""
+Properties for Feature<Point> input
+"""
+input FooFeaturePointPolygonPropertiesInput {
+	"""
+	Name of the location
+	"""
+	name: String
+}
+"""
+GeoJSON Feature type
+"""
+enum FooFeatureType {
+	FOO_FEATURE
+}
+enum FooFuelConsumptionUnit {
+	FOO_LITERS_PER_100_KILOMETERS
+	FOO_MILES_PER_GALLON
+}
+"""
+Geometry point with GPS coordinates
+"""
+type FooGeometryPoint {
+	type: FooPointType!
+	coordinates: [Float!]!
+}
+"""
+Navigation service providers available
+"""
+enum FooInstructionsFormat {
+	FOO_CHARGETRIP
+	FOO_MAPBOX_V5
+}
+type FooIsoline {
+	"""
+	Isoline id
+	"""
+	id: ID!
+	"""
+	Isoline status
+	"""
+	status: FooIsolineStatus!
+	"""
+	Shape of the isoline consisting in a list of multipolygons
+	"""
+	polygons: [FooFeatureMultiPolygon]
+	"""
+	List of the ferries uniting islands formed by the isoline
+	"""
+	ferries: [FooFeatureLineString]
+	"""
+	Origin point of the request
+	"""
+	origin: FooFeatureMultiPolygonPoint!
+	"""
+	Vehicle id
+	"""
+	vehicle_id: ID!
+	"""
+	Number of Isolines to be generated representing SoC (default: 1, maximum: 20)
+	"""
+	polygon_count: Int
+	"""
+	Season to be taken into account when generating the isoline. Default: current
+	"""
+	season: FooRouteSeason
+}
+enum FooIsolineFerryConnectionsType {
+	FOO_NONE
+	FOO_SINGLE
+}
+input FooIsolineInput {
+	"""
+	Vehicle id
+	"""
+	vehicle_id: ID
+	"""
+	Origin point of the request
+	"""
+	origin: FooFeaturePointPolygonInput
+	"""
+	Numbers of polygons to be generated (default: 1, maximum: 20)
+	"""
+	polygon_count: Int = "1"
+	"""
+	Vehicle should be able to return to the origin point from any point
+	"""
+	round_trip: Boolean = "false"
+	"""
+	Climate is on
+	"""
+	climate_control: Boolean = "true"
+	"""
+	Season to be taken into account when generating the isoline
+	"""
+	season: FooRouteSeason = "current"
+	"""
+	Polygons precision quality
+	"""
+	quality: FooIsolineQuality = "high"
+	"""
+	Include ferry connections. Single and multiple ferry connections increase the calculation time and the number of polygons.
+	"""
+	ferry_connections: FooIsolineFerryConnectionsType = "none"
+}
+"""
+Granularity of the isoline
+"""
+enum FooIsolineQuality {
+	FOO_HIGH
+	FOO_LOW
+}
+"""
+Status of the isoline label
+"""
+enum FooIsolineStatus {
+	FOO_DONE
+	FOO_PENDING
+	FOO_ERROR
+}
+"""
+Any JSON object
+"""
+scalar FooJSON
+"""
+Types of a leg
+"""
+enum FooLegType {
+	FOO_STATION
+	FOO_STATION_VIA
+	FOO_STATION_AMENITY
+	FOO_VIA
+	FOO_FINAL
+	FOO_STATION_FINAL
+}
+"""
+A GeoJSON LineString
+"""
+type FooLineString {
+	"""
+	LineString type
+	"""
+	type: FooLineStringType!
+	"""
+	List of coordinates arrays with longitude as first value and latitude as second one
+	"""
+	coordinates: [[Float!]]!
+}
+"""
+GeoJSON LineString type
+"""
+enum FooLineStringType {
+	FOO_LINE_STRING
+}
+"""
+Preferred language for the mapping
+"""
+enum FooMappingLanguage {
+	FOO_EN
+}
+"""
+Navigation service providers available
+"""
+enum FooMappingProvider {
+	FOO_CHARGETRIP
+	FOO_MAPBOX_V5
+}
+enum FooMeasurementUnit {
+	FOO_MILLIMETER
+	FOO_INCH
+}
+"""
+A GeoJSON Polygon
+"""
+type FooMultiPolygon {
+	"""
+	MultiPolygon type
+	"""
+	type: FooMultiPolygonType!
+	"""
+	List of coordinates representing a polygon
+	"""
+	coordinates: [[[[Float!]]]]!
+}
+"""
+GeoJSON MultiPolygon type
+"""
+enum FooMultiPolygonType {
+	FOO_MULTI_POLYGON
+}
+type FooMutation {
+	"""
+	[BETA] Create a connected vehicle for a given vehicle id and a connectivity provider
+	"""
+	createConnectedVehicle(input: FooCreateConnectedVehicleInput): FooConnectedVehicle
+	"""
+	[BETA] Authorize a connected vehicle
+	"""
+	authorizeConnectedVehicle(input: FooAuthorizeConnectedVehicleInput): FooConnectedVehicle
+	"""
+	[BETA] Update a connected vehicle
+	"""
+	updateConnectedVehicle(input: FooUpdateConnectedVehicleInput): FooConnectedVehicle
+	"""
+	[BETA] Remove a connected vehicle and revoke access
+	"""
+	removeConnectedVehicle(input: FooRemoveConnectedVehicleInput): FooConnectedVehicle
+	"""
+	[BETA] Generate a set of consumption based Isolines
+	"""
+	createIsoline(input: FooIsolineInput): ID
+	"""
+	[BETA] Start a new navigation session on top of an existing route
+	"""
+	startNavigation(input: FooNavigationStartInput): ID
+	"""
+	[BETA] Update the navigation session
+	"""
+	updateNavigation(input: FooNavigationUpdateInput): FooAcknowledgement
+	"""
+	[BETA] Recalculate the current navigation route
+	"""
+	recalculateNavigation(input: FooNavigationRecalculateInput): FooAcknowledgement
+	"""
+	[BETA] End a navigation session
+	"""
+	finishNavigation(input: FooNavigationFinishInput): FooAcknowledgement
+	"""
+	Add a new review.
+	If the `x-token` header is send for a valid user, the review will belong to it, otherwise will be added for an anonymouse user
+	"""
+	addReview(review: FooReviewAdd): FooReview!
+	"""
+	Remove a review added by an authenticated user.
+	The `x-token` header is mandatory in order to authorize the user who wants to remove a review.
+	In case it is not sent, an error will occur.
+	In case the review was not found or belongs to another user an error will occur.
+	This is a premium feature, contact Chargetrip for more information.
+	"""
+	deleteUserReview(id: ID): FooReview!
+	"""
+	Create a new route from the route input and its ID
+	"""
+	newRoute(input: FooRequestInput): ID
+}
+"""
+The navigation session data
+"""
+type FooNavigation {
+	"""
+	ID of the navigation session
+	"""
+	id: ID!
+	"""
+	The current route used for navigation
+	"""
+	route_id: ID!
+	"""
+	The current route alternative used for navigation
+	"""
+	route_alternative_id: ID!
+	"""
+	The state of a navigation session. The status can be driving, charging, finished, or error
+	"""
+	state: FooNavigationState!
+	"""
+	State of charge at the last known location
+	"""
+	state_of_charge(unit: FooStateOfChargeUnit = "kilowatt_hour"): Float!
+	"""
+	Last known location
+	"""
+	last_known_location: FooPoint!
+	"""
+	Next charging station
+	"""
+	next_station: FooNavigationStation
+	"""
+	A set of alternative charging stations to next station
+	"""
+	alternative_stations: [FooNavigationStation!]!
+	"""
+	Navigation instructions
+	"""
+	instructions: FooJSON
+}
+"""
+Input for the navigation recalculate
+"""
+input FooNavigationFinishInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID
+	"""
+	Current coordinates
+	"""
+	current_location: FooPointInput
+}
+input FooNavigationInstructionsInput {
+	"""
+	Turn by turn instructions format for a route
+	"""
+	instructions_format: FooInstructionsFormat
+	"""
+	Preferred navigation instructions language. Default: en
+	"""
+	language: FooMappingLanguage = "en"
+	"""
+	Number of decimals used for the Google Polyline encoding Algorithm. Allowed values are 5 or 6, the default is 5
+	"""
+	precision: Int = "5"
+}
+"""
+Input for the navigation recalculate
+"""
+input FooNavigationRecalculateInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID
+	"""
+	State of charge at origin
+	"""
+	state_of_charge: FooStateOfChargeInput
+	"""
+	Origin location of a new route
+	"""
+	current_location: FooPointInput
+	"""
+	Via points of a new route. If this field is not sent, the original via points will be used
+	"""
+	via: FooFeaturePointInput
+	"""
+	Telemetry data input
+	"""
+	telemetry: FooTelemetryInput
+}
+"""
+Input for the navigation start
+"""
+input FooNavigationStartInput {
+	"""
+	ID of the route of the navigation session
+	"""
+	route_id: ID
+	"""
+	ID of the route alternative of the navigation session
+	"""
+	route_alternative_id: ID
+	"""
+	Current coordinates
+	"""
+	current_location: FooPointInput
+	"""
+	Instruction input format
+	"""
+	instructions: FooNavigationInstructionsInput
+}
+"""
+State of navigation session
+"""
+enum FooNavigationState {
+	FOO_DRIVING
+	FOO_CHARGING
+	FOO_FINISHED
+	FOO_ERROR
+}
+"""
+Navigation session station type
+"""
+type FooNavigationStation {
+	"""
+	The ID as string of the charging station
+	"""
+	station_id: ID!
+	"""
+	GPS location of the charging station
+	"""
+	station_location: FooPoint!
+	"""
+	An array with all GPS locations of via points until the next charging station
+	"""
+	via: [FooPoint!]!
+	"""
+	Estimated state of charge, at arrival on the next charging station
+	"""
+	estimated_state_of_charge(unit: FooStateOfChargeUnit = "kilowatt_hour"): Float!
+	"""
+	Estimated consumption, in kWh, from last the known location until the next charging station
+	"""
+	estimated_consumption: Float!
+	"""
+	Estimated duration, in seconds, from the last known location until the next charging station
+	"""
+	estimated_duration: Int!
+}
+"""
+Input for the navigation update
+"""
+input FooNavigationUpdateInput {
+	"""
+	ID of the navigation session
+	"""
+	id: ID
+	"""
+	A list of locations that were collected since the last update
+	"""
+	location_data: FooNavigationUpdateLocationsInput
+	"""
+	Telemetry data input
+	"""
+	telemetry: FooTelemetryInput
+}
+"""
+Properties of the location
+"""
+input FooNavigationUpdateLocationPropertiesInput {
+	"""
+	Current route leg index corresponding to a location
+	"""
+	route_leg: Int
+	"""
+	Speed at a location
+	"""
+	speed: FooVehicleSpeedInput
+	"""
+	UNIX timestamp at location, in seconds
+	"""
+	timestamp: Int
+	"""
+	Elevation information
+	"""
+	elevation: FooElevationInput
+}
+"""
+Input for the navigation update locations
+"""
+input FooNavigationUpdateLocationsInput {
+	"""
+	GPS location
+	"""
+	geometry: FooPointInput
+	"""
+	Extra information about the location
+	"""
+	properties: FooNavigationUpdateLocationPropertiesInput
+}
+"""
+The non empty string scalar
+"""
+scalar FooNonEmptyString
+"""
+This class defines an additional geo location that is relevant for the Charge Point. The geodetic system to be used is WGS 84.
+"""
+type FooOCPIAdditionalGeoLocation {
+	"""
+	Latitude of the point in decimal degree. Example: 50.770774. Decimal separator: "." Regex: -?[0-9]{1,2}\.[0-9]{5,7}
+	"""
+	latitude: String
+	"""
+	Longitude of the point in decimal degree. Example: -126.104965. Decimal separator: "." Regex: -?[0-9]{1,3}\.[0-9]{5,7}
+	"""
+	longitude: String
+	"""
+	Name of the point in local language or as written at the location. For example the street name of a parking lot entrance or it’s number.
+	"""
+	name: FooOCPIDisplayText
+}
+"""
+The capabilities of an EVSE.
+"""
+enum FooOCPICapability {
+	FOO_CHARGING_PROFILE_CAPABLE
+	FOO_CHARGING_PREFERENCES_CAPABLE
+	FOO_CHIP_CARD_SUPPORT
+	FOO_CONTACTLESS_CARD_SUPPORT
+	FOO_CREDIT_CARD_PAYABLE
+	FOO_DEBIT_CARD_PAYABLE
+	FOO_PED_TERMINAL
+	FOO_REMOTE_START_STOP_CAPABLE
+	FOO_RESERVABLE
+	FOO_RFID_READER
+	FOO_TOKEN_GROUP_CAPABLE
+	FOO_UNLOCK_CAPABLE
+	FOO_START_SESSION_CONNECTOR_REQUIRED
+}
+"""
+The format of the connector, whether it is a socket or a plug.
+"""
+enum FooOCPIConnectorFormat {
+	FOO_SOCKET
+	FOO_CABLE
+}
+"""
+Deprecated: Please use ConnectorType instead
+"""
+enum FooOCPIConnectorType {
+	FOO_CHADEMO
+	FOO_DOMESTIC_A
+	FOO_DOMESTIC_B
+	FOO_DOMESTIC_C
+	FOO_DOMESTIC_D
+	FOO_DOMESTIC_E
+	FOO_DOMESTIC_F
+	FOO_DOMESTIC_G
+	FOO_DOMESTIC_H
+	FOO_DOMESTIC_I
+	FOO_DOMESTIC_J
+	FOO_DOMESTIC_K
+	FOO_DOMESTIC_L
+	FOO_DOMESTIC_M
+	FOO_DOMESTIC_N
+	FOO_DOMESTIC_O
+	FOO_IEC_60309_2_SINGLE_16
+	FOO_IEC_60309_2_THREE_16
+	FOO_IEC_60309_2_THREE_32
+	FOO_IEC_60309_2_THREE_64
+	FOO_IEC_62196_T1
+	FOO_IEC_62196_T1_COMBO
+	FOO_IEC_62196_T2
+	FOO_IEC_62196_T2_COMBO
+	FOO_IEC_62196_T3A
+	FOO_IEC_62196_T3C
+	FOO_PANTOGRAPH_BOTTOM_UP
+	FOO_PANTOGRAPH_TOP_DOWN
+	FOO_TESLA_R
+	FOO_TESLA_S
+	FOO_GB_T
+	FOO_CHAOJI
+	FOO_NEMA_5_20
+	FOO_NEMA_6_30
+	FOO_NEMA_6_50
+	FOO_NEMA_10_30
+	FOO_NEMA_10_50
+	FOO_NEMA_14_30
+	FOO_NEMA_14_50
+}
+enum FooOCPIDayOfWeek {
+	FOO_MONDAY
+	FOO_TUESDAY
+	FOO_WEDNESDAY
+	FOO_THURSDAY
+	FOO_FRIDAY
+	FOO_SATURDAY
+	FOO_SUNDAY
+}
+type FooOCPIDisplayText {
+	"""
+	Language Code ISO 639-1
+	"""
+	language: String
+	"""
+	Text to be displayed to an end user. No markup, html etc. allowed.
+	"""
+	text: String
+}
+"""
+This type is used to specify the energy mix and environmental impact of the supplied energy at a location or in a tariff.
+"""
+type FooOCPIEnergyMix {
+	"""
+	True if the power is 100% from regenerative sources
+	"""
+	is_green_energy: Boolean
+	"""
+	Key-value pairs (enum + percentage) of energy sources of this location’s tariff.
+	"""
+	energy_sources: [FooOCPIEnergySource]
+	"""
+	Key-value pairs (enum + percentage) of nuclear waste and CO2 exhaust of this location’s tariff.
+	"""
+	environ_impact: [FooOCPIEnvironmentalImpact]
+	"""
+	Name of the energy supplier, delivering the energy for this location or tariff.*
+	"""
+	supplier_name: String
+	"""
+	Name of the energy suppliers product/tariff plan used at this location.*
+	"""
+	energy_product_name: String
+}
+type FooOCPIEnergySource {
+	"""
+	The type of energy source.
+	"""
+	source: FooOCPIEnergySourceCategory
+	"""
+	Percentage of this source (0-100) in the mix.
+	"""
+	percentage: Int
+}
+"""
+Categories of energy sources.
+"""
+enum FooOCPIEnergySourceCategory {
+	FOO_NUCLEAR
+	FOO_GENERAL_FOSSIL
+	FOO_COAL
+	FOO_GAS
+	FOO_GENERAL_GREEN
+	FOO_SOLAR
+	FOO_WIND
+	FOO_WATER
+}
+"""
+Amount of waste produced/emitted per kWh.
+"""
+type FooOCPIEnvironmentalImpact {
+	"""
+	The environmental impact category of this value.
+	"""
+	category: FooOCPIEnvironmentalImpactCategory
+	"""
+	Amount of this portion in g/kWh.
+	"""
+	amount: Float
+}
+"""
+Categories of environmental impact values.
+"""
+enum FooOCPIEnvironmentalImpactCategory {
+	FOO_NUCLEAR_WASTE
+	FOO_CARBON_DIOXIDE
+}
+"""
+Specifies one exceptional period for opening or access hours.
+"""
+type FooOCPIExceptionalPeriod {
+	"""
+	Begin of the exception. In UTC, time_zone field can be used to convert to local time.
+	"""
+	period_begin: FooDateTime
+	"""
+	End of the exception. In UTC, time_zone field can be used to convert to local time.
+	"""
+	period_end: FooDateTime
+}
+enum FooOCPIFacility {
+	FOO_HOTEL
+	FOO_RESTAURANT
+	FOO_CAFE
+	FOO_MALL
+	FOO_SUPERMARKET
+	FOO_SPORT
+	FOO_RECREATION_AREA
+	FOO_NATURE
+	FOO_MUSEUM
+	FOO_BIKE_SHARING
+	FOO_BUS_STOP
+	FOO_TAXI_STAND
+	FOO_TRAM_STOP
+	FOO_METRO_STATION
+	FOO_TRAIN_STATION
+	FOO_AIRPORT
+	FOO_PARKING_LOT
+	FOO_CARPOOL_PARKING
+	FOO_FUEL_STATION
+	FOO_WIFI
+}
+"""
+This class defines the geo location of the Charge Point. The geodetic system to be used is WGS 84.
+"""
+type FooOCPIGeoLocation {
+	"""
+	Latitude of the point in decimal degree. Example: 50.770774. Decimal separator: "." Regex: -?[0-9]{1,2}\.[0-9]{5,7}
+	"""
+	latitude: String
+	"""
+	Longitude of the point in decimal degree. Example: -126.104965. Decimal separator: "." Regex: -?[0-9]{1,3}\.[0-9]{5,7}
+	"""
+	longitude: String
+}
+"""
+Opening and access hours of the location.
+"""
+type FooOCPIHours {
+	"""
+	True to represent 24 hours a day and 7 days a week, except the given exceptions.
+	"""
+	twentyfourseven: Boolean
+	"""
+	Regular hours, weekday-based. Only to be used if twentyfourseven=false, then this field needs to contain at least one RegularHours object.
+	"""
+	regular_hours: [FooOCPIRegularHours]
+	"""
+	Exceptions for specified calendar dates, time-range based. Periods the station is operating/accessible. Additional to regular_hours. May overlap regular rules.
+	"""
+	exceptional_openings: [FooOCPIExceptionalPeriod]
+	"""
+	Exceptions for specified calendar dates, time-range based. Periods the station is not operating/accessible. Overwriting regular_hours and exceptional_openings. Should not overlap exceptional_openings.
+	"""
+	exceptional_closings: [FooOCPIExceptionalPeriod]
+}
+type FooOCPIImage {
+	"""
+	URL from where the image data can be fetched through a web browser.
+	"""
+	url: String
+	"""
+	URL from where a thumbnail of the image can be fetched through a webbrowser.
+	"""
+	thumbnail: String
+	"""
+	Category of an image
+	"""
+	category: FooOCPIImageCategory
+	"""
+	Image type: gif, jpeg, png, svg
+	"""
+	type: String
+	"""
+	Width of the full scale image
+	"""
+	width: Int
+	"""
+	Height of the full scale image
+	"""
+	height: Int
+}
+"""
+The category of an image to obtain the correct usage in a user presentation. The category has to be set accordingly to the image content in order to guarantee the right usage.
+"""
+enum FooOCPIImageCategory {
+	FOO_CHARGER
+	FOO_ENTRANCE
+	FOO_LOCATION
+	FOO_NETWORK
+	FOO_OPERATOR
+	FOO_OTHER
+	FOO_OWNER
+}
+"""
+This value, if provided, represents the restriction to the parking spot for different purposes.
+"""
+enum FooOCPIParkingRestriction {
+	FOO_EV_ONLY
+	FOO_PLUGGED
+	FOO_DISABLED
+	FOO_CUSTOMERS
+	FOO_MOTORCYCLES
+}
+"""
+Reflects the general type of the charge point’s location. May be used for user information.
+"""
+enum FooOCPIParkingType {
+	FOO_ALONG_MOTORWAY
+	FOO_PARKING_GARAGE
+	FOO_PARKING_LOT
+	FOO_ON_DRIVEWAY
+	FOO_ON_STREET
+	FOO_UNDERGROUND_GARAGE
+}
+enum FooOCPIPowerType {
+	FOO_AC_1_PHASE
+	FOO_AC_3_PHASE
+	FOO_AC_2_PHASE
+	FOO_AC_2_PHASE_SPLIT
+	FOO_DC
+}
+type FooOCPIPrice {
+	"""
+	Price/Cost excluding VAT.
+	"""
+	excl_vat: Float
+	"""
+	Price/Cost including VAT.
+	"""
+	incl_vat: Float
+}
+type FooOCPIPriceComponent {
+	"""
+	Type of tariff dimension.
+	"""
+	type: FooOCPITariffDimensionType
+	"""
+	Price per unit (excl. VAT) for this tariff dimension.
+	"""
+	price: Float
+	"""
+	Applicable VAT percentage for this tariff dimension. If omitted, no VAT is applicable. Not providing a VAT is different from 0% VAT, which would be a value of 0.0 here.
+	"""
+	vat: Float
+	"""
+	Minimum amount to be billed. This unit will be billed in this step_size blocks. For example: if type is TIME and step_size has a value of 300, then time will be billed in blocks of 5 minutes. If 6 minutes were used, 10 minutes (2 blocks of step_size) will be billed.
+	"""
+	step_size: Int
+}
+"""
+Regular recurring operation or access hours.
+"""
+type FooOCPIRegularHours {
+	"""
+	Number of days in the week, from Monday (1) till Sunday (7)
+	"""
+	weekday: Int
+	"""
+	Begin of the regular period, in local time, given in hours and minutes. Must be in 24h format with leading zeros. Example: "18:15". Hour/Minute separator: ":" Regex: ([0-1][0-9]|2[1-3]):[0-5][0-9].
+	"""
+	period_begin: String
+	"""
+	End of the regular period, in local time, syntax as for period_begin. Must be later than period_begin.
+	"""
+	period_end: String
+}
+enum FooOCPIReservationRestrictionType {
+	FOO_RESERVATION
+	FOO_RESERVATION_EXPIRES
+}
+"""
+The status of an EVSE.
+"""
+enum FooOCPIStatus {
+	FOO_AVAILABLE
+	FOO_BLOCKED
+	FOO_CHARGING
+	FOO_INOPERATIVE
+	FOO_OUTOFORDER
+	FOO_PLANNED
+	FOO_REMOVED
+	FOO_RESERVED
+	FOO_UNKNOWN
+}
+"""
+This type is used to schedule status periods in the future. The eMSP can provide this information to the EV user for trip planning purposes. A period MAY have no end. Example: "This station will be running as of tomorrow. Today it is still planned and under construction.
+"""
+type FooOCPIStatusSchedule {
+	"""
+	Begin of the scheduled period.
+	"""
+	period_begin: FooDateTime
+	"""
+	End of the scheduled period, if known.
+	"""
+	period_end: FooDateTime
+	"""
+	Status value during the scheduled period.
+	"""
+	status: FooOCPIStatus
+}
+type FooOCPITariff {
+	"""
+	ISO-3166 alpha-2 country code of the CPO that owns this tariff
+	"""
+	country_code: String
+	"""
+	CPO ID of the CPO that owns this tariff (following the ISO-15118 standard)
+	"""
+	party_id: String
+	"""
+	Uniquely identifies the tariff within the CPO’s platform (and suboperator platforms)
+	"""
+	id: String
+	"""
+	ISO-4217 code of the currency of this tariff.
+	"""
+	currency: String
+	"""
+	Defines the type of the tariff. This allows for distinction in case of given charging preferences. When omitted, this tariff is valid for all sessions
+	"""
+	type: FooOCPITariffType
+	"""
+	List of alternative tariff information texts, in multiple languages
+	"""
+	tariff_alt_text: [FooOCPIDisplayText]
+	"""
+	URL to a web page that contains an explanation of the tariff information in human readable form
+	"""
+	tariff_alt_url: String
+	"""
+	When this field is set, a charging session with this tariff will cost at least the amount shown. This is different from a FLAT fee (start tariff, transaction fee), as a FLAT fee is a fixed amount that must be paid for any charging session. A minimum price indicates that when the cost of a charging session is lower than this amount, the cost of the session will be equal to this amount
+	"""
+	min_price: FooOCPIPrice
+	"""
+	When this field is set, a charging session with this tariff will NOT cost more than this amount
+	"""
+	max_price: FooOCPIPrice
+	"""
+	List of tariff elements
+	"""
+	elements: [FooOCPITariffElement]
+	"""
+	Time when this tariff becomes active, in UTC, time_zone field of the Location can be used to convert to local time. Typically used for a new tariff that is already given with the location, before it becomes active
+	"""
+	start_date_time: FooDateTime
+	"""
+	Time after which this tariff is no longer valid, in UTC, time_zone field if the location can be used to convert to local time. Typically used when this tariff is going to be replaced with a different tariff in the near future
+	"""
+	end_date_time: FooDateTime
+	"""
+	Details about the energy supplied with this tariff
+	"""
+	energy_mix: FooOCPIEnergyMix
+	"""
+	Timestamp when this tariff was last updated (or created)
+	"""
+	last_updated: FooDateTime
+}
+enum FooOCPITariffDimensionType {
+	FOO_ENERGY
+	FOO_FLAT
+	FOO_PARKING_TIME
+	FOO_TIME
+}
+type FooOCPITariffElement {
+	"""
+	List of price components that describe the pricing of a tariff.
+	"""
+	price_components: [FooOCPIPriceComponent]
+	"""
+	Restrictions that describe the applicability of a tariff.
+	"""
+	restrictions: [FooOCPITariffRestrictions]
+}
+type FooOCPITariffRestrictions {
+	"""
+	Start time of day in local time, the time zone is defined in the time_zone field of the Location, for example 13:30, valid from this time of the day. Must be in 24h format with leading zeros. Hour/Minute separator: ":" Regex: ([0-1][0-9]|2[1-3]):[0-5][0-9]
+	"""
+	start_time: String
+	"""
+	End time of day in local time, the time zone is defined in the time_zone field of the Location, for example 19:45, valid until this time of the day. Same syntax as start_time.
+	"""
+	end_time: String
+	"""
+	Start date in local time, the time zone is defined in the time_zone field of the Location, for example: 2015-12-24, valid from this day. Regex: ([12][0-9]{3})-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])
+	"""
+	start_date: String
+	"""
+	End date in local time, the time zone is defined in the time_zone field of the Location, for example: 2015-12-27, valid until this day (exclusive). Same syntax as start_date
+	"""
+	end_date: String
+	"""
+	Minimum consumed energy in kWh, for example 20, valid from this amount of energy being used
+	"""
+	min_kwh: Float
+	"""
+	Maximum consumed energy in kWh, for example 50, valid until this amount of energy being used
+	"""
+	max_kwh: Float
+	"""
+	Sum of the minimum current in over all phases, for example 5. When the EV is charging with more than the defined amount of current, this tariff element is/becomes active. If the charging current is or becomes lower, this tariff element is not or no longer valid and becomes inactive. This does not describe the minimum current over the entire charging session. This restriction can make a tariff element become active when the charging current is above the defined value, but the tariff element MUST no longer be active when the charging current drops below the defined value
+	"""
+	min_current: Float
+	"""
+	Sum of the maximum current in over all phases, for example 20. When the EV is charging with less than the defined amount of current, this tariff element becomes/is active. If the charging current is or becomes higher, this tariff element is not or no longer valid and becomes inactive. This describes NOT the maximum current over the entire Charging Session. This restriction can make a tariff element become active when the charging current is below this value, but the tariff element MUST  no longer be active when the charging current raises above the defined value
+	"""
+	max_current: Float
+	"""
+	Minimum power in kW, for example 5. When the EV is charging with more than the defined amount of power, this tariff element is/becomes active. If the charging power is or becomes lower, this tariff element is not or no longer valid and becomes inactive. This does not describe the minimum power over the entire charging session. This restriction can make a tariff element become active when the charging power is above this value, but the TariffElement MUST no longer be active when the charging power drops below the defined value
+	"""
+	min_power: Float
+	"""
+	Maximum power in kW, for example 20. When the EV is charging with less than the defined amount of power, this tariff element becomes/is active. If the charging power is or becomes higher, this tariff element is not or no longer valid and becomes inactive. This does not describe the maximum power over the entire charging session. This restriction can make a tariff element become active when the charging power is below this value, but the TariffElement MUST no longer be active when the charging power raises above the defined value
+	"""
+	max_power: Float
+	"""
+	Minimum duration in seconds the charging session MUST last (inclusive). When the duration of a charging session is longer than the defined value, this TariffElement is or becomes active. Before that moment, this tariff element is not yet active
+	"""
+	min_duration: Float
+	"""
+	Maximum duration in seconds the charging session MUST last (exclusive). When the duration of a charging session is shorter than the defined value, this tariff element is or becomes active. After that moment, this tariff element is no longer active
+	"""
+	max_duration: Float
+	"""
+	Which day(s) of the week this tariff element is active.
+	"""
+	day_of_week: FooOCPIDayOfWeek
+	"""
+	When this field is present, the tariff element describes reservation costs. A reservation starts when the reservation is made, and ends when the drivers starts charging on the reserved EVSE/Location, or when the reservation expires. A reservation can only have: FLAT and TIME TariffDimensions, where TIME is for the duration of the reservation
+	"""
+	reservation: FooOCPIReservationRestrictionType
+}
+enum FooOCPITariffType {
+	FOO_AD_HOC_PAYMENT
+	FOO_PROFILE_CHEAP
+	FOO_PROFILE_FAST
+	FOO_PROFILE_GREEN
+	FOO_REGULAR
+}
+"""
+List of charging modes that are supported
+"""
+enum FooOICPChargingModes {
+	FOO_MODE_1
+	FOO_MODE_2
+	FOO_MODE_3
+	FOO_MODE_4
+	FOO_CHADEMO
+}
+"""
+Custom connector properties for OICP databases. Station databases that not follow the OICP standard return null values
+"""
+type FooOICPConnectorCustomProperties {
+	"""
+	Returns whether the connector is able to deliver different power outputs
+	"""
+	dynamic_power_level: Boolean
+	"""
+	List of charging modes that are supported as specified by IEC 61851-1
+	"""
+	charging_modes: [FooOICPChargingModes!]
+}
+"""
+List of authentication modes that are supported
+"""
+enum FooOICPEvseAuthenticationMode {
+	FOO_NFC_RFID_CLASSIC
+	FOO_NFC_RFID_DESFIRE
+	FOO_PNC
+	FOO_REMOTE
+	FOO_DIRECT_PAYMENT
+	FOO_NO_AUTHENTICATION_REQUIRED
+}
+"""
+Custom EVSE properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type FooOICPEvseCustomProperties {
+	"""
+	List of authentication modes that are supported
+	"""
+	authentication_modes: [FooOICPEvseAuthenticationMode!]!
+	"""
+	Returns a value if the EVSE has a limited capacity (e.g. built-in battery). Values are in kWh
+	"""
+	max_capacity: Int
+	"""
+	List of payment options that are supported
+	"""
+	payment_options: [FooOICPPaymentOptions!]!
+	"""
+	List of value added services that are supported
+	"""
+	value_added_services: [FooOICPValueAddedServices!]!
+	"""
+	List of additional info by locale
+	"""
+	additional_info: [FooOICPEvseCustomPropertiesAdditionalInfo!]
+	"""
+	When the value is set to false this station does not support remote start and stop by Hubject
+	"""
+	is_hubject_compatible: Boolean!
+	"""
+	Name of the charging point manufacturer
+	"""
+	hardware_manufacturer: String
+}
+type FooOICPEvseCustomPropertiesAdditionalInfo {
+	"""
+	The language in which the additional info text is provided
+	"""
+	lang: String
+	"""
+	Additional info text value
+	"""
+	value: String
+}
+"""
+List of payment options that are supported
+"""
+enum FooOICPPaymentOptions {
+	FOO_NO_PAYMENT
+	FOO_DIRECT
+	FOO_CONTRACT
+}
+"""
+Custom station properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+"""
+type FooOICPStationCustomProperties {
+	"""
+	Returns whether the station is a parking facility
+	"""
+	parking_facility: Boolean
+	"""
+	Returns an identifier for the precise parking spot. Eg. 36 or 12-1
+	"""
+	parking_spot: String
+	"""
+	Returns information on how the charging station provides metering law data
+	"""
+	calibration_law_data_availability: String!
+	"""
+	Identification of the corresponding clearing house in the event that roaming between different clearing houses must be processed in the future
+	"""
+	clearinghouse_id: String
+}
+"""
+List of value added services that are supported
+"""
+enum FooOICPValueAddedServices {
+	FOO_RESERVATION
+	FOO_DYNAMIC_PRICING
+	FOO_PARKING_SENSORS
+	FOO_MAXIMUM_POWER_CHARGING
+	FOO_PREDICTIVE_CHARGE_POINT_USAGE
+	FOO_CHARGING_PLANS
+	FOO_ROOF_PROVIDED
+	FOO_NONE
+}
+input FooOdometerInput {
+	"""
+	Value of the vehicle's odometer
+	"""
+	value: Float
+	"""
+	Type of the value of the vehicle's odometer
+	"""
+	type: FooDistanceUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+"""
+The operator data which extends OCPI BusinessDetails
+"""
+type FooOperator {
+	"""
+	Unique operator ID
+	"""
+	id: ID
+	"""
+	External ID of an operator provided by the operator data source
+	"""
+	external_id: String
+	"""
+	Name of an operator
+	"""
+	name: String
+	"""
+	Link to an operator’s website
+	"""
+	website: String
+	"""
+	Image link to an operator’s logo
+	"""
+	logo: FooOCPIImage
+	"""
+	Deprecated: Not used anymore, please use countries property instead
+	"""
+	country: String
+	"""
+	ISO-3166 alpha-2 country codes an operator is active in.
+	"""
+	countries: [FooCountryCodeAlpha2!]
+	"""
+	Contact information
+	"""
+	contact: FooContact
+	"""
+	Ranking level on which the operator is placed or null in case the operator is not on any ranking level
+	"""
+	ranking: Int
+	"""
+	Flag which indicates if the operator is in the excluded list
+	"""
+	excluded: Boolean
+}
+"""
+Filter which can be applied to retrieve the operator list action
+"""
+input FooOperatorListFilter {
+	"""
+	ISO-3166 alpha-2 country codes an operator is active in.
+	"""
+	countries: FooCountryCodeAlpha2
+	"""
+	List of ranking level(s) to be retrieved. Valid values are 1 to 10
+	"""
+	ranking: Int
+	"""
+	Only retrieve operators that are in the excluded list
+	"""
+	excluded: Boolean
+}
+"""
+Filter which can be applied to retrieve the operator list action
+"""
+input FooOperatorListQuery {
+	"""
+	Unique operator ID
+	"""
+	id: ID
+	"""
+	External ID of an operator provided by an operator data source
+	"""
+	external_id: String
+	"""
+	Exact name
+	"""
+	name: String
+	"""
+	Exact country code
+	"""
+	country: String
+}
+input FooOutsideTempInput {
+	"""
+	Value of the outside temperature
+	"""
+	value: Float
+	"""
+	Type of the value of the outside temperature
+	"""
+	type: FooTemperatureUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooParkingCost {
+	FOO_FREE
+	FOO_PAID
+}
+type FooPathSegment {
+	"""
+	Elevation (altitude) in meters
+	"""
+	elevation: Int
+	"""
+	Average speed, in km/h, for this route path segment
+	"""
+	averageSpeed: Float
+	"""
+	Consumption, in kWh, of a route path segment
+	"""
+	consumption: Float
+	"""
+	Consumption, in kWh per km, of a route path segment
+	"""
+	consumptionPerKm: Float
+	"""
+	Distance, in meters, of a route path segment
+	"""
+	distance: Float
+	"""
+	Duration, in seconds, of a route path segment
+	"""
+	duration: Float
+	"""
+	State of charge, in kWh, of a route path segment
+	"""
+	stateOfCharge: Float
+}
+"""
+The `PlainString` scalar type represents textual data, represented as UTF-8 character sequences.
+The PlainString type represents free-form human-readable text with HTML sanitization.
+"""
+scalar FooPlainString
+"""
+A GeoJSON Point
+"""
+type FooPoint {
+	"""
+	Point type
+	"""
+	type: FooPointType!
+	"""
+	The coordinates array with longitude as first value and latitude as second one
+	"""
+	coordinates: [Float!]!
+}
+"""
+A GeoJSON Point input
+"""
+input FooPointInput {
+	"""
+	Point type
+	"""
+	type: FooPointType
+	"""
+	Coordinates [longitude, latitude]
+	"""
+	coordinates: Float
+}
+"""
+GeoJSON Point type
+"""
+enum FooPointType {
+	FOO_POINT
+}
+"""
+Polygon properties
+"""
+type FooPolygonProperties {
+	"""
+	Index of the feature inside the list
+	"""
+	index: Int
+}
+input FooPowerInput {
+	"""
+	Value of the positive or negative power. When negative the vehicle is charging
+	"""
+	value: Float
+	"""
+	Type of the value of the power
+	"""
+	type: FooPowerUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+"""
+The list of powers for the speed type
+"""
+type FooPowerList {
+	"""
+	The maximum power the plug provides in kW
+	"""
+	power: Float
+	"""
+	The total number of stations with the specified power
+	"""
+	total: Int
+}
+"""
+Power stats model
+"""
+type FooPowerStats {
+	"""
+	The charging speed type for the specified power
+	"""
+	type: FooStationSpeedType
+	"""
+	The list of powers for the speed type
+	"""
+	powers: [FooPowerList]
+}
+enum FooPowerUnit {
+	FOO_KILOWATT
+	FOO_HORSEPOWER
+}
+enum FooPressureUnit {
+	FOO_BAR
+	FOO_POUNDS_PER_SQUARE_INCH
+}
+"""
+The price model
+"""
+type FooPrice {
+	"""
+	The value of the price
+	"""
+	value: String
+	"""
+	The currency of the price
+	"""
+	currency: String
+	"""
+	The pricing model
+	"""
+	model: String
+	"""
+	The value of the price which should be display by the frontend
+	"""
+	displayValue: String
+}
+type FooPricing {
+	"""
+	Unique ID of a price
+	"""
+	id: String
+	"""
+	Price details
+	"""
+	price_list: [FooPricingList]
+}
+type FooPricingList {
+	"""
+	(MSP) Mobility Service Provider
+	"""
+	partner: String
+	"""
+	Product details
+	"""
+	product: FooPricingListProduct
+	"""
+	Price product elements
+	"""
+	elements: [FooPricingListElement]
+}
+type FooPricingListElement {
+	"""
+	Price element type.
+	"""
+	type: FooPricingListElementType
+	"""
+	Price of the element type without VAT.
+	"""
+	price_excl_vat: Float
+	"""
+	VAT percentage to apply
+	"""
+	vat: Float
+}
+enum FooPricingListElementType {
+	FOO_ENERGY
+	FOO_FLAT
+	FOO_TIME
+	FOO_PARKING_TIME
+}
+type FooPricingListProduct {
+	"""
+	Name of the payment card or subscription. If name is 'Adhoc price' the price is the CPO price
+	"""
+	name: String
+	"""
+	Description of the product
+	"""
+	description: String
+	"""
+	Subscription type
+	"""
+	subscription_type: String
+	"""
+	Subscription fee without VAT
+	"""
+	subscription_fee_excl_vat: Float
+	"""
+	Currency
+	"""
+	currency: String
+}
+type FooQuery {
+	"""
+	Get a full list of amenities around a station
+	"""
+	amenityList(stationId: ID): [FooAmenity]
+	"""
+	Get information about a car by its ID
+	"""
+	car(id: ID, externalId: Int): FooCar
+	"""
+	Car premium data provides even more information about your car: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	carPremium(id: ID): FooCarPremium
+	"""
+	Get a full list of cars
+	"""
+	carList(query: FooCarListQuery, search: String, filter: FooCarListFilter, size: Int, page: Int): [FooCarList]
+	"""
+	[BETA] Get a connected vehicles by id
+	"""
+	connectedVehicle(id: ID): FooConnectedVehicle
+	"""
+	[BETA] Get the connected vehicles for the current user
+	"""
+	connectedVehicleList(filter: FooConnectedVehicleListFilter, size: Int = "10", page: Int = "0"): [FooConnectedVehicle]
+	"""
+	[BETA] Retrieve live vehicle data by connected vehicle id
+	"""
+	connectedVehicleData(id: ID): FooVehicleData
+	"""
+	[BETA] Get an isoline by ID
+	"""
+	isoline(id: ID): FooIsoline
+	"""
+	[BETA] Get a navigation session by ID
+	"""
+	navigation(id: ID): FooNavigation
+	"""
+	Get a full list of operators
+	"""
+	operatorList(query: FooOperatorListQuery, search: String, filter: FooOperatorListFilter, size: Int, page: Int): [FooOperator]
+	"""
+	Get information about an operator by its ID
+	"""
+	operator(id: ID): FooOperator
+	"""
+	Get all reviews of a station by the station ID
+	"""
+	reviewList(stationId: ID, size: Int, page: Int): [FooReview!]
+	"""
+	Get all reviews of stations that were added by an authenticated user.
+	The `x-token` header is mandatory in order to authorize the user who wants to retrieve all the reviews added by him/her.
+	This is a premium feature, contact Chargetrip for more information.
+	"""
+	userReviewList(size: Int, page: Int): [FooReview!]
+	"""
+	Get a route by ID
+	"""
+	route(id: ID): FooRoute
+	"""
+	Retrieve information about a route path segment
+	"""
+	routePath(id: ID, location: FooPointInput, alternativeId: ID): FooRoutePath
+	"""
+	Get the station statistics
+	"""
+	stationStats: FooStationStats
+	"""
+	Get information about a station by its ID
+	"""
+	station(id: ID, evse_id: String): FooStation
+	"""
+	Get a full list of stations
+	"""
+	stationList(query: FooStationListQuery, filter: FooStationListFilter, search: String, size: Int, page: Int): [FooStation]
+	"""
+	Search for stations around a GeoJSON point with a specific distance in meters
+	"""
+	stationAround(query: FooStationAroundQuery, filter: FooStationAroundFilter, search: String, size: Int, page: Int): [FooStation]
+	"""
+	Get information about a tariff by the tariff ID
+	"""
+	tariff(id: ID): FooOCPITariff
+	"""
+	Get the full list of tariffs
+	"""
+	tariffList(size: Int, page: Int): [FooOCPITariff]
+	"""
+	Deprecated: This query will be removed in favor of navigation query and subscription. Mapping can be retrieved via the instructions field.
+	"""
+	navigationMapping(id: ID, provider: FooMappingProvider, precision: Int, language: FooMappingLanguage): FooJSON
+	"""
+	[BETA] Get information about a vehicle by its ID.
+	"""
+	vehicle(id: ID, country: FooCountryCodeAlpha2): FooVehicle
+	"""
+	[BETA] Vehicle premium data provides even more information about your vehicle: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
+	"""
+	vehiclePremium(id: ID, country: FooCountryCodeAlpha2): FooVehiclePremium
+	"""
+	[BETA] Get a full list of vehicles.
+	"""
+	vehicleList(search: String, filter: FooVehicleListFilter, country: FooCountryCodeAlpha2, size: Int = "10", page: Int = "0"): [FooVehicleList]
+}
+input FooRemoveConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID
+}
+"""
+EV specific data for a route request
+"""
+type FooRequestEv {
+	"""
+	Internal ID of a Vehicle
+	"""
+	id: ID
+	"""
+	EV battery specific data
+	"""
+	battery: FooRequestEvBattery
+	"""
+	Supported plugs for an EV
+	"""
+	plugs: [FooRequestEvPlug]
+	"""
+	Supported adapters of plugs for an EV
+	"""
+	adapters: [FooRequestEvPlug]
+	"""
+	Minimum desired power of chargers
+	"""
+	minPower: Int
+	"""
+	Climate is on. The default is true
+	"""
+	climate: Boolean
+	"""
+	Cargo weight, in kg
+	"""
+	cargo: Float
+	"""
+	The number of passengers on board
+	"""
+	numberOfPassengers: Int
+	"""
+	Number of occupants
+	"""
+	occupants: Int
+	"""
+	Consumption specific to an EV or inputed by a request
+	"""
+	consumption: FooRequestEvConsumption
+}
+type FooRequestEvBattery {
+	"""
+	Usable capacity of the battery used to compute the route. If this in not filled in, value as the vehicle battery.usable_kwh
+	"""
+	capacity: FooRequestEvBatteryValue
+	"""
+	Usable capacity of a battery, in kWh. This value is computed from the provided capacity value
+	"""
+	capacityKwh: Float
+	"""
+	Current amount of energy in a battery. If this is not filled in, we assume the battery is full and it will be equal to the battery.usable_kwh
+	"""
+	stateOfCharge: FooRequestEvBatteryValue
+	"""
+	Current amount of energy in a battery, in kWh. This value is computed from the provided state of charge
+	"""
+	stateOfChargeKwh: Float
+	"""
+	Desired final amount of energy in a battery. If this is not filled in, it will be set to 20% of the vehicle battery.usable_kwh
+	"""
+	finalStateOfCharge: FooRequestEvBatteryValue
+	"""
+	Desired final amount of energy in a battery, in kWh. This value is computed from the provided final state of charge
+	"""
+	finalStateOfChargeKwh: Float
+}
+input FooRequestEvBatteryInput {
+	"""
+	Usable capacity of a battery used to compute a route. We recommend you stay between 50% and 150%. If this in not filled in, we assume it is the same value as the vehicle battery.usable_kwh
+	"""
+	capacity: FooRequestEvBatteryInputValue
+	"""
+	Current amount of energy in a battery. If this is not filled in, we assume the battery is full and we fill it in with vehicle battery.usable_kwh
+	"""
+	stateOfCharge: FooRequestEvBatteryInputValue
+	"""
+	Desired final amount of energy in a battery. The value should be between 0 and 80% of the vehicle battery.usable_kwh If this is not filled in, we assume it is 20% of the vehicle battery.usable_kwh
+	"""
+	finalStateOfCharge: FooRequestEvBatteryInputValue
+}
+input FooRequestEvBatteryInputValue {
+	"""
+	Value of a desired final amount of energy in a battery
+	"""
+	value: Float
+	"""
+	Type of a desired final amount of energy in a battery
+	"""
+	type: FooBatteryInputType
+}
+type FooRequestEvBatteryValue {
+	"""
+	Value of the desired final amount of energy in a battery
+	"""
+	value: Float!
+	"""
+	Type of the desired final amount of energy in a battery
+	"""
+	type: FooBatteryInputType!
+}
+type FooRequestEvConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: FooCarConsumption
+	"""
+	The consumption, in kWh, of the battery management system
+	"""
+	bms: FooCarConsumption
+	"""
+	The consumption, in kWh, of the vehicle in idle mode
+	"""
+	idle: FooCarConsumption
+}
+input FooRequestEvConsumptionInput {
+	"""
+	Consumption, in kWh, of the auxiliaries
+	"""
+	aux: FooCarConsumptionInput
+	"""
+	Consumption, in kWh, of the battery management system
+	"""
+	bms: FooCarConsumptionInput
+	"""
+	Consumption, in kWh, of the vehicle in idle mode
+	"""
+	idle: FooCarConsumptionInput
+}
+input FooRequestEvInput {
+	"""
+	Internal ID of a Vehicle
+	"""
+	id: ID
+	"""
+	The EV battery specific data
+	"""
+	battery: FooRequestEvBatteryInput
+	"""
+	Supported plugs of an EV
+	"""
+	plugs: FooRequestEvPlugInput
+	"""
+	Supported adapters of plugs of an EV
+	"""
+	adapters: FooRequestEvPlugInput
+	"""
+	Minimum desired power of chargers
+	"""
+	minPower: Int
+	"""
+	Flag which indicates if the climate is on. The default is true
+	"""
+	climate: Boolean
+	"""
+	Number of occupants
+	"""
+	occupants: Int
+	"""
+	Cargo weight, in kg
+	"""
+	cargo: Int
+	"""
+	Consumption specific to the EV or inputted by the request
+	"""
+	consumption: FooRequestEvConsumptionInput
+	"""
+	Deprecated
+	"""
+	auxConsumption: Float
+	"""
+	Deprecated
+	"""
+	bmsConsumption: Float
+}
+type FooRequestEvPlug {
+	"""
+	Type of the plug
+	"""
+	standard: FooConnectorType
+	"""
+	Maximum charging speed for a plug
+	"""
+	chargingPower: Float
+}
+input FooRequestEvPlugInput {
+	"""
+	Type of a plug
+	"""
+	standard: FooConnectorType
+	"""
+	Maximum charging speed for this plug
+	"""
+	chargingPower: Float
+}
+input FooRequestInput {
+	"""
+	EV specific data for a route request
+	"""
+	ev: FooRequestEvInput
+	"""
+	Route request data
+	"""
+	routeRequest: FooRequestRouteInput
+	"""
+	Telemetry data used to overwrite routing parameters
+	"""
+	telemetry: FooJSON
+}
+type FooRequestRoute {
+	"""
+	Requested amenities near the stations, within a 1 kilometer radius
+	"""
+	amenities: [String]
+	"""
+	Amenity preferences for a route
+	"""
+	amenity_preferences: FooRouteAmenityPreferences
+	"""
+	Requested operators
+	"""
+	operatorIds: [String]
+	"""
+	Preferred operators are required. In case there are no preferred operators the route cannot be calculated
+	"""
+	operatorRequired: Boolean
+	"""
+	Encourage the route to use preferred operators. In case there are no preferred operators the route can still be calculated
+	"""
+	operatorPrefer: Boolean
+	"""
+	Operator prioritization for a route
+	"""
+	operators: FooRouteOperators
+	"""
+	Season
+	"""
+	season: FooRouteSeason
+	"""
+	Percentage for the minimum limit of the battery capacity before a recharge. The value should be between 0 and 60, with a default of 10%
+	"""
+	safeRiskMargin: Int
+	"""
+	Origin of a route
+	"""
+	origin: FooFeaturePoint
+	"""
+	Destination of a route
+	"""
+	destination: FooFeaturePoint
+	"""
+	Locations where a route will stop
+	"""
+	via: [FooFeaturePoint]
+	"""
+	Radius in meters for alternative stations along a route (min 500 - max 5000)
+	"""
+	stationsAlongRouteRadius: Int
+	"""
+	Flag indicating wether the turn-by-turn navigation instructions should be prepared. Disclaimer: The functionality is under active development and the final API is a subject to change. Not ready for production
+	"""
+	instructions: Boolean
+	"""
+	Mode that indicates if we optimize the charging time or always charge to the maximum capacity
+	"""
+	chargeMode: FooChargeMode
+}
+input FooRequestRouteInput {
+	"""
+	Deprecated: in favor of amenity preferences. A list of desired amenities near the stations, with a 1 kilometer radius
+	"""
+	amenities: String
+	"""
+	Amenity preferences for a route
+	"""
+	amenity_preferences: FooAmenityPreferencesInput
+	"""
+	Deprecated: in favor of operators. A list of requested operators
+	"""
+	operatorIds: String
+	"""
+	Deprecated: in favor of operators. Flag which indicates if the operators are required
+	"""
+	operatorRequired: Boolean
+	"""
+	Deprecated: in favor of operators. Flag which indicates if the preferred operators should be loaded
+	"""
+	operatorPrefer: Boolean
+	"""
+	Operator prioritization for a route
+	"""
+	operators: FooRouteOperatorsInput
+	"""
+	Optional flag to specify the season
+	"""
+	season: FooRouteSeason
+	"""
+	Percentage for a minimum limit of a battery capacity before a recharge. The value should be between 0 and 60, with a default of 10%
+	"""
+	safeRiskMargin: Int
+	"""
+	Mode that indicates if we optimize the charging time or always charge to the maximum capacity
+	"""
+	chargeMode: FooChargeMode
+	"""
+	Origin of a route
+	"""
+	origin: FooFeaturePointInput
+	"""
+	Destination of a route
+	"""
+	destination: FooFeaturePointInput
+	"""
+	An optional list of locations where we should stop
+	"""
+	via: FooFeaturePointInput
+	"""
+	Alternative stations along a route within a specified radius in meters (minimum 500, maximum 5000)
+	"""
+	stationsAlongRouteRadius: Int
+	"""
+	Deprecated: all routes will have turn-by-turn instructions prepared. Boolean will be ignored
+	"""
+	instructions: Boolean
+}
+type FooRequestUser {
+	"""
+	ID of the user
+	"""
+	id: ID
+}
+"""
+The review model
+"""
+type FooReview {
+	"""
+	ID of a review
+	"""
+	id: ID!
+	"""
+	Station for which a review was provided
+	"""
+	station: FooStation
+	"""
+	User who added a review. If a review was added by an anonymous user, this will be null
+	"""
+	user: FooReviewUser
+	"""
+	Rating of a review
+	"""
+	rating: Int
+	"""
+	Message of a review
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	Vehicle that was provided/selected by a user
+	"""
+	ev: FooCar
+	"""
+	Plug type that was provided/selected by a user
+	"""
+	plugType: FooConnectorType
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: FooReviewTags
+	"""
+	Date and time when a review was created
+	"""
+	createdAt: String
+	"""
+	Date and time when a review was updated
+	"""
+	updatedAt: String
+}
+"""
+Form input to add a new review
+"""
+input FooReviewAdd {
+	"""
+	Station ID for which a review is provided
+	"""
+	stationId: String
+	"""
+	Rating of a review
+	"""
+	rating: Int
+	"""
+	Review message
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	ID of the vehicle that was provided/selected by a user
+	"""
+	ev: String
+	"""
+	Plug type that was provided/selected by a user
+	"""
+	plugType: FooConnectorType
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: FooReviewTagsInput
+}
+"""
+Form input for edit an existing review
+"""
+input FooReviewEdit {
+	"""
+	Rating of a review
+	"""
+	rating: Int
+	"""
+	Review message
+	"""
+	message: String
+	"""
+	Locale of a message
+	"""
+	locale: String
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	Boolean tags for a station review
+	"""
+	tags: FooReviewTagsInput
+}
+"""
+Statistical information for reviews of a station
+"""
+type FooReviewStats {
+	"""
+	Average of all reviews
+	"""
+	rating: Float
+	"""
+	'Total number of reviews
+	"""
+	count: Int
+}
+"""
+Boolean tags for the station review
+"""
+type FooReviewTags {
+	"""
+	Flag which indicates if the station was working when the review was added
+	"""
+	working: Boolean
+	"""
+	Flag which indicates if the user recommended the station when the review was added
+	"""
+	recommended: Boolean
+}
+"""
+Boolean tags for a station review
+"""
+input FooReviewTagsInput {
+	"""
+	Flag which indicates if a station was working when the review was added
+	"""
+	working: Boolean
+	"""
+	Flag which indicates if a user recommended a station when the review was added
+	"""
+	recommended: Boolean
+}
+"""
+Special format for the user of a review
+"""
+type FooReviewUser {
+	"""
+	User full name. If a review was added by an anonymous user, this will be null
+	"""
+	name: String
+	"""
+	User ID
+	"""
+	id: ID
+	"""
+	First name
+	"""
+	firstName: String
+	"""
+	Last name
+	"""
+	lastName: String
+}
+type FooRoute {
+	"""
+	Recommended route
+	"""
+	route: FooRouteAlternative
+	"""
+	Available alternatives
+	"""
+	alternatives: [FooRouteAlternative]
+	"""
+	EV specific data for a route request
+	"""
+	ev: FooRequestEv
+	"""
+	Route telemetry data
+	"""
+	telemetry: FooJSON
+	user: FooRequestUser
+	"""
+	Route request data
+	"""
+	routeRequest: FooRequestRoute
+	"""
+	Application who requested a route
+	"""
+	app: FooRouteApp
+	"""
+	Route status
+	"""
+	status: FooRouteStatus
+}
+type FooRouteAlternative {
+	"""
+	ID of a route alternative
+	"""
+	id: ID
+	"""
+	Type of alternative route
+	"""
+	type: FooRouteAlternativeType
+	"""
+	Number of charges along a route
+	"""
+	charges: Int
+	"""
+	Number of available charges along a route
+	"""
+	chargesAvailable: Int
+	"""
+	Number of occupied charges along a route
+	"""
+	chargesOccupied: Int
+	"""
+	Number of unknown charges along a route
+	"""
+	chargesUnknown: Int
+	"""
+	Number of out of order charges along a route
+	"""
+	chargesOutOfOrder: Int
+	"""
+	Total distance of a route in meters
+	"""
+	distance: Int
+	"""
+	Total duration of a route, including charge time, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used for a route in kWh
+	"""
+	consumption: Float
+	"""
+	Total time required to charge for an entire route, in seconds
+	"""
+	chargeTime: Float
+	"""
+	Amenity ranking for an alternative
+	"""
+	amenityRanking: Int
+	"""
+	Range, in meters, available at the beginning of a trip
+	"""
+	rangeStart: Int
+	"""
+	Total energy in a battery at the beginning of a trip, in kWh
+	"""
+	rangeStartKwh: Float
+	"""
+	Total energy in a battery at the beginning of a trip, in percentage
+	"""
+	rangeStartPercentage: Int
+	"""
+	Remaining range, in meters, at the end of a trip
+	"""
+	rangeEnd: Int
+	"""
+	Remaining range, energy in kWh, at the end of a trip
+	"""
+	rangeEndKwh: Float
+	"""
+	Remaining range, energy in percentage, at the end of a trip
+	"""
+	rangeEndPercentage: Int
+	"""
+	Text information about a route direction
+	"""
+	via: String
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Path elevation, distance, duration, consumption and speed values, grouped into 100 segments
+	"""
+	pathPlot: [FooPathSegment]
+	"""
+	Elevation values. Each elevationPlot has a hundred points, independent of the length of a route
+	"""
+	elevationPlot: [Float]
+	"""
+	Total number of meters which are going up on a route
+	"""
+	elevationUp: Float
+	"""
+	Total number of meters which are going down on a route
+	"""
+	elevationDown: Float
+	"""
+	Highest value from the elevation array
+	"""
+	elevationMax: Float
+	"""
+	Money and CO2 saving information
+	"""
+	saving: FooRouteAlternativeSaving
+	"""
+	Legs of the route
+	"""
+	legs: [FooRouteLeg]
+	"""
+	List of raw turn-by-turn navigation instructions
+	"""
+	instructions: [FooRouteInstruction]
+	"""
+	Alternative stations along a route within specified radius in meters. Only if it was provided at newRoute mutation
+	"""
+	stationsAlongRoute: [FooRouteStationsAlong]
+	"""
+	Tags of a route alternative. Values: road, highway, toll, ferry, etc.
+	"""
+	tags: [FooRouteTagType]
+}
+type FooRouteAlternativeSaving {
+	"""
+	Total amount of CO2, in grams, which would be used with a petrol vehicle
+	"""
+	co2: String
+	"""
+	Money saved by a user driving this route with the electric vehicle
+	"""
+	money: String
+	"""
+	Currency
+	"""
+	currency: String
+	"""
+	Average gas price with which the calculation was made
+	"""
+	averageGasPrice: String
+	"""
+	Average energy price with which the calculation was made
+	"""
+	averageEnergyPrice: String
+}
+"""
+Types of an alternative route
+"""
+enum FooRouteAlternativeType {
+	FOO_FASTEST
+	FOO_BEST_MATCHING
+	FOO_ALTERNATIVE
+}
+"""
+Amenity preferences for a route
+"""
+type FooRouteAmenityPreferences {
+	"""
+	Desired amenities near all charge-stops along a route, with a 1 kilometer radius
+	"""
+	all_charge_stops: [FooAmenityType!]
+	"""
+	Scheduled charge stops, with a specified amenity and timeline
+	"""
+	scheduled_charge_stops: [FooRouteScheduledChargeStop!]
+}
+type FooRouteApp {
+	"""
+	ID of the app who requested a route
+	"""
+	id: ID
+}
+type FooRouteInstruction {
+	"""
+	Information about the points on the polyline
+	"""
+	points: FooRouteInstructionPoints
+	"""
+	Sign of the instruction. See `RouteInstructionSign`
+	"""
+	sign: FooRouteInstructionSign
+	"""
+	Name of the street on which the instruction is
+	"""
+	name: String
+	"""
+	Distance, in meters, of the current route instruction
+	"""
+	distance: Int
+	"""
+	Duration, in seconds, of the current route instruction
+	"""
+	time: Int
+	"""
+	Exit number on a roundabout. This field exists only on sign `USE_ROUNDABOUT` (6), otherwise is null
+	"""
+	exit_number: Int
+	"""
+	Curvature angle between the roundabout and street you exit the roundabout. This field exists only on sign USE_ROUNDABOUT (6), otherwise is null
+	"""
+	turn_angle: Float
+}
+type FooRouteInstructionPoints {
+	"""
+	Number of polyline points which are included in this instruction
+	"""
+	size: Int
+	"""
+	The interval of points that are included in this instruction, an array with 2 values, where the first value is the index of the polyline where the interval starts. The second value is where it ends
+	"""
+	interval: [Int]
+}
+"""
+Sign belonging to the instruction indicating the main maneuver
+"""
+enum FooRouteInstructionSign {
+	FOO_UNKNOWN
+	FOO_U_TURN_UNKNOWN
+	FOO_U_TURN_LEFT
+	FOO_KEEP_LEFT
+	FOO_LEAVE_ROUNDABOUT
+	FOO_TURN_SHARP_LEFT
+	FOO_TURN_LEFT
+	FOO_TURN_SLIGHT_LEFT
+	FOO_CONTINUE_ON_STREET
+	FOO_TURN_SLIGHT_RIGHT
+	FOO_TURN_RIGHT
+	FOO_TURN_SHARP_RIGHT
+	FOO_FINISH
+	FOO_REACHED_VIA
+	FOO_REACHED_CHARGING_STATION
+	FOO_USE_ROUNDABOUT
+	FOO_KEEP_RIGHT
+	FOO_U_TURN_RIGHT
+	FOO_PT_START_TRIP
+	FOO_PT_TRANSFER
+	FOO_PT_END_TRIP
+	FOO_IGNORE
+}
+type FooRouteLeg {
+	"""
+	ID of a leg
+	"""
+	id: ID
+	"""
+	Distance from the start to the end of a leg, in meters
+	"""
+	distance: Int
+	"""
+	Total drive time from the start to the end of a leg, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used in a leg in kWh
+	"""
+	consumption: Float
+	"""
+	Range, in meters, available at the beginning of a leg
+	"""
+	rangeStart: Int
+	"""
+	Total energy in a battery at the beginning of a leg, in kWh
+	"""
+	rangeStartKwh: Float
+	"""
+	Total energy in a battery at the beginning of a trip, in percentage
+	"""
+	rangeStartPercentage: Int
+	"""
+	Range, in meters, available at the end of a leg
+	"""
+	rangeEnd: Int
+	"""
+	Total energy left in a battery at the end of a leg, in kWh
+	"""
+	rangeEndKwh: Float
+	"""
+	Remaining range, energy in percentage, at the end of a trip
+	"""
+	rangeEndPercentage: Int
+	"""
+	Origin point location
+	"""
+	origin: FooFeaturePoint
+	"""
+	Destination point location
+	"""
+	destination: FooFeaturePoint
+	"""
+	Type of a leg
+	"""
+	type: FooLegType
+	"""
+	Name of a destination. This is the station name in case a user should charge or the name of the location in case this was provided
+	"""
+	name: String
+	"""
+	ID of a station
+	"""
+	stationId: String
+	"""
+	ID of an operator
+	"""
+	operatorId: String
+	"""
+	Name of an operator
+	"""
+	operatorName: String
+	"""
+	Ranking of an operator
+	"""
+	operatorRanking: Int
+	"""
+	Total time required to charge a battery until 80%, in seconds
+	"""
+	chargeTime: Int
+	"""
+	Recommended EVSE where to charge
+	"""
+	evse: FooEVSE
+	"""
+	Recommended connector for charging
+	"""
+	connector: FooConnector
+	"""
+	Number of compatible plugs available at a charge station
+	"""
+	plugsAvailable: Int
+	"""
+	Number of compatible plugs occupied at a charge station
+	"""
+	plugsOccupied: Int
+	"""
+	Number of compatible plugs unknown at a charge station
+	"""
+	plugsUnknown: Int
+	"""
+	Number of compatible plugs out of order at a charge station
+	"""
+	plugsOutOfOrder: Int
+	"""
+	Total number of compatible plugs at a charge station
+	"""
+	plugsCount: Int
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Steps of a leg
+	"""
+	steps: [FooRouteStep]
+	"""
+	Tags of a leg. Values: road, highway, toll, ferry
+	"""
+	tags: [FooRouteTagType]
+	"""
+	Cargo weight in a vehicle for the duration of a leg, in kg
+	"""
+	cargo: Float
+	"""
+	Number of occupants in a vehicle for the duration of a leg
+	"""
+	occupants: Int
+}
+"""
+Prioritized operators for a route calculation
+"""
+type FooRouteOperators {
+	"""
+	Flag indicating if the operators ranking should be preferred or required
+	"""
+	type: FooRouteOperatorsType
+	"""
+	Ranking of an operator with multiple levels, each level having it's own penalty value
+	"""
+	ranking: FooRouteOperatorsRanking
+	"""
+	Operator IDs which should be excluded from a route
+	"""
+	exclude: [ID]
+}
+"""
+Prioritized operators for a route calculation
+"""
+input FooRouteOperatorsInput {
+	"""
+	Flag indicating if the operators ranking should be preferred or required
+	"""
+	type: FooRouteOperatorsType
+	"""
+	Ranking of an operator with multiple levels, each level having it's own penalty value
+	"""
+	ranking: FooRouteOperatorsRankingInput
+	"""
+	Operator IDs which should be excluded from a route
+	"""
+	exclude: ID
+}
+"""
+Ranking configuration for prioritized operators
+"""
+type FooRouteOperatorsRanking {
+	"""
+	Level 1 (most significant) for operator ranking
+	"""
+	level1: [ID]
+	"""
+	Level 2 for operator ranking
+	"""
+	level2: [ID]
+	"""
+	Level 3 for operator ranking
+	"""
+	level3: [ID]
+	"""
+	Level 4 for operator ranking
+	"""
+	level4: [ID]
+	"""
+	Level 5 for operator ranking
+	"""
+	level5: [ID]
+	"""
+	Level 6 for operator ranking
+	"""
+	level6: [ID]
+	"""
+	Level 7 for operator ranking
+	"""
+	level7: [ID]
+	"""
+	Level 8 for operator ranking
+	"""
+	level8: [ID]
+	"""
+	Level 9 for operator ranking
+	"""
+	level9: [ID]
+	"""
+	Level 10 (least significant) for operator ranking
+	"""
+	level10: [ID]
+}
+"""
+Ranking configuration for prioritized operators
+"""
+input FooRouteOperatorsRankingInput {
+	"""
+	Level 1 (most significant) for operator ranking
+	"""
+	level1: ID
+	"""
+	Level 2 for operator ranking
+	"""
+	level2: ID
+	"""
+	Level 3 for operator ranking
+	"""
+	level3: ID
+	"""
+	Level 4 for operator ranking
+	"""
+	level4: ID
+	"""
+	Level 5 for operator ranking
+	"""
+	level5: ID
+	"""
+	Level 6 for operator ranking
+	"""
+	level6: ID
+	"""
+	Level 7 for operator ranking
+	"""
+	level7: ID
+	"""
+	Level 8 for operator ranking
+	"""
+	level8: ID
+	"""
+	Level 9 for operator ranking
+	"""
+	level9: ID
+	"""
+	Level 10 (least significant) for operator ranking
+	"""
+	level10: ID
+}
+"""
+Type of operator prioritization for a route
+"""
+enum FooRouteOperatorsType {
+	FOO_NONE
+	FOO_PREFERRED
+	FOO_REQUIRED
+}
+type FooRoutePath {
+	"""
+	GeoJSON location of a route path segment
+	"""
+	location: FooPoint
+	"""
+	Elevation (altitude) in meters
+	"""
+	elevation: Int
+	"""
+	Average speed, in km/h, for this route path segment
+	"""
+	averageSpeed: Float
+	"""
+	Recommended speed, in km/h for this route path segment to optimise the consumption
+	"""
+	recommendedSpeed: Float
+	"""
+	Consumption, in kWh, of a route path segment
+	"""
+	consumption: Float
+	"""
+	Consumption, in kWh per km, of a route path segment
+	"""
+	consumptionPerKm: Float
+	"""
+	Distance, in meters, of a route path segment
+	"""
+	distance: Float
+	"""
+	Duration, in seconds, of a route path segment
+	"""
+	duration: Float
+	"""
+	State of charge, in kWh, of a route path segment
+	"""
+	stateOfCharge: Float
+}
+"""
+Scheduled charge stop along a route
+"""
+type FooRouteScheduledChargeStop {
+	"""
+	List of amenity types
+	"""
+	types: [FooAmenityType]
+	"""
+	Duration at the amenity, in seconds
+	"""
+	duration: Int
+	"""
+	Maximum allowed offset from the stop_after value in seconds. Default is 1800
+	"""
+	offset: Int
+	"""
+	Desired drive time before a scheduled stop after leaving the previous stop, in seconds
+	"""
+	stop_after: Int
+	"""
+	Maximum distance from a station to an amenity, in meters
+	"""
+	max_distance_from_station: Int
+}
+"""
+The season of the route
+"""
+enum FooRouteSeason {
+	FOO_SUMMER
+	FOO_WINTER
+	FOO_CURRENT
+}
+type FooRouteStationsAlong {
+	"""
+	The ID of station
+	"""
+	id: String
+	"""
+	Geojson location of a station
+	"""
+	location: FooPoint
+	"""
+	Speed of a station. A station along a route can be either fast or turbo
+	"""
+	speed: FooStationSpeedType
+	"""
+	Status of a station
+	"""
+	status: FooChargerStatus
+	"""
+	The station uses a preferred operator
+	"""
+	preferredOperator: Boolean
+	"""
+	Distance in meters between station and route path
+	"""
+	distance: Int
+}
+"""
+The status of a route. The status can be pending, processing, done, not_found or error
+"""
+enum FooRouteStatus {
+	FOO_PENDING
+	FOO_PROCESSING
+	FOO_DONE
+	FOO_NOT_FOUND
+	FOO_ERROR
+}
+type FooRouteStep {
+	"""
+	ID of a step
+	"""
+	id: ID
+	"""
+	Type of a step
+	"""
+	type: FooStepType
+	"""
+	Polyline containing encoded coordinates
+	"""
+	polyline(decimals: Int): String
+	"""
+	Distance from the start to the end of a step, in meters
+	"""
+	distance: Int
+	"""
+	Total drive time from the start to the end of a step, in seconds
+	"""
+	duration: Int
+	"""
+	Total energy used in a step in kWh
+	"""
+	consumption: Float
+}
+"""
+Tags of a route
+"""
+enum FooRouteTagType {
+	FOO_ROAD
+	FOO_HIGHWAY
+	FOO_TOLL
+	FOO_FERRY
+	FOO_WALKING
+	FOO_CROSSBORDER
+}
+"""
+Scheduled charge stop along a route
+"""
+input FooScheduledChargeStopInput {
+	"""
+	List of amenity types
+	"""
+	types: FooAmenityType
+	"""
+	Duration at the amenity, in seconds. The value should be between 900 and 86400
+	"""
+	duration: Int
+	"""
+	Maximum allowed offset from the stop_after value in seconds. Default is 1800
+	"""
+	offset: Int = "1800"
+	"""
+	Desired drive time for a scheduled stop after leaving the origin point, in seconds
+	"""
+	stop_after: Int
+	"""
+	Maximum distance from a station to an amenity, in meters. The value should be between 0 and 1000. Default is 1000
+	"""
+	max_distance_from_station: Int = "1000"
+}
+enum FooSpeedUnit {
+	FOO_KILOMETERS_PER_HOUR
+	FOO_MILES_PER_HOUR
+}
+"""
+Standards(plug type) stats model
+"""
+type FooStandardStats {
+	"""
+	The plug type
+	"""
+	type: FooConnectorType
+	"""
+	The total number of stations with the specified plug
+	"""
+	total: Int
+}
+input FooStateOfChargeInput {
+	"""
+	Value of the state of charge of the vehicle
+	"""
+	value: Float
+	"""
+	Type of the state of charge of the vehicle
+	"""
+	type: FooStateOfChargeUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooStateOfChargeUnit {
+	FOO_KILOMETER
+	FOO_MILE
+	FOO_KILOWATT_HOUR
+	FOO_PERCENTAGE
+}
+"""
+Station data which extends OCPI Location
+"""
+type FooStation {
+	"""
+	Review of a station
+	"""
+	review: FooReviewStats
+	"""
+	Unique ID of a station
+	"""
+	id: ID!
+	"""
+	ISO-3166 alpha-2 country code of a station
+	"""
+	country_code: String
+	"""
+	CPO ID of a CPO that 'owns' this station (following the ISO-15118 standard)
+	"""
+	party_id: String
+	"""
+	Defines if a location may be published on a website or app etc.
+	When this is set to false, only tokens identified in the field: publish_allowed_to are allowed to show this location.
+	When the same location has EVSEs that may be published and may not be published, two 'locations' should be created
+	"""
+	publish: Boolean
+	"""
+	Name of a charging station
+	"""
+	name: String
+	"""
+	Street/block name and house number if available
+	"""
+	address: String
+	"""
+	City or town
+	"""
+	city: String
+	"""
+	Postal code of a location, may only be omitted when a location has no postal code: in some countries charging locations at highways don’t have postal codes.
+	"""
+	postal_code: String
+	"""
+	State or province of a location, only to be used when relevant
+	"""
+	state: String
+	"""
+	ISO 3166-1 alpha-3 code for the country of this station
+	"""
+	country: String
+	"""
+	Coordinates of a location
+	"""
+	coordinates: FooOCPIGeoLocation
+	"""
+	Geographical location of related points relevant to a user
+	"""
+	related_locations: [FooOCPIAdditionalGeoLocation]
+	"""
+	Type of parking at a charge point location
+	"""
+	parking_type: FooOCPIParkingType
+	"""
+	EVSEs that belong to a station
+	"""
+	evses: [FooEVSE]
+	"""
+	Human-readable directions on how to reach a station
+	"""
+	directions: [FooOCPIDisplayText]
+	"""
+	Information about an operator
+	"""
+	operator: FooOperator
+	"""
+	Information about a suboperator if applicable
+	"""
+	suboperator: FooOperator
+	"""
+	Information about an owner if available
+	"""
+	owner: FooOperator
+	"""
+	Facilities a charging station belongs to
+	"""
+	facilities: [FooOCPIFacility]
+	"""
+	Value from the IANA time zone database representing the time zone of a location. Examples: "Europe/Oslo", "Europe/Zurich". (http://www.iana.org/time-zones)
+	"""
+	time_zone: String
+	"""
+	Times when an EVSEs at a location can be accessed for charging
+	"""
+	opening_times: FooOCPIHours
+	"""
+	Indicates if the EVSEs are still charging outside the opening hours. E.g. when a parking garage closes its barriers overnight, is it allowed to charge till the next morning? Default: true
+	"""
+	charging_when_closed: Boolean
+	"""
+	Links to images related to a location such as photos or logos
+	"""
+	images: [FooOCPIImage]
+	"""
+	Details of the energy supplied at a location
+	"""
+	energy_mix: FooOCPIEnergyMix
+	"""
+	Timestamp when a location, or one of its EVSEs or Connectors were last updated (or created)
+	"""
+	last_updated: FooDateTime
+	"""
+	ID provided by a station data source
+	"""
+	external_id: String
+	"""
+	GeoJSON location of a charging station
+	"""
+	location: FooPoint
+	"""
+	Elevation (altitude) level
+	"""
+	elevation: Int
+	"""
+	Groups of EVSEs by power and type
+	"""
+	chargers: [FooCharger]
+	"""
+	Amenities located at this location
+	"""
+	amenities: FooJSON
+	"""
+	Enriched information about the physical address of a station
+	"""
+	physical_address: FooAddress
+	"""
+	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
+	"""
+	properties: FooJSON
+	"""
+	A flag that indicates if a station has real-time information about the availability of its connectors
+	"""
+	realtime: Boolean
+	"""
+	A flag that indicates if a station is on private property
+	"""
+	private: Boolean
+	"""
+	Connectors grouped by power
+	"""
+	power: FooJSON
+	"""
+	Station availability
+	"""
+	predicted_availability: [FooStationPredictedAvailability]
+	"""
+	Predicted station occupancy
+	"""
+	predicted_occupancy: [FooStationPredictedOccupancy]
+	"""
+	Charging speed for a station
+	"""
+	speed: FooStationSpeedType
+	"""
+	Global status for a station
+	"""
+	status: FooChargerStatus
+	"""
+	Custom properties of a station. These are vendor specific and will return null values on the fields that are not supported by your station database
+	"""
+	custom_properties: FooStationCustomProperties
+}
+"""
+Filter which can be applied to retrieve the station around list action
+"""
+input FooStationAroundFilter {
+	"""
+	The GeoJSON Point of the center of the around me circle
+	"""
+	location: FooPointInput
+	"""
+	Distance, in meters, to search around
+	"""
+	distance: Int
+	"""
+	Powers in kWh
+	"""
+	powers: Float
+	"""
+	Amenities available near a station
+	"""
+	amenities: FooAmenities
+	"""
+	Station speed
+	"""
+	power_groups: FooStationSpeedType
+	"""
+	Station socket or plug standards
+	"""
+	connectors: FooConnectorType
+	"""
+	Flag that allows you to return only available stations
+	"""
+	available_only: Boolean
+	"""
+	Flag indicating if only stations that are owned by an operator from a clients ranking list are returned
+	"""
+	preferred_operator: Boolean
+}
+"""
+Deprecated: Replaced by filter & search params
+"""
+input FooStationAroundQuery {
+	"""
+	The GeoJSON Point of the center of the around me circle
+	"""
+	location: FooPointInput
+	"""
+	Distance, in meters, to search around
+	"""
+	distance: Int
+	"""
+	Power in kWh
+	"""
+	power: Float
+	"""
+	Amenities available near a station. Values: restaurant, bathroom, supermarket, playground, coffee, shopping, museum, hotel, park
+	"""
+	amenities: String
+}
+type FooStationCustomProperties {
+	"""
+	List of eMSP cards accepted at a charging station
+	"""
+	roaming: [FooStationRoaming]
+	"""
+	Phone number for assistance at a charging station
+	"""
+	support_phone_number: String
+	"""
+	Charging behavior of a station
+	"""
+	charging_behaviour: FooChargingBehaviour
+	"""
+	Shows how reliable a charging station is (1 to 5; 1 = unreliable, 5 = reliable), taking into account the charging behaviour history and error values
+	"""
+	reliability_score: Int
+	"""
+	List of available ad hoc payment methods
+	"""
+	adhoc_authorisation_method: [FooAdhocAuthorisationMethod]
+	"""
+	Predicted station occupancy
+	"""
+	predicted_occupancy: [FooStationPredictedOccupancy]
+	"""
+	Type of access to the charging station
+	"""
+	access_type: FooAccessType
+	"""
+	Custom station properties for OICP databases such as the global Hubject database. Station databases that not follow the OICP standard return null values
+	"""
+	oicp: FooOICPStationCustomProperties
+}
+"""
+Filter which can be applied to retrieve the station list action
+"""
+input FooStationListFilter {
+	"""
+	Powers in kWh
+	"""
+	powers: Float
+	"""
+	Amenities available near a station
+	"""
+	amenities: FooAmenities
+	"""
+	Station speed
+	"""
+	power_groups: FooStationSpeedType
+	"""
+	Station socket or plug standards
+	"""
+	connectors: FooConnectorType
+	"""
+	Flag that allows you to return only available stations
+	"""
+	available_only: Boolean
+	"""
+	Flag indicating if only stations that are owned by an operator from a clients ranking list are returned
+	"""
+	preferred_operator: Boolean
+}
+"""
+Deprecated: Replaced by filter & search params
+"""
+input FooStationListQuery {
+	"""
+	ID of the station
+	"""
+	id: ID
+	"""
+	External ID of the station provided by the station data source
+	"""
+	external_id: String
+	"""
+	Exact name
+	"""
+	name: String
+}
+"""
+Station availability for each weekday and hour
+"""
+type FooStationPredictedAvailability {
+	"""
+	Number of weekday from 1 (monday) to 7 (sunday)
+	"""
+	weekday: Int
+	"""
+	The prediction for each hour 0-23 from 1 to 5 (1 - very busy ... 5 very quiet (free))
+	"""
+	prediction: [Int]
+}
+"""
+Station occupancy for each weekday and hour
+"""
+type FooStationPredictedOccupancy {
+	"""
+	Number of weekday from 1 (monday) to 7 (sunday)
+	"""
+	weekday: Int
+	"""
+	Occupancy on a scale from 1 to 10, where 1 means free for charging and 10 means fully occupied
+	"""
+	occupancy: Int
+	"""
+	Start of the period of the occupancy prediction (string of 'hh-mmZ' format)
+	"""
+	period_begin: String
+	"""
+	End of the period of the occupancy prediction (string of 'hh-mmZ' format)
+	"""
+	period_end: String
+}
+type FooStationRoaming {
+	"""
+	Name of the EMSP provider
+	"""
+	emsp: String
+	"""
+	Name of the card accepted at a charging station
+	"""
+	card: String
+	"""
+	Link to native Android app for card accepted at a charging station
+	"""
+	android_app_link: String
+	"""
+	Link to native iOS app for card accepted at a charging station
+	"""
+	ios_app_link: String
+}
+"""
+The station speed type
+"""
+enum FooStationSpeedType {
+	FOO_SLOW
+	FOO_FAST
+	FOO_TURBO
+}
+"""
+The station stats model
+"""
+type FooStationStats {
+	"""
+	Stations count grouped by standards
+	"""
+	standards: [FooStandardStats]
+	"""
+	Stations count grouped by power
+	"""
+	power: [FooPowerStats]
+	"""
+	Stations count grouped by amenities
+	"""
+	amenities: [FooAmenityStats]
+}
+"""
+Types of a route step
+"""
+enum FooStepType {
+	FOO_ROAD
+	FOO_HIGHWAY
+	FOO_TOLL
+	FOO_FERRY
+	FOO_WALKING
+	FOO_CROSSBORDER
+}
+type FooSubscription {
+	"""
+	[BETA] Subscribe to a connected vehicle.
+	"""
+	connectedVehicle(id: ID): FooConnectedVehicle
+	"""
+	[BETA] Subscribe to an isoline label in order to receive updates
+	"""
+	isoline(id: ID): FooIsoline
+	"""
+	[BETA] Subscribe to navigation session system event updates. We strongly recommend using this at all times to not miss any updates
+	"""
+	navigationUpdatedById(id: ID): FooNavigation
+	"""
+	Subscription for a specific route was updated in the system event
+	"""
+	routeUpdatedById(id: ID): FooRoute
+}
+type FooTelemetry {
+	"""
+	Value of the auxiliary power consumption of the vehicle
+	"""
+	auxiliary_consumption(unit: FooAuxiliaryConsumptionUnit = "kilowatt_hour"): Float
+	"""
+	Battery current in ampere
+	"""
+	battery_current: Float
+	"""
+	Value of the temperature of the battery
+	"""
+	battery_temperature(unit: FooTemperatureUnit = "Celsius"): Float
+	"""
+	Battery voltage in volts
+	"""
+	battery_voltage: Float
+	"""
+	Is the vehicle currently charging
+	"""
+	is_charging: Boolean
+	"""
+	Value of the rate of charge of the battery
+	"""
+	charge_speed(unit: FooChargeSpeedUnit = "kilowatt_hour"): Float
+	"""
+	Value of the amount of battery charged
+	"""
+	charge_total(unit: FooStateOfChargeUnit = "kilowatt_hour"): Float
+	"""
+	Value of the current weight of the occupants
+	"""
+	total_occupant_weight(unit: FooWeightUnit = "kilogram"): Float
+	"""
+	Value of the current weight of the cargo
+	"""
+	total_cargo_weight(unit: FooWeightUnit = "kilogram"): Float
+	"""
+	Value of the current elevation
+	"""
+	elevation(unit: FooElevationUnit = "meter"): Float
+	"""
+	Current heading in degrees
+	"""
+	heading: Float
+	"""
+	RPM of the motor
+	"""
+	motor_rpm: Int
+	"""
+	Number of occupants present in the vehicle
+	"""
+	occupants: Int
+	"""
+	Value of the vehicle's odometer
+	"""
+	odometer(unit: FooDistanceUnit = "kilometer"): Float
+	"""
+	Value of the outside temperature
+	"""
+	outside_temperature(unit: FooTemperatureUnit = "Celsius"): Float
+	"""
+	Vehicle is in park, neutral or turned off
+	"""
+	is_parked: Boolean
+	"""
+	Value of the positive or negative power. When negative the vehicle is charging
+	"""
+	power(unit: FooPowerUnit = "kilowatt"): Float
+	"""
+	Value of the state of charge of the vehicle
+	"""
+	state_of_charge(unit: FooStateOfChargeUnit = "kilowatt_hour"): Float
+	"""
+	Values for the average tire pressures of all wheels, starting from the front side right to left and to the rear
+	"""
+	tire_pressure(unit: FooPressureUnit = "bar"): [Float!]
+	"""
+	UNIX timestamp in seconds
+	"""
+	timestamp: Int
+	"""
+	Value of the vehicle speed
+	"""
+	vehicle_speed(unit: FooSpeedUnit = "kilometers_per_hour"): Float
+	"""
+	Custom input fields can be added based on telemetry architecture
+	"""
+	custom: FooJSON
+}
+input FooTelemetryInput {
+	"""
+	Average auxiliary power consumption
+	"""
+	auxiliary_consumption: FooAuxiliaryConsumptionInput
+	"""
+	Battery current in ampere
+	"""
+	battery_current: Float
+	"""
+	Battery temperature
+	"""
+	battery_temperature: FooBatteryTemperatureInput
+	"""
+	Battery voltage in volts
+	"""
+	battery_voltage: Float
+	"""
+	Is the vehicle currently charging
+	"""
+	is_charging: Boolean
+	"""
+	Rate of charge
+	"""
+	charge_speed: FooChargeSpeedInput
+	"""
+	Amount charged
+	"""
+	charge_total: FooChargeTotalInput
+	"""
+	Cumulated weight of the occupants
+	"""
+	total_occupant_weight: FooTotalOccupantWeightInput
+	"""
+	Weight of the cargo
+	"""
+	total_cargo_weight: FooTotalCargoWeightInput
+	"""
+	Current elevation
+	"""
+	elevation: FooElevationInput
+	"""
+	Current heading in degrees
+	"""
+	heading: Float
+	"""
+	RPM of the motor
+	"""
+	motor_rpm: Int
+	"""
+	Number of occupants in the vehicle
+	"""
+	occupants: Int
+	"""
+	Mileage or odometer reading
+	"""
+	odometer: FooOdometerInput
+	"""
+	Outside temperature
+	"""
+	outside_temperature: FooOutsideTempInput
+	"""
+	Vehicle is in park, neutral or turned off
+	"""
+	is_parked: Boolean
+	"""
+	Vehicle power
+	"""
+	power: FooPowerInput
+	"""
+	Battery state of charge
+	"""
+	state_of_charge: FooStateOfChargeInput
+	"""
+	Average tire pressures of all wheels, starting from the front side right to left and to the rear
+	"""
+	tire_pressure: FooTirePressureInput
+	"""
+	UNIX timestamp in seconds
+	"""
+	timestamp: Int
+	"""
+	Vehicle speed
+	"""
+	vehicle_speed: FooVehicleSpeedInput
+	"""
+	Custom input fields can be added based on telemetry architecture
+	"""
+	custom: FooJSON
+}
+enum FooTelemetryInputSource {
+	FOO_MANUAL
+	FOO_TELEMETRY
+}
+enum FooTemperatureUnit {
+	FOO_CELSIUS
+	FOO_FAHRENHEIT
+}
+input FooTirePressureInput {
+	"""
+	Values for the tire pressure, starting from the front side right to left and to the rear
+	"""
+	value: Float
+	"""
+	Type of the value of pressure
+	"""
+	type: FooPressureUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooTorqueUnit {
+	FOO_NEWTON_METER
+	FOO_FOOT_POUND
+}
+input FooTotalCargoWeightInput {
+	"""
+	Value of the current weight of the cargo
+	"""
+	value: Float
+	"""
+	Type of the current weight of the cargo
+	"""
+	type: FooWeightUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+input FooTotalOccupantWeightInput {
+	"""
+	Value of the current weight of the occupants
+	"""
+	value: Float
+	"""
+	Type of the current weight of the occupants
+	"""
+	type: FooWeightUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+enum FooTurningCircleUnit {
+	FOO_METER
+	FOO_FOOT
+}
+input FooUpdateConnectedVehicleInput {
+	"""
+	Id from the connected vehicle
+	"""
+	id: ID
+	"""
+	New label for a connected vehicle
+	"""
+	label: FooPlainString
+}
+"""
+The File Upload scalar
+"""
+scalar FooUpload
+"""
+Output of a vehicle query.
+"""
+type FooVehicle {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Naming of the vehicle.
+	"""
+	naming: FooVehicleNaming!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: FooVehicleDrivetrain!
+	"""
+	Available connectors for the vehicle.
+	"""
+	connectors: [FooVehicleConnector!]!
+	"""
+	Adapters for the connectors of the vehicle.
+	"""
+	adapters: [FooVehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: FooVehicleBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: FooVehicleBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: FooVehicleAvailability!
+	"""
+	Performance of the vehicle.
+	"""
+	performance: FooVehiclePerformance
+	"""
+	Range of the vehicle.
+	"""
+	range: FooVehicleRange!
+	"""
+	Media of the vehicle.
+	"""
+	media: FooVehicleMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: FooVehicleRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: FooConnect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [FooVehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: FooVehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: FooVehicleType!
+}
+type FooVehicleAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: FooVehicleAvailabilityStatus!
+}
+"""
+Availability status of a vehicle.
+"""
+enum FooVehicleAvailabilityStatus {
+	FOO_NO_LONGER_AVAILABLE
+	FOO_AVAILABLE
+	FOO_RELEASE_DATE_ANNOUNCED_PREORDERABLE
+	FOO_RELEASE_DATE_ANNOUNCED
+	FOO_CONCEPT_VEHICLE_PREORDERABLE
+	FOO_CONCEPT_VEHICLE
+	FOO_CONCEPT_VEHICLE_RELEASE_DATE_TBA_PREORDERABLE
+	FOO_CONCEPT_VEHICLE_RELEASE_DATE_TBA
+	FOO_UNCERTAIN
+}
+type FooVehicleBattery {
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+}
+"""
+Battery field estimated.
+"""
+enum FooVehicleBatteryFieldEstimations {
+	FOO_B
+	FOO_F
+	FOO_N
+	FOO_U
+}
+type FooVehicleBody {
+	"""
+	Width with folded mirrors, default in mm.
+	"""
+	width(unit: FooMeasurementUnit): Float!
+	"""
+	Height (average height for adjustable suspensions), default in mm.
+	"""
+	height(unit: FooMeasurementUnit): Float!
+	"""
+	Weight (unladen), default in kg.
+	"""
+	weight: FooVehicleBodyWeight!
+	"""
+	Number of seats.
+	"""
+	seats: Int!
+}
+type FooVehicleBodyWeight {
+	"""
+	Minimum weight, default in kg.
+	"""
+	minimum(unit: FooWeightUnit): Float
+	"""
+	Nominal weight, default in kg.
+	"""
+	nominal(unit: FooWeightUnit): Float
+	"""
+	Maximal weight, default in kg.
+	"""
+	maximal(unit: FooWeightUnit): Float
+}
+"""
+Vehicle plug model.
+"""
+type FooVehicleConnector {
+	"""
+	Connector type, known as connector standard in OCPI.
+	"""
+	standard: FooConnectorType!
+	"""
+	Usable electric power in kW.
+	"""
+	power: Float!
+	"""
+	Maximum electric power in kW.
+	"""
+	max_electric_power: Float!
+	"""
+	Time it takes to charge from 10 to 80% with a fast charger, shown in minutes.
+	"""
+	time: Int!
+	"""
+	Charging speed, default in kmph.
+	"""
+	speed(unit: FooSpeedUnit): Float!
+}
+"""
+The consumption of the vehicle.
+"""
+input FooVehicleConsumptionInput {
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: Float
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: Float
+}
+type FooVehicleData {
+	"""
+	Battery data
+	"""
+	battery: FooConnectBattery
+	"""
+	Charge data
+	"""
+	charge: FooConnectCharge
+	"""
+	Location data
+	"""
+	location: FooConnectLocation
+	"""
+	Odometer data
+	"""
+	odometer: FooConnectOdometer
+}
+enum FooVehicleDataProvider {
+	FOO_CHARGETRIP
+	FOO_EVDATABASE
+}
+type FooVehicleDrivetrain {
+	"""
+	Type of drivetrain.
+	"""
+	type: FooVehicleDrivetrainType!
+}
+"""
+Drivetrain.
+"""
+enum FooVehicleDrivetrainType {
+	FOO_BEV
+	FOO_EREV
+	FOO_HEV
+	FOO_PHEV
+}
+"""
+Fuel type.
+"""
+enum FooVehicleFuel {
+	FOO_D
+	FOO_E
+	FOO_P
+}
+type FooVehicleImage {
+	"""
+	Image id.
+	"""
+	id: ID
+	"""
+	Image type.
+	"""
+	type: FooVehicleImageType!
+	"""
+	Full path URL of a large image.
+	"""
+	url: String!
+	"""
+	Height of a large image in pixels.
+	"""
+	height: Int!
+	"""
+	Width of a large image in pixels.
+	"""
+	width: Int!
+	"""
+	Full path URL of a thumbnail image.
+	"""
+	thumbnail_url: String!
+	"""
+	Height of a thumbnail image in pixels.
+	"""
+	thumbnail_height: Int!
+	"""
+	Width of a thumbnail image in pixels.
+	"""
+	thumbnail_width: Int!
+}
+"""
+Available types of images which can be found for a vehicle. Each type has specific image sizes.
+"""
+enum FooVehicleImageType {
+	FOO_PROVIDER
+	FOO_IMAGE
+	FOO_IMAGE_THUMBNAIL
+	FOO_IMAGE_PREMIUM
+	FOO_PREMIUM_IMAGE_THUMBNAIL
+	FOO_BRAND
+	FOO_BRAND_THUMBNAIL
+	FOO_PLACEHOLDER
+}
+"""
+When uploading images to a vehicle, you can select one of this types. The rest of the types are automatically generated by the system.
+"""
+enum FooVehicleImageTypeUploadable {
+	FOO_IMAGE
+	FOO_IMAGE_PREMIUM
+}
+"""
+The output element of the vehicleList query.
+"""
+type FooVehicleList {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Naming of the vehicle.
+	"""
+	naming: FooVehicleListNaming!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: FooVehicleDrivetrain!
+	"""
+	Connectors available for the vehicle.
+	"""
+	connectors: [FooVehicleConnector!]!
+	"""
+	Adapters available for the vehicle.
+	"""
+	adapters: [FooVehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: FooVehicleListBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: FooVehicleListBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: FooVehicleListAvailability!
+	"""
+	Range of the vehicle.
+	"""
+	range: FooVehicleListRange!
+	"""
+	Media of the vehicle.
+	"""
+	media: FooVehicleListMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: FooVehicleListRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: FooConnect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [FooVehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: FooVehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: FooVehicleType!
+}
+type FooVehicleListAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: FooVehicleAvailabilityStatus!
+}
+type FooVehicleListBattery {
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+}
+type FooVehicleListBody {
+	"""
+	Number of seats in a vehicle.
+	"""
+	seats: Int!
+}
+input FooVehicleListFilter {
+	"""
+	Availability of a vehicle.
+	"""
+	availability: FooVehicleAvailabilityStatus
+	"""
+	Drivetrain type of a vehicle.
+	"""
+	drivetrain: FooVehicleDrivetrainType
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: FooConnectFilter
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: FooVehicleRegion
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: FooVehiclePurpose
+	"""
+	Type of vehicle.
+	"""
+	type: FooVehicleType
+}
+type FooVehicleListMedia {
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: FooVehicleImage!
+	"""
+	Latest maker logo of the vehicle.
+	"""
+	brand: FooVehicleImage!
+	"""
+	Latest video of the vehicle.
+	"""
+	video: FooVehicleVideo
+}
+type FooVehicleListNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+}
+type FooVehicleListRange {
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: FooChargetripRange!
+}
+type FooVehicleListRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+}
+type FooVehicleMedia {
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: FooVehicleImage!
+	"""
+	Latest maker logo.
+	"""
+	brand: FooVehicleImage!
+	"""
+	All images of the vehicle.
+	"""
+	image_list: [FooVehicleImage!]!
+	"""
+	Latest video.
+	"""
+	video: FooVehicleVideo
+	"""
+	All videos of the vehicle.
+	"""
+	video_list: [FooVehicleVideo!]
+}
+"""
+Mode (state) of the current production.
+"""
+enum FooVehicleMode {
+	FOO_INDEX_ONLY
+	FOO_PRODUCTION
+	FOO_CONCEPT
+}
+type FooVehicleNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide an version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+}
+type FooVehiclePerformance {
+	"""
+	Acceleration in seconds, default in kmph to 100.
+	"""
+	acceleration(unit: FooAccelerationUnit): Float
+	"""
+	Top speed of the vehicle, default in kmph.
+	"""
+	top_speed(unit: FooSpeedUnit): Float
+}
+"""
+The output element of the vehiclePremium query.
+"""
+type FooVehiclePremium {
+	"""
+	Vehicles unique ID.
+	"""
+	id: ID!
+	"""
+	Internal ID of the successor vehicle trim.
+	"""
+	succesor_id: String
+	"""
+	Naming of the vehicle.
+	"""
+	naming: FooVehiclePremiumNaming!
+	"""
+	Connectors available for the vehicle.
+	"""
+	connectors: [FooVehicleConnector!]!
+	"""
+	Charge details.
+	"""
+	charge: FooVehiclePremiumCharge!
+	"""
+	Fast charge details.
+	"""
+	fast_charge: FooVehiclePremiumFastCharge!
+	"""
+	Adapters of connectors available for a connectors of the vehicle.
+	"""
+	adapters: [FooVehicleConnector!]!
+	"""
+	Battery of the vehicle.
+	"""
+	battery: FooVehiclePremiumBattery!
+	"""
+	Body of the vehicle.
+	"""
+	body: FooVehiclePremiumBody!
+	"""
+	Availability of the vehicle.
+	"""
+	availability: FooVehiclePremiumAvailability!
+	"""
+	Pricing of the vehicle.
+	"""
+	price: FooVehiclePremiumPrice!
+	"""
+	Drivetrain of the vehicle.
+	"""
+	drivetrain: FooVehiclePremiumDrivetrain!
+	"""
+	Performance of the vehicle.
+	"""
+	performance: FooVehiclePremiumPerformance
+	"""
+	Range of the vehicle.
+	"""
+	range: FooVehiclePremiumRange!
+	"""
+	Efficiency of the vehicle.
+	"""
+	efficiency: FooVehiclePremiumEfficiency!
+	"""
+	Safety of the vehicle.
+	"""
+	safety: FooVehiclePremiumSafety
+	"""
+	Media of the vehicle.
+	"""
+	media: FooVehiclePremiumMedia!
+	"""
+	Routing of the vehicle.
+	"""
+	routing: FooVehiclePremiumRouting!
+	"""
+	Information about vehicle connectivity.
+	"""
+	connect: FooConnect!
+	"""
+	Regions in which the vehicle is available. Based on the continent code (CC) standard.
+	"""
+	region: [FooVehicleRegion!]!
+	"""
+	Vehicle intended use. Can be passenger, cargo, or utility.
+	"""
+	purpose: FooVehiclePurpose!
+	"""
+	Type of vehicle.
+	"""
+	type: FooVehicleType!
+}
+type FooVehiclePremiumAvailability {
+	"""
+	Availability of the vehicle.
+	"""
+	status: FooVehicleAvailabilityStatus!
+	"""
+	Date of introduction, mm-yyyy.
+	"""
+	date_from: String
+	"""
+	Indicates if date from field is estimated.
+	"""
+	date_from_is_estimated: Boolean
+	"""
+	Date last available, mm-yyyy.
+	"""
+	date_to: String
+}
+type FooVehiclePremiumBattery {
+	"""
+	Usable battery capacity in kWh.
+	"""
+	usable_kwh: Float!
+	"""
+	Full battery capacity in kWh.
+	"""
+	full_kwh: Float!
+	"""
+	Indicates which battery fields are estimated.
+	"""
+	estimated_fields: FooVehicleBatteryFieldEstimations
+	"""
+	Battery thermal management system (active/passive, air/liquid).
+	"""
+	thermal_management_system: String
+	"""
+	Duration of battery warranty.
+	"""
+	warranty_period: Float
+	"""
+	Mileage of battery warranty.
+	"""
+	warranty_mileage: Float
+	"""
+	Chemistry of the battery.
+	"""
+	chemistry: String
+	"""
+	Manufacturer of the battery.
+	"""
+	manufacturer: String
+	"""
+	Number of battery modules.
+	"""
+	modules: Float
+	"""
+	Number of cells in the battery pack, can include configuration (s = serial, p = parallel).
+	"""
+	cells: String
+	"""
+	Weight of the battery pack.
+	"""
+	weight: Float
+	"""
+	Nominal voltage of battery.
+	"""
+	nominal_voltage: Float
+}
+type FooVehiclePremiumBody {
+	"""
+	Length, default in mm.
+	"""
+	length(unit: FooMeasurementUnit): Float
+	"""
+	Width with folded mirrors, default in mm.
+	"""
+	width(unit: FooMeasurementUnit): Float!
+	"""
+	Width of vehicle including mirrors, default in mm.
+	"""
+	full_width(unit: FooMeasurementUnit): Float
+	"""
+	Height (average height for adjustable suspensions), default in mm.
+	"""
+	height(unit: FooMeasurementUnit): Float!
+	"""
+	Indicates if length/width/height fields are estimations.
+	"""
+	size_is_estimated: Boolean
+	"""
+	Wheelbase, default in mm.
+	"""
+	wheelbase(unit: FooMeasurementUnit): Float
+	"""
+	Indicates if wheelbase field is estimated.
+	"""
+	wheelbase_is_estimated: Boolean
+	"""
+	Weight (unladen EU).
+	"""
+	weight: FooVehicleBodyWeight!
+	"""
+	Maximum allowed vehicle weight with payload.
+	"""
+	weight_gvwr: FooVehicleBodyWeight
+	"""
+	Maximum allowed vehicle and trailer weight with payload.
+	"""
+	weight_gtw: FooVehicleBodyWeight
+	"""
+	Allowed payload weight.
+	"""
+	weight_payload: FooVehicleBodyWeight
+	"""
+	Indicates if weight field is estimated.
+	"""
+	weight_is_estimated: Boolean
+	"""
+	Maximum payload allowed for the vehicle, default in kg.
+	"""
+	weight_max_payload(unit: FooWeightUnit): Float
+	"""
+	Gross Vehicle Weight (GVWR) - (max allowed vehicle weight with payload), default in kg.
+	"""
+	max_gross_vehicle_weight(unit: FooWeightUnit): Float
+	"""
+	Standard luggage capacity, default in l.
+	"""
+	boot_capacity(unit: FooVolumeUnit): Float
+	"""
+	Storage capacity of front trunk/under the hood (frunk), default in l.
+	"""
+	boot_front_capacity: Float
+	"""
+	Maximum luggage capacity, default in l.
+	"""
+	boot_capacity_max(unit: FooVolumeUnit): Float
+	"""
+	Indicates if a tow hitch/towbar can be fitted according to vehicle homologation.
+	"""
+	tow_hitch_compatible: Boolean
+	"""
+	Maximum unbraked towing weight, default in kg.
+	"""
+	tow_weight_unbraked(unit: FooWeightUnit): Float
+	"""
+	Maximum braked towing weight, default in kg.
+	"""
+	tow_weight_braked(unit: FooWeightUnit): Float
+	"""
+	Indicates if tow weight fields are estimations.
+	"""
+	tow_weight_is_estimated: Boolean
+	"""
+	Maximum vertical load / noseweight on tow hitch according to vehicle homologation, default in kg.
+	"""
+	tow_weight_vertical_load(unit: FooWeightUnit): Float
+	"""
+	Maximum load on roof of the vehicle, default in kg.
+	"""
+	roof_load_max(unit: FooWeightUnit): Float
+	"""
+	Body type, listed in local naming convention where applicable.
+	"""
+	body_type: String
+	"""
+	Segment, listed in local naming convention where applicable.
+	"""
+	segment: String
+	"""
+	Number of seats.
+	"""
+	seats: Int!
+	"""
+	Indicates whether a vehicle has roof rails as a standard.
+	"""
+	has_roofrails: Boolean
+	"""
+	Turning circle of the vehicle kerb-to-kerb, default in meters.
+	"""
+	turning_circle(unit: FooTurningCircleUnit): Float
+	"""
+	Name of the vehicle platform used for vehicle (often abbreviated to indicate group platforms).
+	"""
+	vehicle_platform: String
+	"""
+	Indicates if the vehicle platform used for vehicle is a dedicated battery electric vehicle platform.
+	"""
+	vehicle_platform_is_dedicated: Boolean
+}
+type FooVehiclePremiumCharge {
+	"""
+	Information about the main connector.
+	"""
+	plug: FooVehiclePremiumChargePlug
+	"""
+	Information about vehicles secondary onboard charger.
+	"""
+	second_plug: FooVehiclePremiumChargeSecondPlug
+	"""
+	Information about the vehicle standard onboard charger.
+	"""
+	standard: FooVehiclePremiumChargeStandardOBC
+	"""
+	Optional upgrade for the standard onboard charger when available.
+	"""
+	option: FooVehiclePremiumChargeOptionOBC
+	"""
+	Alternative upgrade for the standard onboard charger when available.
+	"""
+	alternative: FooVehiclePremiumChargeAlternativeOBC
+}
+type FooVehiclePremiumChargeAlternativeOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [FooVehiclePremiumChargeOBCTable]
+}
+type FooVehiclePremiumChargeOBCTable {
+	"""
+	Voltage between phase and neutral for this EVSE (phase voltage).
+	"""
+	evse_phase_voltage: Int
+	"""
+	Current per phase for this EVSE (phase current).
+	"""
+	evse_phase_amperage: Int
+	"""
+	Number of phases for this EVSE.
+	"""
+	evse_phases: Int
+	"""
+	Voltage between phase and neutral used by standard OBC (phase voltage).
+	"""
+	charge_phase_voltage: Int
+	"""
+	Current per phase used by standard OBC (phase current).
+	"""
+	charge_phase_amperage: Float
+	"""
+	Number of phases used by standard OBC.
+	"""
+	charge_phases: Int
+	"""
+	Power used by standard OBC (before OBC losses).
+	"""
+	charge_power: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC with this EVSE).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC with this EVSE), default in kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+}
+type FooVehiclePremiumChargeOptionOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [FooVehiclePremiumChargeOBCTable]
+}
+type FooVehiclePremiumChargePlug {
+	"""
+	Type of charge port on vehicle.
+	"""
+	value: FooConnectorType
+	"""
+	Indicates if value is an estimate.
+	"""
+	is_estimated: Boolean
+	"""
+	Location of charge port.
+	"""
+	location: String
+}
+type FooVehiclePremiumChargePower {
+	"""
+	Maximum value.
+	"""
+	max: Float
+	"""
+	Average value.
+	"""
+	average: Float
+}
+type FooVehiclePremiumChargeSecondPlug {
+	"""
+	Location of charge port.
+	"""
+	location: String
+	"""
+	Indicates if second charge port is optional.
+	"""
+	is_optional: Boolean
+}
+type FooVehiclePremiumChargeStandardOBC {
+	"""
+	Maximum power OBC can accept to charge a battery (standard OBC).
+	"""
+	power: Float
+	"""
+	Number of phases the OBC accepts to achieve maximum power (standard OBC).
+	"""
+	phases: Int
+	"""
+	Maximum current the OBC accepts per phase to achieve maximum power (standard OBC).
+	"""
+	phase_amperage: Float
+	"""
+	Minutes needed to charge from 0% to 100% (standard OBC).
+	"""
+	charge_time: Int
+	"""
+	Charging speed when charging at maximum power (standard OBC), default in kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+	"""
+	Indicates if Charge_Standard fields are estimated.
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for the standard OBC at several charging points.
+	"""
+	table: [FooVehiclePremiumChargeOBCTable]
+}
+type FooVehiclePremiumDrivetrain {
+	"""
+	Type of drivetrain.
+	"""
+	type: FooVehicleDrivetrainType!
+	"""
+	Fuel type.
+	"""
+	fuel: FooVehicleFuel
+	"""
+	Propulsion type.
+	"""
+	propulsion: FooVehiclePropulsion
+	"""
+	Indicates if propulsion field is estimated.
+	"""
+	propulsion_is_estimated: Boolean
+	"""
+	Maximum (combined) power output, default in kw.
+	"""
+	power(unit: FooPowerUnit): Float
+	"""
+	Indicates if power field is estimated.
+	"""
+	power_is_estimated: Boolean
+	"""
+	Maximum (combine) power output, default in horsepower (PS).
+	"""
+	power_hp(unit: FooPowerUnit): Float
+	"""
+	Maximum (combine) torque output, default in newton meter.
+	"""
+	torque(unit: FooTorqueUnit): Float
+	"""
+	Indicates if torque field is estimated.
+	"""
+	torque_is_estimated: Boolean
+}
+type FooVehiclePremiumEfficiency {
+	"""
+	Rated efficiency in WLTP combined cycle.
+	"""
+	wltp: FooVehiclePremiumEfficiencyWLTP
+	"""
+	Rated efficiency in WLTP combined cycle (TEH / least efficient trim).
+	"""
+	wltp_teh: FooVehiclePremiumEfficiencyWLTPTEH
+	"""
+	Rated efficiency in NEDC combined cycle.
+	"""
+	nedc: FooVehiclePremiumEfficiencyNEDC
+	"""
+	Vehicle efficiency based on provider range.
+	"""
+	provider: FooVehiclePremiumEfficiencyProvider
+}
+type FooVehiclePremiumEfficiencyNEDC {
+	"""
+	Rated efficiency in NEDC combined cycle, default in kWh/100 km.
+	"""
+	value(unit: FooConsumptionUnit): Float
+	"""
+	Rated efficiency in NEDC combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: FooConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in NEDC combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in NEDC combined cycle in battery-only mode (NULL if not NEDC rated), default in gr/km.
+	"""
+	co2(unit: FooEmissionRateUnit): Float
+}
+type FooVehiclePremiumEfficiencyProvider {
+	"""
+	Vehicle efficiency based on RealRange (usable battery/range), default in kWh/100 km.
+	"""
+	value(unit: FooConsumptionUnit): Float
+	"""
+	Vehicle efficiency based on RealRange presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: FooVehiclePremiumEfficiencyProviderValue
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: FooVehiclePremiumEfficiencyProviderValue
+}
+type FooVehiclePremiumEfficiencyProviderValue {
+	"""
+	Estimated value on highway or express roads, default in km.
+	"""
+	highway(unit: FooDistanceUnit): Float
+	"""
+	Estimated value on city roads, default in km.
+	"""
+	city(unit: FooDistanceUnit): Float
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: FooDistanceUnit): Float
+}
+type FooVehiclePremiumEfficiencyWLTP {
+	"""
+	Rated efficiency in WLTP combined cycle, default in kWh/100 km.
+	"""
+	value(unit: FooConsumptionUnit): Float
+	"""
+	Rated efficiency in WLTP combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: FooConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in WLTP combined cycle in battery-only mode (NULL if not WLTP rated), default in gr/km.
+	"""
+	co2(unit: FooEmissionRateUnit): Float
+}
+type FooVehiclePremiumEfficiencyWLTPTEH {
+	"""
+	Rated efficiency in WLTP TEH combined cycle (TEH/least efficient trim).
+	"""
+	value(unit: FooConsumptionUnit): Float
+	"""
+	Rated efficiency in WLTP TEH combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle (based on value), default in kWh/100 km.
+	"""
+	vehicle(unit: FooConsumptionUnit): Float
+	"""
+	Rated vehicle efficiency in WLTP TEH combined cycle presented in gas equivalent, default in l/100 km.
+	"""
+	vehicle_fuel_equivalent(unit: FooFuelConsumptionUnit): Float
+	"""
+	Rated CO2 emissions in WLTP TEH combined cycle in battery-only mode (NULL if not WLTP TEH rated), default in gr/km.
+	"""
+	co2(unit: FooEmissionRateUnit): Float
+}
+type FooVehiclePremiumFastCharge {
+	"""
+	Details about the connector.
+	"""
+	plug: FooVehiclePremiumChargePlug
+	"""
+	Power during fast charging from 10% to 80% SoC (optimal conditions, fastest charger).
+	"""
+	power: FooVehiclePremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80%, with average charging power (optimal conditions, fastest charger).
+	"""
+	charge_time: Float
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions, fastest charger), default is kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+	"""
+	Indicates if fast charge is optional in some markets/regions.
+	"""
+	is_optional: Boolean
+	"""
+	Indicates what fields are estimated.
+	"""
+	is_estimated: Boolean
+	"""
+	Charging details for fast charging.
+	"""
+	table: [FooVehiclePremiumFastChargeTable]
+}
+type FooVehiclePremiumFastChargeTable {
+	"""
+	Charging details for fast charging (format: ChargerConnector-ChargerPower-AC/DC).
+	"""
+	format: String
+	"""
+	Fast charge power.
+	"""
+	power: FooVehiclePremiumChargePower
+	"""
+	Minutes needed to charge from 10% to 80% (optimal conditions).
+	"""
+	charge_time: Int
+	"""
+	Charging speed during fast charging from 10% to 80% (optimal conditions), default is kmph.
+	"""
+	charge_speed(unit: FooChargeSpeedUnit): Float
+	"""
+	Indicates if maximum power during fast charging is limited by the vehicle.
+	"""
+	is_limited: Boolean
+	"""
+	Indicates if average power during fast charging is limited by the vehicle.
+	"""
+	average_is_limited: Boolean
+}
+type FooVehiclePremiumMedia {
+	"""
+	URL for more details.
+	"""
+	provider_details_url: String
+	"""
+	Featured image of the vehicle from a 45-degree angle.
+	"""
+	image: FooVehicleImage!
+	"""
+	Latest maker logo.
+	"""
+	brand: FooVehicleImage!
+	"""
+	All images of the vehicle.
+	"""
+	image_list: [FooVehicleImage!]!
+	"""
+	Latest video.
+	"""
+	video: FooVehicleVideo
+	"""
+	All videos of the vehicle.
+	"""
+	video_list: [FooVehicleVideo!]
+	"""
+	URL of the OEM page for this vehicle.
+	"""
+	oem_details_url: String
+}
+type FooVehiclePremiumNaming {
+	"""
+	Vehicle manufacturer name.
+	"""
+	make: String!
+	"""
+	Vehicle model name.
+	"""
+	model: String!
+	"""
+	Version, edition or submodel of the vehicle.
+	"""
+	version: String
+	"""
+	Another submodel level of the vehicle.
+	"""
+	edition: String
+	"""
+	Vehicle model version. Added by Chargetrip as an alternative for when a vehicle manufacturer does not provide a version name, or uses the same version name across all trims or consecutive years.
+	"""
+	chargetrip_version: String!
+	"""
+	Vehicle model length version.
+	"""
+	length_version: String
+	"""
+	Vehicle model height version.
+	"""
+	height_version: String
+}
+type FooVehiclePremiumPerformance {
+	"""
+	Acceleration 0-100 km/h, default in seconds.
+	"""
+	acceleration(unit: FooAccelerationUnit): Float
+	"""
+	Indicates if acceleration field is estimated.
+	"""
+	acceleration_is_estimated: Boolean
+	"""
+	Top speed of the vehicle, default in km/h.
+	"""
+	top_speed(unit: FooSpeedUnit): Float
+	"""
+	Indicates if top_speed field is estimated.
+	"""
+	top_speed_is_estimated: Boolean
+}
+type FooVehiclePremiumPrice {
+	"""
+	Starting price for German market.
+	"""
+	DE: FooVehiclePremiumPriceValueWithGrant
+	"""
+	Starting price for Dutch market.
+	"""
+	NL: FooVehiclePremiumPriceValueWithGrant
+	"""
+	Starting price for British market.
+	"""
+	GB: FooVehiclePremiumPriceValueWithGrant
+}
+type FooVehiclePremiumPriceValueWithGrant {
+	"""
+	Starting price for local market expressed in the currency in the field currency.
+	"""
+	value(unit: FooCurrencyUnit): Float
+	"""
+	Currency in which the value without optional field conversion is expressed.
+	"""
+	currency: FooCurrencyUnit
+	"""
+	Indicates if price value is based on estimates.
+	"""
+	is_estimated: Boolean
+	"""
+	Grant is applied to value.
+	"""
+	grant_applied: Int
+}
+type FooVehiclePremiumRange {
+	"""
+	Rated range in WLTP combined cycle (NULL if not WLTP rated), default in km.
+	"""
+	wltp(unit: FooConsumptionUnit): Float
+	"""
+	Indicates if WLTP range is estimated (NULL if not WLTP rated).
+	"""
+	wltp_is_estimated: Boolean
+	"""
+	Rated range in WLTP (TEH/least efficient trim) combined cycle (NULL if not WLTP rated).
+	"""
+	wltp_teh: Int
+	"""
+	Rated range in NEDC combined cycle (NULL if not NEDC rated), default in km.
+	"""
+	nedc(unit: FooConsumptionUnit): Float
+	"""
+	Indicates if NEDC range is estimated (NULL if not NEDC rated).
+	"""
+	nedc_is_estimated: Boolean
+	"""
+	Index range, default in km.
+	"""
+	provider(unit: FooConsumptionUnit): Float
+	"""
+	Indicates if index range is estimated.
+	"""
+	provider_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: FooVehiclePremiumRangeValue!
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: FooVehiclePremiumRangeValue!
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: FooChargetripRange!
+}
+type FooVehiclePremiumRangeValue {
+	"""
+	Estimated value on highway or express roads, default in km.
+	"""
+	highway(unit: FooDistanceUnit): Float!
+	"""
+	Estimated value on city roads, default in km.
+	"""
+	city(unit: FooDistanceUnit): Float!
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: FooDistanceUnit): Float!
+}
+type FooVehiclePremiumRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+	"""
+	Drag coefficient.
+	"""
+	drag_coefficient: Float!
+	"""
+	Tire pressure recommended by manufacturer, default in bar.
+	"""
+	tire_pressure(unit: FooPressureUnit): Float!
+	"""
+	Extra consumption model.
+	"""
+	consumption: FooVehiclePremiumRoutingConsumption
+	"""
+	Amount of petrol that an equivalent petrol vehicle would consume, default in l/100 km.
+	"""
+	fuel_consumption(unit: FooFuelConsumptionUnit): Float
+}
+type FooVehiclePremiumRoutingConsumption {
+	"""
+	Consumption, in kWh, of the auxiliaries.
+	"""
+	aux: FooVehiclePremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the battery management system.
+	"""
+	bms: FooVehiclePremiumRoutingConsumptionValue
+	"""
+	Consumption, in kWh, of the vehicle in idle mode.
+	"""
+	idle: FooVehiclePremiumRoutingConsumptionValue
+}
+type FooVehiclePremiumRoutingConsumptionValue {
+	"""
+	Best (lowest) consumption in summer.
+	"""
+	best: Float
+	"""
+	Best (lowest) consumption in winter.
+	"""
+	worst: Float
+}
+type FooVehiclePremiumSafety {
+	"""
+	Number of seats equipped with ISOFIX.
+	"""
+	isofix_seats: Int
+	"""
+	EuroNCAP results.
+	"""
+	euro_ncap: FooVehiclePremiumSafetyEuroNcap
+}
+type FooVehiclePremiumSafetyEuroNcap {
+	"""
+	EuroNCAP rating (out of 5 stars).
+	"""
+	rating: Int
+	"""
+	EuroNCAP year of rating.
+	"""
+	year: Int
+	"""
+	EuroNCAP rating of adult protection (out of 100%).
+	"""
+	adult: Int
+	"""
+	EuroNCAP rating of child protection (out of 100%).
+	"""
+	child: Int
+	"""
+	EuroNCAP rating of vulnerable road users (out of 100%).
+	"""
+	vru: Int
+	"""
+	EuroNCAP rating of safety assists (out of 100%).
+	"""
+	sa: Int
+}
+"""
+Propulsion.
+"""
+enum FooVehiclePropulsion {
+	FOO_AWD
+	FOO_FRONT
+	FOO_REAR
+}
+"""
+Status of a vehicle provider.
+"""
+enum FooVehicleProviderStatus {
+	FOO_NEW
+	FOO_ATTACHED
+	FOO_DETACHED
+	FOO_ARCHIVED
+}
+enum FooVehiclePurpose {
+	FOO_PASSENGER
+	FOO_CARGO
+	FOO_UTILITY
+}
+type FooVehicleRange {
+	"""
+	Index range, default in km.
+	"""
+	provider(unit: FooDistanceUnit): Float
+	"""
+	Indicates if index range is estimated.
+	"""
+	provider_is_estimated: Boolean
+	"""
+	Worst conditions are based on -10°C and use of heating.
+	"""
+	worst: FooVehicleRangeValue!
+	"""
+	Best conditions are based on 23°C and no use of A/C.
+	"""
+	best: FooVehicleRangeValue!
+	"""
+	Chargetrip's custom real-world range provides a carefully calculated display range for all electric vehicle models based on our own research and driving data.
+	CT range is based on the theoretical distance driven using only the electric engine.
+	Vehicles that do not have a full electric drivetrain type ( all except Battery Electric Vehicles / BEV) therefore return relatively small ranges.
+	"""
+	chargetrip_range: FooChargetripRange!
+}
+type FooVehicleRangeValue {
+	"""
+	Estimated value on the highway or express roads, default in km.
+	"""
+	highway(unit: FooDistanceUnit): Float!
+	"""
+	Estimated value on the cities road, default in km.
+	"""
+	city(unit: FooDistanceUnit): Float!
+	"""
+	Estimated combined value, default in km.
+	"""
+	combined(unit: FooDistanceUnit): Float!
+}
+enum FooVehicleRegion {
+	FOO_AF
+	FOO_AS
+	FOO_EU
+	FOO_NA
+	FOO_OC
+	FOO_SA
+}
+type FooVehicleRouting {
+	"""
+	Vehicles that support fast charging have a minimum charging speed of 43 kWh.
+	"""
+	fast_charging_support: Boolean!
+}
+input FooVehicleSpeedInput {
+	"""
+	Value of the vehicle speed
+	"""
+	value: Float
+	"""
+	Type of the vehicle speed
+	"""
+	type: FooSpeedUnit
+	"""
+	Source of inputted data, defaults to 'manual'
+	"""
+	source: FooTelemetryInputSource = "manual"
+}
+"""
+Status of a vehicle.
+"""
+enum FooVehicleStatus {
+	FOO_DRAFT
+	FOO_PUBLIC
+	FOO_PRIVATE
+	FOO_ARCHIVED
+}
+enum FooVehicleType {
+	FOO_MOTORCYCLE
+	FOO_MICROCAR
+	FOO_CAR
+	FOO_PICKUP
+	FOO_VAN
+	FOO_BUS
+	FOO_TRUCK
+	FOO_UTILITY
+}
+type FooVehicleVideo {
+	"""
+	Video id.
+	"""
+	id: ID
+	"""
+	Full path URL of a video.
+	"""
+	url: String
+}
+enum FooVolumeUnit {
+	FOO_LITER
+	FOO_CUBIC_METER
+	FOO_CUBIC_FOOT
+}
+enum FooWeightUnit {
+	FOO_KILOGRAM
+	FOO_POUND
+}
+type Mutation {
+	"""
+	Access to embedded foo API.
+	"""
+	foo: FooMutation
+}
+type Query {
+	"""
+	Access to embedded foo API.
+	"""
+	foo: FooQuery
+}
+schema {
+	query: Query
+	mutation: Mutation
+	subscription: Subscription
+}
+
