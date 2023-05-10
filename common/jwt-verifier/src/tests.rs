@@ -4,10 +4,9 @@ use serde_json::json;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
-    const JWKS_PATH: &str = "/.well-known/jwks.json";
+const JWKS_PATH: &str = "/.well-known/jwks.json";
+async fn set_up_oidc_server(issuer: &Url, server: &MockServer) {
     let jwks_uri = issuer.join(JWKS_PATH).unwrap();
-
     Mock::given(method("GET"))
         .and(path(OIDC_DISCOVERY_PATH))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
@@ -17,67 +16,76 @@ async fn set_up_mock_server(issuer: &Url, server: &MockServer) {
         .mount(server)
         .await;
 
+    set_up_jwks_server(jwks_uri.path(), server).await;
+}
+
+async fn set_up_jwks_server(jwks_path: &str, server: &MockServer) {
     Mock::given(method("GET"))
-            .and(path(JWKS_PATH))
-            .respond_with(ResponseTemplate::new(200).set_body_json(json!(
-                {
-                    "keys": [
-                        // clerk.b74v0.5y6hj.lcl.dev
-                        {
-                            "use": "sig",
-                            "kty": "RSA",
-                            "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ",
-                            "alg": "RS256",
-                            "n": "z-Fz5w3CGNCvXJNK36DU3-t9Z6llP4j7JTJKcZWXViuqaHtnP0JuCQtesKlf58sjJinRYuSlMuRDeVZ-V7SqDqA0mfxkHqPYpgh1TOYeSMusKJjK36NlLa9nk6wPLv3C95OYTcvvEw0seE07bxiRP2U2W-ZlCE6wJQ9HtHUzLntpF5ZHLJgR3ziXTPHesp6HU4v2JfWS0laZIzgQaSXgysx6YRucZeJb0sWjPuj-aTjhXm5ThgnwzBchBIWMm2t7wh4Ma2hM_iE2MobxpOPfD25MPJ-EV-bG88B61uKbofllEn0ATs_AWSVkNvWCm9-QpTP_7MmsomrbfHEBg_VV9Q",
-                            "e": "AQAB"
-                        },
-                        // clerk.grafbase-vercel.dev
-                        {
-                            "use": "sig",
-                            "kty": "RSA",
-                            "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV",
-                            "alg": "RS256",
-                            "n": "t8IlMSSequigQ3RG1LjYyO2yY2Y1BtOLi0reYGlZ-4BYAiH99jhQQw6R7Yvg_pbgREO--34fayzx7v0te75IAGwMX22sRAJ1aZqdQxBr1lVLSjLrT-WRlIN04MucV4SK8qK8mx94fxFtMAoQxiTICxmHOzrAaoWhS64qCsekUSOiYJyVKarBBM2FDhBanbhg1l0uZnbllMK8WQ4_nLnMRzpNUaYEDJtgUOIEFrVDGEIpbMwEBl4FSDgfCNPXF-OesOPvMwWkfdCklpkj8TecKVpqYBpEodHqDlV7uHpHx8pleStLcIQn1GCqTlA1-XtU3owk2kYEBFNs-sYG-ZRNIQ",
-                            "e": "AQAB"
-                        },
-                        // Auth0 1/2
-                        {
-                            "alg": "RS256",
-                            "kty": "RSA",
-                            "use": "sig",
-                            "n": "uaJ64UOX_EBuzpCAP5KSPNT5I__wLDY6-bfUEsbImlHNtjOYUlZ48wBMc-2KO4UX1CnIHUOdE46LAOrLL8hoYKqGvJEwiumDsUtd2G8U8T1VuZgwKjjUqyhT0M-SAtXSRtyb756S9lYH3u7NHX585tsv-gJd3eDEafJQN4WrS8jFIQmi5LbmuTqc4hgNAuWGVRCYc-Sq4AxoJZnXRSH0NQOv0bGYGKXJ2Sfm-wifnm1ivEQH-JGmhn1oTrJzYGVFN8OBMYElO_hXiiWVccelpdqIrdbX3Xm9asKVin3u_GiT1CZhafu396K0JlzZX0oEoS-0yZEsCRQhYrcrmIoXzw",
-                            "e": "AQAB",
-                            "kid": "-PStdICfaqAFdUnDSq63E",
-                            "x5t": "SFHn51pJyhkgC6H75wRnZlQdOfE",
-                            "x5c": ["MIIDAzCCAeugAwIBAgIJeLAmhNIdUMvoMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5onrhQ5f8QG7OkIA/kpI81Pkj//AsNjr5t9QSxsiaUc22M5hSVnjzAExz7Yo7hRfUKcgdQ50TjosA6ssvyGhgqoa8kTCK6YOxS13YbxTxPVW5mDAqONSrKFPQz5IC1dJG3JvvnpL2Vgfe7s0dfnzm2y/6Al3d4MRp8lA3hatLyMUhCaLktua5OpziGA0C5YZVEJhz5KrgDGglmddFIfQ1A6/RsZgYpcnZJ+b7CJ+ebWK8RAf4kaaGfWhOsnNgZUU3w4ExgSU7+FeKJZVxx6Wl2oit1tfdeb1qwpWKfe78aJPUJmFp+7f3orQmXNlfSgShL7TJkSwJFCFityuYihfPAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFFHUGRkvemN9VG0XJkns/AAjzflGMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAkVqLT9/IMPGycGK//ZxxaeErHbgqujk051GJeYIJBN7kUXDrjGKo/WpiAnthw6GG5w1z9Ciw/anapRRnKauMIukhUAUrkmg0VQ0C81Jkt7dB+Jjb77z4kGmL53Ys+4ZKOHZWxRmedI4C7zHa/54rZK8oZUCgyGpM2sJ2VVkm7uXXfl93mOfqZW8PO/EVOlNrKLPC0VrrOMaynljw4NBbJfdbwsrel+VLKcZxLELyc0PeUjDYoyR56uIKNaJhu+oj2bUbU0aCYWeGp2zkSijn6WuzZbzryTHAgHxAUrKBHWbWM5Eclwa7PMP++1EYG8YwldUuw6tprZDVTAMEyjcwAA=="]
-                        },
-                        // Auth0 2/2
-                        {
-                            "alg": "RS256",
-                            "kty": "RSA",
-                            "use": "sig",
-                            "n": "wp3UvyUh_D_cGJ7Dyu7oSnDW2xbyR1K1VX2UDmDvxEWJJWo55LWS-wCjod3r52YRJOTVwEwp_Ys39keijonfOJA3qvtMT16I8FfxhNX4P5jRV3VeqDFN4zMd23_TDxBK6pHthxB_Iaqcq_KzYzSoCsFfnOTJqV6S8uTqursZfnQXVHFdsLK4T4JArgOTLMfF1CODgOWjUYhAOu_4fAsasLN-3r9Rv5S1LEDUOZIeVBEYdCRvmZAtCldFMy0SUkD37627E1KCdRInCHjY9oYF60g3ltLqAqFj5GkNrPr8AMkTLtGf7xBe4E7l-W7tLS2uklhiOck4XPW1faIz8OiTrw",
-                            "e": "AQAB",
-                            "kid": "8vDmhCLv3K-68FrYZ5HUg",
-                            "x5t": "2rCm4IYOopk4IIILYC0jSNNZq_s",
-                            "x5c": ["MIIDAzCCAeugAwIBAgIJM6Gk08Zskw4kMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDCndS/JSH8P9wYnsPK7uhKcNbbFvJHUrVVfZQOYO/ERYklajnktZL7AKOh3evnZhEk5NXATCn9izf2R6KOid84kDeq+0xPXojwV/GE1fg/mNFXdV6oMU3jMx3bf9MPEErqke2HEH8hqpyr8rNjNKgKwV+c5MmpXpLy5Oq6uxl+dBdUcV2wsrhPgkCuA5Msx8XUI4OA5aNRiEA67/h8Cxqws37ev1G/lLUsQNQ5kh5UERh0JG+ZkC0KV0UzLRJSQPfvrbsTUoJ1EicIeNj2hgXrSDeW0uoCoWPkaQ2s+vwAyRMu0Z/vEF7gTuX5bu0tLa6SWGI5yThc9bV9ojPw6JOvAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFKoOrf8iesXeD0nJFVXoEei95HDRMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAFZZqomEl/e9DXsboBmnCYFPI28ZzRyQ+J2QV7phtsBG0Vn1SVtNhY8zbvYfQdoCSHHrbdQEmG/nNKuCqh+j4uDYcKxF50QDFXCTTFTIvvlm3wSwdhWseEkyoklTQBOr4LUk7lIgllhYqGupu4ngNYjAzZ5YcGLa/q1dkTo2FKO1claIXVgrgfLmCl4hhtDdfGDPIOccQF09JOoTCag9c2Z6R5M6YP/lB+oxOq9/vGx1dPz5FHItmCv56QV5GA+UqFs8Dwln5A5bX6e3CQQXieFep71fgo0PmiGxMKNf1mERDBg4ltCSqW+OecBCRM+b2Xj5zwigUlbwt32j7iynpFg=="]
-                        }
-                    ]
-                }
-            )))
-            .expect(1)
-            .mount(server)
-            .await;
+  .and(path(jwks_path))
+  .respond_with(ResponseTemplate::new(200).set_body_json(json!(
+      {
+          "keys": [
+              // clerk.b74v0.5y6hj.lcl.dev
+              {
+                  "use": "sig",
+                  "kty": "RSA",
+                  "kid": "ins_23i6WGIDWhlPcLeesxbmcUNLZyJ",
+                  "alg": "RS256",
+                  "n": "z-Fz5w3CGNCvXJNK36DU3-t9Z6llP4j7JTJKcZWXViuqaHtnP0JuCQtesKlf58sjJinRYuSlMuRDeVZ-V7SqDqA0mfxkHqPYpgh1TOYeSMusKJjK36NlLa9nk6wPLv3C95OYTcvvEw0seE07bxiRP2U2W-ZlCE6wJQ9HtHUzLntpF5ZHLJgR3ziXTPHesp6HU4v2JfWS0laZIzgQaSXgysx6YRucZeJb0sWjPuj-aTjhXm5ThgnwzBchBIWMm2t7wh4Ma2hM_iE2MobxpOPfD25MPJ-EV-bG88B61uKbofllEn0ATs_AWSVkNvWCm9-QpTP_7MmsomrbfHEBg_VV9Q",
+                  "e": "AQAB"
+              },
+              // clerk.grafbase-vercel.dev
+              {
+                  "use": "sig",
+                  "kty": "RSA",
+                  "kid": "ins_2DNpl5ECApCSRaSCOuwcYlirxAV",
+                  "alg": "RS256",
+                  "n": "t8IlMSSequigQ3RG1LjYyO2yY2Y1BtOLi0reYGlZ-4BYAiH99jhQQw6R7Yvg_pbgREO--34fayzx7v0te75IAGwMX22sRAJ1aZqdQxBr1lVLSjLrT-WRlIN04MucV4SK8qK8mx94fxFtMAoQxiTICxmHOzrAaoWhS64qCsekUSOiYJyVKarBBM2FDhBanbhg1l0uZnbllMK8WQ4_nLnMRzpNUaYEDJtgUOIEFrVDGEIpbMwEBl4FSDgfCNPXF-OesOPvMwWkfdCklpkj8TecKVpqYBpEodHqDlV7uHpHx8pleStLcIQn1GCqTlA1-XtU3owk2kYEBFNs-sYG-ZRNIQ",
+                  "e": "AQAB"
+              },
+              // Auth0 1/2
+              {
+                  "alg": "RS256",
+                  "kty": "RSA",
+                  "use": "sig",
+                  "n": "uaJ64UOX_EBuzpCAP5KSPNT5I__wLDY6-bfUEsbImlHNtjOYUlZ48wBMc-2KO4UX1CnIHUOdE46LAOrLL8hoYKqGvJEwiumDsUtd2G8U8T1VuZgwKjjUqyhT0M-SAtXSRtyb756S9lYH3u7NHX585tsv-gJd3eDEafJQN4WrS8jFIQmi5LbmuTqc4hgNAuWGVRCYc-Sq4AxoJZnXRSH0NQOv0bGYGKXJ2Sfm-wifnm1ivEQH-JGmhn1oTrJzYGVFN8OBMYElO_hXiiWVccelpdqIrdbX3Xm9asKVin3u_GiT1CZhafu396K0JlzZX0oEoS-0yZEsCRQhYrcrmIoXzw",
+                  "e": "AQAB",
+                  "kid": "-PStdICfaqAFdUnDSq63E",
+                  "x5t": "SFHn51pJyhkgC6H75wRnZlQdOfE",
+                  "x5c": ["MIIDAzCCAeugAwIBAgIJeLAmhNIdUMvoMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5onrhQ5f8QG7OkIA/kpI81Pkj//AsNjr5t9QSxsiaUc22M5hSVnjzAExz7Yo7hRfUKcgdQ50TjosA6ssvyGhgqoa8kTCK6YOxS13YbxTxPVW5mDAqONSrKFPQz5IC1dJG3JvvnpL2Vgfe7s0dfnzm2y/6Al3d4MRp8lA3hatLyMUhCaLktua5OpziGA0C5YZVEJhz5KrgDGglmddFIfQ1A6/RsZgYpcnZJ+b7CJ+ebWK8RAf4kaaGfWhOsnNgZUU3w4ExgSU7+FeKJZVxx6Wl2oit1tfdeb1qwpWKfe78aJPUJmFp+7f3orQmXNlfSgShL7TJkSwJFCFityuYihfPAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFFHUGRkvemN9VG0XJkns/AAjzflGMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAkVqLT9/IMPGycGK//ZxxaeErHbgqujk051GJeYIJBN7kUXDrjGKo/WpiAnthw6GG5w1z9Ciw/anapRRnKauMIukhUAUrkmg0VQ0C81Jkt7dB+Jjb77z4kGmL53Ys+4ZKOHZWxRmedI4C7zHa/54rZK8oZUCgyGpM2sJ2VVkm7uXXfl93mOfqZW8PO/EVOlNrKLPC0VrrOMaynljw4NBbJfdbwsrel+VLKcZxLELyc0PeUjDYoyR56uIKNaJhu+oj2bUbU0aCYWeGp2zkSijn6WuzZbzryTHAgHxAUrKBHWbWM5Eclwa7PMP++1EYG8YwldUuw6tprZDVTAMEyjcwAA=="]
+              },
+              // Auth0 2/2
+              {
+                  "alg": "RS256",
+                  "kty": "RSA",
+                  "use": "sig",
+                  "n": "wp3UvyUh_D_cGJ7Dyu7oSnDW2xbyR1K1VX2UDmDvxEWJJWo55LWS-wCjod3r52YRJOTVwEwp_Ys39keijonfOJA3qvtMT16I8FfxhNX4P5jRV3VeqDFN4zMd23_TDxBK6pHthxB_Iaqcq_KzYzSoCsFfnOTJqV6S8uTqursZfnQXVHFdsLK4T4JArgOTLMfF1CODgOWjUYhAOu_4fAsasLN-3r9Rv5S1LEDUOZIeVBEYdCRvmZAtCldFMy0SUkD37627E1KCdRInCHjY9oYF60g3ltLqAqFj5GkNrPr8AMkTLtGf7xBe4E7l-W7tLS2uklhiOck4XPW1faIz8OiTrw",
+                  "e": "AQAB",
+                  "kid": "8vDmhCLv3K-68FrYZ5HUg",
+                  "x5t": "2rCm4IYOopk4IIILYC0jSNNZq_s",
+                  "x5c": ["MIIDAzCCAeugAwIBAgIJM6Gk08Zskw4kMA0GCSqGSIb3DQEBCwUAMB8xHTAbBgNVBAMTFGdiLW9pZGMuZXUuYXV0aDAuY29tMB4XDTIyMDkyMjEwNTQ0OVoXDTM2MDUzMTEwNTQ0OVowHzEdMBsGA1UEAxMUZ2Itb2lkYy5ldS5hdXRoMC5jb20wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDCndS/JSH8P9wYnsPK7uhKcNbbFvJHUrVVfZQOYO/ERYklajnktZL7AKOh3evnZhEk5NXATCn9izf2R6KOid84kDeq+0xPXojwV/GE1fg/mNFXdV6oMU3jMx3bf9MPEErqke2HEH8hqpyr8rNjNKgKwV+c5MmpXpLy5Oq6uxl+dBdUcV2wsrhPgkCuA5Msx8XUI4OA5aNRiEA67/h8Cxqws37ev1G/lLUsQNQ5kh5UERh0JG+ZkC0KV0UzLRJSQPfvrbsTUoJ1EicIeNj2hgXrSDeW0uoCoWPkaQ2s+vwAyRMu0Z/vEF7gTuX5bu0tLa6SWGI5yThc9bV9ojPw6JOvAgMBAAGjQjBAMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFKoOrf8iesXeD0nJFVXoEei95HDRMA4GA1UdDwEB/wQEAwIChDANBgkqhkiG9w0BAQsFAAOCAQEAFZZqomEl/e9DXsboBmnCYFPI28ZzRyQ+J2QV7phtsBG0Vn1SVtNhY8zbvYfQdoCSHHrbdQEmG/nNKuCqh+j4uDYcKxF50QDFXCTTFTIvvlm3wSwdhWseEkyoklTQBOr4LUk7lIgllhYqGupu4ngNYjAzZ5YcGLa/q1dkTo2FKO1claIXVgrgfLmCl4hhtDdfGDPIOccQF09JOoTCag9c2Z6R5M6YP/lB+oxOq9/vGx1dPz5FHItmCv56QV5GA+UqFs8Dwln5A5bX6e3CQQXieFep71fgo0PmiGxMKNf1mERDBg4ltCSqW+OecBCRM+b2Xj5zwigUlbwt32j7iynpFg=="]
+              },
+              // Hanko instance https://b91ba64e-b8fb-4262-92ff-211e89810456.hanko.io
+              {
+                  "alg": "RS256",
+                  "kty": "RSA",
+                  "use": "sig",
+                  "kid": "71f19172-229c-4de5-9b08-c533fd2cee8a",
+                  "e": "AQAB",
+                  "n": "yDIIV8slg_uObNLOAuIAe1tchGshxNy2JNWSHQZ22chk39nKT5bUvUeTNRuc9Gv7_A4vzC8GP0HZZUv3roxsycbXmJdplsj8IPtgRZG6E4z3yg_GYc0R91BYjREvQ2Bkl90t9AyeY-dvahLEctW3ZQbw4GpkuwsKOReV2L8zahFf9CsZH8E_uxWWgS7a_ptuYYYX8SywCp-WkMAfsFaFb4FPysv3zSSd-J1czpsUqQdiaf2WXs8WH21WQCIGMW2sxUDce12OtoEAF7ALIrdLrDhQlv9WTE7paoID0yGbv4Ozl4a-fxD40fQxkkdt8PFiqlDS7oxpk66E7DZDCvt7-Irca4psySqESGw2s4QxjIA_BkJth7sJsIs2M7S_bAIE1J2DplXADU5UoWM4NnsV7ehD-LMKqoWMP5LgrTvEbA-cqiBS5IJPgOQ0lRwgqmAF4K_xjB8juLWId3q0ge-Gk70Tr7SHI6x_lRrsPvM9kOJz_hTRw_3tILWIMq2aPglmTXAlqoIcn07us77BVKs5c5cRWAWfqyLye-a6RfMwABB1BaTm0Mth6ZH5AWugQQcdcybadq6Unejkf-T9l0teZ_W5M8dgMhXt0dNopKvmPGWvK5Pu6a2Oi_KLS-gTqCt69sf5w6CdG4-id7Pt9xBti172W_Lk6gmVdMgRWbI4Jjs"
+              }
+          ]
+      }
+  )))
+  .expect(1)
+  .mount(server)
+  .await;
 }
 
 macro_rules! verify_test {
     ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $expect:expr) => {
         #[tokio::test]
         async fn $fn_name() {
-            let server = MockServer::start().await;
-            let issuer: Url = server.uri().parse().unwrap();
-            set_up_mock_server(&issuer, &server).await;
-
             let client = {
                 let leeway = Duration::seconds(5);
                 let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
@@ -89,8 +97,27 @@ macro_rules! verify_test {
                     ..Default::default()
                 }
             };
-
-            assert_eq!(client.verify_rs_token($token, &issuer).await.unwrap(), $expect);
+            let server = MockServer::start().await;
+            let issuer: Url = server.uri().parse().unwrap();
+            for use_oidc in [false, true] {
+                let actual = if use_oidc {
+                    set_up_oidc_server(&issuer, &server).await;
+                    client
+                        .verify_rs_token_using_oidc_discovery($token, &issuer)
+                        .await
+                        .unwrap()
+                } else {
+                    // jwks endpoint
+                    let jwks_uri = issuer.join(JWKS_PATH).unwrap();
+                    set_up_jwks_server(jwks_uri.path(), &server).await;
+                    client
+                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, &issuer.to_string())
+                        .await
+                        .unwrap()
+                };
+                assert_eq!(actual, $expect);
+                server.reset().await;
+            }
         }
     };
 }
@@ -99,10 +126,6 @@ macro_rules! verify_fail {
     ($fn_name:ident, $token:expr, $iat:expr, $groups_claim:expr, $client_id:expr, $err:literal) => {
         #[tokio::test]
         async fn $fn_name() {
-            let server = MockServer::start().await;
-            let issuer: Url = server.uri().parse().unwrap();
-            set_up_mock_server(&issuer, &server).await;
-
             let client = {
                 let leeway = Duration::seconds(5);
                 let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt($iat, 0).unwrap(), Utc);
@@ -114,15 +137,30 @@ macro_rules! verify_fail {
                     ..Default::default()
                 }
             };
+            let server = MockServer::start().await;
+            let issuer: Url = server.uri().parse().unwrap();
 
-            assert_eq!(
-                client
-                    .verify_rs_token($token, &issuer)
-                    .await
-                    .unwrap_err()
-                    .to_string(),
-                $err
-            );
+            for use_oidc in [false, true] {
+                let actual = if use_oidc {
+                    set_up_oidc_server(&issuer, &server).await;
+                    client
+                        .verify_rs_token_using_oidc_discovery($token, &issuer)
+                        .await
+                        .unwrap_err()
+                        .to_string()
+                } else {
+                    // jwks endpoint
+                    let jwks_uri = issuer.join(JWKS_PATH).unwrap();
+                    set_up_jwks_server(jwks_uri.path(), &server).await;
+                    client
+                        .verify_rs_token_using_jwks_endpoint($token, &jwks_uri, &issuer.to_string())
+                        .await
+                        .unwrap_err()
+                        .to_string()
+                };
+                assert_eq!(actual, $err);
+                server.reset().await;
+            }
         }
     };
 }
@@ -375,7 +413,7 @@ async fn token_signed_with_secret() {
 
     assert_eq!(
         new_client
-            .verify_rs_token(token, &Url::parse(&issuer).unwrap())
+            .verify_rs_token_using_oidc_discovery(token, &Url::parse(&issuer).unwrap())
             .await
             .unwrap_err()
             .to_string(),

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use json_dotpath::DotPaths;
-use jwt_compact::{jwk::JsonWebKey, prelude::*, TimeOptions};
+use jwt_compact::{alg::Rsa, jwk::JsonWebKey, prelude::*, TimeOptions};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -86,26 +86,17 @@ pub struct VerifiedToken {
 impl<'a> Client<'a> {
     /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
     /// using OIDC discovery to retrieve the public key.
-    pub async fn verify_rs_token<S: AsRef<str>>(
+    pub async fn verify_rs_token_using_oidc_discovery<S: AsRef<str>>(
         &self,
         token: S,
         issuer: &'a Url,
     ) -> Result<VerifiedToken, VerificationError> {
         use futures_util::TryFutureExt;
-        use jwt_compact::alg::{Rsa, RsaPublicKey, StrongAlg, StrongKey};
+        use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
 
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
-        let rsa = match token.algorithm() {
-            "RS256" => Rsa::rs256(),
-            "RS384" => Rsa::rs384(),
-            "RS512" => Rsa::rs512(),
-            other => {
-                return Err(VerificationError::UnsupportedAlgorithm {
-                    algorithm: other.to_string(),
-                })
-            }
-        };
+        let rsa = Self::get_rsa_algorithm(&token)?;
 
         let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
@@ -180,6 +171,52 @@ impl<'a> Client<'a> {
         self.verify_claims(token.claims(), issuer)
     }
 
+    /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
+    /// using JWKS endpoint to retrieve the public key.
+    pub async fn verify_rs_token_using_jwks_endpoint<S: AsRef<str>>(
+        &self,
+        token: S,
+        jwks_uri: &'a Url,
+        issuer: &'a str,
+    ) -> Result<VerifiedToken, VerificationError> {
+        use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
+
+        let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
+        let rsa = Self::get_rsa_algorithm(&token)?;
+        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+
+        // TODO: add caching
+
+        let jwk = {
+            // Get JWKS
+            let jwks: JsonWebKeySet<'_> = self
+                .http_client
+                .get(jwks_uri.clone())
+                .send()
+                .await
+                .map_err(VerificationError::HttpRequest)?
+                .json()
+                .await
+                .map_err(VerificationError::HttpRequest)?;
+
+            // Find JWK to verify JWT
+            jwks.keys
+                .into_iter()
+                .find(|key| &key.id == kid)
+                .ok_or_else(|| VerificationError::JwkNotFound { kid: kid.to_string() })?
+        };
+
+        // Verify JWT signature
+        let pub_key = RsaPublicKey::try_from(&jwk.base).map_err(|_| VerificationError::JwkFormat)?;
+        let pub_key = StrongKey::try_from(pub_key).map_err(|_| VerificationError::JwkFormat)?;
+        let rsa = StrongAlg(rsa);
+        let token = rsa
+            .validate_integrity::<CustomClaims<String>>(&token, &pub_key)
+            .map_err(VerificationError::Integrity)?;
+
+        self.verify_claims::<String, str>(token.claims(), issuer)
+    }
+
     /// Verify a JSON Web Token signed with HMAC + SHA (HS256, HS384, or HS512)
     /// using the provided key.
     pub fn verify_hs_token<S: AsRef<str>>(
@@ -212,6 +249,17 @@ impl<'a> Client<'a> {
         }?;
 
         self.verify_claims::<String, str>(token.claims(), issuer)
+    }
+
+    fn get_rsa_algorithm(token: &UntrustedToken<'_>) -> Result<Rsa, VerificationError> {
+        match token.algorithm() {
+            "RS256" => Ok(Rsa::rs256()),
+            "RS384" => Ok(Rsa::rs384()),
+            "RS512" => Ok(Rsa::rs512()),
+            other => Err(VerificationError::UnsupportedAlgorithm {
+                algorithm: other.to_string(),
+            }),
+        }
     }
 
     fn verify_claims<ISS, C>(
