@@ -9,18 +9,18 @@ impl QueryResponse {
     /// Recursive function which take a `serde_json::Value` and transform it into a Node ready to
     /// be used.
     pub fn from_serde_value(&mut self, value: Value) -> ResponseNodeId {
-        match value {
-            Value::Null => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)),
-            Value::Bool(boo) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Boolean(boo))),
-            Value::Number(n) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Number(n))),
-            Value::String(s) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::String(s))),
+        let a: QueryResponseNode = match value {
+            Value::Null => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Null)),
+            Value::Bool(boo) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Boolean(boo))),
+            Value::Number(n) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::Number(n))),
+            Value::String(s) => QueryResponseNode::Primitive(ResponsePrimitive::new(CompactValue::String(s))),
             Value::Array(val) => {
                 let nodes = val
                     .into_iter()
                     .map(|x| self.from_serde_value(x))
                     .collect::<Vec<ResponseNodeId>>();
-
-                self.new_node_unchecked(ResponseList::with_children(nodes))
+                let list = ResponseList::with_children(nodes);
+                QueryResponseNode::List(list)
             }
             Value::Object(val) => {
                 let nodes = val
@@ -32,10 +32,12 @@ impl QueryResponse {
                         )
                     })
                     .collect::<Vec<(ResponseNodeRelation, ResponseNodeId)>>();
-
-                self.new_node_unchecked(ResponseContainer::with_children(nodes))
+                let container = ResponseContainer::with_children(nodes);
+                QueryResponseNode::Container(container)
             }
-        }
+        };
+
+        self.new_node_unchecked(a)
     }
 
     pub fn as_graphql_data(&self) -> GraphQlResponseSerializer<'_> {
@@ -55,7 +57,7 @@ impl serde::Serialize for GraphQlResponseSerializer<'_> {
     where
         S: serde::Serializer,
     {
-        match self.0.root.filter(|node_id| self.0.node_exists(*node_id)) {
+        match self.0.root.as_ref().filter(|node_id| self.0.node_exists(node_id)) {
             Some(node_id) => NodeSerializer { node_id, graph: self.0 }.serialize(serializer),
             None => serializer.serialize_none(),
         }
@@ -63,7 +65,7 @@ impl serde::Serialize for GraphQlResponseSerializer<'_> {
 }
 
 struct NodeSerializer<'a> {
-    node_id: ResponseNodeId,
+    node_id: &'a ResponseNodeId,
     graph: &'a QueryResponse,
 }
 
@@ -74,7 +76,7 @@ impl serde::Serialize for NodeSerializer<'_> {
     {
         let node = self
             .graph
-            .get_node(&self.node_id)
+            .get_node(self.node_id)
             .expect("node presence to be checked before NodeSerializer");
 
         match node {
@@ -82,12 +84,12 @@ impl serde::Serialize for NodeSerializer<'_> {
                 container
                     .children
                     .iter()
-                    .filter(|(_, node_id)| self.graph.node_exists(*node_id))
+                    .filter(|(_, node_id)| self.graph.node_exists(node_id))
                     .map(|(key, value)| {
                         (
                             key.to_string(),
                             NodeSerializer {
-                                node_id: *value,
+                                node_id: value,
                                 graph: self.graph,
                             },
                         )
@@ -96,9 +98,9 @@ impl serde::Serialize for NodeSerializer<'_> {
             QueryResponseNode::List(list) => serializer.collect_seq(
                 list.children
                     .iter()
-                    .filter(|node_id| self.graph.node_exists(**node_id))
+                    .filter(|node_id| self.graph.node_exists(node_id))
                     .map(|value| NodeSerializer {
-                        node_id: *value,
+                        node_id: value,
                         graph: self.graph,
                     }),
             ),

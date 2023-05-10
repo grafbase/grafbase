@@ -498,7 +498,7 @@ impl MetaField {
                     .response_graph
                     .write()
                     .await
-                    .new_node_unchecked(ResponsePrimitive::new(result.into())))
+                    .new_node_unchecked(ResponsePrimitive::new(result.into()).into()))
             }
             CurrentResolverType::CONTAINER => {
                 // If there is a resolver associated to the container we execute it before
@@ -521,11 +521,9 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)));
+                            return Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ));
                         }
                     }
                     Some(resolved_value)
@@ -572,11 +570,9 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)))
+                            Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ))
                         }
                     }
                 }
@@ -610,11 +606,9 @@ impl MetaField {
                                 Some(ctx.item.pos),
                             ));
                         } else {
-                            return Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(CompactValue::Null));
+                            return Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ));
                         }
                     }
                     serde_json::Value::Array(arr) => arr.clone(),
@@ -633,11 +627,9 @@ impl MetaField {
                             Err(err)
                         } else {
                             ctx.add_error(err);
-                            Ok(ctx
-                                .response_graph
-                                .write()
-                                .await
-                                .new_node_unchecked(CompactValue::Null))
+                            Ok(ctx.response_graph.write().await.new_node_unchecked(
+                                ResponsePrimitive::new(CompactValue::Null).into(),
+                            ))
                         }
                     }
                 }
