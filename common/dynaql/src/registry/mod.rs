@@ -6,6 +6,7 @@ pub mod relations;
 pub mod resolver_chain;
 pub mod resolvers;
 pub mod scalars;
+mod serde_preserve_enum;
 mod stringify_exec_doc;
 pub mod transformers;
 pub mod union_discriminator;
@@ -148,6 +149,7 @@ pub struct MetaInputValue {
     pub description: Option<String>,
     pub ty: String,
     #[derivative(Hash = "ignore")]
+    #[serde(with = "serde_preserve_enum")]
     pub default_value: Option<dynaql_value::ConstValue>,
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
