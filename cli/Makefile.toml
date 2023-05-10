@@ -14,7 +14,16 @@ install_crate = { crate_name = "sd", binary = "sd", test_arg = [
     "--version",
 ], version = "0.7.6" }
 
+[tasks.mac-install-cargo-instruments]
+private = true
+condition = { platforms = ["mac"] }
+install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg = [
+    "instruments",
+    "--version",
+], version = "0.4.8" }
+
 [tasks.bump]
+description = "Bumps all packages to a specified version"
 dependencies = ["install-cargo-release", "install-sd"]
 script = '''
 VERSION=${@}
@@ -39,6 +48,7 @@ sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/c
 '''
 
 [tasks.release]
+description = "Pushes a tag with the current version"
 script = '''
 git switch main
 git pull
@@ -50,42 +60,61 @@ git push --tags
 '''
 
 [tasks.prettier]
+description = "Runs Prettier and writes the results"
 script = '''
 npx prettier --write .
 '''
 
 [tasks.test]
+description = "Runs cargo-nextest"
 clear = true
 command = "cargo"
 args = ["nextest", "run"]
 
 [tasks.clippy]
+description = "Runs Clippy"
 clear = true
 command = "cargo"
 args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
 
 [tasks.clippy-nightly]
+description = "Runs Clippy on the nightly toolchain"
 toolchain = "nightly"
 command = "cargo"
 args = ["clippy", "--locked", "--tests", "--", "-D", "warnings"]
 
 [tasks.run]
+description = "Runs the CLI"
 clear = true
 command = "cargo"
 args = ["run", "--", "${@}"]
 
 [tasks.run-release]
+description = "Runs the CLI in release mode"
 clear = true
 command = "cargo"
 args = ["run", "--release", "--", "${@}"]
 
-[tasks.update-workers]
+[tasks.profile-dev]
+description = "Profiles the dev command"
+mac_alias = "mac-profile-dev"
+
+[tasks.mac-profile-dev]
+description = "Profiles the dev command (mac only)"
+condition = { platforms = ["mac"] }
+dependencies = ["mac-install-cargo-instruments"]
+command = "cargo"
+args = ["instruments", "-t", "Leaks", "--time-limit", "30000", "--", "dev"]
+
+[tasks.update-assets]
+description = "Updates the CLI assets"
 script = '''
 cd ../../api/workers/gateway
 RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
 '''
 
-[tasks.update-workers-main]
+[tasks.update-assets-main]
+description = "Updates the CLI assets from the API repo main branch"
 script = '''
 cd ../../api/workers/gateway
 git switch main
@@ -93,13 +122,15 @@ git pull
 RELEASE_FLAG="--dev" ../../scripts/dev/build-cli-assets.sh
 '''
 
-[tasks.update-workers-release]
+[tasks.update-assets-release]
+description = "Updates the CLI assets built in release mode"
 script = '''
 cd ../../api/workers/gateway
 ../../scripts/dev/build-cli-assets.sh
 '''
 
-[tasks.update-workers-main-release]
+[tasks.update-assets-main-release]
+description = "Updates the CLI assets built in release mode from the API repo main branch"
 script = '''
 cd ../../api/workers/gateway
 git switch main
