@@ -304,7 +304,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstorePet!",
+                    ty: "PetstorePet",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -359,7 +359,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstorePet!",
+                    ty: "PetstorePet",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -422,7 +422,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstoreApiResponse!",
+                    ty: "PetstoreApiResponse",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -485,7 +485,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstoreOrder!",
+                    ty: "PetstoreOrder",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -540,7 +540,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstoreUser!",
+                    ty: "PetstoreUser",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1212,7 +1212,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "[PetstorePet!]!",
+                    ty: "[PetstorePet!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1268,7 +1268,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "[PetstorePet!]!",
+                    ty: "[PetstorePet!]",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1324,7 +1324,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstorePet!",
+                    ty: "PetstorePet",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1370,7 +1370,7 @@ Registry {
                     name: "inventory",
                     description: None,
                     args: {},
-                    ty: "JSON!",
+                    ty: "JSON",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1418,7 +1418,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstoreOrder!",
+                    ty: "PetstoreOrder",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1481,7 +1481,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "String!",
+                    ty: "String",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,
@@ -1544,7 +1544,7 @@ Registry {
                             rename: None,
                         },
                     },
-                    ty: "PetstoreUser!",
+                    ty: "PetstoreUser",
                     deprecation: NoDeprecated,
                     cache_control: CacheControl {
                         public: true,

@@ -260,7 +260,13 @@ impl Operation {
             (input_value.name.clone(), input_value)
         }));
 
-        let output_type = self.ty(graph)?;
+        let mut output_type = self.ty(graph)?;
+
+        // HTTP requests can fail so it's best if we make Operation fields
+        // optional regardless of what the API says. This avoids errors
+        // bubbling further up the query heirarchy.
+        output_type.wrapping = output_type.wrapping.unwrap_required();
+
         let type_string = TypeDisplay::from_output_field_type(&output_type, graph)?.to_string();
 
         Some(MetaField {

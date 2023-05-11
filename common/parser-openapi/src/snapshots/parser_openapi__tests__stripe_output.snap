@@ -7715,241 +7715,241 @@ enum StripeMandateType {
 	SINGLE_USE
 }
 type StripeMutation {
-	postAccountLinks(input: StripePostAccountLinksInput!): StripeAccountLink!
-	postAccounts(input: StripePostAccountsInput): StripeAccount!
-	postAccountsAccount(account: String!, input: StripePostAccountsAccountInput): StripeAccount!
-	deleteAccountsAccount(account: String!): StripeDeletedAccount!
-	postAccountsAccountBankAccounts(account: String!, input: StripePostAccountsAccountBankAccountsInput): StripeExternalAccount!
-	postAccountsAccountBankAccountsId(id: String!, account: String!, input: StripePostAccountsAccountBankAccountsIdInput): StripeExternalAccount!
-	deleteAccountsAccountBankAccountsId(id: String!, account: String!): StripeDeletedExternalAccount!
-	postAccountsAccountCapabilitiesCapability(capability: String!, account: String!, input: StripePostAccountsAccountCapabilitiesCapabilityInput): StripeCapability!
-	postAccountsAccountExternalAccounts(account: String!, input: StripePostAccountsAccountExternalAccountsInput): StripeExternalAccount!
-	postAccountsAccountExternalAccountsId(id: String!, account: String!, input: StripePostAccountsAccountExternalAccountsIdInput): StripeExternalAccount!
-	deleteAccountsAccountExternalAccountsId(id: String!, account: String!): StripeDeletedExternalAccount!
-	postAccountsAccountLoginLinks(account: String!, input: StripePostAccountsAccountLoginLinksInput): StripeLoginLink!
-	postAccountsAccountPeople(account: String!, input: StripePostAccountsAccountPeopleInput): StripePerson!
-	postAccountsAccountPeoplePerson(person: String!, account: String!, input: StripePostAccountsAccountPeoplePersonInput): StripePerson!
-	deleteAccountsAccountPeoplePerson(person: String!, account: String!): StripeDeletedPerson!
-	postAccountsAccountPersons(account: String!, input: StripePostAccountsAccountPersonsInput): StripePerson!
-	postAccountsAccountPersonsPerson(person: String!, account: String!, input: StripePostAccountsAccountPersonsPersonInput): StripePerson!
-	deleteAccountsAccountPersonsPerson(person: String!, account: String!): StripeDeletedPerson!
-	postAccountsAccountReject(account: String!, input: StripePostAccountsAccountRejectInput!): StripeAccount!
-	postApplePayDomains(input: StripePostApplePayDomainsInput!): StripeApplePayDomain!
-	deleteApplePayDomainsDomain(domain: String!): StripeDeletedApplePayDomain!
-	postApplicationFeesFeeRefundsId(id: String!, fee: String!, input: StripePostApplicationFeesFeeRefundsIdInput): StripeFeeRefund!
-	postApplicationFeesIdRefund(id: String!, input: StripePostApplicationFeesIdRefundInput): StripeApplicationFee!
-	postApplicationFeesIdRefunds(id: String!, input: StripePostApplicationFeesIdRefundsInput): StripeFeeRefund!
-	postAppsSecrets(input: StripePostAppsSecretsInput!): StripeAppsSecret!
-	postAppsSecretsDelete(input: StripePostAppsSecretsDeleteInput!): StripeAppsSecret!
-	postBillingPortalConfigurations(input: StripePostBillingPortalConfigurationsInput!): StripeBillingPortalConfiguration!
-	postBillingPortalConfigurationsConfiguration(configuration: String!, input: StripePostBillingPortalConfigurationsConfigurationInput): StripeBillingPortalConfiguration!
-	postBillingPortalSessions(input: StripePostBillingPortalSessionsInput!): StripeBillingPortalSession!
-	postCharges(input: StripePostChargesInput): StripeCharge!
-	postChargesCharge(charge: String!, input: StripePostChargesChargeInput): StripeCharge!
-	postChargesChargeCapture(charge: String!, input: StripePostChargesChargeCaptureInput): StripeCharge!
-	postChargesChargeDispute(charge: String!, input: StripePostChargesChargeDisputeInput): StripeDispute!
-	postChargesChargeDisputeClose(charge: String!, input: StripePostChargesChargeDisputeCloseInput): StripeDispute!
-	postChargesChargeRefund(charge: String!, input: StripePostChargesChargeRefundInput): StripeCharge!
-	postChargesChargeRefunds(charge: String!, input: StripePostChargesChargeRefundsInput): StripeRefund!
-	postChargesChargeRefundsRefund(refund: String!, charge: String!, input: StripePostChargesChargeRefundsRefundInput): StripeRefund!
-	postCheckoutSessions(input: StripePostCheckoutSessionsInput!): StripeCheckoutSession!
-	postCheckoutSessionsSessionExpire(session: String!, input: StripePostCheckoutSessionsSessionExpireInput): StripeCheckoutSession!
-	postCoupons(input: StripePostCouponsInput): StripeCoupon!
-	postCouponsCoupon(coupon: String!, input: StripePostCouponsCouponInput): StripeCoupon!
-	deleteCouponsCoupon(coupon: String!): StripeDeletedCoupon!
-	postCreditNotes(input: StripePostCreditNotesInput!): StripeCreditNote!
-	postCreditNotesId(id: String!, input: StripePostCreditNotesIdInput): StripeCreditNote!
-	postCreditNotesIdVoid(id: String!, input: StripePostCreditNotesIdVoidInput): StripeCreditNote!
-	postCustomers(input: StripePostCustomersInput): StripeCustomer!
-	postCustomersCustomer(customer: String!, input: StripePostCustomersCustomerInput): StripeCustomer!
-	deleteCustomersCustomer(customer: String!): StripeDeletedCustomer!
-	postCustomersCustomerBalanceTransactions(customer: String!, input: StripePostCustomersCustomerBalanceTransactionsInput!): StripeCustomerBalanceTransaction!
-	postCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!, input: StripePostCustomersCustomerBalanceTransactionsTransactionInput): StripeCustomerBalanceTransaction!
-	postCustomersCustomerBankAccounts(customer: String!, input: StripePostCustomersCustomerBankAccountsInput): StripePaymentSource!
-	postCustomersCustomerBankAccountsId(id: String!, customer: String!, input: StripePostCustomersCustomerBankAccountsIdInput): StripeSourceOrBankAccountOrCardUnion!
-	deleteCustomersCustomerBankAccountsId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerBankAccountsIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion!
-	postCustomersCustomerBankAccountsIdVerify(id: String!, customer: String!, input: StripePostCustomersCustomerBankAccountsIdVerifyInput): StripeBankAccount!
-	postCustomersCustomerCards(customer: String!, input: StripePostCustomersCustomerCardsInput): StripePaymentSource!
-	postCustomersCustomerCardsId(id: String!, customer: String!, input: StripePostCustomersCustomerCardsIdInput): StripeSourceOrBankAccountOrCardUnion!
-	deleteCustomersCustomerCardsId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerCardsIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion!
-	postCustomersCustomerCashBalance(customer: String!, input: StripePostCustomersCustomerCashBalanceInput): StripeCashBalance!
-	deleteCustomersCustomerDiscount(customer: String!): StripeDeletedDiscount!
-	postCustomersCustomerFundingInstructions(customer: String!, input: StripePostCustomersCustomerFundingInstructionsInput!): StripeFundingInstructions!
-	postCustomersCustomerSources(customer: String!, input: StripePostCustomersCustomerSourcesInput): StripePaymentSource!
-	postCustomersCustomerSourcesId(id: String!, customer: String!, input: StripePostCustomersCustomerSourcesIdInput): StripeSourceOrBankAccountOrCardUnion!
-	deleteCustomersCustomerSourcesId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerSourcesIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion!
-	postCustomersCustomerSourcesIdVerify(id: String!, customer: String!, input: StripePostCustomersCustomerSourcesIdVerifyInput): StripeBankAccount!
-	postCustomersCustomerSubscriptions(customer: String!, input: StripePostCustomersCustomerSubscriptionsInput): StripeSubscription!
-	postCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdInput): StripeSubscription!
-	deleteCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: StripeDeleteCustomersCustomerSubscriptionsSubscriptionExposedIdInput): StripeSubscription!
-	deleteCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!): StripeDeletedDiscount!
-	postCustomersCustomerTaxIds(customer: String!, input: StripePostCustomersCustomerTaxIdsInput!): StripeTaxId!
-	deleteCustomersCustomerTaxIdsId(id: String!, customer: String!): StripeDeletedTaxId!
-	postDisputesDispute(dispute: String!, input: StripePostDisputesDisputeInput): StripeDispute!
-	postDisputesDisputeClose(dispute: String!, input: StripePostDisputesDisputeCloseInput): StripeDispute!
-	postEphemeralKeys(input: StripePostEphemeralKeysInput): StripeEphemeralKey!
-	deleteEphemeralKeysKey(key: String!, input: StripeDeleteEphemeralKeysKeyInput): StripeEphemeralKey!
-	postFileLinks(input: StripePostFileLinksInput!): StripeFileLink!
-	postFileLinksLink(link: String!, input: StripePostFileLinksLinkInput): StripeFileLink!
-	postFiles: StripeFile!
-	postFinancialConnectionsAccountsAccountDisconnect(account: String!, input: StripePostFinancialConnectionsAccountsAccountDisconnectInput): StripeFinancialConnectionsAccount!
-	postFinancialConnectionsAccountsAccountRefresh(account: String!, input: StripePostFinancialConnectionsAccountsAccountRefreshInput!): StripeFinancialConnectionsAccount!
-	postFinancialConnectionsSessions(input: StripePostFinancialConnectionsSessionsInput!): StripeFinancialConnectionsSession!
-	postIdentityVerificationSessions(input: StripePostIdentityVerificationSessionsInput!): StripeIdentityVerificationSession!
-	postIdentityVerificationSessionsSession(session: String!, input: StripePostIdentityVerificationSessionsSessionInput): StripeIdentityVerificationSession!
-	postIdentityVerificationSessionsSessionCancel(session: String!, input: StripePostIdentityVerificationSessionsSessionCancelInput): StripeIdentityVerificationSession!
-	postIdentityVerificationSessionsSessionRedact(session: String!, input: StripePostIdentityVerificationSessionsSessionRedactInput): StripeIdentityVerificationSession!
-	postInvoiceitems(input: StripePostInvoiceitemsInput!): StripeInvoiceitem!
-	postInvoiceitemsInvoiceitem(invoiceitem: String!, input: StripePostInvoiceitemsInvoiceitemInput): StripeInvoiceitem!
-	deleteInvoiceitemsInvoiceitem(invoiceitem: String!): StripeDeletedInvoiceitem!
-	postInvoices(input: StripePostInvoicesInput): StripeInvoice!
-	postInvoicesInvoice(invoice: String!, input: StripePostInvoicesInvoiceInput): StripeInvoice!
-	deleteInvoicesInvoice(invoice: String!): StripeDeletedInvoice!
-	postInvoicesInvoiceFinalize(invoice: String!, input: StripePostInvoicesInvoiceFinalizeInput): StripeInvoice!
-	postInvoicesInvoiceMarkUncollectible(invoice: String!, input: StripePostInvoicesInvoiceMarkUncollectibleInput): StripeInvoice!
-	postInvoicesInvoicePay(invoice: String!, input: StripePostInvoicesInvoicePayInput): StripeInvoice!
-	postInvoicesInvoiceSend(invoice: String!, input: StripePostInvoicesInvoiceSendInput): StripeInvoice!
-	postInvoicesInvoiceVoid(invoice: String!, input: StripePostInvoicesInvoiceVoidInput): StripeInvoice!
-	postIssuingAuthorizationsAuthorization(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationInput): StripeIssuingAuthorization!
-	postIssuingAuthorizationsAuthorizationApprove(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationApproveInput): StripeIssuingAuthorization!
-	postIssuingAuthorizationsAuthorizationDecline(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationDeclineInput): StripeIssuingAuthorization!
-	postIssuingCardholders(input: StripePostIssuingCardholdersInput!): StripeIssuingCardholder!
-	postIssuingCardholdersCardholder(cardholder: String!, input: StripePostIssuingCardholdersCardholderInput): StripeIssuingCardholder!
-	postIssuingCards(input: StripePostIssuingCardsInput!): StripeIssuingCard!
-	postIssuingCardsCard(card: String!, input: StripePostIssuingCardsCardInput): StripeIssuingCard!
-	postIssuingDisputes(input: StripePostIssuingDisputesInput): StripeIssuingDispute!
-	postIssuingDisputesDispute(dispute: String!, input: StripePostIssuingDisputesDisputeInput): StripeIssuingDispute!
-	postIssuingDisputesDisputeSubmit(dispute: String!, input: StripePostIssuingDisputesDisputeSubmitInput): StripeIssuingDispute!
-	postIssuingSettlementsSettlement(settlement: String!, input: StripePostIssuingSettlementsSettlementInput): StripeIssuingSettlement!
-	postIssuingTransactionsTransaction(transaction: String!, input: StripePostIssuingTransactionsTransactionInput): StripeIssuingTransaction!
-	postLinkAccountSessions(input: StripePostLinkAccountSessionsInput!): StripeFinancialConnectionsSession!
-	postLinkedAccountsAccountDisconnect(account: String!, input: StripePostLinkedAccountsAccountDisconnectInput): StripeFinancialConnectionsAccount!
-	postLinkedAccountsAccountRefresh(account: String!, input: StripePostLinkedAccountsAccountRefreshInput!): StripeFinancialConnectionsAccount!
-	postPaymentIntents(input: StripePostPaymentIntentsInput!): StripePaymentIntent!
-	postPaymentIntentsIntent(intent: String!, input: StripePostPaymentIntentsIntentInput): StripePaymentIntent!
-	postPaymentIntentsIntentApplyCustomerBalance(intent: String!, input: StripePostPaymentIntentsIntentApplyCustomerBalanceInput): StripePaymentIntent!
-	postPaymentIntentsIntentCancel(intent: String!, input: StripePostPaymentIntentsIntentCancelInput): StripePaymentIntent!
-	postPaymentIntentsIntentCapture(intent: String!, input: StripePostPaymentIntentsIntentCaptureInput): StripePaymentIntent!
-	postPaymentIntentsIntentConfirm(intent: String!, input: StripePostPaymentIntentsIntentConfirmInput): StripePaymentIntent!
-	postPaymentIntentsIntentIncrementAuthorization(intent: String!, input: StripePostPaymentIntentsIntentIncrementAuthorizationInput!): StripePaymentIntent!
-	postPaymentIntentsIntentVerifyMicrodeposits(intent: String!, input: StripePostPaymentIntentsIntentVerifyMicrodepositsInput): StripePaymentIntent!
-	postPaymentLinks(input: StripePostPaymentLinksInput!): StripePaymentLink!
-	postPaymentLinksPaymentLink(paymentLink: String!, input: StripePostPaymentLinksPaymentLinkInput): StripePaymentLink!
-	postPaymentMethods(input: StripePostPaymentMethodsInput): StripePaymentMethod!
-	postPaymentMethodsPaymentMethod(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodInput): StripePaymentMethod!
-	postPaymentMethodsPaymentMethodAttach(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodAttachInput!): StripePaymentMethod!
-	postPaymentMethodsPaymentMethodDetach(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodDetachInput): StripePaymentMethod!
-	postPayouts(input: StripePostPayoutsInput!): StripePayout!
-	postPayoutsPayout(payout: String!, input: StripePostPayoutsPayoutInput): StripePayout!
-	postPayoutsPayoutCancel(payout: String!, input: StripePostPayoutsPayoutCancelInput): StripePayout!
-	postPayoutsPayoutReverse(payout: String!, input: StripePostPayoutsPayoutReverseInput): StripePayout!
-	postPlans(input: StripePostPlansInput!): StripePlan!
-	postPlansPlan(plan: String!, input: StripePostPlansPlanInput): StripePlan!
-	deletePlansPlan(plan: String!): StripeDeletedPlan!
-	postPrices(input: StripePostPricesInput!): StripePrice!
-	postPricesPrice(price: String!, input: StripePostPricesPriceInput): StripePrice!
-	postProducts(input: StripePostProductsInput!): StripeProduct!
-	postProductsId(id: String!, input: StripePostProductsIdInput): StripeProduct!
-	deleteProductsId(id: String!): StripeDeletedProduct!
-	postPromotionCodes(input: StripePostPromotionCodesInput!): StripePromotionCode!
-	postPromotionCodesPromotionCode(promotionCode: String!, input: StripePostPromotionCodesPromotionCodeInput): StripePromotionCode!
-	postQuotes(input: StripePostQuotesInput): StripeQuote!
-	postQuotesQuote(quote: String!, input: StripePostQuotesQuoteInput): StripeQuote!
-	postQuotesQuoteAccept(quote: String!, input: StripePostQuotesQuoteAcceptInput): StripeQuote!
-	postQuotesQuoteCancel(quote: String!, input: StripePostQuotesQuoteCancelInput): StripeQuote!
-	postQuotesQuoteFinalize(quote: String!, input: StripePostQuotesQuoteFinalizeInput): StripeQuote!
-	postRadarValueListItems(input: StripePostRadarValueListItemsInput!): StripeRadarValueListItem!
-	deleteRadarValueListItemsItem(item: String!): StripeDeletedRadarValueListItem!
-	postRadarValueLists(input: StripePostRadarValueListsInput!): StripeRadarValueList!
-	postRadarValueListsValueList(valueList: String!, input: StripePostRadarValueListsValueListInput): StripeRadarValueList!
-	deleteRadarValueListsValueList(valueList: String!): StripeDeletedRadarValueList!
-	postRefunds(input: StripePostRefundsInput): StripeRefund!
-	postRefundsRefund(refund: String!, input: StripePostRefundsRefundInput): StripeRefund!
-	postRefundsRefundCancel(refund: String!, input: StripePostRefundsRefundCancelInput): StripeRefund!
-	postReportingReportRuns(input: StripePostReportingReportRunsInput!): StripeReportingReportRun!
-	postReviewsReviewApprove(review: String!, input: StripePostReviewsReviewApproveInput): StripeReview!
-	postSetupIntents(input: StripePostSetupIntentsInput): StripeSetupIntent!
-	postSetupIntentsIntent(intent: String!, input: StripePostSetupIntentsIntentInput): StripeSetupIntent!
-	postSetupIntentsIntentCancel(intent: String!, input: StripePostSetupIntentsIntentCancelInput): StripeSetupIntent!
-	postSetupIntentsIntentConfirm(intent: String!, input: StripePostSetupIntentsIntentConfirmInput): StripeSetupIntent!
-	postSetupIntentsIntentVerifyMicrodeposits(intent: String!, input: StripePostSetupIntentsIntentVerifyMicrodepositsInput): StripeSetupIntent!
-	postShippingRates(input: StripePostShippingRatesInput!): StripeShippingRate!
-	postShippingRatesShippingRateToken(shippingRateToken: String!, input: StripePostShippingRatesShippingRateTokenInput): StripeShippingRate!
-	postSources(input: StripePostSourcesInput): StripeSource!
-	postSourcesSource(source: String!, input: StripePostSourcesSourceInput): StripeSource!
-	postSourcesSourceVerify(source: String!, input: StripePostSourcesSourceVerifyInput!): StripeSource!
-	postSubscriptionItems(input: StripePostSubscriptionItemsInput!): StripeSubscriptionItem!
-	postSubscriptionItemsItem(item: String!, input: StripePostSubscriptionItemsItemInput): StripeSubscriptionItem!
-	deleteSubscriptionItemsItem(item: String!, input: StripeDeleteSubscriptionItemsItemInput): StripeDeletedSubscriptionItem!
-	postSubscriptionItemsSubscriptionItemUsageRecords(subscriptionItem: String!, input: StripePostSubscriptionItemsSubscriptionItemUsageRecordsInput!): StripeUsageRecord!
-	postSubscriptionSchedules(input: StripePostSubscriptionSchedulesInput): StripeSubscriptionSchedule!
-	postSubscriptionSchedulesSchedule(schedule: String!, input: StripePostSubscriptionSchedulesScheduleInput): StripeSubscriptionSchedule!
-	postSubscriptionSchedulesScheduleCancel(schedule: String!, input: StripePostSubscriptionSchedulesScheduleCancelInput): StripeSubscriptionSchedule!
-	postSubscriptionSchedulesScheduleRelease(schedule: String!, input: StripePostSubscriptionSchedulesScheduleReleaseInput): StripeSubscriptionSchedule!
-	postSubscriptions(input: StripePostSubscriptionsInput!): StripeSubscription!
-	postSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: StripePostSubscriptionsSubscriptionExposedIdInput): StripeSubscription!
-	deleteSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: StripeDeleteSubscriptionsSubscriptionExposedIdInput): StripeSubscription!
-	deleteSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!): StripeDeletedDiscount!
-	postSubscriptionsSubscriptionResume(subscription: String!, input: StripePostSubscriptionsSubscriptionResumeInput): StripeSubscription!
-	postTaxRates(input: StripePostTaxRatesInput!): StripeTaxRate!
-	postTaxRatesTaxRate(taxRate: String!, input: StripePostTaxRatesTaxRateInput): StripeTaxRate!
-	postTerminalConfigurations(input: StripePostTerminalConfigurationsInput): StripeTerminalConfiguration!
-	postTerminalConfigurationsConfiguration(configuration: String!, input: StripePostTerminalConfigurationsConfigurationInput): StripeDeletedTerminalConfigurationOrTerminalConfigurationUnion!
-	deleteTerminalConfigurationsConfiguration(configuration: String!): StripeDeletedTerminalConfiguration!
-	postTerminalConnectionTokens(input: StripePostTerminalConnectionTokensInput): StripeTerminalConnectionToken!
-	postTerminalLocations(input: StripePostTerminalLocationsInput!): StripeTerminalLocation!
-	postTerminalLocationsLocation(location: String!, input: StripePostTerminalLocationsLocationInput): StripeDeletedTerminalLocationOrTerminalLocationUnion!
-	deleteTerminalLocationsLocation(location: String!): StripeDeletedTerminalLocation!
-	postTerminalReaders(input: StripePostTerminalReadersInput!): StripeTerminalReader!
-	postTerminalReadersReader(reader: String!, input: StripePostTerminalReadersReaderInput): StripeDeletedTerminalReaderOrTerminalReaderUnion!
-	deleteTerminalReadersReader(reader: String!): StripeDeletedTerminalReader!
-	postTerminalReadersReaderCancelAction(reader: String!, input: StripePostTerminalReadersReaderCancelActionInput): StripeTerminalReader!
-	postTerminalReadersReaderProcessPaymentIntent(reader: String!, input: StripePostTerminalReadersReaderProcessPaymentIntentInput!): StripeTerminalReader!
-	postTerminalReadersReaderProcessSetupIntent(reader: String!, input: StripePostTerminalReadersReaderProcessSetupIntentInput!): StripeTerminalReader!
-	postTerminalReadersReaderSetReaderDisplay(reader: String!, input: StripePostTerminalReadersReaderSetReaderDisplayInput!): StripeTerminalReader!
-	postTestHelpersCustomersCustomerFundCashBalance(customer: String!, input: StripePostTestHelpersCustomersCustomerFundCashBalanceInput!): StripeCustomerCashBalanceTransaction!
-	postTestHelpersIssuingCardsCardShippingDeliver(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingDeliverInput): StripeIssuingCard!
-	postTestHelpersIssuingCardsCardShippingFail(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingFailInput): StripeIssuingCard!
-	postTestHelpersIssuingCardsCardShippingReturn(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingReturnInput): StripeIssuingCard!
-	postTestHelpersIssuingCardsCardShippingShip(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingShipInput): StripeIssuingCard!
-	postTestHelpersRefundsRefundExpire(refund: String!, input: StripePostTestHelpersRefundsRefundExpireInput): StripeRefund!
-	postTestHelpersTerminalReadersReaderPresentPaymentMethod(reader: String!, input: StripePostTestHelpersTerminalReadersReaderPresentPaymentMethodInput): StripeTerminalReader!
-	postTestHelpersTestClocks(input: StripePostTestHelpersTestClocksInput!): StripeTestHelpersTestClock!
-	deleteTestHelpersTestClocksTestClock(testClock: String!): StripeDeletedTestHelpersTestClock!
-	postTestHelpersTestClocksTestClockAdvance(testClock: String!, input: StripePostTestHelpersTestClocksTestClockAdvanceInput!): StripeTestHelpersTestClock!
-	postTestHelpersTreasuryInboundTransfersIdFail(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdFailInput): StripeTreasuryInboundTransfer!
-	postTestHelpersTreasuryInboundTransfersIdReturn(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdReturnInput): StripeTreasuryInboundTransfer!
-	postTestHelpersTreasuryInboundTransfersIdSucceed(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdSucceedInput): StripeTreasuryInboundTransfer!
-	postTestHelpersTreasuryOutboundPaymentsIdFail(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdFailInput): StripeTreasuryOutboundPayment!
-	postTestHelpersTreasuryOutboundPaymentsIdPost(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdPostInput): StripeTreasuryOutboundPayment!
-	postTestHelpersTreasuryOutboundPaymentsIdReturn(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdReturnInput): StripeTreasuryOutboundPayment!
-	postTestHelpersTreasuryOutboundTransfersOutboundTransferFail(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferFailInput): StripeTreasuryOutboundTransfer!
-	postTestHelpersTreasuryOutboundTransfersOutboundTransferPost(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferPostInput): StripeTreasuryOutboundTransfer!
-	postTestHelpersTreasuryOutboundTransfersOutboundTransferReturn(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferReturnInput): StripeTreasuryOutboundTransfer!
-	postTestHelpersTreasuryReceivedCredits(input: StripePostTestHelpersTreasuryReceivedCreditsInput!): StripeTreasuryReceivedCredit!
-	postTestHelpersTreasuryReceivedDebits(input: StripePostTestHelpersTreasuryReceivedDebitsInput!): StripeTreasuryReceivedDebit!
-	postTokens(input: StripePostTokensInput): StripeToken!
-	postTopups(input: StripePostTopupsInput!): StripeTopup!
-	postTopupsTopup(topup: String!, input: StripePostTopupsTopupInput): StripeTopup!
-	postTopupsTopupCancel(topup: String!, input: StripePostTopupsTopupCancelInput): StripeTopup!
-	postTransfers(input: StripePostTransfersInput!): StripeTransfer!
-	postTransfersIdReversals(id: String!, input: StripePostTransfersIdReversalsInput): StripeTransferReversal!
-	postTransfersTransfer(transfer: String!, input: StripePostTransfersTransferInput): StripeTransfer!
-	postTransfersTransferReversalsId(transfer: String!, id: String!, input: StripePostTransfersTransferReversalsIdInput): StripeTransferReversal!
-	postTreasuryCreditReversals(input: StripePostTreasuryCreditReversalsInput!): StripeTreasuryCreditReversal!
-	postTreasuryDebitReversals(input: StripePostTreasuryDebitReversalsInput!): StripeTreasuryDebitReversal!
-	postTreasuryFinancialAccounts(input: StripePostTreasuryFinancialAccountsInput!): StripeTreasuryFinancialAccount!
-	postTreasuryFinancialAccountsFinancialAccount(financialAccount: String!, input: StripePostTreasuryFinancialAccountsFinancialAccountInput): StripeTreasuryFinancialAccount!
-	postTreasuryFinancialAccountsFinancialAccountFeatures(financialAccount: String!, input: StripePostTreasuryFinancialAccountsFinancialAccountFeaturesInput): StripeTreasuryFinancialAccountFeatures!
-	postTreasuryInboundTransfers(input: StripePostTreasuryInboundTransfersInput!): StripeTreasuryInboundTransfer!
-	postTreasuryInboundTransfersInboundTransferCancel(inboundTransfer: String!, input: StripePostTreasuryInboundTransfersInboundTransferCancelInput): StripeTreasuryInboundTransfer!
-	postTreasuryOutboundPayments(input: StripePostTreasuryOutboundPaymentsInput!): StripeTreasuryOutboundPayment!
-	postTreasuryOutboundPaymentsIdCancel(id: String!, input: StripePostTreasuryOutboundPaymentsIdCancelInput): StripeTreasuryOutboundPayment!
-	postTreasuryOutboundTransfers(input: StripePostTreasuryOutboundTransfersInput!): StripeTreasuryOutboundTransfer!
-	postTreasuryOutboundTransfersOutboundTransferCancel(outboundTransfer: String!, input: StripePostTreasuryOutboundTransfersOutboundTransferCancelInput): StripeTreasuryOutboundTransfer!
-	postWebhookEndpoints(input: StripePostWebhookEndpointsInput!): StripeWebhookEndpoint!
-	postWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, input: StripePostWebhookEndpointsWebhookEndpointInput): StripeWebhookEndpoint!
-	deleteWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!): StripeDeletedWebhookEndpoint!
+	postAccountLinks(input: StripePostAccountLinksInput!): StripeAccountLink
+	postAccounts(input: StripePostAccountsInput): StripeAccount
+	postAccountsAccount(account: String!, input: StripePostAccountsAccountInput): StripeAccount
+	deleteAccountsAccount(account: String!): StripeDeletedAccount
+	postAccountsAccountBankAccounts(account: String!, input: StripePostAccountsAccountBankAccountsInput): StripeExternalAccount
+	postAccountsAccountBankAccountsId(id: String!, account: String!, input: StripePostAccountsAccountBankAccountsIdInput): StripeExternalAccount
+	deleteAccountsAccountBankAccountsId(id: String!, account: String!): StripeDeletedExternalAccount
+	postAccountsAccountCapabilitiesCapability(capability: String!, account: String!, input: StripePostAccountsAccountCapabilitiesCapabilityInput): StripeCapability
+	postAccountsAccountExternalAccounts(account: String!, input: StripePostAccountsAccountExternalAccountsInput): StripeExternalAccount
+	postAccountsAccountExternalAccountsId(id: String!, account: String!, input: StripePostAccountsAccountExternalAccountsIdInput): StripeExternalAccount
+	deleteAccountsAccountExternalAccountsId(id: String!, account: String!): StripeDeletedExternalAccount
+	postAccountsAccountLoginLinks(account: String!, input: StripePostAccountsAccountLoginLinksInput): StripeLoginLink
+	postAccountsAccountPeople(account: String!, input: StripePostAccountsAccountPeopleInput): StripePerson
+	postAccountsAccountPeoplePerson(person: String!, account: String!, input: StripePostAccountsAccountPeoplePersonInput): StripePerson
+	deleteAccountsAccountPeoplePerson(person: String!, account: String!): StripeDeletedPerson
+	postAccountsAccountPersons(account: String!, input: StripePostAccountsAccountPersonsInput): StripePerson
+	postAccountsAccountPersonsPerson(person: String!, account: String!, input: StripePostAccountsAccountPersonsPersonInput): StripePerson
+	deleteAccountsAccountPersonsPerson(person: String!, account: String!): StripeDeletedPerson
+	postAccountsAccountReject(account: String!, input: StripePostAccountsAccountRejectInput!): StripeAccount
+	postApplePayDomains(input: StripePostApplePayDomainsInput!): StripeApplePayDomain
+	deleteApplePayDomainsDomain(domain: String!): StripeDeletedApplePayDomain
+	postApplicationFeesFeeRefundsId(id: String!, fee: String!, input: StripePostApplicationFeesFeeRefundsIdInput): StripeFeeRefund
+	postApplicationFeesIdRefund(id: String!, input: StripePostApplicationFeesIdRefundInput): StripeApplicationFee
+	postApplicationFeesIdRefunds(id: String!, input: StripePostApplicationFeesIdRefundsInput): StripeFeeRefund
+	postAppsSecrets(input: StripePostAppsSecretsInput!): StripeAppsSecret
+	postAppsSecretsDelete(input: StripePostAppsSecretsDeleteInput!): StripeAppsSecret
+	postBillingPortalConfigurations(input: StripePostBillingPortalConfigurationsInput!): StripeBillingPortalConfiguration
+	postBillingPortalConfigurationsConfiguration(configuration: String!, input: StripePostBillingPortalConfigurationsConfigurationInput): StripeBillingPortalConfiguration
+	postBillingPortalSessions(input: StripePostBillingPortalSessionsInput!): StripeBillingPortalSession
+	postCharges(input: StripePostChargesInput): StripeCharge
+	postChargesCharge(charge: String!, input: StripePostChargesChargeInput): StripeCharge
+	postChargesChargeCapture(charge: String!, input: StripePostChargesChargeCaptureInput): StripeCharge
+	postChargesChargeDispute(charge: String!, input: StripePostChargesChargeDisputeInput): StripeDispute
+	postChargesChargeDisputeClose(charge: String!, input: StripePostChargesChargeDisputeCloseInput): StripeDispute
+	postChargesChargeRefund(charge: String!, input: StripePostChargesChargeRefundInput): StripeCharge
+	postChargesChargeRefunds(charge: String!, input: StripePostChargesChargeRefundsInput): StripeRefund
+	postChargesChargeRefundsRefund(refund: String!, charge: String!, input: StripePostChargesChargeRefundsRefundInput): StripeRefund
+	postCheckoutSessions(input: StripePostCheckoutSessionsInput!): StripeCheckoutSession
+	postCheckoutSessionsSessionExpire(session: String!, input: StripePostCheckoutSessionsSessionExpireInput): StripeCheckoutSession
+	postCoupons(input: StripePostCouponsInput): StripeCoupon
+	postCouponsCoupon(coupon: String!, input: StripePostCouponsCouponInput): StripeCoupon
+	deleteCouponsCoupon(coupon: String!): StripeDeletedCoupon
+	postCreditNotes(input: StripePostCreditNotesInput!): StripeCreditNote
+	postCreditNotesId(id: String!, input: StripePostCreditNotesIdInput): StripeCreditNote
+	postCreditNotesIdVoid(id: String!, input: StripePostCreditNotesIdVoidInput): StripeCreditNote
+	postCustomers(input: StripePostCustomersInput): StripeCustomer
+	postCustomersCustomer(customer: String!, input: StripePostCustomersCustomerInput): StripeCustomer
+	deleteCustomersCustomer(customer: String!): StripeDeletedCustomer
+	postCustomersCustomerBalanceTransactions(customer: String!, input: StripePostCustomersCustomerBalanceTransactionsInput!): StripeCustomerBalanceTransaction
+	postCustomersCustomerBalanceTransactionsTransaction(transaction: String!, customer: String!, input: StripePostCustomersCustomerBalanceTransactionsTransactionInput): StripeCustomerBalanceTransaction
+	postCustomersCustomerBankAccounts(customer: String!, input: StripePostCustomersCustomerBankAccountsInput): StripePaymentSource
+	postCustomersCustomerBankAccountsId(id: String!, customer: String!, input: StripePostCustomersCustomerBankAccountsIdInput): StripeSourceOrBankAccountOrCardUnion
+	deleteCustomersCustomerBankAccountsId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerBankAccountsIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion
+	postCustomersCustomerBankAccountsIdVerify(id: String!, customer: String!, input: StripePostCustomersCustomerBankAccountsIdVerifyInput): StripeBankAccount
+	postCustomersCustomerCards(customer: String!, input: StripePostCustomersCustomerCardsInput): StripePaymentSource
+	postCustomersCustomerCardsId(id: String!, customer: String!, input: StripePostCustomersCustomerCardsIdInput): StripeSourceOrBankAccountOrCardUnion
+	deleteCustomersCustomerCardsId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerCardsIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion
+	postCustomersCustomerCashBalance(customer: String!, input: StripePostCustomersCustomerCashBalanceInput): StripeCashBalance
+	deleteCustomersCustomerDiscount(customer: String!): StripeDeletedDiscount
+	postCustomersCustomerFundingInstructions(customer: String!, input: StripePostCustomersCustomerFundingInstructionsInput!): StripeFundingInstructions
+	postCustomersCustomerSources(customer: String!, input: StripePostCustomersCustomerSourcesInput): StripePaymentSource
+	postCustomersCustomerSourcesId(id: String!, customer: String!, input: StripePostCustomersCustomerSourcesIdInput): StripeSourceOrBankAccountOrCardUnion
+	deleteCustomersCustomerSourcesId(id: String!, customer: String!, input: StripeDeleteCustomersCustomerSourcesIdInput): StripeDeletedPaymentSourceOrPaymentSourceUnion
+	postCustomersCustomerSourcesIdVerify(id: String!, customer: String!, input: StripePostCustomersCustomerSourcesIdVerifyInput): StripeBankAccount
+	postCustomersCustomerSubscriptions(customer: String!, input: StripePostCustomersCustomerSubscriptionsInput): StripeSubscription
+	postCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: StripePostCustomersCustomerSubscriptionsSubscriptionExposedIdInput): StripeSubscription
+	deleteCustomersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, input: StripeDeleteCustomersCustomerSubscriptionsSubscriptionExposedIdInput): StripeSubscription
+	deleteCustomersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!): StripeDeletedDiscount
+	postCustomersCustomerTaxIds(customer: String!, input: StripePostCustomersCustomerTaxIdsInput!): StripeTaxId
+	deleteCustomersCustomerTaxIdsId(id: String!, customer: String!): StripeDeletedTaxId
+	postDisputesDispute(dispute: String!, input: StripePostDisputesDisputeInput): StripeDispute
+	postDisputesDisputeClose(dispute: String!, input: StripePostDisputesDisputeCloseInput): StripeDispute
+	postEphemeralKeys(input: StripePostEphemeralKeysInput): StripeEphemeralKey
+	deleteEphemeralKeysKey(key: String!, input: StripeDeleteEphemeralKeysKeyInput): StripeEphemeralKey
+	postFileLinks(input: StripePostFileLinksInput!): StripeFileLink
+	postFileLinksLink(link: String!, input: StripePostFileLinksLinkInput): StripeFileLink
+	postFiles: StripeFile
+	postFinancialConnectionsAccountsAccountDisconnect(account: String!, input: StripePostFinancialConnectionsAccountsAccountDisconnectInput): StripeFinancialConnectionsAccount
+	postFinancialConnectionsAccountsAccountRefresh(account: String!, input: StripePostFinancialConnectionsAccountsAccountRefreshInput!): StripeFinancialConnectionsAccount
+	postFinancialConnectionsSessions(input: StripePostFinancialConnectionsSessionsInput!): StripeFinancialConnectionsSession
+	postIdentityVerificationSessions(input: StripePostIdentityVerificationSessionsInput!): StripeIdentityVerificationSession
+	postIdentityVerificationSessionsSession(session: String!, input: StripePostIdentityVerificationSessionsSessionInput): StripeIdentityVerificationSession
+	postIdentityVerificationSessionsSessionCancel(session: String!, input: StripePostIdentityVerificationSessionsSessionCancelInput): StripeIdentityVerificationSession
+	postIdentityVerificationSessionsSessionRedact(session: String!, input: StripePostIdentityVerificationSessionsSessionRedactInput): StripeIdentityVerificationSession
+	postInvoiceitems(input: StripePostInvoiceitemsInput!): StripeInvoiceitem
+	postInvoiceitemsInvoiceitem(invoiceitem: String!, input: StripePostInvoiceitemsInvoiceitemInput): StripeInvoiceitem
+	deleteInvoiceitemsInvoiceitem(invoiceitem: String!): StripeDeletedInvoiceitem
+	postInvoices(input: StripePostInvoicesInput): StripeInvoice
+	postInvoicesInvoice(invoice: String!, input: StripePostInvoicesInvoiceInput): StripeInvoice
+	deleteInvoicesInvoice(invoice: String!): StripeDeletedInvoice
+	postInvoicesInvoiceFinalize(invoice: String!, input: StripePostInvoicesInvoiceFinalizeInput): StripeInvoice
+	postInvoicesInvoiceMarkUncollectible(invoice: String!, input: StripePostInvoicesInvoiceMarkUncollectibleInput): StripeInvoice
+	postInvoicesInvoicePay(invoice: String!, input: StripePostInvoicesInvoicePayInput): StripeInvoice
+	postInvoicesInvoiceSend(invoice: String!, input: StripePostInvoicesInvoiceSendInput): StripeInvoice
+	postInvoicesInvoiceVoid(invoice: String!, input: StripePostInvoicesInvoiceVoidInput): StripeInvoice
+	postIssuingAuthorizationsAuthorization(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationInput): StripeIssuingAuthorization
+	postIssuingAuthorizationsAuthorizationApprove(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationApproveInput): StripeIssuingAuthorization
+	postIssuingAuthorizationsAuthorizationDecline(authorization: String!, input: StripePostIssuingAuthorizationsAuthorizationDeclineInput): StripeIssuingAuthorization
+	postIssuingCardholders(input: StripePostIssuingCardholdersInput!): StripeIssuingCardholder
+	postIssuingCardholdersCardholder(cardholder: String!, input: StripePostIssuingCardholdersCardholderInput): StripeIssuingCardholder
+	postIssuingCards(input: StripePostIssuingCardsInput!): StripeIssuingCard
+	postIssuingCardsCard(card: String!, input: StripePostIssuingCardsCardInput): StripeIssuingCard
+	postIssuingDisputes(input: StripePostIssuingDisputesInput): StripeIssuingDispute
+	postIssuingDisputesDispute(dispute: String!, input: StripePostIssuingDisputesDisputeInput): StripeIssuingDispute
+	postIssuingDisputesDisputeSubmit(dispute: String!, input: StripePostIssuingDisputesDisputeSubmitInput): StripeIssuingDispute
+	postIssuingSettlementsSettlement(settlement: String!, input: StripePostIssuingSettlementsSettlementInput): StripeIssuingSettlement
+	postIssuingTransactionsTransaction(transaction: String!, input: StripePostIssuingTransactionsTransactionInput): StripeIssuingTransaction
+	postLinkAccountSessions(input: StripePostLinkAccountSessionsInput!): StripeFinancialConnectionsSession
+	postLinkedAccountsAccountDisconnect(account: String!, input: StripePostLinkedAccountsAccountDisconnectInput): StripeFinancialConnectionsAccount
+	postLinkedAccountsAccountRefresh(account: String!, input: StripePostLinkedAccountsAccountRefreshInput!): StripeFinancialConnectionsAccount
+	postPaymentIntents(input: StripePostPaymentIntentsInput!): StripePaymentIntent
+	postPaymentIntentsIntent(intent: String!, input: StripePostPaymentIntentsIntentInput): StripePaymentIntent
+	postPaymentIntentsIntentApplyCustomerBalance(intent: String!, input: StripePostPaymentIntentsIntentApplyCustomerBalanceInput): StripePaymentIntent
+	postPaymentIntentsIntentCancel(intent: String!, input: StripePostPaymentIntentsIntentCancelInput): StripePaymentIntent
+	postPaymentIntentsIntentCapture(intent: String!, input: StripePostPaymentIntentsIntentCaptureInput): StripePaymentIntent
+	postPaymentIntentsIntentConfirm(intent: String!, input: StripePostPaymentIntentsIntentConfirmInput): StripePaymentIntent
+	postPaymentIntentsIntentIncrementAuthorization(intent: String!, input: StripePostPaymentIntentsIntentIncrementAuthorizationInput!): StripePaymentIntent
+	postPaymentIntentsIntentVerifyMicrodeposits(intent: String!, input: StripePostPaymentIntentsIntentVerifyMicrodepositsInput): StripePaymentIntent
+	postPaymentLinks(input: StripePostPaymentLinksInput!): StripePaymentLink
+	postPaymentLinksPaymentLink(paymentLink: String!, input: StripePostPaymentLinksPaymentLinkInput): StripePaymentLink
+	postPaymentMethods(input: StripePostPaymentMethodsInput): StripePaymentMethod
+	postPaymentMethodsPaymentMethod(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodInput): StripePaymentMethod
+	postPaymentMethodsPaymentMethodAttach(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodAttachInput!): StripePaymentMethod
+	postPaymentMethodsPaymentMethodDetach(paymentMethod: String!, input: StripePostPaymentMethodsPaymentMethodDetachInput): StripePaymentMethod
+	postPayouts(input: StripePostPayoutsInput!): StripePayout
+	postPayoutsPayout(payout: String!, input: StripePostPayoutsPayoutInput): StripePayout
+	postPayoutsPayoutCancel(payout: String!, input: StripePostPayoutsPayoutCancelInput): StripePayout
+	postPayoutsPayoutReverse(payout: String!, input: StripePostPayoutsPayoutReverseInput): StripePayout
+	postPlans(input: StripePostPlansInput!): StripePlan
+	postPlansPlan(plan: String!, input: StripePostPlansPlanInput): StripePlan
+	deletePlansPlan(plan: String!): StripeDeletedPlan
+	postPrices(input: StripePostPricesInput!): StripePrice
+	postPricesPrice(price: String!, input: StripePostPricesPriceInput): StripePrice
+	postProducts(input: StripePostProductsInput!): StripeProduct
+	postProductsId(id: String!, input: StripePostProductsIdInput): StripeProduct
+	deleteProductsId(id: String!): StripeDeletedProduct
+	postPromotionCodes(input: StripePostPromotionCodesInput!): StripePromotionCode
+	postPromotionCodesPromotionCode(promotionCode: String!, input: StripePostPromotionCodesPromotionCodeInput): StripePromotionCode
+	postQuotes(input: StripePostQuotesInput): StripeQuote
+	postQuotesQuote(quote: String!, input: StripePostQuotesQuoteInput): StripeQuote
+	postQuotesQuoteAccept(quote: String!, input: StripePostQuotesQuoteAcceptInput): StripeQuote
+	postQuotesQuoteCancel(quote: String!, input: StripePostQuotesQuoteCancelInput): StripeQuote
+	postQuotesQuoteFinalize(quote: String!, input: StripePostQuotesQuoteFinalizeInput): StripeQuote
+	postRadarValueListItems(input: StripePostRadarValueListItemsInput!): StripeRadarValueListItem
+	deleteRadarValueListItemsItem(item: String!): StripeDeletedRadarValueListItem
+	postRadarValueLists(input: StripePostRadarValueListsInput!): StripeRadarValueList
+	postRadarValueListsValueList(valueList: String!, input: StripePostRadarValueListsValueListInput): StripeRadarValueList
+	deleteRadarValueListsValueList(valueList: String!): StripeDeletedRadarValueList
+	postRefunds(input: StripePostRefundsInput): StripeRefund
+	postRefundsRefund(refund: String!, input: StripePostRefundsRefundInput): StripeRefund
+	postRefundsRefundCancel(refund: String!, input: StripePostRefundsRefundCancelInput): StripeRefund
+	postReportingReportRuns(input: StripePostReportingReportRunsInput!): StripeReportingReportRun
+	postReviewsReviewApprove(review: String!, input: StripePostReviewsReviewApproveInput): StripeReview
+	postSetupIntents(input: StripePostSetupIntentsInput): StripeSetupIntent
+	postSetupIntentsIntent(intent: String!, input: StripePostSetupIntentsIntentInput): StripeSetupIntent
+	postSetupIntentsIntentCancel(intent: String!, input: StripePostSetupIntentsIntentCancelInput): StripeSetupIntent
+	postSetupIntentsIntentConfirm(intent: String!, input: StripePostSetupIntentsIntentConfirmInput): StripeSetupIntent
+	postSetupIntentsIntentVerifyMicrodeposits(intent: String!, input: StripePostSetupIntentsIntentVerifyMicrodepositsInput): StripeSetupIntent
+	postShippingRates(input: StripePostShippingRatesInput!): StripeShippingRate
+	postShippingRatesShippingRateToken(shippingRateToken: String!, input: StripePostShippingRatesShippingRateTokenInput): StripeShippingRate
+	postSources(input: StripePostSourcesInput): StripeSource
+	postSourcesSource(source: String!, input: StripePostSourcesSourceInput): StripeSource
+	postSourcesSourceVerify(source: String!, input: StripePostSourcesSourceVerifyInput!): StripeSource
+	postSubscriptionItems(input: StripePostSubscriptionItemsInput!): StripeSubscriptionItem
+	postSubscriptionItemsItem(item: String!, input: StripePostSubscriptionItemsItemInput): StripeSubscriptionItem
+	deleteSubscriptionItemsItem(item: String!, input: StripeDeleteSubscriptionItemsItemInput): StripeDeletedSubscriptionItem
+	postSubscriptionItemsSubscriptionItemUsageRecords(subscriptionItem: String!, input: StripePostSubscriptionItemsSubscriptionItemUsageRecordsInput!): StripeUsageRecord
+	postSubscriptionSchedules(input: StripePostSubscriptionSchedulesInput): StripeSubscriptionSchedule
+	postSubscriptionSchedulesSchedule(schedule: String!, input: StripePostSubscriptionSchedulesScheduleInput): StripeSubscriptionSchedule
+	postSubscriptionSchedulesScheduleCancel(schedule: String!, input: StripePostSubscriptionSchedulesScheduleCancelInput): StripeSubscriptionSchedule
+	postSubscriptionSchedulesScheduleRelease(schedule: String!, input: StripePostSubscriptionSchedulesScheduleReleaseInput): StripeSubscriptionSchedule
+	postSubscriptions(input: StripePostSubscriptionsInput!): StripeSubscription
+	postSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: StripePostSubscriptionsSubscriptionExposedIdInput): StripeSubscription
+	deleteSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, input: StripeDeleteSubscriptionsSubscriptionExposedIdInput): StripeSubscription
+	deleteSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!): StripeDeletedDiscount
+	postSubscriptionsSubscriptionResume(subscription: String!, input: StripePostSubscriptionsSubscriptionResumeInput): StripeSubscription
+	postTaxRates(input: StripePostTaxRatesInput!): StripeTaxRate
+	postTaxRatesTaxRate(taxRate: String!, input: StripePostTaxRatesTaxRateInput): StripeTaxRate
+	postTerminalConfigurations(input: StripePostTerminalConfigurationsInput): StripeTerminalConfiguration
+	postTerminalConfigurationsConfiguration(configuration: String!, input: StripePostTerminalConfigurationsConfigurationInput): StripeDeletedTerminalConfigurationOrTerminalConfigurationUnion
+	deleteTerminalConfigurationsConfiguration(configuration: String!): StripeDeletedTerminalConfiguration
+	postTerminalConnectionTokens(input: StripePostTerminalConnectionTokensInput): StripeTerminalConnectionToken
+	postTerminalLocations(input: StripePostTerminalLocationsInput!): StripeTerminalLocation
+	postTerminalLocationsLocation(location: String!, input: StripePostTerminalLocationsLocationInput): StripeDeletedTerminalLocationOrTerminalLocationUnion
+	deleteTerminalLocationsLocation(location: String!): StripeDeletedTerminalLocation
+	postTerminalReaders(input: StripePostTerminalReadersInput!): StripeTerminalReader
+	postTerminalReadersReader(reader: String!, input: StripePostTerminalReadersReaderInput): StripeDeletedTerminalReaderOrTerminalReaderUnion
+	deleteTerminalReadersReader(reader: String!): StripeDeletedTerminalReader
+	postTerminalReadersReaderCancelAction(reader: String!, input: StripePostTerminalReadersReaderCancelActionInput): StripeTerminalReader
+	postTerminalReadersReaderProcessPaymentIntent(reader: String!, input: StripePostTerminalReadersReaderProcessPaymentIntentInput!): StripeTerminalReader
+	postTerminalReadersReaderProcessSetupIntent(reader: String!, input: StripePostTerminalReadersReaderProcessSetupIntentInput!): StripeTerminalReader
+	postTerminalReadersReaderSetReaderDisplay(reader: String!, input: StripePostTerminalReadersReaderSetReaderDisplayInput!): StripeTerminalReader
+	postTestHelpersCustomersCustomerFundCashBalance(customer: String!, input: StripePostTestHelpersCustomersCustomerFundCashBalanceInput!): StripeCustomerCashBalanceTransaction
+	postTestHelpersIssuingCardsCardShippingDeliver(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingDeliverInput): StripeIssuingCard
+	postTestHelpersIssuingCardsCardShippingFail(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingFailInput): StripeIssuingCard
+	postTestHelpersIssuingCardsCardShippingReturn(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingReturnInput): StripeIssuingCard
+	postTestHelpersIssuingCardsCardShippingShip(card: String!, input: StripePostTestHelpersIssuingCardsCardShippingShipInput): StripeIssuingCard
+	postTestHelpersRefundsRefundExpire(refund: String!, input: StripePostTestHelpersRefundsRefundExpireInput): StripeRefund
+	postTestHelpersTerminalReadersReaderPresentPaymentMethod(reader: String!, input: StripePostTestHelpersTerminalReadersReaderPresentPaymentMethodInput): StripeTerminalReader
+	postTestHelpersTestClocks(input: StripePostTestHelpersTestClocksInput!): StripeTestHelpersTestClock
+	deleteTestHelpersTestClocksTestClock(testClock: String!): StripeDeletedTestHelpersTestClock
+	postTestHelpersTestClocksTestClockAdvance(testClock: String!, input: StripePostTestHelpersTestClocksTestClockAdvanceInput!): StripeTestHelpersTestClock
+	postTestHelpersTreasuryInboundTransfersIdFail(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdFailInput): StripeTreasuryInboundTransfer
+	postTestHelpersTreasuryInboundTransfersIdReturn(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdReturnInput): StripeTreasuryInboundTransfer
+	postTestHelpersTreasuryInboundTransfersIdSucceed(id: String!, input: StripePostTestHelpersTreasuryInboundTransfersIdSucceedInput): StripeTreasuryInboundTransfer
+	postTestHelpersTreasuryOutboundPaymentsIdFail(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdFailInput): StripeTreasuryOutboundPayment
+	postTestHelpersTreasuryOutboundPaymentsIdPost(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdPostInput): StripeTreasuryOutboundPayment
+	postTestHelpersTreasuryOutboundPaymentsIdReturn(id: String!, input: StripePostTestHelpersTreasuryOutboundPaymentsIdReturnInput): StripeTreasuryOutboundPayment
+	postTestHelpersTreasuryOutboundTransfersOutboundTransferFail(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferFailInput): StripeTreasuryOutboundTransfer
+	postTestHelpersTreasuryOutboundTransfersOutboundTransferPost(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferPostInput): StripeTreasuryOutboundTransfer
+	postTestHelpersTreasuryOutboundTransfersOutboundTransferReturn(outboundTransfer: String!, input: StripePostTestHelpersTreasuryOutboundTransfersOutboundTransferReturnInput): StripeTreasuryOutboundTransfer
+	postTestHelpersTreasuryReceivedCredits(input: StripePostTestHelpersTreasuryReceivedCreditsInput!): StripeTreasuryReceivedCredit
+	postTestHelpersTreasuryReceivedDebits(input: StripePostTestHelpersTreasuryReceivedDebitsInput!): StripeTreasuryReceivedDebit
+	postTokens(input: StripePostTokensInput): StripeToken
+	postTopups(input: StripePostTopupsInput!): StripeTopup
+	postTopupsTopup(topup: String!, input: StripePostTopupsTopupInput): StripeTopup
+	postTopupsTopupCancel(topup: String!, input: StripePostTopupsTopupCancelInput): StripeTopup
+	postTransfers(input: StripePostTransfersInput!): StripeTransfer
+	postTransfersIdReversals(id: String!, input: StripePostTransfersIdReversalsInput): StripeTransferReversal
+	postTransfersTransfer(transfer: String!, input: StripePostTransfersTransferInput): StripeTransfer
+	postTransfersTransferReversalsId(transfer: String!, id: String!, input: StripePostTransfersTransferReversalsIdInput): StripeTransferReversal
+	postTreasuryCreditReversals(input: StripePostTreasuryCreditReversalsInput!): StripeTreasuryCreditReversal
+	postTreasuryDebitReversals(input: StripePostTreasuryDebitReversalsInput!): StripeTreasuryDebitReversal
+	postTreasuryFinancialAccounts(input: StripePostTreasuryFinancialAccountsInput!): StripeTreasuryFinancialAccount
+	postTreasuryFinancialAccountsFinancialAccount(financialAccount: String!, input: StripePostTreasuryFinancialAccountsFinancialAccountInput): StripeTreasuryFinancialAccount
+	postTreasuryFinancialAccountsFinancialAccountFeatures(financialAccount: String!, input: StripePostTreasuryFinancialAccountsFinancialAccountFeaturesInput): StripeTreasuryFinancialAccountFeatures
+	postTreasuryInboundTransfers(input: StripePostTreasuryInboundTransfersInput!): StripeTreasuryInboundTransfer
+	postTreasuryInboundTransfersInboundTransferCancel(inboundTransfer: String!, input: StripePostTreasuryInboundTransfersInboundTransferCancelInput): StripeTreasuryInboundTransfer
+	postTreasuryOutboundPayments(input: StripePostTreasuryOutboundPaymentsInput!): StripeTreasuryOutboundPayment
+	postTreasuryOutboundPaymentsIdCancel(id: String!, input: StripePostTreasuryOutboundPaymentsIdCancelInput): StripeTreasuryOutboundPayment
+	postTreasuryOutboundTransfers(input: StripePostTreasuryOutboundTransfersInput!): StripeTreasuryOutboundTransfer
+	postTreasuryOutboundTransfersOutboundTransferCancel(outboundTransfer: String!, input: StripePostTreasuryOutboundTransfersOutboundTransferCancelInput): StripeTreasuryOutboundTransfer
+	postWebhookEndpoints(input: StripePostWebhookEndpointsInput!): StripeWebhookEndpoint
+	postWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!, input: StripePostWebhookEndpointsWebhookEndpointInput): StripeWebhookEndpoint
+	deleteWebhookEndpointsWebhookEndpoint(webhookEndpoint: String!): StripeDeletedWebhookEndpoint
 }
 type StripeNetworks {
 	preferred: String
@@ -27025,215 +27025,215 @@ type StripePromotionCodesResourceRestrictions {
 	currencyOptions: JSON
 }
 type StripeQuery {
-	account(expand: [String!]): StripeAccount!
-	accounts(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetAccountsCreatedUnionInput): StripeGetAccounts!
-	accountsAccount(account: String!, expand: [String!]): StripeAccount!
-	accountsAccountBankAccountsId(id: String!, account: String!, expand: [String!]): StripeExternalAccount!
-	capabilities(account: String!, expand: [String!]): StripeGetAccountsAccountCapabilities!
-	capability(capability: String!, account: String!, expand: [String!]): StripeCapability!
-	accountsAccountExternalAccounts(account: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountExternalAccounts!
-	accountsAccountExternalAccountsId(id: String!, account: String!, expand: [String!]): StripeExternalAccount!
-	accountsAccountPeople(account: String!, startingAfter: String, relationship: StripeGetAccountsAccountPeopleRelationshipInput, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountPeople!
-	accountsAccountPeoplePerson(person: String!, account: String!, expand: [String!]): StripePerson!
-	accountsAccountPersons(account: String!, startingAfter: String, relationship: StripeGetAccountsAccountPersonsRelationshipInput, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountPersons!
-	accountsAccountPersonsPerson(person: String!, account: String!, expand: [String!]): StripePerson!
-	applePayDomains(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, domainName: String): StripeGetApplePayDomains!
-	applePayDomain(domain: String!, expand: [String!]): StripeApplePayDomain!
-	applicationFees(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetApplicationFeesCreatedUnionInput, charge: String): StripeGetApplicationFees!
-	feeRefund(id: String!, fee: String!, expand: [String!]): StripeFeeRefund!
-	applicationFee(id: String!, expand: [String!]): StripeApplicationFee!
-	feeRefunds(id: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetApplicationFeesIdRefunds!
-	appsSecrets(startingAfter: String, scope: StripeGetAppsSecretsScopeInput!, limit: Int, expand: [String!], endingBefore: String): StripeGetAppsSecrets!
-	appsSecret(scope: StripeGetAppsSecretsFindScopeInput!, name: String!, expand: [String!]): StripeAppsSecret!
-	balance(expand: [String!]): StripeBalance!
-	balanceHistory(type: String, startingAfter: String, source: String, payout: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetBalanceHistoryCreatedUnionInput): StripeGetBalanceHistory!
-	balanceHistoryId(id: String!, expand: [String!]): StripeBalanceTransaction!
-	balanceTransactions(type: String, startingAfter: String, source: String, payout: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetBalanceTransactionsCreatedUnionInput): StripeGetBalanceTransactions!
-	balanceTransactionsId(id: String!, expand: [String!]): StripeBalanceTransaction!
-	billingPortalConfigurations(startingAfter: String, limit: Int, isDefault: Boolean, expand: [String!], endingBefore: String, active: Boolean): StripeGetBillingPortalConfigurations!
-	billingPortalConfiguration(configuration: String!, expand: [String!]): StripeBillingPortalConfiguration!
-	charges(transferGroup: String, startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetChargesCreatedUnionInput): StripeGetCharges!
-	chargesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetChargesSearch!
-	charge(charge: String!, expand: [String!]): StripeCharge!
-	chargesChargeDispute(charge: String!, expand: [String!]): StripeDispute!
-	chargesChargeRefunds(charge: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetChargesChargeRefunds!
-	chargesChargeRefundsRefund(refund: String!, charge: String!, expand: [String!]): StripeRefund!
-	checkoutSessions(subscription: String, startingAfter: String, paymentLink: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, customerDetails: StripeGetCheckoutSessionsCustomerDetailsInput, customer: String): StripeGetCheckoutSessions!
-	checkoutSession(session: String!, expand: [String!]): StripeCheckoutSession!
-	checkoutSessionsSessionLineItems(session: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCheckoutSessionsSessionLineItems!
-	countrySpecs(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCountrySpecs!
-	countrySpec(country: String!, expand: [String!]): StripeCountrySpec!
-	coupons(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetCouponsCreatedUnionInput): StripeGetCoupons!
-	coupon(coupon: String!, expand: [String!]): StripeCoupon!
-	creditNotes(startingAfter: String, limit: Int, invoice: String, expand: [String!], endingBefore: String, customer: String): StripeGetCreditNotes!
-	creditNotesPreview(shippingCost: StripeGetCreditNotesPreviewShippingCostInput, refundAmount: Int, refund: String, reason: StripeGetCreditNotesPreviewReason, outOfBandAmount: Int, metadata: JSON, memo: String, lines: [StripeGetCreditNotesPreviewLinesInput!], invoice: String!, expand: [String!], creditAmount: Int, amount: Int): StripeCreditNote!
-	creditNotesPreviewLines(startingAfter: String, shippingCost: StripeGetCreditNotesPreviewLinesShippingCostInput, refundAmount: Int, refund: String, reason: StripeGetCreditNotesPreviewLinesReason, outOfBandAmount: Int, metadata: JSON, memo: String, lines: [StripeGetCreditNotesPreviewLinesLinesInput!], limit: Int, invoice: String!, expand: [String!], endingBefore: String, creditAmount: Int, amount: Int): StripeGetCreditNotesPreviewLines!
-	creditNotesCreditNoteLines(creditNote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCreditNotesCreditNoteLines!
-	creditNotesId(id: String!, expand: [String!]): StripeCreditNote!
-	customers(testClock: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, email: String, created: StripeIntOrGetCustomersCreatedUnionInput): StripeGetCustomers!
-	customersSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetCustomersSearch!
-	customersCustomer(customer: String!, expand: [String!]): StripeDeletedCustomerOrCustomerUnion!
-	customerBalanceTransactions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerBalanceTransactions!
-	customerBalanceTransaction(transaction: String!, customer: String!, expand: [String!]): StripeCustomerBalanceTransaction!
-	bankAccounts(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerBankAccounts!
-	bankAccount(id: String!, customer: String!, expand: [String!]): StripeBankAccount!
-	cards(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerCards!
-	card(id: String!, customer: String!, expand: [String!]): StripeCard!
-	cashBalance(customer: String!, expand: [String!]): StripeCashBalance!
-	customerCashBalanceTransactions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerCashBalanceTransactions!
-	customerCashBalanceTransaction(transaction: String!, customer: String!, expand: [String!]): StripeCustomerCashBalanceTransaction!
-	customersCustomerDiscount(customer: String!, expand: [String!]): StripeDiscount!
-	customersCustomerPaymentMethods(customer: String!, type: StripeGetCustomersCustomerPaymentMethodsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerPaymentMethods!
-	customersCustomerPaymentMethodsPaymentMethod(paymentMethod: String!, customer: String!, expand: [String!]): StripePaymentMethod!
-	customersCustomerSources(customer: String!, startingAfter: String, object: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerSources!
-	paymentSource(id: String!, customer: String!, expand: [String!]): StripePaymentSource!
-	customersCustomerSubscriptions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerSubscriptions!
-	customersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, expand: [String!]): StripeSubscription!
-	customersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!, expand: [String!]): StripeDiscount!
-	taxIds(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerTaxIds!
-	taxId(id: String!, customer: String!, expand: [String!]): StripeTaxId!
-	disputes(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetDisputesCreatedUnionInput, charge: String): StripeGetDisputes!
-	disputesDispute(dispute: String!, expand: [String!]): StripeDispute!
-	events(types: [String!], type: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, deliverySuccess: Boolean, created: StripeIntOrGetEventsCreatedUnionInput): StripeGetEvents!
-	event(id: String!, expand: [String!]): StripeEvent!
-	exchangeRates(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetExchangeRates!
-	exchangeRate(rateId: String!, expand: [String!]): StripeExchangeRate!
-	fileLinks(startingAfter: String, limit: Int, file: String, expired: Boolean, expand: [String!], endingBefore: String, created: StripeIntOrGetFileLinksCreatedUnionInput): StripeGetFileLinks!
-	fileLink(link: String!, expand: [String!]): StripeFileLink!
-	files(startingAfter: String, purpose: StripeGetFilesPurpose, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetFilesCreatedUnionInput): StripeGetFiles!
-	file(file: String!, expand: [String!]): StripeFile!
-	financialConnectionsAccounts(startingAfter: String, session: String, limit: Int, expand: [String!], endingBefore: String, accountHolder: StripeGetFinancialConnectionsAccountsAccountHolderInput): StripeGetFinancialConnectionsAccounts!
-	financialConnectionsAccountsAccount(account: String!, expand: [String!]): StripeFinancialConnectionsAccount!
-	financialConnectionsAccountsAccountOwners(account: String!, startingAfter: String, ownership: String!, limit: Int, expand: [String!], endingBefore: String): StripeGetFinancialConnectionsAccountsAccountOwners!
-	financialConnectionsSessionsSession(session: String!, expand: [String!]): StripeFinancialConnectionsSession!
-	identityVerificationReports(verificationSession: String, type: StripeGetIdentityVerificationReportsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIdentityVerificationReportsCreatedUnionInput): StripeGetIdentityVerificationReports!
-	identityVerificationReport(report: String!, expand: [String!]): StripeIdentityVerificationReport!
-	identityVerificationSessions(status: StripeGetIdentityVerificationSessionsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIdentityVerificationSessionsCreatedUnionInput): StripeGetIdentityVerificationSessions!
-	identityVerificationSession(session: String!, expand: [String!]): StripeIdentityVerificationSession!
-	invoiceitems(startingAfter: String, pending: Boolean, limit: Int, invoice: String, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetInvoiceitemsCreatedUnionInput): StripeGetInvoiceitems!
-	invoiceitem(invoiceitem: String!, expand: [String!]): StripeInvoiceitem!
-	invoices(subscription: String, status: StripeGetInvoicesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, dueDate: StripeIntOrGetInvoicesDueDateUnionInput, customer: String, created: StripeIntOrGetInvoicesCreatedUnionInput, collectionMethod: StripeGetInvoicesCollectionMethod): StripeGetInvoices!
-	invoicesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetInvoicesSearch!
-	invoicesUpcoming(subscriptionTrialFromPlan: Boolean, subscriptionTrialEnd: StripeIntUnionInput, subscriptionStartDate: Int, subscriptionResumeAt: StripeGetInvoicesUpcomingSubscriptionResumeAt, subscriptionProrationDate: Int, subscriptionProrationBehavior: StripeGetInvoicesUpcomingSubscriptionProrationBehavior, subscriptionItems: [StripeGetInvoicesUpcomingSubscriptionItemsInput!], subscriptionDefaultTaxRates: StripeStringOrStringUnionInput, subscriptionCancelNow: Boolean, subscriptionCancelAtPeriodEnd: Boolean, subscriptionCancelAt: StripeIntOrStringUnionInput, subscriptionBillingCycleAnchor: StripeIntUnionInput, subscription: String, schedule: String, invoiceItems: [StripeGetInvoicesUpcomingInvoiceItemsInput!], expand: [String!], discounts: StripeStringOrGetInvoicesUpcomingDiscountsUnionInput, customerDetails: StripeGetInvoicesUpcomingCustomerDetailsInput, customer: String, currency: String, coupon: String, automaticTax: StripeGetInvoicesUpcomingAutomaticTaxInput): StripeInvoice!
-	invoicesUpcomingLines(subscriptionTrialFromPlan: Boolean, subscriptionTrialEnd: StripeIntUnionInput, subscriptionStartDate: Int, subscriptionResumeAt: StripeGetInvoicesUpcomingLinesSubscriptionResumeAt, subscriptionProrationDate: Int, subscriptionProrationBehavior: StripeGetInvoicesUpcomingLinesSubscriptionProrationBehavior, subscriptionItems: [StripeGetInvoicesUpcomingLinesSubscriptionItemsInput!], subscriptionDefaultTaxRates: StripeStringOrStringUnionInput, subscriptionCancelNow: Boolean, subscriptionCancelAtPeriodEnd: Boolean, subscriptionCancelAt: StripeIntOrStringUnionInput, subscriptionBillingCycleAnchor: StripeIntUnionInput, subscription: String, startingAfter: String, schedule: String, limit: Int, invoiceItems: [StripeGetInvoicesUpcomingLinesInvoiceItemsInput!], expand: [String!], endingBefore: String, discounts: StripeStringOrGetInvoicesUpcomingLinesDiscountsUnionInput, customerDetails: StripeGetInvoicesUpcomingLinesCustomerDetailsInput, customer: String, currency: String, coupon: String, automaticTax: StripeGetInvoicesUpcomingLinesAutomaticTaxInput): StripeGetInvoicesUpcomingLines!
-	invoicesInvoice(invoice: String!, expand: [String!]): StripeInvoice!
-	invoicesInvoiceLines(invoice: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetInvoicesInvoiceLines!
-	issuingAuthorizations(status: StripeGetIssuingAuthorizationsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingAuthorizationsCreatedUnionInput, cardholder: String, card: String): StripeGetIssuingAuthorizations!
-	issuingAuthorization(authorization: String!, expand: [String!]): StripeIssuingAuthorization!
-	issuingCardholders(type: StripeGetIssuingCardholdersType, status: StripeGetIssuingCardholdersStatus, startingAfter: String, phoneNumber: String, limit: Int, expand: [String!], endingBefore: String, email: String, created: StripeIntOrGetIssuingCardholdersCreatedUnionInput): StripeGetIssuingCardholders!
-	issuingCardholder(cardholder: String!, expand: [String!]): StripeIssuingCardholder!
-	issuingCards(type: StripeGetIssuingCardsType, status: StripeGetIssuingCardsStatus, startingAfter: String, limit: Int, last4: String, expand: [String!], expYear: Int, expMonth: Int, endingBefore: String, created: StripeIntOrGetIssuingCardsCreatedUnionInput, cardholder: String): StripeGetIssuingCards!
-	issuingCard(card: String!, expand: [String!]): StripeIssuingCard!
-	issuingDisputes(transaction: String, status: StripeGetIssuingDisputesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingDisputesCreatedUnionInput): StripeGetIssuingDisputes!
-	issuingDispute(dispute: String!, expand: [String!]): StripeIssuingDispute!
-	issuingSettlements(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingSettlementsCreatedUnionInput): StripeGetIssuingSettlements!
-	issuingSettlement(settlement: String!, expand: [String!]): StripeIssuingSettlement!
-	issuingTransactions(type: StripeGetIssuingTransactionsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingTransactionsCreatedUnionInput, cardholder: String, card: String): StripeGetIssuingTransactions!
-	issuingTransaction(transaction: String!, expand: [String!]): StripeIssuingTransaction!
-	linkAccountSessionsSession(session: String!, expand: [String!]): StripeFinancialConnectionsSession!
-	linkedAccounts(startingAfter: String, session: String, limit: Int, expand: [String!], endingBefore: String, accountHolder: StripeGetLinkedAccountsAccountHolderInput): StripeGetLinkedAccounts!
-	linkedAccountsAccount(account: String!, expand: [String!]): StripeFinancialConnectionsAccount!
-	linkedAccountsAccountOwners(account: String!, startingAfter: String, ownership: String!, limit: Int, expand: [String!], endingBefore: String): StripeGetLinkedAccountsAccountOwners!
-	mandate(mandate: String!, expand: [String!]): StripeMandate!
-	paymentIntents(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetPaymentIntentsCreatedUnionInput): StripeGetPaymentIntents!
-	paymentIntentsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetPaymentIntentsSearch!
-	paymentIntent(intent: String!, expand: [String!], clientSecret: String): StripePaymentIntent!
-	paymentLinks(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, active: Boolean): StripeGetPaymentLinks!
-	paymentLink(paymentLink: String!, expand: [String!]): StripePaymentLink!
-	paymentLinksPaymentLinkLineItems(paymentLink: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetPaymentLinksPaymentLinkLineItems!
-	paymentMethods(type: StripeGetPaymentMethodsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String): StripeGetPaymentMethods!
-	paymentMethodsPaymentMethod(paymentMethod: String!, expand: [String!]): StripePaymentMethod!
-	payouts(status: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, destination: String, created: StripeIntOrGetPayoutsCreatedUnionInput, arrivalDate: StripeIntOrGetPayoutsArrivalDateUnionInput): StripeGetPayouts!
-	payout(payout: String!, expand: [String!]): StripePayout!
-	plans(startingAfter: String, product: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetPlansCreatedUnionInput, active: Boolean): StripeGetPlans!
-	plan(plan: String!, expand: [String!]): StripePlan!
-	prices(type: StripeGetPricesType, startingAfter: String, recurring: StripeGetPricesRecurringInput, product: String, lookupKeys: [String!], limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetPricesCreatedUnionInput, active: Boolean): StripeGetPrices!
-	pricesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetPricesSearch!
-	price(price: String!, expand: [String!]): StripePrice!
-	products(url: String, startingAfter: String, shippable: Boolean, limit: Int, ids: [String!], expand: [String!], endingBefore: String, created: StripeIntOrGetProductsCreatedUnionInput, active: Boolean): StripeGetProducts!
-	productsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetProductsSearch!
-	product(id: String!, expand: [String!]): StripeProduct!
-	promotionCodes(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetPromotionCodesCreatedUnionInput, coupon: String, code: String, active: Boolean): StripeGetPromotionCodes!
-	promotionCode(promotionCode: String!, expand: [String!]): StripePromotionCode!
-	quotes(testClock: String, status: StripeGetQuotesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String): StripeGetQuotes!
-	quote(quote: String!, expand: [String!]): StripeQuote!
-	quotesQuoteComputedUpfrontLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteComputedUpfrontLineItems!
-	quotesQuoteLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteLineItems!
-	radarEarlyFraudWarnings(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, charge: String): StripeGetRadarEarlyFraudWarnings!
-	radarEarlyFraudWarning(earlyFraudWarning: String!, expand: [String!]): StripeRadarEarlyFraudWarning!
-	radarValueListItems(valueList: String!, value: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRadarValueListItemsCreatedUnionInput): StripeGetRadarValueListItems!
-	radarValueListItem(item: String!, expand: [String!]): StripeRadarValueListItem!
-	radarValueLists(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRadarValueListsCreatedUnionInput, contains: String, alias: String): StripeGetRadarValueLists!
-	radarValueList(valueList: String!, expand: [String!]): StripeRadarValueList!
-	refunds(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRefundsCreatedUnionInput, charge: String): StripeGetRefunds!
-	refundsRefund(refund: String!, expand: [String!]): StripeRefund!
-	reportingReportRuns(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetReportingReportRunsCreatedUnionInput): StripeGetReportingReportRuns!
-	reportingReportRun(reportRun: String!, expand: [String!]): StripeReportingReportRun!
-	reportingReportTypes(expand: [String!]): StripeGetReportingReportTypes!
-	reportingReportType(reportType: String!, expand: [String!]): StripeReportingReportType!
-	reviews(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetReviewsCreatedUnionInput): StripeGetReviews!
-	review(review: String!, expand: [String!]): StripeReview!
-	setupAttempts(startingAfter: String, setupIntent: String!, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetSetupAttemptsCreatedUnionInput): StripeGetSetupAttempts!
-	setupIntents(startingAfter: String, paymentMethod: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetSetupIntentsCreatedUnionInput, attachToSelf: Boolean): StripeGetSetupIntents!
-	setupIntent(intent: String!, expand: [String!], clientSecret: String): StripeSetupIntent!
-	shippingRates(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetShippingRatesCreatedUnionInput, active: Boolean): StripeGetShippingRates!
-	shippingRate(shippingRateToken: String!, expand: [String!]): StripeShippingRate!
-	scheduledQueryRuns(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSigmaScheduledQueryRuns!
-	scheduledQueryRun(scheduledQueryRun: String!, expand: [String!]): StripeScheduledQueryRun!
-	source(source: String!, expand: [String!], clientSecret: String): StripeSource!
-	sourceMandateNotification(source: String!, mandateNotification: String!, expand: [String!]): StripeSourceMandateNotification!
-	sourceTransactions(source: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSourcesSourceSourceTransactions!
-	sourceTransaction(sourceTransaction: String!, source: String!, expand: [String!]): StripeSourceTransaction!
-	subscriptionItems(subscription: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSubscriptionItems!
-	subscriptionItem(item: String!, expand: [String!]): StripeSubscriptionItem!
-	usageRecordSummaries(subscriptionItem: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSubscriptionItemsSubscriptionItemUsageRecordSummaries!
-	subscriptionSchedules(startingAfter: String, scheduled: Boolean, releasedAt: StripeIntOrGetSubscriptionSchedulesReleasedAtUnionInput, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetSubscriptionSchedulesCreatedUnionInput, completedAt: StripeIntOrGetSubscriptionSchedulesCompletedAtUnionInput, canceledAt: StripeIntOrGetSubscriptionSchedulesCanceledAtUnionInput): StripeGetSubscriptionSchedules!
-	subscriptionSchedule(schedule: String!, expand: [String!]): StripeSubscriptionSchedule!
-	subscriptions(testClock: String, status: StripeGetSubscriptionsStatus, startingAfter: String, price: String, limit: Int, expand: [String!], endingBefore: String, customer: String, currentPeriodStart: StripeIntOrGetSubscriptionsCurrentPeriodStartUnionInput, currentPeriodEnd: StripeIntOrGetSubscriptionsCurrentPeriodEndUnionInput, created: StripeIntOrGetSubscriptionsCreatedUnionInput, collectionMethod: StripeGetSubscriptionsCollectionMethod): StripeGetSubscriptions!
-	subscriptionsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetSubscriptionsSearch!
-	subscriptionsSubscriptionExposedId(subscriptionExposedId: String!, expand: [String!]): StripeSubscription!
-	taxCodes(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTaxCodes!
-	taxCode(id: String!, expand: [String!]): StripeTaxCode!
-	taxRates(startingAfter: String, limit: Int, inclusive: Boolean, expand: [String!], endingBefore: String, created: StripeIntOrGetTaxRatesCreatedUnionInput, active: Boolean): StripeGetTaxRates!
-	taxRate(taxRate: String!, expand: [String!]): StripeTaxRate!
-	terminalConfigurations(startingAfter: String, limit: Int, isAccountDefault: Boolean, expand: [String!], endingBefore: String): StripeGetTerminalConfigurations!
-	terminalConfigurationsConfiguration(configuration: String!, expand: [String!]): StripeDeletedTerminalConfigurationOrTerminalConfigurationUnion!
-	terminalLocations(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTerminalLocations!
-	terminalLocationsLocation(location: String!, expand: [String!]): StripeDeletedTerminalLocationOrTerminalLocationUnion!
-	terminalReaders(status: StripeGetTerminalReadersStatus, startingAfter: String, location: String, limit: Int, expand: [String!], endingBefore: String, deviceType: StripeGetTerminalReadersDeviceType): StripeGetTerminalReaders!
-	terminalReadersReader(reader: String!, expand: [String!]): StripeDeletedTerminalReaderOrTerminalReaderUnion!
-	testHelpersTestClocks(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTestHelpersTestClocks!
-	testHelpersTestClock(testClock: String!, expand: [String!]): StripeTestHelpersTestClock!
-	token(token: String!, expand: [String!]): StripeToken!
-	topups(status: StripeGetTopupsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetTopupsCreatedUnionInput, amount: StripeIntOrGetTopupsAmountUnionInput): StripeGetTopups!
-	topup(topup: String!, expand: [String!]): StripeTopup!
-	transfers(transferGroup: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, destination: String, created: StripeIntOrGetTransfersCreatedUnionInput): StripeGetTransfers!
-	transferReversals(id: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTransfersIdReversals!
-	transfer(transfer: String!, expand: [String!]): StripeTransfer!
-	transferReversal(transfer: String!, id: String!, expand: [String!]): StripeTransferReversal!
-	treasuryCreditReversals(status: StripeGetTreasuryCreditReversalsStatus, startingAfter: String, receivedCredit: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryCreditReversals!
-	treasuryCreditReversal(creditReversal: String!, expand: [String!]): StripeTreasuryCreditReversal!
-	treasuryDebitReversals(status: StripeGetTreasuryDebitReversalsStatus, startingAfter: String, resolution: StripeGetTreasuryDebitReversalsResolution, receivedDebit: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryDebitReversals!
-	treasuryDebitReversal(debitReversal: String!, expand: [String!]): StripeTreasuryDebitReversal!
-	treasuryFinancialAccounts(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetTreasuryFinancialAccountsCreatedUnionInput): StripeGetTreasuryFinancialAccounts!
-	treasuryFinancialAccount(financialAccount: String!, expand: [String!]): StripeTreasuryFinancialAccount!
-	treasuryFinancialAccountFeatures(financialAccount: String!, expand: [String!]): StripeTreasuryFinancialAccountFeatures!
-	treasuryInboundTransfers(status: StripeGetTreasuryInboundTransfersStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryInboundTransfers!
-	treasuryInboundTransfer(id: String!, expand: [String!]): StripeTreasuryInboundTransfer!
-	treasuryOutboundPayments(status: StripeGetTreasuryOutboundPaymentsStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, customer: String): StripeGetTreasuryOutboundPayments!
-	treasuryOutboundPayment(id: String!, expand: [String!]): StripeTreasuryOutboundPayment!
-	treasuryOutboundTransfers(status: StripeGetTreasuryOutboundTransfersStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryOutboundTransfers!
-	treasuryOutboundTransfer(outboundTransfer: String!, expand: [String!]): StripeTreasuryOutboundTransfer!
-	treasuryReceivedCredits(status: StripeGetTreasuryReceivedCreditsStatus, startingAfter: String, linkedFlows: StripeGetTreasuryReceivedCreditsLinkedFlowsInput, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryReceivedCredits!
-	treasuryReceivedCredit(id: String!, expand: [String!]): StripeTreasuryReceivedCredit!
-	treasuryReceivedDebits(status: StripeGetTreasuryReceivedDebitsStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryReceivedDebits!
-	treasuryReceivedDebit(id: String!, expand: [String!]): StripeTreasuryReceivedDebit!
-	treasuryTransactionEntries(transaction: String, startingAfter: String, orderBy: StripeGetTreasuryTransactionEntriesOrderBy, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, effectiveAt: StripeIntOrGetTreasuryTransactionEntriesEffectiveAtUnionInput, created: StripeIntOrGetTreasuryTransactionEntriesCreatedUnionInput): StripeGetTreasuryTransactionEntries!
-	treasuryTransactionEntry(id: String!, expand: [String!]): StripeTreasuryTransactionEntry!
-	treasuryTransactions(statusTransitions: StripeGetTreasuryTransactionsStatusTransitionsInput, status: StripeGetTreasuryTransactionsStatus, startingAfter: String, orderBy: StripeGetTreasuryTransactionsOrderBy, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, created: StripeIntOrGetTreasuryTransactionsCreatedUnionInput): StripeGetTreasuryTransactions!
-	treasuryTransaction(id: String!, expand: [String!]): StripeTreasuryTransaction!
-	webhookEndpoints(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetWebhookEndpoints!
-	webhookEndpoint(webhookEndpoint: String!, expand: [String!]): StripeWebhookEndpoint!
+	account(expand: [String!]): StripeAccount
+	accounts(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetAccountsCreatedUnionInput): StripeGetAccounts
+	accountsAccount(account: String!, expand: [String!]): StripeAccount
+	accountsAccountBankAccountsId(id: String!, account: String!, expand: [String!]): StripeExternalAccount
+	capabilities(account: String!, expand: [String!]): StripeGetAccountsAccountCapabilities
+	capability(capability: String!, account: String!, expand: [String!]): StripeCapability
+	accountsAccountExternalAccounts(account: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountExternalAccounts
+	accountsAccountExternalAccountsId(id: String!, account: String!, expand: [String!]): StripeExternalAccount
+	accountsAccountPeople(account: String!, startingAfter: String, relationship: StripeGetAccountsAccountPeopleRelationshipInput, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountPeople
+	accountsAccountPeoplePerson(person: String!, account: String!, expand: [String!]): StripePerson
+	accountsAccountPersons(account: String!, startingAfter: String, relationship: StripeGetAccountsAccountPersonsRelationshipInput, limit: Int, expand: [String!], endingBefore: String): StripeGetAccountsAccountPersons
+	accountsAccountPersonsPerson(person: String!, account: String!, expand: [String!]): StripePerson
+	applePayDomains(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, domainName: String): StripeGetApplePayDomains
+	applePayDomain(domain: String!, expand: [String!]): StripeApplePayDomain
+	applicationFees(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetApplicationFeesCreatedUnionInput, charge: String): StripeGetApplicationFees
+	feeRefund(id: String!, fee: String!, expand: [String!]): StripeFeeRefund
+	applicationFee(id: String!, expand: [String!]): StripeApplicationFee
+	feeRefunds(id: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetApplicationFeesIdRefunds
+	appsSecrets(startingAfter: String, scope: StripeGetAppsSecretsScopeInput!, limit: Int, expand: [String!], endingBefore: String): StripeGetAppsSecrets
+	appsSecret(scope: StripeGetAppsSecretsFindScopeInput!, name: String!, expand: [String!]): StripeAppsSecret
+	balance(expand: [String!]): StripeBalance
+	balanceHistory(type: String, startingAfter: String, source: String, payout: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetBalanceHistoryCreatedUnionInput): StripeGetBalanceHistory
+	balanceHistoryId(id: String!, expand: [String!]): StripeBalanceTransaction
+	balanceTransactions(type: String, startingAfter: String, source: String, payout: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetBalanceTransactionsCreatedUnionInput): StripeGetBalanceTransactions
+	balanceTransactionsId(id: String!, expand: [String!]): StripeBalanceTransaction
+	billingPortalConfigurations(startingAfter: String, limit: Int, isDefault: Boolean, expand: [String!], endingBefore: String, active: Boolean): StripeGetBillingPortalConfigurations
+	billingPortalConfiguration(configuration: String!, expand: [String!]): StripeBillingPortalConfiguration
+	charges(transferGroup: String, startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetChargesCreatedUnionInput): StripeGetCharges
+	chargesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetChargesSearch
+	charge(charge: String!, expand: [String!]): StripeCharge
+	chargesChargeDispute(charge: String!, expand: [String!]): StripeDispute
+	chargesChargeRefunds(charge: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetChargesChargeRefunds
+	chargesChargeRefundsRefund(refund: String!, charge: String!, expand: [String!]): StripeRefund
+	checkoutSessions(subscription: String, startingAfter: String, paymentLink: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, customerDetails: StripeGetCheckoutSessionsCustomerDetailsInput, customer: String): StripeGetCheckoutSessions
+	checkoutSession(session: String!, expand: [String!]): StripeCheckoutSession
+	checkoutSessionsSessionLineItems(session: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCheckoutSessionsSessionLineItems
+	countrySpecs(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCountrySpecs
+	countrySpec(country: String!, expand: [String!]): StripeCountrySpec
+	coupons(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetCouponsCreatedUnionInput): StripeGetCoupons
+	coupon(coupon: String!, expand: [String!]): StripeCoupon
+	creditNotes(startingAfter: String, limit: Int, invoice: String, expand: [String!], endingBefore: String, customer: String): StripeGetCreditNotes
+	creditNotesPreview(shippingCost: StripeGetCreditNotesPreviewShippingCostInput, refundAmount: Int, refund: String, reason: StripeGetCreditNotesPreviewReason, outOfBandAmount: Int, metadata: JSON, memo: String, lines: [StripeGetCreditNotesPreviewLinesInput!], invoice: String!, expand: [String!], creditAmount: Int, amount: Int): StripeCreditNote
+	creditNotesPreviewLines(startingAfter: String, shippingCost: StripeGetCreditNotesPreviewLinesShippingCostInput, refundAmount: Int, refund: String, reason: StripeGetCreditNotesPreviewLinesReason, outOfBandAmount: Int, metadata: JSON, memo: String, lines: [StripeGetCreditNotesPreviewLinesLinesInput!], limit: Int, invoice: String!, expand: [String!], endingBefore: String, creditAmount: Int, amount: Int): StripeGetCreditNotesPreviewLines
+	creditNotesCreditNoteLines(creditNote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCreditNotesCreditNoteLines
+	creditNotesId(id: String!, expand: [String!]): StripeCreditNote
+	customers(testClock: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, email: String, created: StripeIntOrGetCustomersCreatedUnionInput): StripeGetCustomers
+	customersSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetCustomersSearch
+	customersCustomer(customer: String!, expand: [String!]): StripeDeletedCustomerOrCustomerUnion
+	customerBalanceTransactions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerBalanceTransactions
+	customerBalanceTransaction(transaction: String!, customer: String!, expand: [String!]): StripeCustomerBalanceTransaction
+	bankAccounts(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerBankAccounts
+	bankAccount(id: String!, customer: String!, expand: [String!]): StripeBankAccount
+	cards(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerCards
+	card(id: String!, customer: String!, expand: [String!]): StripeCard
+	cashBalance(customer: String!, expand: [String!]): StripeCashBalance
+	customerCashBalanceTransactions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerCashBalanceTransactions
+	customerCashBalanceTransaction(transaction: String!, customer: String!, expand: [String!]): StripeCustomerCashBalanceTransaction
+	customersCustomerDiscount(customer: String!, expand: [String!]): StripeDiscount
+	customersCustomerPaymentMethods(customer: String!, type: StripeGetCustomersCustomerPaymentMethodsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerPaymentMethods
+	customersCustomerPaymentMethodsPaymentMethod(paymentMethod: String!, customer: String!, expand: [String!]): StripePaymentMethod
+	customersCustomerSources(customer: String!, startingAfter: String, object: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerSources
+	paymentSource(id: String!, customer: String!, expand: [String!]): StripePaymentSource
+	customersCustomerSubscriptions(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerSubscriptions
+	customersCustomerSubscriptionsSubscriptionExposedId(subscriptionExposedId: String!, customer: String!, expand: [String!]): StripeSubscription
+	customersCustomerSubscriptionsSubscriptionExposedIdDiscount(subscriptionExposedId: String!, customer: String!, expand: [String!]): StripeDiscount
+	taxIds(customer: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetCustomersCustomerTaxIds
+	taxId(id: String!, customer: String!, expand: [String!]): StripeTaxId
+	disputes(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetDisputesCreatedUnionInput, charge: String): StripeGetDisputes
+	disputesDispute(dispute: String!, expand: [String!]): StripeDispute
+	events(types: [String!], type: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, deliverySuccess: Boolean, created: StripeIntOrGetEventsCreatedUnionInput): StripeGetEvents
+	event(id: String!, expand: [String!]): StripeEvent
+	exchangeRates(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetExchangeRates
+	exchangeRate(rateId: String!, expand: [String!]): StripeExchangeRate
+	fileLinks(startingAfter: String, limit: Int, file: String, expired: Boolean, expand: [String!], endingBefore: String, created: StripeIntOrGetFileLinksCreatedUnionInput): StripeGetFileLinks
+	fileLink(link: String!, expand: [String!]): StripeFileLink
+	files(startingAfter: String, purpose: StripeGetFilesPurpose, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetFilesCreatedUnionInput): StripeGetFiles
+	file(file: String!, expand: [String!]): StripeFile
+	financialConnectionsAccounts(startingAfter: String, session: String, limit: Int, expand: [String!], endingBefore: String, accountHolder: StripeGetFinancialConnectionsAccountsAccountHolderInput): StripeGetFinancialConnectionsAccounts
+	financialConnectionsAccountsAccount(account: String!, expand: [String!]): StripeFinancialConnectionsAccount
+	financialConnectionsAccountsAccountOwners(account: String!, startingAfter: String, ownership: String!, limit: Int, expand: [String!], endingBefore: String): StripeGetFinancialConnectionsAccountsAccountOwners
+	financialConnectionsSessionsSession(session: String!, expand: [String!]): StripeFinancialConnectionsSession
+	identityVerificationReports(verificationSession: String, type: StripeGetIdentityVerificationReportsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIdentityVerificationReportsCreatedUnionInput): StripeGetIdentityVerificationReports
+	identityVerificationReport(report: String!, expand: [String!]): StripeIdentityVerificationReport
+	identityVerificationSessions(status: StripeGetIdentityVerificationSessionsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIdentityVerificationSessionsCreatedUnionInput): StripeGetIdentityVerificationSessions
+	identityVerificationSession(session: String!, expand: [String!]): StripeIdentityVerificationSession
+	invoiceitems(startingAfter: String, pending: Boolean, limit: Int, invoice: String, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetInvoiceitemsCreatedUnionInput): StripeGetInvoiceitems
+	invoiceitem(invoiceitem: String!, expand: [String!]): StripeInvoiceitem
+	invoices(subscription: String, status: StripeGetInvoicesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, dueDate: StripeIntOrGetInvoicesDueDateUnionInput, customer: String, created: StripeIntOrGetInvoicesCreatedUnionInput, collectionMethod: StripeGetInvoicesCollectionMethod): StripeGetInvoices
+	invoicesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetInvoicesSearch
+	invoicesUpcoming(subscriptionTrialFromPlan: Boolean, subscriptionTrialEnd: StripeIntUnionInput, subscriptionStartDate: Int, subscriptionResumeAt: StripeGetInvoicesUpcomingSubscriptionResumeAt, subscriptionProrationDate: Int, subscriptionProrationBehavior: StripeGetInvoicesUpcomingSubscriptionProrationBehavior, subscriptionItems: [StripeGetInvoicesUpcomingSubscriptionItemsInput!], subscriptionDefaultTaxRates: StripeStringOrStringUnionInput, subscriptionCancelNow: Boolean, subscriptionCancelAtPeriodEnd: Boolean, subscriptionCancelAt: StripeIntOrStringUnionInput, subscriptionBillingCycleAnchor: StripeIntUnionInput, subscription: String, schedule: String, invoiceItems: [StripeGetInvoicesUpcomingInvoiceItemsInput!], expand: [String!], discounts: StripeStringOrGetInvoicesUpcomingDiscountsUnionInput, customerDetails: StripeGetInvoicesUpcomingCustomerDetailsInput, customer: String, currency: String, coupon: String, automaticTax: StripeGetInvoicesUpcomingAutomaticTaxInput): StripeInvoice
+	invoicesUpcomingLines(subscriptionTrialFromPlan: Boolean, subscriptionTrialEnd: StripeIntUnionInput, subscriptionStartDate: Int, subscriptionResumeAt: StripeGetInvoicesUpcomingLinesSubscriptionResumeAt, subscriptionProrationDate: Int, subscriptionProrationBehavior: StripeGetInvoicesUpcomingLinesSubscriptionProrationBehavior, subscriptionItems: [StripeGetInvoicesUpcomingLinesSubscriptionItemsInput!], subscriptionDefaultTaxRates: StripeStringOrStringUnionInput, subscriptionCancelNow: Boolean, subscriptionCancelAtPeriodEnd: Boolean, subscriptionCancelAt: StripeIntOrStringUnionInput, subscriptionBillingCycleAnchor: StripeIntUnionInput, subscription: String, startingAfter: String, schedule: String, limit: Int, invoiceItems: [StripeGetInvoicesUpcomingLinesInvoiceItemsInput!], expand: [String!], endingBefore: String, discounts: StripeStringOrGetInvoicesUpcomingLinesDiscountsUnionInput, customerDetails: StripeGetInvoicesUpcomingLinesCustomerDetailsInput, customer: String, currency: String, coupon: String, automaticTax: StripeGetInvoicesUpcomingLinesAutomaticTaxInput): StripeGetInvoicesUpcomingLines
+	invoicesInvoice(invoice: String!, expand: [String!]): StripeInvoice
+	invoicesInvoiceLines(invoice: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetInvoicesInvoiceLines
+	issuingAuthorizations(status: StripeGetIssuingAuthorizationsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingAuthorizationsCreatedUnionInput, cardholder: String, card: String): StripeGetIssuingAuthorizations
+	issuingAuthorization(authorization: String!, expand: [String!]): StripeIssuingAuthorization
+	issuingCardholders(type: StripeGetIssuingCardholdersType, status: StripeGetIssuingCardholdersStatus, startingAfter: String, phoneNumber: String, limit: Int, expand: [String!], endingBefore: String, email: String, created: StripeIntOrGetIssuingCardholdersCreatedUnionInput): StripeGetIssuingCardholders
+	issuingCardholder(cardholder: String!, expand: [String!]): StripeIssuingCardholder
+	issuingCards(type: StripeGetIssuingCardsType, status: StripeGetIssuingCardsStatus, startingAfter: String, limit: Int, last4: String, expand: [String!], expYear: Int, expMonth: Int, endingBefore: String, created: StripeIntOrGetIssuingCardsCreatedUnionInput, cardholder: String): StripeGetIssuingCards
+	issuingCard(card: String!, expand: [String!]): StripeIssuingCard
+	issuingDisputes(transaction: String, status: StripeGetIssuingDisputesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingDisputesCreatedUnionInput): StripeGetIssuingDisputes
+	issuingDispute(dispute: String!, expand: [String!]): StripeIssuingDispute
+	issuingSettlements(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingSettlementsCreatedUnionInput): StripeGetIssuingSettlements
+	issuingSettlement(settlement: String!, expand: [String!]): StripeIssuingSettlement
+	issuingTransactions(type: StripeGetIssuingTransactionsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetIssuingTransactionsCreatedUnionInput, cardholder: String, card: String): StripeGetIssuingTransactions
+	issuingTransaction(transaction: String!, expand: [String!]): StripeIssuingTransaction
+	linkAccountSessionsSession(session: String!, expand: [String!]): StripeFinancialConnectionsSession
+	linkedAccounts(startingAfter: String, session: String, limit: Int, expand: [String!], endingBefore: String, accountHolder: StripeGetLinkedAccountsAccountHolderInput): StripeGetLinkedAccounts
+	linkedAccountsAccount(account: String!, expand: [String!]): StripeFinancialConnectionsAccount
+	linkedAccountsAccountOwners(account: String!, startingAfter: String, ownership: String!, limit: Int, expand: [String!], endingBefore: String): StripeGetLinkedAccountsAccountOwners
+	mandate(mandate: String!, expand: [String!]): StripeMandate
+	paymentIntents(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetPaymentIntentsCreatedUnionInput): StripeGetPaymentIntents
+	paymentIntentsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetPaymentIntentsSearch
+	paymentIntent(intent: String!, expand: [String!], clientSecret: String): StripePaymentIntent
+	paymentLinks(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, active: Boolean): StripeGetPaymentLinks
+	paymentLink(paymentLink: String!, expand: [String!]): StripePaymentLink
+	paymentLinksPaymentLinkLineItems(paymentLink: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetPaymentLinksPaymentLinkLineItems
+	paymentMethods(type: StripeGetPaymentMethodsType, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String): StripeGetPaymentMethods
+	paymentMethodsPaymentMethod(paymentMethod: String!, expand: [String!]): StripePaymentMethod
+	payouts(status: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, destination: String, created: StripeIntOrGetPayoutsCreatedUnionInput, arrivalDate: StripeIntOrGetPayoutsArrivalDateUnionInput): StripeGetPayouts
+	payout(payout: String!, expand: [String!]): StripePayout
+	plans(startingAfter: String, product: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetPlansCreatedUnionInput, active: Boolean): StripeGetPlans
+	plan(plan: String!, expand: [String!]): StripePlan
+	prices(type: StripeGetPricesType, startingAfter: String, recurring: StripeGetPricesRecurringInput, product: String, lookupKeys: [String!], limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetPricesCreatedUnionInput, active: Boolean): StripeGetPrices
+	pricesSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetPricesSearch
+	price(price: String!, expand: [String!]): StripePrice
+	products(url: String, startingAfter: String, shippable: Boolean, limit: Int, ids: [String!], expand: [String!], endingBefore: String, created: StripeIntOrGetProductsCreatedUnionInput, active: Boolean): StripeGetProducts
+	productsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetProductsSearch
+	product(id: String!, expand: [String!]): StripeProduct
+	promotionCodes(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetPromotionCodesCreatedUnionInput, coupon: String, code: String, active: Boolean): StripeGetPromotionCodes
+	promotionCode(promotionCode: String!, expand: [String!]): StripePromotionCode
+	quotes(testClock: String, status: StripeGetQuotesStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, customer: String): StripeGetQuotes
+	quote(quote: String!, expand: [String!]): StripeQuote
+	quotesQuoteComputedUpfrontLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteComputedUpfrontLineItems
+	quotesQuoteLineItems(quote: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetQuotesQuoteLineItems
+	radarEarlyFraudWarnings(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, charge: String): StripeGetRadarEarlyFraudWarnings
+	radarEarlyFraudWarning(earlyFraudWarning: String!, expand: [String!]): StripeRadarEarlyFraudWarning
+	radarValueListItems(valueList: String!, value: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRadarValueListItemsCreatedUnionInput): StripeGetRadarValueListItems
+	radarValueListItem(item: String!, expand: [String!]): StripeRadarValueListItem
+	radarValueLists(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRadarValueListsCreatedUnionInput, contains: String, alias: String): StripeGetRadarValueLists
+	radarValueList(valueList: String!, expand: [String!]): StripeRadarValueList
+	refunds(startingAfter: String, paymentIntent: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetRefundsCreatedUnionInput, charge: String): StripeGetRefunds
+	refundsRefund(refund: String!, expand: [String!]): StripeRefund
+	reportingReportRuns(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetReportingReportRunsCreatedUnionInput): StripeGetReportingReportRuns
+	reportingReportRun(reportRun: String!, expand: [String!]): StripeReportingReportRun
+	reportingReportTypes(expand: [String!]): StripeGetReportingReportTypes
+	reportingReportType(reportType: String!, expand: [String!]): StripeReportingReportType
+	reviews(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetReviewsCreatedUnionInput): StripeGetReviews
+	review(review: String!, expand: [String!]): StripeReview
+	setupAttempts(startingAfter: String, setupIntent: String!, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetSetupAttemptsCreatedUnionInput): StripeGetSetupAttempts
+	setupIntents(startingAfter: String, paymentMethod: String, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetSetupIntentsCreatedUnionInput, attachToSelf: Boolean): StripeGetSetupIntents
+	setupIntent(intent: String!, expand: [String!], clientSecret: String): StripeSetupIntent
+	shippingRates(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, currency: String, created: StripeIntOrGetShippingRatesCreatedUnionInput, active: Boolean): StripeGetShippingRates
+	shippingRate(shippingRateToken: String!, expand: [String!]): StripeShippingRate
+	scheduledQueryRuns(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSigmaScheduledQueryRuns
+	scheduledQueryRun(scheduledQueryRun: String!, expand: [String!]): StripeScheduledQueryRun
+	source(source: String!, expand: [String!], clientSecret: String): StripeSource
+	sourceMandateNotification(source: String!, mandateNotification: String!, expand: [String!]): StripeSourceMandateNotification
+	sourceTransactions(source: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSourcesSourceSourceTransactions
+	sourceTransaction(sourceTransaction: String!, source: String!, expand: [String!]): StripeSourceTransaction
+	subscriptionItems(subscription: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSubscriptionItems
+	subscriptionItem(item: String!, expand: [String!]): StripeSubscriptionItem
+	usageRecordSummaries(subscriptionItem: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetSubscriptionItemsSubscriptionItemUsageRecordSummaries
+	subscriptionSchedules(startingAfter: String, scheduled: Boolean, releasedAt: StripeIntOrGetSubscriptionSchedulesReleasedAtUnionInput, limit: Int, expand: [String!], endingBefore: String, customer: String, created: StripeIntOrGetSubscriptionSchedulesCreatedUnionInput, completedAt: StripeIntOrGetSubscriptionSchedulesCompletedAtUnionInput, canceledAt: StripeIntOrGetSubscriptionSchedulesCanceledAtUnionInput): StripeGetSubscriptionSchedules
+	subscriptionSchedule(schedule: String!, expand: [String!]): StripeSubscriptionSchedule
+	subscriptions(testClock: String, status: StripeGetSubscriptionsStatus, startingAfter: String, price: String, limit: Int, expand: [String!], endingBefore: String, customer: String, currentPeriodStart: StripeIntOrGetSubscriptionsCurrentPeriodStartUnionInput, currentPeriodEnd: StripeIntOrGetSubscriptionsCurrentPeriodEndUnionInput, created: StripeIntOrGetSubscriptionsCreatedUnionInput, collectionMethod: StripeGetSubscriptionsCollectionMethod): StripeGetSubscriptions
+	subscriptionsSearch(query: String!, page: String, limit: Int, expand: [String!]): StripeGetSubscriptionsSearch
+	subscriptionsSubscriptionExposedId(subscriptionExposedId: String!, expand: [String!]): StripeSubscription
+	taxCodes(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTaxCodes
+	taxCode(id: String!, expand: [String!]): StripeTaxCode
+	taxRates(startingAfter: String, limit: Int, inclusive: Boolean, expand: [String!], endingBefore: String, created: StripeIntOrGetTaxRatesCreatedUnionInput, active: Boolean): StripeGetTaxRates
+	taxRate(taxRate: String!, expand: [String!]): StripeTaxRate
+	terminalConfigurations(startingAfter: String, limit: Int, isAccountDefault: Boolean, expand: [String!], endingBefore: String): StripeGetTerminalConfigurations
+	terminalConfigurationsConfiguration(configuration: String!, expand: [String!]): StripeDeletedTerminalConfigurationOrTerminalConfigurationUnion
+	terminalLocations(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTerminalLocations
+	terminalLocationsLocation(location: String!, expand: [String!]): StripeDeletedTerminalLocationOrTerminalLocationUnion
+	terminalReaders(status: StripeGetTerminalReadersStatus, startingAfter: String, location: String, limit: Int, expand: [String!], endingBefore: String, deviceType: StripeGetTerminalReadersDeviceType): StripeGetTerminalReaders
+	terminalReadersReader(reader: String!, expand: [String!]): StripeDeletedTerminalReaderOrTerminalReaderUnion
+	testHelpersTestClocks(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTestHelpersTestClocks
+	testHelpersTestClock(testClock: String!, expand: [String!]): StripeTestHelpersTestClock
+	token(token: String!, expand: [String!]): StripeToken
+	topups(status: StripeGetTopupsStatus, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetTopupsCreatedUnionInput, amount: StripeIntOrGetTopupsAmountUnionInput): StripeGetTopups
+	topup(topup: String!, expand: [String!]): StripeTopup
+	transfers(transferGroup: String, startingAfter: String, limit: Int, expand: [String!], endingBefore: String, destination: String, created: StripeIntOrGetTransfersCreatedUnionInput): StripeGetTransfers
+	transferReversals(id: String!, startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetTransfersIdReversals
+	transfer(transfer: String!, expand: [String!]): StripeTransfer
+	transferReversal(transfer: String!, id: String!, expand: [String!]): StripeTransferReversal
+	treasuryCreditReversals(status: StripeGetTreasuryCreditReversalsStatus, startingAfter: String, receivedCredit: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryCreditReversals
+	treasuryCreditReversal(creditReversal: String!, expand: [String!]): StripeTreasuryCreditReversal
+	treasuryDebitReversals(status: StripeGetTreasuryDebitReversalsStatus, startingAfter: String, resolution: StripeGetTreasuryDebitReversalsResolution, receivedDebit: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryDebitReversals
+	treasuryDebitReversal(debitReversal: String!, expand: [String!]): StripeTreasuryDebitReversal
+	treasuryFinancialAccounts(startingAfter: String, limit: Int, expand: [String!], endingBefore: String, created: StripeIntOrGetTreasuryFinancialAccountsCreatedUnionInput): StripeGetTreasuryFinancialAccounts
+	treasuryFinancialAccount(financialAccount: String!, expand: [String!]): StripeTreasuryFinancialAccount
+	treasuryFinancialAccountFeatures(financialAccount: String!, expand: [String!]): StripeTreasuryFinancialAccountFeatures
+	treasuryInboundTransfers(status: StripeGetTreasuryInboundTransfersStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryInboundTransfers
+	treasuryInboundTransfer(id: String!, expand: [String!]): StripeTreasuryInboundTransfer
+	treasuryOutboundPayments(status: StripeGetTreasuryOutboundPaymentsStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, customer: String): StripeGetTreasuryOutboundPayments
+	treasuryOutboundPayment(id: String!, expand: [String!]): StripeTreasuryOutboundPayment
+	treasuryOutboundTransfers(status: StripeGetTreasuryOutboundTransfersStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryOutboundTransfers
+	treasuryOutboundTransfer(outboundTransfer: String!, expand: [String!]): StripeTreasuryOutboundTransfer
+	treasuryReceivedCredits(status: StripeGetTreasuryReceivedCreditsStatus, startingAfter: String, linkedFlows: StripeGetTreasuryReceivedCreditsLinkedFlowsInput, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryReceivedCredits
+	treasuryReceivedCredit(id: String!, expand: [String!]): StripeTreasuryReceivedCredit
+	treasuryReceivedDebits(status: StripeGetTreasuryReceivedDebitsStatus, startingAfter: String, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String): StripeGetTreasuryReceivedDebits
+	treasuryReceivedDebit(id: String!, expand: [String!]): StripeTreasuryReceivedDebit
+	treasuryTransactionEntries(transaction: String, startingAfter: String, orderBy: StripeGetTreasuryTransactionEntriesOrderBy, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, effectiveAt: StripeIntOrGetTreasuryTransactionEntriesEffectiveAtUnionInput, created: StripeIntOrGetTreasuryTransactionEntriesCreatedUnionInput): StripeGetTreasuryTransactionEntries
+	treasuryTransactionEntry(id: String!, expand: [String!]): StripeTreasuryTransactionEntry
+	treasuryTransactions(statusTransitions: StripeGetTreasuryTransactionsStatusTransitionsInput, status: StripeGetTreasuryTransactionsStatus, startingAfter: String, orderBy: StripeGetTreasuryTransactionsOrderBy, limit: Int, financialAccount: String!, expand: [String!], endingBefore: String, created: StripeIntOrGetTreasuryTransactionsCreatedUnionInput): StripeGetTreasuryTransactions
+	treasuryTransaction(id: String!, expand: [String!]): StripeTreasuryTransaction
+	webhookEndpoints(startingAfter: String, limit: Int, expand: [String!], endingBefore: String): StripeGetWebhookEndpoints
+	webhookEndpoint(webhookEndpoint: String!, expand: [String!]): StripeWebhookEndpoint
 }
 type StripeQuote {
 	transferData: StripeQuotesResourceTransferData

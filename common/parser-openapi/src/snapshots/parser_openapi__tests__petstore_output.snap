@@ -24,11 +24,11 @@ enum PetstoreFindPetsByStatusStatus {
 	SOLD
 }
 type PetstoreMutation {
-	updatePet(input: PetstorePetInput!): PetstorePet!
-	addPet(input: PetstorePetInput!): PetstorePet!
-	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse!
-	placeOrder(input: PetstoreOrderInput!): PetstoreOrder!
-	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser!
+	updatePet(input: PetstorePetInput!): PetstorePet
+	addPet(input: PetstorePetInput!): PetstorePet
+	uploadFile(petId: Int!, additionalMetadata: String): PetstoreApiResponse
+	placeOrder(input: PetstoreOrderInput!): PetstoreOrder
+	createUsersWithListInput(input: [PetstoreUserInput!]!): PetstoreUser
 }
 type PetstoreOrder {
 	complete: Boolean
@@ -73,13 +73,13 @@ enum PetstorePetStatus {
 	SOLD
 }
 type PetstoreQuery {
-	findPetsByStatus(status: PetstoreFindPetsByStatusStatus = AVAILABLE): [PetstorePet!]!
-	findPetsByTags(tags: [String!]): [PetstorePet!]!
-	pet(petId: Int!): PetstorePet!
-	inventory: JSON!
-	order(orderId: Int!): PetstoreOrder!
-	loginUser(password: String, username: String): String!
-	user(username: String!): PetstoreUser!
+	findPetsByStatus(status: PetstoreFindPetsByStatusStatus = AVAILABLE): [PetstorePet!]
+	findPetsByTags(tags: [String!]): [PetstorePet!]
+	pet(petId: Int!): PetstorePet
+	inventory: JSON
+	order(orderId: Int!): PetstoreOrder
+	loginUser(password: String, username: String): String
+	user(username: String!): PetstoreUser
 }
 type PetstoreTag {
 	name: String
