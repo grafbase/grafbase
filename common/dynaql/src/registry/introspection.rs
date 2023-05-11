@@ -274,6 +274,8 @@ mod tests {
             .into_schema()
             .unwrap();
 
-        insta::assert_debug_snapshot!(Registry::from(schema))
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(Registry::from(schema))
+        })
     }
 }
