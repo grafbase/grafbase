@@ -2,8 +2,8 @@
 
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, REGISTRY_FILE,
-        RESOLVERS_DIRECTORY_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -12,6 +12,28 @@ use std::{
     env,
     path::{Path, PathBuf},
 };
+
+/// Points to the location of the Grafabase schema file.
+#[derive(Debug)]
+pub enum GrafbaseSchemaPath {
+    /// The path of `$PROJECT/grafbase/grafbase.config.ts`,
+    /// if exits.
+    TsConfig(PathBuf),
+    /// The path of `$PROJECT/grafbase/schema.graphql`, the
+    /// Grafbase schema, in the nearest ancestor directory
+    /// with said directory and file
+    Graphql(PathBuf),
+}
+
+impl GrafbaseSchemaPath {
+    fn parent(&self) -> Option<&Path> {
+        use GrafbaseSchemaPath::{Graphql, TsConfig};
+
+        match self {
+            TsConfig(path) | Graphql(path) => path.parent(),
+        }
+    }
+}
 
 /// a static representation of the current environment
 ///
@@ -27,9 +49,9 @@ pub struct Environment {
     /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
     /// with `grafbase/schema.graphql`
     pub project_grafbase_path: PathBuf,
-    /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
-    /// in the nearest ancestor directory with said directory and file
-    pub project_grafbase_schema_path: PathBuf,
+    /// the path of the Grafbase schema, in the nearest ancestor directory with
+    /// said directory and file
+    pub project_grafbase_schema_path: GrafbaseSchemaPath,
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
     pub user_dot_grafbase_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
@@ -62,6 +84,7 @@ impl Environment {
     pub fn try_init() -> Result<(), CommonError> {
         let project_grafbase_schema_path =
             Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
             .expect("the schema directory must have a parent by definiton")
@@ -77,6 +100,7 @@ impl Environment {
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let database_directory_path = project_dot_grafbase_path.join(DATABASE_DIRECTORY);
+
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -109,44 +133,54 @@ impl Environment {
         }
     }
 
-    /// searches for the closest ancestor directory
-    /// named "grafbase" which contains a "schema.graphql" file.
-    /// if already inside a `grafbase` directory, looks for `schema.graphql` inside the current ancestor as well
+    /// searches for the closest ancestor directory named "grafbase" which
+    /// contains either a "grafbase.config.ts" or a "schema.graphql" file. if
+    /// already inside a `grafbase` directory, looks for `schema.graphql` inside
+    /// the current ancestor as well
     ///
     /// # Errors
     ///
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-    fn get_project_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
-        let project_grafbase_path = env::current_dir()
-            .map_err(|_| CommonError::ReadCurrentDirectory)?
-            .ancestors()
-            .find_map(|ancestor| {
-                let mut path = PathBuf::from(ancestor);
-
-                // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
-                if let Some(first) = path.components().next() {
-                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
-                        path.push(GRAFBASE_SCHEMA_FILE_NAME);
-                        if path.is_file() {
-                            return Some(path);
-                        }
-                        path.pop();
-                    }
-                }
-
-                path.push(
-                    [GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME]
-                        .iter()
-                        .collect::<PathBuf>(),
-                );
-
-                if path.is_file() {
-                    Some(path)
-                } else {
-                    None
-                }
-            });
-
-        Ok(project_grafbase_path)
+    fn get_project_grafbase_path() -> Result<Option<GrafbaseSchemaPath>, CommonError> {
+        if let Some(path) = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)? {
+            Ok(Some(GrafbaseSchemaPath::TsConfig(path)))
+        } else {
+            let path = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
+            Ok(path.map(GrafbaseSchemaPath::Graphql))
+        }
     }
+}
+
+/// Find a path to the given file in the project's grafbase directory.
+fn get_path_to_file_in_project_grafbase(file_name: &str) -> Result<Option<PathBuf>, CommonError> {
+    let path_to_file = env::current_dir()
+        .map_err(|_| CommonError::ReadCurrentDirectory)?
+        .ancestors()
+        .find_map(|ancestor| {
+            let mut path = PathBuf::from(ancestor);
+
+            // if we're looking at a directory called `grafbase`,
+            // also check for the file in the current directory
+            if let Some(first) = path.components().next() {
+                if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
+                    path.push(file_name);
+
+                    if path.is_file() {
+                        return Some(path);
+                    }
+
+                    path.pop();
+                }
+            }
+
+            path.push([GRAFBASE_DIRECTORY_NAME, file_name].iter().collect::<PathBuf>());
+
+            if path.is_file() {
+                Some(path)
+            } else {
+                None
+            }
+        });
+
+    Ok(path_to_file)
 }
