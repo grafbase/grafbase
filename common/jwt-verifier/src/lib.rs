@@ -111,7 +111,7 @@ impl<'a> Client<'a> {
 
         // Use JWK from cache if available
         let cached_jwk = self
-            .get_jwk_from_cache(kid)
+            .get_jwk_from_cache(kid, &issuer)
             .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
             .await
             .ok()
@@ -135,7 +135,8 @@ impl<'a> Client<'a> {
 
             log::debug!(self.trace_id, "OIDC config: {oidc_config:?}");
 
-            // XXX: we might relax this requirement and ignore issuer altogether
+            // SECURITY: This check is important to make sure that an issuer cannot
+            // assume another identity
             if oidc_config.issuer != *issuer {
                 return Err(VerificationError::InvalidIssuerUrl);
             }
@@ -161,7 +162,7 @@ impl<'a> Client<'a> {
             // Add JWK to cache
             log::debug!(self.trace_id, "Adding JWK {kid} to cache");
             let _ = self
-                .add_jwk_to_cache(&jwk)
+                .add_jwk_to_cache(&jwk, issuer)
                 .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
                 .await;
 
@@ -281,10 +282,14 @@ impl<'a> Client<'a> {
         })
     }
 
-    async fn get_jwk_from_cache(&self, kid: &str) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
+    async fn get_jwk_from_cache(
+        &self,
+        kid: &str,
+        issuer: impl std::fmt::Display,
+    ) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
         if let Some(cache) = &self.jwks_cache {
             cache
-                .get(kid)
+                .get(&format!("{issuer}|{kid}"))
                 .cache_ttl(JWKS_CACHE_TTL)
                 .json::<ExtendedJsonWebKey<'_>>()
                 .await
@@ -293,10 +298,16 @@ impl<'a> Client<'a> {
         }
     }
 
-    async fn add_jwk_to_cache(&self, jwk: &ExtendedJsonWebKey<'_>) -> Result<(), KvError> {
+    async fn add_jwk_to_cache(
+        &self,
+        jwk: &ExtendedJsonWebKey<'_>,
+        issuer: impl std::fmt::Display,
+    ) -> Result<(), KvError> {
         if let Some(cache) = &self.jwks_cache {
+            // SECURITY: To prevent cache poisining, we not only use the kid but also the issuer
+            // url. This two issuer can use the same kid without interferring with each other
             cache
-                .put(&jwk.id, jwk)
+                .put(&format!("{issuer}/{}", jwk.id), jwk)
                 .expect("cannot fail")
                 .expiration_ttl(JWKS_CACHE_TTL)
                 .execute()
