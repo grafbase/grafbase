@@ -5,6 +5,7 @@ use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapiv3::{AdditionalProperties, ReferenceOr, Type};
 use regex::Regex;
+use url::Url;
 
 use crate::{
     graph::construction::ParentNode,
@@ -21,7 +22,10 @@ pub mod components;
 pub mod operations;
 
 pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
-    let mut ctx = Context::default();
+    let mut ctx = Context {
+        url: Some(url_from_spec(&spec)),
+        ..Context::default()
+    };
 
     let mut components = Components::default();
     if let Some(spec_components) = &spec.components {
@@ -349,4 +353,20 @@ impl Ref {
     fn v3_parameter(name: &str) -> Ref {
         Ref(format!("#/components/parameters/{name}"))
     }
+}
+
+fn url_from_spec(spec: &openapiv3::OpenAPI) -> Result<Url, Error> {
+    let url_str = spec
+        .servers
+        .first()
+        .map(|server| server.url.as_ref())
+        .ok_or(Error::MissingUrl)?;
+
+    let url = Url::parse(url_str).map_err(|_| Error::InvalidUrl(url_str.to_string()))?;
+
+    if !url.has_host() {
+        return Err(Error::InvalidUrl(url_str.to_string()));
+    }
+
+    Ok(url)
 }

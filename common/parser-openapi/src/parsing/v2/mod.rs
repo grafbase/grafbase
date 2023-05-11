@@ -7,6 +7,7 @@ use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapi::{Operation, Operations};
 use regex::Regex;
+use url::Url;
 
 use crate::{
     graph::construction::ParentNode,
@@ -18,7 +19,10 @@ use crate::{
 use super::grouping;
 
 pub fn parse(spec: openapi::Spec) -> Result<Context, Vec<Error>> {
-    let mut ctx = Context::default();
+    let mut ctx = Context {
+        url: Some(url_from_spec(&spec)),
+        ..Context::default()
+    };
 
     extract_operations(&mut ctx, &spec.paths);
 
@@ -249,4 +253,16 @@ fn operations_iter(operations: &Operations) -> impl Iterator<Item = (HttpMethod,
     ]
     .into_iter()
     .filter_map(|(method, maybe_operation)| Some((method, maybe_operation.as_ref()?)))
+}
+
+fn url_from_spec(spec: &openapi::Spec) -> Result<Url, Error> {
+    let url_string = format!(
+        "https://{}{}",
+        spec.host.as_deref().ok_or(Error::MissingUrl)?,
+        spec.base_path.as_deref().unwrap_or("")
+    );
+
+    let url = Url::parse(&url_string).map_err(|_| Error::InvalidUrl(url_string))?;
+
+    Ok(url)
 }

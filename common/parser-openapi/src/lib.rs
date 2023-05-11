@@ -15,12 +15,24 @@ pub fn parse_spec(
     mut metadata: ApiMetadata,
     registry: &mut Registry,
 ) -> Result<(), Vec<Error>> {
+    let parsed = parsing::parse(data, format)?;
+
+    if metadata.url.is_none() {
+        metadata.url = Some(
+            parsed
+                .url
+                .clone()
+                .ok_or_else(|| vec![Error::MissingUrl])?
+                .map_err(|error| vec![error])?,
+        );
+    }
+
+    let url = metadata.url.as_mut().unwrap();
+
     // Make sure we have a trailing slash on metadata so that Url::join works correctly.
-    ensure_trailing_slash(&mut metadata.url).map_err(|_| vec![Error::InvalidUrl(metadata.url.to_string())])?;
+    ensure_trailing_slash(url).map_err(|_| vec![Error::InvalidUrl(url.to_string())])?;
 
-    let spec = parsing::parse(data, format)?;
-
-    let graph = OpenApiGraph::new(spec, metadata.clone());
+    let graph = OpenApiGraph::new(parsed, metadata.clone());
 
     validation::validate(&graph)?;
 
@@ -34,7 +46,7 @@ pub fn parse_spec(
 #[derive(Clone, Debug)]
 pub struct ApiMetadata {
     pub name: String,
-    pub url: Url,
+    pub url: Option<Url>,
     pub headers: Vec<(String, String)>,
     pub query_naming: QueryNamingStrategy,
 }
@@ -89,14 +101,16 @@ fn extract_extension(url: &str) -> Option<String> {
     Some(extension.to_str()?.to_string())
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {
     #[error("We don't support version {0} of OpenAPI currently.  Please contact support")]
     UnsupportedVersion(String),
+    #[error("There was no URL in this OpenAPI document.  Please provide the url parameter to `@openapi`")]
+    MissingUrl,
     #[error("Could not parse the open api spec: {0}")]
-    JsonParsingError(serde_json::Error),
+    JsonParsingError(String),
     #[error("Could not parse the open api spec: {0}")]
-    YamlParsingError(serde_yaml::Error),
+    YamlParsingError(String),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
     #[error("The path component {0} was a reference, which we don't currently support.")]
@@ -123,7 +137,7 @@ pub enum Error {
     AllOfSchema,
     #[error("Found a reference {0} which didn't seem to exist in the spec")]
     UnresolvedReference(String),
-    #[error("Received an invalid URL: {0} ")]
+    #[error("We couldn't parse the URL: `{0}`  You might need to provide or fix the url parameter to `@openapi`")]
     InvalidUrl(String),
     #[error("The path parameter {0} on operation {1} is an object, which is currently unsupported")]
     PathParameterIsObject(String, String),
@@ -163,6 +177,7 @@ fn ensure_trailing_slash(url: &mut Url) -> Result<(), ()> {
 
 #[cfg(test)]
 mod tests {
+    use assert_matches::assert_matches;
 
     use dynaql::registry::MetaType;
 
@@ -170,17 +185,37 @@ mod tests {
 
     #[test]
     fn test_stripe_output() {
-        insta::assert_snapshot!(
-            build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe")).export_sdl(false)
-        );
+        let metadata = ApiMetadata {
+            url: None,
+            ..metadata("stripe")
+        };
+        insta::assert_snapshot!(build_registry("test_data/stripe.openapi.json", Format::Json, metadata)
+            .unwrap()
+            .export_sdl(false));
     }
 
     #[test]
     fn test_petstore_output() {
-        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata("petstore"));
+        let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata("petstore")).unwrap();
 
         insta::assert_snapshot!(registry.export_sdl(false));
         insta::assert_debug_snapshot!(registry);
+    }
+
+    #[test]
+    fn test_url_without_host_failure() {
+        let metadata = ApiMetadata {
+            url: None,
+            ..metadata("petstore")
+        };
+        assert_matches!(
+            build_registry("test_data/petstore.openapi.json", Format::Json, metadata)
+                .unwrap_err()
+                .as_slice(),
+            [Error::InvalidUrl(url)] => {
+                assert_eq!(url, "/api/v3");
+            }
+        );
     }
 
     #[test]
@@ -193,6 +228,7 @@ mod tests {
                 ..metadata("openai")
             }
         )
+        .unwrap()
         .export_sdl(false));
     }
 
@@ -202,23 +238,26 @@ mod tests {
             "test_data/planetscale.json",
             Format::Json,
             ApiMetadata {
-                // query_naming: QueryNamingStrategy::OperationId,
+                url: None,
                 ..metadata("planetscale")
             }
         )
+        .unwrap()
         .export_sdl(false));
     }
 
     #[test]
     fn test_impossible_unions() {
         insta::assert_snapshot!(
-            build_registry("test_data/impossible-unions.json", Format::Json, metadata("petstore")).export_sdl(false)
+            build_registry("test_data/impossible-unions.json", Format::Json, metadata("petstore"))
+                .unwrap()
+                .export_sdl(false)
         );
     }
 
     #[test]
     fn test_stripe_discrimnator_detection() {
-        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe"));
+        let registry = build_registry("test_data/stripe.openapi.json", Format::Json, metadata("stripe")).unwrap();
         let discriminators = registry
             .types
             .values()
@@ -233,7 +272,7 @@ mod tests {
         insta::assert_json_snapshot!(discriminators);
     }
 
-    fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Registry {
+    fn build_registry(schema_path: &str, format: Format, metadata: ApiMetadata) -> Result<Registry, Vec<Error>> {
         let mut registry = Registry::new();
 
         parse_spec(
@@ -241,16 +280,15 @@ mod tests {
             format,
             metadata,
             &mut registry,
-        )
-        .unwrap();
+        )?;
 
-        registry
+        Ok(registry)
     }
 
     fn metadata(name: &str) -> ApiMetadata {
         ApiMetadata {
             name: name.into(),
-            url: Url::parse("http://example.com").unwrap(),
+            url: Some(Url::parse("http://example.com").unwrap()),
             headers: vec![],
             query_naming: QueryNamingStrategy::SchemaName,
         }

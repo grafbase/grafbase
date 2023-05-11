@@ -6,6 +6,7 @@ mod version;
 use std::collections::HashMap;
 
 use petgraph::{graph::NodeIndex, Graph};
+use url::Url;
 
 use crate::{
     graph::{Edge, Node},
@@ -39,6 +40,7 @@ pub struct Context {
     schema_index: HashMap<Ref, NodeIndex>,
     pub operation_indices: Vec<NodeIndex>,
     errors: Vec<Error>,
+    pub url: Option<Result<Url, Error>>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -62,7 +64,7 @@ impl std::fmt::Display for Ref {
 
 fn from_str<T: serde::de::DeserializeOwned>(data: &str, format: Format) -> Result<T, Vec<Error>> {
     Ok(match format {
-        Format::Json => serde_json::from_str::<T>(data).map_err(|e| vec![Error::JsonParsingError(e)])?,
-        Format::Yaml => serde_yaml::from_str::<T>(data).map_err(|e| vec![Error::YamlParsingError(e)])?,
+        Format::Json => serde_json::from_str::<T>(data).map_err(|e| vec![Error::JsonParsingError(e.to_string())])?,
+        Format::Yaml => serde_yaml::from_str::<T>(data).map_err(|e| vec![Error::YamlParsingError(e.to_string())])?,
     })
 }
