@@ -91,7 +91,6 @@ mod tests {
     use std::collections::HashMap;
 
     use futures::executor::block_on;
-    use rstest::rstest;
 
     use crate::{connector_parsers::MockConnectorParsers, rules::visitor::RuleError};
 
