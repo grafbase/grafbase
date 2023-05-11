@@ -7,6 +7,7 @@ use dynaql_value::{ConstValue, Name};
 use indexmap::IndexMap;
 use serde::{
     de::{self, IntoDeserializer},
+    ser::SerializeMap,
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
@@ -35,24 +36,29 @@ impl serde::Serialize for BorrowedConstValueWrapper<'_> {
     where
         S: Serializer,
     {
-        #[derive(Serialize, Deserialize)]
-        struct EnumWrapper<'a> {
-            __enum: &'a str,
-        }
-
+        // We wrap enums in an object so we can preserve them.  Because of this
+        // we also need to wrap objects so things aren't ambiguous.
         match self.0 {
-            ConstValue::Enum(name) => EnumWrapper {
-                __enum: name.as_str(),
+            ConstValue::Enum(name) => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry("__enum", name.as_str())?;
+                map.end()
             }
-            .serialize(serializer),
 
             ConstValue::List(items) => {
                 serializer.collect_seq(items.iter().map(BorrowedConstValueWrapper))
             }
-            ConstValue::Object(map) => serializer.collect_map(
-                map.iter()
-                    .map(|(name, value)| (name, BorrowedConstValueWrapper(value))),
-            ),
+            ConstValue::Object(object) => {
+                let mut map = serializer.serialize_map(Some(1))?;
+                map.serialize_entry(
+                    "__object",
+                    &object
+                        .iter()
+                        .map(|(name, value)| (name, BorrowedConstValueWrapper(value)))
+                        .collect::<IndexMap<_, _>>(),
+                )?;
+                map.end()
+            }
             other => other.serialize(serializer),
         }
     }
@@ -150,23 +156,29 @@ impl<'de> serde::de::Deserialize<'de> for OwnedConstValueWrapper {
             where
                 A: de::MapAccess<'de>,
             {
-                let mut object = IndexMap::new();
                 let Some((key, value)) = map.next_entry::<String, OwnedConstValueWrapper>()? else {
-                    return Ok(OwnedConstValueWrapper(ConstValue::Object(object)));
+                    return Ok(OwnedConstValueWrapper(ConstValue::Object(IndexMap::new())));
                 };
 
-                if key == "__enum" {
-                    if let OwnedConstValueWrapper(ConstValue::String(string)) = value {
-                        return Ok(OwnedConstValueWrapper(ConstValue::Enum(Name::new(string))));
+                match (key.as_str(), value) {
+                    ("__enum", OwnedConstValueWrapper(ConstValue::String(string))) => {
+                        Ok(OwnedConstValueWrapper(ConstValue::Enum(Name::new(string))))
+                    }
+                    ("__object", value @ OwnedConstValueWrapper(ConstValue::Object(_))) => {
+                        Ok(value)
+                    }
+                    (key, value) => {
+                        let mut object = IndexMap::new();
+                        object.insert(Name::new(key), value.0);
+                        while let Some((key, value)) =
+                            map.next_entry::<Name, OwnedConstValueWrapper>()?
+                        {
+                            object.insert(key, value.0);
+                        }
+
+                        Ok(OwnedConstValueWrapper(ConstValue::Object(object)))
                     }
                 }
-                object.insert(Name::new(key), value.0);
-
-                while let Some((key, value)) = map.next_entry::<Name, OwnedConstValueWrapper>()? {
-                    object.insert(key, value.0);
-                }
-
-                Ok(OwnedConstValueWrapper(ConstValue::Object(object)))
             }
         }
 
@@ -222,6 +234,17 @@ mod tests {
             serde_json::to_value(BorrowedConstValueWrapper(&value)).unwrap(),
             json!({
                 "__enum": "HELLO"
+            })
+        )
+    }
+
+    #[test]
+    fn test_object() {
+        let value = ConstValue::Object([(Name::new("hello"), ConstValue::Null)].into());
+        assert_eq!(
+            serde_json::to_value(BorrowedConstValueWrapper(&value)).unwrap(),
+            json!({
+                "__object": {"hello": null}
             })
         )
     }
