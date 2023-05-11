@@ -89,11 +89,12 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 ///
 /// See [`Error`] for more details.
 pub async fn parse_schema(
+    client: reqwest::Client,
     namespace: String,
     url: Url,
     headers: HashMap<String, String>,
 ) -> Result<Registry, Vec<Error>> {
-    let result = reqwest::Client::new()
+    let result = client
         .post(url.clone())
         .header(USER_AGENT, "Grafbase")
         .headers((&headers).try_into().map_err(|err: http::Error| vec![err.into()])?)
@@ -399,6 +400,7 @@ mod tests {
     #[tokio::test]
     async fn test_counries_output() {
         insta::assert_snapshot!(parse_schema(
+            reqwest::Client::new(),
             "foo".to_string(),
             Url::parse("https://api.chargetrip.io/graphql").unwrap(),
             HashMap::from([
