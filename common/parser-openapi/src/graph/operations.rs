@@ -85,7 +85,10 @@ impl Operation {
 
         // Note that we can't use Url::join here as it'll escape any OpenAPI parameter
         // placeholders.
-        format!("{}{path}", graph.metadata.url)
+        format!(
+            "{}{path}",
+            graph.metadata.url.as_ref().expect("a URL to be in metadata")
+        )
     }
 
     pub fn name(self, graph: &super::OpenApiGraph) -> Option<OperationName> {

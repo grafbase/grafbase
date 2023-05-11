@@ -26,5 +26,6 @@ dynaql-value = { path = "../dynaql/value" }
 parser = { path = "../parser" }
 
 [dev-dependencies]
+assert_matches = "1.5"
 insta = { version = "1", features = ["json"] }
 rstest = "0.17"

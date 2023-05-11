@@ -8,7 +8,7 @@ use super::{directive::Directive, visitor::Visitor};
 #[serde(rename_all = "camelCase")]
 pub struct OpenApiDirective {
     pub name: String,
-    pub url: Url,
+    pub url: Option<Url>,
     #[serde(rename = "schema")]
     pub schema_url: String,
     #[serde(default)]
@@ -147,21 +147,23 @@ mod tests {
         [
             OpenApiDirective {
                 name: "stripe",
-                url: Url {
-                    scheme: "https",
-                    cannot_be_a_base: false,
-                    username: "",
-                    password: None,
-                    host: Some(
-                        Domain(
-                            "api.stripe.com",
+                url: Some(
+                    Url {
+                        scheme: "https",
+                        cannot_be_a_base: false,
+                        username: "",
+                        password: None,
+                        host: Some(
+                            Domain(
+                                "api.stripe.com",
+                            ),
                         ),
-                    ),
-                    port: None,
-                    path: "/",
-                    query: None,
-                    fragment: None,
-                },
+                        port: None,
+                        path: "/",
+                        query: None,
+                        fragment: None,
+                    },
+                ),
                 schema_url: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json",
                 headers: [
                     Header {
