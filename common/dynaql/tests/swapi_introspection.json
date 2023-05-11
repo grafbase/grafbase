@@ -5878,11 +5878,7 @@
             "defaultValue": null
           }
         ],
-        "locations": [
-          "FIELD",
-          "FRAGMENT_SPREAD",
-          "INLINE_FRAGMENT"
-        ]
+        "locations": ["FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT"]
       },
       {
         "name": "skip",
@@ -5903,11 +5899,7 @@
             "defaultValue": null
           }
         ],
-        "locations": [
-          "FIELD",
-          "FRAGMENT_SPREAD",
-          "INLINE_FRAGMENT"
-        ]
+        "locations": ["FIELD", "FRAGMENT_SPREAD", "INLINE_FRAGMENT"]
       },
       {
         "name": "deprecated",
@@ -5924,10 +5916,7 @@
             "defaultValue": "\"No longer supported\""
           }
         ],
-        "locations": [
-          "FIELD_DEFINITION",
-          "ENUM_VALUE"
-        ]
+        "locations": ["FIELD_DEFINITION", "ENUM_VALUE"]
       }
     ]
   }
