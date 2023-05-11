@@ -143,7 +143,6 @@ impl Parser {
                 Type::Interface(v) => self.update_interface(v),
                 Type::Union(v) => self.update_union(v),
                 Type::Scalar(v) => self.update_scalar(v),
-                _ => todo!("return error"),
             }
         }
 
@@ -175,7 +174,11 @@ impl Parser {
 
     fn update_enum(&self, v: &mut cynic_introspection::EnumType) {
         v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
-        v.values.iter_mut().for_each(|v| self.update_enum_value(v));
+        v.values.iter_mut().for_each(Self::update_enum_value);
+    }
+
+    fn update_enum_value(v: &mut cynic_introspection::EnumValue) {
+        v.name = v.name.to_screaming_snake_case();
     }
 
     fn update_interface(&self, v: &mut cynic_introspection::InterfaceType) {
@@ -185,14 +188,11 @@ impl Parser {
 
     fn update_union(&self, v: &mut cynic_introspection::UnionType) {
         v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
+        v.possible_types.iter_mut().for_each(|v| self.update_union_member(v));
+    }
 
-        for member in &mut v.possible_types {
-            if BUILTIN_SCALARS.contains(&(member.as_str())) {
-                continue;
-            }
-
-            *member = format!("{} {}", self.prefix, member).to_pascal_case();
-        }
+    fn update_union_member(&self, v: &mut String) {
+        *v = format!("{} {}", self.prefix, v).to_pascal_case();
     }
 
     fn update_scalar(&self, v: &mut cynic_introspection::ScalarType) {
@@ -206,7 +206,6 @@ impl Parser {
 
     fn update_input_value(&self, v: &mut cynic_introspection::InputValue) {
         self.update_field_type(&mut v.ty);
-        // v.name = format!("{} {}", self.prefix, v.name).to_pascal_case();
     }
 
     fn update_field_type(&self, ty: &mut cynic_introspection::FieldType) {
@@ -216,10 +215,6 @@ impl Parser {
         }
 
         ty.name = format!("{} {}", self.prefix, ty).to_pascal_case();
-    }
-
-    fn update_enum_value(&self, v: &mut cynic_introspection::EnumValue) {
-        v.name = format!("{} {}", self.prefix, v.name).to_screaming_snake_case();
     }
 
     fn add_field_resolvers(registry: &mut Registry) {
@@ -251,26 +246,16 @@ impl Parser {
             .retain(|d| !BUILTIN_DIRECTIVES.contains(&d.name.as_str()));
 
         schema.types.retain(|t| {
-            use cynic_introspection::Type::{Enum, InputObject, Interface, Object, Scalar, Union};
-
-            let key = match &t {
-                Object(v) => &v.name,
-                InputObject(v) => &v.name,
-                Enum(v) => &v.name,
-                Interface(v) => &v.name,
-                Union(v) => &v.name,
-                Scalar(v) if !BUILTIN_SCALARS.contains(&&*v.name) => &v.name,
-                _ => return false,
-            };
+            if let cynic_introspection::Type::Scalar(v) = &t {
+                if BUILTIN_SCALARS.contains(&&*v.name) {
+                    return false;
+                }
+            }
 
             // Filter out any types part of the introspection system.
             //
             // See: <http://spec.graphql.org/October2021/#sec-Names.Reserved-Names>
-            if key.starts_with("__") {
-                return false;
-            }
-
-            true
+            return !t.name().starts_with("__");
         });
     }
 
