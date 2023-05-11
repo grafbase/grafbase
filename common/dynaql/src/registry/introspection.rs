@@ -37,21 +37,7 @@ impl From<cynic_introspection::Schema> for Registry {
         registry.types = schema
             .types
             .into_iter()
-            .map(|ty| {
-                use cynic_introspection::Type::*;
-
-                let key = match &ty {
-                    Object(v) => v.name.clone(),
-                    InputObject(v) => v.name.clone(),
-                    Enum(v) => v.name.clone(),
-                    Interface(v) => v.name.clone(),
-                    Union(v) => v.name.clone(),
-                    Scalar(v) => v.name.clone(),
-                    _ => unimplemented!("unknown graphql type"),
-                };
-
-                (key, ty.into())
-            })
+            .map(|ty| (ty.name().to_owned(), ty.into()))
             .collect();
 
         registry
@@ -147,7 +133,6 @@ impl From<cynic_introspection::Type> for MetaType {
             Interface(v) => v.into(),
             Union(v) => v.into(),
             Scalar(v) => v.into(),
-            _ => unimplemented!("unknown graphql type"),
         }
     }
 }
@@ -155,7 +140,7 @@ impl From<cynic_introspection::Type> for MetaType {
 impl From<cynic_introspection::ObjectType> for MetaType {
     fn from(object: cynic_introspection::ObjectType) -> Self {
         Self::Object {
-            name: object.name,
+            name: object.name.clone(),
             description: object.description,
             fields: object
                 .fields
@@ -168,7 +153,7 @@ impl From<cynic_introspection::ObjectType> for MetaType {
             visible: None,
             is_subscription: false,
             is_node: false,
-            rust_typename: String::new(),
+            rust_typename: object.name,
             constraints: vec![],
         }
     }
@@ -182,7 +167,6 @@ impl From<cynic_introspection::Deprecated> for Deprecation {
         match deprecated {
             No => NoDeprecated,
             Yes(reason) => Deprecated { reason },
-            _ => unimplemented!("unknown graphql deprecation type"),
         }
     }
 }
@@ -190,7 +174,7 @@ impl From<cynic_introspection::Deprecated> for Deprecation {
 impl From<cynic_introspection::InputObjectType> for MetaType {
     fn from(input: cynic_introspection::InputObjectType) -> Self {
         Self::InputObject {
-            name: input.name,
+            name: input.name.clone(),
             description: input.description,
             input_fields: input
                 .fields
@@ -198,7 +182,7 @@ impl From<cynic_introspection::InputObjectType> for MetaType {
                 .map(|v| (v.name.clone(), v.into()))
                 .collect(),
             visible: None,
-            rust_typename: String::new(),
+            rust_typename: input.name,
             oneof: false,
         }
     }
@@ -207,7 +191,7 @@ impl From<cynic_introspection::InputObjectType> for MetaType {
 impl From<cynic_introspection::EnumType> for MetaType {
     fn from(enum_type: cynic_introspection::EnumType) -> Self {
         Self::Enum {
-            name: enum_type.name,
+            name: enum_type.name.clone(),
             description: enum_type.description,
             enum_values: enum_type
                 .values
@@ -215,7 +199,7 @@ impl From<cynic_introspection::EnumType> for MetaType {
                 .map(|v| (v.name.clone(), v.into()))
                 .collect(),
             visible: None,
-            rust_typename: String::new(),
+            rust_typename: enum_type.name,
         }
     }
 }
@@ -235,7 +219,7 @@ impl From<cynic_introspection::EnumValue> for MetaEnumValue {
 impl From<cynic_introspection::InterfaceType> for MetaType {
     fn from(interface: cynic_introspection::InterfaceType) -> Self {
         Self::Interface {
-            name: interface.name,
+            name: interface.name.clone(),
             description: interface.description,
             fields: interface
                 .fields
@@ -246,7 +230,7 @@ impl From<cynic_introspection::InterfaceType> for MetaType {
             extends: false,
             keys: None,
             visible: None,
-            rust_typename: String::new(),
+            rust_typename: interface.name,
         }
     }
 }
@@ -254,11 +238,11 @@ impl From<cynic_introspection::InterfaceType> for MetaType {
 impl From<cynic_introspection::UnionType> for MetaType {
     fn from(union: cynic_introspection::UnionType) -> Self {
         Self::Union {
-            name: union.name,
+            name: union.name.clone(),
             description: union.description,
             possible_types: union.possible_types.into_iter().collect(),
             visible: None,
-            rust_typename: String::new(),
+            rust_typename: union.name,
             discriminators: None,
         }
     }
