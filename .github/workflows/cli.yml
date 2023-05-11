@@ -41,6 +41,7 @@ jobs:
             build:
               - 'cli/**/*'
               - '.github/workflows/cli.yml'
+              - '.github/actions/**/*'
 
   prettier:
     needs: [detect-change-type]
