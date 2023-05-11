@@ -14,6 +14,8 @@ pub struct OpenApiDirective {
     #[serde(default)]
     headers: Vec<Header>,
     #[serde(default)]
+    introspection_headers: Vec<Header>,
+    #[serde(default)]
     pub transforms: OpenApiTransforms,
 }
 
@@ -35,6 +37,13 @@ pub enum OpenApiQueryNamingStrategy {
 impl OpenApiDirective {
     pub fn headers(&self) -> Vec<(String, String)> {
         self.headers
+            .iter()
+            .map(|header| (header.name.clone(), header.value.clone()))
+            .collect()
+    }
+
+    pub fn introspection_headers(&self) -> Vec<(String, String)> {
+        self.introspection_headers
             .iter()
             .map(|header| (header.name.clone(), header.value.clone()))
             .collect()
@@ -160,6 +169,7 @@ mod tests {
                         value: "Bearer i_am_a_key",
                     },
                 ],
+                introspection_headers: [],
                 transforms: OpenApiTransforms {
                     query_naming: SchemaName,
                 },
