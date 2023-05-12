@@ -35,6 +35,8 @@ use http::header::USER_AGENT;
 use inflector::Inflector;
 use url::Url;
 
+use crate::ServerError;
+
 use self::serializer::Serializer;
 
 use super::ResolvedValue;
@@ -80,6 +82,7 @@ impl Resolver {
         headers: &[(String, String)],
         fragment_definitions: HashMap<&Name, &FragmentDefinition>,
         selection_set: impl Iterator<Item = &Selection>,
+        mut error_handler: impl FnMut(ServerError),
     ) -> Result<ResolvedValue, Error> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
@@ -113,15 +116,30 @@ impl Resolver {
             .await?
             .json::<serde_json::Value>()
             .await?
-            .as_object_mut()
-            .ok_or(Error::MalformedUpstreamResponse)?
+            .take();
+
+        // Report any upstream GraphQL errors.
+        if let Some(errors) = result.get_mut("errors") {
+            let errors: Vec<ServerError> = match serde_json::from_value(errors.take()) {
+                Ok(errors) => errors,
+                Err(_) => return Err(Error::MalformedUpstreamResponse),
+            };
+
+            for error in errors {
+                error_handler(error);
+            }
+
+            return Ok(ResolvedValue::null());
+        }
+
+        let mut data = result
             .get_mut("data")
             .ok_or(Error::MalformedUpstreamResponse)?
             .take();
 
-        prefix_result_typename(&mut result, &prefix);
+        prefix_result_typename(&mut data, &prefix);
 
-        Ok(ResolvedValue::new(Arc::new(result)))
+        Ok(ResolvedValue::new(Arc::new(data)))
     }
 }
 
@@ -255,18 +273,27 @@ mod tests {
             .iter()
             .map(|v| &v.node);
 
+        let mut errors: Vec<ServerError> = vec![];
+        let error_handler = |error| errors.push(error);
+
         let value = resolver
             .resolve(
                 OperationType::Query,
                 &headers,
                 fragment_definitions,
                 selection_set,
+                error_handler,
             )
             .await?
             .data_resolved;
 
         let data = Arc::try_unwrap(value).unwrap();
+        let response = if errors.is_empty() {
+            json!({ "data": data })
+        } else {
+            json!({ "data": data, "errors": errors })
+        };
 
-        Ok(json!({ "data": data }))
+        Ok(response)
     }
 }

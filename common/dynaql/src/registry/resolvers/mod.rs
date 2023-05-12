@@ -200,6 +200,10 @@ impl ResolvedValue {
         }
     }
 
+    pub fn null() -> Self {
+        Self::new(Arc::new(serde_json::Value::Null))
+    }
+
     pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
         self.pagination = Some(pagination);
         self
@@ -362,8 +366,16 @@ impl ResolverType {
 
                 let operation = ctx.query_env.operation.node.ty;
 
+                let error_handler = |error| ctx.add_error(error);
+
                 resolver
-                    .resolve(operation, headers, fragment_definitions, selection_set)
+                    .resolve(
+                        operation,
+                        headers,
+                        fragment_definitions,
+                        selection_set,
+                        error_handler,
+                    )
                     .await
                     .map_err(Into::into)
             }
