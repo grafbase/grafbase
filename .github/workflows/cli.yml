@@ -20,6 +20,7 @@ env:
   ASSETS_VERSION: 'release/2ad2c2a-2023-05-12'
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
+  CARGO_INCREMENTAL: 0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
