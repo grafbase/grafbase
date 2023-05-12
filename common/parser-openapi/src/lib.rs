@@ -18,13 +18,7 @@ pub fn parse_spec(
     let parsed = parsing::parse(data, format)?;
 
     if metadata.url.is_none() {
-        metadata.url = Some(
-            parsed
-                .url
-                .clone()
-                .ok_or_else(|| vec![Error::MissingUrl])?
-                .map_err(|error| vec![error])?,
-        );
+        metadata.url = Some(parsed.url.clone().map_err(|error| vec![error])?);
     }
 
     let url = metadata.url.as_mut().unwrap();

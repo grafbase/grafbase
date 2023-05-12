@@ -15,23 +15,29 @@ use crate::{
 
 use self::version::OpenApiVersion;
 
-pub fn parse(data: String, format: Format) -> Result<Context, Vec<Error>> {
+pub fn parse(data: String, format: Format) -> Result<ParseOutput, Vec<Error>> {
     let version = from_str::<OpenApiVersion>(&data, format)?;
 
     match version {
         OpenApiVersion::V2 => {
             let spec = from_str(&data, format)?;
             drop(data);
-            v2::parse(spec)
+            v2::parse(spec).try_into()
         }
         OpenApiVersion::V3 => {
             let spec = from_str(&data, format)?;
             drop(data);
-            v3::parse(spec)
+            v3::parse(spec).try_into()
         }
         OpenApiVersion::V3_1 => Err(vec![Error::UnsupportedVersion("3.1".into())]),
         OpenApiVersion::Unknown(version) => Err(vec![Error::UnsupportedVersion(version)]),
     }
+}
+
+pub struct ParseOutput {
+    pub graph: Graph<Node, Edge>,
+    pub operation_indices: Vec<NodeIndex>,
+    pub url: Result<Url, Error>,
 }
 
 #[derive(Default)]
@@ -40,7 +46,31 @@ pub struct Context {
     schema_index: HashMap<Ref, NodeIndex>,
     pub operation_indices: Vec<NodeIndex>,
     errors: Vec<Error>,
-    pub url: Option<Result<Url, Error>>,
+    url: Option<Result<Url, Error>>,
+}
+
+impl TryFrom<Context> for ParseOutput {
+    type Error = Vec<Error>;
+
+    fn try_from(value: Context) -> Result<Self, Self::Error> {
+        let Context {
+            graph,
+            operation_indices,
+            errors,
+            url,
+            ..
+        } = value;
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        Ok(ParseOutput {
+            graph,
+            operation_indices,
+            url: url.expect("parsing should always fill in url"),
+        })
+    }
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]

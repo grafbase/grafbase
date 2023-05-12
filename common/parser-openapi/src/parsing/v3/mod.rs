@@ -21,7 +21,7 @@ use super::grouping;
 pub mod components;
 pub mod operations;
 
-pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
+pub fn parse(spec: openapiv3::OpenAPI) -> Context {
     let mut ctx = Context {
         url: Some(url_from_spec(&spec)),
         ..Context::default()
@@ -37,11 +37,7 @@ pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
 
     grouping::determine_resource_relationships(&mut ctx);
 
-    if ctx.errors.is_empty() {
-        Ok(ctx)
-    } else {
-        Err(ctx.errors)
-    }
+    ctx
 }
 
 fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {

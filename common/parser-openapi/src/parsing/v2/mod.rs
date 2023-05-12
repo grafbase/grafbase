@@ -18,7 +18,7 @@ use crate::{
 
 use super::grouping;
 
-pub fn parse(spec: openapi::Spec) -> Result<Context, Vec<Error>> {
+pub fn parse(spec: openapi::Spec) -> Context {
     let mut ctx = Context {
         url: Some(url_from_spec(&spec)),
         ..Context::default()
@@ -28,11 +28,7 @@ pub fn parse(spec: openapi::Spec) -> Result<Context, Vec<Error>> {
 
     grouping::determine_resource_relationships(&mut ctx);
 
-    if ctx.errors.is_empty() {
-        Ok(ctx)
-    } else {
-        Err(ctx.errors)
-    }
+    ctx
 }
 
 fn extract_operations(ctx: &mut Context, paths: &BTreeMap<String, Operations>) {
