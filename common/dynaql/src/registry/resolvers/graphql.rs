@@ -29,13 +29,16 @@ pub mod serializer;
 
 use std::{
     collections::{BTreeMap, HashMap},
+    pin::Pin,
     sync::Arc,
 };
 
 use dynaql_parser::types::{FragmentDefinition, OperationType, Selection};
 use dynaql_value::{ConstValue, Name, Variables};
+use futures_util::Future;
 use http::header::USER_AGENT;
 use inflector::Inflector;
+use send_wrapper::SendWrapper;
 use url::Url;
 
 use crate::ServerError;
@@ -79,15 +82,15 @@ impl Resolver {
     /// # Errors
     ///
     /// See [`Error`] for more details.
-    pub async fn resolve(
-        &self,
+    pub fn resolve<'a>(
+        &'a self,
         operation: OperationType,
         headers: &[(String, String)],
-        fragment_definitions: HashMap<&Name, &FragmentDefinition>,
-        selection_set: impl Iterator<Item = &Selection>,
-        error_handler: impl FnMut(ServerError),
+        fragment_definitions: HashMap<&'a Name, &'a FragmentDefinition>,
+        selection_set: impl Iterator<Item = &'a Selection> + 'a,
+        error_handler: impl FnMut(ServerError) + 'a,
         variables: Variables,
-    ) -> Result<ResolvedValue, Error> {
+    ) -> Pin<Box<dyn Future<Output = Result<ResolvedValue, Error>> + Send + 'a>> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
             .header(USER_AGENT, "Grafbase"); /* Some APIs (such a GitHub's) require a User-Agent
@@ -100,47 +103,51 @@ impl Resolver {
         let mut query = String::new();
         let prefix = self.api_name.to_pascal_case();
 
-        let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
-        match operation {
-            OperationType::Query => serializer.query(selection_set)?,
-            OperationType::Mutation => serializer.mutation(selection_set)?,
-            OperationType::Subscription => return Err(Error::UnsupportedOperation("subscription")),
-        };
+        Box::pin(SendWrapper::new(async move {
+            let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
+            match operation {
+                OperationType::Query => serializer.query(selection_set)?,
+                OperationType::Mutation => serializer.mutation(selection_set)?,
+                OperationType::Subscription => {
+                    return Err(Error::UnsupportedOperation("subscription"))
+                }
+            };
 
-        let variables = variables
-            .into_iter()
-            .filter(|(name, _)| {
-                serializer
-                    .variable_references()
-                    .any(|reference| reference == name)
-            })
-            .collect();
+            let variables = variables
+                .into_iter()
+                .filter(|(name, _)| {
+                    serializer
+                        .variable_references()
+                        .any(|reference| reference == name)
+                })
+                .collect();
 
-        let mut result = request_builder
-            .json(&Query { query, variables })
-            .send()
-            .await?
-            .json::<serde_json::Value>()
-            .await?
-            .take();
+            let mut value = request_builder
+                .json(&Query { query, variables })
+                .send()
+                .await?
+                .json::<serde_json::Value>()
+                .await?
+                .take();
 
-        // Merge any upstream GraphQL errors.
-        if let Some(errors) = result.get_mut("errors") {
-            serde_json::from_value(errors.take())
-                .map_err(|_| Error::MalformedUpstreamResponse)
-                .map(|errors: Vec<ServerError>| {
-                    errors.into_iter().for_each(error_handler);
-                })?;
-        }
+            // Merge any upstream GraphQL errors.
+            if let Some(errors) = value.get_mut("errors") {
+                serde_json::from_value(errors.take())
+                    .map_err(|_| Error::MalformedUpstreamResponse)
+                    .map(|errors: Vec<ServerError>| {
+                        errors.into_iter().for_each(error_handler);
+                    })?;
+            }
 
-        let mut data = result
-            .get_mut("data")
-            .ok_or(Error::MalformedUpstreamResponse)?
-            .take();
+            let mut data = value
+                .get_mut("data")
+                .ok_or(Error::MalformedUpstreamResponse)?
+                .take();
 
-        prefix_result_typename(&mut data, &prefix);
+            prefix_result_typename(&mut data, &prefix);
 
-        Ok(ResolvedValue::new(Arc::new(data)))
+            Ok(ResolvedValue::new(Arc::new(data)))
+        }))
     }
 }
 
