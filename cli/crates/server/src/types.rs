@@ -2,8 +2,10 @@ use common::types::ResolverMessageLevel;
 use rust_embed::RustEmbed;
 use std::path::PathBuf;
 
-#[derive(RustEmbed)]
-#[folder = "assets/"]
+pub const MY_DATA: &[u8] = include_bytes!("../assets.tar.gz");
+
+// #[derive(RustEmbed)]
+// #[folder = "assets/"]
 pub struct Assets;
 
 #[derive(Clone, Debug)]

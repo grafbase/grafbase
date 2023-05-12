@@ -6,7 +6,7 @@ use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
-use crate::types::{Assets, ServerMessage};
+use crate::types::{Assets, ServerMessage, MY_DATA};
 use crate::{bridge, errors::ServerError};
 use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::{Environment, SchemaLocation};
@@ -323,6 +323,12 @@ fn export_embedded_files() -> Result<(), ServerError> {
         fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
             .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
+        // TODO: write a build.rs to tar & gzip
+        // Update this code to ungzip & untar.
+        // Publish: profit.
+        fs::write("whatever.tar.gz", MY_DATA);
+
+        #[cfg(goaway)]
         let mut write_results = Assets::iter().map(|path| {
             let file = Assets::get(path.as_ref());
 
@@ -337,6 +343,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
             (write_result, full_path)
         });
 
+        #[cfg(goaway)]
         if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
             let error_path_string = path.to_string_lossy().into_owned();
             return Err(ServerError::WriteFile(error_path_string));
