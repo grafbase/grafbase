@@ -119,7 +119,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     fn serialize_field(&mut self, field: &'a Field) -> Result<(), Error> {
         self.indent()?;
 
-        if field.name.as_str() == "__typedef" {
+        if field.name.as_str() == "__typename" {
             self.inject_typename = InjectTypename::Exists;
         }
 
