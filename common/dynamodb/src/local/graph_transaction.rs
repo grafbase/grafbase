@@ -555,6 +555,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
     ) -> ToTransactionFuture<'a> {
         Box::pin(async {
             let InsertUniqueConstraint {
+                ty,
                 target,
                 user_defined_item,
                 current_datetime,
@@ -563,6 +564,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             } = self;
 
             let id = ConstraintID::try_from(pk.clone()).expect("Wrong Constraint ID");
+            let ty_attr = ty.clone().into_attr();
             let now_attr = current_datetime.clone().into_attr();
             let id_attr = id.to_string().into_attr();
 
@@ -570,6 +572,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
 
             document.insert(PK.to_string(), id_attr.clone());
             document.insert(SK.to_string(), id_attr.clone());
+            document.insert(TYPE.to_string(), ty_attr);
             document.insert(CREATED_AT.to_string(), now_attr.clone());
             document.insert(UPDATED_AT.to_string(), now_attr);
             document.insert(INVERTED_INDEX_PK.to_string(), target.clone().into_attr());
@@ -582,7 +585,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             let record = Record {
                 pk,
                 sk,
-                entity_type: None,
+                entity_type: Some(ty),
                 created_at: current_datetime.clone().into(),
                 updated_at: current_datetime.into(),
                 relation_names: Default::default(),
