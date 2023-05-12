@@ -5,6 +5,7 @@ use inflector::Inflector;
 use once_cell::sync::Lazy;
 use openapiv3::{AdditionalProperties, ReferenceOr, Type};
 use regex::Regex;
+use url::Url;
 
 use crate::{
     graph::construction::ParentNode,
@@ -15,12 +16,16 @@ use crate::{
 
 use self::{components::Components, operations::OperationDetails};
 
+use super::grouping;
+
 pub mod components;
-mod grouping;
 pub mod operations;
 
-pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
-    let mut ctx = Context::default();
+pub fn parse(spec: openapiv3::OpenAPI) -> Context {
+    let mut ctx = Context {
+        url: Some(url_from_spec(&spec)),
+        ..Context::default()
+    };
 
     let mut components = Components::default();
     if let Some(spec_components) = &spec.components {
@@ -32,11 +37,7 @@ pub fn parse(spec: openapiv3::OpenAPI) -> Result<Context, Vec<Error>> {
 
     grouping::determine_resource_relationships(&mut ctx);
 
-    if ctx.errors.is_empty() {
-        Ok(ctx)
-    } else {
-        Err(ctx.errors)
-    }
+    ctx
 }
 
 fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
@@ -53,12 +54,12 @@ fn extract_components(ctx: &mut Context, components: &openapiv3::Components) {
             .graph
             .add_node(Node::Schema(Box::new(SchemaDetails::new(name.clone(), schema.clone()))));
 
-        ctx.schema_index.insert(Ref::schema(name), index);
+        ctx.schema_index.insert(Ref::v3_schema(name), index);
     }
 
     // Now we want to extract the spec for each of these schemas into our graph
     for (name, schema) in &components.schemas {
-        extract_types(ctx, schema, ParentNode::Schema(ctx.schema_index[&Ref::schema(name)]));
+        extract_types(ctx, schema, ParentNode::Schema(ctx.schema_index[&Ref::v3_schema(name)]));
     }
 }
 
@@ -167,7 +168,7 @@ fn extract_types(ctx: &mut Context, schema_or_ref: &ReferenceOr<openapiv3::Schem
         ReferenceOr::Reference { reference } => {
             let reference = Ref::absolute(reference);
             let Some(schema) = ctx.schema_index.get(&reference) else {
-                ctx.errors.push(unresolved_reference(reference));
+                ctx.errors.push(reference.to_unresolved_error());
                 return;
             };
 
@@ -332,28 +333,36 @@ fn is_valid_field_name(value: &str) -> bool {
     FieldName::from_openapi_name(value).will_be_valid_graphql()
 }
 
-pub fn unresolved_reference(reference: Ref) -> Error {
-    Error::UnresolvedReference(reference.to_string())
-}
-
 impl Ref {
-    fn absolute(absolute: &str) -> Ref {
-        Ref(absolute.to_string())
-    }
-
-    fn schema(name: &str) -> Ref {
+    fn v3_schema(name: &str) -> Ref {
         Ref(format!("#/components/schemas/{name}"))
     }
 
-    fn response(name: &str) -> Ref {
+    fn v3_response(name: &str) -> Ref {
         Ref(format!("#/components/responses/{name}"))
     }
 
-    fn request_body(name: &str) -> Ref {
+    fn v3_request_body(name: &str) -> Ref {
         Ref(format!("#/components/request_bodies/{name}"))
     }
 
-    fn parameter(name: &str) -> Ref {
+    fn v3_parameter(name: &str) -> Ref {
         Ref(format!("#/components/parameters/{name}"))
     }
+}
+
+fn url_from_spec(spec: &openapiv3::OpenAPI) -> Result<Url, Error> {
+    let url_str = spec
+        .servers
+        .first()
+        .map(|server| server.url.as_ref())
+        .ok_or(Error::MissingUrl)?;
+
+    let url = Url::parse(url_str).map_err(|_| Error::InvalidUrl(url_str.to_string()))?;
+
+    if !url.has_host() {
+        return Err(Error::InvalidUrl(url_str.to_string()));
+    }
+
+    Ok(url)
 }

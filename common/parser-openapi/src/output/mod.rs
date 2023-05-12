@@ -53,7 +53,13 @@ fn operations_to_fields<'a>(
 ) -> impl Iterator<Item = (String, MetaField)> + 'a {
     operations
         .into_iter()
-        .filter_map(|op| op.into_meta_field(graph))
+        .filter_map(|op| {
+            let metafield = op.into_meta_field(graph);
+            if metafield.is_none() {
+                tracing::info!("Couldn't generate a MetaField for {:?}, skipping", op.name(graph));
+            }
+            metafield
+        })
         .map(|meta_field| (meta_field.name.clone(), meta_field))
 }
 
@@ -254,7 +260,13 @@ impl Operation {
             (input_value.name.clone(), input_value)
         }));
 
-        let output_type = self.ty(graph)?;
+        let mut output_type = self.ty(graph)?;
+
+        // HTTP requests can fail so it's best if we make Operation fields
+        // optional regardless of what the API says. This avoids errors
+        // bubbling further up the query heirarchy.
+        output_type.wrapping = output_type.wrapping.unwrap_required();
+
         let type_string = TypeDisplay::from_output_field_type(&output_type, graph)?.to_string();
 
         Some(MetaField {

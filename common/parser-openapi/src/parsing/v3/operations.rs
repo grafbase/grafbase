@@ -6,7 +6,7 @@ use openapiv3::{Encoding, Parameter, ParameterSchemaOrContent, QueryStyle, Refer
 
 use crate::{graph::HttpMethod, parsing::Ref, Error};
 
-use super::{components::Components, unresolved_reference};
+use super::components::Components;
 
 #[non_exhaustive]
 #[derive(Clone)]
@@ -46,7 +46,7 @@ impl OperationDetails {
                     components
                         .request_bodies
                         .get(&reference)
-                        .ok_or_else(|| unresolved_reference(reference))?,
+                        .ok_or_else(|| reference.to_unresolved_error())?,
                 )
             }
             Some(ReferenceOr::Item(request_body)) => Rc::new(RequestBody::from_openapi(request_body)),
@@ -60,7 +60,7 @@ impl OperationDetails {
                     let response_components = components
                         .responses
                         .get(&reference)
-                        .ok_or_else(|| unresolved_reference(reference))?;
+                        .ok_or_else(|| reference.to_unresolved_error())?;
 
                     for response_component in response_components {
                         responses.push(Response {
@@ -138,7 +138,7 @@ fn resolve_parameter<'a>(
             components
                 .parameters
                 .get(&reference)
-                .ok_or_else(|| unresolved_reference(reference))?
+                .ok_or_else(|| reference.to_unresolved_error())?
         }
         ReferenceOr::Item(parameter) => parameter,
     };

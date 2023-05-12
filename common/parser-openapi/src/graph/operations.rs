@@ -233,6 +233,7 @@ fn is_json(content_type: &str) -> bool {
     content_type == "application/json"
 }
 
+#[derive(Debug)]
 pub struct OperationName(String);
 
 impl std::fmt::Display for OperationName {

@@ -9,9 +9,9 @@ use super::{operations::RequestBody, Context};
 /// Re-usable components that can be referenced in an OpenAPI schema.
 #[derive(Default)]
 pub struct Components {
-    pub responses: BTreeMap<Ref, Vec<ResponseComponent>>,
-    pub request_bodies: BTreeMap<Ref, Rc<Vec<RequestBody>>>,
-    pub parameters: BTreeMap<Ref, Parameter>,
+    pub(super) responses: BTreeMap<Ref, Vec<ResponseComponent>>,
+    pub(super) request_bodies: BTreeMap<Ref, Rc<Vec<RequestBody>>>,
+    pub(super) parameters: BTreeMap<Ref, Parameter>,
 }
 
 pub struct ResponseComponent {
@@ -26,7 +26,8 @@ impl Components {
                 ctx.errors.push(Error::TopLevelResponseWasReference(name.clone()));
                 continue;
             };
-            self.responses.insert(Ref::response(name), convert_response(response));
+            self.responses
+                .insert(Ref::v3_response(name), convert_response(response));
         }
 
         for (name, request_body) in &components.request_bodies {
@@ -35,7 +36,7 @@ impl Components {
                 continue;
             };
             self.request_bodies.insert(
-                Ref::request_body(name),
+                Ref::v3_request_body(name),
                 Rc::new(RequestBody::from_openapi(request_body)),
             );
         }
@@ -45,7 +46,7 @@ impl Components {
                 ctx.errors.push(Error::TopLevelParameterWasReference(name.clone()));
                 continue;
             };
-            self.parameters.insert(Ref::parameter(name), parameter.clone());
+            self.parameters.insert(Ref::v3_parameter(name), parameter.clone());
         }
     }
 }

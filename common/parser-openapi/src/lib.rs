@@ -1,6 +1,5 @@
 use dynaql::registry::{resolvers::http::ExpectedStatusCode, Registry};
 use graph::OpenApiGraph;
-use openapiv3::OpenAPI;
 use parser::OpenApiQueryNamingStrategy as QueryNamingStrategy;
 use tracing as _;
 use url::Url;
@@ -16,14 +15,10 @@ pub fn parse_spec(
     mut metadata: ApiMetadata,
     registry: &mut Registry,
 ) -> Result<(), Vec<Error>> {
-    let spec = match format {
-        Format::Json => serde_json::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::JsonParsingError(e)])?,
-        Format::Yaml => serde_yaml::from_str::<OpenAPI>(&data).map_err(|e| vec![Error::YamlParsingError(e)])?,
-    };
-    drop(data);
+    let parsed = parsing::parse(data, format)?;
 
     if metadata.url.is_none() {
-        metadata.url = Some(url_from_spec(&spec).map_err(|error| vec![error])?);
+        metadata.url = Some(parsed.url.clone().map_err(|error| vec![error])?);
     }
 
     let url = metadata.url.as_mut().unwrap();
@@ -31,7 +26,7 @@ pub fn parse_spec(
     // Make sure we have a trailing slash on metadata so that Url::join works correctly.
     ensure_trailing_slash(url).map_err(|_| vec![Error::InvalidUrl(url.to_string())])?;
 
-    let graph = OpenApiGraph::new(parsing::parse(spec)?, metadata.clone());
+    let graph = OpenApiGraph::new(parsed, metadata.clone());
 
     validation::validate(&graph)?;
 
@@ -40,22 +35,6 @@ pub fn parse_spec(
     registry.http_headers.insert(metadata.name, metadata.headers);
 
     Ok(())
-}
-
-fn url_from_spec(spec: &OpenAPI) -> Result<Url, Error> {
-    let url_str = spec
-        .servers
-        .first()
-        .map(|server| server.url.as_ref())
-        .ok_or(Error::MissingUrl)?;
-
-    let url = Url::parse(url_str).map_err(|_| Error::InvalidUrl(url_str.to_string()))?;
-
-    if !url.has_host() {
-        return Err(Error::InvalidUrl(url_str.to_string()));
-    }
-
-    Ok(url)
 }
 
 #[derive(Clone, Debug)]
@@ -76,6 +55,8 @@ impl From<parser::OpenApiDirective> for ApiMetadata {
         }
     }
 }
+
+#[derive(Clone, Copy)]
 pub enum Format {
     Json,
     Yaml,
@@ -114,14 +95,16 @@ fn extract_extension(url: &str) -> Option<String> {
     Some(extension.to_str()?.to_string())
 }
 
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone)]
 pub enum Error {
+    #[error("We don't support version {0} of OpenAPI currently.  Please contact support")]
+    UnsupportedVersion(String),
     #[error("There was no URL in this OpenAPI document.  Please provide the url parameter to `@openapi`")]
     MissingUrl,
     #[error("Could not parse the open api spec: {0}")]
-    JsonParsingError(serde_json::Error),
+    JsonParsingError(String),
     #[error("Could not parse the open api spec: {0}")]
-    YamlParsingError(serde_yaml::Error),
+    YamlParsingError(String),
     #[error("The schema component {0} was a reference, which we don't currently support.")]
     TopLevelSchemaWasReference(String),
     #[error("The path component {0} was a reference, which we don't currently support.")]
@@ -171,6 +154,7 @@ pub enum Error {
 fn is_ok(status: &ExpectedStatusCode) -> bool {
     match status {
         ExpectedStatusCode::Exact(200) => true,
+        ExpectedStatusCode::Exact(other) if (200..300).contains(other) => true,
         ExpectedStatusCode::Range(range) => *range == (200u16..300),
         _ => false,
     }
@@ -236,6 +220,20 @@ mod tests {
             ApiMetadata {
                 query_naming: QueryNamingStrategy::OperationId,
                 ..metadata("openai")
+            }
+        )
+        .unwrap()
+        .export_sdl(false));
+    }
+
+    #[test]
+    fn test_planetscale() {
+        insta::assert_snapshot!(build_registry(
+            "test_data/planetscale.json",
+            Format::Json,
+            ApiMetadata {
+                url: None,
+                ..metadata("planetscale")
             }
         )
         .unwrap()

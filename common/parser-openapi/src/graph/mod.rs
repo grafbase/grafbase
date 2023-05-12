@@ -22,6 +22,8 @@ mod transforms;
 
 pub mod construction;
 
+use crate::parsing::ParseOutput;
+
 pub use self::{
     enums::Enum,
     input_object::{InputField, InputObject},
@@ -42,7 +44,7 @@ pub struct OpenApiGraph {
 }
 
 impl OpenApiGraph {
-    pub fn new(parsed: crate::parsing::Context, metadata: crate::ApiMetadata) -> Self {
+    pub fn new(parsed: ParseOutput, metadata: crate::ApiMetadata) -> Self {
         let mut this = OpenApiGraph {
             graph: parsed.graph,
             operation_indices: parsed.operation_indices,

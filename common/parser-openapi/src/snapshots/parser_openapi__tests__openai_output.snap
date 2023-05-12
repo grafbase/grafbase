@@ -364,24 +364,24 @@ type OpenaiModel {
 	id: String!
 }
 type OpenaiMutation {
-	createCompletion(input: OpenaiCreateCompletionRequestInput!): OpenaiCreateCompletionResponse!
-	createChatCompletion(input: OpenaiCreateChatCompletionRequestInput!): OpenaiCreateChatCompletionResponse!
-	createEdit(input: OpenaiCreateEditRequestInput!): OpenaiCreateEditResponse!
-	createImage(input: OpenaiCreateImageRequestInput!): OpenaiImagesResponse!
-	createImageEdit: OpenaiImagesResponse!
-	createImageVariation: OpenaiImagesResponse!
-	createEmbedding(input: OpenaiCreateEmbeddingRequestInput!): OpenaiCreateEmbeddingResponse!
-	createTranscription: OpenaiCreateTranscriptionResponse!
-	createTranslation: OpenaiCreateTranslationResponse!
-	createSearch(engineId: String!, input: OpenaiCreateSearchRequestInput!): OpenaiCreateSearchResponse!
-	createFile: OpenaiOpenAIFile!
-	deleteFile(fileId: String!): OpenaiDeleteFileResponse!
-	createAnswer(input: OpenaiCreateAnswerRequestInput!): OpenaiCreateAnswerResponse!
-	createClassification(input: OpenaiCreateClassificationRequestInput!): OpenaiCreateClassificationResponse!
-	createFineTune(input: OpenaiCreateFineTuneRequestInput!): OpenaiFineTune!
-	cancelFineTune(fineTuneId: String!): OpenaiFineTune!
-	deleteModel(model: String!): OpenaiDeleteModelResponse!
-	createModeration(input: OpenaiCreateModerationRequestInput!): OpenaiCreateModerationResponse!
+	createCompletion(input: OpenaiCreateCompletionRequestInput!): OpenaiCreateCompletionResponse
+	createChatCompletion(input: OpenaiCreateChatCompletionRequestInput!): OpenaiCreateChatCompletionResponse
+	createEdit(input: OpenaiCreateEditRequestInput!): OpenaiCreateEditResponse
+	createImage(input: OpenaiCreateImageRequestInput!): OpenaiImagesResponse
+	createImageEdit: OpenaiImagesResponse
+	createImageVariation: OpenaiImagesResponse
+	createEmbedding(input: OpenaiCreateEmbeddingRequestInput!): OpenaiCreateEmbeddingResponse
+	createTranscription: OpenaiCreateTranscriptionResponse
+	createTranslation: OpenaiCreateTranslationResponse
+	createSearch(engineId: String!, input: OpenaiCreateSearchRequestInput!): OpenaiCreateSearchResponse
+	createFile: OpenaiOpenAIFile
+	deleteFile(fileId: String!): OpenaiDeleteFileResponse
+	createAnswer(input: OpenaiCreateAnswerRequestInput!): OpenaiCreateAnswerResponse
+	createClassification(input: OpenaiCreateClassificationRequestInput!): OpenaiCreateClassificationResponse
+	createFineTune(input: OpenaiCreateFineTuneRequestInput!): OpenaiFineTune
+	cancelFineTune(fineTuneId: String!): OpenaiFineTune
+	deleteModel(model: String!): OpenaiDeleteModelResponse
+	createModeration(input: OpenaiCreateModerationRequestInput!): OpenaiCreateModerationResponse
 }
 type OpenaiOpenAIFile {
 	statusDetails: JSON
@@ -394,16 +394,16 @@ type OpenaiOpenAIFile {
 	id: String!
 }
 type OpenaiQuery {
-	listEngines: OpenaiListEnginesResponse!
-	retrieveEngine(engineId: String!): OpenaiEngine!
-	listFiles: OpenaiListFilesResponse!
-	retrieveFile(fileId: String!): OpenaiOpenAIFile!
-	downloadFile(fileId: String!): String!
-	listFineTunes: OpenaiListFineTunesResponse!
-	retrieveFineTune(fineTuneId: String!): OpenaiFineTune!
-	listFineTuneEvents(fineTuneId: String!, stream: Boolean = false): OpenaiListFineTuneEventsResponse!
-	listModels: OpenaiListModelsResponse!
-	retrieveModel(model: String!): OpenaiModel!
+	listEngines: OpenaiListEnginesResponse
+	retrieveEngine(engineId: String!): OpenaiEngine
+	listFiles: OpenaiListFilesResponse
+	retrieveFile(fileId: String!): OpenaiOpenAIFile
+	downloadFile(fileId: String!): String
+	listFineTunes: OpenaiListFineTunesResponse
+	retrieveFineTune(fineTuneId: String!): OpenaiFineTune
+	listFineTuneEvents(fineTuneId: String!, stream: Boolean = false): OpenaiListFineTuneEventsResponse
+	listModels: OpenaiListModelsResponse
+	retrieveModel(model: String!): OpenaiModel
 }
 type Query {
 	openai: OpenaiQuery!
