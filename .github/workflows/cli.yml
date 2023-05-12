@@ -92,10 +92,10 @@ jobs:
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
           # See: https://github.com/rust-lang/cargo/issues/4463
-          (cd common && cargo check)
-          (cd server && cargo check)
-          (cd backend && cargo check)
-          (cd cli && cargo check)
+          (cd common && cargo check --release)
+          (cd server && cargo check --release)
+          (cd backend && cargo check --release)
+          (cd cli && cargo check --release)
 
   windows:
     needs: [lint]
