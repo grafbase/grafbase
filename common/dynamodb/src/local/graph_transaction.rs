@@ -585,7 +585,7 @@ impl ExecuteChangesOnDatabase for InsertUniqueConstraint {
             let record = Record {
                 pk,
                 sk,
-                entity_type: Some(ty),
+                entity_type: None,
                 created_at: current_datetime.clone().into(),
                 updated_at: current_datetime.into(),
                 relation_names: Default::default(),
