@@ -222,7 +222,7 @@ mod tests {
 
         let result = run_resolve(&server, query, response).await.unwrap();
 
-        insta::assert_json_snapshot!(result)
+        insta::assert_json_snapshot!(result);
     }
 
     async fn run_resolve(
@@ -240,7 +240,7 @@ mod tests {
             .and(header("Authorization", "Bearer FOOBAR"))
             .respond_with(ResponseTemplate::new(200).set_body_json(response.clone()))
             .expect(1)
-            .mount(&server)
+            .mount(server)
             .await;
 
         let resolver = Resolver {

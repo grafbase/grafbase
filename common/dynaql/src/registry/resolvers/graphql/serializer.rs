@@ -368,7 +368,7 @@ mod tests {
     #[case::many("query { foo\nbar }")]
     fn base_fields(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[rstest]
@@ -376,7 +376,7 @@ mod tests {
     #[case::many("query { foo(a: \"bar\", baz: true) }")]
     fn field_arguments(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[rstest]
@@ -387,7 +387,7 @@ mod tests {
     #[case::many_mixed("query { foo @include(if: true) @deprecated @exclude(if: 42) }")]
     fn field_directives(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[rstest]
@@ -395,7 +395,7 @@ mod tests {
     #[case::many("query { foo { bar baz } qux { quux } }")]
     fn field_selections(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[rstest]
@@ -403,7 +403,7 @@ mod tests {
     #[case::many("query { ... fooBar @deprecated }")]
     fn fragment_spread(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[rstest]
@@ -412,7 +412,7 @@ mod tests {
     #[case::cond_and_directive("query { ... on Foo @deprecated { baz } }")]
     fn inline_fragment(#[case] input: &str) {
         set_snapshot_suffix!("{}", input);
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[test]
@@ -433,7 +433,7 @@ mod tests {
           }
         }"#;
 
-        insta::assert_snapshot!(serialize(input))
+        insta::assert_snapshot!(serialize(input));
     }
 
     #[test]
@@ -490,7 +490,7 @@ mod tests {
             .into_inner()
             .items
             .into_iter()
-            .map(|v| v.into_inner())
+            .map(Positioned::into_inner)
             .collect();
 
         let fragments = document
