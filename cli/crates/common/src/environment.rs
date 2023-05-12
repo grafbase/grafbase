@@ -33,11 +33,13 @@ pub struct GrafbaseSchemaPath {
 
 impl GrafbaseSchemaPath {
     /// The location of the schema file.
+    #[must_use]
     pub fn location(&self) -> &SchemaLocation {
         &self.location
     }
 
     /// True, if we find both `schema.graphql` and `grafbase.config.ts`.
+    #[must_use]
     pub fn has_both_files(&self) -> bool {
         self.has_both_files
     }
