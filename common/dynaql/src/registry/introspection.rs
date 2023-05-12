@@ -2,15 +2,6 @@
 //!
 //! The conversion takes all the known information from the introspection and adds it to the
 //! registry.
-//!
-//! # Panics
-//!
-//! The conversion is infallible (using [`From`] instead of [`TryFrom`]), but is allowed to panic,
-//! if a future update to [`cynic_introspection`] introduces new enum variants to any of the
-//! non-exhaustive enums in the crate. This _should_ not happen, unless the actual [GraphQL
-//! specification] changes.
-//!
-//! [GraphQL specification]: https://spec.graphql.org
 
 use super::{
     Deprecation, MetaDirective, MetaEnumValue, MetaField, MetaInputValue, MetaType, Registry,
