@@ -40,8 +40,8 @@ jobs:
           filters: |
             build:
               - 'cli/**/*'
-              - '.github/**/*'
-              - '!.github/workflows/packages.yml'
+              - '.github/workflows/cli.yml'
+              - '.github/actions/**/*'
 
   prettier:
     needs: [detect-change-type]
