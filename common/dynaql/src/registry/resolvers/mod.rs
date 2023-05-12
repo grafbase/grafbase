@@ -365,8 +365,8 @@ impl ResolverType {
                     .map(|v| &v.node);
 
                 let operation = ctx.query_env.operation.node.ty;
-
                 let error_handler = |error| ctx.add_error(error);
+                let variables = ctx.query_env.variables.clone();
 
                 resolver
                     .resolve(
@@ -375,6 +375,7 @@ impl ResolverType {
                         fragment_definitions,
                         selection_set,
                         error_handler,
+                        variables,
                     )
                     .await
                     .map_err(Into::into)

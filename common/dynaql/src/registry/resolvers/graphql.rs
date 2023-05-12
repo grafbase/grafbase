@@ -27,10 +27,13 @@
 
 pub mod serializer;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 use dynaql_parser::types::{FragmentDefinition, OperationType, Selection};
-use dynaql_value::Name;
+use dynaql_value::{ConstValue, Name, Variables};
 use http::header::USER_AGENT;
 use inflector::Inflector;
 use url::Url;
@@ -66,7 +69,7 @@ pub struct Resolver {
 #[derive(serde::Serialize)]
 struct Query {
     query: String,
-    variables: HashMap<String, String>,
+    variables: BTreeMap<Name, ConstValue>,
 }
 
 impl Resolver {
@@ -83,6 +86,7 @@ impl Resolver {
         fragment_definitions: HashMap<&Name, &FragmentDefinition>,
         selection_set: impl Iterator<Item = &Selection>,
         error_handler: impl FnMut(ServerError),
+        variables: Variables,
     ) -> Result<ResolvedValue, Error> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
@@ -96,22 +100,24 @@ impl Resolver {
         let mut query = String::new();
         let prefix = self.api_name.to_pascal_case();
 
-        {
-            let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
-            match operation {
-                OperationType::Query => serializer.query(selection_set)?,
-                OperationType::Mutation => serializer.mutation(selection_set)?,
-                OperationType::Subscription => {
-                    return Err(Error::UnsupportedOperation("subscription"))
-                }
-            };
-        }
+        let mut serializer = Serializer::new(&prefix, fragment_definitions, &mut query);
+        match operation {
+            OperationType::Query => serializer.query(selection_set)?,
+            OperationType::Mutation => serializer.mutation(selection_set)?,
+            OperationType::Subscription => return Err(Error::UnsupportedOperation("subscription")),
+        };
+
+        let variables = variables
+            .into_iter()
+            .filter(|(name, _)| {
+                serializer
+                    .variable_references()
+                    .any(|reference| reference == name)
+            })
+            .collect();
 
         let mut result = request_builder
-            .json(&Query {
-                query,
-                variables: HashMap::new(),
-            })
+            .json(&Query { query, variables })
             .send()
             .await?
             .json::<serde_json::Value>()
@@ -278,6 +284,7 @@ mod tests {
                 fragment_definitions,
                 selection_set,
                 error_handler,
+                Variables::default(),
             )
             .await?
             .data_resolved;

@@ -40,6 +40,11 @@ pub struct Serializer<'a, 'b, W> {
     /// Internal tracking of whether or not to inject the `__typename` field in the next
     /// `SelectionSet` to be parsed.
     inject_typename: InjectTypename,
+
+    /// A list of serialized variable references.
+    ///
+    /// This allows the caller to pass along the relevant variable values to the upsteam server.
+    variable_references: HashSet<&'a Name>,
 }
 
 #[derive(PartialEq)]
@@ -62,7 +67,16 @@ impl<'a, 'b, W> Serializer<'a, 'b, W> {
             fragment_spreads: HashSet::new(),
             indent: 0,
             inject_typename: InjectTypename::Unknown,
+            variable_references: HashSet::new(),
         }
+    }
+
+    /// Get an iterator over variable references the serializer has serialized.
+    ///
+    /// This list will be empty, until [`Serializer::query()`] or [`Serializer::mutation()`] is
+    /// called.
+    pub fn variable_references(&self) -> impl Iterator<Item = &Name> {
+        self.variable_references.iter().copied()
     }
 }
 
@@ -143,7 +157,7 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     /// <https://graphql.org/learn/queries/#arguments>
     fn serialize_arguments(
         &mut self,
-        arguments: &[(Positioned<Name>, Positioned<Value>)],
+        arguments: &'a [(Positioned<Name>, Positioned<Value>)],
     ) -> Result<(), Error> {
         if arguments.is_empty() {
             return Ok(());
@@ -154,6 +168,12 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
         let mut arguments = arguments.iter().map(|(k, v)| (&k.node, &v.node)).peekable();
 
         while let Some((name, value)) = arguments.next() {
+            // If the argument references a variable, we track it so that the caller knows which
+            // variable values are needed to execute the document.
+            if let Value::Variable(name) = value {
+                self.variable_references.insert(name);
+            }
+
             self.write_str(name)?;
             self.write_str(": ")?;
             self.write_str(value.to_string())?;
