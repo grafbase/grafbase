@@ -47,7 +47,7 @@ duct = "0.13"
 insta = { version = "1.28", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.7", default-features = false, features = [
-  "clock",
+  "clock", "rsa"
 ] }
 rand = "0.8"
 reqwest = { version = "0.11", features = [
@@ -55,10 +55,12 @@ reqwest = { version = "0.11", features = [
   "json",
   "blocking",
 ], default-features = false }
+rsa = "0.8"
 serde = { version = "1", features = ["derive"] }
 sysinfo = "0.28"
 tempfile = "3"
 tokio = { version = "1", features = ["full"] }
+url = "2"
 regex = "1"
 rstest = "0.17"
 rusoto_core = "0.48"
