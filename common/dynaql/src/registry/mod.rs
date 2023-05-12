@@ -1,6 +1,7 @@
 mod cache_control;
 pub mod enums;
 mod export_sdl;
+pub mod introspection;
 pub mod plan;
 pub mod relations;
 pub mod resolver_chain;

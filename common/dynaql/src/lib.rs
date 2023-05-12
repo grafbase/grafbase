@@ -70,7 +70,6 @@ pub mod validators;
 
 pub mod graph;
 
-#[doc(hidden)]
 pub mod registry;
 
 #[doc(hidden)]
