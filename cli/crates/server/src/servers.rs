@@ -404,11 +404,7 @@ async fn run_schema_parser(
     let output = {
         let schema_path = match environment.project_grafbase_schema_path {
             GrafbaseSchemaPath::TsConfig(ref ts_config_path) => {
-                trace!(
-                    "Converting a TypeScript config file in {}, converting to GraphQL SDL.",
-                    ts_config_path.display()
-                );
-
+                trace!("found a typescript config file in {}", ts_config_path.display());
                 Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
             }
             GrafbaseSchemaPath::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
@@ -492,7 +488,7 @@ async fn run_schema_parser(
 /// file to the filesystem, returning a path to the generated file.
 async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
     let environment = Environment::get();
-    let generated_schemas_dir = environment.user_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
+    let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
     let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
 
     if !generated_schemas_dir.exists() {
