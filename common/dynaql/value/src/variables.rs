@@ -59,6 +59,15 @@ impl Variables {
     }
 }
 
+impl IntoIterator for Variables {
+    type Item = (Name, ConstValue);
+    type IntoIter = <BTreeMap<Name, ConstValue> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
 impl From<Variables> for ConstValue {
     fn from(variables: Variables) -> Self {
         variables.into_value()

@@ -40,6 +40,11 @@ pub struct Serializer<'a, 'b, W> {
     /// Internal tracking of whether or not to inject the `__typename` field in the next
     /// `SelectionSet` to be parsed.
     inject_typename: InjectTypename,
+
+    /// A list of serialized variable references.
+    ///
+    /// This allows the caller to pass along the relevant variable values to the upsteam server.
+    variable_references: HashSet<&'b Name>,
 }
 
 #[derive(PartialEq)]
@@ -62,7 +67,16 @@ impl<'a, 'b, W> Serializer<'a, 'b, W> {
             fragment_spreads: HashSet::new(),
             indent: 0,
             inject_typename: InjectTypename::Unknown,
+            variable_references: HashSet::new(),
         }
+    }
+
+    /// Get an iterator over variable references the serializer has serialized.
+    ///
+    /// This list will be empty, until [`Serializer::query()`] or [`Serializer::mutation()`] is
+    /// called.
+    pub fn variable_references(&self) -> impl Iterator<Item = &Name> {
+        self.variable_references.iter().copied()
     }
 }
 
