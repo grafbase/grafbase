@@ -5,7 +5,7 @@
 /// ```rust
 /// use dynaql::http::*;
 ///
-/// pathfinder_source(GraphQLPlaygroundConfig::new("http://localhost:8000"));
+/// pathfinder_source(PathfinderConfig::new("http://localhost:8000"));
 /// ```
 pub fn pathfinder_source(config: PathfinderConfig) -> String {
     include_str!("pathfinder.html")
