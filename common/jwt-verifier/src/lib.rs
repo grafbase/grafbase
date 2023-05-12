@@ -307,7 +307,7 @@ impl<'a> Client<'a> {
             // SECURITY: To prevent cache poisining, we not only use the kid but also the issuer
             // url. This two issuer can use the same kid without interferring with each other
             cache
-                .put(&format!("{issuer}/{}", jwk.id), jwk)
+                .put(&format!("{issuer}|{}", jwk.id), jwk)
                 .expect("cannot fail")
                 .expiration_ttl(JWKS_CACHE_TTL)
                 .execute()
