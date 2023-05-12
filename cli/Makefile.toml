@@ -47,6 +47,8 @@ sd "@grafbase/cli-aarch64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-aa
 sd "@grafbase/cli-x86_64-apple-darwin\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-apple-darwin\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-pc-windows-msvc\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-pc-windows-msvc\": \"^$VERSION\""  cli/package.json
 sd "@grafbase/cli-x86_64-unknown-linux-musl\": \"\^\d+.\d+.\d+.*\"" "@grafbase/cli-x86_64-unknown-linux-musl\": \"^$VERSION\""  cli/package.json
+cd ../
+touch "changelog/$VERSION.md"
 '''
 
 [tasks.release]
@@ -97,6 +99,7 @@ args = ["run", "--release", "--", "${@}"]
 description = "Profiles the dev command"
 mac_alias = "mac-profile-dev"
 
+# XCode must be installed for this to work
 [tasks.mac-profile-dev]
 description = "Profiles the dev command (mac only)"
 condition = { platforms = ["mac"] }

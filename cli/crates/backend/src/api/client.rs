@@ -1,14 +1,43 @@
+use super::consts::GRAFBASE_ACCESS_TOKEN_ENV_VAR;
 use super::types::Credentials;
 use super::{consts::CREDENTIALS_FILE, errors::ApiError};
 use crate::consts::USER_AGENT;
 use axum::http::{HeaderMap, HeaderValue};
 use common::environment::get_user_dot_grafbase_path;
 use reqwest::{header, Client};
+use std::env;
 use tokio::fs::read_to_string;
 
 /// # Errors
+///
+/// See [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
 pub async fn create_client() -> Result<reqwest::Client, ApiError> {
+    let token = get_access_token().await?;
+    let mut headers = HeaderMap::new();
+    let mut bearer_token =
+        HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptAccessToken)?;
+    bearer_token.set_sensitive(true);
+    headers.insert(header::AUTHORIZATION, bearer_token);
+    let mut user_agent = HeaderValue::from_str(USER_AGENT).expect("must be visible ascii");
+    user_agent.set_sensitive(true);
+    headers.insert(header::USER_AGENT, user_agent);
+
+    Ok(Client::builder()
+        .default_headers(headers)
+        .build()
+        .expect("TLS is supported in all targets"))
+}
+
+async fn get_access_token() -> Result<String, ApiError> {
+    match get_access_token_from_file().await {
+        Ok(token) => Ok(token),
+        // attempt to also check GRAFBASE_ACCESS_TOKEN_ENV_VAR, returning the original error if it doesn't exist
+        Err(error) => env::var(GRAFBASE_ACCESS_TOKEN_ENV_VAR).map_err(|_| error),
+    }
+}
+
+async fn get_access_token_from_file() -> Result<String, ApiError> {
     // needed to bypass the project fallback behavior of Environment's dot grafbase folder
     // TODO consider removing the fallback
     let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::FindUserDotGrafbaseFolder)?;
@@ -34,19 +63,5 @@ pub async fn create_client() -> Result<reqwest::Client, ApiError> {
     let credentials: Credentials<'_> =
         serde_json::from_str(&credential_file).map_err(|_| ApiError::CorruptCredentialsFile)?;
 
-    let token = credentials.access_token;
-
-    let mut headers = HeaderMap::new();
-    let mut bearer_token =
-        HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| ApiError::CorruptCredentialsFile)?;
-    bearer_token.set_sensitive(true);
-    headers.insert(header::AUTHORIZATION, bearer_token);
-    let mut user_agent = HeaderValue::from_str(USER_AGENT).expect("must be visible ascii");
-    user_agent.set_sensitive(true);
-    headers.insert(header::USER_AGENT, user_agent);
-
-    Ok(Client::builder()
-        .default_headers(headers)
-        .build()
-        .expect("TLS is supported in all targets"))
+    Ok(credentials.access_token.to_owned())
 }
