@@ -99,6 +99,7 @@ args = ["run", "--release", "--", "${@}"]
 description = "Profiles the dev command"
 mac_alias = "mac-profile-dev"
 
+# XCode must be installed for this to work
 [tasks.mac-profile-dev]
 description = "Profiles the dev command (mac only)"
 condition = { platforms = ["mac"] }
