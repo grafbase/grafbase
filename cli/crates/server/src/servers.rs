@@ -9,7 +9,7 @@ use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
 use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
-use common::environment::{Environment, GrafbaseSchemaPath};
+use common::environment::{Environment, SchemaLocation};
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
@@ -402,12 +402,11 @@ async fn run_schema_parser(
     );
 
     let output = {
-        let schema_path = match environment.project_grafbase_schema_path {
-            GrafbaseSchemaPath::TsConfig(ref ts_config_path) => {
-                trace!("found a typescript config file in {}", ts_config_path.display());
+        let schema_path = match environment.project_grafbase_schema_path.location() {
+            SchemaLocation::TsConfig(ref ts_config_path) => {
                 Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
             }
-            GrafbaseSchemaPath::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
+            SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
         };
 
         let mut node_command = Command::new("node")
@@ -488,6 +487,11 @@ async fn run_schema_parser(
 /// file to the filesystem, returning a path to the generated file.
 async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
     let environment = Environment::get();
+
+    if environment.project_grafbase_schema_path.has_both_files() {
+        warn!("grafbase.config.ts takes precedence over schema.graphql - please choose one and delete the other to avoid conflicts");
+    }
+
     let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
     let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
 
@@ -513,7 +517,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
 
     let node_command = Command::new("node")
         .args(args)
-        .current_dir(&environment.project_dot_grafbase_path)
+        .current_dir(&environment.user_dot_grafbase_path)
         .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())

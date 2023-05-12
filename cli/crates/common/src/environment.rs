@@ -13,9 +13,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-/// Points to the location of the Grafabase schema file.
 #[derive(Debug)]
-pub enum GrafbaseSchemaPath {
+pub enum SchemaLocation {
     /// The path of `$PROJECT/grafbase/grafbase.config.ts`,
     /// if exits.
     TsConfig(PathBuf),
@@ -25,11 +24,42 @@ pub enum GrafbaseSchemaPath {
     Graphql(PathBuf),
 }
 
-impl GrafbaseSchemaPath {
-    fn parent(&self) -> Option<&Path> {
-        use GrafbaseSchemaPath::{Graphql, TsConfig};
+/// Points to the location of the Grafabase schema file.
+#[derive(Debug)]
+pub struct GrafbaseSchemaPath {
+    location: SchemaLocation,
+    has_both_files: bool,
+}
 
-        match self {
+impl GrafbaseSchemaPath {
+    /// The location of the schema file.
+    pub fn location(&self) -> &SchemaLocation {
+        &self.location
+    }
+
+    /// True, if we find both `schema.graphql` and `grafbase.config.ts`.
+    pub fn has_both_files(&self) -> bool {
+        self.has_both_files
+    }
+
+    fn ts_config(path: PathBuf) -> Self {
+        Self {
+            location: SchemaLocation::TsConfig(path),
+            has_both_files: false,
+        }
+    }
+
+    fn graphql(path: PathBuf) -> Self {
+        Self {
+            location: SchemaLocation::Graphql(path),
+            has_both_files: false,
+        }
+    }
+
+    fn parent(&self) -> Option<&Path> {
+        use SchemaLocation::{Graphql, TsConfig};
+
+        match self.location() {
             TsConfig(path) | Graphql(path) => path.parent(),
         }
     }
@@ -89,13 +119,16 @@ impl Environment {
             .parent()
             .expect("the schema directory must have a parent by definiton")
             .to_path_buf();
+
         let project_path = project_grafbase_path
             .parent()
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
-        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
+
         let user_dot_grafbase_path =
             get_user_dot_grafbase_path().unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
+
+        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
@@ -142,11 +175,16 @@ impl Environment {
     ///
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     fn get_project_grafbase_path() -> Result<Option<GrafbaseSchemaPath>, CommonError> {
-        if let Some(path) = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)? {
-            Ok(Some(GrafbaseSchemaPath::TsConfig(path)))
+        let ts_config = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)?;
+        let gql = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
+
+        if let Some(path) = ts_config {
+            let mut path = GrafbaseSchemaPath::ts_config(path);
+            path.has_both_files = gql.is_some();
+
+            Ok(Some(path))
         } else {
-            let path = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
-            Ok(path.map(GrafbaseSchemaPath::Graphql))
+            Ok(gql.map(GrafbaseSchemaPath::graphql))
         }
     }
 }
