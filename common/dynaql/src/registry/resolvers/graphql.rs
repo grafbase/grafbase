@@ -82,7 +82,7 @@ impl Resolver {
         headers: &[(String, String)],
         fragment_definitions: HashMap<&Name, &FragmentDefinition>,
         selection_set: impl Iterator<Item = &Selection>,
-        mut error_handler: impl FnMut(ServerError),
+        error_handler: impl FnMut(ServerError),
     ) -> Result<ResolvedValue, Error> {
         let mut request_builder = reqwest::Client::new()
             .post(self.url.clone())
@@ -118,18 +118,13 @@ impl Resolver {
             .await?
             .take();
 
-        // Report any upstream GraphQL errors.
+        // Merge any upstream GraphQL errors.
         if let Some(errors) = result.get_mut("errors") {
-            let errors: Vec<ServerError> = match serde_json::from_value(errors.take()) {
-                Ok(errors) => errors,
-                Err(_) => return Err(Error::MalformedUpstreamResponse),
-            };
-
-            for error in errors {
-                error_handler(error);
-            }
-
-            return Ok(ResolvedValue::null());
+            serde_json::from_value(errors.take())
+                .map_err(|_| Error::MalformedUpstreamResponse)
+                .map(|errors: Vec<ServerError>| {
+                    errors.into_iter().for_each(error_handler);
+                })?;
         }
 
         let mut data = result
