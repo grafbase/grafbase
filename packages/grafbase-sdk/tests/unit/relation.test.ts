@@ -1,7 +1,9 @@
 import { g, config } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Relations generator', () => {
+  beforeEach(() => g.clear())
+
   it('generates 1:1 required relations', () => {
     const user = g.model('User', {
       profile: g.relation(() => profile)
@@ -11,11 +13,7 @@ describe('Relations generator', () => {
       user: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, profile]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         profile: Profile!
       }
@@ -35,11 +33,7 @@ describe('Relations generator', () => {
       user: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, profile]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         profile: Profile
       }
@@ -59,11 +53,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, post]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]!
       }
@@ -83,11 +73,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, post]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post]!
       }
@@ -107,11 +93,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, post]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]
       }
@@ -131,11 +113,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    const cfg = config().schema({
-      models: [user, post]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post]
       }
@@ -155,11 +133,7 @@ describe('Relations generator', () => {
       author: g.relation(user).list()
     })
 
-    const cfg = config().schema({
-      models: [user, post]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]!
       }
@@ -176,11 +150,7 @@ describe('Relations generator', () => {
       parent: g.relation(() => human).optional()
     })
 
-    const cfg = config().schema({
-      models: [human]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type Human @model {
         children: [Human!]!
         parent: Human
@@ -193,16 +163,12 @@ describe('Relations generator', () => {
       line1: g.string()
     })
 
-    const order = g.model('Order', {
+    g.model('Order', {
       billingAddress: g.relation(address).name('billing'),
       shippingAddress: g.relation(address).name('shipping')
     })
 
-    const cfg = config().schema({
-      models: [address, order]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type Address @model {
         line1: String!
       }

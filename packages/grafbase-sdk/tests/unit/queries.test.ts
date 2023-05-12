@@ -1,14 +1,16 @@
 import { config, g } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Query generator', () => {
+  beforeEach(() => g.clear())
+
   it('generates a resolver with required input and output', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string() },
-        returns: g.string()
+        returns: g.string(),
+        resolver: 'hello'
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -21,9 +23,9 @@ describe('Query generator', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string().optional() },
-        returns: g.string()
+        returns: g.string(),
+        resolver: 'hello'
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -36,9 +38,9 @@ describe('Query generator', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string().optional() },
-        returns: g.string().optional()
+        returns: g.string().optional(),
+        resolver: 'hello',
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -51,9 +53,9 @@ describe('Query generator', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string().list() },
-        returns: g.string()
+        returns: g.string(),
+        resolver: 'hello'
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -66,9 +68,9 @@ describe('Query generator', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string() },
-        returns: g.string().list()
+        returns: g.string().list(),
+        resolver: 'hello'
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -81,9 +83,9 @@ describe('Query generator', () => {
     const greetQuery = g
       .query('greet', {
         args: { name: g.string() },
-        returns: g.string().list()
+        returns: g.string().list(),
+        resolver: 'hello'
       })
-      .resolver('hello')
 
     expect(greetQuery.toString()).toMatchInlineSnapshot(`
       "extend type Query {
@@ -96,16 +98,14 @@ describe('Query generator', () => {
     const input = g.type('CheckoutSessionInput', { name: g.string() })
     const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
 
-    const checkout = g
-      .mutation('checkout', {
-        args: { input: g.ref(input) },
-        returns: g.ref(output)
-      })
-      .resolver('checkout')
+    g.mutation('checkout', {
+      args: { input: g.ref(input) },
+      returns: g.ref(output),
+      resolver: 'checkout'
+    })
 
-    const cfg = config().schema({
-      types: [input, output],
-      queries: [checkout]
+    const cfg = config({
+      schema: g
     })
 
     expect(cfg.toString()).toMatchInlineSnapshot(`
@@ -126,23 +126,20 @@ describe('Query generator', () => {
   it('generates a query as part of the full SDL', () => {
     const enm = g.enumType('Foo', ['Bar', 'Baz'])
 
-    const greetQuery = g
-      .query('greet', {
-        args: { name: g.string() },
-        returns: g.string().list()
-      })
-      .resolver('hello')
+    g.query('greet', {
+      args: { name: g.string() },
+      returns: g.string().list(),
+      resolver: 'hello'
+    })
 
-    const sweepQuery = g
-      .query('greet', {
-        args: { game: g.int().optional() },
-        returns: g.enum(enm).list()
-      })
-      .resolver('hello')
+    g.query('greet', {
+      args: { game: g.int().optional() },
+      returns: g.enum(enm).list(),
+      resolver: 'hello'
+    })
 
-    const cfg = config().schema({
-      queries: [greetQuery, sweepQuery],
-      enums: [enm]
+    const cfg = config({
+      schema: g
     })
 
     expect(cfg.toString()).toMatchInlineSnapshot(`

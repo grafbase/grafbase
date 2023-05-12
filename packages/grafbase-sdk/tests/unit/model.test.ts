@@ -1,7 +1,9 @@
 import { config, g } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Model generator', () => {
+  beforeEach(() => g.clear())
+
   it('generates required String field', () => {
     const model = g.model('User', {
       name: g.string()
@@ -387,17 +389,12 @@ describe('Model generator', () => {
       street: g.string().optional()
     })
 
-    const user = g.model('User', {
+    g.model('User', {
       name: g.string(),
       address: g.ref(address)
     })
 
-    const cfg = config().schema({
-      types: [address],
-      models: [user]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -426,17 +423,12 @@ describe('Model generator', () => {
       street: g.string().optional()
     })
 
-    const user = g.model('User', {
+    g.model('User', {
       name: g.string(),
       address: g.ref(address).optional()
     })
 
-    const cfg = config().schema({
-      types: [address],
-      models: [user]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -453,17 +445,12 @@ describe('Model generator', () => {
       street: g.string().optional()
     })
 
-    const user = g.model('User', {
+    g.model('User', {
       name: g.string(),
       addresses: g.ref(address).list()
     })
 
-    const cfg = config().schema({
-      types: [address],
-      models: [user]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }

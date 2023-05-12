@@ -1,7 +1,11 @@
 import { config, g } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Enum generator', () => {
+  beforeEach(() => {
+    g.clear()
+  })
+
   it('generates an enum from an array of strings', () => {
     const e = g.enumType('Fruits', ['Apples', 'Oranges'])
 
@@ -32,16 +36,11 @@ describe('Enum generator', () => {
   it('generates an enum field', () => {
     const e = g.enumType('Fruits', ['Apples', 'Oranges'])
 
-    const m = g.model('Basket', {
+    g.model('Basket', {
       fruitType: g.enum(e)
     })
 
-    const cfg = config().schema({
-      models: [m],
-      enums: [e]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "enum Fruits {
         Apples,
         Oranges

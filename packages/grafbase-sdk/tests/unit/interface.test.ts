@@ -1,7 +1,9 @@
 import { config, g } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Interface generator', () => {
+  beforeEach(() => g.clear())
+
   it('generates a simple interface', () => {
     const i = g.interface('Produce', {
       name: g.string(),
@@ -28,19 +30,12 @@ describe('Interface generator', () => {
       nutrients: g.string().optional().list().optional()
     })
 
-    const fruit = g
-      .type('Fruit', {
-        isSeedless: g.boolean().optional(),
-        ripenessIndicators: g.string().optional().list().optional()
-      })
-      .implements(produce)
+    g.type('Fruit', {
+      isSeedless: g.boolean().optional(),
+      ripenessIndicators: g.string().optional().list().optional()
+    }).implements(produce)
 
-    const cfg = config().schema({
-      types: [fruit],
-      interfaces: [produce]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "interface Produce {
         name: String!
         quantity: Int!

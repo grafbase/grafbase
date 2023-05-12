@@ -1,38 +1,17 @@
-import { Enum } from './enum';
-import { Interface } from './interface';
-import { Model } from './model'
-import { Query } from './query';
-import { Type } from './type';
-import { Union } from './union';
+import { GrafbaseSchema } from './grafbase_schema';
 
-export interface Schema {
-  enums?: Enum[]
-  types?: Type[]
-  unions?: Union[]
-  models?: Model[]
-  interfaces?: Interface[]
-  queries?: Query[]
+export interface ConfigInput {
+  schema: GrafbaseSchema
 }
 
 export class Config {
-  graphqlSchema?: Schema;
+  schema: GrafbaseSchema
 
-  public schema(schema: Schema): Config {
-    this.graphqlSchema = schema
-
-    return this
+  constructor(input: ConfigInput) {
+    this.schema = input.schema
   }
 
   public toString(): string {
-    const queries = this.graphqlSchema?.queries?.map(String).join("\n\n") ?? ""
-    const interfaces = this.graphqlSchema?.interfaces?.map(String).join("\n\n") ?? ""
-    const types = this.graphqlSchema?.types?.map(String).join("\n\n") ?? ""
-    const unions = this.graphqlSchema?.unions?.map(String).join("\n\n") ?? ""
-    const enums = this.graphqlSchema?.enums?.map(String).join("\n\n") ?? ""
-    const models = this.graphqlSchema?.models?.map(String).join("\n\n") ?? ""
-
-    const renderOrder = [interfaces, enums, types, queries, unions, models]
-
-    return renderOrder.filter(Boolean).flat().map(String).join("\n\n")
+    return this.schema.toString()
   }
 }

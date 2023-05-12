@@ -7,7 +7,8 @@ export type OutputType = GScalarDef | GListDef | GReferenceDef
 
 export interface QueryInput {
   args: Record<string, InputType>,
-  returns: OutputType
+  returns: OutputType,
+  resolver: string
 }
 
 export class QueryArgument {
@@ -29,30 +30,6 @@ export enum QueryType {
   Mutation = "Mutation",
 }
 
-export class PartialQuery {
-  name: string
-  arguments: QueryArgument[]
-  returns: OutputType
-  type: QueryType
-
-  constructor(name: string, type: QueryType, returns: OutputType) {
-    this.name = name
-    this.arguments = []
-    this.returns = returns
-    this.type = type
-  }
-
-  public argument(name: string, inputType: InputType): PartialQuery {
-    this.arguments.push(new QueryArgument(name, inputType))
-
-    return this
-  }
-
-  public resolver(resolverName: string): Query {
-    return new Query(this.name, this.arguments, this.returns, resolverName, this.type)
-  }
-}
-
 export class Query {
   name: string
   arguments: QueryArgument[]
@@ -62,18 +39,23 @@ export class Query {
 
   constructor(
     name: string,
-    args: QueryArgument[],
+    type: QueryType,
     returnType: OutputType,
     resolverName: string,
-    type: QueryType
   ) {
     this.name = name
-    this.arguments = args
+    this.arguments = []
     this.returns = returnType
     this.resolver = resolverName
     this.type = type
   }
 
+  public pushArgument(name: string, type: InputType): Query {
+    this.arguments.push(new QueryArgument(name, type))
+
+    return this
+  }
+  
   public toString(): string {
     let header = `extend type ${this.type} {`
     let args = this.arguments.map(String).join(", ")

@@ -1,7 +1,11 @@
 import { g, config } from '../../src/index'
-import { describe, expect, it } from '@jest/globals'
+import { describe, expect, it, beforeEach } from '@jest/globals'
 
 describe('Type generator', () => {
+  beforeEach(() => {
+    g.clear()  
+  })
+
   it('generates one with a single field', () => {
     const t = g.type('User', {
       name: g.string()
@@ -38,14 +42,9 @@ describe('Type generator', () => {
       street: g.string().optional()
     })
 
-    const union = g.union('UserOrAddress', { user, address })
+    g.union('UserOrAddress', { user, address })
 
-    const cfg = config().schema({
-      types: [user, address],
-      unions: [union]
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "type User {
         name: String!
         age: Int
