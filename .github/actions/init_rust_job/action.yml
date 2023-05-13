@@ -25,7 +25,7 @@ runs:
       continue-on-error: false
       with:
         key: ${{ inputs.cache-key }}
-        restore-keys: ${{ runner.os }}-${{ runner.arch }}-cargo-
+        restore-keys: ${{ inputs.restore-key }}
         path: |
           ~/.cargo/
           !~/.cargo/registry/src
