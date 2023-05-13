@@ -73,6 +73,7 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -101,7 +102,8 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: linux
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-build-${{ matrix.package }}-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -132,6 +134,7 @@ jobs:
         with:
           platform: windows
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -175,6 +178,7 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -222,6 +226,7 @@ jobs:
         with:
           platform: macos
           cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
