@@ -17,8 +17,10 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/2ad2c2a-2023-05-12'
-  PROD_ASSETS: assets.grafbase.com
+  #ASSETS_VERSION: 'release/2ad2c2a-2023-05-12'
+  ASSETS_VERSION: 'graeme-playing-around/98fa98d-2023-05-13'
+    #PROD_ASSETS: assets.grafbase.com
+  PROD_ASSETS: assets.grafbase.dev
   CARGO_TERM_COLOR: 'always'
   CARGO_INCREMENTAL: 0
 
