@@ -6,7 +6,7 @@ use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
-use crate::types::{Assets, ServerMessage, MY_DATA};
+use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::{bridge, errors::ServerError};
 use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::{Environment, SchemaLocation};
@@ -326,7 +326,15 @@ fn export_embedded_files() -> Result<(), ServerError> {
         // TODO: write a build.rs to tar & gzip
         // Update this code to ungzip & untar.
         // Publish: profit.
-        fs::write("whatever.tar.gz", MY_DATA);
+        {
+            use flate2::read::GzDecoder;
+            let reader = GzDecoder::new(ASSETS_GZIP);
+            let mut archive = tar::Archive::new(reader);
+            let full_path = &environment.user_dot_grafbase_path;
+            fs::create_dir_all(full_path).unwrap();
+
+            archive.unpack(full_path).unwrap();
+        }
 
         #[cfg(goaway)]
         let mut write_results = Assets::iter().map(|path| {

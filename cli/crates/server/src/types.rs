@@ -1,12 +1,7 @@
 use common::types::ResolverMessageLevel;
-use rust_embed::RustEmbed;
 use std::path::PathBuf;
 
-pub const MY_DATA: &[u8] = include_bytes!("../assets.tar.gz");
-
-// #[derive(RustEmbed)]
-// #[folder = "assets/"]
-pub struct Assets;
+pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets.tar.gz");
 
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
