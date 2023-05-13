@@ -3,4 +3,4 @@ members = ["crates/*"]
 
 [profile.release]
 strip = "symbols"
-lto = "thin"
+lto = false
