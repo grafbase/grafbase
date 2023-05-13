@@ -219,7 +219,7 @@ jobs:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
 
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.target == 'x86_64-apple-darwin' }}
         name: Sanitize
         uses: ./.github/actions/sanitize
         with:
