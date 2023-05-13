@@ -112,16 +112,16 @@ impl Report {
         }
     }
 
-    /// Serialize the `Report` to a TOML string.
+    /// Serialize the `Report` to a JSON string.
     pub fn serialize(&self) -> Option<String> {
-        toml::to_string_pretty(&self).ok()
+        serde_json::to_string_pretty(&self).ok()
     }
 
     /// Write a file to disk.
     pub fn persist(&self) -> Result<PathBuf, Box<dyn Error + 'static>> {
         let uuid = Uuid::new_v4().as_hyphenated().to_string();
         let tmp_dir = env::temp_dir();
-        let file_name = format!("report-{}.toml", &uuid);
+        let file_name = format!("report-{}.json", &uuid);
         let file_path = Path::new(&tmp_dir).join(file_name);
         let mut file = File::create(&file_path)?;
         let toml = self.serialize().unwrap();
