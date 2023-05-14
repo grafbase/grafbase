@@ -1,18 +1,19 @@
-import { Configuration, OpenAIApi } from 'openai'
-
 export default async function Resolver(_, { prompt }) {
-  const configuration = new Configuration({
-    apiKey: process.env.OPENAI_API_KEY
+  const response = await fetch('https://api.openai.com/v1/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'text-davinci-003',
+      prompt,
+      max_tokens: 200,
+      temperature: 0
+    })
   })
 
-  const openai = new OpenAIApi(configuration)
+  const data = await response.json()
 
-  const response = await openai.createCompletion({
-    model: 'text-davinci-003',
-    prompt,
-    max_tokens: 7,
-    temperature: 0
-  })
-
-  return response.choices || []
+  return data.choices || []
 }
