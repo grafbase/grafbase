@@ -4,8 +4,8 @@ expression: serialize(input)
 ---
 query {
 	... on Foo @deprecated {
+		__typename
 		baz
 	}
-	__typename
 }
 

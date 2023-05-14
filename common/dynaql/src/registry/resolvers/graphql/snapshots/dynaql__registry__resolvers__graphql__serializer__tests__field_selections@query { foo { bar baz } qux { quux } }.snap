@@ -4,11 +4,13 @@ expression: serialize(input)
 ---
 query {
 	foo {
+		__typename
 		bar
 		baz
 	}
 
 	qux {
+		__typename
 		quux
 	}
 

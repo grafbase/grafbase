@@ -4,9 +4,9 @@ expression: serialize(input)
 ---
 query {
 	... on Foo {
+		__typename
 		bar
 		baz
 	}
-	__typename
 }
 
