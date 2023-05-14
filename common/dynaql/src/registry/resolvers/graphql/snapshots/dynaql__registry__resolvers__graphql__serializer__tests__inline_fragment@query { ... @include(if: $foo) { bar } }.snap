@@ -4,6 +4,7 @@ expression: serialize(input)
 ---
 query {
 	... @include(if: $foo) {
+		__typename
 		bar
 	}
 }

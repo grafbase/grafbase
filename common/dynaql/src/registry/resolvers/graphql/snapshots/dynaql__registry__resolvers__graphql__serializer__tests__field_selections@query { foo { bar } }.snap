@@ -4,6 +4,7 @@ expression: serialize(input)
 ---
 query {
 	foo {
+		__typename
 		bar
 	}
 

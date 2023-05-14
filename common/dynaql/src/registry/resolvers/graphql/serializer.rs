@@ -37,21 +37,10 @@ pub struct Serializer<'a, 'b, W> {
     /// Internal tracking of indentation to pretty-print query.
     indent: usize,
 
-    /// Internal tracking of whether or not to inject the `__typename` field in the next
-    /// `SelectionSet` to be parsed.
-    inject_typename: InjectTypename,
-
     /// A list of serialized variable references.
     ///
     /// This allows the caller to pass along the relevant variable values to the upsteam server.
     variable_references: HashSet<&'a Name>,
-}
-
-#[derive(PartialEq)]
-enum InjectTypename {
-    Unknown,
-    Expected(usize),
-    Exists,
 }
 
 impl<'a, 'b, W> Serializer<'a, 'b, W> {
@@ -66,7 +55,6 @@ impl<'a, 'b, W> Serializer<'a, 'b, W> {
             fragment_definitions,
             fragment_spreads: HashSet::new(),
             indent: 0,
-            inject_typename: InjectTypename::Unknown,
             variable_references: HashSet::new(),
         }
     }
@@ -118,10 +106,6 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
 
     fn serialize_field(&mut self, field: &'a Field) -> Result<(), Error> {
         self.indent()?;
-
-        if field.name.as_str() == "__typename" {
-            self.inject_typename = InjectTypename::Exists;
-        }
 
         // Alias
         //
@@ -202,17 +186,21 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
         self.write_str(" {\n")?;
         self.indent += 1;
 
-        for selection in selections {
-            self.serialize_selection(selection)?;
+        // We always inject `__typename` into every selection set (except for the root). This is
+        // needed in specific cases for Grafbase to correctly link responses back to known types.
+        //
+        // While we technically don't need to embed the field in _every_ selection set for Grafbase
+        // to function properly, it's simpler to do so, and follows precedence set by clients such
+        // as Apollo[1].
+        //
+        // [1]: https://www.apollographql.com/docs/ios/fetching/type-conditions/#type-conversion
+        if self.indent > 1 {
+            self.indent()?;
+            self.write_str("__typename\n")?;
         }
 
-        if let InjectTypename::Expected(indent) = self.inject_typename {
-            if indent == self.indent {
-                self.inject_typename = InjectTypename::Exists;
-
-                self.indent()?;
-                self.write_str("__typename\n")?;
-            }
+        for selection in selections {
+            self.serialize_selection(selection)?;
         }
 
         // Clean-up before closing the set.
@@ -256,12 +244,12 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
     ///
     /// <https://spec.graphql.org/June2018/#sec-Inline-Fragments>
     fn serialize_inline_fragment(&mut self, fragment: &'c InlineFragment) -> Result<(), Error> {
-        self.indent()?;
-        self.write_str("...")?;
-
         let type_condition = fragment.type_condition.as_ref().map(|v| &v.node);
         let directives = fragment.directives.iter().map(|v| &v.node);
         let selections = fragment.selection_set.deref().items.iter().map(|v| &v.node);
+
+        self.indent()?;
+        self.write_str("...")?;
 
         self.serialize_fragment_inner(type_condition, directives, selections)
     }
@@ -314,13 +302,6 @@ impl<'a: 'b, 'b: 'a, 'c: 'a, W: Write> Serializer<'a, 'b, W> {
             // We remove the `prefix` from condition types, as these are local to Grafbase, and
             // should not be sent to the upstream server.
             self.write_str(condition.on.as_str().replace(self.prefix, ""))?;
-
-            // When we're dealing with a type condition, we need to ensure the type is returned
-            // from the upstream server, otherwise we can't know which fields match the given
-            // return value.
-            if self.inject_typename != InjectTypename::Exists {
-                self.inject_typename = InjectTypename::Expected(self.indent);
-            }
         }
 
         self.serialize_directives(directives)?;
@@ -442,7 +423,6 @@ mod tests {
         query {
           repository(name: "api", owner: "grafbase") {
             pullRequest(number: 2129) {
-              __typename
               ...fields
             }
           }
