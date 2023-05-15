@@ -94,6 +94,7 @@ time = { version = "0.3", optional = true, features = [
   "formatting",
   "macros",
 ] }
+tuple-combinator = "0.2"
 
 # Non-feature optional dependencies
 blocking = { version = "1", optional = true }

@@ -171,6 +171,15 @@ impl ConstValue {
     pub fn is_array(&self) -> bool {
         matches!(self, ConstValue::List(_))
     }
+
+    /// If the `ConstValue` is a String, returns the associated str. Returns None
+    /// otherwise.
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            ConstValue::String(s) => Some(s),
+            _ => None,
+        }
+    }
 }
 
 fn mandatory_fields(fields: Vec<Field>) -> Vec<Field> {
