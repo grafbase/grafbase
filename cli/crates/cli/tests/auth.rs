@@ -164,7 +164,7 @@ fn generate_rs256_token(
     })
     .set_duration_and_issuance(&time_opts, chrono::Duration::hours(1));
 
-    RS_256.token(header, &claims, &key).unwrap()
+    RS_256.token(header, &claims, key).unwrap()
 }
 
 // A wrapper around JsonWebKey that makes the kid accessible
@@ -209,10 +209,10 @@ async fn set_up_oidc() -> SetUpOidc {
     let client = env.create_async_client();
     client.poll_endpoint(30, 300).await;
     SetUpOidc {
-        env,
         client,
         priv_key,
         issuer_url,
+        env,
     }
 }
 
@@ -237,10 +237,10 @@ async fn set_up_jwks<F: Fn(&Url) -> HashMap<String, String>>(
     let client = env.create_async_client();
     client.poll_endpoint(30, 300).await;
     SetUpOidc {
-        env,
         client,
         priv_key,
         issuer_url,
+        env,
     }
 }
 
@@ -265,7 +265,7 @@ async fn oidc_token_with_valid_group_should_work() {
         &set_up.priv_key,
         "cli_user",
         &["backend"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
@@ -282,7 +282,7 @@ async fn oidc_token_with_wrong_group_should_fail() {
         &set_up.priv_key,
         "cli_user",
         &["some-group"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
@@ -303,7 +303,7 @@ async fn oidc_token_with_wrong_kid_should_fail() {
         &set_up.priv_key,
         "cli_user",
         &["some-group"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         "other-id",
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
@@ -323,7 +323,7 @@ async fn jwks_issuer_token_with_valid_group_should_work() {
         &set_up.priv_key,
         "cli_user",
         &["backend"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
@@ -347,7 +347,7 @@ async fn jwks_endoint_token_with_valid_group_should_work() {
         &set_up.priv_key,
         "cli_user",
         &["backend"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
@@ -378,7 +378,7 @@ async fn jwks_endoint_and_issuer_token_with_valid_group_should_work() {
         &set_up.priv_key,
         "cli_user",
         &["backend"],
-        Some(&set_up.issuer_url.to_string()),
+        Some(set_up.issuer_url.as_str()),
         KEY_ID,
     );
     let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
