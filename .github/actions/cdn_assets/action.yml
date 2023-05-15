@@ -25,8 +25,4 @@ runs:
         mkdir ~/.grafbase
         cp assets.tar.gz ~/.grafbase
         (cd ~/.grafbase && tar -xf assets.tar.gz)
-        #unzip assets.zip -d assets
-        #rm -rf crates/server/assets
-        #mv assets crates/server/assets
-        #cp -r crates/server/assets ~/.grafbase/
         touch ~/.grafbase/version.txt
