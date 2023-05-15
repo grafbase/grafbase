@@ -22,7 +22,7 @@ impl AuthDirective {
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
-            config::parse_auth_config(ctx, &directive.node, is_global).map(Some)
+            config::parse_auth_config(ctx, directive, is_global).map(Some)
         } else {
             Ok(None)
         }
@@ -463,7 +463,7 @@ mod tests {
         }
         "#,
         HashMap::new(),
-        "undefined variable `ISSUER_URL`"
+        "auth provider: undefined variable `ISSUER_URL`"
     );
 
     parse_fail!(
@@ -476,7 +476,7 @@ mod tests {
         }
         "#,
         HashMap::new(),
-        "undefined variable `ISSUER_URL`"
+        "auth provider: undefined variable `ISSUER_URL`"
     );
 
     parse_fail!(
@@ -572,7 +572,7 @@ mod tests {
         multiple_providers,
         r#"
         schema @auth(
-          providers: [ { type: foo }, { type: bar } ]
+          providers: [ { type: jwt, issuer: "myidp", secret: "s" }, { type: jwks, issuer: "https://example.com" } ]
         ){
           query: Query
         }

@@ -1,13 +1,11 @@
 use std::collections::HashMap;
 
 use dynaql::ServerError;
-use dynaql_parser::types::ConstDirective;
+use dynaql_parser::{types::ConstDirective, Positioned};
 use dynaql_value::ConstValue;
 
 use super::{operations::Operations, providers::AuthProvider, rules::AuthRule};
 use crate::VisitorContext;
-
-const ENV_VAR_ERROR: &str = "environment variables have been expanded by now";
 
 #[derive(Debug)]
 struct InternalAuthConfig {
@@ -37,14 +35,31 @@ fn extract_provider(value: &ConstDirective) -> Result<Option<&ConstValue>, Serve
 
 pub fn parse_auth_config(
     ctx: &VisitorContext<'_>,
-    value: &ConstDirective,
+    directive: &Positioned<ConstDirective>,
     is_global: bool,
 ) -> Result<dynaql::AuthConfig, ServerError> {
+    let value = &directive.node;
     let pos = Some(value.name.pos);
 
-    let provider = extract_provider(value)?
-        .map(|const_value| AuthProvider::from_value(ctx, const_value))
-        .transpose()?;
+    #[derive(serde::Deserialize, Debug)]
+    struct AuthDirective {
+        providers: Option<Vec<AuthProvider>>,
+    }
+
+    let provider = match crate::directive_de::parse_directive::<AuthDirective>(&directive.node, ctx.variables)
+        .map_err(|rule_err| {
+            ServerError::new_with_locations(format!("auth provider: {}", rule_err.message), rule_err.locations)
+        })?
+        .providers
+    {
+        None => Ok(None),
+        Some(single) if single.len() == 1 => single.into_iter().next().unwrap().validate().map(Some),
+        Some(empty) if empty.is_empty() => Err(ServerError::new("auth providers must be a non-empty list", pos)),
+        Some(_) => Err(ServerError::new(
+            "only one auth provider can be configured right now",
+            pos,
+        )),
+    }?;
 
     // XXX: introduce a separate type for non-global directives if we need more custom behavior
     if !is_global && provider.is_some() {
@@ -131,15 +146,12 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                     groups_claim,
                     client_id,
                 }) => {
-                    let issuer: String = issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap();
                     let issuer_base_url = issuer.parse().expect("issuer format must have been validated");
                     Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
                         issuer,
                         issuer_base_url,
                         groups_claim,
-                        client_id: client_id
-                            .as_ref()
-                            .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
+                        client_id,
                     }))
                 }
                 Some(AuthProvider::Jwks {
@@ -148,22 +160,13 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                     groups_claim,
                     client_id,
                 }) => {
-                    let jwks_endpoint = jwks_endpoint
-                        .as_ref()
-                        .expect("must have been set")
-                        .as_fully_evaluated_str()
-                        .expect("must be evaluated");
+                    let jwks_endpoint = jwks_endpoint.as_ref().expect("must have been set");
                     let jwks_endpoint = jwks_endpoint.parse::<url::Url>().expect("must be a valid URL");
-                    let issuer = issuer
-                        .as_ref()
-                        .map(|issuer| issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string());
                     Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
                         jwks_endpoint,
                         issuer,
                         groups_claim,
-                        client_id: client_id
-                            .as_ref()
-                            .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
+                        client_id,
                     }))
                 }
                 Some(AuthProvider::Jwt {
@@ -172,14 +175,10 @@ impl From<InternalAuthConfig> for dynaql::AuthConfig {
                     client_id,
                     secret,
                 }) => Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
-                    issuer: issuer.as_fully_evaluated_str().expect(ENV_VAR_ERROR).parse().unwrap(),
+                    issuer,
                     groups_claim,
-                    client_id: client_id
-                        .as_ref()
-                        .map(|id| id.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string()),
-                    secret: secrecy::SecretString::new(
-                        secret.as_fully_evaluated_str().expect(ENV_VAR_ERROR).to_string(),
-                    ),
+                    client_id,
+                    secret: secrecy::SecretString::new(secret),
                 })),
                 None => None,
             },
