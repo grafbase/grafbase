@@ -35,7 +35,7 @@ fn assert_registry_schema_generation(registry: &Registry) {
             continue;
         }
         if let ty @ MetaType::Object { .. } = ty {
-            let schema_opt = from_meta_type(registry, ty);
+            let schema_opt = from_meta_type(registry, ty, true);
             // To print the name if there is an issue.
             dbg!(name);
             assert!(schema_opt.is_ok());

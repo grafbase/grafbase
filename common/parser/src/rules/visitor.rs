@@ -241,7 +241,7 @@ impl<'a> VisitorContext<'a> {
 
         for (id, val) in self.schema_to_build.try_read().expect("Poisoned").iter() {
             let meta_ty = registry.types.get(val).unwrap();
-            let schema = from_meta_type(&registry, meta_ty).unwrap();
+            let schema = from_meta_type(&registry, meta_ty, true).unwrap();
             result.insert(*id, Arc::new(schema));
         }
 
