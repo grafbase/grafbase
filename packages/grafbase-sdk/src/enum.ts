@@ -1,4 +1,4 @@
-import { EnumShape } from "."
+import { EnumShape } from '.'
 
 export class Enum {
   name: string
@@ -16,8 +16,8 @@ export class Enum {
 
   public toString(): string {
     const header = `enum ${this.name} {`
-    const variants = this.variants.map((variant) => `  ${variant}`).join(",\n")
-    const footer = "}"
+    const variants = this.variants.map((variant) => `  ${variant}`).join(',\n')
+    const footer = '}'
 
     return `${header}\n${variants}\n${footer}`
   }

@@ -1,7 +1,13 @@
-import { RequireAtLeastOne } from "type-fest"
-import { Enum } from "../enum"
-import { GBooleanListDef, GDateListDef, GListDef, GNumberListDef, GStringListDef } from "./list"
-import { ScalarType, Searchable } from ".."
+import { RequireAtLeastOne } from 'type-fest'
+import { Enum } from '../enum'
+import {
+  GBooleanListDef,
+  GDateListDef,
+  GListDef,
+  GNumberListDef,
+  GStringListDef
+} from './list'
+import { ScalarType, Searchable } from '..'
 
 interface FieldLength {
   min?: number
@@ -9,19 +15,19 @@ interface FieldLength {
 }
 
 export enum FieldType {
-  String = "String",
-  Int = "Int",
-  Email = "Email",
-  ID = "ID",
-  Float = "Float",
-  Boolean = "Boolean",
-  Date = "Date",
-  DateTime = "DateTime",
-  IPAddress = "IPAddress",
-  Timestamp = "Timestamp",
-  URL = "URL",
-  JSON = "JSON",
-  PhoneNumber = "PhoneNumber",
+  String = 'String',
+  Int = 'Int',
+  Email = 'Email',
+  ID = 'ID',
+  Float = 'Float',
+  Boolean = 'Boolean',
+  Date = 'Date',
+  DateTime = 'DateTime',
+  IPAddress = 'IPAddress',
+  Timestamp = 'Timestamp',
+  URL = 'URL',
+  JSON = 'JSON',
+  PhoneNumber = 'PhoneNumber'
 }
 
 export class GSearchDef {
@@ -36,7 +42,11 @@ export class GSearchDef {
   }
 }
 
-type UniqueScalarType = GScalarDef | GDefaultDef | GSearchDef | GLengthLimitedStringDef
+type UniqueScalarType =
+  | GScalarDef
+  | GDefaultDef
+  | GSearchDef
+  | GLengthLimitedStringDef
 
 export class GUniqueDef {
   compoundScope?: string[]
@@ -52,10 +62,12 @@ export class GUniqueDef {
   }
 
   public toString(): string {
-    const scope = this.compoundScope?.map((field) => `"${field}"`).join(", ")
+    const scope = this.compoundScope?.map((field) => `"${field}"`).join(', ')
     const scopeArray = scope ? `[${scope}]` : null
 
-    return scopeArray ? `${this.scalar} @unique(fields: ${scopeArray})` : `${this.scalar} @unique`
+    return scopeArray
+      ? `${this.scalar} @unique(fields: ${scopeArray})`
+      : `${this.scalar} @unique`
   }
 }
 
@@ -63,7 +75,10 @@ export class GDefaultDef {
   defaultValue: ScalarType
   scalar: GScalarDef | GLengthLimitedStringDef
 
-  constructor(scalar: GScalarDef | GLengthLimitedStringDef, defaultValue: ScalarType) {
+  constructor(
+    scalar: GScalarDef | GLengthLimitedStringDef,
+    defaultValue: ScalarType
+  ) {
     this.defaultValue = defaultValue
     this.scalar = scalar
   }
@@ -78,7 +93,10 @@ export class GDefaultDef {
   }
 
   public toString(): string {
-    return `${this.scalar} @default(value: ${renderDefault(this.defaultValue, this.scalar.fieldTypeVal())})`
+    return `${this.scalar} @default(value: ${renderDefault(
+      this.defaultValue,
+      this.scalar.fieldTypeVal()
+    )})`
   }
 }
 
@@ -115,7 +133,7 @@ export class GScalarDef {
   }
 
   public toString(): string {
-    const required = this.isOptional ? "" : "!"
+    const required = this.isOptional ? '' : '!'
 
     let fieldType
     if (this.fieldType instanceof Enum) {
@@ -133,7 +151,9 @@ export class GStringDef extends GScalarDef {
     return new GDefaultDef(this, val)
   }
 
-  public length(fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>): GLengthLimitedStringDef {
+  public length(
+    fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
+  ): GLengthLimitedStringDef {
     return new GLengthLimitedStringDef(this, fieldLength)
   }
 
@@ -146,7 +166,10 @@ export class GLengthLimitedStringDef {
   fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   scalar: GStringDef
 
-  constructor(scalar: GStringDef, fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>) {
+  constructor(
+    scalar: GStringDef,
+    fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
+  ) {
     this.fieldLength = fieldLength
     this.scalar = scalar
   }
@@ -173,7 +196,7 @@ export class GLengthLimitedStringDef {
     return this.scalar.fieldType
   }
 
-  public toString(): string { 
+  public toString(): string {
     const length = this.fieldLength
 
     if (length.min != null && length.max != null) {
@@ -185,7 +208,6 @@ export class GLengthLimitedStringDef {
     }
   }
 }
-
 
 export class GNumberDef extends GScalarDef {
   public default(val: number): GDefaultDef {
@@ -243,7 +265,7 @@ export function renderDefault(val: any, fieldType: FieldType | Enum) {
   if (fieldType instanceof Enum) {
     return val.toString()
   } else {
-    switch(fieldType) {
+    switch (fieldType) {
       case FieldType.String: {
         return `"${val}"`
       }

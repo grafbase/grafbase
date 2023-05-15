@@ -1,5 +1,5 @@
-import { RelationRef } from ".";
-import { GListDef } from "./field/list";
+import { RelationRef } from '.'
+import { GListDef } from './field/list'
 
 export class GRelationDef {
   relationName?: string
@@ -22,9 +22,9 @@ export class GRelationDef {
   }
 
   public name(name: string): GRelationDef {
-    this.relationName = name;
+    this.relationName = name
 
-    return this;
+    return this
   }
 
   public toString(): string {
@@ -36,8 +36,10 @@ export class GRelationDef {
       modelName = this.referencedModel.name
     }
 
-    const required = this.isOptional ? "" : "!"
-    const relationAttribute = this.relationName ? ` @relation(name: ${this.relationName})` : ""
+    const required = this.isOptional ? '' : '!'
+    const relationAttribute = this.relationName
+      ? ` @relation(name: ${this.relationName})`
+      : ''
 
     return `${modelName}${required}${relationAttribute}`
   }

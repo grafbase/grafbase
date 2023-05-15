@@ -1,13 +1,22 @@
-import { ScalarType } from ".."
-import { GReferenceDef } from "../reference"
-import { GRelationDef } from "../relation"
-import { FieldType, GBooleanDef, GDateDef, GNumberDef, GScalarDef, GSearchDef, GStringDef, renderDefault } from "./typedefs"
+import { ScalarType } from '..'
+import { GReferenceDef } from '../reference'
+import { GRelationDef } from '../relation'
+import {
+  FieldType,
+  GBooleanDef,
+  GDateDef,
+  GNumberDef,
+  GScalarDef,
+  GSearchDef,
+  GStringDef,
+  renderDefault
+} from './typedefs'
 
 export class GListDef {
   fieldDefinition: GScalarDef | GRelationDef | GReferenceDef
   isOptional: boolean
   defaultValue?: ScalarType[]
-  
+
   constructor(fieldDefinition: GScalarDef | GRelationDef | GReferenceDef) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
@@ -24,7 +33,7 @@ export class GListDef {
   }
 
   public toString(): string {
-    const required = this.isOptional ? "" : "!"
+    const required = this.isOptional ? '' : '!'
 
     return `[${this.fieldDefinition}]${required}`
   }
@@ -40,9 +49,12 @@ class GListWithDefaultDef extends GListDef {
   }
 
   public toString(): string {
-    const defaultValue = this.defaultValue != null ?
-      ` @default(value: [${this.defaultValue.map((v) => renderDefault(v, this.fieldType)).join(', ')}])` : 
-      ""
+    const defaultValue =
+      this.defaultValue != null
+        ? ` @default(value: [${this.defaultValue
+            .map((v) => renderDefault(v, this.fieldType))
+            .join(', ')}])`
+        : ''
 
     return `${super.toString()}${defaultValue}`
   }

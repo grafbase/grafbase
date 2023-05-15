@@ -21,25 +21,23 @@ export class Model {
   }
 
   public search(): Model {
-    this.isSearch = true;
+    this.isSearch = true
 
     return this
   }
 
   public live(): Model {
-    this.isLive = true;
+    this.isLive = true
 
     return this
   }
 
   public toString(): string {
-    const search = this.isSearch ? " @search" : ""
-    const live = this.isLive ? " @live" : ""
+    const search = this.isSearch ? ' @search' : ''
+    const live = this.isLive ? ' @live' : ''
     const header = `type ${this.name} @model${search}${live} {`
 
-    const fields = this
-      .fields
-      .map((field) => `  ${field}`).join("\n")
+    const fields = this.fields.map((field) => `  ${field}`).join('\n')
 
     const footer = '}'
 

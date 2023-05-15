@@ -1,6 +1,6 @@
-import { Enum } from "./enum";
-import { GListDef } from "./field/list";
-import { Type } from "./type";
+import { Enum } from './enum'
+import { GListDef } from './field/list'
+import { Type } from './type'
 
 export class GReferenceDef {
   referencedType: string
@@ -10,7 +10,7 @@ export class GReferenceDef {
     this.referencedType = referencedType.name
     this.isOptional = false
   }
-  
+
   public optional(): GReferenceDef {
     this.isOptional = true
 
@@ -22,7 +22,7 @@ export class GReferenceDef {
   }
 
   public toString(): string {
-    const required = this.isOptional ? "" : "!"
+    const required = this.isOptional ? '' : '!'
 
     return `${this.referencedType}${required}`
   }

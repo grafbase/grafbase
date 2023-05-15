@@ -1,7 +1,15 @@
 import { Model } from './model'
 import { GRelationDef } from './relation'
 import { Enum } from './enum'
-import { FieldType, GBooleanDef, GDateDef, GNumberDef, GObjectDef, GStringDef, GScalarDef } from './field/typedefs'
+import {
+  FieldType,
+  GBooleanDef,
+  GDateDef,
+  GNumberDef,
+  GObjectDef,
+  GStringDef,
+  GScalarDef
+} from './field/typedefs'
 import { GListDef } from './field/list'
 import { Type } from './type'
 import { GReferenceDef } from './reference'
@@ -28,29 +36,38 @@ export class GrafbaseSchema {
   }
 
   public model(name: string, fields: Record<string, FieldShape>): Model {
-    const model = Object
-      .entries(fields)
-      .reduce((model, [name, definition]) => model.field(name, definition), new Model(name))
+    const model = Object.entries(fields).reduce(
+      (model, [name, definition]) => model.field(name, definition),
+      new Model(name)
+    )
 
     this.models.push(model)
 
     return model
   }
 
-  public type(name: string, fields: Record<string, GScalarDef | GListDef>): Type {
-    const type = Object
-      .entries(fields)
-      .reduce((type, [name, definition]) => type.field(name, definition), new Type(name))
+  public type(
+    name: string,
+    fields: Record<string, GScalarDef | GListDef>
+  ): Type {
+    const type = Object.entries(fields).reduce(
+      (type, [name, definition]) => type.field(name, definition),
+      new Type(name)
+    )
 
     this.types.push(type)
 
     return type
   }
 
-  public interface(name: string, types: Record<string, GScalarDef | GListDef>): Interface {
-    const iface = Object
-      .entries(types)
-      .reduce((iface, [name, definition]) => iface.field(name, definition), new Interface(name))
+  public interface(
+    name: string,
+    types: Record<string, GScalarDef | GListDef>
+  ): Interface {
+    const iface = Object.entries(types).reduce(
+      (iface, [name, definition]) => iface.field(name, definition),
+      new Interface(name)
+    )
 
     this.interfaces.push(iface)
 
@@ -58,9 +75,10 @@ export class GrafbaseSchema {
   }
 
   public union(name: string, types: Record<string, Type>): Union {
-    const union = Object
-      .entries(types)
-      .reduce((model, [_, type]) => model.type(type), new Union(name))
+    const union = Object.entries(types).reduce(
+      (model, [_, type]) => model.type(type),
+      new Union(name)
+    )
 
     this.unions.push(union)
 
@@ -68,13 +86,19 @@ export class GrafbaseSchema {
   }
 
   public query(name: string, definition: QueryInput): Query {
-    const q = new Query(name, QueryType.Query, definition.returns, definition.resolver)
+    const q = new Query(
+      name,
+      QueryType.Query,
+      definition.returns,
+      definition.resolver
+    )
 
     let query
     if (definition.args != null) {
-      query = Object
-        .entries(definition.args)
-        .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+      query = Object.entries(definition.args).reduce(
+        (query, [name, type]) => query.pushArgument(name, type),
+        q
+      )
     } else {
       query = q
     }
@@ -85,13 +109,19 @@ export class GrafbaseSchema {
   }
 
   public mutation(name: string, definition: QueryInput): Query {
-    const q = new Query(name, QueryType.Mutation, definition.returns, definition.resolver)
+    const q = new Query(
+      name,
+      QueryType.Mutation,
+      definition.returns,
+      definition.resolver
+    )
 
     let query
     if (definition.args != null) {
-      query = Object
-        .entries(definition.args)
-        .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+      query = Object.entries(definition.args).reduce(
+        (query, [name, type]) => query.pushArgument(name, type),
+        q
+      )
     } else {
       query = q
     }
@@ -179,15 +209,15 @@ export class GrafbaseSchema {
   }
 
   public toString(): string {
-    const queries = this.queries.map(String).join("\n\n")
-    const interfaces = this.interfaces.map(String).join("\n\n")
-    const types = this.types.map(String).join("\n\n")
-    const unions = this.unions.map(String).join("\n\n")
-    const enums = this.enums.map(String).join("\n\n")
-    const models = this.models.map(String).join("\n\n")
+    const queries = this.queries.map(String).join('\n\n')
+    const interfaces = this.interfaces.map(String).join('\n\n')
+    const types = this.types.map(String).join('\n\n')
+    const unions = this.unions.map(String).join('\n\n')
+    const enums = this.enums.map(String).join('\n\n')
+    const models = this.models.map(String).join('\n\n')
 
     const renderOrder = [interfaces, enums, types, queries, unions, models]
 
-    return renderOrder.filter(Boolean).flat().map(String).join("\n\n")
+    return renderOrder.filter(Boolean).flat().map(String).join('\n\n')
   }
 }

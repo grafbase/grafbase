@@ -1,13 +1,13 @@
-import { GListDef } from "./field/list"
-import { GScalarDef } from "./field/typedefs"
-import { GReferenceDef } from "./reference"
+import { GListDef } from './field/list'
+import { GScalarDef } from './field/typedefs'
+import { GReferenceDef } from './reference'
 
 export type InputType = GScalarDef | GListDef | GReferenceDef
 export type OutputType = GScalarDef | GListDef | GReferenceDef
 
 export interface QueryInput {
-  args?: Record<string, InputType>,
-  returns: OutputType,
+  args?: Record<string, InputType>
+  returns: OutputType
   resolver: string
 }
 
@@ -26,8 +26,8 @@ export class QueryArgument {
 }
 
 export enum QueryType {
-  Query = "Query",
-  Mutation = "Mutation",
+  Query = 'Query',
+  Mutation = 'Mutation'
 }
 
 export class Query {
@@ -41,7 +41,7 @@ export class Query {
     name: string,
     type: QueryType,
     returnType: OutputType,
-    resolverName: string,
+    resolverName: string
   ) {
     this.name = name
     this.arguments = []
@@ -55,13 +55,13 @@ export class Query {
 
     return this
   }
-  
+
   public toString(): string {
     const header = `extend type ${this.type} {`
-    const args = this.arguments.map(String).join(", ")
-    const argsStr = args ? `(${args})` : ""
+    const args = this.arguments.map(String).join(', ')
+    const argsStr = args ? `(${args})` : ''
     const query = `  ${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
-    const footer = "}"
+    const footer = '}'
 
     return `${header}\n${query}\n${footer}`
   }

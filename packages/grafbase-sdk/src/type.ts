@@ -1,7 +1,7 @@
-import { Field } from "./field"
-import { GListDef } from "./field/list"
-import { GScalarDef } from "./field/typedefs"
-import { Interface } from "./interface"
+import { Field } from './field'
+import { GListDef } from './field/list'
+import { GScalarDef } from './field/typedefs'
+import { Interface } from './interface'
 
 export class Type {
   name: string
@@ -27,13 +27,15 @@ export class Type {
   }
 
   public toString(): string {
-    const interfaces = this.interfaces.map((i) => i.name).join(" & ")
-    const impl = interfaces ? ` implements ${interfaces}` : ""
+    const interfaces = this.interfaces.map((i) => i.name).join(' & ')
+    const impl = interfaces ? ` implements ${interfaces}` : ''
     const header = `type ${this.name}${impl} {`
 
-    const fields = distinct((this.interfaces.flatMap((i) => i.fields) ?? []).concat(this.fields))
+    const fields = distinct(
+      (this.interfaces.flatMap((i) => i.fields) ?? []).concat(this.fields)
+    )
       .map((field) => `  ${field}`)
-      .join("\n")
+      .join('\n')
 
     const footer = '}'
 

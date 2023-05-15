@@ -1,4 +1,4 @@
-import { Type } from "./type"
+import { Type } from './type'
 
 export class Union {
   name: string
@@ -16,7 +16,7 @@ export class Union {
   }
 
   public toString(): string {
-    const types = this.types.join(" | ")
+    const types = this.types.join(' | ')
 
     return `union ${this.name} = ${types}`
   }
