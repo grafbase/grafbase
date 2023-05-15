@@ -88,7 +88,7 @@ pub enum ServerError {
     ParseSchema(String),
 
     /// returned if the typescript config parser command exits unsuccessfully
-    #[error("could not load grafbase/grafbase.config.ts\n{0}")]
+    #[error("could not load grafbase/grafbase.config.ts\ncaused by: {0}")]
     LoadTsConfig(String),
 
     #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
