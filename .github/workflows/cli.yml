@@ -18,7 +18,7 @@ permissions:
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
   ASSETS_VERSION: 'jean/graphql-directive/0a446bb-2023-05-15'
-  PROD_ASSETS: assets.grafbase.com
+  PROD_ASSETS: assets.grafbase.dev
   CARGO_TERM_COLOR: 'always'
 
 concurrency:
@@ -209,7 +209,7 @@ jobs:
       - name: Upload the binary as an artifact
         uses: actions/upload-artifact@v3
         with:
-          name: x86-darwin-binary
+          name: darwin-binary-${{ matrix.target }}
           path: cli/target/${{ matrix.target }}/release/grafbase
 
       - if: startsWith(github.ref, 'refs/tags/')
