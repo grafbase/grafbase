@@ -36,8 +36,8 @@ export class GRelationDef {
       modelName = this.referencedModel.name
     }
 
-    let required = this.isOptional ? "" : "!"
-    let relationAttribute = this.relationName ? ` @relation(name: ${this.relationName})` : ""
+    const required = this.isOptional ? "" : "!"
+    const relationAttribute = this.relationName ? ` @relation(name: ${this.relationName})` : ""
 
     return `${modelName}${required}${relationAttribute}`
   }

@@ -53,4 +53,40 @@ describe('Interface generator', () => {
       }"
     `)
   })
+
+  it('generates a type implementing multiple interfaces', () => {
+    const produce = g.interface('Produce', {
+      name: g.string()
+    })
+
+    const sweets = g.interface('Sweets', {
+      name: g.string(),
+      sweetness: g.int()
+    })
+
+    g.type('Fruit', {
+        isSeedless: g.boolean().optional(),
+        ripenessIndicators: g.string().optional().list().optional()
+      })
+      .implements(produce)
+      .implements(sweets)
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "interface Produce {
+        name: String!
+      }
+
+      interface Sweets {
+        name: String!
+        sweetness: Int!
+      }
+
+      type Fruit implements Produce & Sweets {
+        name: String!
+        sweetness: Int!
+        isSeedless: Boolean
+        ripenessIndicators: [String]
+      }"
+    `)
+  })
 })

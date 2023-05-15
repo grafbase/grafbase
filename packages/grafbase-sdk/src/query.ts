@@ -6,7 +6,7 @@ export type InputType = GScalarDef | GListDef | GReferenceDef
 export type OutputType = GScalarDef | GListDef | GReferenceDef
 
 export interface QueryInput {
-  args: Record<string, InputType>,
+  args?: Record<string, InputType>,
   returns: OutputType,
   resolver: string
 }
@@ -57,10 +57,11 @@ export class Query {
   }
   
   public toString(): string {
-    let header = `extend type ${this.type} {`
-    let args = this.arguments.map(String).join(", ")
-    let query = `  ${this.name}(${args}): ${this.returns} @resolver(name: "${this.resolver}")`
-    let footer = "}"
+    const header = `extend type ${this.type} {`
+    const args = this.arguments.map(String).join(", ")
+    const argsStr = args ? `(${args})` : ""
+    const query = `  ${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
+    const footer = "}"
 
     return `${header}\n${query}\n${footer}`
   }

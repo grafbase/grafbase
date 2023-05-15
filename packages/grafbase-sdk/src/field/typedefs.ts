@@ -174,7 +174,7 @@ export class GLengthLimitedStringDef {
   }
 
   public toString(): string { 
-    let length = this.fieldLength
+    const length = this.fieldLength
 
     if (length.min != null && length.max != null) {
       return `${this.scalar} @length(min: ${length.min}, max: ${length.max})`

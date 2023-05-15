@@ -4,6 +4,20 @@ import { describe, expect, it, beforeEach } from '@jest/globals'
 describe('Query generator', () => {
   beforeEach(() => g.clear())
 
+  it('generates a resolver with empty args', () => {
+    const greetQuery = g
+      .query('greet', {
+        returns: g.string(),
+        resolver: 'hello'
+      })
+
+    expect(greetQuery.toString()).toMatchInlineSnapshot(`
+      "extend type Query {
+        greet: String! @resolver(name: "hello")
+      }"
+    `)
+  })
+
   it('generates a resolver with required input and output', () => {
     const greetQuery = g
       .query('greet', {
@@ -124,7 +138,7 @@ describe('Query generator', () => {
   })
 
   it('generates a query as part of the full SDL', () => {
-    const enm = g.enumType('Foo', ['Bar', 'Baz'])
+    const enm = g.enum('Foo', ['Bar', 'Baz'])
 
     g.query('greet', {
       args: { name: g.string() },
@@ -134,7 +148,7 @@ describe('Query generator', () => {
 
     g.query('greet', {
       args: { game: g.int().optional() },
-      returns: g.enum(enm).list(),
+      returns: g.ref(enm).list(),
       resolver: 'hello'
     })
 

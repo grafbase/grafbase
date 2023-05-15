@@ -75,13 +75,23 @@ enum Fruits {
   Oranges
 }
 
-g.enumType('Fruits', Fruits)
+g.enum('Fruits', Fruits)
 ```
 
 or
 
 ```typescript
-g.enumType('Fruits', ['Apples', 'Oranges'])
+g.enum('Fruits', ['Apples', 'Oranges'])
+```
+
+An enum can be used as a field type with the `ref` method:
+
+```typescript
+const e = g.enum('Fruits', ['Apples', 'Oranges'])
+
+g.type("User", {
+  favoriteFruit: g.ref(e)
+})
 ```
 
 ## Queries and Mutations

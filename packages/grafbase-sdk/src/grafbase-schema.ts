@@ -70,9 +70,14 @@ export class GrafbaseSchema {
   public query(name: string, definition: QueryInput): Query {
     const q = new Query(name, QueryType.Query, definition.returns, definition.resolver)
 
-    const query = Object
-      .entries(definition.args)
-      .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+    let query
+    if (definition.args != null) {
+      query = Object
+        .entries(definition.args)
+        .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+    } else {
+      query = q
+    }
 
     this.queries.push(query)
 
@@ -82,25 +87,26 @@ export class GrafbaseSchema {
   public mutation(name: string, definition: QueryInput): Query {
     const q = new Query(name, QueryType.Mutation, definition.returns, definition.resolver)
 
-    const query = Object
-      .entries(definition.args)
-      .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+    let query
+    if (definition.args != null) {
+      query = Object
+        .entries(definition.args)
+        .reduce((query, [name, type]) => query.pushArgument(name, type), q)
+    } else {
+      query = q
+    }
 
     this.queries.push(query)
 
     return query
   }
 
-  public enumType(name: string, variants: EnumShape): Enum {
+  public enum(name: string, variants: EnumShape): Enum {
     const e = new Enum(name, variants)
 
     this.enums.push(e)
 
     return e
-  }
-
-  public enum(e: Enum): GStringDef {
-    return new GStringDef(e)
   }
 
   public string(): GStringDef {
@@ -159,7 +165,7 @@ export class GrafbaseSchema {
     return new GRelationDef(ref)
   }
 
-  public ref(type: Type): GReferenceDef {
+  public ref(type: Type | Enum): GReferenceDef {
     return new GReferenceDef(type)
   }
 

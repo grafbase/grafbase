@@ -7,7 +7,7 @@ describe('Enum generator', () => {
   })
 
   it('generates an enum from an array of strings', () => {
-    const e = g.enumType('Fruits', ['Apples', 'Oranges'])
+    const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
     expect(e.toString()).toMatchInlineSnapshot(`
       "enum Fruits {
@@ -23,7 +23,7 @@ describe('Enum generator', () => {
       Oranges
     }
 
-    const e = g.enumType('Fruits', Fruits)
+    const e = g.enum('Fruits', Fruits)
 
     expect(e.toString()).toMatchInlineSnapshot(`
       "enum Fruits {
@@ -34,10 +34,10 @@ describe('Enum generator', () => {
   })
 
   it('generates an enum field', () => {
-    const e = g.enumType('Fruits', ['Apples', 'Oranges'])
+    const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
     g.model('Basket', {
-      fruitType: g.enum(e)
+      fruitType: g.ref(e)
     })
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`

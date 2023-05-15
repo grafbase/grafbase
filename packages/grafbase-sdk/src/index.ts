@@ -3,7 +3,7 @@ import { GDefaultDef, GLengthLimitedStringDef, GScalarDef, GSearchDef, GUniqueDe
 import { Model } from "./model"
 import { GReferenceDef } from "./reference"
 import { GRelationDef } from "./relation"
-import { GrafbaseSchema } from "./grafbase_schema"
+import { GrafbaseSchema } from "./grafbase-schema"
 import { Config, ConfigInput } from "./config"
 
 export type FieldShape = GScalarDef

@@ -6,11 +6,12 @@ import { Interface } from "./interface"
 export class Type {
   name: string
   fields: Field[]
-  interface?: Interface
+  interfaces: Interface[]
 
   constructor(name: string) {
     this.name = name
     this.fields = []
+    this.interfaces = []
   }
 
   public field(name: string, definition: GScalarDef | GListDef): Type {
@@ -20,17 +21,17 @@ export class Type {
   }
 
   public implements(i: Interface): Type {
-    this.interface = i
+    this.interfaces.push(i)
 
     return this
   }
 
   public toString(): string {
-    const impl = this.interface ? ` implements ${this.interface?.name}` : ""
+    const interfaces = this.interfaces.map((i) => i.name).join(" & ")
+    const impl = interfaces ? ` implements ${interfaces}` : ""
     const header = `type ${this.name}${impl} {`
 
-    let fields = (this.interface?.fields ?? [])
-      .concat(this.fields)
+    const fields = distinct((this.interfaces.flatMap((i) => i.fields) ?? []).concat(this.fields))
       .map((field) => `  ${field}`)
       .join("\n")
 
@@ -38,4 +39,17 @@ export class Type {
 
     return `${header}\n${fields}\n${footer}`
   }
+}
+
+function distinct(fields: Field[]): Field[] {
+  const found = new Set()
+
+  return fields.filter((f) => {
+    if (found.has(f.name)) {
+      return false
+    } else {
+      found.add(f.name)
+      return true
+    }
+  })
 }

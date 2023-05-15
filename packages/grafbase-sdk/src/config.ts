@@ -1,4 +1,4 @@
-import { GrafbaseSchema } from './grafbase_schema';
+import { GrafbaseSchema } from './grafbase-schema';
 
 export interface ConfigInput {
   schema: GrafbaseSchema

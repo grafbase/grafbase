@@ -1,3 +1,4 @@
+import { Enum } from "./enum";
 import { GListDef } from "./field/list";
 import { Type } from "./type";
 
@@ -5,7 +6,7 @@ export class GReferenceDef {
   referencedType: string
   isOptional: boolean
 
-  constructor(referencedType: Type) {
+  constructor(referencedType: Type | Enum) {
     this.referencedType = referencedType.name
     this.isOptional = false
   }
