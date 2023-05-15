@@ -1,8 +1,8 @@
 import { Enum } from './enum'
-import { GListDef } from './field/list'
+import { ListDef } from './field/list'
 import { Type } from './type'
 
-export class GReferenceDef {
+export class ReferenceDef {
   referencedType: string
   isOptional: boolean
 
@@ -11,14 +11,14 @@ export class GReferenceDef {
     this.isOptional = false
   }
 
-  public optional(): GReferenceDef {
+  public optional(): ReferenceDef {
     this.isOptional = true
 
     return this
   }
 
-  public list(): GListDef {
-    return new GListDef(this)
+  public list(): ListDef {
+    return new ListDef(this)
   }
 
   public toString(): string {

@@ -1,9 +1,9 @@
-import { GListDef } from './field/list'
-import { GScalarDef } from './field/typedefs'
-import { GReferenceDef } from './reference'
+import { ListDef } from './field/list'
+import { ScalarDef } from './field/typedefs'
+import { ReferenceDef } from './reference'
 
-export type InputType = GScalarDef | GListDef | GReferenceDef
-export type OutputType = GScalarDef | GListDef | GReferenceDef
+export type InputType = ScalarDef | ListDef | ReferenceDef
+export type OutputType = ScalarDef | ListDef | ReferenceDef
 
 export interface QueryInput {
   args?: Record<string, InputType>

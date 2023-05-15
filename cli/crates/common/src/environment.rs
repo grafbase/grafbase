@@ -9,6 +9,7 @@ use crate::{
 };
 use once_cell::sync::OnceCell;
 use std::{
+    borrow::Cow,
     env,
     path::{Path, PathBuf},
 };
@@ -28,7 +29,6 @@ pub enum SchemaLocation {
 #[derive(Debug)]
 pub struct GrafbaseSchemaPath {
     location: SchemaLocation,
-    has_both_files: bool,
 }
 
 impl GrafbaseSchemaPath {
@@ -38,23 +38,15 @@ impl GrafbaseSchemaPath {
         &self.location
     }
 
-    /// True, if we find both `schema.graphql` and `grafbase.config.ts`.
-    #[must_use]
-    pub fn has_both_files(&self) -> bool {
-        self.has_both_files
-    }
-
     fn ts_config(path: PathBuf) -> Self {
         Self {
             location: SchemaLocation::TsConfig(path),
-            has_both_files: false,
         }
     }
 
     fn graphql(path: PathBuf) -> Self {
         Self {
             location: SchemaLocation::Graphql(path),
-            has_both_files: false,
         }
     }
 
@@ -64,6 +56,33 @@ impl GrafbaseSchemaPath {
         match self.location() {
             TsConfig(path) | Graphql(path) => path.parent(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Warning {
+    message: Cow<'static, str>,
+    hint: Option<Cow<'static, str>>,
+}
+
+impl Warning {
+    pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            message: message.into(),
+            hint: None,
+        }
+    }
+
+    pub fn set_hint(&mut self, message: impl Into<Cow<'static, str>>) {
+        self.hint = Some(message.into());
+    }
+
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    pub fn hint(&self) -> Option<&str> {
+        self.hint.as_deref()
     }
 }
 
@@ -95,6 +114,8 @@ pub struct Environment {
     pub resolvers_build_artifact_path: PathBuf,
     /// the path within '$PROJECT/.grafbase' containing the database
     pub database_directory_path: PathBuf,
+    /// warnings when loading the environment
+    pub warnings: Vec<Warning>,
 }
 
 /// static singleton for the environment struct
@@ -114,8 +135,10 @@ impl Environment {
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
     pub fn try_init() -> Result<(), CommonError> {
+        let mut warnings = Vec::new();
+
         let project_grafbase_schema_path =
-            Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+            Self::get_project_grafbase_path(&mut warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
 
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
@@ -147,6 +170,7 @@ impl Environment {
                 resolvers_source_path,
                 resolvers_build_artifact_path,
                 database_directory_path,
+                warnings,
             })
             .expect("cannot set environment twice");
 
@@ -176,13 +200,19 @@ impl Environment {
     /// # Errors
     ///
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-    fn get_project_grafbase_path() -> Result<Option<GrafbaseSchemaPath>, CommonError> {
+    fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
         let ts_config = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)?;
         let gql = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
 
         if let Some(path) = ts_config {
-            let mut path = GrafbaseSchemaPath::ts_config(path);
-            path.has_both_files = gql.is_some();
+            let path = GrafbaseSchemaPath::ts_config(path);
+
+            if gql.is_some() {
+                let mut warning = Warning::new("Found both grafbase.config.ts and schema.graphql files");
+
+                warning.set_hint("Delete one of them to avoid conflicts");
+                warnings.push(warning);
+            }
 
             Ok(Some(path))
         } else {

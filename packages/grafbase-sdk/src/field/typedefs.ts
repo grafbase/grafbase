@@ -1,11 +1,11 @@
 import { RequireAtLeastOne } from 'type-fest'
 import { Enum } from '../enum'
 import {
-  GBooleanListDef,
-  GDateListDef,
-  GListDef,
-  GNumberListDef,
-  GStringListDef
+  BooleanListDef,
+  DateListDef,
+  ListDef,
+  NumberListDef,
+  StringListDef
 } from './list'
 import { ScalarType, Searchable } from '..'
 
@@ -30,7 +30,7 @@ export enum FieldType {
   PhoneNumber = 'PhoneNumber'
 }
 
-export class GSearchDef {
+export class SearchDef {
   field: Searchable
 
   constructor(field: Searchable) {
@@ -43,12 +43,12 @@ export class GSearchDef {
 }
 
 type UniqueScalarType =
-  | GScalarDef
-  | GDefaultDef
-  | GSearchDef
-  | GLengthLimitedStringDef
+  | ScalarDef
+  | DefaultDef
+  | SearchDef
+  | LengthLimitedStringDef
 
-export class GUniqueDef {
+export class UniqueDef {
   compoundScope?: string[]
   scalar: UniqueScalarType
 
@@ -57,8 +57,8 @@ export class GUniqueDef {
     this.compoundScope = scope
   }
 
-  public search(): GSearchDef {
-    return new GSearchDef(this)
+  public search(): SearchDef {
+    return new SearchDef(this)
   }
 
   public toString(): string {
@@ -71,23 +71,23 @@ export class GUniqueDef {
   }
 }
 
-export class GDefaultDef {
+export class DefaultDef {
   defaultValue: ScalarType
-  scalar: GScalarDef | GLengthLimitedStringDef
+  scalar: ScalarDef | LengthLimitedStringDef
 
   constructor(
-    scalar: GScalarDef | GLengthLimitedStringDef,
+    scalar: ScalarDef | LengthLimitedStringDef,
     defaultValue: ScalarType
   ) {
     this.defaultValue = defaultValue
     this.scalar = scalar
   }
 
-  public unique(): GUniqueDef {
-    return new GUniqueDef(this)
+  public unique(): UniqueDef {
+    return new UniqueDef(this)
   }
 
-  public optional(): GDefaultDef {
+  public optional(): DefaultDef {
     this.scalar.optional()
     return this
   }
@@ -100,7 +100,7 @@ export class GDefaultDef {
   }
 }
 
-export class GScalarDef {
+export class ScalarDef {
   fieldType: FieldType | Enum
   isOptional: boolean
   defaultValue?: ScalarType
@@ -110,22 +110,22 @@ export class GScalarDef {
     this.isOptional = false
   }
 
-  public optional(): GScalarDef {
+  public optional(): ScalarDef {
     this.isOptional = true
 
     return this
   }
 
-  public unique(scope?: string[]): GUniqueDef {
-    return new GUniqueDef(this, scope)
+  public unique(scope?: string[]): UniqueDef {
+    return new UniqueDef(this, scope)
   }
 
-  public search(): GSearchDef {
-    return new GSearchDef(this)
+  public search(): SearchDef {
+    return new SearchDef(this)
   }
 
-  public list(): GListDef {
-    return new GListDef(this)
+  public list(): ListDef {
+    return new ListDef(this)
   }
 
   fieldTypeVal(): FieldType | Enum {
@@ -146,47 +146,47 @@ export class GScalarDef {
   }
 }
 
-export class GStringDef extends GScalarDef {
-  public default(val: string): GDefaultDef {
-    return new GDefaultDef(this, val)
+export class StringDef extends ScalarDef {
+  public default(val: string): DefaultDef {
+    return new DefaultDef(this, val)
   }
 
   public length(
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  ): GLengthLimitedStringDef {
-    return new GLengthLimitedStringDef(this, fieldLength)
+  ): LengthLimitedStringDef {
+    return new LengthLimitedStringDef(this, fieldLength)
   }
 
-  public list(): GStringListDef {
-    return new GStringListDef(this)
+  public list(): StringListDef {
+    return new StringListDef(this)
   }
 }
 
-export class GLengthLimitedStringDef {
+export class LengthLimitedStringDef {
   fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  scalar: GStringDef
+  scalar: StringDef
 
   constructor(
-    scalar: GStringDef,
+    scalar: StringDef,
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   ) {
     this.fieldLength = fieldLength
     this.scalar = scalar
   }
 
-  public unique(scope?: string[]): GUniqueDef {
-    return new GUniqueDef(this, scope)
+  public unique(scope?: string[]): UniqueDef {
+    return new UniqueDef(this, scope)
   }
 
-  public search(): GSearchDef {
-    return new GSearchDef(this)
+  public search(): SearchDef {
+    return new SearchDef(this)
   }
 
-  public default(val: string): GDefaultDef {
-    return new GDefaultDef(this, val)
+  public default(val: string): DefaultDef {
+    return new DefaultDef(this, val)
   }
 
-  public optional(): GLengthLimitedStringDef {
+  public optional(): LengthLimitedStringDef {
     this.scalar.optional()
 
     return this
@@ -209,39 +209,39 @@ export class GLengthLimitedStringDef {
   }
 }
 
-export class GNumberDef extends GScalarDef {
-  public default(val: number): GDefaultDef {
-    return new GDefaultDef(this, val)
+export class NumberDef extends ScalarDef {
+  public default(val: number): DefaultDef {
+    return new DefaultDef(this, val)
   }
 
-  public list(): GNumberListDef {
-    return new GNumberListDef(this)
-  }
-}
-
-export class GBooleanDef extends GScalarDef {
-  public default(val: boolean): GDefaultDef {
-    return new GDefaultDef(this, val)
-  }
-
-  public list(): GBooleanListDef {
-    return new GBooleanListDef(this)
+  public list(): NumberListDef {
+    return new NumberListDef(this)
   }
 }
 
-export class GDateDef extends GScalarDef {
-  public default(val: Date): GDefaultDef {
-    return new GDefaultDef(this, val)
+export class BooleanDef extends ScalarDef {
+  public default(val: boolean): DefaultDef {
+    return new DefaultDef(this, val)
   }
 
-  public list(): GDateListDef {
-    return new GDateListDef(this)
+  public list(): BooleanListDef {
+    return new BooleanListDef(this)
   }
 }
 
-export class GObjectDef extends GScalarDef {
-  public default(val: object): GDefaultDef {
-    return new GDefaultDef(this, val)
+export class DateDef extends ScalarDef {
+  public default(val: Date): DefaultDef {
+    return new DefaultDef(this, val)
+  }
+
+  public list(): DateListDef {
+    return new DateListDef(this)
+  }
+}
+
+export class ObjectDef extends ScalarDef {
+  public default(val: object): DefaultDef {
+    return new DefaultDef(this, val)
   }
 }
 
@@ -266,21 +266,11 @@ export function renderDefault(val: any, fieldType: FieldType | Enum) {
     return val.toString()
   } else {
     switch (fieldType) {
-      case FieldType.String: {
-        return `"${val}"`
-      }
-      case FieldType.ID: {
-        return `"${val}"`
-      }
-      case FieldType.Email: {
-        return `"${val}"`
-      }
-      case FieldType.PhoneNumber: {
-        return `"${val}"`
-      }
-      case FieldType.IPAddress: {
-        return `"${val}"`
-      }
+      case FieldType.String:
+      case FieldType.ID:
+      case FieldType.Email:
+      case FieldType.PhoneNumber:
+      case FieldType.IPAddress:
       case FieldType.URL: {
         return `"${val}"`
       }

@@ -1,8 +1,8 @@
 import { Field } from './field'
-import { GListDef } from './field/list'
-import { GScalarDef } from './field/typedefs'
+import { ListDef } from './field/list'
+import { ScalarDef } from './field/typedefs'
 import { Interface } from './interface'
-import { GReferenceDef } from './reference'
+import { ReferenceDef } from './reference'
 
 export class Type {
   name: string
@@ -17,7 +17,7 @@ export class Type {
 
   public field(
     name: string,
-    definition: GScalarDef | GListDef | GReferenceDef
+    definition: ScalarDef | ListDef | ReferenceDef
   ): Type {
     this.fields.push(new Field(name, definition))
 

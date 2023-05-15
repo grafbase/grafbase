@@ -1,7 +1,7 @@
 import { RelationRef } from '.'
-import { GListDef } from './field/list'
+import { ListDef } from './field/list'
 
-export class GRelationDef {
+export class RelationDef {
   relationName?: string
   referencedModel: RelationRef
   isOptional: boolean
@@ -11,17 +11,17 @@ export class GRelationDef {
     this.isOptional = false
   }
 
-  public optional(): GRelationDef {
+  public optional(): RelationDef {
     this.isOptional = true
 
     return this
   }
 
-  public list(): GListDef {
-    return new GListDef(this)
+  public list(): ListDef {
+    return new ListDef(this)
   }
 
-  public name(name: string): GRelationDef {
+  public name(name: string): RelationDef {
     this.relationName = name
 
     return this

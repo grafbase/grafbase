@@ -1,18 +1,18 @@
 import { Model } from './model'
-import { GRelationDef } from './relation'
+import { RelationDef } from './relation'
 import { Enum } from './enum'
 import {
   FieldType,
-  GBooleanDef,
-  GDateDef,
-  GNumberDef,
-  GObjectDef,
-  GStringDef,
-  GScalarDef
+  BooleanDef,
+  DateDef,
+  NumberDef,
+  ObjectDef,
+  StringDef,
+  ScalarDef
 } from './field/typedefs'
-import { GListDef } from './field/list'
+import { ListDef } from './field/list'
 import { Type } from './type'
-import { GReferenceDef } from './reference'
+import { ReferenceDef } from './reference'
 import { Union } from './union'
 import { Interface } from './interface'
 import { Query, QueryInput, QueryType } from './query'
@@ -48,7 +48,7 @@ export class GrafbaseSchema {
 
   public type(
     name: string,
-    fields: Record<string, GScalarDef | GListDef | GReferenceDef>
+    fields: Record<string, ScalarDef | ListDef | ReferenceDef>
   ): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),
@@ -62,7 +62,7 @@ export class GrafbaseSchema {
 
   public interface(
     name: string,
-    types: Record<string, GScalarDef | GListDef>
+    types: Record<string, ScalarDef | ListDef>
   ): Interface {
     const iface = Object.entries(types).reduce(
       (iface, [name, definition]) => iface.field(name, definition),
@@ -86,21 +86,17 @@ export class GrafbaseSchema {
   }
 
   public query(name: string, definition: QueryInput): Query {
-    const q = new Query(
+    var query = new Query(
       name,
       QueryType.Query,
       definition.returns,
       definition.resolver
     )
 
-    let query
     if (definition.args != null) {
-      query = Object.entries(definition.args).reduce(
-        (query, [name, type]) => query.pushArgument(name, type),
-        q
+      Object.entries(definition.args).forEach(([name, type]) =>
+        query.pushArgument(name, type)
       )
-    } else {
-      query = q
     }
 
     this.queries.push(query)
@@ -109,21 +105,18 @@ export class GrafbaseSchema {
   }
 
   public mutation(name: string, definition: QueryInput): Query {
-    const q = new Query(
+    var query = new Query(
       name,
       QueryType.Mutation,
       definition.returns,
       definition.resolver
     )
 
-    let query
     if (definition.args != null) {
-      query = Object.entries(definition.args).reduce(
-        (query, [name, type]) => query.pushArgument(name, type),
-        q
+      Object.entries(definition.args).forEach(
+        ([name, type]) => query.pushArgument(name, type),
+        query
       )
-    } else {
-      query = q
     }
 
     this.queries.push(query)
@@ -139,64 +132,64 @@ export class GrafbaseSchema {
     return e
   }
 
-  public string(): GStringDef {
-    return new GStringDef(FieldType.String)
+  public string(): StringDef {
+    return new StringDef(FieldType.String)
   }
 
-  public id(): GStringDef {
-    return new GStringDef(FieldType.ID)
+  public id(): StringDef {
+    return new StringDef(FieldType.ID)
   }
 
-  public email(): GStringDef {
-    return new GStringDef(FieldType.Email)
+  public email(): StringDef {
+    return new StringDef(FieldType.Email)
   }
 
-  public int(): GNumberDef {
-    return new GNumberDef(FieldType.Int)
+  public int(): NumberDef {
+    return new NumberDef(FieldType.Int)
   }
 
-  public float(): GNumberDef {
-    return new GNumberDef(FieldType.Float)
+  public float(): NumberDef {
+    return new NumberDef(FieldType.Float)
   }
 
-  public boolean(): GBooleanDef {
-    return new GBooleanDef(FieldType.Boolean)
+  public boolean(): BooleanDef {
+    return new BooleanDef(FieldType.Boolean)
   }
 
-  public date(): GDateDef {
-    return new GDateDef(FieldType.Date)
+  public date(): DateDef {
+    return new DateDef(FieldType.Date)
   }
 
-  public datetime(): GDateDef {
-    return new GDateDef(FieldType.DateTime)
+  public datetime(): DateDef {
+    return new DateDef(FieldType.DateTime)
   }
 
-  public ipAddress(): GStringDef {
-    return new GStringDef(FieldType.IPAddress)
+  public ipAddress(): StringDef {
+    return new StringDef(FieldType.IPAddress)
   }
 
-  public timestamp(): GNumberDef {
-    return new GNumberDef(FieldType.Timestamp)
+  public timestamp(): NumberDef {
+    return new NumberDef(FieldType.Timestamp)
   }
 
-  public url(): GStringDef {
-    return new GStringDef(FieldType.URL)
+  public url(): StringDef {
+    return new StringDef(FieldType.URL)
   }
 
-  public json(): GObjectDef {
-    return new GObjectDef(FieldType.JSON)
+  public json(): ObjectDef {
+    return new ObjectDef(FieldType.JSON)
   }
 
-  public phoneNumber(): GStringDef {
-    return new GStringDef(FieldType.PhoneNumber)
+  public phoneNumber(): StringDef {
+    return new StringDef(FieldType.PhoneNumber)
   }
 
-  public relation(ref: RelationRef): GRelationDef {
-    return new GRelationDef(ref)
+  public relation(ref: RelationRef): RelationDef {
+    return new RelationDef(ref)
   }
 
-  public ref(type: Type | Enum): GReferenceDef {
-    return new GReferenceDef(type)
+  public ref(type: Type | Enum): ReferenceDef {
+    return new ReferenceDef(type)
   }
 
   public clear() {

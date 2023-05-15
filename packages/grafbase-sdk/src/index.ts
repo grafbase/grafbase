@@ -1,32 +1,32 @@
-import { GListDef } from './field/list'
+import { ListDef } from './field/list'
 import {
-  GDefaultDef,
-  GLengthLimitedStringDef,
-  GScalarDef,
-  GSearchDef,
-  GUniqueDef
+  DefaultDef,
+  LengthLimitedStringDef,
+  ScalarDef,
+  SearchDef,
+  UniqueDef
 } from './field/typedefs'
 import { Model } from './model'
-import { GReferenceDef } from './reference'
-import { GRelationDef } from './relation'
+import { ReferenceDef } from './reference'
+import { RelationDef } from './relation'
 import { GrafbaseSchema } from './grafbase-schema'
 import { Config, ConfigInput } from './config'
 
 export type FieldShape =
-  | GScalarDef
-  | GRelationDef
-  | GListDef
-  | GSearchDef
-  | GReferenceDef
-  | GUniqueDef
-  | GDefaultDef
-  | GLengthLimitedStringDef
+  | ScalarDef
+  | RelationDef
+  | ListDef
+  | SearchDef
+  | ReferenceDef
+  | UniqueDef
+  | DefaultDef
+  | LengthLimitedStringDef
 
 export type AtLeastOne<T> = [T, ...T[]]
 export type ScalarType = string | number | Date | object | boolean
 export type EnumShape = AtLeastOne<string> | { [s: number]: string }
 export type RelationRef = RelationF | Model
-export type Searchable = GScalarDef | GListDef | GUniqueDef
+export type Searchable = ScalarDef | ListDef | UniqueDef
 
 type RelationF = () => Model
 

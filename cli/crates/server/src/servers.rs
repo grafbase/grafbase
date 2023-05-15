@@ -1,6 +1,6 @@
 use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
-    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
+    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT,
 };
 use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
@@ -488,10 +488,6 @@ async fn run_schema_parser(
 async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
     let environment = Environment::get();
 
-    if environment.project_grafbase_schema_path.has_both_files() {
-        warn!("grafbase.config.ts takes precedence over schema.graphql - please choose one and delete the other to avoid conflicts");
-    }
-
     let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
     let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
 
@@ -504,9 +500,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         .join(SCHEMA_PARSER_DIR)
         .join(CONFIG_PARSER_SCRIPT);
 
-    let ts_node_path = environment
-        .user_dot_grafbase_path
-        .join("node_modules/ts-node/dist/bin.js");
+    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT);
 
     let args = [
         ts_node_path.as_path(),
@@ -518,7 +512,6 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
     let node_command = Command::new("node")
         .args(args)
         .current_dir(&environment.user_dot_grafbase_path)
-        .stdin(Stdio::piped())
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

@@ -3,8 +3,11 @@ use crate::{
     watercolor::{self, watercolor},
 };
 use colored::Colorize;
-use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST};
 use common::types::ResolverMessageLevel;
+use common::{
+    consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, LOCALHOST},
+    environment::Warning,
+};
 use std::path::Path;
 
 /// reports to stdout that the server has started
@@ -66,6 +69,20 @@ pub fn error(error: &CliError) {
     watercolor::output_error!("Error: {error}", @BrightRed);
     if let Some(hint) = error.to_hint() {
         watercolor::output_error!("Hint: {hint}", @BrightBlue);
+    }
+}
+
+pub fn warnings(warnings: &[Warning]) {
+    for warning in warnings {
+        let msg = warning.message();
+
+        watercolor::output!("Warning: {msg}", @BrightYellow);
+
+        if let Some(hint) = warning.hint() {
+            watercolor::output!("Hint: {hint}", @BrightBlue)
+        }
+
+        println!();
     }
 }
 

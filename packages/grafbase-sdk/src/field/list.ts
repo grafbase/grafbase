@@ -1,35 +1,35 @@
 import { ScalarType } from '..'
-import { GReferenceDef } from '../reference'
-import { GRelationDef } from '../relation'
+import { ReferenceDef } from '../reference'
+import { RelationDef } from '../relation'
 import {
   FieldType,
-  GBooleanDef,
-  GDateDef,
-  GNumberDef,
-  GScalarDef,
-  GSearchDef,
-  GStringDef,
+  BooleanDef,
+  DateDef,
+  NumberDef,
+  ScalarDef,
+  SearchDef,
+  StringDef,
   renderDefault
 } from './typedefs'
 
-export class GListDef {
-  fieldDefinition: GScalarDef | GRelationDef | GReferenceDef
+export class ListDef {
+  fieldDefinition: ScalarDef | RelationDef | ReferenceDef
   isOptional: boolean
   defaultValue?: ScalarType[]
 
-  constructor(fieldDefinition: GScalarDef | GRelationDef | GReferenceDef) {
+  constructor(fieldDefinition: ScalarDef | RelationDef | ReferenceDef) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
   }
 
-  public optional(): GListDef {
+  public optional(): ListDef {
     this.isOptional = true
 
     return this
   }
 
-  public search(): GSearchDef {
-    return new GSearchDef(this)
+  public search(): SearchDef {
+    return new SearchDef(this)
   }
 
   public toString(): string {
@@ -39,10 +39,10 @@ export class GListDef {
   }
 }
 
-class GListWithDefaultDef extends GListDef {
+class ListWithDefaultDef extends ListDef {
   fieldType: FieldType
 
-  constructor(fieldDefinition: GScalarDef) {
+  constructor(fieldDefinition: ScalarDef) {
     super(fieldDefinition)
 
     this.fieldType = fieldDefinition.fieldType as FieldType
@@ -60,48 +60,48 @@ class GListWithDefaultDef extends GListDef {
   }
 }
 
-export class GStringListDef extends GListWithDefaultDef {
-  constructor(fieldDefinition: GStringDef) {
+export class StringListDef extends ListWithDefaultDef {
+  constructor(fieldDefinition: StringDef) {
     super(fieldDefinition)
   }
 
-  public default(val: string[]): GStringListDef {
+  public default(val: string[]): StringListDef {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class GNumberListDef extends GListWithDefaultDef {
-  constructor(fieldDefinition: GNumberDef) {
+export class NumberListDef extends ListWithDefaultDef {
+  constructor(fieldDefinition: NumberDef) {
     super(fieldDefinition)
   }
 
-  public default(val: number[]): GNumberListDef {
+  public default(val: number[]): NumberListDef {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class GBooleanListDef extends GListWithDefaultDef {
-  constructor(fieldDefinition: GBooleanDef) {
+export class BooleanListDef extends ListWithDefaultDef {
+  constructor(fieldDefinition: BooleanDef) {
     super(fieldDefinition)
   }
 
-  public default(val: boolean[]): GBooleanListDef {
+  public default(val: boolean[]): BooleanListDef {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class GDateListDef extends GListWithDefaultDef {
-  constructor(fieldDefinition: GDateDef) {
+export class DateListDef extends ListWithDefaultDef {
+  constructor(fieldDefinition: DateDef) {
     super(fieldDefinition)
   }
 
-  public default(val: Date[]): GDateListDef {
+  public default(val: Date[]): DateListDef {
     this.defaultValue = val
 
     return this
