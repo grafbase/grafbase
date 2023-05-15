@@ -223,7 +223,7 @@ async fn build_resolver(
     );
     tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
         .await
-        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_entrypoint_path.to_owned(), err))?;
+        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_entrypoint_path.clone(), err))?;
 
     let wrangler_output_directory_path = resolver_build_artifact_directory_path.join("wrangler");
     let outdir_argument = format!(
@@ -236,10 +236,10 @@ async fn build_resolver(
     let mut package_json = if package_json_path.is_some() {
         let package_json_contents = tokio::fs::read(&resolver_build_package_json_path)
             .await
-            .map_err(|err| ServerError::ReadFile(resolver_build_package_json_path.to_owned(), err))?;
+            .map_err(|err| ServerError::ReadFile(resolver_build_package_json_path.clone(), err))?;
         serde_json::from_slice(&package_json_contents).expect("must be valid JSON")
     } else {
-        serde_json::Value::Object(Default::default())
+        serde_json::json!({})
     };
     package_json.as_object_mut().expect("must be an object").insert(
         "module".to_owned(),
