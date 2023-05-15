@@ -1,5 +1,6 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
+    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
 use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
@@ -8,11 +9,12 @@ use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
 use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
-use common::environment::Environment;
+use common::environment::{Environment, SchemaLocation};
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
 
+use std::borrow::Cow;
 use std::env;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -400,13 +402,17 @@ async fn run_schema_parser(
     );
 
     let output = {
+        let schema_path = match environment.project_grafbase_schema_path.location() {
+            SchemaLocation::TsConfig(ref ts_config_path) => {
+                Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
+            }
+            SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
+        };
+
         let mut node_command = Command::new("node")
             .args([
                 parser_path.to_str().ok_or(ServerError::CachePath)?,
-                environment
-                    .project_grafbase_schema_path
-                    .to_str()
-                    .ok_or(ServerError::ProjectPath)?,
+                &schema_path,
                 parser_result_path.to_str().expect("must be a valid path"),
             ])
             .current_dir(&environment.project_dot_grafbase_path)
@@ -475,6 +481,57 @@ async fn run_schema_parser(
     .map_err(ServerError::SchemaRegistryWrite)?;
 
     Ok(detected_resolvers)
+}
+
+/// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
+/// file to the filesystem, returning a path to the generated file.
+async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
+    let environment = Environment::get();
+
+    let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
+    let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
+
+    if !generated_schemas_dir.exists() {
+        std::fs::create_dir_all(generated_schemas_dir).map_err(ServerError::SchemaParserError)?;
+    }
+
+    let config_parser_path = environment
+        .user_dot_grafbase_path
+        .join(SCHEMA_PARSER_DIR)
+        .join(CONFIG_PARSER_SCRIPT);
+
+    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
+
+    let args = [
+        ts_node_path.as_path(),
+        config_parser_path.as_path(),
+        ts_config_path,
+        &generated_config_path,
+    ];
+
+    let node_command = Command::new("node")
+        .args(args)
+        .current_dir(&environment.user_dot_grafbase_path)
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(ServerError::SchemaParserError)?;
+
+    let output = node_command
+        .wait_with_output()
+        .await
+        .map_err(ServerError::SchemaParserError)?;
+
+    if !output.status.success() {
+        let msg = String::from_utf8_lossy(&output.stderr);
+        return Err(ServerError::LoadTsConfig(msg.into_owned()));
+    }
+
+    let generated_config_path = generated_config_path.to_str().ok_or(ServerError::ProjectPath)?;
+
+    trace!("Generated configuration in {}.", generated_config_path);
+
+    Ok(generated_config_path.to_string())
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {

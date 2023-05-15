@@ -81,6 +81,7 @@ fn try_main() -> Result<(), CliError> {
 
     if let Some(("dev" | "create" | "deploy" | "link" | "unlink", ..)) = subcommand {
         Environment::try_init().map_err(CliError::CommonError)?;
+        report::warnings(&Environment::get().warnings);
     }
 
     match subcommand {
