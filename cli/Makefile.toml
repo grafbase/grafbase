@@ -33,7 +33,7 @@ script = '''
 VERSION=${@}
 if [[ "$VERSION" = -* ]] || [[ ! $(npx --yes semver $VERSION) ]];
 then
-  echo "Error: '$VERSION' is not a valid semantic version" 1>&2;
+  echo "Error: '$VERSION' is not a valid semantic version" 1>&2
   exit 1
 fi
 cargo release version $VERSION --execute --no-confirm
