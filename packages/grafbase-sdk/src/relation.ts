@@ -1,7 +1,7 @@
 import { RelationRef } from '.'
-import { ListDef } from './field/list'
+import { ListDefinition } from './field/list'
 
-export class RelationDef {
+export class RelationDefinition {
   relationName?: string
   referencedModel: RelationRef
   isOptional: boolean
@@ -11,17 +11,17 @@ export class RelationDef {
     this.isOptional = false
   }
 
-  public optional(): RelationDef {
+  public optional(): RelationDefinition {
     this.isOptional = true
 
     return this
   }
 
-  public list(): ListDef {
-    return new ListDef(this)
+  public list(): ListDefinition {
+    return new ListDefinition(this)
   }
 
-  public name(name: string): RelationDef {
+  public name(name: string): RelationDefinition {
     this.relationName = name
 
     return this

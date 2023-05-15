@@ -1,35 +1,37 @@
 import { ScalarType } from '..'
-import { ReferenceDef } from '../reference'
-import { RelationDef } from '../relation'
+import { ReferenceDefinition } from '../reference'
+import { RelationDefinition } from '../relation'
 import {
   FieldType,
-  BooleanDef,
-  DateDef,
-  NumberDef,
-  ScalarDef,
-  SearchDef,
-  StringDef,
+  BooleanDefinition,
+  DateDefinition,
+  NumberDefinition,
+  ScalarDefinition,
+  SearchDefinition,
+  StringDefinition,
   renderDefault
 } from './typedefs'
 
-export class ListDef {
-  fieldDefinition: ScalarDef | RelationDef | ReferenceDef
+export class ListDefinition {
+  fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
   isOptional: boolean
   defaultValue?: ScalarType[]
 
-  constructor(fieldDefinition: ScalarDef | RelationDef | ReferenceDef) {
+  constructor(
+    fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
+  ) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
   }
 
-  public optional(): ListDef {
+  public optional(): ListDefinition {
     this.isOptional = true
 
     return this
   }
 
-  public search(): SearchDef {
-    return new SearchDef(this)
+  public search(): SearchDefinition {
+    return new SearchDefinition(this)
   }
 
   public toString(): string {
@@ -39,10 +41,10 @@ export class ListDef {
   }
 }
 
-class ListWithDefaultDef extends ListDef {
+class ListWithDefaultDefinition extends ListDefinition {
   fieldType: FieldType
 
-  constructor(fieldDefinition: ScalarDef) {
+  constructor(fieldDefinition: ScalarDefinition) {
     super(fieldDefinition)
 
     this.fieldType = fieldDefinition.fieldType as FieldType
@@ -60,48 +62,48 @@ class ListWithDefaultDef extends ListDef {
   }
 }
 
-export class StringListDef extends ListWithDefaultDef {
-  constructor(fieldDefinition: StringDef) {
+export class StringListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: StringDefinition) {
     super(fieldDefinition)
   }
 
-  public default(val: string[]): StringListDef {
+  public default(val: string[]): StringListDefinition {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class NumberListDef extends ListWithDefaultDef {
-  constructor(fieldDefinition: NumberDef) {
+export class NumberListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: NumberDefinition) {
     super(fieldDefinition)
   }
 
-  public default(val: number[]): NumberListDef {
+  public default(val: number[]): NumberListDefinition {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class BooleanListDef extends ListWithDefaultDef {
-  constructor(fieldDefinition: BooleanDef) {
+export class BooleanListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: BooleanDefinition) {
     super(fieldDefinition)
   }
 
-  public default(val: boolean[]): BooleanListDef {
+  public default(val: boolean[]): BooleanListDefinition {
     this.defaultValue = val
 
     return this
   }
 }
 
-export class DateListDef extends ListWithDefaultDef {
-  constructor(fieldDefinition: DateDef) {
+export class DateListDefinition extends ListWithDefaultDefinition {
+  constructor(fieldDefinition: DateDefinition) {
     super(fieldDefinition)
   }
 
-  public default(val: Date[]): DateListDef {
+  public default(val: Date[]): DateListDefinition {
     this.defaultValue = val
 
     return this

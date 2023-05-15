@@ -1,8 +1,8 @@
 import { Enum } from './enum'
-import { ListDef } from './field/list'
+import { ListDefinition } from './field/list'
 import { Type } from './type'
 
-export class ReferenceDef {
+export class ReferenceDefinition {
   referencedType: string
   isOptional: boolean
 
@@ -11,14 +11,14 @@ export class ReferenceDef {
     this.isOptional = false
   }
 
-  public optional(): ReferenceDef {
+  public optional(): ReferenceDefinition {
     this.isOptional = true
 
     return this
   }
 
-  public list(): ListDef {
-    return new ListDef(this)
+  public list(): ListDefinition {
+    return new ListDefinition(this)
   }
 
   public toString(): string {

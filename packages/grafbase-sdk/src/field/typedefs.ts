@@ -1,11 +1,11 @@
 import { RequireAtLeastOne } from 'type-fest'
 import { Enum } from '../enum'
 import {
-  BooleanListDef,
-  DateListDef,
-  ListDef,
-  NumberListDef,
-  StringListDef
+  BooleanListDefinition,
+  DateListDefinition,
+  ListDefinition,
+  NumberListDefinition,
+  StringListDefinition
 } from './list'
 import { ScalarType, Searchable } from '..'
 
@@ -30,7 +30,7 @@ export enum FieldType {
   PhoneNumber = 'PhoneNumber'
 }
 
-export class SearchDef {
+export class SearchDefinition {
   field: Searchable
 
   constructor(field: Searchable) {
@@ -43,12 +43,12 @@ export class SearchDef {
 }
 
 type UniqueScalarType =
-  | ScalarDef
-  | DefaultDef
-  | SearchDef
-  | LengthLimitedStringDef
+  | ScalarDefinition
+  | DefaultDefinition
+  | SearchDefinition
+  | LengthLimitedStringDefinition
 
-export class UniqueDef {
+export class UniqueDefinition {
   compoundScope?: string[]
   scalar: UniqueScalarType
 
@@ -57,8 +57,8 @@ export class UniqueDef {
     this.compoundScope = scope
   }
 
-  public search(): SearchDef {
-    return new SearchDef(this)
+  public search(): SearchDefinition {
+    return new SearchDefinition(this)
   }
 
   public toString(): string {
@@ -71,23 +71,23 @@ export class UniqueDef {
   }
 }
 
-export class DefaultDef {
+export class DefaultDefinition {
   defaultValue: ScalarType
-  scalar: ScalarDef | LengthLimitedStringDef
+  scalar: ScalarDefinition | LengthLimitedStringDefinition
 
   constructor(
-    scalar: ScalarDef | LengthLimitedStringDef,
+    scalar: ScalarDefinition | LengthLimitedStringDefinition,
     defaultValue: ScalarType
   ) {
     this.defaultValue = defaultValue
     this.scalar = scalar
   }
 
-  public unique(): UniqueDef {
-    return new UniqueDef(this)
+  public unique(): UniqueDefinition {
+    return new UniqueDefinition(this)
   }
 
-  public optional(): DefaultDef {
+  public optional(): DefaultDefinition {
     this.scalar.optional()
     return this
   }
@@ -100,7 +100,7 @@ export class DefaultDef {
   }
 }
 
-export class ScalarDef {
+export class ScalarDefinition {
   fieldType: FieldType | Enum
   isOptional: boolean
   defaultValue?: ScalarType
@@ -110,22 +110,22 @@ export class ScalarDef {
     this.isOptional = false
   }
 
-  public optional(): ScalarDef {
+  public optional(): ScalarDefinition {
     this.isOptional = true
 
     return this
   }
 
-  public unique(scope?: string[]): UniqueDef {
-    return new UniqueDef(this, scope)
+  public unique(scope?: string[]): UniqueDefinition {
+    return new UniqueDefinition(this, scope)
   }
 
-  public search(): SearchDef {
-    return new SearchDef(this)
+  public search(): SearchDefinition {
+    return new SearchDefinition(this)
   }
 
-  public list(): ListDef {
-    return new ListDef(this)
+  public list(): ListDefinition {
+    return new ListDefinition(this)
   }
 
   fieldTypeVal(): FieldType | Enum {
@@ -146,47 +146,47 @@ export class ScalarDef {
   }
 }
 
-export class StringDef extends ScalarDef {
-  public default(val: string): DefaultDef {
-    return new DefaultDef(this, val)
+export class StringDefinition extends ScalarDefinition {
+  public default(val: string): DefaultDefinition {
+    return new DefaultDefinition(this, val)
   }
 
   public length(
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  ): LengthLimitedStringDef {
-    return new LengthLimitedStringDef(this, fieldLength)
+  ): LengthLimitedStringDefinition {
+    return new LengthLimitedStringDefinition(this, fieldLength)
   }
 
-  public list(): StringListDef {
-    return new StringListDef(this)
+  public list(): StringListDefinition {
+    return new StringListDefinition(this)
   }
 }
 
-export class LengthLimitedStringDef {
+export class LengthLimitedStringDefinition {
   fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  scalar: StringDef
+  scalar: StringDefinition
 
   constructor(
-    scalar: StringDef,
+    scalar: StringDefinition,
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   ) {
     this.fieldLength = fieldLength
     this.scalar = scalar
   }
 
-  public unique(scope?: string[]): UniqueDef {
-    return new UniqueDef(this, scope)
+  public unique(scope?: string[]): UniqueDefinition {
+    return new UniqueDefinition(this, scope)
   }
 
-  public search(): SearchDef {
-    return new SearchDef(this)
+  public search(): SearchDefinition {
+    return new SearchDefinition(this)
   }
 
-  public default(val: string): DefaultDef {
-    return new DefaultDef(this, val)
+  public default(val: string): DefaultDefinition {
+    return new DefaultDefinition(this, val)
   }
 
-  public optional(): LengthLimitedStringDef {
+  public optional(): LengthLimitedStringDefinition {
     this.scalar.optional()
 
     return this
@@ -209,39 +209,39 @@ export class LengthLimitedStringDef {
   }
 }
 
-export class NumberDef extends ScalarDef {
-  public default(val: number): DefaultDef {
-    return new DefaultDef(this, val)
+export class NumberDefinition extends ScalarDefinition {
+  public default(val: number): DefaultDefinition {
+    return new DefaultDefinition(this, val)
   }
 
-  public list(): NumberListDef {
-    return new NumberListDef(this)
-  }
-}
-
-export class BooleanDef extends ScalarDef {
-  public default(val: boolean): DefaultDef {
-    return new DefaultDef(this, val)
-  }
-
-  public list(): BooleanListDef {
-    return new BooleanListDef(this)
+  public list(): NumberListDefinition {
+    return new NumberListDefinition(this)
   }
 }
 
-export class DateDef extends ScalarDef {
-  public default(val: Date): DefaultDef {
-    return new DefaultDef(this, val)
+export class BooleanDefinition extends ScalarDefinition {
+  public default(val: boolean): DefaultDefinition {
+    return new DefaultDefinition(this, val)
   }
 
-  public list(): DateListDef {
-    return new DateListDef(this)
+  public list(): BooleanListDefinition {
+    return new BooleanListDefinition(this)
   }
 }
 
-export class ObjectDef extends ScalarDef {
-  public default(val: object): DefaultDef {
-    return new DefaultDef(this, val)
+export class DateDefinition extends ScalarDefinition {
+  public default(val: Date): DefaultDefinition {
+    return new DefaultDefinition(this, val)
+  }
+
+  public list(): DateListDefinition {
+    return new DateListDefinition(this)
+  }
+}
+
+export class ObjectDefinition extends ScalarDefinition {
+  public default(val: object): DefaultDefinition {
+    return new DefaultDefinition(this, val)
   }
 }
 

@@ -1,18 +1,18 @@
 import { Model } from './model'
-import { RelationDef } from './relation'
+import { RelationDefinition } from './relation'
 import { Enum } from './enum'
 import {
   FieldType,
-  BooleanDef,
-  DateDef,
-  NumberDef,
-  ObjectDef,
-  StringDef,
-  ScalarDef
+  BooleanDefinition,
+  DateDefinition,
+  NumberDefinition,
+  ObjectDefinition,
+  StringDefinition,
+  ScalarDefinition
 } from './field/typedefs'
-import { ListDef } from './field/list'
+import { ListDefinition } from './field/list'
 import { Type } from './type'
-import { ReferenceDef } from './reference'
+import { ReferenceDefinition } from './reference'
 import { Union } from './union'
 import { Interface } from './interface'
 import { Query, QueryInput, QueryType } from './query'
@@ -48,7 +48,10 @@ export class GrafbaseSchema {
 
   public type(
     name: string,
-    fields: Record<string, ScalarDef | ListDef | ReferenceDef>
+    fields: Record<
+      string,
+      ScalarDefinition | ListDefinition | ReferenceDefinition
+    >
   ): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),
@@ -62,7 +65,7 @@ export class GrafbaseSchema {
 
   public interface(
     name: string,
-    types: Record<string, ScalarDef | ListDef>
+    types: Record<string, ScalarDefinition | ListDefinition>
   ): Interface {
     const iface = Object.entries(types).reduce(
       (iface, [name, definition]) => iface.field(name, definition),
@@ -132,64 +135,64 @@ export class GrafbaseSchema {
     return e
   }
 
-  public string(): StringDef {
-    return new StringDef(FieldType.String)
+  public string(): StringDefinition {
+    return new StringDefinition(FieldType.String)
   }
 
-  public id(): StringDef {
-    return new StringDef(FieldType.ID)
+  public id(): StringDefinition {
+    return new StringDefinition(FieldType.ID)
   }
 
-  public email(): StringDef {
-    return new StringDef(FieldType.Email)
+  public email(): StringDefinition {
+    return new StringDefinition(FieldType.Email)
   }
 
-  public int(): NumberDef {
-    return new NumberDef(FieldType.Int)
+  public int(): NumberDefinition {
+    return new NumberDefinition(FieldType.Int)
   }
 
-  public float(): NumberDef {
-    return new NumberDef(FieldType.Float)
+  public float(): NumberDefinition {
+    return new NumberDefinition(FieldType.Float)
   }
 
-  public boolean(): BooleanDef {
-    return new BooleanDef(FieldType.Boolean)
+  public boolean(): BooleanDefinition {
+    return new BooleanDefinition(FieldType.Boolean)
   }
 
-  public date(): DateDef {
-    return new DateDef(FieldType.Date)
+  public date(): DateDefinition {
+    return new DateDefinition(FieldType.Date)
   }
 
-  public datetime(): DateDef {
-    return new DateDef(FieldType.DateTime)
+  public datetime(): DateDefinition {
+    return new DateDefinition(FieldType.DateTime)
   }
 
-  public ipAddress(): StringDef {
-    return new StringDef(FieldType.IPAddress)
+  public ipAddress(): StringDefinition {
+    return new StringDefinition(FieldType.IPAddress)
   }
 
-  public timestamp(): NumberDef {
-    return new NumberDef(FieldType.Timestamp)
+  public timestamp(): NumberDefinition {
+    return new NumberDefinition(FieldType.Timestamp)
   }
 
-  public url(): StringDef {
-    return new StringDef(FieldType.URL)
+  public url(): StringDefinition {
+    return new StringDefinition(FieldType.URL)
   }
 
-  public json(): ObjectDef {
-    return new ObjectDef(FieldType.JSON)
+  public json(): ObjectDefinition {
+    return new ObjectDefinition(FieldType.JSON)
   }
 
-  public phoneNumber(): StringDef {
-    return new StringDef(FieldType.PhoneNumber)
+  public phoneNumber(): StringDefinition {
+    return new StringDefinition(FieldType.PhoneNumber)
   }
 
-  public relation(ref: RelationRef): RelationDef {
-    return new RelationDef(ref)
+  public relation(ref: RelationRef): RelationDefinition {
+    return new RelationDefinition(ref)
   }
 
-  public ref(type: Type | Enum): ReferenceDef {
-    return new ReferenceDef(type)
+  public ref(type: Type | Enum): ReferenceDefinition {
+    return new ReferenceDefinition(type)
   }
 
   public clear() {

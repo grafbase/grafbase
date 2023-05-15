@@ -1,6 +1,6 @@
 import { Field } from './field'
-import { ListDef } from './field/list'
-import { ScalarDef } from './field/typedefs'
+import { ListDefinition } from './field/list'
+import { ScalarDefinition } from './field/typedefs'
 
 export class Interface {
   name: string
@@ -11,7 +11,10 @@ export class Interface {
     this.fields = []
   }
 
-  public field(name: string, definition: ScalarDef | ListDef): Interface {
+  public field(
+    name: string,
+    definition: ScalarDefinition | ListDefinition
+  ): Interface {
     this.fields.push(new Field(name, definition))
 
     return this

@@ -1,8 +1,8 @@
 import { Field } from './field'
-import { ListDef } from './field/list'
-import { ScalarDef } from './field/typedefs'
+import { ListDefinition } from './field/list'
+import { ScalarDefinition } from './field/typedefs'
 import { Interface } from './interface'
-import { ReferenceDef } from './reference'
+import { ReferenceDefinition } from './reference'
 
 export class Type {
   name: string
@@ -17,7 +17,7 @@ export class Type {
 
   public field(
     name: string,
-    definition: ScalarDef | ListDef | ReferenceDef
+    definition: ScalarDefinition | ListDefinition | ReferenceDefinition
   ): Type {
     this.fields.push(new Field(name, definition))
 

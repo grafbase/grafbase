@@ -1,9 +1,9 @@
-import { ListDef } from './field/list'
-import { ScalarDef } from './field/typedefs'
-import { ReferenceDef } from './reference'
+import { ListDefinition } from './field/list'
+import { ScalarDefinition } from './field/typedefs'
+import { ReferenceDefinition } from './reference'
 
-export type InputType = ScalarDef | ListDef | ReferenceDef
-export type OutputType = ScalarDef | ListDef | ReferenceDef
+export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
+export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
 
 export interface QueryInput {
   args?: Record<string, InputType>
