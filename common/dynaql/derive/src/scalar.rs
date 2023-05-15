@@ -55,6 +55,7 @@ pub fn generate(
                     is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
                     visible: #visible,
                     specified_by_url: #specified_by_url,
+                    parser: #crate_name::registry::ScalarParser::BestEffort,
                 })
             }
 
@@ -85,6 +86,7 @@ pub fn generate(
                     is_valid: Some(|value| <#self_ty as #crate_name::ScalarType>::is_valid(value)),
                     visible: #visible,
                     specified_by_url: #specified_by_url,
+                    parser: #crate_name::registry::ScalarParser::BestEffort,
                 })
             }
 

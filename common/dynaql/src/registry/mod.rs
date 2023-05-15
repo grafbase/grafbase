@@ -479,13 +479,20 @@ impl MetaField {
                         ServerError::new("Internal Error: expected a field", Some(ctx.item.pos))
                     })?;
                 let result = match meta_type {
-                    MetaType::Scalar { .. } => match result {
-                        serde_json::Value::Null => Value::Null,
-                        _ => PossibleScalar::to_value(
-                            &self.ty.strip_suffix('!').unwrap_or(&self.ty),
-                            result,
-                        )
-                        .map_err(|err| err.into_server_error(ctx.item.pos))?,
+                    MetaType::Scalar { parser, .. } => match parser {
+                        ScalarParser::PassThrough => {
+                            result.try_into().map_err(|err: serde_json::Error| {
+                                ServerError::new(err.to_string(), Some(ctx.item.pos))
+                            })?
+                        }
+                        ScalarParser::BestEffort => match result {
+                            serde_json::Value::Null => Value::Null,
+                            _ => PossibleScalar::to_value(
+                                &self.ty.strip_suffix('!').unwrap_or(&self.ty),
+                                result,
+                            )
+                            .map_err(|err| err.into_server_error(ctx.item.pos))?,
+                        },
                     },
                     MetaType::Enum { .. } => Value::from_json(result)
                         .map_err(|err| ServerError::new(err.to_string(), Some(ctx.item.pos)))?,
@@ -749,6 +756,7 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         specified_by_url: Option<String>,
+        parser: ScalarParser,
     },
     Object {
         name: String,
@@ -810,6 +818,22 @@ pub enum MetaType {
     },
 }
 
+/// The type of parser to be used for scalar values.
+#[derive(Default, derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
+#[derivative(Debug)]
+pub enum ScalarParser {
+    /// Do not parse scalars, instead match the [`serde_json::Value`] type directly to the relevant
+    /// [`Value`] type.
+    PassThrough,
+
+    /// Parse the scalar based on a list of well-known formats, trying to match the value to one of
+    /// the formats. If no match is found, an error is returned.
+    ///
+    /// See [`PossibleScalar`] for more details.
+    #[default]
+    BestEffort,
+}
+
 impl Hash for MetaType {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         match self {
@@ -817,8 +841,7 @@ impl Hash for MetaType {
                 name,
                 description,
                 specified_by_url,
-                visible: _,
-                is_valid: _,
+                ..
             } => {
                 name.hash(state);
                 description.hash(state);
@@ -919,15 +942,13 @@ impl PartialEq for MetaType {
                     name,
                     description,
                     specified_by_url,
-                    visible: _,
-                    is_valid: _,
+                    ..
                 },
                 Self::Scalar {
                     name: o_name,
                     description: o_descrition,
                     specified_by_url: o_specified_by_url,
-                    visible: _,
-                    is_valid: _,
+                    ..
                 },
             ) => {
                 name.eq(o_name)

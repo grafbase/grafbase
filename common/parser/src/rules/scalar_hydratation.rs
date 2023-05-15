@@ -46,6 +46,7 @@ impl<'a> Visitor<'a> for ScalarHydratation {
                         is_valid: None,
                         visible: None,
                         specified_by_url,
+                        parser: dynaql::registry::ScalarParser::BestEffort,
                     }
                 },
                 name.as_str(),

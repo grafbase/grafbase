@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 use serde::Serialize;
 
 use crate::graph::selection_set_into_node;
-use crate::registry::{MetaType, Registry};
+use crate::registry::{self, MetaType, Registry};
 use crate::{
     ContextSelectionSet, InputType, InputValueError, InputValueResult, Name, OutputType,
     ServerResult, Value,
@@ -37,6 +37,7 @@ where
             is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
+            parser: registry::ScalarParser::BestEffort,
         })
     }
 
@@ -92,6 +93,7 @@ where
             is_valid: Some(|_| true),
             visible: None,
             specified_by_url: None,
+            parser: registry::ScalarParser::BestEffort,
         })
     }
 

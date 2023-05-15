@@ -247,6 +247,7 @@ impl From<cynic_introspection::ScalarType> for MetaType {
             is_valid: None,
             visible: None,
             specified_by_url: None,
+            parser: super::ScalarParser::PassThrough,
         }
     }
 }
