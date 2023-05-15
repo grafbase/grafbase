@@ -3,7 +3,7 @@
 use crate::{
     consts::{
         DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -120,6 +120,8 @@ pub struct Environment {
     pub database_directory_path: PathBuf,
     /// warnings when loading the environment
     pub warnings: Vec<Warning>,
+    /// the path within `$HOME/.grafbase` where wrangler gets installed
+    pub wrangler_installation_path: PathBuf,
 }
 
 /// static singleton for the environment struct
@@ -162,7 +164,7 @@ impl Environment {
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let database_directory_path = project_dot_grafbase_path.join(DATABASE_DIRECTORY);
-
+        let wrangler_installation_path = user_dot_grafbase_path.join(WRANGLER_DIRECTORY_NAME);
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -175,6 +177,7 @@ impl Environment {
                 resolvers_build_artifact_path,
                 database_directory_path,
                 warnings,
+                wrangler_installation_path,
             })
             .expect("cannot set environment twice");
 

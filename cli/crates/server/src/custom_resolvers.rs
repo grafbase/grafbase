@@ -170,60 +170,25 @@ async fn build_resolver(
 
     tokio::fs::create_dir_all(&resolver_build_artifact_directory_path)
         .await
-        .map_err(ServerError::CreateTemporaryFile)?;
+        .map_err(|_err| ServerError::CreateDir(resolver_build_artifact_directory_path.to_owned()))?;
     let resolver_build_entrypoint_path = resolver_build_artifact_directory_path.join("entrypoint.js");
+
+    let resolver_build_package_json_path = resolver_build_artifact_directory_path.join("package.json");
 
     if let Some(package_json_file_path) = package_json_path.as_deref() {
         trace!("copying package.json from {}", package_json_file_path.display());
-        tokio::fs::copy(
-            package_json_file_path,
-            resolver_build_artifact_directory_path.join("package.json"),
-        )
-        .await
-        .map_err(ServerError::CreateResolverArtifactFile)?;
-    }
+        tokio::fs::copy(package_json_file_path, &resolver_build_package_json_path)
+            .await
+            .map_err(|err| ServerError::CreateResolverArtifactFile(package_json_file_path.to_owned(), err))?;
 
-    let artifact_directory_path_string = resolver_build_artifact_directory_path
-        .to_str()
-        .ok_or(ServerError::CachePath)?;
+        let artifact_directory_path_string = resolver_build_artifact_directory_path
+            .to_str()
+            .ok_or(ServerError::CachePath)?;
 
-    let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
-    let artifact_directory_modules_path_string =
-        artifact_directory_modules_path.to_str().ok_or(ServerError::CachePath)?;
+        let artifact_directory_modules_path = resolver_build_artifact_directory_path.join("node_modules");
+        let artifact_directory_modules_path_string =
+            artifact_directory_modules_path.to_str().ok_or(ServerError::CachePath)?;
 
-    {
-        let arguments = match package_manager {
-            JavaScriptPackageManager::Npm => vec![
-                "--prefix",
-                artifact_directory_path_string,
-                "add",
-                "--save-dev",
-                "wrangler@2",
-            ],
-            JavaScriptPackageManager::Pnpm => {
-                vec!["add", "-D", "wrangler@2"]
-            }
-            JavaScriptPackageManager::Yarn => {
-                vec![
-                    "add",
-                    "--modules-folder",
-                    artifact_directory_modules_path_string,
-                    "-D",
-                    "wrangler@2",
-                ]
-            }
-        };
-        run_command(
-            package_manager,
-            &arguments,
-            resolver_build_artifact_directory_path,
-            tracing,
-            &[],
-        )
-        .await?;
-    }
-
-    {
         let arguments = match package_manager {
             JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "install"],
             JavaScriptPackageManager::Pnpm => vec!["install"],
@@ -248,9 +213,9 @@ async fn build_resolver(
 
     trace!("Copying the main file of the resolver");
 
-    tokio::fs::copy(resolver_input_file_path, &resolver_js_file_path)
+    tokio::fs::copy(&resolver_input_file_path, &resolver_js_file_path)
         .await
-        .map_err(ServerError::CreateResolverArtifactFile)?;
+        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_input_file_path, err))?;
 
     let entrypoint_contents = resolver_wrapper_worker_contents.replace(
         "${RESOLVER_MAIN_FILE_PATH}",
@@ -258,7 +223,7 @@ async fn build_resolver(
     );
     tokio::fs::write(&resolver_build_entrypoint_path, entrypoint_contents)
         .await
-        .map_err(ServerError::CreateResolverArtifactFile)?;
+        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_entrypoint_path.to_owned(), err))?;
 
     let wrangler_output_directory_path = resolver_build_artifact_directory_path.join("wrangler");
     let outdir_argument = format!(
@@ -268,11 +233,14 @@ async fn build_resolver(
 
     trace!("writing the package.json file for '{resolver_name}' used by wrangler");
 
-    let package_json_contents = tokio::fs::read(resolver_build_artifact_directory_path.join("package.json"))
-        .await
-        .map_err(ServerError::CreateResolverArtifactFile)?;
-    let mut package_json: serde_json::Value =
-        serde_json::from_slice(&package_json_contents).expect("must be valid JSON");
+    let mut package_json = if package_json_path.is_some() {
+        let package_json_contents = tokio::fs::read(&resolver_build_package_json_path)
+            .await
+            .map_err(|err| ServerError::ReadFile(resolver_build_package_json_path.to_owned(), err))?;
+        serde_json::from_slice(&package_json_contents).expect("must be valid JSON")
+    } else {
+        serde_json::Value::Object(Default::default())
+    };
     package_json.as_object_mut().expect("must be an object").insert(
         "module".to_owned(),
         serde_json::Value::String("wrangler/entrypoint.js".to_owned()),
@@ -281,58 +249,50 @@ async fn build_resolver(
     let new_package_json_contents = serde_json::to_string_pretty(&package_json).expect("must be valid JSON");
     trace!("new package.json contents:\n{new_package_json_contents}");
 
-    tokio::fs::write(
-        resolver_build_artifact_directory_path.join("package.json"),
-        new_package_json_contents,
-    )
-    .await
-    .map_err(ServerError::CreateResolverArtifactFile)?;
+    tokio::fs::write(&resolver_build_package_json_path, new_package_json_contents)
+        .await
+        .map_err(|err| ServerError::CreateResolverArtifactFile(resolver_build_package_json_path, err))?;
 
     let wrangler_toml_file_path = resolver_build_artifact_directory_path.join("wrangler.toml");
 
     let _: Result<_, _> = tokio::fs::remove_file(&wrangler_toml_file_path).await;
 
-    let wrangler_arguments = &[
-        "wrangler",
-        "publish",
-        "--dry-run",
-        &outdir_argument,
-        "--compatibility-date",
-        "2023-02-08",
-        "--name",
-        "STUB",
-        resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
-    ];
-
-    let wrangler_environment = &[
-        ("CLOUDFLARE_API_TOKEN", "STUB"),
-        ("FORCE_COLOR", "0"),
-        ("WRANGLER_SEND_METRICS", "false"),
-    ];
-
     // Not great. We use wrangler to produce the JS file that is then used as the input for the resolver-specific worker.
     // FIXME: Swap out for the internal logic that wrangler effectively uses under the hood.
-    let mut arguments = match package_manager {
-        JavaScriptPackageManager::Npm => vec!["--prefix", artifact_directory_path_string, "exec", "--"],
-        JavaScriptPackageManager::Pnpm => vec!["exec"],
-        JavaScriptPackageManager::Yarn => vec!["run"],
-    };
-    arguments.extend(wrangler_arguments);
-
-    run_command(
-        package_manager,
-        &arguments,
-        resolver_build_artifact_directory_path,
-        tracing,
-        wrangler_environment,
-    )
-    .await
-    .map_err(|err| match err {
-        ServerError::ResolverPackageManagerError(_, output) => {
-            ServerError::ResolverBuild(resolver_name.to_owned(), output)
-        }
-        other => other,
-    })?;
+    {
+        let wrangler_arguments = &[
+            "exec",
+            "--",
+            "wrangler",
+            "publish",
+            "--dry-run",
+            &outdir_argument,
+            "--compatibility-date",
+            "2023-02-08",
+            "--name",
+            "STUB",
+            resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
+        ];
+        let wrangler_environment = &[
+            ("CLOUDFLARE_API_TOKEN", "STUB"),
+            ("FORCE_COLOR", "0"),
+            ("WRANGLER_SEND_METRICS", "false"),
+        ];
+        run_command(
+            JavaScriptPackageManager::Npm,
+            wrangler_arguments,
+            &environment.wrangler_installation_path,
+            tracing,
+            wrangler_environment,
+        )
+        .await
+        .map_err(|err| match err {
+            ServerError::ResolverPackageManagerError(_, output) => {
+                ServerError::ResolverBuild(resolver_name.to_owned(), output)
+            }
+            other => other,
+        })?;
+    }
 
     let process_env_prelude = format!(
         "globalThis.process = {{ env: {} }};",
@@ -341,14 +301,14 @@ async fn build_resolver(
 
     let (temp_file, temp_file_path) = tokio::task::spawn_blocking(tempfile::NamedTempFile::new)
         .await?
-        .map_err(ServerError::CreateResolverArtifactFile)?
+        .map_err(ServerError::CreateTemporaryFile)?
         .into_parts();
     {
         let mut temp_file: tokio::fs::File = temp_file.into();
         temp_file
             .write_all(process_env_prelude.as_bytes())
             .await
-            .map_err(ServerError::CreateResolverArtifactFile)?;
+            .map_err(|err| ServerError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
         temp_file
             .write_all(
                 &tokio::fs::read(wrangler_output_directory_path.join("entrypoint.js"))
@@ -356,11 +316,12 @@ async fn build_resolver(
                     .expect("must succeed"),
             )
             .await
-            .map_err(ServerError::CreateResolverArtifactFile)?;
+            .map_err(|err| ServerError::CreateNotWriteToTemporaryFile(temp_file_path.to_path_buf(), err))?;
     }
-    tokio::fs::copy(temp_file_path, wrangler_output_directory_path.join("entrypoint.js"))
+    let entrypoint_js_path = wrangler_output_directory_path.join("entrypoint.js");
+    tokio::fs::copy(temp_file_path, &entrypoint_js_path)
         .await
-        .map_err(ServerError::CreateResolverArtifactFile)?;
+        .map_err(|err| ServerError::CreateResolverArtifactFile(entrypoint_js_path, err))?;
 
     let slugified_resolver_name = slug::slugify(resolver_name);
     tokio::fs::write(
@@ -407,6 +368,31 @@ pub async fn build_resolvers(
     let mut resolvers_iterator = resolvers.into_iter().peekable();
     if resolvers_iterator.peek().is_none() {
         return Ok(HashMap::new());
+    }
+
+    // Install wrangler once and for all.
+    {
+        info!("Installing wrangler…");
+        tokio::fs::create_dir_all(&environment.wrangler_installation_path)
+            .await
+            .map_err(|_| ServerError::CreateDir(environment.wrangler_installation_path.clone()))?;
+        // Install wrangler once and for all.
+        run_command(
+            JavaScriptPackageManager::Npm,
+            &["add", "--save-dev", "wrangler@2"],
+            environment.wrangler_installation_path.to_str().expect("must be valid"),
+            tracing,
+            &[],
+        )
+        .await?;
+        run_command(
+            JavaScriptPackageManager::Npm,
+            &["install"],
+            environment.wrangler_installation_path.to_str().expect("must be valid"),
+            tracing,
+            &[],
+        )
+        .await?;
     }
 
     let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;

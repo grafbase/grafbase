@@ -72,12 +72,20 @@ pub enum ServerError {
     SchemaRegistryWrite(IoError),
 
     /// returned if `tempfile::NamedTempFile::new()` fails.
-    #[error("could not create a temporary file for the parser result: {0}")]
+    #[error("could not create a temporary file: {0}")]
     CreateTemporaryFile(IoError),
 
+    /// returned if `tempfile::NamedTempFile::new()` fails.
+    #[error("could not write to a temporary file '{0}': {1}")]
+    CreateNotWriteToTemporaryFile(PathBuf, IoError),
+
     /// returned if a write to a resolver artifact file fails
-    #[error("could not create an output artifact file during a resolver build")]
-    CreateResolverArtifactFile(IoError),
+    #[error("could not create a file {0} during a resolver build: {1}")]
+    CreateResolverArtifactFile(PathBuf, IoError),
+
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not read the file {0}: {1}")]
+    ReadFile(PathBuf, IoError),
 
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not extract the resolver wrapper worker contents")]
