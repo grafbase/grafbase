@@ -29,7 +29,6 @@ install_crate = { crate_name = "cargo-instruments", binary = "cargo", test_arg =
 [tasks.bump]
 description = "Bumps all packages to the specified version"
 dependencies = ["install-cargo-release", "install-sd"]
-script_runner = "zsh"
 script = '''
 VERSION=${@}
 if [[ "$VERSION" = -* ]] || [[ ! $(npx --yes semver $VERSION) ]];
