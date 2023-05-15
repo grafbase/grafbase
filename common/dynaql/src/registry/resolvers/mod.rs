@@ -178,10 +178,14 @@ impl ResolvedPaginationInfo {
 pub struct ResolvedValue {
     /// Data Resolved by the current Resolver.
     ///
-    /// This is expected to be in the same shape of the actual query to fetch the data.
+    /// The data is sent as-is to the next resolver in the chain. The format of the data is
+    /// dependent on the resolver that produced the data.
     ///
-    /// That is, a resolver that resolves a `user { name }` query, is expected to return a `{
-    /// "user": { "name" "..." } }` JSON object.
+    /// For example, the GraphQL resolver returns data in the actual shape of the query. That is, a
+    /// resolver that resolves a `user { name }` query, is expected to return a `{ "user": { "name"
+    /// "..." } }` JSON object.
+    ///
+    /// Other resolvers might transform/augment the data before passing it along.
     #[derivative(Hash = "ignore")]
     pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
