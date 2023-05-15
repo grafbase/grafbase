@@ -1,0 +1,6 @@
+extend schema
+  @graphql(
+    name: "GitHub"
+    url: "https://api.github.com/graphql"
+    headers: [{ name: "Authorization", value: "{{ env.GITHUB_ACCESS_TOKEN }}" }]
+  )

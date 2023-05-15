@@ -1,0 +1,9 @@
+extend schema
+  @openapi(
+    name: "Supabase"
+    schema: "https://{{ env.SUPABASE_REFERENCE_ID }}.supabase.co/rest/v1/"
+    headers: [{ name: "apiKey", value: "{{ env.SUPABASE_API_KEY }}" }]
+    introspectionHeaders: [
+      { name: "apiKey", value: "{{ env.SUPABASE_API_KEY }}" }
+    ]
+  )

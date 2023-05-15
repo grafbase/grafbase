@@ -1,0 +1,5 @@
+extend schema
+  @openapi(
+    name: "Commerce Layer"
+    schema: "https://data.commercelayer.app/schemas/openapi.json"
+  )

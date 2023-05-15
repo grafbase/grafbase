@@ -1,0 +1,6 @@
+extend schema
+  @graphql(
+    name: "Saleor"
+    url: "{{ env.ENVIRONMENT_DOMAIN }}"
+    headers: [{ name: "Authorization", value: "Bearer {{ env.ACCESS_TOKEN }}" }]
+  )
