@@ -48,7 +48,7 @@ export class GrafbaseSchema {
 
   public type(
     name: string,
-    fields: Record<string, GScalarDef | GListDef>
+    fields: Record<string, GScalarDef | GListDef | GReferenceDef>
   ): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),

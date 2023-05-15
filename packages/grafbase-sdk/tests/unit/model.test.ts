@@ -391,7 +391,7 @@ describe('Model generator', () => {
 
     g.model('User', {
       name: g.string(),
-      address: g.ref(address)
+      address: g.ref(address).optional()
     })
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
@@ -401,7 +401,7 @@ describe('Model generator', () => {
 
       type User @model {
         name: String!
-        address: Address!
+        address: Address
       }"
     `)
   })
