@@ -2093,9 +2093,7 @@ Registry {
         allowed_private_ops: (empty),
         allowed_group_ops: {},
         allowed_owner_ops: (empty),
-        oidc_providers: [],
-        jwks_providers: [],
-        jwt_providers: [],
+        provider: None,
     },
     schemas: {},
     http_headers: {

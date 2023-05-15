@@ -12,12 +12,14 @@ pub struct AuthConfig {
 
     pub allowed_owner_ops: Operations,
 
-    pub oidc_providers: Vec<OidcProvider>,
+    pub provider: Option<AuthProvider>,
+}
 
-    #[serde(default)]
-    pub jwks_providers: Vec<JwksProvider>,
-
-    pub jwt_providers: Vec<JwtProvider>,
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AuthProvider {
+    Oidc(OidcProvider),
+    Jwks(JwksProvider),
+    Jwt(JwtProvider),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,11 +78,7 @@ impl Default for AuthConfig {
 
             allowed_owner_ops: Operations::empty(),
 
-            oidc_providers: vec![],
-
-            jwks_providers: vec![],
-
-            jwt_providers: vec![],
+            provider: None,
         }
     }
 }
