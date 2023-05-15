@@ -22,6 +22,8 @@ env:
     #PROD_ASSETS: assets.grafbase.com
   PROD_ASSETS: assets.grafbase.dev
   CARGO_TERM_COLOR: 'always'
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

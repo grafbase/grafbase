@@ -1,18 +1,6 @@
 [workspace]
 members = ["crates/*"]
 
-# TODO: Probably only do these on CI if they work
-
-[profile.dev]
-# Disabling debug info speeds up builds a bunch,
-# and we don't rely on it for debugging that much.
-debug = 0
-
-[profile.test]
-# Disabling debug info speeds up builds a bunch,
-# and we don't rely on it for debugging that much.
-debug = 0
-
 [profile.release]
 strip = "symbols"
 lto = false
