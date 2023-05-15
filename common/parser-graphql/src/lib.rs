@@ -395,6 +395,6 @@ mod tests {
         )
         .await
         .unwrap()
-        .export_sdl(false))
+        .export_sdl(false));
     }
 }
