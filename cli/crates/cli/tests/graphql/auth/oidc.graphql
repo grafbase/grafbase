@@ -1,8 +1,5 @@
 schema
-  @auth(
-    providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }]
-    rules: [{ allow: groups, groups: ["backend"] }]
-  ) {
+  @auth(providers: [{ type: oidc, issuer: "{{ env.ISSUER_URL }}" }], rules: [{ allow: groups, groups: ["backend"] }]) {
   query: Query
 }
 
