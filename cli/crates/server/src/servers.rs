@@ -524,10 +524,15 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         .spawn()
         .map_err(ServerError::SchemaParserError)?;
 
-    node_command
+    let output = node_command
         .wait_with_output()
         .await
         .map_err(ServerError::SchemaParserError)?;
+
+    if !output.status.success() {
+        let msg = String::from_utf8_lossy(&output.stderr);
+        return Err(ServerError::LoadTsConfig(msg.into_owned()));
+    }
 
     let generated_config_path = generated_config_path.to_str().ok_or(ServerError::ProjectPath)?;
 
