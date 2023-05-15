@@ -79,7 +79,7 @@ pub fn warnings(warnings: &[Warning]) {
         watercolor::output!("Warning: {msg}", @BrightYellow);
 
         if let Some(hint) = warning.hint() {
-            watercolor::output!("Hint: {hint}", @BrightBlue)
+            watercolor::output!("Hint: {hint}", @BrightBlue);
         }
 
         println!();
