@@ -268,7 +268,7 @@ async fn build_resolver(
             "--dry-run",
             &outdir_argument,
             "--compatibility-date",
-            "2023-02-08",
+            "2023-05-14",
             "--name",
             "STUB",
             resolver_build_entrypoint_path.to_str().expect("must be valid utf-8"),
