@@ -2,7 +2,7 @@ use dynaql::indexmap::IndexMap;
 use dynaql::model::__Schema;
 use dynaql::registry::relations::MetaRelation;
 use dynaql::registry::{MetaField, Registry, SchemaID, SchemaIDGenerator};
-use dynaql::{Name, OutputType, Pos, Positioned, Schema, ServerError};
+use dynaql::{Name, OutputType, Pos, Positioned, Schema};
 use dynaql_parser::types::{
     ConstDirective, DirectiveDefinition, FieldDefinition, InputValueDefinition, ObjectType, SchemaDefinition,
     ServiceDocument, Type, TypeDefinition, TypeKind, TypeSystemDefinition,
@@ -15,7 +15,6 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, RwLock};
 
-use crate::dynamic_string::DynamicString;
 use crate::models::from_meta_type;
 use crate::rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
 use crate::ParseResult;
@@ -278,11 +277,6 @@ impl<'a> VisitorContext<'a> {
         self.type_stack.push((None, ty));
         f(self);
         self.type_stack.pop();
-    }
-
-    pub fn partially_evaluate_literal(&self, string: &mut DynamicString) -> Result<(), ServerError> {
-        string.partially_evaluate(self.variables)?;
-        Ok(())
     }
 }
 

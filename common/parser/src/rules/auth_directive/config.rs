@@ -18,21 +18,6 @@ struct InternalAuthConfig {
     provider: Option<AuthProvider>,
 }
 
-fn extract_provider(value: &ConstDirective) -> Result<Option<&ConstValue>, ServerError> {
-    let pos = Some(value.name.pos);
-    match value.get_argument("providers") {
-        Some(arg) => match &arg.node {
-            ConstValue::List(value) if value.len() > 1 => Err(ServerError::new(
-                "only one auth provider can be configured right now",
-                pos,
-            )),
-            ConstValue::List(value) if value.len() == 1 => Ok(value.iter().next()),
-            _ => Err(ServerError::new("auth providers must be a non-empty list", pos)),
-        },
-        None => Ok(None),
-    }
-}
-
 pub fn parse_auth_config(
     ctx: &VisitorContext<'_>,
     directive: &Positioned<ConstDirective>,
