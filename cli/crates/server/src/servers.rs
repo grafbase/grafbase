@@ -1,6 +1,6 @@
 use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
-    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT,
+    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
 use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
@@ -500,7 +500,7 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
         .join(SCHEMA_PARSER_DIR)
         .join(CONFIG_PARSER_SCRIPT);
 
-    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT);
+    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
 
     let args = [
         ts_node_path.as_path(),

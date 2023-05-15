@@ -73,14 +73,18 @@ impl Warning {
         }
     }
 
-    pub fn set_hint(&mut self, message: impl Into<Cow<'static, str>>) {
+    #[must_use]
+    pub fn with_hint(mut self, message: impl Into<Cow<'static, str>>) -> Self {
         self.hint = Some(message.into());
+        self
     }
 
+    #[must_use]
     pub fn message(&self) -> &str {
         &self.message
     }
 
+    #[must_use]
     pub fn hint(&self) -> Option<&str> {
         self.hint.as_deref()
     }
@@ -208,9 +212,9 @@ impl Environment {
             let path = GrafbaseSchemaPath::ts_config(path);
 
             if gql.is_some() {
-                let mut warning = Warning::new("Found both grafbase.config.ts and schema.graphql files");
+                let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
+                    .with_hint("Delete one of them to avoid conflicts");
 
-                warning.set_hint("Delete one of them to avoid conflicts");
                 warnings.push(warning);
             }
 

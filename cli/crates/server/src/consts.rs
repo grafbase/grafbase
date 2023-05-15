@@ -7,4 +7,4 @@ pub const GIT_IGNORE_FILE: &str = ".gitignore";
 pub const GIT_IGNORE_CONTENTS: &str = "*\n";
 pub const MIN_NODE_VERSION: &str = "v18.0.0";
 pub const DOT_ENV_FILE: &str = ".env";
-pub const TS_NODE_SCRIPT: &str = "node_modules/ts-node/dist/bin.js";
+pub const TS_NODE_SCRIPT_PATH: &str = "node_modules/ts-node/dist/bin.js";
