@@ -60,6 +60,10 @@ impl std::str::FromStr for DynamicString {
 }
 
 impl DynamicString {
+    pub fn from_string_literal(s: String) -> Self {
+        Self(vec![DynamicStringSegment::Literal(s)])
+    }
+
     pub fn partially_evaluate(&mut self, environment_variables: &HashMap<String, String>) -> Result<(), ServerError> {
         self.0 = self
             .0

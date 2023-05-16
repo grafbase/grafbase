@@ -366,7 +366,8 @@ mod tests {
         "#,
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
             }],
@@ -443,7 +444,8 @@ mod tests {
         ]),
         dynaql::AuthConfig {
             oidc_providers: vec![dynaql::OidcProvider {
-                issuer: url::Url::parse("https://my.idp.com").unwrap(),
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
             }],
@@ -576,5 +578,45 @@ mod tests {
         }
         "#,
         "only one auth provider can be configured right now"
+    );
+
+    parse_test!(
+        oidc_provider_with_groups_claim,
+        r#"
+      schema @auth(
+        providers: [ { type: oidc, issuer: "https://my.idp.com", groupsClaim: "grps" } ]
+      ){
+        query: Query
+      }
+      "#,
+        dynaql::AuthConfig {
+            oidc_providers: vec![dynaql::OidcProvider {
+                issuer: "https://my.idp.com".to_string(),
+                issuer_base_url: "https://my.idp.com".parse().unwrap(),
+                groups_claim: "grps".to_string(),
+                client_id: None,
+            }],
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwt_provider_with_groups_claim,
+        r#"
+    schema @auth(
+      providers: [ { type: jwt, issuer: "myidp", secret: "s3cr3t", groupsClaim: "grps" } ]
+    ){
+      query: Query
+    }
+    "#,
+        dynaql::AuthConfig {
+            jwt_providers: vec![dynaql::JwtProvider {
+                issuer: "myidp".to_string(),
+                groups_claim: "grps".to_string(),
+                client_id: None,
+                secret: secrecy::SecretString::new("s3cr3t".to_string()),
+            }],
+            ..Default::default()
+        }
     );
 }
