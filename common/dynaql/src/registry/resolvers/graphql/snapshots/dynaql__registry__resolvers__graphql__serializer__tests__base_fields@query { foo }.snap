@@ -1,0 +1,8 @@
+---
+source: common/dynaql/src/registry/resolvers/graphql/serializer.rs
+expression: serialize(input)
+---
+query {
+	foo
+}
+

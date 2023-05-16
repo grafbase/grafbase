@@ -32,6 +32,7 @@ pub mod custom;
 pub mod debug;
 pub mod dynamo_mutation;
 pub mod dynamo_querying;
+pub mod graphql;
 pub mod http;
 pub mod query;
 
@@ -175,7 +176,16 @@ impl ResolvedPaginationInfo {
 #[derive(Debug, Derivative, Clone)]
 #[derivative(Hash)]
 pub struct ResolvedValue {
-    /// Data Resolved by the current Resolver
+    /// Data Resolved by the current Resolver.
+    ///
+    /// The data is sent as-is to the next resolver in the chain. The format of the data is
+    /// dependent on the resolver that produced the data.
+    ///
+    /// For example, the GraphQL resolver returns data in the actual shape of the query. That is, a
+    /// resolver that resolves a `user { name }` query, is expected to return a `{ "user": { "name"
+    /// "..." } }` JSON object.
+    ///
+    /// Other resolvers might transform/augment the data before passing it along.
     #[derivative(Hash = "ignore")]
     pub data_resolved: Arc<serde_json::Value>,
     /// Optional pagination data for Paginated Resolvers
@@ -192,6 +202,10 @@ impl ResolvedValue {
             pagination: None,
             early_return_null: false,
         }
+    }
+
+    pub fn null() -> Self {
+        Self::new(Arc::new(serde_json::Value::Null))
     }
 
     pub fn with_pagination(mut self, pagination: ResolvedPaginationInfo) -> Self {
@@ -329,6 +343,47 @@ impl ResolverType {
                     .resolve(ctx, resolver_ctx, last_resolver_value)
                     .await
             }
+            ResolverType::Graphql(resolver) => {
+                let headers = ctx
+                    .registry()
+                    .http_headers
+                    .get(&resolver.api_name)
+                    .map(Vec::as_slice)
+                    .unwrap_or(&[]);
+
+                let fragment_definitions = ctx
+                    .query_env
+                    .fragments
+                    .iter()
+                    .map(|(k, v)| (k, v.as_ref().node))
+                    .collect();
+
+                let selection_set = ctx
+                    .item
+                    .node
+                    .selection_set
+                    .node
+                    .items
+                    .as_slice()
+                    .iter()
+                    .map(|v| &v.node);
+
+                let operation = ctx.query_env.operation.node.ty;
+                let error_handler = |error| ctx.add_error(error);
+                let variables = ctx.query_env.variables.clone();
+
+                resolver
+                    .resolve(
+                        operation,
+                        headers,
+                        fragment_definitions,
+                        selection_set,
+                        error_handler,
+                        variables,
+                    )
+                    .await
+                    .map_err(Into::into)
+            }
         }
     }
 }
@@ -344,6 +399,7 @@ pub enum ResolverType {
     CustomResolver(CustomResolver),
     Composition(Vec<ResolverType>),
     Http(http::HttpResolver),
+    Graphql(graphql::Resolver),
 }
 
 impl Constraint {
