@@ -8292,6 +8292,7 @@ expression: "Registry::from(schema)"
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "oidc_providers": [],
+    "jwks_providers": [],
     "jwt_providers": []
   },
   "schemas": [],
