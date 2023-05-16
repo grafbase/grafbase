@@ -66,7 +66,10 @@ describe('Relations generator', () => {
 
   it('generates 1:m relations with nullable content', () => {
     const user = g.model('User', {
-      posts: g.relation(() => post).optional().list()
+      posts: g
+        .relation(() => post)
+        .optional()
+        .list()
     })
 
     const post = g.model('Post', {
@@ -86,7 +89,10 @@ describe('Relations generator', () => {
 
   it('generates 1:m relations with nullable list', () => {
     const user = g.model('User', {
-      posts: g.relation(() => post).list().optional()
+      posts: g
+        .relation(() => post)
+        .list()
+        .optional()
     })
 
     const post = g.model('Post', {
@@ -106,7 +112,11 @@ describe('Relations generator', () => {
 
   it('generates 1:m relations with nullable list and content', () => {
     const user = g.model('User', {
-      posts: g.relation(() => post).optional().list().optional()
+      posts: g
+        .relation(() => post)
+        .optional()
+        .list()
+        .optional()
     })
 
     const post = g.model('Post', {

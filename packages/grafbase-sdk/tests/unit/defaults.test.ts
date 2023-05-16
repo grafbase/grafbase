@@ -148,7 +148,10 @@ describe('Default value generation', () => {
 
   it('generates URL list default', () => {
     const model = g.model('User', {
-      name: g.url().list().default(['https://github.com', 'https://codeberg.org'])
+      name: g
+        .url()
+        .list()
+        .default(['https://github.com', 'https://codeberg.org'])
     })
 
     expect(model.toString()).toMatchInlineSnapshot(`

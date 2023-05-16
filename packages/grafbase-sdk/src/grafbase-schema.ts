@@ -17,6 +17,38 @@ import { Union } from './union'
 import { Interface } from './interface'
 import { Query, QueryInput } from './query'
 import { EnumShape, FieldShape, RelationRef } from '.'
+import { OpenAPI, PartialOpenAPI } from './openapi'
+
+export type PartialDatasource = PartialOpenAPI
+export type Datasource = OpenAPI
+
+export class Datasources {
+  inner: Datasource[]
+
+  constructor() {
+    this.inner = []
+  }
+
+  push(datasource: Datasource) {
+    this.inner.push(datasource)
+  }
+
+  public toString(): string {
+    if (this.inner.length > 0) {
+      const header = 'extend schema'
+      const datasources = this.inner.map(String).join('\n')
+      const footer = ' {\n  query: Query\n}'
+
+      return `${header}\n${datasources}${footer}`
+    } else {
+      return ''
+    }
+  }
+}
+
+export interface IntrospectParams {
+  namespace: string
+}
 
 export class GrafbaseSchema {
   enums: Enum[]
@@ -26,6 +58,7 @@ export class GrafbaseSchema {
   interfaces: Interface[]
   queries: Query[]
   mutations: Query[]
+  datasources: Datasources
 
   constructor() {
     this.enums = []
@@ -35,6 +68,7 @@ export class GrafbaseSchema {
     this.interfaces = []
     this.queries = []
     this.mutations = []
+    this.datasources = new Datasources()
   }
 
   public model(name: string, fields: Record<string, FieldShape>): Model {
@@ -127,6 +161,12 @@ export class GrafbaseSchema {
     return e
   }
 
+  public introspect(datasource: PartialDatasource, params: IntrospectParams) {
+    if (datasource instanceof PartialOpenAPI) {
+      this.datasources.push(datasource.finalize(params.namespace))
+    }
+  }
+
   public string(): StringDefinition {
     return new StringDefinition(FieldType.String)
   }
@@ -195,6 +235,7 @@ export class GrafbaseSchema {
     this.unions = []
     this.enums = []
     this.models = []
+    this.datasources = new Datasources()
   }
 
   public toString(): string {
@@ -204,6 +245,7 @@ export class GrafbaseSchema {
     queries = queries ? `extend type Query {\n${queries}\n}` : ''
     mutations = mutations ? `extend type Mutation {\n${mutations}\n}` : ''
 
+    const datasources = this.datasources.toString()
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')
     const unions = this.unions.map(String).join('\n\n')
@@ -211,6 +253,7 @@ export class GrafbaseSchema {
     const models = this.models.map(String).join('\n\n')
 
     const renderOrder = [
+      datasources,
       interfaces,
       enums,
       types,

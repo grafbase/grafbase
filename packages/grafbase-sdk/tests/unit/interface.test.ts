@@ -65,9 +65,9 @@ describe('Interface generator', () => {
     })
 
     g.type('Fruit', {
-        isSeedless: g.boolean().optional(),
-        ripenessIndicators: g.string().optional().list().optional()
-      })
+      isSeedless: g.boolean().optional(),
+      ripenessIndicators: g.string().optional().list().optional()
+    })
       .implements(produce)
       .implements(sweets)
 
