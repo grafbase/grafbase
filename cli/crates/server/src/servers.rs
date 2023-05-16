@@ -8,7 +8,9 @@ use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
 use crate::types::{Assets, ServerMessage};
 use crate::{bridge, errors::ServerError};
-use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
+use common::consts::{
+    EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
+};
 use common::environment::{Environment, SchemaLocation};
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
@@ -71,7 +73,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                     let watch_event_bus = event_bus.clone();
 
                     tokio::select! {
-                        result = start_watcher(environment.project_grafbase_path.clone(),  move |path| {
+                        result = start_watcher(environment.project_grafbase_path.clone(), move |path| {
                             let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
@@ -148,9 +150,11 @@ async fn spawn_servers(
     // because the build naturally reuses the intermediate artifacts from node_modules from previous builds.
     // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
     // in resolvers, and that's a non-trivial problem.
-    if !path_changed
-        .map(|path| path == Path::new(GRAFBASE_DIRECTORY_NAME).join(GRAFBASE_SCHEMA_FILE_NAME))
-        .unwrap_or_default()
+    if path_changed
+        .map(|path| (Path::new(GRAFBASE_DIRECTORY_NAME), path))
+        .filter(|(dir, path)| path != &dir.join(GRAFBASE_SCHEMA_FILE_NAME))
+        .filter(|(dir, path)| path != &dir.join(GRAFBASE_TS_CONFIG_FILE_NAME))
+        .is_some()
     {
         for resolver in &mut resolvers {
             resolver.fresh = false;
