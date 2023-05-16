@@ -124,8 +124,8 @@ impl Report {
         let file_name = format!("report-{}.json", &uuid);
         let file_path = Path::new(&tmp_dir).join(file_name);
         let mut file = File::create(&file_path)?;
-        let toml = self.serialize().unwrap();
-        file.write_all(toml.as_bytes())?;
+        let json = self.serialize().unwrap();
+        file.write_all(json.as_bytes())?;
         Ok(file_path)
     }
 }
