@@ -136,7 +136,7 @@ pub fn handle_dump(meta: &Metadata, panic_info: &PanicInfo<'_>) -> Option<PathBu
             "{}",
             report
                 .serialize()
-                .unwrap_or_else(|| "<Could not serialize report TOML>".to_string())
+                .unwrap_or_else(|| "<Could not serialize report JSON>".to_string())
         );
         None
     }

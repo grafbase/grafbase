@@ -31,6 +31,7 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3

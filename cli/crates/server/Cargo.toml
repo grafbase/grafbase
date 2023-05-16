@@ -20,6 +20,7 @@ combine = "4"
 dotenv = "0.15"
 exitcode = "1"
 filetime = "0.2"
+flate2 = "1.0"
 futures-util = "0.3"
 hyper = "0.14"
 integer-encoding = "3"
@@ -36,7 +37,6 @@ reqwest = { version = "0.11", features = [
   "rustls-tls",
   "json",
 ], default-features = false }
-rust-embed = { version = "6", features = ["compression"] }
 serde = { version = "1", features = ["serde_derive"] }
 serde_json = "1"
 slug = "0.1"
@@ -47,7 +47,8 @@ sqlx = { version = "0.6", features = [
 ] }
 strip-ansi-escapes = "0.1"
 strum = { version = "0.24", features = ["derive"] }
-tantivy = "0.19"
+tantivy = { version = "0.19", default-features = false }
+tar = "0.4"
 tempfile = "3"
 thiserror = "1"
 tokio = { version = "1", features = ["full"] }

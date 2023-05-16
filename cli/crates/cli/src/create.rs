@@ -29,7 +29,7 @@ impl Display for RegionSelection {
 pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
-    pub regions: Vec<&'a str>,
+    pub regions: &'a [String],
 }
 
 #[tokio::main]
@@ -54,7 +54,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
         .ok_or(CliError::NoAccountFound)?
         .id;
 
-    let domains = create::create(&account_id, arguments.name, &arguments.regions)
+    let domains = create::create(&account_id, arguments.name, arguments.regions)
         .await
         .map_err(CliError::BackendApiError)?;
 
@@ -116,7 +116,7 @@ async fn interactive() -> Result<(), CliError> {
         .map_err(handle_inquire_error)?;
 
     if confirm {
-        let domains = create::create(&selected_account.id, &project_name, &[&selected_region.0.name])
+        let domains = create::create(&selected_account.id, &project_name, &[selected_region.0.name.clone()])
             .await
             .map_err(CliError::BackendApiError)?;
 
