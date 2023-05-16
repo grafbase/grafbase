@@ -71,6 +71,12 @@ export class GrafbaseSchema {
     this.datasources = new Datasources()
   }
 
+  public datasource(datasource: PartialDatasource, params: IntrospectParams) {
+    if (datasource instanceof PartialOpenAPI) {
+      this.datasources.push(datasource.finalize(params.namespace))
+    }
+  }
+
   public model(name: string, fields: Record<string, FieldShape>): Model {
     const model = Object.entries(fields).reduce(
       (model, [name, definition]) => model.field(name, definition),
@@ -159,12 +165,6 @@ export class GrafbaseSchema {
     this.enums.push(e)
 
     return e
-  }
-
-  public introspect(datasource: PartialDatasource, params: IntrospectParams) {
-    if (datasource instanceof PartialOpenAPI) {
-      this.datasources.push(datasource.finalize(params.namespace))
-    }
   }
 
   public string(): StringDefinition {

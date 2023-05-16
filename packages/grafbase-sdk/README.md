@@ -329,9 +329,14 @@ const openai = connector.OpenAPI({
 const stripe = connector
   .OpenAPI({
     schema: 'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
-    url: 'https://api.stripe.com'
+    url: 'https://api.stripe.com',
+    headers: (headers) => {
+      // used in client and introspection requests
+      headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+      // used only in introspection requests
+      headers.introspection('foo', 'bar')
+    }
   })
-  .header('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
 ```
 
 Introspecting the connector namespace to the schema happens with the `introspect` method of the schema:

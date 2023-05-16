@@ -39,6 +39,6 @@ export function config(input: ConfigInput): Config {
 
 export const connector = {
   OpenAPI: (params: OpenAPIParams): PartialOpenAPI => {
-    return new PartialOpenAPI(params.schema, params.url)
+    return new PartialOpenAPI(params)
   }
 }

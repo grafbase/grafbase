@@ -10,7 +10,7 @@ describe('OpenAPI generator', () => {
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json'
     })
 
-    g.introspect(stripe, { namespace: 'Stripe' })
+    g.datasource(stripe, { namespace: 'Stripe' })
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
@@ -24,15 +24,19 @@ describe('OpenAPI generator', () => {
   })
 
   it('generates the maximum possible OpenAPI datasource', () => {
-    const stripe = connector
-      .OpenAPI({
-        schema:
-          'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
-        url: 'https://api.stripe.com'
-      })
-      .header('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+    const stripe = connector.OpenAPI({
+      schema:
+        'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
+      url: 'https://api.stripe.com',
+      headers: (headers) => {
+        headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+        headers.static('Method', 'POST')
 
-    g.introspect(stripe, { namespace: 'Stripe' })
+        headers.introspection('foo', 'bar')
+      }
+    })
+
+    g.datasource(stripe, { namespace: 'Stripe' })
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
@@ -41,7 +45,11 @@ describe('OpenAPI generator', () => {
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
           headers: [
-            { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}"}
+            { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
+            { name: "Method", value: "POST" }
+          ]
+          introspectionHeaders: [
+            { name: "foo", value: "bar" }
           ]
         ) {
         query: Query
@@ -60,8 +68,8 @@ describe('OpenAPI generator', () => {
         'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
     })
 
-    g.introspect(stripe, { namespace: 'Stripe' })
-    g.introspect(openai, { namespace: 'OpenAI' })
+    g.datasource(stripe, { namespace: 'Stripe' })
+    g.datasource(openai, { namespace: 'OpenAI' })
 
     expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
       "extend schema
