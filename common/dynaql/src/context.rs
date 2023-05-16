@@ -985,11 +985,18 @@ impl<'a> ContextBase<'a, &'a Positioned<Field>> {
 
         if let Some(plan) = plan {
             return Ok(match plan {
-                SchemaPlan::Projection(PlanProjection { fields }) => {
+                SchemaPlan::Projection(PlanProjection { fields, flattened }) => {
                     let previous = previous_plan.ok_or_else(|| ServerError::new("A plan must be provided before, there is something wrong with the QueryPlan.", Some(self.item.pos)))?;
+                    let previous = LogicalPlanBuilder::from(previous.as_ref().clone());
 
-                    LogicalPlanBuilder::from(previous.as_ref().clone())
-                        .projection(fields.clone())
+                    let previous = if *flattened {
+                        previous.flatten()
+                    } else {
+                        Ok(previous)
+                    };
+
+                    previous
+                        .and_then(|x| x.projection(fields.clone()))
                         .map_err(|err| ServerError::new(err.to_string(), Some(self.item.pos)))?
                         .build()
                 }

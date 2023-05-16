@@ -41,8 +41,8 @@ impl SchemaPlan {
 }
 
 impl SchemaPlan {
-    pub fn projection(fields: Vec<String>) -> Self {
-        Self::Projection(PlanProjection { fields })
+    pub fn projection(fields: Vec<String>, flattened: bool) -> Self {
+        Self::Projection(PlanProjection { fields, flattened })
     }
 
     pub fn resolver(resolver_name: String) -> Self {
@@ -94,6 +94,7 @@ impl SchemaPlan {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanProjection {
     pub(crate) fields: Vec<String>,
+    pub flattened: bool,
 }
 
 /// Describe the relation
