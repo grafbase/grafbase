@@ -167,3 +167,44 @@ where
 
     s.serialize_str(&comma_separated_list)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::borrow::Cow;
+
+    use dynaql::registry::Registry;
+    use sha2::{Digest, Sha256};
+
+    use super::*;
+
+    const EXPECTED_SHA: &str = "dd6e6431445eeb4587aaa183a066ce88734f2cce966803925850d0bffb3409f1";
+
+    #[test]
+    fn test_serde_roundtrip() {
+        let id = r#"
+            This test ensures the default `VersionedRegistry` serialization output remains stable.
+
+            When this test fails, it likely means the shape of the `Registry` type was updated,
+            which can cause backward-incompatibility issues.
+
+            Before updating this test to match the expected result, please ensure the changes to
+            `Registry` are applied in a backward compatible way.
+
+            One way to do so, is to have the `Default` trait return a value that keeps the existing
+            expectation, and `#[serde(default)]` is applied to any newly added field.
+
+            Once you are satisfied your changes are backward-compatible, update `EXPECTED_SHA` with
+            the new output presented in the test result.
+        "#;
+
+        let registry = Cow::Owned(Registry::new().with_sample_data());
+        let versioned_registry = VersionedRegistry {
+            registry,
+            deployment_id: Cow::Borrowed(id),
+        };
+        let serialized_versioned_registry = serde_json::to_string(&versioned_registry).unwrap();
+        let serialized_sha = Sha256::digest(serialized_versioned_registry);
+
+        assert_eq!(EXPECTED_SHA, &format!("{serialized_sha:x}"));
+    }
+}
