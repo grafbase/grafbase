@@ -12,12 +12,6 @@ pub struct VersionedRegistry<'a> {
 }
 
 #[derive(serde::Serialize)]
-pub struct VersionedRegistrySerializable<'a> {
-    pub registry: serde_json::Value,
-    pub deployment_id: std::borrow::Cow<'a, str>,
-}
-
-#[derive(serde::Serialize)]
 pub struct ParserResult<'a> {
     pub versioned_registry: VersionedRegistry<'a>,
     pub required_resolvers: Vec<String>,
