@@ -25,28 +25,27 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
     let reporter_handle = thread::spawn(move || {
         let mut resolvers_reported = false;
 
-        loop {
-            match receiver.recv() {
-                Ok(ServerMessage::Ready(port)) => {
+        while let Ok(message) = receiver.recv() {
+            match message {
+                ServerMessage::Ready(port) => {
                     READY.call_once(|| report::start_server(resolvers_reported, port, start_port));
                 }
-                Ok(ServerMessage::Reload(path)) => report::reload(path),
-                Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
+                ServerMessage::Reload(path) => report::reload(path),
+                ServerMessage::StartResolverBuild(resolver_name) => {
                     report::start_resolver_build(&resolver_name);
                 }
-                Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
+                ServerMessage::CompleteResolverBuild { name, duration } => {
                     resolvers_reported = true;
                     report::complete_resolver_build(&name, duration);
                 }
-                Ok(ServerMessage::ResolverMessage {
+                ServerMessage::ResolverMessage {
                     resolver_name,
                     message,
                     level,
-                }) => {
+                } => {
                     report::resolver_message(&resolver_name, &message, level);
                 }
-                Ok(ServerMessage::CompilationError(error)) => report::error(&CliError::CompilationError(error)),
-                Err(_) => break,
+                ServerMessage::CompilationError(error) => report::error(&CliError::CompilationError(error)),
             }
         }
     });
