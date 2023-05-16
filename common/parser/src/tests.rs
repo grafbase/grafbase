@@ -350,6 +350,29 @@ fn should_forbid_use_of_reserved_fields() {
 }
 
 #[test]
+fn test_schema() {
+    let nested_schema = super::parse_registry(
+        r#"
+        type User @model {
+            id: ID!
+            nested: Nested
+        }
+
+        type Nested {
+          requiredField: String!
+        }
+        "#,
+    )
+    .unwrap();
+
+    let req_string_a = serde_json::to_value(&nested_schema).unwrap();
+    let sdl_a = Schema::new(nested_schema).sdl();
+
+    insta::assert_json_snapshot!(req_string_a);
+    insta::assert_snapshot!(sdl_a);
+}
+
+#[test]
 #[named]
 fn test_model_reserved_fields() {
     let with_metadata_fields = super::parse_registry(

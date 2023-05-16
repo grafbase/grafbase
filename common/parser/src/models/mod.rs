@@ -37,6 +37,8 @@
 //!
 //! For custom scalar, the schema should reflect the internal coercion in a standarzied type.
 
+use std::sync::Arc;
+
 use arrow_schema::{DataType, Field, Schema};
 use dynamodb::constant::{INVERTED_INDEX_PK, INVERTED_INDEX_SK, TYPE_INDEX_PK, TYPE_INDEX_SK};
 use dynaql::registry::{MetaType, Registry};
@@ -80,7 +82,7 @@ fn temp_base_tyto_datatype(registry: &Registry, scalar: &BaseType) -> DataType {
         BaseType::Named(value) => primitive_to_datatype(registry, value),
         BaseType::List(list) => {
             let base_data = scalar_to_datatype(registry, "", list);
-            DataType::List(Box::new(base_data))
+            DataType::List(Arc::new(base_data))
         }
     }
 }
@@ -151,7 +153,7 @@ fn from_meta_type_union(_registry: &Registry, _ty: &MetaType) -> Result<Schema, 
     // This is a broken implementation because it's not obvious how to arrowise unions.
     // The query planning isn't turned on at the moment so this being broken is fine.
     // We will need to fix this before release though.
-    Ok(Schema::new(vec![]))
+    Ok(Schema::empty())
 }
 
 /// We have a [`MetaType`] which we want to store in our Main Database, we compute the schema out
