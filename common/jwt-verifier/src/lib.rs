@@ -1,11 +1,12 @@
-use std::{borrow::Borrow, collections::HashSet};
-
+use futures_util::TryFutureExt;
 use json_dotpath::DotPaths;
+use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
 use jwt_compact::{alg::Rsa, jwk::JsonWebKey, prelude::*, TimeOptions};
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, OneOrMany};
+use std::{borrow::Borrow, collections::HashSet};
 use url::Url;
 use worker::kv::KvError;
 
@@ -92,9 +93,6 @@ impl<'a> Client<'a> {
         issuer_base_url: &url::Url,
         expected_issuer: &'a str,
     ) -> Result<VerifiedToken, VerificationError> {
-        use futures_util::TryFutureExt;
-        use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
-
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
 
         let rsa = Self::get_rsa_algorithm(&token)?;
@@ -102,8 +100,12 @@ impl<'a> Client<'a> {
         let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
         // Use JWK from cache if available
         let discovery_url = issuer_base_url.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+        let caching_key = CachingKey::Oidc {
+            discovery_url: &discovery_url,
+            kid,
+        };
         let cached_jwk = self
-            .get_jwk_from_cache(kid, &discovery_url)
+            .get_jwk_from_cache(&caching_key)
             .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
             .await
             .ok()
@@ -150,10 +152,8 @@ impl<'a> Client<'a> {
                 .find(|key| &key.id == kid)
                 .ok_or_else(|| VerificationError::JwkNotFound { kid: kid.to_string() })?;
 
-            // Add JWK to cache
-            log::debug!(self.trace_id, "Adding JWK {kid} to cache");
             let _ = self
-                .add_jwk_to_cache(&jwk, &discovery_url)
+                .add_jwk_to_cache(&caching_key, &jwk)
                 .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
                 .await;
 
@@ -176,34 +176,48 @@ impl<'a> Client<'a> {
     pub async fn verify_rs_token_using_jwks_endpoint<S: AsRef<str>>(
         &self,
         token: S,
-        jwks_uri: &'a Url,
+        jwks_endpoint_url: &'a Url,
         expected_issuer: Option<&'a str>,
     ) -> Result<VerifiedToken, VerificationError> {
-        use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
-
         let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
         let rsa = Self::get_rsa_algorithm(&token)?;
         let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
 
-        // TODO: add caching
+        let caching_key = CachingKey::Jwks { jwks_endpoint_url, kid };
+        let cached_jwk = self
+            .get_jwk_from_cache(&caching_key)
+            .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
+            .await
+            .ok()
+            .flatten();
+        let jwk = if let Some(cached_jwk) = cached_jwk {
+            log::debug!(self.trace_id, "Found JWK {kid} in cache");
+            cached_jwk
+        } else {
+            let jwk = {
+                // Get JWKS
+                let jwks: JsonWebKeySet<'_> = self
+                    .http_client
+                    .get(jwks_endpoint_url.clone())
+                    .send()
+                    .await
+                    .map_err(VerificationError::HttpRequest)?
+                    .json()
+                    .await
+                    .map_err(VerificationError::HttpRequest)?;
 
-        let jwk = {
-            // Get JWKS
-            let jwks: JsonWebKeySet<'_> = self
-                .http_client
-                .get(jwks_uri.clone())
-                .send()
-                .await
-                .map_err(VerificationError::HttpRequest)?
-                .json()
-                .await
-                .map_err(VerificationError::HttpRequest)?;
+                // Find JWK to verify JWT
+                jwks.keys
+                    .into_iter()
+                    .find(|key| &key.id == kid)
+                    .ok_or_else(|| VerificationError::JwkNotFound { kid: kid.to_string() })?
+            };
 
-            // Find JWK to verify JWT
-            jwks.keys
-                .into_iter()
-                .find(|key| &key.id == kid)
-                .ok_or_else(|| VerificationError::JwkNotFound { kid: kid.to_string() })?
+            let _ = self
+                .add_jwk_to_cache(&caching_key, &jwk)
+                .inspect_err(|err| log::error!(self.trace_id, "Cache write error: {err:?}"))
+                .await;
+            jwk
         };
 
         // Verify JWT signature
@@ -345,12 +359,11 @@ impl<'a> Client<'a> {
 
     async fn get_jwk_from_cache(
         &self,
-        kid: &str,
-        discovery_url: &url::Url,
+        caching_key: &CachingKey<'_>,
     ) -> Result<Option<ExtendedJsonWebKey<'_>>, KvError> {
         if let Some(cache) = &self.jwks_cache {
             cache
-                .get(&format!("{discovery_url}|{kid}"))
+                .get(&caching_key.key())
                 .cache_ttl(JWKS_CACHE_TTL)
                 .json::<ExtendedJsonWebKey<'_>>()
                 .await
@@ -359,18 +372,52 @@ impl<'a> Client<'a> {
         }
     }
 
-    async fn add_jwk_to_cache(&self, jwk: &ExtendedJsonWebKey<'_>, discovery_url: &url::Url) -> Result<(), KvError> {
+    async fn add_jwk_to_cache(
+        &self,
+        caching_key: &CachingKey<'_>,
+        jwk: &ExtendedJsonWebKey<'_>,
+    ) -> Result<(), KvError> {
+        assert_eq!(caching_key.kid(), jwk.id, "key identifier must be the same");
         if let Some(cache) = &self.jwks_cache {
-            // SECURITY: To prevent cache poisining, we not only use the kid but also the issuer
-            // url. This two issuer can use the same kid without interferring with each other
+            let key = caching_key.key();
+            log::debug!(self.trace_id, "Adding {key} to cache");
             cache
-                .put(&format!("{discovery_url}|{}", jwk.id), jwk)
+                .put(&key, jwk)
                 .expect("cannot fail")
                 .expiration_ttl(JWKS_CACHE_TTL)
                 .execute()
                 .await
         } else {
             Ok(())
+        }
+    }
+}
+
+const CACHING_SEPARATOR: &str = "|";
+
+enum CachingKey<'a> {
+    Oidc { discovery_url: &'a Url, kid: &'a str },
+    Jwks { jwks_endpoint_url: &'a Url, kid: &'a str },
+}
+
+impl<'a> CachingKey<'a> {
+    // SECURITY: The key identifier (kid) is an opaque string that does not have to be derived from its public key.
+    // To prevent cache poisining (malicious issuer reusing the same kid),
+    // derive the cache key from provider type + url + kid.
+    fn key(&self) -> String {
+        match self {
+            Self::Oidc { discovery_url, kid } => {
+                format!("OIDC{CACHING_SEPARATOR}{discovery_url}{CACHING_SEPARATOR}{kid}",)
+            }
+            Self::Jwks { jwks_endpoint_url, kid } => {
+                format!("JWKS{CACHING_SEPARATOR}{jwks_endpoint_url}{CACHING_SEPARATOR}{kid}",)
+            }
+        }
+    }
+
+    fn kid(&self) -> &str {
+        match self {
+            Self::Oidc { kid, .. } | Self::Jwks { kid, .. } => kid,
         }
     }
 }
