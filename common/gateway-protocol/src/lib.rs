@@ -183,7 +183,7 @@ mod tests {
 
     use super::*;
 
-    const EXPECTED_SHA: &str = "b8efc1b101ade5d5f31c58077e36c021c918425a6f086e5bb2f4508adb31a37f";
+    const EXPECTED_SHA: &str = "d681f6caa5ba80197de6579ab485966eed9e4ce989e1608a3df9f36907e54333";
 
     #[test]
     fn test_serde_roundtrip() {

@@ -921,9 +921,7 @@ expression: "Registry::from(schema)"
     "allowed_private_ops": 0,
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
-    "oidc_providers": [],
-    "jwks_providers": [],
-    "jwt_providers": []
+    "provider": null
   },
   "schemas": [],
   "http_headers": {},
