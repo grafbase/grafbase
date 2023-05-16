@@ -6,7 +6,7 @@ use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
-use crate::types::{Assets, ServerMessage};
+use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::{bridge, errors::ServerError};
 use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
 use common::environment::{Environment, SchemaLocation};
@@ -14,6 +14,7 @@ use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
 
+use flate2::read::GzDecoder;
 use std::borrow::Cow;
 use std::env;
 use std::path::Path;
@@ -323,24 +324,12 @@ fn export_embedded_files() -> Result<(), ServerError> {
         fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
             .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
-        let mut write_results = Assets::iter().map(|path| {
-            let file = Assets::get(path.as_ref());
-
-            let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
-
-            let parent = full_path.parent().expect("must have a parent");
-            let create_dir_result = fs::create_dir_all(parent);
-
-            // must be Some(file) since we're iterating over existing paths
-            let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));
-
-            (write_result, full_path)
-        });
-
-        if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
-            let error_path_string = path.to_string_lossy().into_owned();
-            return Err(ServerError::WriteFile(error_path_string));
-        }
+        let reader = GzDecoder::new(ASSETS_GZIP);
+        let mut archive = tar::Archive::new(reader);
+        let full_path = &environment.user_dot_grafbase_path;
+        fs::create_dir_all(full_path)
+            .and_then(|_| archive.unpack(full_path))
+            .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
             let version_path_string = version_path.to_string_lossy().into_owned();
