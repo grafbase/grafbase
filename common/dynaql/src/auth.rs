@@ -14,6 +14,7 @@ pub struct AuthConfig {
 
     pub oidc_providers: Vec<OidcProvider>,
 
+    #[serde(default)]
     pub jwks_providers: Vec<JwksProvider>,
 
     pub jwt_providers: Vec<JwtProvider>,
