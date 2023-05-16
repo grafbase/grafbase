@@ -6,9 +6,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CliError {
-    /// returned if a the shell passed to completions is unsupported or unrecognized
-    #[error("received an unknown or unsupported shell for completion generation: {0}")]
-    UnsupportedShellForCompletions(String),
     // TODO: this might be better as `expect`
     /// returned if the development server panics
     #[error("{0}")]

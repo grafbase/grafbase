@@ -2,7 +2,6 @@ use crate::output::report;
 use crate::CliError;
 use backend::server_api::start_server;
 use backend::types::ServerMessage;
-use common::consts::DEFAULT_PORT;
 use common::utils::get_thread_panic_message;
 use std::sync::Once;
 use std::thread;
@@ -16,11 +15,11 @@ static READY: Once = Once::new();
 /// returns [`CliError::BackendError`] if the the local gateway returns an error
 ///
 /// returns [`CliError::ServerPanic`] if the development server panics
-pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool) -> Result<(), CliError> {
+pub fn dev(search: bool, watch: bool, external_port: u16, tracing: bool) -> Result<(), CliError> {
     trace!("attempting to start server");
 
-    let start_port = external_port.unwrap_or(DEFAULT_PORT);
-    let (server_handle, receiver) = start_server(start_port, search, watch, tracing).map_err(CliError::BackendError)?;
+    let (server_handle, receiver) =
+        start_server(external_port, search, watch, tracing).map_err(CliError::BackendError)?;
 
     let reporter_handle = thread::spawn(move || {
         let mut resolvers_reported = false;
@@ -28,7 +27,7 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
         while let Ok(message) = receiver.recv() {
             match message {
                 ServerMessage::Ready(port) => {
-                    READY.call_once(|| report::start_server(resolvers_reported, port, start_port));
+                    READY.call_once(|| report::start_server(resolvers_reported, port, external_port));
                 }
                 ServerMessage::Reload(path) => report::reload(path),
                 ServerMessage::StartResolverBuild(resolver_name) => {

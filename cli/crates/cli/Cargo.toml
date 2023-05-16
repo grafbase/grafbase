@@ -13,7 +13,7 @@ categories = ["command-line-utilities"]
 [dependencies]
 backtrace = "0.3"
 cfg-if = "1"
-clap = { version = "4", features = ["cargo", "wrap_help"] }
+clap = { version = "4", features = ["cargo", "wrap_help", "derive"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
