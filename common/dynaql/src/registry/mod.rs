@@ -756,6 +756,7 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         specified_by_url: Option<String>,
+        #[serde(default)]
         parser: ScalarParser,
     },
     Object {
