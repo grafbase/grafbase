@@ -139,7 +139,6 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
     }
 
     // Externally tagged.
-    #[allow(clippy::panic)]
     fn deserialize_enum<V>(
         self,
         name: &'static str,
@@ -153,7 +152,10 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
             ConstValue::Enum(en) => {
                 visitor.visit_enum::<serde::de::value::StrDeserializer<'_, Error>>(en.as_str().into_deserializer())
             }
-            _ => panic!("attempted to deserialize {:?} as enum '{name}'", self.value),
+            _ => Err(Error::custom(format!(
+                "attempted to deserialize {:?} as enum '{name}'",
+                self.value
+            ))),
         }
     }
 
