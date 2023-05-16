@@ -5,7 +5,7 @@ use backend::types::ServerMessage;
 use common::consts::DEFAULT_PORT;
 use common::utils::get_thread_panic_message;
 use std::sync::Once;
-use std::thread::spawn;
+use std::thread;
 
 static READY: Once = Once::new();
 
@@ -20,41 +20,36 @@ pub fn dev(search: bool, watch: bool, external_port: Option<u16>, tracing: bool)
     trace!("attempting to start server");
 
     let start_port = external_port.unwrap_or(DEFAULT_PORT);
-    let (server_handle, reporter_handle) = match start_server(start_port, search, watch, tracing) {
-        Ok((server_handle, receiver)) => {
-            let reporter_handle = spawn(move || {
-                let mut resolvers_reported = false;
+    let (server_handle, receiver) = start_server(start_port, search, watch, tracing).map_err(CliError::BackendError)?;
 
-                loop {
-                    match receiver.recv() {
-                        Ok(ServerMessage::Ready(port)) => {
-                            READY.call_once(|| report::start_server(resolvers_reported, port, start_port));
-                        }
-                        Ok(ServerMessage::Reload(path)) => report::reload(path),
-                        Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
-                            report::start_resolver_build(&resolver_name);
-                        }
-                        Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
-                            resolvers_reported = true;
-                            report::complete_resolver_build(&name, duration);
-                        }
-                        Ok(ServerMessage::ResolverMessage {
-                            resolver_name,
-                            message,
-                            level,
-                        }) => {
-                            report::resolver_message(&resolver_name, &message, level);
-                        }
-                        Ok(ServerMessage::CompilationError(error)) => report::error(&CliError::CompilationError(error)),
-                        Err(_) => break,
-                    }
+    let reporter_handle = thread::spawn(move || {
+        let mut resolvers_reported = false;
+
+        loop {
+            match receiver.recv() {
+                Ok(ServerMessage::Ready(port)) => {
+                    READY.call_once(|| report::start_server(resolvers_reported, port, start_port));
                 }
-            });
-
-            (server_handle, reporter_handle)
+                Ok(ServerMessage::Reload(path)) => report::reload(path),
+                Ok(ServerMessage::StartResolverBuild(resolver_name)) => {
+                    report::start_resolver_build(&resolver_name);
+                }
+                Ok(ServerMessage::CompleteResolverBuild { name, duration }) => {
+                    resolvers_reported = true;
+                    report::complete_resolver_build(&name, duration);
+                }
+                Ok(ServerMessage::ResolverMessage {
+                    resolver_name,
+                    message,
+                    level,
+                }) => {
+                    report::resolver_message(&resolver_name, &message, level);
+                }
+                Ok(ServerMessage::CompilationError(error)) => report::error(&CliError::CompilationError(error)),
+                Err(_) => break,
+            }
         }
-        Err(error) => return Err(CliError::BackendError(error)),
-    };
+    });
 
     server_handle
         .join()
