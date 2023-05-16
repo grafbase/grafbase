@@ -1372,6 +1372,37 @@ impl Registry {
         registry
     }
 
+    /// Fill the `Registry` with sample data.
+    ///
+    /// This can be useful for testing purposes.
+    pub fn with_sample_data(mut self) -> Self {
+        let fields = self.query_root_mut().fields_mut().unwrap();
+
+        fields.insert(
+            "scalar".to_owned(),
+            MetaField {
+                name: "scalar".to_owned(),
+                description: Some("test scalar".to_owned()),
+                ty: "MyScalar".to_owned(),
+                ..Default::default()
+            },
+        );
+
+        self.types.insert(
+            "MyScalar".to_owned(),
+            MetaType::Scalar {
+                name: "MyScalar".to_owned(),
+                description: Some("test scalar".to_owned()),
+                is_valid: None,
+                visible: None,
+                specified_by_url: None,
+                parser: ScalarParser::default(),
+            },
+        );
+
+        self
+    }
+
     pub fn query_root(&self) -> &MetaType {
         self.types.get(&self.query_type).unwrap()
     }

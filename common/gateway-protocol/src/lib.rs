@@ -177,7 +177,7 @@ mod tests {
 
     use super::*;
 
-    const EXPECTED_SHA: &str = "490484a88d2357cab653a45bcff6d71139525b119b3b3e9fcc9d4831d0815bd3";
+    const EXPECTED_SHA: &str = "dd6e6431445eeb4587aaa183a066ce88734f2cce966803925850d0bffb3409f1";
 
     #[test]
     fn test_serde_roundtrip() {
@@ -197,7 +197,7 @@ mod tests {
             the new output presented in the test result.
         "#;
 
-        let registry = Cow::Owned(Registry::default());
+        let registry = Cow::Owned(Registry::new().with_sample_data());
         let versioned_registry = VersionedRegistry {
             registry,
             deployment_id: Cow::Borrowed(id),
@@ -205,6 +205,6 @@ mod tests {
         let serialized_versioned_registry = serde_json::to_string(&versioned_registry).unwrap();
         let serialized_sha = Sha256::digest(serialized_versioned_registry);
 
-        assert_eq!(EXPECTED_SHA, &format!("{:x}", serialized_sha));
+        assert_eq!(EXPECTED_SHA, &format!("{serialized_sha:x}"));
     }
 }
