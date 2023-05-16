@@ -13,7 +13,7 @@ pub struct VersionedRegistry<'a> {
 
 #[derive(serde::Serialize)]
 pub struct VersionedRegistrySerializable<'a> {
-    pub registry: serde_json::Value,
+    pub registry: ijson::IValue,
     pub deployment_id: std::borrow::Cow<'a, str>,
 }
 
