@@ -17,10 +17,11 @@ import { Union } from './union'
 import { Interface } from './interface'
 import { Query, QueryInput } from './query'
 import { EnumShape, FieldShape, RelationRef } from '.'
-import { OpenAPI, PartialOpenAPI } from './openapi'
+import { OpenAPI, PartialOpenAPI } from './connector/openapi'
+import { GraphQLAPI, PartialGraphQLAPI } from './connector/graphql'
 
-export type PartialDatasource = PartialOpenAPI
-export type Datasource = OpenAPI
+export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
+export type Datasource = OpenAPI | GraphQLAPI
 
 export class Datasources {
   inner: Datasource[]
@@ -71,9 +72,7 @@ export class GrafbaseSchema {
   }
 
   public datasource(datasource: PartialDatasource, params: IntrospectParams) {
-    if (datasource instanceof PartialOpenAPI) {
-      this.datasources.push(datasource.finalize(params.namespace))
-    }
+    this.datasources.push(datasource.finalize(params.namespace))
   }
 
   public model(name: string, fields: Record<string, FieldShape>): Model {
