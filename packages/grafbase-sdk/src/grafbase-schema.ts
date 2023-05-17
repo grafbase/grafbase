@@ -15,7 +15,7 @@ import { Type } from './type'
 import { ReferenceDefinition } from './reference'
 import { Union } from './union'
 import { Interface } from './interface'
-import { Query, QueryInput, QueryType } from './query'
+import { Query, QueryInput } from './query'
 import { EnumShape, FieldShape, RelationRef } from '.'
 
 export class GrafbaseSchema {
@@ -25,6 +25,7 @@ export class GrafbaseSchema {
   models: Model[]
   interfaces: Interface[]
   queries: Query[]
+  mutations: Query[]
 
   constructor() {
     this.enums = []
@@ -33,6 +34,7 @@ export class GrafbaseSchema {
     this.models = []
     this.interfaces = []
     this.queries = []
+    this.mutations = []
   }
 
   public model(name: string, fields: Record<string, FieldShape>): Model {
@@ -89,12 +91,7 @@ export class GrafbaseSchema {
   }
 
   public query(name: string, definition: QueryInput): Query {
-    var query = new Query(
-      name,
-      QueryType.Query,
-      definition.returns,
-      definition.resolver
-    )
+    var query = new Query(name, definition.returns, definition.resolver)
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(([name, type]) =>
@@ -108,12 +105,7 @@ export class GrafbaseSchema {
   }
 
   public mutation(name: string, definition: QueryInput): Query {
-    var query = new Query(
-      name,
-      QueryType.Mutation,
-      definition.returns,
-      definition.resolver
-    )
+    var query = new Query(name, definition.returns, definition.resolver)
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(
@@ -122,7 +114,7 @@ export class GrafbaseSchema {
       )
     }
 
-    this.queries.push(query)
+    this.mutations.push(query)
 
     return query
   }
@@ -197,6 +189,7 @@ export class GrafbaseSchema {
 
   public clear() {
     this.queries = []
+    this.mutations = []
     this.interfaces = []
     this.types = []
     this.unions = []
@@ -205,14 +198,27 @@ export class GrafbaseSchema {
   }
 
   public toString(): string {
-    const queries = this.queries.map(String).join('\n\n')
+    var queries = this.queries.map(String).join('\n')
+    var mutations = this.mutations.map(String).join('\n')
+
+    queries = queries ? `extend type Query {\n${queries}\n}` : ''
+    mutations = mutations ? `extend type Mutation {\n${mutations}\n}` : ''
+
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')
     const unions = this.unions.map(String).join('\n\n')
     const enums = this.enums.map(String).join('\n\n')
     const models = this.models.map(String).join('\n\n')
 
-    const renderOrder = [interfaces, enums, types, queries, unions, models]
+    const renderOrder = [
+      interfaces,
+      enums,
+      types,
+      queries,
+      mutations,
+      unions,
+      models
+    ]
 
     return renderOrder.filter(Boolean).flat().map(String).join('\n\n')
   }

@@ -25,29 +25,17 @@ export class QueryArgument {
   }
 }
 
-export enum QueryType {
-  Query = 'Query',
-  Mutation = 'Mutation'
-}
-
 export class Query {
   name: string
   arguments: QueryArgument[]
   returns: OutputType
   resolver: string
-  type: QueryType
 
-  constructor(
-    name: string,
-    type: QueryType,
-    returnType: OutputType,
-    resolverName: string
-  ) {
+  constructor(name: string, returnType: OutputType, resolverName: string) {
     this.name = name
     this.arguments = []
     this.returns = returnType
     this.resolver = resolverName
-    this.type = type
   }
 
   public pushArgument(name: string, type: InputType): Query {
@@ -57,12 +45,9 @@ export class Query {
   }
 
   public toString(): string {
-    const header = `extend type ${this.type} {`
     const args = this.arguments.map(String).join(', ')
     const argsStr = args ? `(${args})` : ''
-    const query = `  ${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
-    const footer = '}'
 
-    return `${header}\n${query}\n${footer}`
+    return `  ${this.name}${argsStr}: ${this.returns} @resolver(name: "${this.resolver}")`
   }
 }
