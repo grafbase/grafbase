@@ -1520,7 +1520,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase"
-version = "0.20.0-rc.2"
+version = "0.20.0-rc.3"
 dependencies = [
  "backtrace",
  "cfg-if",
@@ -1570,7 +1570,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-backend"
-version = "0.20.0-rc.2"
+version = "0.20.0-rc.3"
 dependencies = [
  "async-compression",
  "async-tar",
@@ -1599,7 +1599,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-common"
-version = "0.20.0-rc.2"
+version = "0.20.0-rc.3"
 dependencies = [
  "dirs 5.0.0",
  "exitcode",
@@ -1610,7 +1610,7 @@ dependencies = [
 
 [[package]]
 name = "grafbase-local-server"
-version = "0.20.0-rc.2"
+version = "0.20.0-rc.3"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2264,9 +2264,9 @@ checksum = "3304a64d199bb964be99741b7a14d26972741915b3649639149b2479bb46f4b5"
 
 [[package]]
 name = "libm"
-version = "0.2.6"
+version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "348108ab3fba42ec82ff6e9564fc4ca0247bdccdc68dd8af9764bbc79c3c8ffb"
+checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
 
 [[package]]
 name = "libsqlite3-sys"
