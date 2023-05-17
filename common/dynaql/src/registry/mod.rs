@@ -201,6 +201,8 @@ pub enum ComplexityType {
     Fn(ComputeComplexityFn),
 }
 
+#[serde_with::minify_field_names]
+#[serde_with::minify_variant_names]
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq, Default)]
 pub enum Deprecation {
     #[default]
