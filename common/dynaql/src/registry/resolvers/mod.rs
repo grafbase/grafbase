@@ -389,6 +389,7 @@ impl ResolverType {
 }
 
 #[non_exhaustive]
+#[serde_with::minify_variant_names]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ResolverType {
     DynamoResolver(DynamoResolver),

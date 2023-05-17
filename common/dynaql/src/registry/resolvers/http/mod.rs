@@ -12,6 +12,7 @@ use super::{ResolvedValue, ResolverContext};
 
 mod parameters;
 
+#[serde_with::minify_field_names]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct HttpResolver {
     pub method: String,
