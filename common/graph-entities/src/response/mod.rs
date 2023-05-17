@@ -613,6 +613,7 @@ pub enum QueryResponseNode {
 #[cfg(test)]
 mod tests {
     use internment::ArcIntern;
+    use serde_json::Number;
 
     use crate::NodeID;
 
@@ -673,6 +674,42 @@ mod tests {
         let output_json = serde_json::json!({
             "glossary": {
                 "title": "example",
+            }
+        });
+
+        assert_eq!(response.to_json_value().unwrap().to_string(), output_json.to_string());
+    }
+
+    #[test]
+    fn should_have_float_as_float() {
+        let root = ResponseContainer::new_container();
+        let mut response = QueryResponse::new_root(root);
+        let root_id = response.root.unwrap();
+
+        let glossary_container = response
+            .append_unchecked(
+                root_id,
+                ResponseContainer::new_container(),
+                ResponseNodeRelation::NotARelation {
+                    response_key: None,
+                    field: "glossary".to_string().into(),
+                },
+            )
+            .unwrap();
+
+        let example_primitive = ResponsePrimitive::new(CompactValue::Number(Number::from_f64(123.0).unwrap()));
+        let relation = ResponseNodeRelation::NotARelation {
+            response_key: None,
+            field: "age".to_string().into(),
+        };
+
+        response
+            .append_unchecked(glossary_container, example_primitive, relation)
+            .unwrap();
+
+        let output_json = serde_json::json!({
+            "glossary": {
+                "age": 123.0,
             }
         });
 
