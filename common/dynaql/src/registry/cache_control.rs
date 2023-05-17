@@ -27,6 +27,7 @@
 /// assert_eq!(schema.execute("{ value1 value2 }").await.into_result().unwrap().cache_control, CacheControl { public: false, max_age: 30 });
 /// # });
 /// ```
+#[serde_with::minify_field_names]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub struct CacheControl {
     /// Scope is public, default is true.
