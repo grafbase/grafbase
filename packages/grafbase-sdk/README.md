@@ -339,9 +339,9 @@ const stripe = connector
   })
 ```
 
-Introspecting the connector namespace to the schema happens with the `introspect` method of the schema:
+Introspecting the connector namespace to the schema happens with the `datasource` method of the schema:
 
 ```typescript
-g.introspect(stripe, { namespace: 'Stripe' })
-g.introspect(openai, { namespace: 'OpenAI' })
+g.datasource(stripe, { namespace: 'Stripe' })
+g.datasource(openai, { namespace: 'OpenAI' })
 ```
