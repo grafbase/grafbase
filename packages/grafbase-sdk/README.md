@@ -329,7 +329,6 @@ const openai = connector.OpenAPI({
 const stripe = connector
   .OpenAPI({
     schema: 'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
-    url: 'https://api.stripe.com',
     headers: (headers) => {
       // used in client and introspection requests
       headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')

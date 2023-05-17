@@ -17,9 +17,7 @@ describe('OpenAPI generator', () => {
         @openapi(
           name: "Stripe"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
-        ) {
-        query: Query
-      }"
+        )"
     `)
   })
 
@@ -28,6 +26,7 @@ describe('OpenAPI generator', () => {
       schema:
         'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
       url: 'https://api.stripe.com',
+      transforms: 'SCHEMA_NAME',
       headers: (headers) => {
         headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
         headers.static('Method', 'POST')
@@ -44,6 +43,7 @@ describe('OpenAPI generator', () => {
           name: "Stripe"
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
+          transforms: SCHEMA_NAME
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
             { name: "Method", value: "POST" }
@@ -51,9 +51,7 @@ describe('OpenAPI generator', () => {
           introspectionHeaders: [
             { name: "foo", value: "bar" }
           ]
-        ) {
-        query: Query
-      }"
+        )"
     `)
   })
 
@@ -80,9 +78,7 @@ describe('OpenAPI generator', () => {
         @openapi(
           name: "OpenAI"
           schema: "https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml"
-        ) {
-        query: Query
-      }"
+        )"
     `)
   })
 })

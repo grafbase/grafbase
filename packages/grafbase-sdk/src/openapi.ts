@@ -22,55 +22,66 @@ export class Headers {
   }
 
   /**
-  * Creates a header used in client and introspection requests.
-  *
-  * @param name - The name of the header
-  * @param value - The value of the header
-  */
+   * Creates a header used in client and introspection requests.
+   *
+   * @param name - The name of the header
+   * @param value - The value of the header
+   */
   public static(name: string, value: string) {
     this.headers.push(new Header(name, value))
   }
 
   /**
-  * Creates a header used only in introspection requests.
-  *
-  * @param name - The name of the header
-  * @param value - The value of the header
-  */
+   * Creates a header used only in introspection requests.
+   *
+   * @param name - The name of the header
+   * @param value - The value of the header
+   */
   public introspection(name: string, value: string) {
     this.introspectionHeaders.push(new Header(name, value))
   }
 }
 
 export type HeaderGenerator = (headers: Headers) => any
+export type OpenApiTransforms = 'OPERATION_ID' | 'SCHEMA_NAME'
 
 export interface OpenAPIParams {
   schema: string
   url?: string
+  transforms?: OpenApiTransforms
   headers?: HeaderGenerator
 }
 
 export class PartialOpenAPI {
   schema: string
   apiUrl?: string
+  transforms?: OpenApiTransforms
   headers: Header[]
   introspectionHeaders: Header[]
-  
+
   constructor(params: OpenAPIParams) {
     const headers = new Headers()
 
     if (params.headers) {
       params.headers(headers)
     }
-    
+
     this.schema = params.schema
     this.apiUrl = params.url
+    this.transforms = params.transforms
     this.headers = headers.headers
     this.introspectionHeaders = headers.introspectionHeaders
   }
 
   finalize(namespace: string): OpenAPI {
-    return new OpenAPI(namespace, this.schema, this.headers, this.introspectionHeaders, this.apiUrl)
+    return new OpenAPI(
+      namespace,
+      this.schema,
+      this.headers,
+      this.introspectionHeaders,
+      this.transforms,
+      this.apiUrl
+    )
   }
 }
 
@@ -78,31 +89,49 @@ export class OpenAPI {
   namespace: string
   schema: string
   apiUrl?: string
+  transforms?: OpenApiTransforms
   headers: Header[]
   introspectionHeaders: Header[]
 
-  constructor(namespace: string, schema: string, headers: Header[], introspectionHeaders: Header[], url?: string) {
+  constructor(
+    namespace: string,
+    schema: string,
+    headers: Header[],
+    introspectionHeaders: Header[],
+    transforms?: OpenApiTransforms,
+    url?: string
+  ) {
     this.namespace = namespace
     this.schema = schema
     this.apiUrl = url
+    this.transforms = transforms
     this.headers = headers
     this.introspectionHeaders = introspectionHeaders
   }
 
   public toString(): string {
-    const header = "  @openapi(\n"
-    const namespace = this.namespace ? `    name: "${this.namespace}"\n` : ""
-    const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ""
+    const header = '  @openapi(\n'
+    const namespace = this.namespace ? `    name: "${this.namespace}"\n` : ''
+    const url = this.apiUrl ? `    url: "${this.apiUrl}"\n` : ''
     const schema = `    schema: "${this.schema}"\n`
 
-    var headers = this.headers.map((header) => `      ${header}`).join("\n")
-    headers = headers ? `    headers: [\n${headers}\n    ]\n`: ""
+    const transforms = this.transforms
+      ? `    transforms: ${this.transforms}\n`
+      : ''
 
-    var introspectionHeaders = this.introspectionHeaders.map((header) => `      ${header}`).join("\n")
-    introspectionHeaders = headers ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`: ""
+    var headers = this.headers.map((header) => `      ${header}`).join('\n')
+    headers = headers ? `    headers: [\n${headers}\n    ]\n` : ''
 
-    const footer = "  )"
+    var introspectionHeaders = this.introspectionHeaders
+      .map((header) => `      ${header}`)
+      .join('\n')
 
-    return `${header}${namespace}${url}${schema}${headers}${introspectionHeaders}${footer}`
+    introspectionHeaders = headers
+      ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`
+      : ''
+
+    const footer = '  )'
+
+    return `${header}${namespace}${url}${schema}${transforms}${headers}${introspectionHeaders}${footer}`
   }
 }

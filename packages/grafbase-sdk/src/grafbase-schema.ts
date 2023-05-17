@@ -37,9 +37,8 @@ export class Datasources {
     if (this.inner.length > 0) {
       const header = 'extend schema'
       const datasources = this.inner.map(String).join('\n')
-      const footer = ' {\n  query: Query\n}'
 
-      return `${header}\n${datasources}${footer}`
+      return `${header}\n${datasources}`
     } else {
       return ''
     }
