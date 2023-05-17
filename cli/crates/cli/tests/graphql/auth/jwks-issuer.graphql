@@ -1,0 +1,9 @@
+schema
+  @auth(providers: [{ type: jwks, issuer: "{{ env.ISSUER_URL }}" }], rules: [{ allow: groups, groups: ["backend"] }]) {
+  query: Query
+}
+
+type Todo @model {
+  id: ID!
+  title: String!
+}
