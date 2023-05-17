@@ -308,3 +308,39 @@ const user = g.model("User", {
   age: g.int()
 }).search()
 ```
+
+## Connectors
+
+Connectors are created through the connector interface:
+
+```typescript
+import { connector } from '../../src/index'
+```
+
+### OpenAPI
+
+The OpenAPI connector can be created with the `OpenAPI` method:
+
+```typescript
+const openai = connector.OpenAPI({
+  schema: 'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
+})
+
+const stripe = connector
+  .OpenAPI({
+    schema: 'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
+    headers: (headers) => {
+      // used in client and introspection requests
+      headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+      // used only in introspection requests
+      headers.introspection('foo', 'bar')
+    }
+  })
+```
+
+Introspecting the connector namespace to the schema happens with the `datasource` method of the schema:
+
+```typescript
+g.datasource(stripe, { namespace: 'Stripe' })
+g.datasource(openai, { namespace: 'OpenAI' })
+```

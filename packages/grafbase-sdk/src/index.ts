@@ -11,6 +11,7 @@ import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from './relation'
 import { GrafbaseSchema } from './grafbase-schema'
 import { Config, ConfigInput } from './config'
+import { OpenAPIParams, PartialOpenAPI } from './openapi'
 
 export type FieldShape =
   | ScalarDefinition
@@ -34,4 +35,10 @@ export const g = new GrafbaseSchema()
 
 export function config(input: ConfigInput): Config {
   return new Config(input)
+}
+
+export const connector = {
+  OpenAPI: (params: OpenAPIParams): PartialOpenAPI => {
+    return new PartialOpenAPI(params)
+  }
 }
