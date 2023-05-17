@@ -283,9 +283,9 @@ impl Parser {
         };
 
         fields.insert(
-            self.prefix.to_snake_case(),
+            self.prefix.to_camel_case(),
             MetaField {
-                name: self.prefix.to_snake_case(),
+                name: self.prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {} API.", &self.prefix)),
                 ty: format!("{} {}!", self.prefix, &registry.query_type).to_pascal_case(),
                 deprecation: Deprecation::NoDeprecated,
@@ -330,9 +330,9 @@ impl Parser {
         };
 
         fields.insert(
-            self.prefix.to_snake_case(),
+            self.prefix.to_camel_case(),
             MetaField {
-                name: self.prefix.to_snake_case(),
+                name: self.prefix.to_camel_case(),
                 description: Some(format!("Access to embedded {} API.", &self.prefix)),
                 ty: format!("{} {}!", self.prefix, mutation_type).to_pascal_case(),
                 deprecation: Deprecation::NoDeprecated,
@@ -386,7 +386,7 @@ mod tests {
     async fn test_counries_output() {
         insta::assert_snapshot!(parse_schema(
             reqwest::Client::new(),
-            "foo".to_string(),
+            "FooBar".to_string(),
             Url::parse("https://api.chargetrip.io/graphql").unwrap(),
             HashMap::from([
                 ("x-client-id".to_owned(), "5ed1175bad06853b3aa1e492".to_owned()),
