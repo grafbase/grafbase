@@ -43,7 +43,7 @@ describe('OpenAPI generator', () => {
           name: "Stripe"
           url: "https://api.stripe.com"
           schema: "https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json"
-          transforms: SCHEMA_NAME
+          transforms: { queryNaming: SCHEMA_NAME }
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
             { name: "Method", value: "POST" }

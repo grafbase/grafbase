@@ -73,7 +73,7 @@ export class OpenAPI {
     const schema = `    schema: "${this.schema}"\n`
 
     const transforms = this.transforms
-      ? `    transforms: ${this.transforms}\n`
+      ? `    transforms: { queryNaming: ${this.transforms} }\n`
       : ''
 
     var headers = this.headers.map((header) => `      ${header}`).join('\n')
