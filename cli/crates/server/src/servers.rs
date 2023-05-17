@@ -333,7 +333,7 @@ fn export_embedded_files() -> Result<(), ServerError> {
         let full_path = &environment.user_dot_grafbase_path;
         archive
             .unpack(full_path)
-            .map_err(|e| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
+            .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
             let version_path_string = version_path.to_string_lossy().into_owned();
