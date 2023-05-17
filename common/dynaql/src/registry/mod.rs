@@ -143,6 +143,7 @@ impl<'a> MetaTypeName<'a> {
     }
 }
 
+#[serde_with::minify_field_names]
 #[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaInputValue {
@@ -285,6 +286,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
     }
 }
 
+#[serde_with::minify_field_names]
 #[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -656,6 +658,7 @@ impl MetaField {
     }
 }
 
+#[serde_with::minify_field_names]
 #[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaEnumValue {
@@ -743,6 +746,7 @@ impl MetaType {
     }
 }
 
+#[serde_with::minify_field_names]
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
