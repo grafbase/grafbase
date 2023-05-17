@@ -344,3 +344,28 @@ Introspecting the connector namespace to the schema happens with the `datasource
 g.datasource(stripe, { namespace: 'Stripe' })
 g.datasource(openai, { namespace: 'OpenAI' })
 ```
+
+### GraphQL
+
+The GraphQL connector can be created with the `GraphQL` method:
+
+```typescript
+const contentful = connector.GraphQL({
+  url: 'https://graphql.contentful.com/content/v1/spaces/{{ env.CONTENTFUL_SPACE_ID }}/environments/{{ env.CONTENTFUL_ENVIRONMENT }}',
+  headers: (headers) => {
+    headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+    headers.static('Method', 'POST')
+  }
+})
+
+const github = connector.GraphQL({
+  url: 'https://api.github.com/graphql'
+})
+```
+
+Introspecting the connector namespace to the schema happens with the `introspect` method of the schema:
+
+```typescript
+g.datasource(contentful, { namespace: 'Contentful' })
+g.datasource(github, { namespace: 'GitHub' })
+```

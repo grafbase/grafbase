@@ -1,48 +1,5 @@
-export class Header {
-  name: string
-  value: string
+import { Header, Headers, HeaderGenerator } from "./header"
 
-  constructor(name: string, value: string) {
-    this.name = name
-    this.value = value
-  }
-
-  public toString(): string {
-    return `{ name: "${this.name}", value: "${this.value}" }`
-  }
-}
-
-export class Headers {
-  headers: Header[]
-  introspectionHeaders: Header[]
-
-  constructor() {
-    this.headers = []
-    this.introspectionHeaders = []
-  }
-
-  /**
-   * Creates a header used in client and introspection requests.
-   *
-   * @param name - The name of the header
-   * @param value - The value of the header
-   */
-  public static(name: string, value: string) {
-    this.headers.push(new Header(name, value))
-  }
-
-  /**
-   * Creates a header used only in introspection requests.
-   *
-   * @param name - The name of the header
-   * @param value - The value of the header
-   */
-  public introspection(name: string, value: string) {
-    this.introspectionHeaders.push(new Header(name, value))
-  }
-}
-
-export type HeaderGenerator = (headers: Headers) => any
 export type OpenApiTransforms = 'OPERATION_ID' | 'SCHEMA_NAME'
 
 export interface OpenAPIParams {
