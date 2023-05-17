@@ -94,6 +94,8 @@ impl SchemaPlan {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PlanProjection {
     pub(crate) fields: Vec<String>,
+    /// When we want to project a field from an inner structure we need to flatten the
+    /// coresponding structure before being able to do a projection on the inner structure.
     pub flattened: bool,
 }
 
