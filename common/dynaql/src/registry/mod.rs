@@ -747,6 +747,7 @@ impl MetaType {
 }
 
 #[serde_with::minify_field_names]
+#[serde_with::minify_variant_names]
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
