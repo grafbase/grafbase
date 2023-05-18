@@ -1,6 +1,5 @@
 ---
 source: common/parser/src/tests.rs
-assertion_line: 371
 expression: req_string_a
 ---
 {
@@ -16,12 +15,12 @@ expression: req_string_a
     "include": {
       "args": {
         "if": {
-          "default_value": null,
-          "description": "Included when true.",
-          "is_secret": false,
-          "name": "if",
-          "ty": "Boolean!",
-          "validators": null
+          "D": null,
+          "V": null,
+          "d": "Included when true.",
+          "i": false,
+          "n": "if",
+          "t": "Boolean!"
         }
       },
       "description": "Directs the executor to include this field or fragment only when the `if` argument is true.",
@@ -54,12 +53,12 @@ expression: req_string_a
     "skip": {
       "args": {
         "if": {
-          "default_value": null,
-          "description": "Skipped when true.",
-          "is_secret": false,
-          "name": "if",
-          "ty": "Boolean!",
-          "validators": null
+          "D": null,
+          "V": null,
+          "d": "Skipped when true.",
+          "i": false,
+          "n": "if",
+          "t": "Boolean!"
         }
       },
       "description": "Directs the executor to skip this field or fragment when the `if` argument is true.",
@@ -179,87 +178,90 @@ expression: req_string_a
   "subscription_type": null,
   "types": {
     "Boolean": {
-      "Scalar": {
-        "description": "The `Boolean` scalar type represents `true` or `false`.",
-        "name": "Boolean",
-        "parser": "BestEffort",
-        "specified_by_url": null
+      "S": {
+        "d": "The `Boolean` scalar type represents `true` or `false`.",
+        "n": "Boolean",
+        "p": "BestEffort",
+        "s": null
       }
     },
     "DateTime": {
-      "Scalar": {
-        "description": "A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339\nprofile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.\n\nThis scalar is a description of an exact instant on the timeline such as the instant that a user account was created.\n\n# Input Coercion\n\nWhen expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.\n\n# Result Coercion\n\nWhere an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.\nFor example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
-        "name": "DateTime",
-        "parser": "BestEffort",
-        "specified_by_url": "https://datatracker.ietf.org/doc/html/rfc3339"
+      "S": {
+        "d": "A date-time string at UTC, such as 2007-12-03T10:15:30Z, is compliant with the date-time format outlined in section 5.6 of the RFC 3339\nprofile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.\n\nThis scalar is a description of an exact instant on the timeline such as the instant that a user account was created.\n\n# Input Coercion\n\nWhen expected as an input type, only RFC 3339 compliant date-time strings are accepted. All other input values raise a query error indicating an incorrect type.\n\n# Result Coercion\n\nWhere an RFC 3339 compliant date-time string has a time-zone other than UTC, it is shifted to UTC.\nFor example, the date-time string 2016-01-01T14:10:20+01:00 is shifted to 2016-01-01T13:10:20Z.",
+        "n": "DateTime",
+        "p": "BestEffort",
+        "s": "https://datatracker.ietf.org/doc/html/rfc3339"
       }
     },
     "Float": {
-      "Scalar": {
-        "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
-        "name": "Float",
-        "parser": "BestEffort",
-        "specified_by_url": null
+      "S": {
+        "d": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
+        "n": "Float",
+        "p": "BestEffort",
+        "s": null
       }
     },
     "ID": {
-      "Scalar": {
-        "description": null,
-        "name": "ID",
-        "parser": "BestEffort",
-        "specified_by_url": null
+      "S": {
+        "d": null,
+        "n": "ID",
+        "p": "BestEffort",
+        "s": null
       }
     },
     "Int": {
-      "Scalar": {
-        "description": "The `Int` scalar type represents non-fractional whole numeric values.",
-        "name": "Int",
-        "parser": "BestEffort",
-        "specified_by_url": null
+      "S": {
+        "d": "The `Int` scalar type represents non-fractional whole numeric values.",
+        "n": "Int",
+        "p": "BestEffort",
+        "s": null
       }
     },
     "Mutation": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "Mutation",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "userCreate": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 1,
+            "a": {
               "input": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "input",
-                "ty": "UserCreateInput!",
-                "validators": null
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "input",
+                "t": "UserCreateInput!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Create a User",
-            "edges": [],
-            "external": false,
-            "name": "userCreate",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 1,
-            "requires": null,
-            "resolve": {
+            "d": "Create a User",
+            "e": false,
+            "n": "userCreate",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_create_resolver",
               "type": {
-                "DynamoMutationResolver": {
+                "d": {
                   "CreateNode": {
                     "input": {
                       "InputTypeName": "input"
@@ -269,40 +271,40 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "UserCreatePayload"
+            "t": "UserCreatePayload"
           },
           "userDelete": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 16,
+            "a": {
               "by": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "by",
-                "ty": "UserByInput!",
-                "validators": null
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "by",
+                "t": "UserByInput!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Delete a User by ID or unique field",
-            "edges": [],
-            "external": false,
-            "name": "userDelete",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 16,
-            "requires": null,
-            "resolve": {
+            "d": "Delete a User by ID or unique field",
+            "e": false,
+            "n": "userDelete",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_delete_resolver",
               "type": {
-                "DynamoMutationResolver": {
+                "d": {
                   "DeleteNode": {
                     "by": {
                       "InputTypeName": "by"
@@ -312,48 +314,48 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "UserDeletePayload"
+            "t": "UserDeletePayload"
           },
           "userUpdate": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 8,
+            "a": {
               "by": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "by",
-                "ty": "UserByInput!",
-                "validators": null
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "by",
+                "t": "UserByInput!"
               },
               "input": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "input",
-                "ty": "UserUpdateInput!",
-                "validators": null
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "input",
+                "t": "UserUpdateInput!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Update a User",
-            "edges": [],
-            "external": false,
-            "name": "userUpdate",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 8,
-            "requires": null,
-            "resolve": {
+            "d": "Update a User",
+            "e": false,
+            "n": "userUpdate",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_create_resolver",
               "type": {
-                "DynamoMutationResolver": {
+                "d": {
                   "UpdateNode": {
                     "by": {
                       "InputTypeName": "by"
@@ -366,42 +368,32 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "UserUpdatePayload"
+            "t": "UserUpdatePayload"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Mutation",
-        "rust_typename": "Mutation"
+        "i_": false,
+        "k": null,
+        "r": "Mutation"
       }
     },
     "Nested": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "Nested",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "requiredField": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "requiredField",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Projection": {
                 "fields": [
                   "requiredField"
@@ -409,88 +401,88 @@ expression: req_string_a
                 "flattened": true
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "requiredField"
               }
             },
-            "ty": "String!"
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "requiredField",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Nested",
-        "rust_typename": "Nested"
+        "i_": false,
+        "k": null,
+        "r": "Nested"
       }
     },
     "NestedInput": {
-      "InputObject": {
-        "description": "Nested input type.",
-        "input_fields": {
+      "i": {
+        "A": "NestedInput",
+        "_p": {
           "requiredField": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "requiredField",
-            "ty": "String!",
-            "validators": null
+            "D": null,
+            "V": null,
+            "d": null,
+            "i": false,
+            "n": "requiredField",
+            "t": "String!"
           }
         },
-        "name": "NestedInput",
-        "oneof": false,
-        "rust_typename": "NestedInput"
+        "o": false,
+        "s_": "Nested input type.",
+        "u": "NestedInput"
       }
     },
     "OrderByDirection": {
-      "Enum": {
-        "description": null,
-        "enum_values": {
+      "E": {
+        "_e": {
           "ASC": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "ASC"
+            "D": "N",
+            "d": null,
+            "n": "ASC"
           },
           "DESC": {
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "name": "DESC"
+            "D": "N",
+            "d": null,
+            "n": "DESC"
           }
         },
-        "name": "OrderByDirection",
-        "rust_typename": "OrderByDirection"
+        "_r": "OrderByDirection",
+        "a": "OrderByDirection",
+        "e_": null
       }
     },
     "PageInfo": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "PageInfo",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "endCursor": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "endCursor",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Apply": {
                 "fun_fields": [
                   [
@@ -512,103 +504,103 @@ expression: req_string_a
                 }
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "end_cursor"
               }
             },
-            "ty": "String"
-          },
-          "hasNextPage": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "hasNextPage",
-            "plan": {
-              "PaginationPage": "Next"
-            },
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
+            "d": null,
+            "e": false,
+            "n": "endCursor",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": null,
               "type": {
-                "ContextDataResolver": "PaginationData"
+                "C": "P"
               }
             },
-            "transformer": {
+            "t": "String"
+          },
+          "hasNextPage": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
+              "PaginationPage": "Next"
+            },
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "has_next_page"
               }
             },
-            "ty": "Boolean!"
-          },
-          "hasPreviousPage": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "hasPreviousPage",
-            "plan": {
-              "PaginationPage": "Previous"
-            },
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
+            "d": null,
+            "e": false,
+            "n": "hasNextPage",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": null,
               "type": {
-                "ContextDataResolver": "PaginationData"
+                "C": "P"
               }
             },
-            "transformer": {
+            "t": "Boolean!"
+          },
+          "hasPreviousPage": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
+              "PaginationPage": "Previous"
+            },
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "has_previous_page"
               }
             },
-            "ty": "Boolean!"
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "hasPreviousPage",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": "P"
+              }
+            },
+            "t": "Boolean!"
           },
           "startCursor": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "startCursor",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Apply": {
                 "fun_fields": [
                   [
@@ -630,95 +622,105 @@ expression: req_string_a
                 }
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": "PaginationData"
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "start_cursor"
               }
             },
-            "ty": "String"
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "startCursor",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": "P"
+              }
+            },
+            "t": "String"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "PageInfo",
-        "rust_typename": "PageInfo"
+        "i_": false,
+        "k": null,
+        "r": "PageInfo"
       }
     },
     "Query": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "Query",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "__schema": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Access the current type schema of this server.",
-            "edges": [],
-            "external": false,
-            "name": "__schema",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Schema!"
+            "d": "Access the current type schema of this server.",
+            "e": false,
+            "n": "__schema",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Schema!"
           },
           "user": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 2,
+            "a": {
               "by": {
-                "default_value": null,
-                "description": "The field and value by which to query the User",
-                "is_secret": false,
-                "name": "by",
-                "ty": "UserByInput!",
-                "validators": null
+                "D": null,
+                "V": null,
+                "d": "The field and value by which to query the User",
+                "i": false,
+                "n": "by",
+                "t": "UserByInput!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Query a single User by an ID or a unique field",
-            "edges": [],
-            "external": false,
-            "name": "user",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 2,
-            "requires": null,
-            "resolve": {
+            "d": "Query a single User by an ID or a unique field",
+            "e": false,
+            "n": "user",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_resolver",
               "type": {
-                "DynamoResolver": {
+                "D": {
                   "QueryBy": {
                     "by": {
                       "InputTypeName": "by"
@@ -728,64 +730,13 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "User"
+            "t": "User"
           },
           "userCollection": {
-            "args": {
-              "after": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "after",
-                "ty": "String",
-                "validators": null
-              },
-              "before": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "before",
-                "ty": "String",
-                "validators": null
-              },
-              "first": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "first",
-                "ty": "Int",
-                "validators": null
-              },
-              "last": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "last",
-                "ty": "Int",
-                "validators": null
-              },
-              "orderBy": {
-                "default_value": null,
-                "description": null,
-                "is_secret": false,
-                "name": "orderBy",
-                "ty": "UserOrderByInput",
-                "validators": null
-              }
-            },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": "Paginated query to fetch the whole list of `User`.",
-            "edges": [],
-            "external": false,
-            "name": "userCollection",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Related": {
                 "from": null,
                 "relation_name": null,
@@ -793,8 +744,7 @@ expression: req_string_a
                 "ty": "User"
               }
             },
-            "provides": null,
-            "relation": {
+            "R": {
               "birectional": false,
               "kind": "OneToMany",
               "name": "userCollection",
@@ -803,12 +753,64 @@ expression: req_string_a
                 "User"
               ]
             },
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
+            "T": null,
+            "_r": 4,
+            "a": {
+              "after": {
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "after",
+                "t": "String"
+              },
+              "before": {
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "before",
+                "t": "String"
+              },
+              "first": {
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "first",
+                "t": "Int"
+              },
+              "last": {
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "last",
+                "t": "Int"
+              },
+              "orderBy": {
+                "D": null,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "orderBy",
+                "t": "UserOrderByInput"
+              }
+            },
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": "Paginated query to fetch the whole list of `User`.",
+            "e": false,
+            "n": "userCollection",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_resolver",
               "type": {
-                "DynamoResolver": {
+                "D": {
                   "ListResultByTypePaginated": {
                     "after": {
                       "InputTypeName": "after"
@@ -833,50 +835,40 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "UserConnection"
+            "t": "UserConnection"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "Query",
-        "rust_typename": "Query"
+        "i_": false,
+        "k": null,
+        "r": "Query"
       }
     },
     "String": {
-      "Scalar": {
-        "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
-        "name": "String",
-        "parser": "BestEffort",
-        "specified_by_url": null
+      "S": {
+        "d": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+        "n": "String",
+        "p": "BestEffort",
+        "s": null
       }
     },
     "User": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "User",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "createdAt": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": "when the model was created",
-            "edges": [],
-            "external": false,
-            "name": "createdAt",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Projection": {
                 "fields": [
                   "createdAt"
@@ -884,41 +876,41 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "User"
-                  }
-                }
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "DynamoSelect": {
                 "property": "__created_at"
               }
             },
-            "ty": "DateTime!"
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": "when the model was created",
+            "e": false,
+            "n": "createdAt",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": {
+                  "L": {
+                    "K": "User"
+                  }
+                }
+              }
+            },
+            "t": "DateTime!"
           },
           "id": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": "Unique identifier",
-            "edges": [],
-            "external": false,
-            "name": "id",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Projection": {
                 "fields": [
                   "id"
@@ -926,41 +918,41 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "User"
-                  }
-                }
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "DynamoSelect": {
                 "property": "__sk"
               }
             },
-            "ty": "ID!"
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": "Unique identifier",
+            "e": false,
+            "n": "id",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": {
+                  "L": {
+                    "K": "User"
+                  }
+                }
+              }
+            },
+            "t": "ID!"
           },
           "nested": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "nested",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Projection": {
                 "fields": [
                   "nested"
@@ -968,41 +960,41 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "User"
-                  }
-                }
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "DynamoSelect": {
                 "property": "nested"
               }
             },
-            "ty": "Nested"
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "nested",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": {
+                  "L": {
+                    "K": "User"
+                  }
+                }
+              }
+            },
+            "t": "Nested"
           },
           "updatedAt": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": "when the model was updated",
-            "edges": [],
-            "external": false,
-            "name": "updatedAt",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Projection": {
                 "fields": [
                   "updatedAt"
@@ -1010,167 +1002,177 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "User"
-                  }
-                }
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "DynamoSelect": {
                 "property": "__updated_at"
               }
             },
-            "ty": "DateTime!"
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": "when the model was updated",
+            "e": false,
+            "n": "updatedAt",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": {
+                  "L": {
+                    "K": "User"
+                  }
+                }
+              }
+            },
+            "t": "DateTime!"
           }
         },
-        "is_node": true,
-        "is_subscription": false,
-        "keys": null,
-        "name": "User",
-        "rust_typename": "User"
+        "i_": true,
+        "k": null,
+        "r": "User"
       }
     },
     "UserByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
+      "i": {
+        "A": "UserByInput",
+        "_p": {
           "id": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "id",
-            "ty": "ID",
-            "validators": null
+            "D": null,
+            "V": null,
+            "d": null,
+            "i": false,
+            "n": "id",
+            "t": "ID"
           }
         },
-        "name": "UserByInput",
-        "oneof": true,
-        "rust_typename": "UserByInput"
+        "o": true,
+        "s_": null,
+        "u": "UserByInput"
       }
     },
     "UserConnection": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "UserConnection",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "edges": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "edges",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[UserEdge]"
+            "d": null,
+            "e": false,
+            "n": "edges",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[UserEdge]"
           },
           "pageInfo": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "Information to aid in pagination",
-            "edges": [],
-            "external": false,
-            "name": "pageInfo",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "PageInfo!"
+            "d": "Information to aid in pagination",
+            "e": false,
+            "n": "pageInfo",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "PageInfo!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "UserConnection",
-        "rust_typename": "UserConnection"
+        "i_": false,
+        "k": null,
+        "r": "UserConnection"
       }
     },
     "UserCreateInput": {
-      "InputObject": {
-        "description": "Input to create a User",
-        "input_fields": {
+      "i": {
+        "A": "UserCreateInput",
+        "_p": {
           "nested": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "nested",
-            "ty": "NestedInput",
-            "validators": null
+            "D": null,
+            "V": null,
+            "d": null,
+            "i": false,
+            "n": "nested",
+            "t": "NestedInput"
           }
         },
-        "name": "UserCreateInput",
-        "oneof": false,
-        "rust_typename": "UserCreateInput"
+        "o": false,
+        "s_": "Input to create a User",
+        "u": "UserCreateInput"
       }
     },
     "UserCreatePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "UserCreatePayload",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "user": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 1,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "user",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 1,
-            "requires": null,
-            "resolve": {
+            "d": null,
+            "e": false,
+            "n": "user",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_resolver",
               "type": {
-                "DynamoResolver": {
+                "D": {
                   "QueryPKSK": {
                     "pk": {
                       "LocalData": "id"
@@ -1183,87 +1185,77 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "User"
+            "t": "User"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "UserCreatePayload",
-        "rust_typename": "UserCreatePayload"
+        "i_": false,
+        "k": null,
+        "r": "UserCreatePayload"
       }
     },
     "UserDeletePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "UserDeletePayload",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "deletedId": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "deletedId",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 16,
-            "requires": null,
-            "resolve": null,
-            "transformer": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": {
               "JSONSelect": {
                 "property": "id"
               }
             },
-            "ty": "ID!"
+            "_r": 16,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "deletedId",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "ID!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "UserDeletePayload",
-        "rust_typename": "UserDeletePayload"
+        "i_": false,
+        "k": null,
+        "r": "UserDeletePayload"
       }
     },
     "UserEdge": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "UserEdge",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "cursor": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
-            },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "cursor",
-            "plan": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": {
               "Apply": {
                 "fun_fields": [
                   [
@@ -1281,21 +1273,8 @@ expression: req_string_a
                 }
               }
             },
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": {
-              "id": null,
-              "type": {
-                "ContextDataResolver": {
-                  "LocalKey": {
-                    "key": "User"
-                  }
-                }
-              }
-            },
-            "transformer": {
+            "R": null,
+            "T": {
               "Pipeline": [
                 {
                   "DynamoSelect": {
@@ -1305,107 +1284,130 @@ expression: req_string_a
                 "ConvertSkToCursor"
               ]
             },
-            "ty": "String!"
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
+            },
+            "d": null,
+            "e": false,
+            "n": "cursor",
+            "p": null,
+            "r": null,
+            "r_": {
+              "id": null,
+              "type": {
+                "C": {
+                  "L": {
+                    "K": "User"
+                  }
+                }
+              }
+            },
+            "t": "String!"
           },
           "node": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 4,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "node",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 4,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "User!"
+            "d": null,
+            "e": false,
+            "n": "node",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "User!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "UserEdge",
-        "rust_typename": "UserEdge"
+        "i_": false,
+        "k": null,
+        "r": "UserEdge"
       }
     },
     "UserOrderByInput": {
-      "InputObject": {
-        "description": null,
-        "input_fields": {
+      "i": {
+        "A": "UserOrderByInput",
+        "_p": {
           "createdAt": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "createdAt",
-            "ty": "OrderByDirection",
-            "validators": null
+            "D": null,
+            "V": null,
+            "d": null,
+            "i": false,
+            "n": "createdAt",
+            "t": "OrderByDirection"
           }
         },
-        "name": "UserOrderByInput",
-        "oneof": true,
-        "rust_typename": "UserOrderByInput"
+        "o": true,
+        "s_": null,
+        "u": "UserOrderByInput"
       }
     },
     "UserUpdateInput": {
-      "InputObject": {
-        "description": "Input to update a User",
-        "input_fields": {
+      "i": {
+        "A": "UserUpdateInput",
+        "_p": {
           "nested": {
-            "default_value": null,
-            "description": null,
-            "is_secret": false,
-            "name": "nested",
-            "ty": "NestedInput",
-            "validators": null
+            "D": null,
+            "V": null,
+            "d": null,
+            "i": false,
+            "n": "nested",
+            "t": "NestedInput"
           }
         },
-        "name": "UserUpdateInput",
-        "oneof": false,
-        "rust_typename": "UserUpdateInput"
+        "o": false,
+        "s_": "Input to update a User",
+        "u": "UserUpdateInput"
       }
     },
     "UserUpdatePayload": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": null,
+        "I": false,
+        "N": "UserUpdatePayload",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": null,
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "user": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": 8,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "user",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": 8,
-            "requires": null,
-            "resolve": {
+            "d": null,
+            "e": false,
+            "n": "user",
+            "p": null,
+            "r": null,
+            "r_": {
               "id": "user_resolver",
               "type": {
-                "DynamoResolver": {
+                "D": {
                   "QueryPKSK": {
                     "pk": {
                       "LocalData": "id"
@@ -1418,1070 +1420,1067 @@ expression: req_string_a
                 }
               }
             },
-            "transformer": null,
-            "ty": "User"
+            "t": "User"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "UserUpdatePayload",
-        "rust_typename": "UserUpdatePayload"
+        "i_": false,
+        "k": null,
+        "r": "UserUpdatePayload"
       }
     },
     "__Directive": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "I": false,
+        "N": "__Directive",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "args": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "args",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__InputValue!]!"
+            "d": null,
+            "e": false,
+            "n": "args",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__InputValue!]!"
           },
           "description": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "description",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "description",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "isRepeatable": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "isRepeatable",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "Boolean!"
+            "d": null,
+            "e": false,
+            "n": "isRepeatable",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "Boolean!"
           },
           "locations": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "locations",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__DirectiveLocation!]!"
+            "d": null,
+            "e": false,
+            "n": "locations",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__DirectiveLocation!]!"
           },
           "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String!"
+            "d": null,
+            "e": false,
+            "n": "name",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__Directive",
-        "rust_typename": "dynaql::model::directive::__Directive"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::directive::__Directive"
       }
     },
     "__DirectiveLocation": {
-      "Enum": {
-        "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
-        "enum_values": {
+      "E": {
+        "_e": {
           "ARGUMENT_DEFINITION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an argument definition.",
-            "name": "ARGUMENT_DEFINITION"
+            "D": "N",
+            "d": "Location adjacent to an argument definition.",
+            "n": "ARGUMENT_DEFINITION"
           },
           "ENUM": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an enum definition.",
-            "name": "ENUM"
+            "D": "N",
+            "d": "Location adjacent to an enum definition.",
+            "n": "ENUM"
           },
           "ENUM_VALUE": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an enum value definition.",
-            "name": "ENUM_VALUE"
+            "D": "N",
+            "d": "Location adjacent to an enum value definition.",
+            "n": "ENUM_VALUE"
           },
           "FIELD": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a field.",
-            "name": "FIELD"
+            "D": "N",
+            "d": "Location adjacent to a field.",
+            "n": "FIELD"
           },
           "FIELD_DEFINITION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a field definition.",
-            "name": "FIELD_DEFINITION"
+            "D": "N",
+            "d": "Location adjacent to a field definition.",
+            "n": "FIELD_DEFINITION"
           },
           "FRAGMENT_DEFINITION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a fragment definition.",
-            "name": "FRAGMENT_DEFINITION"
+            "D": "N",
+            "d": "Location adjacent to a fragment definition.",
+            "n": "FRAGMENT_DEFINITION"
           },
           "FRAGMENT_SPREAD": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a fragment spread.",
-            "name": "FRAGMENT_SPREAD"
+            "D": "N",
+            "d": "Location adjacent to a fragment spread.",
+            "n": "FRAGMENT_SPREAD"
           },
           "INLINE_FRAGMENT": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an inline fragment.",
-            "name": "INLINE_FRAGMENT"
+            "D": "N",
+            "d": "Location adjacent to an inline fragment.",
+            "n": "INLINE_FRAGMENT"
           },
           "INPUT_FIELD_DEFINITION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an input object field definition.",
-            "name": "INPUT_FIELD_DEFINITION"
+            "D": "N",
+            "d": "Location adjacent to an input object field definition.",
+            "n": "INPUT_FIELD_DEFINITION"
           },
           "INPUT_OBJECT": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an input object type definition.",
-            "name": "INPUT_OBJECT"
+            "D": "N",
+            "d": "Location adjacent to an input object type definition.",
+            "n": "INPUT_OBJECT"
           },
           "INTERFACE": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an interface definition.",
-            "name": "INTERFACE"
+            "D": "N",
+            "d": "Location adjacent to an interface definition.",
+            "n": "INTERFACE"
           },
           "MUTATION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a mutation operation.",
-            "name": "MUTATION"
+            "D": "N",
+            "d": "Location adjacent to a mutation operation.",
+            "n": "MUTATION"
           },
           "OBJECT": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to an object type definition.",
-            "name": "OBJECT"
+            "D": "N",
+            "d": "Location adjacent to an object type definition.",
+            "n": "OBJECT"
           },
           "QUERY": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a query operation.",
-            "name": "QUERY"
+            "D": "N",
+            "d": "Location adjacent to a query operation.",
+            "n": "QUERY"
           },
           "SCALAR": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a scalar definition.",
-            "name": "SCALAR"
+            "D": "N",
+            "d": "Location adjacent to a scalar definition.",
+            "n": "SCALAR"
           },
           "SCHEMA": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a schema definition.",
-            "name": "SCHEMA"
+            "D": "N",
+            "d": "Location adjacent to a schema definition.",
+            "n": "SCHEMA"
           },
           "SUBSCRIPTION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a subscription operation.",
-            "name": "SUBSCRIPTION"
+            "D": "N",
+            "d": "Location adjacent to a subscription operation.",
+            "n": "SUBSCRIPTION"
           },
           "UNION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a union definition.",
-            "name": "UNION"
+            "D": "N",
+            "d": "Location adjacent to a union definition.",
+            "n": "UNION"
           },
           "VARIABLE_DEFINITION": {
-            "deprecation": "NoDeprecated",
-            "description": "Location adjacent to a variable definition.",
-            "name": "VARIABLE_DEFINITION"
+            "D": "N",
+            "d": "Location adjacent to a variable definition.",
+            "n": "VARIABLE_DEFINITION"
           }
         },
-        "name": "__DirectiveLocation",
-        "rust_typename": "dynaql::model::directive::__DirectiveLocation"
+        "_r": "dynaql::model::directive::__DirectiveLocation",
+        "a": "__DirectiveLocation",
+        "e_": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies."
       }
     },
     "__EnumValue": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "I": false,
+        "N": "__EnumValue",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "deprecationReason": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "deprecationReason",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "deprecationReason",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "description": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "description",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "description",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "isDeprecated": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "isDeprecated",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "Boolean!"
+            "d": null,
+            "e": false,
+            "n": "isDeprecated",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "Boolean!"
           },
           "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String!"
+            "d": null,
+            "e": false,
+            "n": "name",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__EnumValue",
-        "rust_typename": "dynaql::model::enum_value::__EnumValue"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::enum_value::__EnumValue"
       }
     },
     "__Field": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "I": false,
+        "N": "__Field",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "args": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "args",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__InputValue!]!"
+            "d": null,
+            "e": false,
+            "n": "args",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__InputValue!]!"
           },
           "deprecationReason": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "deprecationReason",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "deprecationReason",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "description": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "description",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "description",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "isDeprecated": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "isDeprecated",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "Boolean!"
+            "d": null,
+            "e": false,
+            "n": "isDeprecated",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "Boolean!"
           },
           "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String!"
+            "d": null,
+            "e": false,
+            "n": "name",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String!"
           },
           "type": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "type",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type!"
+            "d": null,
+            "e": false,
+            "n": "type",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__Field",
-        "rust_typename": "dynaql::model::field::__Field"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::field::__Field"
       }
     },
     "__InputValue": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "I": false,
+        "N": "__InputValue",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "defaultValue": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "defaultValue",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "defaultValue",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "description": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "description",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "description",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String!"
+            "d": null,
+            "e": false,
+            "n": "name",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String!"
           },
           "type": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "type",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type!"
+            "d": null,
+            "e": false,
+            "n": "type",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__InputValue",
-        "rust_typename": "dynaql::model::input_value::__InputValue"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::input_value::__InputValue"
       }
     },
     "__Schema": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "I": false,
+        "N": "__Schema",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "directives": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "A list of all directives supported by this server.",
-            "edges": [],
-            "external": false,
-            "name": "directives",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__Directive!]!"
+            "d": "A list of all directives supported by this server.",
+            "e": false,
+            "n": "directives",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__Directive!]!"
           },
           "mutationType": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "If this server supports mutation, the type that mutation operations will be rooted at.",
-            "edges": [],
-            "external": false,
-            "name": "mutationType",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type"
+            "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
+            "e": false,
+            "n": "mutationType",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type"
           },
           "queryType": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "The type that query operations will be rooted at.",
-            "edges": [],
-            "external": false,
-            "name": "queryType",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type!"
+            "d": "The type that query operations will be rooted at.",
+            "e": false,
+            "n": "queryType",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type!"
           },
           "subscriptionType": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "If this server support subscription, the type that subscription operations will be rooted at.",
-            "edges": [],
-            "external": false,
-            "name": "subscriptionType",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type"
+            "d": "If this server support subscription, the type that subscription operations will be rooted at.",
+            "e": false,
+            "n": "subscriptionType",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type"
           },
           "types": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": "A list of all types supported by this server.",
-            "edges": [],
-            "external": false,
-            "name": "types",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__Type!]!"
+            "d": "A list of all types supported by this server.",
+            "e": false,
+            "n": "types",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__Type!]!"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__Schema",
-        "rust_typename": "dynaql::model::schema::__Schema"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::schema::__Schema"
       }
     },
     "__Type": {
-      "Object": {
-        "cache_control": {
-          "max_age": 0,
-          "public": true,
-          "stale_while_revalidate": 0
+      "O": {
+        "C": [],
+        "D": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "I": false,
+        "N": "__Type",
+        "c": {
+          "m": 0,
+          "p": true,
+          "s": 0
         },
-        "constraints": [],
-        "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
-        "extends": false,
-        "fields": {
+        "e": false,
+        "f": {
           "description": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "description",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "description",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "enumValues": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {
               "includeDeprecated": {
-                "default_value": false,
-                "description": null,
-                "is_secret": false,
-                "name": "includeDeprecated",
-                "ty": "Boolean!",
-                "validators": null
+                "D": false,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "includeDeprecated",
+                "t": "Boolean!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "enumValues",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__EnumValue!]"
+            "d": null,
+            "e": false,
+            "n": "enumValues",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__EnumValue!]"
           },
           "fields": {
-            "args": {
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {
               "includeDeprecated": {
-                "default_value": false,
-                "description": null,
-                "is_secret": false,
-                "name": "includeDeprecated",
-                "ty": "Boolean!",
-                "validators": null
+                "D": false,
+                "V": null,
+                "d": null,
+                "i": false,
+                "n": "includeDeprecated",
+                "t": "Boolean!"
               }
             },
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "fields",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__Field!]"
+            "d": null,
+            "e": false,
+            "n": "fields",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__Field!]"
           },
           "inputFields": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "inputFields",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__InputValue!]"
+            "d": null,
+            "e": false,
+            "n": "inputFields",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__InputValue!]"
           },
           "interfaces": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "interfaces",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__Type!]"
+            "d": null,
+            "e": false,
+            "n": "interfaces",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__Type!]"
           },
           "isOneOf": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "isOneOf",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "Boolean"
+            "d": null,
+            "e": false,
+            "n": "isOneOf",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "Boolean"
           },
           "kind": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "kind",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__TypeKind!"
+            "d": null,
+            "e": false,
+            "n": "kind",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__TypeKind!"
           },
           "name": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "name",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "name",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           },
           "ofType": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "ofType",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "__Type"
+            "d": null,
+            "e": false,
+            "n": "ofType",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "__Type"
           },
           "possibleTypes": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "possibleTypes",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "[__Type!]"
+            "d": null,
+            "e": false,
+            "n": "possibleTypes",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "[__Type!]"
           },
           "specifiedByURL": {
-            "args": {},
-            "auth": null,
-            "cache_control": {
-              "max_age": 0,
-              "public": true,
-              "stale_while_revalidate": 0
+            "A": null,
+            "D": "N",
+            "E": [],
+            "P": null,
+            "R": null,
+            "T": null,
+            "_r": null,
+            "a": {},
+            "c": {
+              "m": 0,
+              "p": true,
+              "s": 0
             },
-            "deprecation": "NoDeprecated",
-            "description": null,
-            "edges": [],
-            "external": false,
-            "name": "specifiedByURL",
-            "plan": null,
-            "provides": null,
-            "relation": null,
-            "required_operation": null,
-            "requires": null,
-            "resolve": null,
-            "transformer": null,
-            "ty": "String"
+            "d": null,
+            "e": false,
+            "n": "specifiedByURL",
+            "p": null,
+            "r": null,
+            "r_": null,
+            "t": "String"
           }
         },
-        "is_node": false,
-        "is_subscription": false,
-        "keys": null,
-        "name": "__Type",
-        "rust_typename": "dynaql::model::type::__Type"
+        "i_": false,
+        "k": null,
+        "r": "dynaql::model::type::__Type"
       }
     },
     "__TypeKind": {
-      "Enum": {
-        "description": "An enum describing what kind of type a given `__Type` is.",
-        "enum_values": {
+      "E": {
+        "_e": {
           "ENUM": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is an enum. `enumValues` is a valid field.",
-            "name": "ENUM"
+            "D": "N",
+            "d": "Indicates this type is an enum. `enumValues` is a valid field.",
+            "n": "ENUM"
           },
           "INPUT_OBJECT": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is an input object. `inputFields` is a valid field.",
-            "name": "INPUT_OBJECT"
+            "D": "N",
+            "d": "Indicates this type is an input object. `inputFields` is a valid field.",
+            "n": "INPUT_OBJECT"
           },
           "INTERFACE": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
-            "name": "INTERFACE"
+            "D": "N",
+            "d": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
+            "n": "INTERFACE"
           },
           "LIST": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is a list. `ofType` is a valid field.",
-            "name": "LIST"
+            "D": "N",
+            "d": "Indicates this type is a list. `ofType` is a valid field.",
+            "n": "LIST"
           },
           "NON_NULL": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is a non-null. `ofType` is a valid field.",
-            "name": "NON_NULL"
+            "D": "N",
+            "d": "Indicates this type is a non-null. `ofType` is a valid field.",
+            "n": "NON_NULL"
           },
           "OBJECT": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
-            "name": "OBJECT"
+            "D": "N",
+            "d": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
+            "n": "OBJECT"
           },
           "SCALAR": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is a scalar.",
-            "name": "SCALAR"
+            "D": "N",
+            "d": "Indicates this type is a scalar.",
+            "n": "SCALAR"
           },
           "UNION": {
-            "deprecation": "NoDeprecated",
-            "description": "Indicates this type is a union. `possibleTypes` is a valid field.",
-            "name": "UNION"
+            "D": "N",
+            "d": "Indicates this type is a union. `possibleTypes` is a valid field.",
+            "n": "UNION"
           }
         },
-        "name": "__TypeKind",
-        "rust_typename": "dynaql::model::kind::__TypeKind"
+        "_r": "dynaql::model::kind::__TypeKind",
+        "a": "__TypeKind",
+        "e_": "An enum describing what kind of type a given `__Type` is."
       }
     }
   }
