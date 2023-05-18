@@ -211,6 +211,6 @@ mod tests {
         let serialized_versioned_registry = serde_json::to_string(&versioned_registry).unwrap();
         let serialized_sha = Sha256::digest(serialized_versioned_registry);
 
-        assert_eq!(EXPECTED_SHA, &format!("{serialized_sha:x}"));
+        assert_eq!(&format!("{serialized_sha:x}"), EXPECTED_SHA);
     }
 }
