@@ -12,7 +12,18 @@ use super::{ResolvedValue, ResolverContext};
 
 mod parameters;
 
-#[serde_with::minify_field_names]
+#[cfg_attr(
+    feature = "minified-keys-read-write",
+    serde_with::minify_field_names(serialize = "minified", deserialize = "minified")
+)]
+#[cfg_attr(
+    feature = "minified-keys-write",
+    serde_with::minify_field_names(serialize = "minified", deserialize = "intact")
+)]
+#[cfg_attr(
+    feature = "minified-keys-read",
+    serde_with::minify_field_names(serialize = "intact", deserialize = "minified")
+)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct HttpResolver {
     pub method: String,

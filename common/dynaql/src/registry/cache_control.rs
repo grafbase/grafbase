@@ -27,7 +27,18 @@
 /// assert_eq!(schema.execute("{ value1 value2 }").await.into_result().unwrap().cache_control, CacheControl { public: false, max_age: 30 });
 /// # });
 /// ```
-#[serde_with::minify_field_names]
+#[cfg_attr(
+    feature = "minified-keys-read-write",
+    serde_with::minify_field_names(serialize = "minified", deserialize = "minified")
+)]
+#[cfg_attr(
+    feature = "minified-keys-write",
+    serde_with::minify_field_names(serialize = "minified", deserialize = "intact")
+)]
+#[cfg_attr(
+    feature = "minified-keys-read",
+    serde_with::minify_field_names(serialize = "intact", deserialize = "minified")
+)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub struct CacheControl {
     /// Scope is public, default is true.

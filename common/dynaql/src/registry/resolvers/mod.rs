@@ -389,7 +389,18 @@ impl ResolverType {
 }
 
 #[non_exhaustive]
-#[serde_with::minify_variant_names]
+#[cfg_attr(
+    feature = "minified-keys-read-write",
+    serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")
+)]
+#[cfg_attr(
+    feature = "minified-keys-write",
+    serde_with::minify_variant_names(serialize = "minified", deserialize = "intact")
+)]
+#[cfg_attr(
+    feature = "minified-keys-read",
+    serde_with::minify_variant_names(serialize = "intact", deserialize = "minified")
+)]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ResolverType {
     DynamoResolver(DynamoResolver),
