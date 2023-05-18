@@ -41,6 +41,40 @@ export class ListDefinition {
   }
 }
 
+export class RelationListDefinition {
+  relation: RelationDefinition
+  isOptional: boolean
+
+  constructor(fieldDefinition: RelationDefinition) {
+    this.relation = fieldDefinition
+    this.isOptional = false
+  }
+
+  public optional(): RelationListDefinition {
+    this.isOptional = true
+
+    return this
+  }
+
+  public toString(): string {
+    let modelName
+    if (typeof this.relation.referencedModel === 'function') {
+      modelName = this.relation.referencedModel().name
+    } else {
+      modelName = this.relation.referencedModel.name
+    }
+
+    const relationRequired = this.relation.isOptional ? '' : '!'
+    const listRequired = this.isOptional ? '' : '!'
+
+    const relationAttribute = this.relation.relationName
+      ? ` @relation(name: ${this.relation.relationName})`
+      : ''
+
+    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}`
+  }
+}
+
 class ListWithDefaultDefinition extends ListDefinition {
   fieldType: FieldType
 

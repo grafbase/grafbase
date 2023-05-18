@@ -1,4 +1,4 @@
-import { Header, Headers, HeaderGenerator } from "./header"
+import { Header, Headers, HeaderGenerator } from './header'
 
 export type OpenApiTransforms = 'OPERATION_ID' | 'SCHEMA_NAME'
 
