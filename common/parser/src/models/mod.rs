@@ -71,7 +71,7 @@ fn primitive_to_datatype(registry: &Registry, scalar: &str) -> DataType {
                 return DataType::Utf8;
             }
 
-            DataType::Struct(from_meta_type(registry, meta_ty).expect("can't fail").fields)
+            DataType::Struct(from_meta_type(registry, meta_ty, false).expect("can't fail").fields)
         }
     }
 }
@@ -109,10 +109,10 @@ pub fn entity_system_fields() -> Vec<Field> {
     ]
 }
 
-pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+pub fn from_meta_type(registry: &Registry, ty: &MetaType, system: bool) -> Result<Schema, ConversionError> {
     match ty {
         // input @ MetaType::InputObject { .. } => from_meta_type_input(registry, input),
-        obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj),
+        obj @ MetaType::Object { .. } => from_meta_type_object(registry, obj, system),
         MetaType::Union { .. } => from_meta_type_union(registry, ty),
         _ => Err(ConversionError::Unknown),
     }
@@ -125,7 +125,7 @@ pub fn from_meta_type(registry: &Registry, ty: &MetaType) -> Result<Schema, Conv
 /// -> For each field:
 ///   -> Is not a relation
 ///   -> We map every custom scalar by the internal representation associated
-pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schema, ConversionError> {
+pub fn from_meta_type_object(registry: &Registry, ty: &MetaType, system: bool) -> Result<Schema, ConversionError> {
     if let MetaType::Object { ref fields, .. } = ty {
         let mut arrow_fields = Vec::with_capacity(fields.len());
         for (_key, field) in fields {
@@ -139,7 +139,9 @@ pub fn from_meta_type_object(registry: &Registry, ty: &MetaType) -> Result<Schem
             }
         }
 
-        arrow_fields.extend(entity_system_fields());
+        if system {
+            arrow_fields.extend(entity_system_fields());
+        }
         return Ok(Schema::new(arrow_fields));
     }
     Err(ConversionError::ParsingSchema(format!(

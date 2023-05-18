@@ -91,7 +91,8 @@ fn register_edge_type(
                             Transformer::ConvertSkToCursor,
                         ])),
                         plan: Some(
-                            SchemaPlan::projection(vec!["id".to_string()]).apply_cursor_encode(vec!["id".to_string()]),
+                            SchemaPlan::projection(vec!["id".to_string()], false)
+                                .apply_cursor_encode(vec!["id".to_string()]),
                         ),
                         required_operation: Some(Operations::LIST),
                         auth: model_auth.cloned(),
@@ -199,7 +200,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
                         plan: Some(
-                            SchemaPlan::first(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                            SchemaPlan::first(Some(SchemaPlan::projection(vec!["id".to_string()], false)))
                                 .apply_cursor_encode(vec!["id".to_string()]),
                         ),
                         transformer: Some(Transformer::JSONSelect {
@@ -230,7 +231,7 @@ pub(super) fn register_page_info_type(registry: &mut Registry) -> BaseType {
                             r#type: ResolverType::ContextDataResolver(ContextDataResolver::PaginationData),
                         }),
                         plan: Some(
-                            SchemaPlan::last(Some(SchemaPlan::projection(vec!["id".to_string()])))
+                            SchemaPlan::last(Some(SchemaPlan::projection(vec!["id".to_string()], false)))
                                 .apply_cursor_encode(vec!["id".to_string()]),
                         ),
                         transformer: Some(Transformer::JSONSelect {

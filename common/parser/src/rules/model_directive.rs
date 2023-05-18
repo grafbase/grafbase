@@ -126,7 +126,7 @@ fn insert_metadata_field(
                     key: type_name.to_string(),
                 }),
             }),
-            plan: Some(SchemaPlan::projection(vec![plan_field.to_string()])),
+            plan: Some(SchemaPlan::projection(vec![plan_field.to_string()], false)),
             edges: Vec::new(),
             transformer: Some(Transformer::DynamoSelect {
                 property: dynamo_property_name.to_owned(),
@@ -331,7 +331,7 @@ impl<'a> Visitor<'a> for ModelDirective {
                                             Default::default(),
                                             field.node.ty.clone().node.to_string(),
                                             CacheDirective::parse(&field.node.directives),
-                                            SchemaPlan::projection(vec![name.clone()]),
+                                            SchemaPlan::projection(vec![name.clone()], false),
                                         )
                                     });
 

@@ -8,6 +8,7 @@ use super::visitor::{Visitor, VisitorContext};
 use crate::registry::add_input_type_non_primitive;
 use crate::rules::cache_directive::CacheDirective;
 use dynaql::indexmap::IndexMap;
+use dynaql::registry::plan::SchemaPlan;
 use dynaql::registry::transformers::Transformer;
 use dynaql::registry::{MetaField, MetaType};
 use dynaql_parser::types::TypeKind;
@@ -53,9 +54,9 @@ impl<'a> Visitor<'a> for BasicType {
                                 edges: Vec::new(),
                                 relation: None,
                                 transformer: Some(Transformer::JSONSelect {
-                                    property: name
+                                    property: name.clone()
                                 }),
-                                plan: None,
+                                plan: Some(SchemaPlan::projection(vec![name], true)),
                                 required_operation: None,
                                 auth: None,
                             });

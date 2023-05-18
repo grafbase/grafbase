@@ -95,46 +95,6 @@ expression: req_string_a
                   "metadata": {},
                   "name": "requiredField",
                   "nullable": false
-                },
-                {
-                  "data_type": "Utf8",
-                  "dict_id": 0,
-                  "dict_is_ordered": false,
-                  "metadata": {},
-                  "name": "__type",
-                  "nullable": false
-                },
-                {
-                  "data_type": "Utf8",
-                  "dict_id": 0,
-                  "dict_is_ordered": false,
-                  "metadata": {},
-                  "name": "__gsi1pk",
-                  "nullable": true
-                },
-                {
-                  "data_type": "Utf8",
-                  "dict_id": 0,
-                  "dict_is_ordered": false,
-                  "metadata": {},
-                  "name": "__gsi1sk",
-                  "nullable": true
-                },
-                {
-                  "data_type": "Utf8",
-                  "dict_id": 0,
-                  "dict_is_ordered": false,
-                  "metadata": {},
-                  "name": "__gsi2pk",
-                  "nullable": false
-                },
-                {
-                  "data_type": "Utf8",
-                  "dict_id": 0,
-                  "dict_is_ordered": false,
-                  "metadata": {},
-                  "name": "__gsi2sk",
-                  "nullable": false
                 }
               ]
             },
@@ -441,7 +401,14 @@ expression: req_string_a
             "edges": [],
             "external": false,
             "name": "requiredField",
-            "plan": null,
+            "plan": {
+              "Projection": {
+                "fields": [
+                  "requiredField"
+                ],
+                "flattened": true
+              }
+            },
             "provides": null,
             "relation": null,
             "required_operation": null,
@@ -537,7 +504,8 @@ expression: req_string_a
                       "Projection": {
                         "fields": [
                           "id"
-                        ]
+                        ],
+                        "flattened": false
                       }
                     }
                   }
@@ -654,7 +622,8 @@ expression: req_string_a
                       "Projection": {
                         "fields": [
                           "id"
-                        ]
+                        ],
+                        "flattened": false
                       }
                     }
                   }
@@ -911,7 +880,8 @@ expression: req_string_a
               "Projection": {
                 "fields": [
                   "createdAt"
-                ]
+                ],
+                "flattened": false
               }
             },
             "provides": null,
@@ -952,7 +922,8 @@ expression: req_string_a
               "Projection": {
                 "fields": [
                   "id"
-                ]
+                ],
+                "flattened": false
               }
             },
             "provides": null,
@@ -993,7 +964,8 @@ expression: req_string_a
               "Projection": {
                 "fields": [
                   "nested"
-                ]
+                ],
+                "flattened": false
               }
             },
             "provides": null,
@@ -1034,7 +1006,8 @@ expression: req_string_a
               "Projection": {
                 "fields": [
                   "updatedAt"
-                ]
+                ],
+                "flattened": false
               }
             },
             "provides": null,
@@ -1302,7 +1275,8 @@ expression: req_string_a
                   "Projection": {
                     "fields": [
                       "id"
-                    ]
+                    ],
+                    "flattened": false
                   }
                 }
               }
