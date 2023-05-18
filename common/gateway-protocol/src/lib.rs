@@ -12,6 +12,12 @@ pub struct VersionedRegistry<'a> {
 }
 
 #[derive(serde::Serialize)]
+pub struct VersionedRegistrySerializable {
+    pub registry: Box<serde_json::value::RawValue>,
+    pub deployment_id: String,
+}
+
+#[derive(serde::Serialize)]
 pub struct ParserResult<'a> {
     pub versioned_registry: VersionedRegistry<'a>,
     pub required_resolvers: Vec<String>,

@@ -5,14 +5,14 @@ edition = "2021"
 
 [dependencies]
 aws-region-nearby = { workspace = true }
-dynaql = { path = "../dynaql" }
 rusoto_core = { workspace = true }
 serde = { version = "1", features = ["derive"] }
-worker = { workspace = true }
+serde_json = { version = "1", default-features = false, features = ["raw_value"] }
 ulid = { workspace = true }
+worker = { workspace = true }
 
+dynaql = { path = "../dynaql" }
 grafbase = { path = "../grafbase", features = ["json"] }
 
 [dev-dependencies]
 sha2 = { version = "0.10", default-features = false }
-serde_json = { version = "1", default-features = false }
