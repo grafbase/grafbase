@@ -137,11 +137,11 @@ input FooBarAmenityPreferencesInput {
 	"""
 	Desired amenities near all charge-stops along a route, with a 1 kilometer radius
 	"""
-	all_charge_stops: FooBarAmenityType
+	all_charge_stops: [FooBarAmenityType!]
 	"""
 	Scheduled charge stops, with a specified amenity and timeline
 	"""
-	scheduled_charge_stops: FooBarScheduledChargeStopInput
+	scheduled_charge_stops: [FooBarScheduledChargeStopInput!]
 }
 """
 Amenities stats model
@@ -175,11 +175,11 @@ input FooBarAuthorizeConnectedVehicleInput {
 	"""
 	Id from the connected vehicle
 	"""
-	id: ID
+	id: ID!
 	"""
 	Provider specific options. See the developer portal for more details
 	"""
-	options: FooBarAuthorizeConnectedVehicleOptions
+	options: FooBarAuthorizeConnectedVehicleOptions!
 }
 input FooBarAuthorizeConnectedVehicleOptions {
 	"""
@@ -191,11 +191,11 @@ input FooBarAuxiliaryConsumptionInput {
 	"""
 	Value of the auxiliary power consumption of the vehicle
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of auxiliary power consumption of the vehicle
 	"""
-	type: FooBarAuxiliaryConsumptionUnit
+	type: FooBarAuxiliaryConsumptionUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -217,11 +217,11 @@ input FooBarBatteryTemperatureInput {
 	"""
 	Value of the temperature of the battery
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of temperature of the battery
 	"""
-	type: FooBarTemperatureUnit
+	type: FooBarTemperatureUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -767,7 +767,7 @@ Values:
    - 23 = Concept car, not close to production and/or unconfirmed, pre-order unknown
    - 91 = Status uncertain, introduction date and/or pricing unclear
 	"""
-	availability: Int
+	availability: [Int]
 	"""
 	Information about vehicle connectivity
 	"""
@@ -1924,11 +1924,11 @@ input FooBarChargeSpeedInput {
 	"""
 	Value of the charge speed of the battery
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the charge speed of the battery
 	"""
-	type: FooBarChargeSpeedUnit
+	type: FooBarChargeSpeedUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -1943,11 +1943,11 @@ input FooBarChargeTotalInput {
 	"""
 	Value of the temperature of the battery
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of total charge amount
 	"""
-	type: FooBarStateOfChargeUnit
+	type: FooBarStateOfChargeUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -2104,7 +2104,7 @@ input FooBarConnectFilter {
 	"""
 	List of connectivity providers to which a vehicle can connect
 	"""
-	providers: FooBarConnectProvider
+	providers: [FooBarConnectProvider]
 }
 """
 Location of the vehicle
@@ -2188,7 +2188,7 @@ input FooBarConnectedVehicleListFilter {
 	"""
 	Status of the connected vehicle
 	"""
-	status: FooBarConnectedVehicleStatus = "[pending_authorization, pending_removal, authorized]"
+	status: [FooBarConnectedVehicleStatus!] = "[pending_authorization, pending_removal, authorized]"
 }
 enum FooBarConnectedVehicleStatus {
 	PENDING_AUTHORIZATION
@@ -2620,11 +2620,11 @@ input FooBarCreateConnectedVehicleInput {
 	"""
 	Id from the vehicle
 	"""
-	vehicle_id: ID
+	vehicle_id: ID!
 	"""
 	Connectivity provider used to retrieve data from the vehicle
 	"""
-	provider: FooBarCarConnectivityProvider
+	provider: FooBarCarConnectivityProvider!
 	"""
 	Label for a connected vehicle
 	"""
@@ -2632,7 +2632,7 @@ input FooBarCreateConnectedVehicleInput {
 	"""
 	Provider specific options. See the developer portal for more details
 	"""
-	options: FooBarCreateConnectedVehicleOptions
+	options: FooBarCreateConnectedVehicleOptions!
 }
 input FooBarCreateConnectedVehicleOptions {
 	"""
@@ -2642,7 +2642,7 @@ input FooBarCreateConnectedVehicleOptions {
 	"""
 	Scope
 	"""
-	scope: FooBarConnectScope
+	scope: [FooBarConnectScope!]
 }
 """
 Currency according to the ISO 4217 standard
@@ -2732,11 +2732,11 @@ input FooBarElevationInput {
 	"""
 	Value of the elevation
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the value of elevation
 	"""
-	type: FooBarDistanceUnit
+	type: FooBarDistanceUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -2846,11 +2846,11 @@ input FooBarFeaturePointInput {
 	"""
 	Feature type
 	"""
-	type: FooBarFeatureType
+	type: FooBarFeatureType!
 	"""
 	Geometry of the feature
 	"""
-	geometry: FooBarPointInput
+	geometry: FooBarPointInput!
 	"""
 	Optional object where you can store custom data you need in your application. This extends the current functionalities we offer
 	"""
@@ -2863,11 +2863,11 @@ input FooBarFeaturePointPolygonInput {
 	"""
 	Feature type
 	"""
-	type: FooBarFeatureType
+	type: FooBarFeatureType!
 	"""
 	Geometry of the feature
 	"""
-	geometry: FooBarPointInput
+	geometry: FooBarPointInput!
 	"""
 	Optional object where you can store custom data you need in your application.
 	"""
@@ -2957,11 +2957,11 @@ input FooBarIsolineInput {
 	"""
 	Vehicle id
 	"""
-	vehicle_id: ID
+	vehicle_id: ID!
 	"""
 	Origin point of the request
 	"""
-	origin: FooBarFeaturePointPolygonInput
+	origin: FooBarFeaturePointPolygonInput!
 	"""
 	Numbers of polygons to be generated (default: 1, maximum: 20)
 	"""
@@ -3084,36 +3084,36 @@ type FooBarMutation {
 	"""
 	[BETA] Update a connected vehicle
 	"""
-	updateConnectedVehicle(input: FooBarUpdateConnectedVehicleInput): FooBarConnectedVehicle
+	updateConnectedVehicle(input: FooBarUpdateConnectedVehicleInput!): FooBarConnectedVehicle
 	"""
 	[BETA] Remove a connected vehicle and revoke access
 	"""
-	removeConnectedVehicle(input: FooBarRemoveConnectedVehicleInput): FooBarConnectedVehicle
+	removeConnectedVehicle(input: FooBarRemoveConnectedVehicleInput!): FooBarConnectedVehicle
 	"""
 	[BETA] Generate a set of consumption based Isolines
 	"""
-	createIsoline(input: FooBarIsolineInput): ID
+	createIsoline(input: FooBarIsolineInput!): ID
 	"""
 	[BETA] Start a new navigation session on top of an existing route
 	"""
-	startNavigation(input: FooBarNavigationStartInput): ID
+	startNavigation(input: FooBarNavigationStartInput!): ID
 	"""
 	[BETA] Update the navigation session
 	"""
-	updateNavigation(input: FooBarNavigationUpdateInput): FooBarAcknowledgement
+	updateNavigation(input: FooBarNavigationUpdateInput!): FooBarAcknowledgement
 	"""
 	[BETA] Recalculate the current navigation route
 	"""
-	recalculateNavigation(input: FooBarNavigationRecalculateInput): FooBarAcknowledgement
+	recalculateNavigation(input: FooBarNavigationRecalculateInput!): FooBarAcknowledgement
 	"""
 	[BETA] End a navigation session
 	"""
-	finishNavigation(input: FooBarNavigationFinishInput): FooBarAcknowledgement
+	finishNavigation(input: FooBarNavigationFinishInput!): FooBarAcknowledgement
 	"""
 	Add a new review.
 	If the `x-token` header is send for a valid user, the review will belong to it, otherwise will be added for an anonymouse user
 	"""
-	addReview(review: FooBarReviewAdd): FooBarReview!
+	addReview(review: FooBarReviewAdd!): FooBarReview!
 	"""
 	Remove a review added by an authenticated user.
 	The `x-token` header is mandatory in order to authorize the user who wants to remove a review.
@@ -3121,7 +3121,7 @@ type FooBarMutation {
 	In case the review was not found or belongs to another user an error will occur.
 	This is a premium feature, contact Chargetrip for more information.
 	"""
-	deleteUserReview(id: ID): FooBarReview!
+	deleteUserReview(id: ID!): FooBarReview!
 	"""
 	Create a new route from the route input and its ID
 	"""
@@ -3175,17 +3175,17 @@ input FooBarNavigationFinishInput {
 	"""
 	ID of the navigation session
 	"""
-	id: ID
+	id: ID!
 	"""
 	Current coordinates
 	"""
-	current_location: FooBarPointInput
+	current_location: FooBarPointInput!
 }
 input FooBarNavigationInstructionsInput {
 	"""
 	Turn by turn instructions format for a route
 	"""
-	instructions_format: FooBarInstructionsFormat
+	instructions_format: FooBarInstructionsFormat!
 	"""
 	Preferred navigation instructions language. Default: en
 	"""
@@ -3202,7 +3202,7 @@ input FooBarNavigationRecalculateInput {
 	"""
 	ID of the navigation session
 	"""
-	id: ID
+	id: ID!
 	"""
 	State of charge at origin
 	"""
@@ -3210,11 +3210,11 @@ input FooBarNavigationRecalculateInput {
 	"""
 	Origin location of a new route
 	"""
-	current_location: FooBarPointInput
+	current_location: FooBarPointInput!
 	"""
 	Via points of a new route. If this field is not sent, the original via points will be used
 	"""
-	via: FooBarFeaturePointInput
+	via: [FooBarFeaturePointInput!]
 	"""
 	Telemetry data input
 	"""
@@ -3227,7 +3227,7 @@ input FooBarNavigationStartInput {
 	"""
 	ID of the route of the navigation session
 	"""
-	route_id: ID
+	route_id: ID!
 	"""
 	ID of the route alternative of the navigation session
 	"""
@@ -3235,11 +3235,11 @@ input FooBarNavigationStartInput {
 	"""
 	Current coordinates
 	"""
-	current_location: FooBarPointInput
+	current_location: FooBarPointInput!
 	"""
 	Instruction input format
 	"""
-	instructions: FooBarNavigationInstructionsInput
+	instructions: FooBarNavigationInstructionsInput!
 }
 """
 State of navigation session
@@ -3286,11 +3286,11 @@ input FooBarNavigationUpdateInput {
 	"""
 	ID of the navigation session
 	"""
-	id: ID
+	id: ID!
 	"""
 	A list of locations that were collected since the last update
 	"""
-	location_data: FooBarNavigationUpdateLocationsInput
+	location_data: [FooBarNavigationUpdateLocationsInput!]!
 	"""
 	Telemetry data input
 	"""
@@ -3303,7 +3303,7 @@ input FooBarNavigationUpdateLocationPropertiesInput {
 	"""
 	Current route leg index corresponding to a location
 	"""
-	route_leg: Int
+	route_leg: Int!
 	"""
 	Speed at a location
 	"""
@@ -3311,7 +3311,7 @@ input FooBarNavigationUpdateLocationPropertiesInput {
 	"""
 	UNIX timestamp at location, in seconds
 	"""
-	timestamp: Int
+	timestamp: Int!
 	"""
 	Elevation information
 	"""
@@ -3324,11 +3324,11 @@ input FooBarNavigationUpdateLocationsInput {
 	"""
 	GPS location
 	"""
-	geometry: FooBarPointInput
+	geometry: FooBarPointInput!
 	"""
 	Extra information about the location
 	"""
-	properties: FooBarNavigationUpdateLocationPropertiesInput
+	properties: FooBarNavigationUpdateLocationPropertiesInput!
 }
 """
 The non empty string scalar
@@ -3984,11 +3984,11 @@ input FooBarOdometerInput {
 	"""
 	Value of the vehicle's odometer
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the value of the vehicle's odometer
 	"""
-	type: FooBarDistanceUnit
+	type: FooBarDistanceUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -4046,11 +4046,11 @@ input FooBarOperatorListFilter {
 	"""
 	ISO-3166 alpha-2 country codes an operator is active in.
 	"""
-	countries: FooBarCountryCodeAlpha2
+	countries: [FooBarCountryCodeAlpha2!]
 	"""
 	List of ranking level(s) to be retrieved. Valid values are 1 to 10
 	"""
-	ranking: Int
+	ranking: [Int!]
 	"""
 	Only retrieve operators that are in the excluded list
 	"""
@@ -4081,11 +4081,11 @@ input FooBarOutsideTempInput {
 	"""
 	Value of the outside temperature
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the value of the outside temperature
 	"""
-	type: FooBarTemperatureUnit
+	type: FooBarTemperatureUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -4150,11 +4150,11 @@ input FooBarPointInput {
 	"""
 	Point type
 	"""
-	type: FooBarPointType
+	type: FooBarPointType!
 	"""
 	Coordinates [longitude, latitude]
 	"""
-	coordinates: Float
+	coordinates: [Float!]!
 }
 """
 GeoJSON Point type
@@ -4175,11 +4175,11 @@ input FooBarPowerInput {
 	"""
 	Value of the positive or negative power. When negative the vehicle is charging
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the value of the power
 	"""
-	type: FooBarPowerUnit
+	type: FooBarPowerUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -4310,7 +4310,7 @@ type FooBarQuery {
 	"""
 	Get a full list of amenities around a station
 	"""
-	amenityList(stationId: ID): [FooBarAmenity]
+	amenityList(stationId: ID!): [FooBarAmenity]
 	"""
 	Get information about a car by its ID
 	"""
@@ -4326,7 +4326,7 @@ type FooBarQuery {
 	"""
 	[BETA] Get a connected vehicles by id
 	"""
-	connectedVehicle(id: ID): FooBarConnectedVehicle
+	connectedVehicle(id: ID!): FooBarConnectedVehicle
 	"""
 	[BETA] Get the connected vehicles for the current user
 	"""
@@ -4334,15 +4334,15 @@ type FooBarQuery {
 	"""
 	[BETA] Retrieve live vehicle data by connected vehicle id
 	"""
-	connectedVehicleData(id: ID): FooBarVehicleData
+	connectedVehicleData(id: ID!): FooBarVehicleData
 	"""
 	[BETA] Get an isoline by ID
 	"""
-	isoline(id: ID): FooBarIsoline
+	isoline(id: ID!): FooBarIsoline
 	"""
 	[BETA] Get a navigation session by ID
 	"""
-	navigation(id: ID): FooBarNavigation
+	navigation(id: ID!): FooBarNavigation
 	"""
 	Get a full list of operators
 	"""
@@ -4350,11 +4350,11 @@ type FooBarQuery {
 	"""
 	Get information about an operator by its ID
 	"""
-	operator(id: ID): FooBarOperator
+	operator(id: ID!): FooBarOperator
 	"""
 	Get all reviews of a station by the station ID
 	"""
-	reviewList(stationId: ID, size: Int, page: Int): [FooBarReview!]
+	reviewList(stationId: ID!, size: Int, page: Int): [FooBarReview!]
 	"""
 	Get all reviews of stations that were added by an authenticated user.
 	The `x-token` header is mandatory in order to authorize the user who wants to retrieve all the reviews added by him/her.
@@ -4364,11 +4364,11 @@ type FooBarQuery {
 	"""
 	Get a route by ID
 	"""
-	route(id: ID): FooBarRoute
+	route(id: ID!): FooBarRoute
 	"""
 	Retrieve information about a route path segment
 	"""
-	routePath(id: ID, location: FooBarPointInput, alternativeId: ID): FooBarRoutePath
+	routePath(id: ID!, location: FooBarPointInput!, alternativeId: ID): FooBarRoutePath
 	"""
 	Get the station statistics
 	"""
@@ -4388,7 +4388,7 @@ type FooBarQuery {
 	"""
 	Get information about a tariff by the tariff ID
 	"""
-	tariff(id: ID): FooBarOCPITariff
+	tariff(id: ID!): FooBarOCPITariff
 	"""
 	Get the full list of tariffs
 	"""
@@ -4396,15 +4396,15 @@ type FooBarQuery {
 	"""
 	Deprecated: This query will be removed in favor of navigation query and subscription. Mapping can be retrieved via the instructions field.
 	"""
-	navigationMapping(id: ID, provider: FooBarMappingProvider, precision: Int, language: FooBarMappingLanguage): FooBarJSON
+	navigationMapping(id: ID!, provider: FooBarMappingProvider!, precision: Int, language: FooBarMappingLanguage): FooBarJSON
 	"""
 	[BETA] Get information about a vehicle by its ID.
 	"""
-	vehicle(id: ID, country: FooBarCountryCodeAlpha2): FooBarVehicle
+	vehicle(id: ID!, country: FooBarCountryCodeAlpha2): FooBarVehicle
 	"""
 	[BETA] Vehicle premium data provides even more information about your vehicle: tire pressure, prices, drivetrain data, and more. Please contact us for access to premium data.
 	"""
-	vehiclePremium(id: ID, country: FooBarCountryCodeAlpha2): FooBarVehiclePremium
+	vehiclePremium(id: ID!, country: FooBarCountryCodeAlpha2): FooBarVehiclePremium
 	"""
 	[BETA] Get a full list of vehicles.
 	"""
@@ -4414,7 +4414,7 @@ input FooBarRemoveConnectedVehicleInput {
 	"""
 	Id from the connected vehicle
 	"""
-	id: ID
+	id: ID!
 }
 """
 EV specific data for a route request
@@ -4505,11 +4505,11 @@ input FooBarRequestEvBatteryInputValue {
 	"""
 	Value of a desired final amount of energy in a battery
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of a desired final amount of energy in a battery
 	"""
-	type: FooBarBatteryInputType
+	type: FooBarBatteryInputType!
 }
 type FooBarRequestEvBatteryValue {
 	"""
@@ -4553,7 +4553,7 @@ input FooBarRequestEvInput {
 	"""
 	Internal ID of a Vehicle
 	"""
-	id: ID
+	id: ID!
 	"""
 	The EV battery specific data
 	"""
@@ -4561,11 +4561,11 @@ input FooBarRequestEvInput {
 	"""
 	Supported plugs of an EV
 	"""
-	plugs: FooBarRequestEvPlugInput
+	plugs: [FooBarRequestEvPlugInput]
 	"""
 	Supported adapters of plugs of an EV
 	"""
-	adapters: FooBarRequestEvPlugInput
+	adapters: [FooBarRequestEvPlugInput]
 	"""
 	Minimum desired power of chargers
 	"""
@@ -4609,21 +4609,21 @@ input FooBarRequestEvPlugInput {
 	"""
 	Type of a plug
 	"""
-	standard: FooBarConnectorType
+	standard: FooBarConnectorType!
 	"""
 	Maximum charging speed for this plug
 	"""
-	chargingPower: Float
+	chargingPower: Float!
 }
 input FooBarRequestInput {
 	"""
 	EV specific data for a route request
 	"""
-	ev: FooBarRequestEvInput
+	ev: FooBarRequestEvInput!
 	"""
 	Route request data
 	"""
-	routeRequest: FooBarRequestRouteInput
+	routeRequest: FooBarRequestRouteInput!
 	"""
 	Telemetry data used to overwrite routing parameters
 	"""
@@ -4691,7 +4691,7 @@ input FooBarRequestRouteInput {
 	"""
 	Deprecated: in favor of amenity preferences. A list of desired amenities near the stations, with a 1 kilometer radius
 	"""
-	amenities: String
+	amenities: [String]
 	"""
 	Amenity preferences for a route
 	"""
@@ -4699,7 +4699,7 @@ input FooBarRequestRouteInput {
 	"""
 	Deprecated: in favor of operators. A list of requested operators
 	"""
-	operatorIds: String
+	operatorIds: [String]
 	"""
 	Deprecated: in favor of operators. Flag which indicates if the operators are required
 	"""
@@ -4727,15 +4727,15 @@ input FooBarRequestRouteInput {
 	"""
 	Origin of a route
 	"""
-	origin: FooBarFeaturePointInput
+	origin: FooBarFeaturePointInput!
 	"""
 	Destination of a route
 	"""
-	destination: FooBarFeaturePointInput
+	destination: FooBarFeaturePointInput!
 	"""
 	An optional list of locations where we should stop
 	"""
-	via: FooBarFeaturePointInput
+	via: [FooBarFeaturePointInput]
 	"""
 	Alternative stations along a route within a specified radius in meters (minimum 500, maximum 5000)
 	"""
@@ -4811,11 +4811,11 @@ input FooBarReviewAdd {
 	"""
 	Station ID for which a review is provided
 	"""
-	stationId: String
+	stationId: String!
 	"""
 	Rating of a review
 	"""
-	rating: Int
+	rating: Int!
 	"""
 	Review message
 	"""
@@ -4848,7 +4848,7 @@ input FooBarReviewEdit {
 	"""
 	Rating of a review
 	"""
-	rating: Int
+	rating: Int!
 	"""
 	Review message
 	"""
@@ -5353,7 +5353,7 @@ input FooBarRouteOperatorsInput {
 	"""
 	Operator IDs which should be excluded from a route
 	"""
-	exclude: ID
+	exclude: [ID]
 }
 """
 Ranking configuration for prioritized operators
@@ -5407,43 +5407,43 @@ input FooBarRouteOperatorsRankingInput {
 	"""
 	Level 1 (most significant) for operator ranking
 	"""
-	level1: ID
+	level1: [ID]
 	"""
 	Level 2 for operator ranking
 	"""
-	level2: ID
+	level2: [ID]
 	"""
 	Level 3 for operator ranking
 	"""
-	level3: ID
+	level3: [ID]
 	"""
 	Level 4 for operator ranking
 	"""
-	level4: ID
+	level4: [ID]
 	"""
 	Level 5 for operator ranking
 	"""
-	level5: ID
+	level5: [ID]
 	"""
 	Level 6 for operator ranking
 	"""
-	level6: ID
+	level6: [ID]
 	"""
 	Level 7 for operator ranking
 	"""
-	level7: ID
+	level7: [ID]
 	"""
 	Level 8 for operator ranking
 	"""
-	level8: ID
+	level8: [ID]
 	"""
 	Level 9 for operator ranking
 	"""
-	level9: ID
+	level9: [ID]
 	"""
 	Level 10 (least significant) for operator ranking
 	"""
-	level10: ID
+	level10: [ID]
 }
 """
 Type of operator prioritization for a route
@@ -5604,11 +5604,11 @@ input FooBarScheduledChargeStopInput {
 	"""
 	List of amenity types
 	"""
-	types: FooBarAmenityType
+	types: [FooBarAmenityType!]!
 	"""
 	Duration at the amenity, in seconds. The value should be between 900 and 86400
 	"""
-	duration: Int
+	duration: Int!
 	"""
 	Maximum allowed offset from the stop_after value in seconds. Default is 1800
 	"""
@@ -5616,7 +5616,7 @@ input FooBarScheduledChargeStopInput {
 	"""
 	Desired drive time for a scheduled stop after leaving the origin point, in seconds
 	"""
-	stop_after: Int
+	stop_after: Int!
 	"""
 	Maximum distance from a station to an amenity, in meters. The value should be between 0 and 1000. Default is 1000
 	"""
@@ -5643,11 +5643,11 @@ input FooBarStateOfChargeInput {
 	"""
 	Value of the state of charge of the vehicle
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the state of charge of the vehicle
 	"""
-	type: FooBarStateOfChargeUnit
+	type: FooBarStateOfChargeUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -5845,19 +5845,19 @@ input FooBarStationAroundFilter {
 	"""
 	Powers in kWh
 	"""
-	powers: Float
+	powers: [Float]
 	"""
 	Amenities available near a station
 	"""
-	amenities: FooBarAmenities
+	amenities: [FooBarAmenities]
 	"""
 	Station speed
 	"""
-	power_groups: FooBarStationSpeedType
+	power_groups: [FooBarStationSpeedType]
 	"""
 	Station socket or plug standards
 	"""
-	connectors: FooBarConnectorType
+	connectors: [FooBarConnectorType]
 	"""
 	Flag that allows you to return only available stations
 	"""
@@ -5882,11 +5882,11 @@ input FooBarStationAroundQuery {
 	"""
 	Power in kWh
 	"""
-	power: Float
+	power: [Float]
 	"""
 	Amenities available near a station. Values: restaurant, bathroom, supermarket, playground, coffee, shopping, museum, hotel, park
 	"""
-	amenities: String
+	amenities: [String]
 }
 type FooBarStationCustomProperties {
 	"""
@@ -5929,19 +5929,19 @@ input FooBarStationListFilter {
 	"""
 	Powers in kWh
 	"""
-	powers: Float
+	powers: [Float]
 	"""
 	Amenities available near a station
 	"""
-	amenities: FooBarAmenities
+	amenities: [FooBarAmenities]
 	"""
 	Station speed
 	"""
-	power_groups: FooBarStationSpeedType
+	power_groups: [FooBarStationSpeedType]
 	"""
 	Station socket or plug standards
 	"""
-	connectors: FooBarConnectorType
+	connectors: [FooBarConnectorType]
 	"""
 	Flag that allows you to return only available stations
 	"""
@@ -6060,19 +6060,19 @@ type FooBarSubscription {
 	"""
 	[BETA] Subscribe to a connected vehicle.
 	"""
-	connectedVehicle(id: ID): FooBarConnectedVehicle
+	connectedVehicle(id: ID!): FooBarConnectedVehicle
 	"""
 	[BETA] Subscribe to an isoline label in order to receive updates
 	"""
-	isoline(id: ID): FooBarIsoline
+	isoline(id: ID!): FooBarIsoline
 	"""
 	[BETA] Subscribe to navigation session system event updates. We strongly recommend using this at all times to not miss any updates
 	"""
-	navigationUpdatedById(id: ID): FooBarNavigation
+	navigationUpdatedById(id: ID!): FooBarNavigation
 	"""
 	Subscription for a specific route was updated in the system event
 	"""
-	routeUpdatedById(id: ID): FooBarRoute
+	routeUpdatedById(id: ID!): FooBarRoute
 }
 type FooBarTelemetry {
 	"""
@@ -6266,11 +6266,11 @@ input FooBarTirePressureInput {
 	"""
 	Values for the tire pressure, starting from the front side right to left and to the rear
 	"""
-	value: Float
+	value: [Float!]!
 	"""
 	Type of the value of pressure
 	"""
-	type: FooBarPressureUnit
+	type: FooBarPressureUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -6284,11 +6284,11 @@ input FooBarTotalCargoWeightInput {
 	"""
 	Value of the current weight of the cargo
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the current weight of the cargo
 	"""
-	type: FooBarWeightUnit
+	type: FooBarWeightUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -6298,11 +6298,11 @@ input FooBarTotalOccupantWeightInput {
 	"""
 	Value of the current weight of the occupants
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the current weight of the occupants
 	"""
-	type: FooBarWeightUnit
+	type: FooBarWeightUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
@@ -6316,7 +6316,7 @@ input FooBarUpdateConnectedVehicleInput {
 	"""
 	Id from the connected vehicle
 	"""
-	id: ID
+	id: ID!
 	"""
 	New label for a connected vehicle
 	"""
@@ -6694,11 +6694,11 @@ input FooBarVehicleListFilter {
 	"""
 	Availability of a vehicle.
 	"""
-	availability: FooBarVehicleAvailabilityStatus
+	availability: [FooBarVehicleAvailabilityStatus!]
 	"""
 	Drivetrain type of a vehicle.
 	"""
-	drivetrain: FooBarVehicleDrivetrainType
+	drivetrain: [FooBarVehicleDrivetrainType!]
 	"""
 	Information about vehicle connectivity.
 	"""
@@ -6706,15 +6706,15 @@ input FooBarVehicleListFilter {
 	"""
 	Regions in which the vehicle is available. Based on the continent code (CC) standard.
 	"""
-	region: FooBarVehicleRegion
+	region: [FooBarVehicleRegion!]
 	"""
 	Vehicle intended use. Can be passenger, cargo, or utility.
 	"""
-	purpose: FooBarVehiclePurpose
+	purpose: [FooBarVehiclePurpose!]
 	"""
 	Type of vehicle.
 	"""
-	type: FooBarVehicleType
+	type: [FooBarVehicleType!]
 }
 type FooBarVehicleListMedia {
 	"""
@@ -7825,11 +7825,11 @@ input FooBarVehicleSpeedInput {
 	"""
 	Value of the vehicle speed
 	"""
-	value: Float
+	value: Float!
 	"""
 	Type of the vehicle speed
 	"""
-	type: FooBarSpeedUnit
+	type: FooBarSpeedUnit!
 	"""
 	Source of inputted data, defaults to 'manual'
 	"""
