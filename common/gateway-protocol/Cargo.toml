@@ -7,6 +7,7 @@ edition = "2021"
 aws-region-nearby = { workspace = true }
 rusoto_core = { workspace = true }
 serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", default-features = false }
 ulid = { workspace = true }
 worker = { workspace = true }
 
@@ -15,4 +16,3 @@ grafbase = { path = "../grafbase", features = ["json"] }
 
 [dev-dependencies]
 sha2 = { version = "0.10", default-features = false }
-serde_json = { version = "1", default-features = false }
