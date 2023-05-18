@@ -1,6 +1,7 @@
 use super::{DynamicParse, SDLDefinitionScalar};
 use crate::{Error, InputValueError, InputValueResult};
 use dynaql_value::ConstValue;
+use serde_json::Number;
 
 pub struct FloatScalar;
 
@@ -29,7 +30,13 @@ impl DynamicParse for FloatScalar {
 
     fn to_value(value: serde_json::Value) -> Result<ConstValue, Error> {
         match value {
-            serde_json::Value::Number(v) => Ok(ConstValue::Number(v)),
+            serde_json::Value::Number(v) => {
+                let v = v.as_f64().and_then(Number::from_f64).ok_or_else(|| {
+                    Error::new("Data violation: Cannot coerce the initial value to a Float")
+                })?;
+
+                Ok(ConstValue::Number(v))
+            }
             _ => Err(Error::new(
                 "Data violation: Cannot coerce the initial value to a Float",
             )),
