@@ -4130,7 +4130,7 @@ expression: "Registry::from(schema)"
               "id": {
                 "name": "id",
                 "description": "The ID of an object",
-                "ty": "ID",
+                "ty": "ID!",
                 "default_value": null,
                 "validators": null,
                 "is_secret": false
@@ -8256,7 +8256,7 @@ expression: "Registry::from(schema)"
         "if": {
           "name": "if",
           "description": "Included when true.",
-          "ty": "Boolean",
+          "ty": "Boolean!",
           "default_value": null,
           "validators": null,
           "is_secret": false
@@ -8276,7 +8276,7 @@ expression: "Registry::from(schema)"
         "if": {
           "name": "if",
           "description": "Skipped when true.",
-          "ty": "Boolean",
+          "ty": "Boolean!",
           "default_value": null,
           "validators": null,
           "is_secret": false

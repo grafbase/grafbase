@@ -74,7 +74,7 @@ impl From<cynic_introspection::InputValue> for MetaInputValue {
         Self {
             name: input.name,
             description: input.description,
-            ty: input.ty.name,
+            ty: input.ty.to_string(),
             default_value: input.default_value.map(Into::into),
             visible: None,
             validators: None,
@@ -261,6 +261,19 @@ mod tests {
     #[test]
     fn conversion() {
         let data = include_str!("../../tests/swapi_introspection.json");
+        let schema = serde_json::from_str::<IntrospectionQuery>(data)
+            .unwrap()
+            .into_schema()
+            .unwrap();
+
+        insta::with_settings!({sort_maps => true}, {
+            insta::assert_json_snapshot!(Registry::from(schema))
+        })
+    }
+
+    #[test]
+    fn array_input_value() {
+        let data = include_str!("../../tests/countries_introspection.json");
         let schema = serde_json::from_str::<IntrospectionQuery>(data)
             .unwrap()
             .into_schema()
