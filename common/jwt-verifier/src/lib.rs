@@ -7,7 +7,8 @@ use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use serde_with::{serde_as, OneOrMany};
-use std::{borrow::Borrow, collections::HashSet};
+use std::borrow::Cow;
+use std::collections::HashSet;
 use url::Url;
 use worker::kv::KvError;
 
@@ -27,10 +28,11 @@ const JWKS_CACHE_TTL: u64 = 60 * 60; // 1h
 
 #[derive(Serialize, Deserialize, Debug)]
 struct OidcConfig {
-    // FIXME: Issuer should be stored and handled as a string. See StringOrURI definition in https://www.rfc-editor.org/rfc/rfc7519#section-2 .
-    // Converting string to Url and back alters the string representation, so for now compare `Url`-s.
-    // https://linear.app/grafbase/issue/GB-3298/fix-issuer-comparison-in-oidcconfig-as-stated-by-the-fixme
-    issuer: Url,
+    // This must be a URL, however:
+    // StringOrURI values are compared as case-sensitive strings with no transformations or
+    // canonicalizations applied.
+    // source: https://www.rfc-editor.org/rfc/rfc7519#section-2
+    issuer: String,
     jwks_uri: Url,
 }
 
@@ -52,7 +54,8 @@ struct JsonWebKeySet<'a> {
 #[derive(Serialize, Deserialize, Debug)]
 
 struct CustomClaims {
-    // optional as per https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
+    // Optional as per https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1 .
+    // Mandatory in case of OIDC discovery: https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata
     #[serde(rename = "iss")]
     issuer: Option<String>,
 
@@ -158,14 +161,8 @@ impl<'a> Client<'a> {
 
             // SECURITY: This check is important to make sure that an issuer cannot
             // assume another identity
-            // FIXME: GB-3298 compare with expected_issuer
-            if oidc_config.issuer != *issuer_base_url {
-                warn!(
-                    self.trace_id,
-                    "Issuer from oidc config {} does not match the expected {expected_issuer}", oidc_config.issuer
-                );
-                return Err(VerificationError::IssuerClaimMismatch);
-            }
+            self.verify_issuer((expected_issuer, Some(issuer_base_url)), (&oidc_config.issuer, None))?;
+
             // Get JWKS
             let jwks: JsonWebKeySet<'_> = self
                 .http_client
@@ -331,31 +328,62 @@ impl<'a> Client<'a> {
         }
     }
 
+    fn verify_issuer(
+        &self,
+        expected: (&str, Option<&url::Url>),
+        actual: (&str, Option<&url::Url>),
+    ) -> Result<(), VerificationError> {
+        if expected.0 == actual.0 {
+            Ok(())
+        } else {
+            // Backwards compatibility: Previously the issuer was first parsed as URL and then compared which is against the spec:
+            // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
+            // Attempt to convert both sides to URLs and compare them.
+            // This may add a trailing slash if the URL does not have a path section, and therefore should be safe.
+            let expected_url = expected.1.map(Cow::Borrowed).map(Ok).unwrap_or_else(|| {
+                expected
+                    .0
+                    .parse::<url::Url>()
+                    .map(Cow::Owned)
+                    .map_err(VerificationError::IssuerFormat)
+            })?;
+            let actual_url = actual.1.map(|url| Ok(Cow::Borrowed(url))).unwrap_or_else(|| {
+                actual
+                    .0
+                    .parse::<url::Url>()
+                    .map(Cow::Owned)
+                    .map_err(VerificationError::IssuerFormat)
+            })?;
+            if expected_url == actual_url {
+                log::debug!(
+                    self.trace_id,
+                    "Passing issuer verification although expected '{}' does not match exactly the actual '{}'",
+                    expected.0,
+                    actual.0
+                );
+                Ok(())
+            } else {
+                warn!(
+                    self.trace_id,
+                    "Actual issuer {} does not match the expected {}", actual.0, expected.0
+                );
+                Err(VerificationError::IssuerClaimMismatch)
+            }
+        }
+    }
+
     fn verify_claims(
         &self,
         claims: &Claims<CustomClaims>,
         expected_issuer: Option<&str>,
     ) -> Result<VerifiedToken, VerificationError> {
         // Check "iss" claim if expected_issuer is set.
-        if expected_issuer.is_some() && claims.custom.issuer.as_ref().map(Borrow::borrow) != expected_issuer {
-            // TODO simplify to a string comparison if no warnings show up in logs.
-            // Backwards compatibility: Previously the issuer was first parsed as URL and then compared which is against the spec:
-            // https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1
-            // Attempt to convert both sides to URLs and compare them.
-            match (
-                expected_issuer.map(url::Url::parse),
-                claims.custom.issuer.as_ref().map(|s| url::Url::parse(s)),
-            ) {
-                (Some(Ok(expected_issuer_url)), Some(Ok(actual_issuer_url)))
-                    if expected_issuer_url == actual_issuer_url =>
-                {
-                    log::warn!(self.trace_id,
-                        "Passing issuer verification although expected '{expected_issuer:?}' does not match exactly the actual '{:?}'",
-                        claims.custom.issuer);
-                    Ok(())
-                }
-                _ => Err(VerificationError::IssuerClaimMismatch),
-            }?;
+        if let Some(expected_issuer) = expected_issuer {
+            let Some(actual_issuer) = &claims.custom.issuer else {
+                log::warn!(self.trace_id, "JWT does not contain the 'iss' claim that is required");
+                return Err(VerificationError::IssuerClaimMismatch);
+            };
+            self.verify_issuer((expected_issuer, None), (actual_issuer, None))?;
         }
 
         // Check "exp" claim
