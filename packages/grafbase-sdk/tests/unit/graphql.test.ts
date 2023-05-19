@@ -26,6 +26,7 @@ describe('GraphQL connector', () => {
       headers: (headers) => {
         headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
         headers.static('Method', 'POST')
+        headers.introspection('Foo', 'BAR')
       }
     })
 
@@ -39,6 +40,9 @@ describe('GraphQL connector', () => {
           headers: [
             { name: "Authorization", value: "Bearer {{ env.STRIPE_API_KEY }}" }
             { name: "Method", value: "POST" }
+          ]
+          introspectionHeaders: [
+            { name: "Foo", value: "BAR" }
           ]
         )"
     `)

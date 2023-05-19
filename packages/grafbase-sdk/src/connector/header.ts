@@ -1,9 +1,8 @@
 export type HeaderGenerator = (headers: Headers) => any
-export type PartialHeaderGenerator = (headers: PartialHeaders) => any /**
 
 /**
-* Header used in connector calls.
-*/
+ * Header used in connector calls.
+ */
 export class Header {
   name: string
   value: string
@@ -19,13 +18,16 @@ export class Header {
 }
 
 /**
- * An accumulator class to gather headers for a connector.
+ * An accumulator class to gather headers for a connector which supports
+ * introspection headers.
  */
-export class PartialHeaders {
+export class Headers {
   headers: Header[]
+  introspectionHeaders: Header[]
 
   constructor() {
     this.headers = []
+    this.introspectionHeaders = []
   }
 
   /**
@@ -36,19 +38,6 @@ export class PartialHeaders {
    */
   public static(name: string, value: string) {
     this.headers.push(new Header(name, value))
-  }
-}
-
-/**
- * An accumulator class to gather headers for a connector which supports
- * introspection headers.
- */
-export class Headers extends PartialHeaders {
-  introspectionHeaders: Header[]
-
-  constructor() {
-    super()
-    this.introspectionHeaders = []
   }
 
   /**
