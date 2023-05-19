@@ -15,10 +15,7 @@ expression: req_string_a
     "include": {
       "args": {
         "if": {
-          "D": null,
-          "V": null,
           "d": "Included when true.",
-          "i": false,
           "n": "if",
           "t": "Boolean!"
         }
@@ -53,10 +50,7 @@ expression: req_string_a
     "skip": {
       "args": {
         "if": {
-          "D": null,
-          "V": null,
           "d": "Skipped when true.",
-          "i": false,
           "n": "if",
           "t": "Boolean!"
         }
@@ -181,8 +175,7 @@ expression: req_string_a
       "S": {
         "d": "The `Boolean` scalar type represents `true` or `false`.",
         "n": "Boolean",
-        "p": "BestEffort",
-        "s": null
+        "p": "BestEffort"
       }
     },
     "DateTime": {
@@ -197,67 +190,37 @@ expression: req_string_a
       "S": {
         "d": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
         "n": "Float",
-        "p": "BestEffort",
-        "s": null
+        "p": "BestEffort"
       }
     },
     "ID": {
       "S": {
-        "d": null,
         "n": "ID",
-        "p": "BestEffort",
-        "s": null
+        "p": "BestEffort"
       }
     },
     "Int": {
       "S": {
         "d": "The `Int` scalar type represents non-fractional whole numeric values.",
         "n": "Int",
-        "p": "BestEffort",
-        "s": null
+        "p": "BestEffort"
       }
     },
     "Mutation": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "Mutation",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "userCreate": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 1,
             "a": {
               "input": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "input",
                 "t": "UserCreateInput!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Create a User",
-            "e": false,
             "n": "userCreate",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_create_resolver",
               "type": {
@@ -274,33 +237,16 @@ expression: req_string_a
             "t": "UserCreatePayload"
           },
           "userDelete": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 16,
             "a": {
               "by": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "by",
                 "t": "UserByInput!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Delete a User by ID or unique field",
-            "e": false,
             "n": "userDelete",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_delete_resolver",
               "type": {
@@ -317,41 +263,20 @@ expression: req_string_a
             "t": "UserDeletePayload"
           },
           "userUpdate": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 8,
             "a": {
               "by": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "by",
                 "t": "UserByInput!"
               },
               "input": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "input",
                 "t": "UserUpdateInput!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Update a User",
-            "e": false,
             "n": "userUpdate",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_create_resolver",
               "type": {
@@ -371,28 +296,15 @@ expression: req_string_a
             "t": "UserUpdatePayload"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "Mutation"
       }
     },
     "Nested": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "Nested",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "requiredField": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Projection": {
                 "fields": [
@@ -401,30 +313,16 @@ expression: req_string_a
                 "flattened": true
               }
             },
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "requiredField"
               }
             },
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "requiredField",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "Nested"
       }
     },
@@ -433,15 +331,10 @@ expression: req_string_a
         "A": "NestedInput",
         "_p": {
           "requiredField": {
-            "D": null,
-            "V": null,
-            "d": null,
-            "i": false,
             "n": "requiredField",
             "t": "String!"
           }
         },
-        "o": false,
         "s_": "Nested input type.",
         "u": "NestedInput"
       }
@@ -450,38 +343,22 @@ expression: req_string_a
       "E": {
         "_e": {
           "ASC": {
-            "D": "N",
-            "d": null,
             "n": "ASC"
           },
           "DESC": {
-            "D": "N",
-            "d": null,
             "n": "DESC"
           }
         },
         "_r": "OrderByDirection",
-        "a": "OrderByDirection",
-        "e_": null
+        "a": "OrderByDirection"
       }
     },
     "PageInfo": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "PageInfo",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "endCursor": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Apply": {
                 "fun_fields": [
@@ -504,7 +381,6 @@ expression: req_string_a
                 }
               }
             },
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "end_cursor"
@@ -512,16 +388,7 @@ expression: req_string_a
             },
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "endCursor",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -531,13 +398,10 @@ expression: req_string_a
             "t": "String"
           },
           "hasNextPage": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "PaginationPage": "Next"
             },
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "has_next_page"
@@ -545,16 +409,7 @@ expression: req_string_a
             },
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "hasNextPage",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -564,13 +419,10 @@ expression: req_string_a
             "t": "Boolean!"
           },
           "hasPreviousPage": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "PaginationPage": "Previous"
             },
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "has_previous_page"
@@ -578,16 +430,7 @@ expression: req_string_a
             },
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "hasPreviousPage",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -597,9 +440,7 @@ expression: req_string_a
             "t": "Boolean!"
           },
           "startCursor": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Apply": {
                 "fun_fields": [
@@ -622,7 +463,6 @@ expression: req_string_a
                 }
               }
             },
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "start_cursor"
@@ -630,16 +470,7 @@ expression: req_string_a
             },
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "startCursor",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -649,74 +480,32 @@ expression: req_string_a
             "t": "String"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "PageInfo"
       }
     },
     "Query": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "Query",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "__schema": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Access the current type schema of this server.",
-            "e": false,
             "n": "__schema",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Schema!"
           },
           "user": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 2,
             "a": {
               "by": {
-                "D": null,
-                "V": null,
                 "d": "The field and value by which to query the User",
-                "i": false,
                 "n": "by",
                 "t": "UserByInput!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Query a single User by an ID or a unique field",
-            "e": false,
             "n": "user",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_resolver",
               "type": {
@@ -733,9 +522,7 @@ expression: req_string_a
             "t": "User"
           },
           "userCollection": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Related": {
                 "from": null,
@@ -753,60 +540,31 @@ expression: req_string_a
                 "User"
               ]
             },
-            "T": null,
             "_r": 4,
             "a": {
               "after": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "after",
                 "t": "String"
               },
               "before": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "before",
                 "t": "String"
               },
               "first": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "first",
                 "t": "Int"
               },
               "last": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "last",
                 "t": "Int"
               },
               "orderBy": {
-                "D": null,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "orderBy",
                 "t": "UserOrderByInput"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Paginated query to fetch the whole list of `User`.",
-            "e": false,
             "n": "userCollection",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_resolver",
               "type": {
@@ -838,8 +596,6 @@ expression: req_string_a
             "t": "UserConnection"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "Query"
       }
     },
@@ -847,27 +603,15 @@ expression: req_string_a
       "S": {
         "d": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
         "n": "String",
-        "p": "BestEffort",
-        "s": null
+        "p": "BestEffort"
       }
     },
     "User": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "User",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "createdAt": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Projection": {
                 "fields": [
@@ -876,24 +620,14 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "R": null,
             "T": {
               "DynamoSelect": {
                 "property": "__created_at"
               }
             },
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "when the model was created",
-            "e": false,
             "n": "createdAt",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -907,9 +641,7 @@ expression: req_string_a
             "t": "DateTime!"
           },
           "id": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Projection": {
                 "fields": [
@@ -918,24 +650,14 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "R": null,
             "T": {
               "DynamoSelect": {
                 "property": "__sk"
               }
             },
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Unique identifier",
-            "e": false,
             "n": "id",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -949,9 +671,7 @@ expression: req_string_a
             "t": "ID!"
           },
           "nested": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Projection": {
                 "fields": [
@@ -960,24 +680,13 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "R": null,
             "T": {
               "DynamoSelect": {
                 "property": "nested"
               }
             },
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "nested",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -991,9 +700,7 @@ expression: req_string_a
             "t": "Nested"
           },
           "updatedAt": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Projection": {
                 "fields": [
@@ -1002,24 +709,14 @@ expression: req_string_a
                 "flattened": false
               }
             },
-            "R": null,
             "T": {
               "DynamoSelect": {
                 "property": "__updated_at"
               }
             },
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "when the model was updated",
-            "e": false,
             "n": "updatedAt",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -1034,7 +731,6 @@ expression: req_string_a
           }
         },
         "i_": true,
-        "k": null,
         "r": "User"
       }
     },
@@ -1043,79 +739,34 @@ expression: req_string_a
         "A": "UserByInput",
         "_p": {
           "id": {
-            "D": null,
-            "V": null,
-            "d": null,
-            "i": false,
             "n": "id",
             "t": "ID"
           }
         },
         "o": true,
-        "s_": null,
         "u": "UserByInput"
       }
     },
     "UserConnection": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "UserConnection",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "edges": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "edges",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[UserEdge]"
           },
           "pageInfo": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "Information to aid in pagination",
-            "e": false,
             "n": "pageInfo",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "PageInfo!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "UserConnection"
       }
     },
@@ -1124,51 +775,23 @@ expression: req_string_a
         "A": "UserCreateInput",
         "_p": {
           "nested": {
-            "D": null,
-            "V": null,
-            "d": null,
-            "i": false,
             "n": "nested",
             "t": "NestedInput"
           }
         },
-        "o": false,
         "s_": "Input to create a User",
         "u": "UserCreateInput"
       }
     },
     "UserCreatePayload": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "UserCreatePayload",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "user": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 1,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "user",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_resolver",
               "type": {
@@ -1188,30 +811,15 @@ expression: req_string_a
             "t": "User"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "UserCreatePayload"
       }
     },
     "UserDeletePayload": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "UserDeletePayload",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "deletedId": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
             "T": {
               "JSONSelect": {
                 "property": "id"
@@ -1219,42 +827,19 @@ expression: req_string_a
             },
             "_r": 16,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "deletedId",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "ID!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "UserDeletePayload"
       }
     },
     "UserEdge": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "UserEdge",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "cursor": {
-            "A": null,
             "D": "N",
-            "E": [],
             "P": {
               "Apply": {
                 "fun_fields": [
@@ -1273,7 +858,6 @@ expression: req_string_a
                 }
               }
             },
-            "R": null,
             "T": {
               "Pipeline": [
                 {
@@ -1286,16 +870,7 @@ expression: req_string_a
             },
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "cursor",
-            "p": null,
-            "r": null,
             "r_": {
               "id": null,
               "type": {
@@ -1309,30 +884,13 @@ expression: req_string_a
             "t": "String!"
           },
           "node": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 4,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "node",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "User!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "UserEdge"
       }
     },
@@ -1341,16 +899,11 @@ expression: req_string_a
         "A": "UserOrderByInput",
         "_p": {
           "createdAt": {
-            "D": null,
-            "V": null,
-            "d": null,
-            "i": false,
             "n": "createdAt",
             "t": "OrderByDirection"
           }
         },
         "o": true,
-        "s_": null,
         "u": "UserOrderByInput"
       }
     },
@@ -1359,51 +912,23 @@ expression: req_string_a
         "A": "UserUpdateInput",
         "_p": {
           "nested": {
-            "D": null,
-            "V": null,
-            "d": null,
-            "i": false,
             "n": "nested",
             "t": "NestedInput"
           }
         },
-        "o": false,
         "s_": "Input to update a User",
         "u": "UserUpdateInput"
       }
     },
     "UserUpdatePayload": {
       "O": {
-        "C": [],
-        "D": null,
-        "I": false,
         "N": "UserUpdatePayload",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "user": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
             "_r": 8,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "user",
-            "p": null,
-            "r": null,
             "r_": {
               "id": "user_resolver",
               "type": {
@@ -1423,137 +948,45 @@ expression: req_string_a
             "t": "User"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "UserUpdatePayload"
       }
     },
     "__Directive": {
       "O": {
-        "C": [],
         "D": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
-        "I": false,
         "N": "__Directive",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "args": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "args",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__InputValue!]!"
           },
           "description": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "description",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "isRepeatable": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "isRepeatable",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "Boolean!"
           },
           "locations": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "locations",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__DirectiveLocation!]!"
           },
           "name": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "name",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::directive::__Directive"
       }
     },
@@ -1561,97 +994,78 @@ expression: req_string_a
       "E": {
         "_e": {
           "ARGUMENT_DEFINITION": {
-            "D": "N",
             "d": "Location adjacent to an argument definition.",
             "n": "ARGUMENT_DEFINITION"
           },
           "ENUM": {
-            "D": "N",
             "d": "Location adjacent to an enum definition.",
             "n": "ENUM"
           },
           "ENUM_VALUE": {
-            "D": "N",
             "d": "Location adjacent to an enum value definition.",
             "n": "ENUM_VALUE"
           },
           "FIELD": {
-            "D": "N",
             "d": "Location adjacent to a field.",
             "n": "FIELD"
           },
           "FIELD_DEFINITION": {
-            "D": "N",
             "d": "Location adjacent to a field definition.",
             "n": "FIELD_DEFINITION"
           },
           "FRAGMENT_DEFINITION": {
-            "D": "N",
             "d": "Location adjacent to a fragment definition.",
             "n": "FRAGMENT_DEFINITION"
           },
           "FRAGMENT_SPREAD": {
-            "D": "N",
             "d": "Location adjacent to a fragment spread.",
             "n": "FRAGMENT_SPREAD"
           },
           "INLINE_FRAGMENT": {
-            "D": "N",
             "d": "Location adjacent to an inline fragment.",
             "n": "INLINE_FRAGMENT"
           },
           "INPUT_FIELD_DEFINITION": {
-            "D": "N",
             "d": "Location adjacent to an input object field definition.",
             "n": "INPUT_FIELD_DEFINITION"
           },
           "INPUT_OBJECT": {
-            "D": "N",
             "d": "Location adjacent to an input object type definition.",
             "n": "INPUT_OBJECT"
           },
           "INTERFACE": {
-            "D": "N",
             "d": "Location adjacent to an interface definition.",
             "n": "INTERFACE"
           },
           "MUTATION": {
-            "D": "N",
             "d": "Location adjacent to a mutation operation.",
             "n": "MUTATION"
           },
           "OBJECT": {
-            "D": "N",
             "d": "Location adjacent to an object type definition.",
             "n": "OBJECT"
           },
           "QUERY": {
-            "D": "N",
             "d": "Location adjacent to a query operation.",
             "n": "QUERY"
           },
           "SCALAR": {
-            "D": "N",
             "d": "Location adjacent to a scalar definition.",
             "n": "SCALAR"
           },
           "SCHEMA": {
-            "D": "N",
             "d": "Location adjacent to a schema definition.",
             "n": "SCHEMA"
           },
           "SUBSCRIPTION": {
-            "D": "N",
             "d": "Location adjacent to a subscription operation.",
             "n": "SUBSCRIPTION"
           },
           "UNION": {
-            "D": "N",
             "d": "Location adjacent to a union definition.",
             "n": "UNION"
           },
           "VARIABLE_DEFINITION": {
-            "D": "N",
             "d": "Location adjacent to a variable definition.",
             "n": "VARIABLE_DEFINITION"
           }
@@ -1663,774 +1077,243 @@ expression: req_string_a
     },
     "__EnumValue": {
       "O": {
-        "C": [],
         "D": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
-        "I": false,
         "N": "__EnumValue",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "deprecationReason": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "deprecationReason",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "description": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "description",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "isDeprecated": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "isDeprecated",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "Boolean!"
           },
           "name": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "name",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::enum_value::__EnumValue"
       }
     },
     "__Field": {
       "O": {
-        "C": [],
         "D": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
-        "I": false,
         "N": "__Field",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "args": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "args",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__InputValue!]!"
           },
           "deprecationReason": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "deprecationReason",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "description": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "description",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "isDeprecated": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "isDeprecated",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "Boolean!"
           },
           "name": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "name",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String!"
           },
           "type": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "type",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::field::__Field"
       }
     },
     "__InputValue": {
       "O": {
-        "C": [],
         "D": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
-        "I": false,
         "N": "__InputValue",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "defaultValue": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "defaultValue",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "description": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "description",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "name": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "name",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String!"
           },
           "type": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "type",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::input_value::__InputValue"
       }
     },
     "__Schema": {
       "O": {
-        "C": [],
         "D": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
-        "I": false,
         "N": "__Schema",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "directives": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "A list of all directives supported by this server.",
-            "e": false,
             "n": "directives",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__Directive!]!"
           },
           "mutationType": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
-            "e": false,
             "n": "mutationType",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type"
           },
           "queryType": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "The type that query operations will be rooted at.",
-            "e": false,
             "n": "queryType",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type!"
           },
           "subscriptionType": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "If this server support subscription, the type that subscription operations will be rooted at.",
-            "e": false,
             "n": "subscriptionType",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type"
           },
           "types": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
             "d": "A list of all types supported by this server.",
-            "e": false,
             "n": "types",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__Type!]!"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::schema::__Schema"
       }
     },
     "__Type": {
       "O": {
-        "C": [],
         "D": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name and description, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
-        "I": false,
         "N": "__Type",
-        "c": {
-          "m": 0,
-          "p": true,
-          "s": 0
-        },
-        "e": false,
         "f": {
           "description": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "description",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "enumValues": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {
               "includeDeprecated": {
                 "D": false,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "includeDeprecated",
                 "t": "Boolean!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "enumValues",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__EnumValue!]"
           },
           "fields": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {
               "includeDeprecated": {
                 "D": false,
-                "V": null,
-                "d": null,
-                "i": false,
                 "n": "includeDeprecated",
                 "t": "Boolean!"
               }
             },
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "fields",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__Field!]"
           },
           "inputFields": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "inputFields",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__InputValue!]"
           },
           "interfaces": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "interfaces",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__Type!]"
           },
           "isOneOf": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "isOneOf",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "Boolean"
           },
           "kind": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "kind",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__TypeKind!"
           },
           "name": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "name",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           },
           "ofType": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "ofType",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "__Type"
           },
           "possibleTypes": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "possibleTypes",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "[__Type!]"
           },
           "specifiedByURL": {
-            "A": null,
             "D": "N",
-            "E": [],
-            "P": null,
-            "R": null,
-            "T": null,
-            "_r": null,
             "a": {},
-            "c": {
-              "m": 0,
-              "p": true,
-              "s": 0
-            },
-            "d": null,
-            "e": false,
             "n": "specifiedByURL",
-            "p": null,
-            "r": null,
-            "r_": null,
             "t": "String"
           }
         },
-        "i_": false,
-        "k": null,
         "r": "dynaql::model::type::__Type"
       }
     },
@@ -2438,42 +1321,34 @@ expression: req_string_a
       "E": {
         "_e": {
           "ENUM": {
-            "D": "N",
             "d": "Indicates this type is an enum. `enumValues` is a valid field.",
             "n": "ENUM"
           },
           "INPUT_OBJECT": {
-            "D": "N",
             "d": "Indicates this type is an input object. `inputFields` is a valid field.",
             "n": "INPUT_OBJECT"
           },
           "INTERFACE": {
-            "D": "N",
             "d": "Indicates this type is an interface. `fields` and `possibleTypes` are valid fields.",
             "n": "INTERFACE"
           },
           "LIST": {
-            "D": "N",
             "d": "Indicates this type is a list. `ofType` is a valid field.",
             "n": "LIST"
           },
           "NON_NULL": {
-            "D": "N",
             "d": "Indicates this type is a non-null. `ofType` is a valid field.",
             "n": "NON_NULL"
           },
           "OBJECT": {
-            "D": "N",
             "d": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
             "n": "OBJECT"
           },
           "SCALAR": {
-            "D": "N",
             "d": "Indicates this type is a scalar.",
             "n": "SCALAR"
           },
           "UNION": {
-            "D": "N",
             "d": "Indicates this type is a union. `possibleTypes` is a valid field.",
             "n": "UNION"
           }

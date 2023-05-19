@@ -8,510 +8,174 @@ expression: "Registry::from(schema)"
       "S": {
         "n": "Boolean",
         "d": "The `Boolean` scalar type represents `true` or `false`.",
-        "s": null,
         "p": "PassThrough"
       }
     },
     "Continent": {
       "O": {
         "N": "Continent",
-        "D": null,
         "f": {
           "code": {
             "n": "code",
-            "d": null,
             "a": {},
             "t": "ID!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "countries": {
             "n": "countries",
-            "d": null,
             "a": {},
             "t": "[Country!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "Continent",
-        "C": []
+        "r": "Continent"
       }
     },
     "ContinentFilterInput": {
       "i": {
         "A": "ContinentFilterInput",
-        "s_": null,
         "_p": {
           "code": {
             "n": "code",
-            "d": null,
-            "t": "StringQueryOperatorInput",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "StringQueryOperatorInput"
           }
         },
-        "u": "ContinentFilterInput",
-        "o": false
+        "u": "ContinentFilterInput"
       }
     },
     "Country": {
       "O": {
         "N": "Country",
-        "D": null,
         "f": {
           "awsRegion": {
             "n": "awsRegion",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "capital": {
             "n": "capital",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "code": {
             "n": "code",
-            "d": null,
             "a": {},
             "t": "ID!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "continent": {
             "n": "continent",
-            "d": null,
             "a": {},
             "t": "Continent!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "currencies": {
             "n": "currencies",
-            "d": null,
             "a": {},
             "t": "[String!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "currency": {
             "n": "currency",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "emoji": {
             "n": "emoji",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "emojiU": {
             "n": "emojiU",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "languages": {
             "n": "languages",
-            "d": null,
             "a": {},
             "t": "[Language!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {
               "lang": {
                 "n": "lang",
-                "d": null,
-                "t": "String",
-                "D": null,
-                "V": null,
-                "i": false
+                "t": "String"
               }
             },
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "native": {
             "n": "native",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "phone": {
             "n": "phone",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "phones": {
             "n": "phones",
-            "d": null,
             "a": {},
             "t": "[String!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "states": {
             "n": "states",
-            "d": null,
             "a": {},
             "t": "[State!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "subdivisions": {
             "n": "subdivisions",
-            "d": null,
             "a": {},
             "t": "[Subdivision!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "Country",
-        "C": []
+        "r": "Country"
       }
     },
     "CountryFilterInput": {
       "i": {
         "A": "CountryFilterInput",
-        "s_": null,
         "_p": {
           "code": {
             "n": "code",
-            "d": null,
-            "t": "StringQueryOperatorInput",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "StringQueryOperatorInput"
           },
           "continent": {
             "n": "continent",
-            "d": null,
-            "t": "StringQueryOperatorInput",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "StringQueryOperatorInput"
           },
           "currency": {
             "n": "currency",
-            "d": null,
-            "t": "StringQueryOperatorInput",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "StringQueryOperatorInput"
           }
         },
-        "u": "CountryFilterInput",
-        "o": false
+        "u": "CountryFilterInput"
       }
     },
     "Float": {
       "S": {
         "n": "Float",
         "d": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
-        "s": null,
         "p": "PassThrough"
       }
     },
@@ -519,7 +183,6 @@ expression: "Registry::from(schema)"
       "S": {
         "n": "ID",
         "d": "The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `\"4\"`) or integer (such as `4`) input value will be accepted as an ID.",
-        "s": null,
         "p": "PassThrough"
       }
     },
@@ -527,566 +190,215 @@ expression: "Registry::from(schema)"
       "S": {
         "n": "Int",
         "d": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.",
-        "s": null,
         "p": "PassThrough"
       }
     },
     "Language": {
       "O": {
         "N": "Language",
-        "D": null,
         "f": {
           "code": {
             "n": "code",
-            "d": null,
             "a": {},
             "t": "ID!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "native": {
             "n": "native",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "rtl": {
             "n": "rtl",
-            "d": null,
             "a": {},
             "t": "Boolean!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "Language",
-        "C": []
+        "r": "Language"
       }
     },
     "LanguageFilterInput": {
       "i": {
         "A": "LanguageFilterInput",
-        "s_": null,
         "_p": {
           "code": {
             "n": "code",
-            "d": null,
-            "t": "StringQueryOperatorInput",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "StringQueryOperatorInput"
           }
         },
-        "u": "LanguageFilterInput",
-        "o": false
+        "u": "LanguageFilterInput"
       }
     },
     "Query": {
       "O": {
         "N": "Query",
-        "D": null,
         "f": {
           "continent": {
             "n": "continent",
-            "d": null,
             "a": {
               "code": {
                 "n": "code",
-                "d": null,
-                "t": "ID!",
-                "D": null,
-                "V": null,
-                "i": false
+                "t": "ID!"
               }
             },
             "t": "Continent",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "continents": {
             "n": "continents",
-            "d": null,
             "a": {
               "filter": {
                 "n": "filter",
-                "d": null,
                 "t": "ContinentFilterInput",
-                "D": "{}",
-                "V": null,
-                "i": false
+                "D": "{}"
               }
             },
             "t": "[Continent!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "countries": {
             "n": "countries",
-            "d": null,
             "a": {
               "filter": {
                 "n": "filter",
-                "d": null,
                 "t": "CountryFilterInput",
-                "D": "{}",
-                "V": null,
-                "i": false
+                "D": "{}"
               }
             },
             "t": "[Country!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "country": {
             "n": "country",
-            "d": null,
             "a": {
               "code": {
                 "n": "code",
-                "d": null,
-                "t": "ID!",
-                "D": null,
-                "V": null,
-                "i": false
+                "t": "ID!"
               }
             },
             "t": "Country",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "language": {
             "n": "language",
-            "d": null,
             "a": {
               "code": {
                 "n": "code",
-                "d": null,
-                "t": "ID!",
-                "D": null,
-                "V": null,
-                "i": false
+                "t": "ID!"
               }
             },
             "t": "Language",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "languages": {
             "n": "languages",
-            "d": null,
             "a": {
               "filter": {
                 "n": "filter",
-                "d": null,
                 "t": "LanguageFilterInput",
-                "D": "{}",
-                "V": null,
-                "i": false
+                "D": "{}"
               }
             },
             "t": "[Language!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "Query",
-        "C": []
+        "r": "Query"
       }
     },
     "State": {
       "O": {
         "N": "State",
-        "D": null,
         "f": {
           "code": {
             "n": "code",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "country": {
             "n": "country",
-            "d": null,
             "a": {},
             "t": "Country!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "State",
-        "C": []
+        "r": "State"
       }
     },
     "String": {
       "S": {
         "n": "String",
         "d": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
-        "s": null,
         "p": "PassThrough"
       }
     },
     "StringQueryOperatorInput": {
       "i": {
         "A": "StringQueryOperatorInput",
-        "s_": null,
         "_p": {
           "eq": {
             "n": "eq",
-            "d": null,
-            "t": "String",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "String"
           },
           "in": {
             "n": "in",
-            "d": null,
-            "t": "[String!]",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "[String!]"
           },
           "ne": {
             "n": "ne",
-            "d": null,
-            "t": "String",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "String"
           },
           "nin": {
             "n": "nin",
-            "d": null,
-            "t": "[String!]",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "[String!]"
           },
           "regex": {
             "n": "regex",
-            "d": null,
-            "t": "String",
-            "D": null,
-            "V": null,
-            "i": false
+            "t": "String"
           }
         },
-        "u": "StringQueryOperatorInput",
-        "o": false
+        "u": "StringQueryOperatorInput"
       }
     },
     "Subdivision": {
       "O": {
         "N": "Subdivision",
-        "D": null,
         "f": {
           "code": {
             "n": "code",
-            "d": null,
             "a": {},
             "t": "ID!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "emoji": {
             "n": "emoji",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "Subdivision",
-        "C": []
+        "r": "Subdivision"
       }
     },
     "__Directive": {
@@ -1096,135 +408,42 @@ expression: "Registry::from(schema)"
         "f": {
           "args": {
             "n": "args",
-            "d": null,
             "a": {
               "includeDeprecated": {
                 "n": "includeDeprecated",
-                "d": null,
                 "t": "Boolean",
-                "D": "false",
-                "V": null,
-                "i": false
+                "D": "false"
               }
             },
             "t": "[__InputValue!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "isRepeatable": {
             "n": "isRepeatable",
-            "d": null,
             "a": {},
             "t": "Boolean!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "locations": {
             "n": "locations",
-            "d": null,
             "a": {},
             "t": "[__DirectiveLocation!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__Directive",
-        "C": []
+        "r": "__Directive"
       }
     },
     "__DirectiveLocation": {
@@ -1234,98 +453,79 @@ expression: "Registry::from(schema)"
         "_e": {
           "ARGUMENT_DEFINITION": {
             "n": "ARGUMENT_DEFINITION",
-            "d": "Location adjacent to an argument definition.",
-            "D": "N"
+            "d": "Location adjacent to an argument definition."
           },
           "ENUM": {
             "n": "ENUM",
-            "d": "Location adjacent to an enum definition.",
-            "D": "N"
+            "d": "Location adjacent to an enum definition."
           },
           "ENUM_VALUE": {
             "n": "ENUM_VALUE",
-            "d": "Location adjacent to an enum value definition.",
-            "D": "N"
+            "d": "Location adjacent to an enum value definition."
           },
           "FIELD": {
             "n": "FIELD",
-            "d": "Location adjacent to a field.",
-            "D": "N"
+            "d": "Location adjacent to a field."
           },
           "FIELD_DEFINITION": {
             "n": "FIELD_DEFINITION",
-            "d": "Location adjacent to a field definition.",
-            "D": "N"
+            "d": "Location adjacent to a field definition."
           },
           "FRAGMENT_DEFINITION": {
             "n": "FRAGMENT_DEFINITION",
-            "d": "Location adjacent to a fragment definition.",
-            "D": "N"
+            "d": "Location adjacent to a fragment definition."
           },
           "FRAGMENT_SPREAD": {
             "n": "FRAGMENT_SPREAD",
-            "d": "Location adjacent to a fragment spread.",
-            "D": "N"
+            "d": "Location adjacent to a fragment spread."
           },
           "INLINE_FRAGMENT": {
             "n": "INLINE_FRAGMENT",
-            "d": "Location adjacent to an inline fragment.",
-            "D": "N"
+            "d": "Location adjacent to an inline fragment."
           },
           "INPUT_FIELD_DEFINITION": {
             "n": "INPUT_FIELD_DEFINITION",
-            "d": "Location adjacent to an input object field definition.",
-            "D": "N"
+            "d": "Location adjacent to an input object field definition."
           },
           "INPUT_OBJECT": {
             "n": "INPUT_OBJECT",
-            "d": "Location adjacent to an input object type definition.",
-            "D": "N"
+            "d": "Location adjacent to an input object type definition."
           },
           "INTERFACE": {
             "n": "INTERFACE",
-            "d": "Location adjacent to an interface definition.",
-            "D": "N"
+            "d": "Location adjacent to an interface definition."
           },
           "MUTATION": {
             "n": "MUTATION",
-            "d": "Location adjacent to a mutation operation.",
-            "D": "N"
+            "d": "Location adjacent to a mutation operation."
           },
           "OBJECT": {
             "n": "OBJECT",
-            "d": "Location adjacent to an object type definition.",
-            "D": "N"
+            "d": "Location adjacent to an object type definition."
           },
           "QUERY": {
             "n": "QUERY",
-            "d": "Location adjacent to a query operation.",
-            "D": "N"
+            "d": "Location adjacent to a query operation."
           },
           "SCALAR": {
             "n": "SCALAR",
-            "d": "Location adjacent to a scalar definition.",
-            "D": "N"
+            "d": "Location adjacent to a scalar definition."
           },
           "SCHEMA": {
             "n": "SCHEMA",
-            "d": "Location adjacent to a schema definition.",
-            "D": "N"
+            "d": "Location adjacent to a schema definition."
           },
           "SUBSCRIPTION": {
             "n": "SUBSCRIPTION",
-            "d": "Location adjacent to a subscription operation.",
-            "D": "N"
+            "d": "Location adjacent to a subscription operation."
           },
           "UNION": {
             "n": "UNION",
-            "d": "Location adjacent to a union definition.",
-            "D": "N"
+            "d": "Location adjacent to a union definition."
           },
           "VARIABLE_DEFINITION": {
             "n": "VARIABLE_DEFINITION",
-            "d": "Location adjacent to a variable definition.",
-            "D": "N"
+            "d": "Location adjacent to a variable definition."
           }
         },
         "_r": "__DirectiveLocation"
@@ -1338,104 +538,30 @@ expression: "Registry::from(schema)"
         "f": {
           "deprecationReason": {
             "n": "deprecationReason",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "isDeprecated": {
             "n": "isDeprecated",
-            "d": null,
             "a": {},
             "t": "Boolean!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__EnumValue",
-        "C": []
+        "r": "__EnumValue"
       }
     },
     "__Field": {
@@ -1445,157 +571,48 @@ expression: "Registry::from(schema)"
         "f": {
           "args": {
             "n": "args",
-            "d": null,
             "a": {
               "includeDeprecated": {
                 "n": "includeDeprecated",
-                "d": null,
                 "t": "Boolean",
-                "D": "false",
-                "V": null,
-                "i": false
+                "D": "false"
               }
             },
             "t": "[__InputValue!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "deprecationReason": {
             "n": "deprecationReason",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "isDeprecated": {
             "n": "isDeprecated",
-            "d": null,
             "a": {},
             "t": "Boolean!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "type": {
             "n": "type",
-            "d": null,
             "a": {},
             "t": "__Type!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__Field",
-        "C": []
+        "r": "__Field"
       }
     },
     "__InputValue": {
@@ -1608,145 +625,40 @@ expression: "Registry::from(schema)"
             "d": "A GraphQL-formatted string representing the default value for this input value.",
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "deprecationReason": {
             "n": "deprecationReason",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "isDeprecated": {
             "n": "isDeprecated",
-            "d": null,
             "a": {},
             "t": "Boolean!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "type": {
             "n": "type",
-            "d": null,
             "a": {},
             "t": "__Type!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__InputValue",
-        "C": []
+        "r": "__InputValue"
       }
     },
     "__Schema": {
@@ -1756,148 +668,47 @@ expression: "Registry::from(schema)"
         "f": {
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "directives": {
             "n": "directives",
             "d": "A list of all directives supported by this server.",
             "a": {},
             "t": "[__Directive!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "mutationType": {
             "n": "mutationType",
             "d": "If this server supports mutation, the type that mutation operations will be rooted at.",
             "a": {},
             "t": "__Type",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "queryType": {
             "n": "queryType",
             "d": "The type that query operations will be rooted at.",
             "a": {},
             "t": "__Type!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "subscriptionType": {
             "n": "subscriptionType",
             "d": "If this server support subscription, the type that subscription operations will be rooted at.",
             "a": {},
             "t": "__Type",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "types": {
             "n": "types",
             "d": "A list of all types supported by this server.",
             "a": {},
             "t": "[__Type!]!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__Schema",
-        "C": []
+        "r": "__Schema"
       }
     },
     "__Type": {
@@ -1907,263 +718,84 @@ expression: "Registry::from(schema)"
         "f": {
           "description": {
             "n": "description",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "enumValues": {
             "n": "enumValues",
-            "d": null,
             "a": {
               "includeDeprecated": {
                 "n": "includeDeprecated",
-                "d": null,
                 "t": "Boolean",
-                "D": "false",
-                "V": null,
-                "i": false
+                "D": "false"
               }
             },
             "t": "[__EnumValue!]",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "fields": {
             "n": "fields",
-            "d": null,
             "a": {
               "includeDeprecated": {
                 "n": "includeDeprecated",
-                "d": null,
                 "t": "Boolean",
-                "D": "false",
-                "V": null,
-                "i": false
+                "D": "false"
               }
             },
             "t": "[__Field!]",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "inputFields": {
             "n": "inputFields",
-            "d": null,
             "a": {
               "includeDeprecated": {
                 "n": "includeDeprecated",
-                "d": null,
                 "t": "Boolean",
-                "D": "false",
-                "V": null,
-                "i": false
+                "D": "false"
               }
             },
             "t": "[__InputValue!]",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "interfaces": {
             "n": "interfaces",
-            "d": null,
             "a": {},
             "t": "[__Type!]",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "kind": {
             "n": "kind",
-            "d": null,
             "a": {},
             "t": "__TypeKind!",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "name": {
             "n": "name",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "ofType": {
             "n": "ofType",
-            "d": null,
             "a": {},
             "t": "__Type",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "possibleTypes": {
             "n": "possibleTypes",
-            "d": null,
             "a": {},
             "t": "[__Type!]",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           },
           "specifiedByURL": {
             "n": "specifiedByURL",
-            "d": null,
             "a": {},
             "t": "String",
-            "D": "N",
-            "c": {
-              "p": true,
-              "m": 0,
-              "s": 0
-            },
-            "e": false,
-            "r": null,
-            "p": null,
-            "E": [],
-            "R": null,
-            "P": null,
-            "r_": null,
-            "T": null,
-            "_r": null,
-            "A": null
+            "D": "N"
           }
         },
-        "c": {
-          "p": true,
-          "m": 0,
-          "s": 0
-        },
-        "e": false,
-        "k": null,
-        "I": false,
-        "i_": false,
-        "r": "__Type",
-        "C": []
+        "r": "__Type"
       }
     },
     "__TypeKind": {
@@ -2173,43 +805,35 @@ expression: "Registry::from(schema)"
         "_e": {
           "ENUM": {
             "n": "ENUM",
-            "d": "Indicates this type is an enum. `enumValues` is a valid field.",
-            "D": "N"
+            "d": "Indicates this type is an enum. `enumValues` is a valid field."
           },
           "INPUT_OBJECT": {
             "n": "INPUT_OBJECT",
-            "d": "Indicates this type is an input object. `inputFields` is a valid field.",
-            "D": "N"
+            "d": "Indicates this type is an input object. `inputFields` is a valid field."
           },
           "INTERFACE": {
             "n": "INTERFACE",
-            "d": "Indicates this type is an interface. `fields`, `interfaces`, and `possibleTypes` are valid fields.",
-            "D": "N"
+            "d": "Indicates this type is an interface. `fields`, `interfaces`, and `possibleTypes` are valid fields."
           },
           "LIST": {
             "n": "LIST",
-            "d": "Indicates this type is a list. `ofType` is a valid field.",
-            "D": "N"
+            "d": "Indicates this type is a list. `ofType` is a valid field."
           },
           "NON_NULL": {
             "n": "NON_NULL",
-            "d": "Indicates this type is a non-null. `ofType` is a valid field.",
-            "D": "N"
+            "d": "Indicates this type is a non-null. `ofType` is a valid field."
           },
           "OBJECT": {
             "n": "OBJECT",
-            "d": "Indicates this type is an object. `fields` and `interfaces` are valid fields.",
-            "D": "N"
+            "d": "Indicates this type is an object. `fields` and `interfaces` are valid fields."
           },
           "SCALAR": {
             "n": "SCALAR",
-            "d": "Indicates this type is a scalar.",
-            "D": "N"
+            "d": "Indicates this type is a scalar."
           },
           "UNION": {
             "n": "UNION",
-            "d": "Indicates this type is a union. `possibleTypes` is a valid field.",
-            "D": "N"
+            "d": "Indicates this type is a union. `possibleTypes` is a valid field."
           }
         },
         "_r": "__TypeKind"
@@ -2231,9 +855,7 @@ expression: "Registry::from(schema)"
           "n": "reason",
           "d": "Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax, as specified by [CommonMark](https://commonmark.org/).",
           "t": "String",
-          "D": "\"No longer supported\"",
-          "V": null,
-          "i": false
+          "D": "\"No longer supported\""
         }
       },
       "is_repeatable": false
@@ -2250,10 +872,7 @@ expression: "Registry::from(schema)"
         "if": {
           "n": "if",
           "d": "Included when true.",
-          "t": "Boolean!",
-          "D": null,
-          "V": null,
-          "i": false
+          "t": "Boolean!"
         }
       },
       "is_repeatable": false
@@ -2270,10 +889,7 @@ expression: "Registry::from(schema)"
         "if": {
           "n": "if",
           "d": "Skipped when true.",
-          "t": "Boolean!",
-          "D": null,
-          "V": null,
-          "i": false
+          "t": "Boolean!"
         }
       },
       "is_repeatable": false
@@ -2288,10 +904,7 @@ expression: "Registry::from(schema)"
         "url": {
           "n": "url",
           "d": "The URL that specifies the behavior of this scalar.",
-          "t": "String!",
-          "D": null,
-          "V": null,
-          "i": false
+          "t": "String!"
         }
       },
       "is_repeatable": false
