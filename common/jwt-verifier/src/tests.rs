@@ -4,11 +4,14 @@ use serde_json::json;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-const JWKS_PATH: &str = "/.well-known/jwks.json";
+const JWKS_PATH: &str = ".well-known/jwks.json";
+
 async fn set_up_oidc_server(issuer: &Url, server: &MockServer) {
+    assert!(issuer.path().ends_with('/'));
+    let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).unwrap();
     let jwks_uri = issuer.join(JWKS_PATH).unwrap();
     Mock::given(method("GET"))
-        .and(path(OIDC_DISCOVERY_PATH))
+        .and(path(discovery_url.path()))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             { "issuer": issuer, "jwks_uri": jwks_uri }
         )))
@@ -73,7 +76,20 @@ async fn set_up_jwks_server(jwks_path: &str, server: &MockServer) {
                   "kid": "71f19172-229c-4de5-9b08-c533fd2cee8a",
                   "e": "AQAB",
                   "n": "yDIIV8slg_uObNLOAuIAe1tchGshxNy2JNWSHQZ22chk39nKT5bUvUeTNRuc9Gv7_A4vzC8GP0HZZUv3roxsycbXmJdplsj8IPtgRZG6E4z3yg_GYc0R91BYjREvQ2Bkl90t9AyeY-dvahLEctW3ZQbw4GpkuwsKOReV2L8zahFf9CsZH8E_uxWWgS7a_ptuYYYX8SywCp-WkMAfsFaFb4FPysv3zSSd-J1czpsUqQdiaf2WXs8WH21WQCIGMW2sxUDce12OtoEAF7ALIrdLrDhQlv9WTE7paoID0yGbv4Ozl4a-fxD40fQxkkdt8PFiqlDS7oxpk66E7DZDCvt7-Irca4psySqESGw2s4QxjIA_BkJth7sJsIs2M7S_bAIE1J2DplXADU5UoWM4NnsV7ehD-LMKqoWMP5LgrTvEbA-cqiBS5IJPgOQ0lRwgqmAF4K_xjB8juLWId3q0ge-Gk70Tr7SHI6x_lRrsPvM9kOJz_hTRw_3tILWIMq2aPglmTXAlqoIcn07us77BVKs5c5cRWAWfqyLye-a6RfMwABB1BaTm0Mth6ZH5AWugQQcdcybadq6Unejkf-T9l0teZ_W5M8dgMhXt0dNopKvmPGWvK5Pu6a2Oi_KLS-gTqCt69sf5w6CdG4-id7Pt9xBti172W_Lk6gmVdMgRWbI4Jjs"
-              }
+              },
+              // Azure AD endpoint from Kiiwa
+            {
+                "kty": "RSA",
+                "use": "sig",
+                "kid": "-KI3Q9nNR7bRofxmeZoXqbHZGew",
+                "x5t": "-KI3Q9nNR7bRofxmeZoXqbHZGew",
+                "n": "tJL6Wr2JUsxLyNezPQh1J6zn6wSoDAhgRYSDkaMuEHy75VikiB8wg25WuR96gdMpookdlRvh7SnRvtjQN9b5m4zJCMpSRcJ5DuXl4mcd7Cg3Zp1C5-JmMq8J7m7OS9HpUQbA1yhtCHqP7XA4UnQI28J-TnGiAa3viPLlq0663Cq6hQw7jYo5yNjdJcV5-FS-xNV7UHR4zAMRruMUHxte1IZJzbJmxjKoEjJwDTtcd6DkI3yrkmYt8GdQmu0YBHTJSZiz-M10CY3LbvLzf-tbBNKQ_gfnGGKF7MvRCmPA_YF_APynrIG7p4vPDRXhpG3_CIt317NyvGoIwiv0At83kQ",
+                "e": "AQAB",
+                "x5c": [
+                    "MIIDBTCCAe2gAwIBAgIQGQ6YG6NleJxJGDRAwAd/ZTANBgkqhkiG9w0BAQsFADAtMSswKQYDVQQDEyJhY2NvdW50cy5hY2Nlc3Njb250cm9sLndpbmRvd3MubmV0MB4XDTIyMTAwMjE4MDY0OVoXDTI3MTAwMjE4MDY0OVowLTErMCkGA1UEAxMiYWNjb3VudHMuYWNjZXNzY29udHJvbC53aW5kb3dzLm5ldDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALSS+lq9iVLMS8jXsz0IdSes5+sEqAwIYEWEg5GjLhB8u+VYpIgfMINuVrkfeoHTKaKJHZUb4e0p0b7Y0DfW+ZuMyQjKUkXCeQ7l5eJnHewoN2adQufiZjKvCe5uzkvR6VEGwNcobQh6j+1wOFJ0CNvCfk5xogGt74jy5atOutwquoUMO42KOcjY3SXFefhUvsTVe1B0eMwDEa7jFB8bXtSGSc2yZsYyqBIycA07XHeg5CN8q5JmLfBnUJrtGAR0yUmYs/jNdAmNy27y83/rWwTSkP4H5xhihezL0QpjwP2BfwD8p6yBu6eLzw0V4aRt/wiLd9ezcrxqCMIr9ALfN5ECAwEAAaMhMB8wHQYDVR0OBBYEFJcSH+6Eaqucndn9DDu7Pym7OA8rMA0GCSqGSIb3DQEBCwUAA4IBAQADKkY0PIyslgWGmRDKpp/5PqzzM9+TNDhXzk6pw8aESWoLPJo90RgTJVf8uIj3YSic89m4ftZdmGFXwHcFC91aFe3PiDgCiteDkeH8KrrpZSve1pcM4SNjxwwmIKlJdrbcaJfWRsSoGFjzbFgOecISiVaJ9ZWpb89/+BeAz1Zpmu8DSyY22dG/K6ZDx5qNFg8pehdOUYY24oMamd4J2u2lUgkCKGBZMQgBZFwk+q7H86B/byGuTDEizLjGPTY/sMms1FAX55xBydxrADAer/pKrOF1v7Dq9C1Z9QVcm5D9G4DcenyWUdMyK43NXbVQLPxLOng51KO9icp2j4U7pwHP"
+                ],
+                "issuer": "https://login.microsoftonline.com/40a214bf-da79-471d-8daa-1a6db9ce8e22/v2.0"
+            }
           ]
       }
   )))
@@ -655,4 +671,84 @@ async fn jwks_from_hanko_should_verify() {
             groups: HashSet::default(),
         }
     );
+}
+
+/*
+{
+  "header": {
+    "typ": "JWT",
+    "alg": "RS256",
+    "kid": "-KI3Q9nNR7bRofxmeZoXqbHZGew"
+  },
+  "payload": {
+    "aud": "61142eb9-9373-437f-a505-a983dbbffc96",
+    "iss": "https://login.microsoftonline.com/40a214bf-da79-471d-8daa-1a6db9ce8e22/v2.0",
+    "iat": 1683197158,
+    "nbf": 1683197158,
+    "exp": 1683201058,
+    "aio": "AVQAq/8TAAAAVJ5ENTXzJWQ967edz4E21oESCS83p0ipuRHXdk/J3lrOXVbd5DjNd+dejephxP5uIkxyo7yRs1yg49W76ChTbH4JLbFMVVX+l6Q7WGUAgzg=",
+    "name": "Nathan Lindsay",
+    "oid": "525d2cc9-5105-4e2a-b697-ac95c29cefaf",
+    "preferred_username": "nathan@taurean.ltd",
+    "rh": "0.ATEAvxSiQHnaHUeNqhptuc6OIrkuFGFzk39DpQWpg9u__JYxANk.",
+    "sub": "o80Gly744fp1k6mTjuCrqyLaZ_yoed3SSqleqBKjTR0",
+    "tid": "40a214bf-da79-471d-8daa-1a6db9ce8e22",
+    "uti": "Wp1L6u1_M0iaL4tTgxItAA",
+    "ver": "2.0"
+  }
+}
+*/
+const AZURE_JWT: &str = "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiI2MTE0MmViOS05MzczLTQzN2YtYTUwNS1hOTgzZGJiZmZjOTYiLCJpc3MiOiJodHRwczovL2xvZ2luLm1pY3Jvc29mdG9ubGluZS5jb20vNDBhMjE0YmYtZGE3OS00NzFkLThkYWEtMWE2ZGI5Y2U4ZTIyL3YyLjAiLCJpYXQiOjE2ODMxOTcxNTgsIm5iZiI6MTY4MzE5NzE1OCwiZXhwIjoxNjgzMjAxMDU4LCJhaW8iOiJBVlFBcS84VEFBQUFWSjVFTlRYekpXUTk2N2VkejRFMjFvRVNDUzgzcDBpcHVSSFhkay9KM2xyT1hWYmQ1RGpOZCtkZWplcGh4UDV1SWt4eW83eVJzMXlnNDlXNzZDaFRiSDRKTGJGTVZWWCtsNlE3V0dVQWd6Zz0iLCJuYW1lIjoiTmF0aGFuIExpbmRzYXkiLCJvaWQiOiI1MjVkMmNjOS01MTA1LTRlMmEtYjY5Ny1hYzk1YzI5Y2VmYWYiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJuYXRoYW5AdGF1cmVhbi5sdGQiLCJyaCI6IjAuQVRFQXZ4U2lRSG5hSFVlTnFocHR1YzZPSXJrdUZHRnprMzlEcFFXcGc5dV9fSll4QU5rLiIsInN1YiI6Im84MEdseTc0NGZwMWs2bVRqdUNycXlMYVpfeW9lZDNTU3FsZXFCS2pUUjAiLCJ0aWQiOiI0MGEyMTRiZi1kYTc5LTQ3MWQtOGRhYS0xYTZkYjljZThlMjIiLCJ1dGkiOiJXcDFMNnUxX00waWFMNHRUZ3hJdEFBIiwidmVyIjoiMi4wIn0.h-YikYKJp3cafbbPRKJozMUCMkrSCeXI5GszhpX2xZ0favkCa1zl8AChEEwnC4pyQqtaUs76GFsE1r7A1aAmc7lhfPOODG7-r4__lnJNSHoveh_zFAkM6ljve3HOrCm2-HpLGF13G3N_ZsL3gniNcH2QCs3pAkvVqemh4A99MABMBWZkjHh63DasSqgFQX_ooVqKWIvfksKE6T0vDKaezg3nM4tZK1rxymmal9wz6ydxvujFeO7EWWEWFgshaShH_SWKk4zeVo_aIwiLkuggQm_Ex3M_QISSmtrW9o4fpFe3lWJvmCYkBnBmkHlpOVorYYDt99IUCkX8U-k-UhEgVg";
+
+#[tokio::test]
+async fn jwt_from_azure_ad_should_verify() {
+    let client = {
+        let leeway = Duration::seconds(5);
+        let clock_fn = || DateTime::<Utc>::from_utc(NaiveDateTime::from_timestamp_opt(1_683_197_158, 0).unwrap(), Utc);
+        Client {
+            time_opts: TimeOptions::new(leeway, clock_fn),
+            ..Default::default()
+        }
+    };
+    let server = MockServer::start().await;
+    let issuer_url: Url = server.uri().parse::<url::Url>().unwrap().join("some/path/").unwrap();
+    let expected_issuer = "https://login.microsoftonline.com/40a214bf-da79-471d-8daa-1a6db9ce8e22/v2.0";
+    let actual = {
+        set_up_oidc_server(&issuer_url, &server).await;
+        client
+            .verify_rs_token_using_oidc_discovery(AZURE_JWT, &issuer_url, expected_issuer)
+            .await
+            .unwrap()
+    };
+    assert_eq!(
+        actual,
+        VerifiedToken {
+            identity: Some("o80Gly744fp1k6mTjuCrqyLaZ_yoed3SSqleqBKjTR0".to_string()),
+            groups: HashSet::default(),
+        }
+    );
+}
+
+#[tokio::test]
+async fn oidc_discovery_should_be_available() {
+    let server = MockServer::start().await;
+    let server_base_url: Url = server.uri().parse().unwrap();
+    assert_eq!(server_base_url.path(), "/");
+    let issuer_url = server_base_url.join("some/path/").unwrap();
+    let expected_discovery_url = server_base_url
+        .join("some/path/.well-known/openid-configuration")
+        .unwrap();
+
+    set_up_oidc_server(&issuer_url, &server).await;
+    // check that the discovery URL is at the expected path.
+    let http_client = reqwest::Client::new();
+    let response = http_client.get(expected_discovery_url).send().await.unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let response: serde_json::Value = response.json().await.unwrap();
+    let expected = serde_json::Value::String(issuer_url.to_string());
+    assert_eq!(response.get("issuer").unwrap(), &expected);
+    // check that the jwks URL is accessible at the expected path.
+    let expected_jwks_url = server_base_url.join("some/path/.well-known/jwks.json").unwrap();
+    let response = http_client.get(expected_jwks_url).send().await.unwrap();
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
 }

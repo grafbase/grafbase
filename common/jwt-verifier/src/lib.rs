@@ -2,6 +2,7 @@ use futures_util::TryFutureExt;
 use json_dotpath::DotPaths;
 use jwt_compact::alg::{RsaPublicKey, StrongAlg, StrongKey};
 use jwt_compact::{alg::Rsa, jwk::JsonWebKey, prelude::*, TimeOptions};
+use log::warn;
 use secrecy::SecretString;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -16,7 +17,7 @@ mod tests;
 
 pub use error::VerificationError;
 
-const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
+const OIDC_DISCOVERY_PATH: &str = ".well-known/openid-configuration";
 
 // JWKS are unique with unique key IDs (kid). We could cache them for a much
 // longer time, but we also need to consider that an IdP's private keys might
@@ -85,6 +86,15 @@ pub struct VerifiedToken {
 }
 
 impl<'a> Client<'a> {
+    fn joinable_url(&self, url: &url::Url) -> url::Url {
+        if url.to_string().ends_with('/') {
+            url.clone()
+        } else {
+            log::debug!(self.trace_id, "Appending trailing slash to {url}");
+            format!("{url}/").parse().expect("url was already parsed")
+        }
+    }
+
     /// Verify a JSON Web Token signed with RSA + SHA (RS256, RS384, or RS512)
     /// using OIDC discovery to retrieve the public key.
     pub async fn verify_rs_token_using_oidc_discovery<S: AsRef<str>>(
@@ -97,19 +107,30 @@ impl<'a> Client<'a> {
             log::warn!(self.trace_id, "Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
+        log::trace!(
+            self.trace_id,
+            "Untrusted token algorithm {}, header: {:?}",
+            token.algorithm(),
+            token.header()
+        );
 
         let rsa = Self::get_rsa_algorithm(&token)?;
 
-        let kid = token.header().key_id.as_ref().ok_or({
+        let Some(kid) = token.header().key_id.as_ref() else {
             log::warn!(self.trace_id, "Rejecting JWT, kid is not present");
-            VerificationError::InvalidToken
-        })?;
+            return Err(VerificationError::InvalidToken);
+        };
+
         // Use JWK from cache if available
-        let discovery_url = issuer_base_url.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
+        let discovery_url = self
+            .joinable_url(issuer_base_url)
+            .join(OIDC_DISCOVERY_PATH)
+            .expect("cannot fail");
         let caching_key = CachingKey::Oidc {
             discovery_url: &discovery_url,
             kid,
         };
+
         let cached_jwk = self
             .get_jwk_from_cache(&caching_key)
             .inspect_err(|err| log::error!(self.trace_id, "Cache look-up error: {err:?}"))
@@ -121,6 +142,7 @@ impl<'a> Client<'a> {
             log::debug!(self.trace_id, "Found JWK {kid} in cache");
             cached_jwk
         } else {
+            log::trace!(self.trace_id, "Getting oidc config from {discovery_url:?}");
             // Get JWKS endpoint from OIDC config
             let oidc_config: OidcConfig = self
                 .http_client
@@ -138,6 +160,10 @@ impl<'a> Client<'a> {
             // assume another identity
             // FIXME: GB-3298 compare with expected_issuer
             if oidc_config.issuer != *issuer_base_url {
+                warn!(
+                    self.trace_id,
+                    "Issuer from oidc config {} does not match the expected {expected_issuer}", oidc_config.issuer
+                );
                 return Err(VerificationError::IssuerClaimMismatch);
             }
             // Get JWKS
@@ -189,6 +215,12 @@ impl<'a> Client<'a> {
             log::warn!(self.trace_id, "Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
+        log::trace!(
+            self.trace_id,
+            "Untrusted token algorithm {}, header: {:?}",
+            token.algorithm(),
+            token.header()
+        );
 
         let rsa = Self::get_rsa_algorithm(&token)?;
 
@@ -261,6 +293,12 @@ impl<'a> Client<'a> {
             log::warn!(self.trace_id, "Cannot parse JWT - {err}");
             VerificationError::InvalidToken
         })?;
+        log::trace!(
+            self.trace_id,
+            "Untrusted token algorithm {}, header: {:?}",
+            token.algorithm(),
+            token.header()
+        );
 
         let token = match token.algorithm() {
             "HS256" => Hs256
