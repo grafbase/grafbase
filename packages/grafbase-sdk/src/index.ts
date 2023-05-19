@@ -1,4 +1,4 @@
-import { ListDefinition } from './field/list'
+import { ListDefinition, RelationListDefinition } from './field/list'
 import {
   DefaultDefinition,
   LengthLimitedStringDefinition,
@@ -18,6 +18,7 @@ export type FieldShape =
   | ScalarDefinition
   | RelationDefinition
   | ListDefinition
+  | RelationListDefinition
   | SearchDefinition
   | ReferenceDefinition
   | UniqueDefinition

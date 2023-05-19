@@ -1,5 +1,5 @@
 import { RelationRef } from '.'
-import { ListDefinition } from './field/list'
+import { ListDefinition, RelationListDefinition } from './field/list'
 
 export class RelationDefinition {
   relationName?: string
@@ -17,8 +17,8 @@ export class RelationDefinition {
     return this
   }
 
-  public list(): ListDefinition {
-    return new ListDefinition(this)
+  public list(): RelationListDefinition {
+    return new RelationListDefinition(this)
   }
 
   public name(name: string): RelationDefinition {

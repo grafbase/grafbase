@@ -189,4 +189,26 @@ describe('Relations generator', () => {
       }"
     `)
   })
+
+  it('generates named 1:m relations', () => {
+    const address = g.model('Address', {
+      line1: g.string()
+    })
+
+    g.model('Order', {
+      billingAddresses: g.relation(address).name('billing').list(),
+      shippingAddresses: g.relation(address).name('shipping').list()
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type Address @model {
+        line1: String!
+      }
+
+      type Order @model {
+        billingAddresses: [Address!]! @relation(name: billing)
+        shippingAddresses: [Address!]! @relation(name: shipping)
+      }"
+    `)
+  })
 })
