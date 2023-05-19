@@ -68,7 +68,7 @@ mod tests {
 
     #[test]
     fn check_url_mailto_valid() {
-        let value = serde_json::Value::String("mailto:anthony@grafbase.com".to_string());
+        let value = serde_json::Value::String("mailto:anthony".to_string());
 
         let const_value = ConstValue::from_json(value).unwrap();
 
