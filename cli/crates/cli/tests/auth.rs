@@ -209,10 +209,10 @@ async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
         match path {
             None => issuer_url,
             Some(path) => {
-                let path = if !path.ends_with("/") {
-                    format!("{path}/")
-                } else {
+                let path = if path.ends_with('/') {
                     path.to_string()
+                } else {
+                    format!("{path}/")
                 };
                 issuer_url.join(&path).unwrap()
             }
