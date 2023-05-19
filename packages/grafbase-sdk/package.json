@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/sdk",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "The Grafbase SDK",
   "repository": {
     "type": "git",
