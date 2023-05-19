@@ -144,6 +144,7 @@ impl<'a> MetaTypeName<'a> {
 }
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, bool)]
 #[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaInputValue {
@@ -159,8 +160,6 @@ pub struct MetaInputValue {
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub validators: Option<Vec<DynValidator>>,
     pub is_secret: bool,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rename: Option<String>,
 }
 
@@ -228,27 +227,34 @@ impl Deprecation {
 }
 
 #[derive(
-    Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
+    Clone,
+    Debug,
+    derivative::Derivative,
+    serde::Deserialize,
+    serde::Serialize,
+    Hash,
+    PartialEq,
+    Eq,
+    Default,
 )]
 pub enum ConstraintType {
+    #[default]
     Unique,
 }
 
 #[derive(
     Clone, Debug, derivative::Derivative, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq,
 )]
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, ConstraintType)]
 pub struct Constraint {
     // This is an option for backwards compatability reasons.
     // Constraints didn't always have a name.
     // Can possibly make it required in the future.
     name: Option<String>,
-
-    #[serde(default)]
     fields: Vec<String>,
-
     // This is also here for backwards compatability
     field: String,
-
     pub r#type: ConstraintType,
 }
 
@@ -289,6 +295,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
 }
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl)]
 #[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -661,6 +668,7 @@ impl MetaField {
 }
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Deprecation)]
 #[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaEnumValue {
@@ -670,10 +678,8 @@ pub struct MetaEnumValue {
     #[serde(skip)]
     #[derivative(Debug = "ignore", Hash = "ignore", PartialEq = "ignore")]
     pub visible: Option<MetaVisibleFn>,
-
     // The value that will be used for this MetaEnumValue when sent to a
     // non-GraphQL downstream API
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub value: Option<String>,
 }
 
@@ -750,6 +756,7 @@ impl MetaType {
 
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::skip_serializing_defaults(Option, Vec, bool, CacheControl, IndexMap)]
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
@@ -802,7 +809,6 @@ pub enum MetaType {
         #[serde(skip)]
         visible: Option<MetaVisibleFn>,
         rust_typename: String,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
         discriminators: Option<Vec<(String, UnionDiscriminator)>>,
     },
     Enum {

@@ -38,6 +38,7 @@ pub mod query;
 
 /// Resolver declarative struct to assign a Resolver for a Field.
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 pub struct Resolver {
     /// Unique id to identify Resolver.
     pub id: Option<String>,
