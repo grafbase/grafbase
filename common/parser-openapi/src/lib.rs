@@ -189,6 +189,18 @@ mod tests {
     }
 
     #[test]
+    fn test_stripe_output_json() {
+        let metadata = ApiMetadata {
+            url: None,
+            ..metadata("stripe")
+        };
+        let json =
+            serde_json::to_string(&build_registry("test_data/stripe.openapi.json", Format::Json, metadata).unwrap())
+                .unwrap();
+        insta::assert_snapshot!(json);
+    }
+
+    #[test]
     fn test_petstore_output() {
         let registry = build_registry("test_data/petstore.openapi.json", Format::Json, metadata("petstore")).unwrap();
 

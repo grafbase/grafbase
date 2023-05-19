@@ -13,6 +13,8 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 #[non_exhaustive]
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub enum ContextDataResolver {
     /// Key based Resolver for ResolverContext

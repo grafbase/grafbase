@@ -143,6 +143,7 @@ impl<'a> MetaTypeName<'a> {
     }
 }
 
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[derive(derivative::Derivative, Clone, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaInputValue {
@@ -200,6 +201,8 @@ pub enum ComplexityType {
     Fn(ComputeComplexityFn),
 }
 
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq, Default)]
 pub enum Deprecation {
     #[default]
@@ -285,6 +288,7 @@ impl From<Constraint> for dynamodb::export::graph_entities::ConstraintDefinition
     }
 }
 
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[derive(Clone, Default, derivative::Derivative, serde::Deserialize, serde::Serialize)]
 #[derivative(Debug)]
 pub struct MetaField {
@@ -656,6 +660,7 @@ impl MetaField {
     }
 }
 
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
 #[derive(Clone, derivative::Derivative, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug, Hash, PartialEq)]
 pub struct MetaEnumValue {
@@ -743,6 +748,8 @@ impl MetaType {
     }
 }
 
+#[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
+#[serde_with::minify_variant_names(serialize = "minified", deserialize = "minified")]
 #[derive(derivative::Derivative, Clone, serde::Serialize, serde::Deserialize)]
 #[derivative(Debug)]
 pub enum MetaType {
