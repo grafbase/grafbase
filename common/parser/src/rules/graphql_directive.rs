@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use dynaql_parser::types::SchemaDefinition;
 use url::Url;
 
@@ -16,15 +14,22 @@ pub struct GraphqlDirective {
     pub name: String,
     pub url: Url,
     #[serde(default)]
-    pub headers: Vec<Header>,
+    headers: Vec<Header>,
+    #[serde(default)]
+    introspection_headers: Vec<Header>,
 }
 
 impl GraphqlDirective {
-    pub fn headers(&self) -> HashMap<String, String> {
+    pub fn headers(&self) -> impl ExactSizeIterator<Item = (&str, &str)> {
         self.headers
             .iter()
-            .map(|header| (header.name.clone(), header.value.clone()))
-            .collect()
+            .map(|header| (header.name.as_str(), header.value.as_str()))
+    }
+
+    pub fn introspection_headers(&self) -> impl ExactSizeIterator<Item = (&str, &str)> {
+        self.introspection_headers
+            .iter()
+            .map(|header| (header.name.as_str(), header.value.as_str()))
     }
 }
 
@@ -48,12 +53,17 @@ impl Directive for GraphqlDirective {
           """
           The URL of the GraphQL source.
           """
-          url: Url!,
+          url: Url!
 
           """
           Optional headers to embed in every HTTP request.
           """
           headers: [GraphqlHeader!]
+
+          """
+          Optional headers to embed in an introspection HTTP request.
+          """
+          introspectionHeaders: [GraphqlHeader!]
         ) on SCHEMA
 
         input GraphqlHeader {
@@ -96,14 +106,20 @@ mod tests {
 
     #[test]
     fn parsing_graphql_directive() {
-        let variables = HashMap::from([("MY_API_KEY".to_owned(), "i_am_a_key".to_owned())]);
+        let variables = HashMap::from([
+            ("MY_API_KEY".to_owned(), "i_am_a_key".to_owned()),
+            ("ADMIN_USER_ID".to_owned(), "root".to_owned()),
+        ]);
+
         let connector_parsers = MockConnectorParsers::default();
+
         let schema = r#"
             extend schema
               @graphql(
                 name: "countries",
                 url: "https://countries.trevorblades.com",
-                headers: [{ name: "authorization", value: "Bearer {{env.MY_API_KEY}}"}],
+                headers: [{ name: "authorization", value: "Bearer {{ env.MY_API_KEY }}"}],
+                introspectionHeaders: [{ name: "x-user-id", value: "{{ env.ADMIN_USER_ID }}"}]
               )
             "#;
 
@@ -132,6 +148,12 @@ mod tests {
                     Header {
                         name: "authorization",
                         value: "Bearer i_am_a_key",
+                    },
+                ],
+                introspection_headers: [
+                    Header {
+                        name: "x-user-id",
+                        value: "root",
                     },
                 ],
             },
@@ -180,6 +202,20 @@ mod tests {
               )
             "#,
             "[5:26] invalid type: integer `12`, expected a string"
+        );
+    }
+
+    #[test]
+    fn invalid_introspection_header_name_type() {
+        assert_validation_error!(
+            r#"
+            extend schema
+              @graphql(
+                url: "https://countries.trevorblades.com",
+                introspectionHeaders: [{ name: 12, value: "..."}],
+              )
+            "#,
+            "[5:39] invalid type: integer `12`, expected a string"
         );
     }
 }

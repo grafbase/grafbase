@@ -12,8 +12,6 @@
 #![deny(rustdoc::all)]
 #![allow(clippy::implicit_hasher)]
 
-use std::collections::HashMap;
-
 use cynic::{
     http::{CynicReqwestError, ReqwestExt},
     GraphQlError, QueryBuilder,
@@ -90,14 +88,18 @@ static BUILTIN_SCALARS: &[&str] = &["Boolean", "Float", "ID", "Int", "String"];
 /// See [`Error`] for more details.
 pub async fn parse_schema(
     client: reqwest::Client,
-    namespace: String,
-    url: Url,
-    headers: HashMap<String, String>,
+    namespace: &str,
+    url: &Url,
+    headers: impl ExactSizeIterator<Item = (&str, &str)>,
+    introspection_headers: impl ExactSizeIterator<Item = (&str, &str)>,
 ) -> Result<Registry, Vec<Error>> {
-    let result = client
-        .post(url.clone())
-        .header(USER_AGENT, "Grafbase")
-        .headers((&headers).try_into().map_err(|err: http::Error| vec![err.into()])?)
+    let mut builder = client.post(url.clone()).header(USER_AGENT, "Grafbase");
+
+    for (key, value) in introspection_headers {
+        builder = builder.header(key, value);
+    }
+
+    let result = builder
         .run_graphql(IntrospectionQuery::build(()))
         .await
         .map_err(|err| vec![err.into()])?;
@@ -111,15 +113,17 @@ pub async fn parse_schema(
     };
 
     let schema = data.into_schema().map_err(|err| vec![err.into()])?;
+
     let parser = Parser {
-        prefix: namespace.clone(),
-        url,
+        prefix: namespace.to_string(),
+        url: url.clone(),
     };
 
     let mut registry = parser.into_registry(schema);
-    registry
-        .http_headers
-        .insert(namespace, headers.into_iter().map(|(k, v)| (k, v)).collect());
+    registry.http_headers.insert(
+        namespace.to_string(),
+        headers.map(|(k, v)| (k.to_string(), v.to_string())).collect(),
+    );
 
     Ok(registry)
 }
@@ -384,17 +388,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_counries_output() {
-        insta::assert_snapshot!(parse_schema(
+        let introspection_headers = &[
+            ("x-client-id", "5ed1175bad06853b3aa1e492"),
+            ("x-app-id", "623996f3c35130073829b252"),
+        ];
+
+        let result = parse_schema(
             reqwest::Client::new(),
-            "FooBar".to_string(),
-            Url::parse("https://api.chargetrip.io/graphql").unwrap(),
-            HashMap::from([
-                ("x-client-id".to_owned(), "5ed1175bad06853b3aa1e492".to_owned()),
-                ("x-app-id".to_owned(), "623996f3c35130073829b252".to_owned())
-            ])
+            "FooBar",
+            &Url::parse("https://api.chargetrip.io/graphql").unwrap(),
+            std::iter::empty(),
+            introspection_headers.iter().copied(),
         )
         .await
         .unwrap()
-        .export_sdl(false));
+        .export_sdl(false);
+
+        insta::assert_snapshot!(result);
     }
 }
