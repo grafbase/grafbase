@@ -1,16 +1,17 @@
-import { Header, PartialHeaderGenerator, PartialHeaders } from './header'
+import { Header, Headers, HeaderGenerator } from './header'
 
 export interface GraphQLParams {
   url: string
-  headers?: PartialHeaderGenerator
+  headers?: HeaderGenerator
 }
 
 export class PartialGraphQLAPI {
   apiUrl: string
   headers: Header[]
+  introspectionHeaders: Header[]
 
   constructor(params: GraphQLParams) {
-    const headers = new PartialHeaders()
+    const headers = new Headers()
 
     if (params.headers) {
       params.headers(headers)
@@ -18,10 +19,16 @@ export class PartialGraphQLAPI {
 
     this.apiUrl = params.url
     this.headers = headers.headers
+    this.introspectionHeaders = headers.introspectionHeaders
   }
 
   finalize(namespace: string): GraphQLAPI {
-    return new GraphQLAPI(namespace, this.apiUrl, this.headers)
+    return new GraphQLAPI(
+      namespace,
+      this.apiUrl,
+      this.headers,
+      this.introspectionHeaders
+    )
   }
 }
 
@@ -29,11 +36,18 @@ export class GraphQLAPI {
   namespace: string
   url: string
   headers: Header[]
+  introspectionHeaders: Header[]
 
-  constructor(namespace: string, url: string, headers: Header[]) {
+  constructor(
+    namespace: string,
+    url: string,
+    headers: Header[],
+    introspectionHeaders: Header[]
+  ) {
     this.namespace = namespace
     this.url = url
     this.headers = headers
+    this.introspectionHeaders = introspectionHeaders
   }
 
   public toString(): string {
@@ -44,8 +58,16 @@ export class GraphQLAPI {
     var headers = this.headers.map((header) => `      ${header}`).join('\n')
     headers = headers ? `    headers: [\n${headers}\n    ]\n` : ''
 
+    var introspectionHeaders = this.introspectionHeaders
+      .map((header) => `      ${header}`)
+      .join('\n')
+
+    introspectionHeaders = headers
+      ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`
+      : ''
+
     const footer = '  )'
 
-    return `${header}${namespace}${url}${headers}${footer}`
+    return `${header}${namespace}${url}${headers}${introspectionHeaders}${footer}`
   }
 }
