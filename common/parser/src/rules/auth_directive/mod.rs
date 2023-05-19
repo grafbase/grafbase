@@ -704,4 +704,24 @@ query: Query
             ..Default::default()
         }
     );
+
+    parse_test!(
+        oidc_provider_with_path,
+        r#"
+      schema @auth(
+        providers: [ { type: oidc, issuer: "https://my.idp.com/some/path/" } ]
+      ){
+        query: Query
+      }
+      "#,
+        dynaql::AuthConfig {
+            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
+                issuer: "https://my.idp.com/some/path/".to_string(),
+                issuer_base_url: "https://my.idp.com/some/path/".parse().unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+            })),
+            ..Default::default()
+        }
+    );
 }
