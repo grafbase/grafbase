@@ -30,10 +30,10 @@ export const Nav = () => {
         />
         <IconButton
           action={() => {
-            setVisibleTool({ visibleTool: 'SchemaDocumentationViewer' })
+            setVisibleTool({ visibleTool: 'SchemaDocumentation' })
           }}
           iconName="Document"
-          isActive={visibleTool === 'SchemaDocumentationViewer'}
+          isActive={visibleTool === 'SchemaDocumentation'}
           title="View Schema Documentation"
           size={'large'}
         />

@@ -1,6 +1,6 @@
 export type AvailableTools =
   | 'Pathfinder'
-  | 'SchemaDocumentationViewer'
+  | 'SchemaDocumentation'
   | 'SchemaDefinition'
 
 type Theme = 'light' | 'dark'

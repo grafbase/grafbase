@@ -1,7 +1,6 @@
-import { Pathfinder } from 'pathfinder'
-import { useSchema } from 'pathfinder/src/stores'
-import { SchemaReference } from 'schema-documentation-viewer'
-import { SchemaDefinition, darkTheme, theme } from 'ui'
+import { Pathfinder, SchemaInitializer } from 'pathfinder'
+import { SchemaDefinition, SchemaDocumentation } from 'pathfinder'
+import { darkTheme, theme } from 'ui'
 
 import { useCliApp } from '../../stores'
 import { Nav } from '../nav'
@@ -25,53 +24,44 @@ export const App = () => {
   const visibleTool = useCliApp(state => state.visibleTool)
   const appTheme = useCliApp(state => state.theme)
 
-  const schema = useSchema(state => state.schema)
-
   return (
     <StyledApp
       className={appTheme === 'dark' ? darkTheme.className : theme.className}
     >
       <Nav />
-      <StyledToolsContainer>
-        <StyledToolDisplayWrapper isVisible={visibleTool === 'Pathfinder'}>
-          <Pathfinder
-            fetcherOptions={{
-              endpoint,
-              http: {
-                headers: {
-                  'x-api-key': apiKey
-                }
-              },
-              sse: {
-                protocol: 'EVENT_SOURCE'
-              }
-            }}
-            withPolling={true}
-            withVisualOperationBuilder={true}
-          />
-        </StyledToolDisplayWrapper>
-        <StyledToolDisplayWrapper
-          isVisible={visibleTool === 'SchemaDocumentationViewer'}
-        >
-          {schema && !('error' in schema) && (
-            <SchemaReference
-              schemaOrConnectionDetails={
-                schema || {
-                  endpoint,
-                  headers: { 'x-api-key': apiKey }
-                }
-              }
-            />
-          )}
-        </StyledToolDisplayWrapper>
-        <StyledToolDisplayWrapper
-          isVisible={visibleTool === 'SchemaDefinition'}
-        >
-          {schema && !('error' in schema) && (
-            <SchemaDefinition schema={schema} />
-          )}
-        </StyledToolDisplayWrapper>
-      </StyledToolsContainer>
+      <SchemaInitializer
+        fetcherOptions={{
+          endpoint,
+          http: {
+            headers: {
+              'x-api-key': apiKey
+            }
+          },
+          sse: {
+            protocol: 'EVENT_SOURCE'
+          }
+        }}
+        toRender={
+          <StyledToolsContainer>
+            <StyledToolDisplayWrapper isVisible={visibleTool === 'Pathfinder'}>
+              <Pathfinder
+                withPolling={true}
+                withVisualOperationBuilder={true}
+              />
+            </StyledToolDisplayWrapper>
+            <StyledToolDisplayWrapper
+              isVisible={visibleTool === 'SchemaDocumentation'}
+            >
+              <SchemaDocumentation />
+            </StyledToolDisplayWrapper>
+            <StyledToolDisplayWrapper
+              isVisible={visibleTool === 'SchemaDefinition'}
+            >
+              <SchemaDefinition />
+            </StyledToolDisplayWrapper>
+          </StyledToolsContainer>
+        }
+      />
     </StyledApp>
   )
 }
