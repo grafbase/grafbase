@@ -26,6 +26,7 @@ impl Display for RegionSelection {
 }
 
 #[allow(clippy::module_name_repetitions)]
+#[derive(Debug)]
 pub struct CreateArguments<'a> {
     pub account_slug: &'a str,
     pub name: &'a str,
