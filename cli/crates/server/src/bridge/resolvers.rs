@@ -39,17 +39,22 @@ pub async fn invoke_resolver(
 ) -> Result<serde_json::Value, ApiError> {
     use futures_util::TryFutureExt;
     trace!("resolver invocation of '{resolver_name}'");
-    let ResolverResponse { log_entries, rest } = reqwest::Client::new()
+    let json_string = reqwest::Client::new()
         .post(format!("http://127.0.0.1:{port}/resolver/{resolver_name}/invoke"))
         .json(&payload)
         .send()
         .inspect_err(|err| error!("resolver worker error: {err:?}"))
         .await
         .map_err(|_| ApiError::ServerError)?
-        .json()
+        .text()
         .inspect_err(|err| error!("resolver worker error: {err:?}"))
         .await
         .map_err(|_| ApiError::ServerError)?;
+
+    let ResolverResponse { log_entries, rest } = serde_json::from_str(&json_string).map_err(|err| {
+        error!("deserialisation from '{json_string}' failed: {err:?}");
+        ApiError::ServerError
+    })?;
 
     for ResolverMessage { level, message } in log_entries {
         bridge_sender
