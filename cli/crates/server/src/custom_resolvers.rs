@@ -354,6 +354,43 @@ async fn extract_resolver_wrapper_worker_contents() -> Result<String, ServerErro
     .map_err(ServerError::SchemaParserResultRead)
 }
 
+pub async fn install_wrangler(environment: &Environment, tracing: bool) -> Result<(), ServerError> {
+    let lock_file_path = environment.user_dot_grafbase_path.join(".wrangler.install.lock");
+    let mut lock_file = tokio::task::spawn_blocking(move || {
+        let mut file = fslock::LockFile::open(&lock_file_path)?;
+        file.lock()?;
+        Ok(file)
+    })
+    .await?
+    .map_err(ServerError::Lock)?;
+
+    info!("Installing wrangler…");
+    tokio::fs::create_dir_all(&environment.wrangler_installation_path)
+        .await
+        .map_err(|_| ServerError::CreateDir(environment.wrangler_installation_path.clone()))?;
+    // Install wrangler once and for all.
+    run_command(
+        JavaScriptPackageManager::Npm,
+        &["add", "--save-dev", "wrangler@2"],
+        environment.wrangler_installation_path.to_str().expect("must be valid"),
+        tracing,
+        &[],
+    )
+    .await?;
+    run_command(
+        JavaScriptPackageManager::Npm,
+        &["install"],
+        environment.wrangler_installation_path.to_str().expect("must be valid"),
+        tracing,
+        &[],
+    )
+    .await?;
+
+    tokio::task::spawn_blocking(move || lock_file.unlock());
+
+    Ok(())
+}
+
 pub async fn build_resolvers(
     sender: &Sender<ServerMessage>,
     environment: &Environment,
@@ -371,29 +408,7 @@ pub async fn build_resolvers(
     }
 
     // Install wrangler once and for all.
-    {
-        info!("Installing wrangler…");
-        tokio::fs::create_dir_all(&environment.wrangler_installation_path)
-            .await
-            .map_err(|_| ServerError::CreateDir(environment.wrangler_installation_path.clone()))?;
-        // Install wrangler once and for all.
-        run_command(
-            JavaScriptPackageManager::Npm,
-            &["add", "--save-dev", "wrangler@2"],
-            environment.wrangler_installation_path.to_str().expect("must be valid"),
-            tracing,
-            &[],
-        )
-        .await?;
-        run_command(
-            JavaScriptPackageManager::Npm,
-            &["install"],
-            environment.wrangler_installation_path.to_str().expect("must be valid"),
-            tracing,
-            &[],
-        )
-        .await?;
-    }
+    install_wrangler(environment, tracing).await?;
 
     let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
 

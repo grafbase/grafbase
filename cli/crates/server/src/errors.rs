@@ -157,6 +157,9 @@ pub enum ServerError {
     /// returned if a file watcher could not be initialized or was stopped due to an error
     #[error("A file watcher encountered an error\ncaused by: {0}")]
     FileWatcher(#[from] NotifyError),
+
+    #[error("Could not create a lock for the wrangler installation: {0}")]
+    Lock(#[from] fslock::Error),
 }
 
 impl From<SqlxError> for ServerError {
