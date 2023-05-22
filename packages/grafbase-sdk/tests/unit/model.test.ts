@@ -461,4 +461,40 @@ describe('Model generator', () => {
       }"
     `)
   })
+
+  it('generates a single auth rule', () => {
+    g.model('User', {
+      name: g.string()
+    }).auth((rules) => {
+      rules.private().read()
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model @auth(
+          rules: [
+            { allow: private, operations: [read] }
+          ]) {
+        name: String!
+      }"
+    `)
+  })
+
+  it('generates a multiple auth rules', () => {
+    g.model('User', {
+      name: g.string()
+    }).auth((rules) => {
+      rules.private().read()
+      rules.groups(['admin'])
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model @auth(
+          rules: [
+            { allow: private, operations: [read] }
+            { allow: groups, groups: ["admin"] }
+          ]) {
+        name: String!
+      }"
+    `)
+  })
 })

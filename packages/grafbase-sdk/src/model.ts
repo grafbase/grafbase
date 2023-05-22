@@ -1,9 +1,11 @@
 import { FieldShape } from '.'
+import { AuthRuleF, AuthRules } from './auth'
 import { Field } from './field'
 
 export class Model {
   name: string
   fields: Field[]
+  authRules?: AuthRules
   isSearch: boolean
   isLive: boolean
 
@@ -32,10 +34,19 @@ export class Model {
     return this
   }
 
+  public auth(rules: AuthRuleF): Model {
+    const authRules = new AuthRules()
+    rules(authRules)
+    this.authRules = authRules
+
+    return this
+  }
+
   public toString(): string {
     const search = this.isSearch ? ' @search' : ''
     const live = this.isLive ? ' @live' : ''
-    const header = `type ${this.name} @model${search}${live} {`
+    const auth = this.authRules ? ` @auth(\n    rules: ${this.authRules})` : ''
+    const header = `type ${this.name} @model${search}${live}${auth} {`
 
     const fields = this.fields.map((field) => `  ${field}`).join('\n')
 
