@@ -7,10 +7,8 @@ use axum::{
     routing::get,
     Router,
 };
-use common::{
-    consts::EPHEMERAL_PORT_RANGE, environment::get_user_dot_grafbase_path, types::LocalAddressType,
-    utils::find_available_port_in_range,
-};
+use common::environment::Environment;
+use common::{consts::EPHEMERAL_PORT_RANGE, types::LocalAddressType, utils::find_available_port_in_range};
 use serde::Deserialize;
 use std::{
     fs::create_dir_all,
@@ -78,11 +76,13 @@ struct LoginApiState {
 #[allow(clippy::needless_pass_by_value)] // &Sender is not Sync
 #[tokio::main]
 pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiError> {
-    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::FindUserDotGrafbaseFolder)?;
+    let environment = Environment::get();
 
-    match user_dot_grafbase_path.try_exists() {
+    match environment.user_dot_grafbase_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => create_dir_all(&user_dot_grafbase_path).map_err(ApiError::CreateUserDotGrafbaseFolder)?,
+        Ok(false) => {
+            create_dir_all(&environment.user_dot_grafbase_path).map_err(ApiError::CreateUserDotGrafbaseFolder)?;
+        }
         Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
@@ -102,7 +102,7 @@ pub async fn login(message_sender: MspcSender<LoginMessage>) -> Result<(), ApiEr
         .layer(TraceLayer::new_for_http())
         .with_state(LoginApiState {
             shutdown_sender,
-            user_dot_grafbase_path,
+            user_dot_grafbase_path: environment.user_dot_grafbase_path.clone(),
         });
 
     let socket_address = SocketAddr::from((Ipv4Addr::LOCALHOST, port));

@@ -10,4 +10,7 @@ pub enum CommonError {
         "could not find grafbase/grafbase.config.ts or grafbase/schema.graphql in the current or any parent directory"
     )]
     FindGrafbaseDirectory,
+    /// returned if the home directory for the current user could not be found
+    #[error("could not find the home directory for the current user")]
+    FindHomeDirectory,
 }

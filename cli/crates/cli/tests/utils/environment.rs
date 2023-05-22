@@ -21,6 +21,7 @@ pub struct Environment {
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
+    global_config_directory: Option<PathBuf>,
     #[cfg(feature = "dynamodb")]
     dynamodb_env: dynamodb::DynamoDbEnvironment,
 }
@@ -101,6 +102,7 @@ impl Environment {
             temp_dir,
             schema_path,
             commands,
+            global_config_directory: None,
             #[cfg(feature = "dynamodb")]
             dynamodb_env,
         }
@@ -122,6 +124,7 @@ impl Environment {
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
+            global_config_directory: other.global_config_directory.clone(),
             #[cfg(feature = "dynamodb")]
             dynamodb_env: dynamodb::DynamoDbEnvironment {
                 dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
@@ -140,6 +143,10 @@ impl Environment {
 
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         self.write_file("schema.graphql", schema);
+    }
+
+    pub fn write_ts_config(&self, config: impl AsRef<str>) {
+        self.write_file("grafbase.config.ts", config);
     }
 
     pub fn write_resolver(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
@@ -194,6 +201,12 @@ impl Environment {
         fs::remove_dir_all(directory).unwrap();
     }
 
+    pub fn with_global_config_directory(mut self, path: PathBuf) -> Self {
+        fs::create_dir_all(self.directory.join(&path)).unwrap();
+        self.global_config_directory = Some(path);
+        self
+    }
+
     pub fn grafbase_dev(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),
@@ -208,6 +221,29 @@ impl Environment {
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
+
+        self.commands.push(command);
+    }
+
+    pub fn grafbase_dev_with_config_direcory_flag(&mut self) {
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "--global-config-directory",
+            self.global_config_directory
+                .clone()
+                .expect("must supply a config dir")
+                .to_string_lossy()
+                .to_string(),
+            "dev",
+            "--disable-watch",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory)
+        .start()
+        .unwrap();
 
         self.commands.push(command);
     }

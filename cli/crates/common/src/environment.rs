@@ -128,8 +128,22 @@ pub struct Environment {
 static ENVIRONMENT: OnceCell<Environment> = OnceCell::new();
 
 #[must_use]
-pub fn get_user_dot_grafbase_path() -> Option<PathBuf> {
+pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(DOT_GRAFBASE_DIRECTORY))
+}
+
+pub fn get_user_dot_grafbase_path_from_env() -> Option<PathBuf> {
+    env::var("GRAFBASE_GLOBAL_CONFIG_DIRECTORY")
+        .ok()
+        .map(PathBuf::from)
+        .map(|env_override| env_override.join(DOT_GRAFBASE_DIRECTORY))
+}
+
+pub fn get_user_dot_grafbase_path(r#override: Option<PathBuf>) -> Option<PathBuf> {
+    r#override
+        .map(|r#override| r#override.join(DOT_GRAFBASE_DIRECTORY))
+        .or_else(get_user_dot_grafbase_path_from_env)
+        .or_else(get_default_user_dot_grafbase_path)
 }
 
 impl Environment {
@@ -140,7 +154,7 @@ impl Environment {
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
-    pub fn try_init() -> Result<(), CommonError> {
+    pub fn try_init(config_dir_override: Option<PathBuf>) -> Result<(), CommonError> {
         let mut warnings = Vec::new();
 
         let project_grafbase_schema_path =
@@ -157,7 +171,7 @@ impl Environment {
             .to_path_buf();
 
         let user_dot_grafbase_path =
-            get_user_dot_grafbase_path().unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
+            get_user_dot_grafbase_path(config_dir_override).ok_or(CommonError::FindHomeDirectory)?;
 
         let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
