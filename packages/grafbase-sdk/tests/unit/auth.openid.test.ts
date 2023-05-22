@@ -112,7 +112,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["get"] }
+            { allow: private, operations: [get] }
           ]
         )"
     `)
@@ -140,7 +140,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["list"] }
+            { allow: private, operations: [list] }
           ]
         )"
     `)
@@ -168,7 +168,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["read"] }
+            { allow: private, operations: [read] }
           ]
         )"
     `)
@@ -196,7 +196,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["create"] }
+            { allow: private, operations: [create] }
           ]
         )"
     `)
@@ -224,7 +224,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["update"] }
+            { allow: private, operations: [update] }
           ]
         )"
     `)
@@ -252,7 +252,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["delete"] }
+            { allow: private, operations: [delete] }
           ]
         )"
     `)
@@ -280,7 +280,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["get", "list", "read"] }
+            { allow: private, operations: [get, list, read] }
           ]
         )"
     `)
@@ -308,7 +308,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["get", "list", "read", "create", "update", "delete"] }
+            { allow: private, operations: [get, list, read, create, update, delete] }
           ]
         )"
     `)
@@ -364,7 +364,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: owner, operations: ["create"] }
+            { allow: owner, operations: [create] }
           ]
         )"
     `)
@@ -420,7 +420,7 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: groups, groups: ["backend", "admin"], operations: ["delete"] }
+            { allow: groups, groups: ["backend", "admin"], operations: [delete] }
           ]
         )"
     `)
@@ -483,9 +483,9 @@ describe('OpenID auth provider', () => {
             { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
           ]
           rules: [
-            { allow: private, operations: ["read"] }
-            { allow: owner, operations: ["create"] }
-            { allow: groups, groups: ["backend", "admin"], operations: ["delete"] }
+            { allow: private, operations: [read] }
+            { allow: owner, operations: [create] }
+            { allow: groups, groups: ["backend", "admin"], operations: [delete] }
           ]
         )"
     `)

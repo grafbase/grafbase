@@ -61,7 +61,7 @@ export class AuthRule {
   public toString(): string {
     const allow = `allow: ${this.strategy}`
 
-    var ops = this.operations.map((op) => `"${op}"`).join(', ')
+    var ops = this.operations.map((op) => `${op}`).join(', ')
     ops = ops ? `, operations: [${ops}]` : ""
 
     return `{ ${allow}${ops} }`
