@@ -32,6 +32,35 @@ describe('OpenID auth provider', () => {
     `)
   })
 
+  it('renders a provider with custom clientId', () => {
+    const clerk = auth.OpenIDConnect({
+      issuer: '{{ env.ISSUER_URL }}',
+      clientId: 'some-id'
+    })
+
+    const cfg = config({
+      schema: g,
+      auth: {
+        providers: [clerk],
+        rules: (rules) => {
+          rules.private()
+        }
+      }
+    })
+
+    expect(cfg.toString()).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          providers: [
+            { type: oidc, issuer: "{{ env.ISSUER_URL }}", clientId: "some-id" }
+          ]
+          rules: [
+            { allow: private }
+          ]
+        )"
+    `)
+  })
+
   it('renders a provider with private access for get', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'

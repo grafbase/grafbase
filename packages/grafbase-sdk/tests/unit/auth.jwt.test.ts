@@ -32,4 +32,34 @@ describe('OpenID auth provider', () => {
         )"
     `)
   })
+
+  it('renders a provider with custom clientId', () => {
+    const derp = auth.JWT({
+      issuer: '{{ env.ISSUER_URL }}',
+      secret: '{{ env.JWT_SECRET }}',
+      clientId: 'some-id'
+    })
+
+    const cfg = config({
+      schema: g,
+      auth: {
+        providers: [derp],
+        rules: (rules) => {
+          rules.private()
+        }
+      }
+    })
+
+    expect(cfg.toString()).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          providers: [
+            { type: jwt, issuer: "{{ env.ISSUER_URL }}", secret: "{{ env.JWT_SECRET }}", clientId: "some-id" }
+          ]
+          rules: [
+            { allow: private }
+          ]
+        )"
+    `)
+  })
 })
