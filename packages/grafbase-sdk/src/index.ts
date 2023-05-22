@@ -14,6 +14,7 @@ import { Config, ConfigInput } from './config'
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
 import { OpenIDAuth, OpenIDParams } from './auth/openid'
+import { JWTAuth, JWTParams } from './auth/jwt'
 
 export type FieldShape =
   | ScalarDefinition
@@ -52,5 +53,8 @@ export const connector = {
 export const auth = {
   OpenIDConnect: (params: OpenIDParams): OpenIDAuth => {
     return new OpenIDAuth(params)
+  },
+  JWT: (params: JWTParams): JWTAuth => {
+    return new JWTAuth(params)
   }
 }

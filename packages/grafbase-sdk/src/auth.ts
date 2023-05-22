@@ -1,6 +1,7 @@
+import { JWTAuth } from "./auth/jwt"
 import { OpenIDAuth } from "./auth/openid"
 
-export type AuthProvider = OpenIDAuth
+export type AuthProvider = OpenIDAuth | JWTAuth
 export type AuthRuleF = (rules: AuthRules) => any
 export type AuthOperation = 'get' | 'list' | 'read' | 'create' | 'update' | 'delete'
 
