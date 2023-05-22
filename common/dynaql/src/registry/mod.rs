@@ -39,7 +39,10 @@ use crate::{
 };
 use grafbase::auth::Operations;
 
-pub use self::{cache_control::CacheControl, union_discriminator::UnionDiscriminator};
+pub use self::{
+    cache_control::CacheControl, cache_control::CacheInvalidationPolicy,
+    union_discriminator::UnionDiscriminator,
+};
 
 use self::plan::SchemaPlan;
 use self::relations::MetaRelation;

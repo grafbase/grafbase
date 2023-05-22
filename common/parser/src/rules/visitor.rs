@@ -16,7 +16,7 @@ use std::fmt::{self, Display, Formatter};
 use std::sync::{Arc, RwLock};
 
 use crate::models::from_meta_type;
-use crate::rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
+use crate::rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
 use crate::ParseResult;
 
 use super::graphql_directive::GraphqlDirective;
@@ -193,7 +193,7 @@ impl<'a> VisitorContext<'a> {
                     cache_control: self
                         .global_cache_rules
                         .get(&GlobalCacheTarget::Type(Cow::Borrowed(QUERY_TYPE)))
-                        .copied()
+                        .cloned()
                         .unwrap_or_default(),
                     extends: false,
                     keys: ::std::option::Option::None,

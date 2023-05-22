@@ -103,7 +103,7 @@ async fn main() {
                 fields
             },
             cache_control: dynaql::CacheControl {
-                public: true,
+                public: false,
                 max_age: 0usize,
             },
             extends: false,
@@ -236,7 +236,7 @@ async fn main() {
                 fields
             },
             cache_control: dynaql::CacheControl {
-                public: true,
+                public: false,
                 max_age: 0usize,
             },
             extends: false,
@@ -303,7 +303,7 @@ async fn main() {
                             ty: "User".to_owned(),
                             deprecation: dynaql::registry::Deprecation::NoDeprecated,
                             cache_control: dynaql::CacheControl {
-                                public: true,
+                                public: false,
                                 max_age: 0usize,
                             },
                             external: false,
@@ -350,7 +350,7 @@ async fn main() {
                             ty: "Account".to_owned(),
                             deprecation: dynaql::registry::Deprecation::NoDeprecated,
                             cache_control: dynaql::CacheControl {
-                                public: true,
+                                public: false,
                                 max_age: 0usize,
                             },
                             external: false,
@@ -377,7 +377,7 @@ async fn main() {
                     fields
                 },
                 cache_control: dynaql::CacheControl {
-                    public: true,
+                    public: false,
                     max_age: 0usize,
                 },
                 extends: false,

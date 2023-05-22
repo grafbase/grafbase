@@ -10,24 +10,14 @@ use syn::{
 
 use crate::validators::Validators;
 
-#[derive(FromMeta, Clone)]
+#[derive(FromMeta, Default, Clone)]
 #[darling(default)]
 pub struct CacheControl {
     public: bool,
     private: bool,
     pub max_age: usize,
     pub stale_while_revalidate: usize,
-}
-
-impl Default for CacheControl {
-    fn default() -> Self {
-        Self {
-            public: true,
-            private: false,
-            max_age: 0,
-            stale_while_revalidate: 0,
-        }
-    }
+    pub invalidation_policy: Option<String>,
 }
 
 impl CacheControl {

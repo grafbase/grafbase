@@ -44,7 +44,7 @@ impl<'a> Visitor<'a> for BasicType {
                                 args: Default::default(),
                                 ty: field.node.ty.clone().node.to_string(),
                                 deprecation: Default::default(),
-                                cache_control: Default::default(),
+                                cache_control: CacheDirective::parse(&field.node.directives),
                                 external: false,
                                 requires: None,
                                 provides: None,

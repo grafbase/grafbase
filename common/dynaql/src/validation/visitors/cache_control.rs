@@ -18,7 +18,7 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
         _selection_set: &Positioned<SelectionSet>,
     ) {
         if let Some(MetaType::Object { cache_control, .. }) = ctx.current_type() {
-            *self.cache_control = self.cache_control.merge(cache_control);
+            self.cache_control.merge(cache_control.clone());
         }
     }
 
@@ -27,7 +27,8 @@ impl<'ctx, 'a> Visitor<'ctx> for CacheControlCalculate<'a> {
             .parent_type()
             .and_then(|parent| parent.field_by_name(&field.node.name.node))
         {
-            *self.cache_control = self.cache_control.merge(&registry_field.cache_control);
+            self.cache_control
+                .merge(registry_field.cache_control.clone());
         }
     }
 }

@@ -28,33 +28,25 @@
 /// # });
 /// ```
 #[serde_with::minify_field_names(serialize = "minified", deserialize = "minified")]
-#[derive(Clone, Copy, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
+#[serde_with::skip_serializing_defaults(Option, bool, usize)]
+#[derive(Default, Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
 pub struct CacheControl {
-    /// Scope is public, default is true.
+    /// Scope is public, default is false.
     pub public: bool,
 
     /// Cache max age, default is 0.
     pub max_age: usize,
 
     /// Cache stale_while_revalidate, default is 0.
-    #[serde(default)]
     pub stale_while_revalidate: usize,
-}
 
-impl Default for CacheControl {
-    fn default() -> Self {
-        Self {
-            public: true,
-            max_age: 0,
-            stale_while_revalidate: 0,
-        }
-    }
+    /// Invalidation policy for mutations, default is None.
+    pub invalidation_policy: Option<CacheInvalidationPolicy>,
 }
 
 impl CacheControl {
-    #[must_use]
-    pub(crate) fn merge(self, other: &CacheControl) -> CacheControl {
-        CacheControl {
+    pub(crate) fn merge(&mut self, other: CacheControl) {
+        *self = CacheControl {
             public: self.public && other.public,
             max_age: if self.max_age == 0 {
                 other.max_age
@@ -71,6 +63,34 @@ impl CacheControl {
                 self.stale_while_revalidate
                     .min(other.stale_while_revalidate)
             },
-        }
+            invalidation_policy: if self.invalidation_policy.is_none() {
+                other.invalidation_policy
+            } else if other.invalidation_policy.is_none() {
+                self.invalidation_policy.clone()
+            } else {
+                let self_policy = self.invalidation_policy.as_ref().cloned().unwrap();
+                let other_policy = other.invalidation_policy.as_ref().cloned().unwrap();
+                Some(self_policy.max(other_policy))
+            },
+        };
     }
+}
+
+#[derive(
+    Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize,
+)]
+/// Represents cache purge behaviour for mutations
+/// The order of variants is significant, from highest to lowest specificity
+pub enum CacheInvalidationPolicy {
+    /// Mutations for the target type will invalidate all cache values that have the chosen identifier
+    /// E.g:
+    /// with a mutation policy { policy: Entity, field: id }
+    /// a mutation for a Post returns a Post { id: "1234" }, all cache values that have a Post#id:1234 will be invalidated
+    Entity { field: String },
+    /// Mutations for the target type will invalidate all cache values that have lists of the type in them
+    /// Post#List
+    List,
+    /// Mutations for the target type will invalidate all cache values that have Type in them
+    /// Post
+    Type,
 }
