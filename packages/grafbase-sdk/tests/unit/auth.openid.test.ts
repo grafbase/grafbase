@@ -61,6 +61,35 @@ describe('OpenID auth provider', () => {
     `)
   })
 
+  it('renders a provider with custom groupsClaim', () => {
+    const clerk = auth.OpenIDConnect({
+      issuer: '{{ env.ISSUER_URL }}',
+      groupsClaim: 'admin'
+    })
+
+    const cfg = config({
+      schema: g,
+      auth: {
+        providers: [clerk],
+        rules: (rules) => {
+          rules.private()
+        }
+      }
+    })
+
+    expect(cfg.toString()).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          providers: [
+            { type: oidc, issuer: "{{ env.ISSUER_URL }}", groupsClaim: "admin" }
+          ]
+          rules: [
+            { allow: private }
+          ]
+        )"
+    `)
+  })
+
   it('renders a provider with private access for get', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'
