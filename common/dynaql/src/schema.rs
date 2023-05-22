@@ -546,6 +546,7 @@ impl Schema {
             disable_introspection: request.disable_introspection,
             errors: Default::default(),
             current_datetime: CurrentDateTime::new(),
+            cache_invalidations: validation_result.cache_invalidation_policies,
         };
         Ok((QueryEnv::new(env), cache_control))
     }
@@ -582,9 +583,9 @@ impl Schema {
                 response.set_root_unchecked(value);
                 let a = QueryResponse::default();
                 let b = std::mem::replace(response, a);
-                Response::new(b)
+                Response::new(b, env.operation.node.ty)
             }
-            Err(err) => Response::from_errors(vec![err]),
+            Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
         }
         .http_headers(std::mem::take(
             &mut *env.response_http_headers.lock().unwrap(),
@@ -648,7 +649,7 @@ impl Schema {
                 };
                 return Response::from_logical_query(query);
             }
-            Err(err) => Response::from_errors(vec![err]),
+            Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
         };
 
         resp.errors
@@ -730,9 +731,9 @@ impl Schema {
                 let id = root.from_serde_value(c);
                 root.set_root_unchecked(id);
 
-                return Response::new(root);
+                return Response::new(root, env.operation.node.ty);
             }
-            Err(err) => Response::from_errors(vec![err]),
+            Err(err) => Response::from_errors(vec![err], env.operation.node.ty),
         };
 
         resp.errors
@@ -772,7 +773,9 @@ impl Schema {
                             .execute(env.operation_name.as_deref(), &mut fut)
                             .await
                     }
-                    Err(errors) => Response::from_errors(errors),
+                    // here we don't know the type of the operation because it failed preparing the request
+                    // defaulting but this might not be the best option
+                    Err(errors) => Response::from_errors(errors, Default::default()),
                 }
             }
         };
@@ -810,7 +813,7 @@ impl Schema {
                 let (env, cache_control) = match schema.prepare_request(extensions, request, session_data).await {
                     Ok(res) => res,
                     Err(errors) => {
-                        yield Response::from_errors(errors);
+                        yield Response::from_errors(errors, OperationType::Subscription);
                         return;
                     }
                 };
@@ -830,7 +833,7 @@ impl Schema {
                 let mut streams = Vec::new();
                 // if let Err(err) = collect_subscription_streams(&ctx, &schema.subscription, &mut streams) {
                 if let Err(err) = collect_subscription_streams(&ctx, &crate::EmptySubscription, &mut streams) {
-                    yield Response::from_errors(vec![err]);
+                    yield Response::from_errors(vec![err], OperationType::Subscription);
                 }
 
                 let mut stream = stream::select_all(streams);

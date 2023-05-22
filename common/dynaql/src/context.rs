@@ -36,8 +36,8 @@ use crate::registry::{Registry, SchemaID};
 use crate::resolver_utils::resolve_input;
 use crate::schema::SchemaEnv;
 use crate::{
-    Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result, ServerError,
-    ServerResult, UploadValue, Value,
+    CacheInvalidation, Error, InputType, Lookahead, Name, PathSegment, Pos, Positioned, Result,
+    ServerError, ServerResult, UploadValue, Value,
 };
 
 use arrow_schema::Schema as ArrowSchema;
@@ -379,6 +379,7 @@ pub struct QueryEnvInner {
     /// Defines the current timestamp to be used whenever Utc::now() is used to have consistent
     /// datetimes (createdAt/updatedAt typically) across objects
     pub current_datetime: CurrentDateTime,
+    pub cache_invalidations: HashSet<CacheInvalidation>,
 }
 
 #[doc(hidden)]

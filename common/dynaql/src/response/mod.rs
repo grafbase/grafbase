@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use dynaql_parser::types::OperationType;
 use graph_entities::QueryResponse;
 use http::header::{HeaderMap, HeaderName};
 use http::HeaderValue;
@@ -37,6 +38,9 @@ pub struct Response {
     #[cfg(feature = "query-planning")]
     #[serde(skip)]
     pub query_plan: Option<LogicalQuery>,
+
+    /// GraphQL operation type derived from incoming request
+    pub operation_type: OperationType,
 }
 
 impl Response {
@@ -54,19 +58,21 @@ impl Response {
 
     /// Create a new successful response with the data.
     #[must_use]
-    pub fn new(mut data: QueryResponse) -> Self {
+    pub fn new(mut data: QueryResponse, operation_type: OperationType) -> Self {
         data.shrink_to_fit();
         Self {
             data,
+            operation_type,
             ..Default::default()
         }
     }
 
     /// Create a response from some errors.
     #[must_use]
-    pub fn from_errors(errors: Vec<ServerError>) -> Self {
+    pub fn from_errors(errors: Vec<ServerError>, operation_type: OperationType) -> Self {
         Self {
             errors,
+            operation_type,
             ..Default::default()
         }
     }
@@ -235,7 +241,7 @@ mod tests {
         let id = resp.from_serde_value(json);
         resp.set_root_unchecked(id);
 
-        let resp = Response::new(resp);
+        let resp = Response::new(resp, Default::default());
 
         let resp = BatchResponse::Single(resp);
         assert_eq!(
@@ -250,13 +256,13 @@ mod tests {
         let mut resp1 = QueryResponse::default();
         let id = resp1.from_serde_value(json1);
         resp1.set_root_unchecked(id);
-        let resp1 = Response::new(resp1);
+        let resp1 = Response::new(resp1, Default::default());
 
         let json2 = Value::String("1".to_string()).into_json().unwrap();
         let mut resp2 = QueryResponse::default();
         let id = resp2.from_serde_value(json2);
         resp2.set_root_unchecked(id);
-        let resp2 = Response::new(resp2);
+        let resp2 = Response::new(resp2, Default::default());
 
         let resp = BatchResponse::Batch(vec![resp1, resp2]);
         assert_eq!(

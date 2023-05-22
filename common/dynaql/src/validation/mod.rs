@@ -11,7 +11,8 @@ mod visitors;
 
 use crate::parser::types::ExecutableDocument;
 use crate::registry::Registry;
-use crate::{CacheControl, ServerError, Variables};
+use crate::{CacheControl, CacheInvalidation, ServerError, Variables};
+use std::collections::HashSet;
 
 pub use visitor::VisitorContext;
 use visitor::{visit, VisitorNil};
@@ -21,6 +22,9 @@ use visitor::{visit, VisitorNil};
 pub struct ValidationResult {
     /// Cache control
     pub cache_control: CacheControl,
+
+    /// Cache mutation invalidation policies
+    pub cache_invalidation_policies: HashSet<CacheInvalidation>,
 
     /// Query complexity
     pub complexity: usize,
@@ -47,6 +51,7 @@ pub fn check_rules(
 ) -> Result<ValidationResult, Vec<ServerError>> {
     let mut ctx = VisitorContext::new(registry, doc, variables);
     let mut cache_control = CacheControl::default();
+    let mut cache_invalidation_policies = Default::default();
     let mut complexity = 0;
     let mut depth = 0;
 
@@ -77,6 +82,7 @@ pub fn check_rules(
                 .with(rules::UploadFile)
                 .with(visitors::CacheControlCalculate {
                     cache_control: &mut cache_control,
+                    invalidation_policies: &mut cache_invalidation_policies,
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth));
@@ -89,6 +95,7 @@ pub fn check_rules(
                 .with(rules::UploadFile)
                 .with(visitors::CacheControlCalculate {
                     cache_control: &mut cache_control,
+                    invalidation_policies: &mut cache_invalidation_policies,
                 })
                 .with(visitors::ComplexityCalculate::new(&mut complexity))
                 .with(visitors::DepthCalculate::new(&mut depth));
@@ -103,6 +110,7 @@ pub fn check_rules(
 
     Ok(ValidationResult {
         cache_control,
+        cache_invalidation_policies,
         complexity,
         depth,
     })

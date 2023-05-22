@@ -405,7 +405,7 @@ pub fn generate(
                                         response.set_root_unchecked(container_id);
                                         let a = #crate_name::graph_entities::QueryResponse::default();
                                         let b = std::mem::replace(response, a);
-                                        #crate_name::Response::new(b)
+                                        #crate_name::Response::new(b, #crate_name::parser::types::OperationType::Subscription)
                                     }
                                     Ok(None) => {
                                         let mut container = #crate_name::graph_entities::ResponseContainer::new_container();
@@ -416,9 +416,9 @@ pub fn generate(
                                         response.set_root_unchecked(container_id);
                                         let a = #crate_name::graph_entities::QueryResponse::default();
                                         let b = std::mem::replace(response, a);
-                                        #crate_name::Response::new(b)
+                                        #crate_name::Response::new(b, #crate_name::parser::types::OperationType::Subscription)
                                     }
-                                    Err(err) => #crate_name::Response::from_errors(vec![err]),
+                                    Err(err) => #crate_name::Response::from_errors(vec![err], #crate_name::parser::types::OperationType::Subscription),
                                 };
 
                                 use ::std::iter::Extend;
@@ -441,7 +441,7 @@ pub fn generate(
                     );
                     let stream = #crate_name::futures_util::StreamExt::map(stream, |res| match res {
                         ::std::result::Result::Ok(resp) => resp,
-                        ::std::result::Result::Err(err) => #crate_name::Response::from_errors(::std::vec![err]),
+                        ::std::result::Result::Err(err) => #crate_name::Response::from_errors(::std::vec![err], #crate_name::parser::types::OperationType::Subscription),
                     });
                     return ::std::option::Option::Some(::std::boxed::Box::pin(stream));
                 }

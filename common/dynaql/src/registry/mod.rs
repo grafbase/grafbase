@@ -16,6 +16,7 @@ pub mod variables;
 
 use arrow_schema::Schema as ArrowSchema;
 use dynaql_parser::Pos;
+use dynaql_value::ConstValue;
 use graph_entities::{CompactValue, NodeID, ResponseNodeId, ResponsePrimitive};
 use indexmap::map::IndexMap;
 use indexmap::set::IndexSet;
@@ -40,8 +41,8 @@ use crate::{
 use grafbase::auth::Operations;
 
 pub use self::{
-    cache_control::CacheControl, cache_control::CacheInvalidationPolicy,
-    union_discriminator::UnionDiscriminator,
+    cache_control::CacheControl, cache_control::CacheInvalidation,
+    cache_control::CacheInvalidationPolicy, union_discriminator::UnionDiscriminator,
 };
 
 use self::plan::SchemaPlan;
@@ -488,24 +489,58 @@ impl MetaField {
                 }?;
                 let meta_type = ctx_obj
                     .resolver_node
+                    .as_ref()
                     .and_then(|resolver_node| resolver_node.ty)
                     .ok_or_else(|| {
                         ServerError::new("Internal Error: expected a field", Some(ctx.item.pos))
                     })?;
+
+                let parent_meta_type = ctx_obj
+                    .resolver_node
+                    .as_ref()
+                    .and_then(|resolver_node| resolver_node.parent)
+                    .and_then(|parent_node| parent_node.ty)
+                    .and_then(MetaType::rust_typename)
+                    .cloned()
+                    .unwrap_or_default();
+
                 let result = match meta_type {
                     MetaType::Scalar { parser, .. } => match parser {
                         ScalarParser::PassThrough => {
-                            result.try_into().map_err(|err: serde_json::Error| {
-                                ServerError::new(err.to_string(), Some(ctx.item.pos))
-                            })?
+                            let scalar_value: ConstValue =
+                                result.try_into().map_err(|err: serde_json::Error| {
+                                    ServerError::new(err.to_string(), Some(ctx.item.pos))
+                                })?;
+
+                            self.check_cache_tag(
+                                ctx,
+                                &parent_meta_type,
+                                &self.name,
+                                Some(&scalar_value),
+                            )
+                            .await;
+
+                            scalar_value
                         }
                         ScalarParser::BestEffort => match result {
                             serde_json::Value::Null => Value::Null,
-                            _ => PossibleScalar::to_value(
-                                &self.ty.strip_suffix('!').unwrap_or(&self.ty),
-                                result,
-                            )
-                            .map_err(|err| err.into_server_error(ctx.item.pos))?,
+                            _ => {
+                                let scalar_value = PossibleScalar::to_value(
+                                    &self.ty.strip_suffix('!').unwrap_or(&self.ty),
+                                    result,
+                                )
+                                .map_err(|err| err.into_server_error(ctx.item.pos))?;
+
+                                self.check_cache_tag(
+                                    ctx,
+                                    &parent_meta_type,
+                                    &self.name,
+                                    Some(&scalar_value),
+                                )
+                                .await;
+
+                                scalar_value
+                            }
                         },
                     },
                     MetaType::Enum { .. } => Value::from_json(result)
@@ -514,7 +549,7 @@ impl MetaField {
                         return Err(ServerError::new(
                             "Internal error: expected an enum or scalar type for a primitive",
                             Some(ctx.item.pos),
-                        ))
+                        ));
                     }
                 };
 
@@ -590,7 +625,16 @@ impl MetaField {
                     .and_then(|x| NodeID::from_owned(x).ok());
 
                 match resolve_container(&ctx_obj, container_type, node_id).await {
-                    result @ Ok(_) => result,
+                    result @ Ok(_) => {
+                        self.check_cache_tag(
+                            ctx,
+                            &container_type.rust_typename().cloned().unwrap_or_default(),
+                            &self.name,
+                            None,
+                        )
+                        .await;
+                        result
+                    }
                     Err(err) => {
                         if self.ty.ends_with('!') {
                             Err(err)
@@ -641,7 +685,16 @@ impl MetaField {
                                 .new_node_unchecked(CompactValue::Null));
                         }
                     }
-                    serde_json::Value::Array(arr) => arr.clone(),
+                    serde_json::Value::Array(arr) => {
+                        self.check_cache_tag(
+                            ctx,
+                            &container_type.rust_typename().cloned().unwrap_or_default(),
+                            &self.name,
+                            None,
+                        )
+                        .await;
+                        arr.clone()
+                    }
                     _ => {
                         return Err(ServerError::new(
                             "An internal error happened",
@@ -666,6 +719,53 @@ impl MetaField {
                     }
                 }
             }
+        }
+    }
+
+    async fn check_cache_tag(
+        &self,
+        ctx: &Context<'_>,
+        resolved_field_type: &str,
+        resolved_field_name: &str,
+        resolved_field_value: Option<&ConstValue>,
+    ) {
+        let cache_invalidation = ctx
+            .query_env
+            .cache_invalidations
+            .iter()
+            .find(|cache_invalidation| cache_invalidation.ty == resolved_field_type);
+
+        if let Some(cache_invalidation) = cache_invalidation {
+            let cache_tag = match &cache_invalidation.policy {
+                CacheInvalidationPolicy::Entity {
+                    field: target_field,
+                } if target_field == resolved_field_name => {
+                    let Some(resolved_field_value) = resolved_field_value else {
+                        #[cfg(feature = "tracing_worker")]
+                        logworker::warn!(
+                            ctx.data_unchecked::<Arc<dynamodb::DynamoDBBatchersData>>()
+                                .ctx
+                                .trace_id,
+                            "missing field valued for {}#{}",
+                            resolved_field_type, resolved_field_name
+                        );
+
+                        return;
+                    };
+                    let resolved_field_value = match resolved_field_value {
+                        // remove double quotes
+                        ConstValue::String(quoted_string) => quoted_string.as_str().to_string(),
+                        value => value.to_string(),
+                    };
+
+                    format!("{resolved_field_type}#{target_field}:{resolved_field_value}")
+                }
+                CacheInvalidationPolicy::Entity { .. } => return,
+                CacheInvalidationPolicy::List => format!("{resolved_field_type}#List"),
+                CacheInvalidationPolicy::Type => resolved_field_type.to_string(),
+            };
+
+            ctx.response_graph.write().await.add_cache_tag(cache_tag);
         }
     }
 }

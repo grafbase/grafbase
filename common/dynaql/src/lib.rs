@@ -108,7 +108,7 @@ pub use extensions::ResolveFut;
 pub use graph_entities::ResponseNodeId;
 pub use guard::{Guard, GuardExt};
 pub use look_ahead::Lookahead;
-pub use registry::CacheControl;
+pub use registry::{CacheControl, CacheInvalidation};
 pub use request::{BatchRequest, Request};
 #[doc(no_inline)]
 pub use resolver_utils::{ContainerType, EnumType, ScalarType};

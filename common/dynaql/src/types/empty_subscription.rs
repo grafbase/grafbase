@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::pin::Pin;
 
+use dynaql_parser::types::OperationType;
 use futures_util::stream::{self, Stream};
 
 use crate::{registry, Context, Response, ServerError, SubscriptionType};
@@ -45,7 +46,7 @@ impl SubscriptionType for EmptySubscription {
     {
         Some(Box::pin(stream::once(async move {
             let err = ServerError::new("Schema is not configured for subscription.", None);
-            Response::from_errors(vec![err])
+            Response::from_errors(vec![err], OperationType::Subscription)
         })))
     }
 }

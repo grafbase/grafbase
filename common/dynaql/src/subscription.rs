@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::pin::Pin;
 
+use dynaql_parser::types::OperationType;
 use futures_util::stream::{Stream, StreamExt};
 
 use crate::parser::types::{Selection, TypeCondition};
@@ -57,7 +58,7 @@ pub(crate) fn collect_subscription_streams<'a, T: SubscriptionType + 'static>(
                     } else {
                         let err = ServerError::new(format!(r#"Cannot query field "{}" on type "{}"."#, field_name, T::type_name()), Some(ctx.item.pos))
                             .with_path(vec![PathSegment::Field(field_name.to_string())]);
-                        yield Response::from_errors(vec![err]);
+                        yield Response::from_errors(vec![err], OperationType::Subscription);
                     }
                 }
             })),

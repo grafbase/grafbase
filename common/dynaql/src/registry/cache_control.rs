@@ -76,6 +76,12 @@ impl CacheControl {
     }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug, serde::Deserialize, serde::Serialize, Hash)]
+pub struct CacheInvalidation {
+    pub ty: String,
+    pub policy: CacheInvalidationPolicy,
+}
+
 #[derive(
     Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, serde::Serialize, serde::Deserialize,
 )]

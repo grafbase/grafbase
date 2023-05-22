@@ -30,7 +30,7 @@ use derivative::Derivative;
 use dynaql_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 mod entity_id;
 mod into_response_node;
@@ -53,6 +53,8 @@ pub struct QueryResponse {
     entity_ids: HashMap<EntityId, ResponseNodeId>,
     /// The next id we can use when we add a node.
     next_id: u32,
+    /// Cache tags
+    cache_tags: HashSet<String>,
 }
 
 pub mod vectorize {
@@ -133,6 +135,10 @@ impl QueryResponse {
             relations: Vec::new(),
         }
     }
+
+    pub fn cache_tags(&self) -> &HashSet<String> {
+        &self.cache_tags
+    }
 }
 
 // TODO: iterator are little flawed right now as it's just a draft impl; it'll be switched to a
@@ -197,6 +203,7 @@ impl QueryResponse {
             entity_ids: HashMap::new(),
             data: HashMap::new(),
             next_id: 0,
+            cache_tags: HashSet::new(),
         };
         this.new_node_unchecked(node);
         this
@@ -359,6 +366,10 @@ impl QueryResponse {
 
     fn node_exists(&self, id: ResponseNodeId) -> bool {
         self.get_node(&id).is_some()
+    }
+
+    pub fn add_cache_tag(&mut self, tag: String) {
+        self.cache_tags.insert(tag);
     }
 }
 
