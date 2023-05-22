@@ -2,8 +2,9 @@
 
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME,
-        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_GLOBAL_CONFIG_DIRECTORY,
+        GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
+        WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -133,7 +134,7 @@ pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
 }
 
 pub fn get_user_dot_grafbase_path_from_env() -> Option<PathBuf> {
-    env::var("GRAFBASE_GLOBAL_CONFIG_DIRECTORY")
+    env::var(GRAFBASE_GLOBAL_CONFIG_DIRECTORY)
         .ok()
         .map(PathBuf::from)
         .map(|env_override| env_override.join(DOT_GRAFBASE_DIRECTORY))

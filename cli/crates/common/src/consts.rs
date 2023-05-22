@@ -30,3 +30,5 @@ pub const DEFAULT_LOG_FILTER: &str = "off";
 pub const EPHEMERAL_PORT_RANGE: Range<u16> = 49152..65535;
 /// the subdirectory within '$PROJECT/.grafbase' containing the database
 pub const DATABASE_DIRECTORY: &str = "database";
+/// an environment variable that sets the path of the configuration directory
+pub const GRAFBASE_GLOBAL_CONFIG_DIRECTORY: &str = "GRAFBASE_GLOBAL_CONFIG_DIRECTORY";
