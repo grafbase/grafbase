@@ -15,6 +15,8 @@ import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
 import { GraphQLParams, PartialGraphQLAPI } from './connector/graphql'
 import { OpenIDAuth, OpenIDParams } from './auth/openid'
 import { JWTAuth, JWTParams } from './auth/jwt'
+import { JWKSAuth, JWKSParams } from './auth/jwks'
+import { RequireExactlyOne } from 'type-fest'
 
 export type FieldShape =
   | ScalarDefinition
@@ -56,5 +58,8 @@ export const auth = {
   },
   JWT: (params: JWTParams): JWTAuth => {
     return new JWTAuth(params)
+  },
+  JWKS: (params: RequireExactlyOne<JWKSParams, 'issuer' | 'jwksEndpoint'>): JWKSAuth => {
+    return new JWKSAuth(params)
   }
 }
