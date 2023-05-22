@@ -1,6 +1,6 @@
 [package]
 name = "grafbase-local-backend"
-version = "0.20.0-rc.6"
+version = "0.20.0"
 edition = "2021"
 description = "The local backend for grafbase developer tools"
 license = "Apache-2.0"
@@ -36,8 +36,8 @@ url = "2"
 urlencoding = "2"
 webbrowser = "0.8"
 
-common = { package = "grafbase-local-common", path = "../common", version = "0.20.0-rc.6" }
-server = { package = "grafbase-local-server", path = "../server", version = "0.20.0-rc.6" }
+common = { package = "grafbase-local-common", path = "../common", version = "0.20.0" }
+server = { package = "grafbase-local-server", path = "../server", version = "0.20.0" }
 
 [features]
 dynamodb = ["server/dynamodb"]
