@@ -1,6 +1,4 @@
-// @ts-expect-error
 const baseUrl = process.env.MONGODB_DATA_API_URL
-// @ts-expect-error
 const apiKey = process.env.MONGODB_DATA_API_KEY
 
 export default async function CreateProductResolver(_, { input }) {
@@ -35,5 +33,5 @@ export default async function CreateProductResolver(_, { input }) {
     console.log(err)
 
     return null
-    }
+  }
 }
