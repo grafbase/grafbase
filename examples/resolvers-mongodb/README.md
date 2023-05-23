@@ -1,6 +1,6 @@
 # Grafbase ⨯ MongoDB
 
-This examples hows how to create a Grafbase resolver that can execute read and write operations with a MongoDB database &mdash; [Read the guide](https://grafbase.com/guides/working-with-graphql-mongodb-data-api-and-edge-resolvers)
+This example shows how to create a Grafbase resolver that can execute read and write operations with a MongoDB database &mdash; [Read the guide](https://grafbase.com/guides/working-with-graphql-mongodb-data-api-and-edge-resolvers)
 
 ## Getting Started
 
