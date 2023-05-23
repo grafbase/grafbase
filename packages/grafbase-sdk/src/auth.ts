@@ -60,10 +60,6 @@ export class AuthRule {
     return this.operation('delete')
   }
 
-  public all() {
-    this.operations = ['get', 'list', 'read', 'create', 'update', 'delete']
-  }
-
   public toString(): string {
     const allow = `allow: ${this.strategy}`
 

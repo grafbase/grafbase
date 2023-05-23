@@ -286,34 +286,6 @@ describe('OpenID auth provider', () => {
     `)
   })
 
-  it('renders a provider with private access for all operations', () => {
-    const clerk = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
-    const cfg = config({
-      schema: g,
-      auth: {
-        providers: [clerk],
-        rules: (rules) => {
-          rules.private().all()
-        }
-      }
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
-      "extend schema
-        @auth(
-          providers: [
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-          ]
-          rules: [
-            { allow: private, operations: [get, list, read, create, update, delete] }
-          ]
-        )"
-    `)
-  })
-
   it('renders a provider with owner access', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'
