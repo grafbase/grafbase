@@ -1,0 +1,6 @@
+extend schema
+  @graphql(
+    name: "Cloudflare"
+    url: "https://api.cloudflare.com/client/v4/graphql"
+    headers: [{ name: "Authorization", value: "Bearer {{ env.API_TOKEN }}" }]
+  )
