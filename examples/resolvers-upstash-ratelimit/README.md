@@ -1,6 +1,6 @@
 # Grafbase ⨯ Upstash
 
-This examples hows how to create a Grafbase resolver limited by Upstash rate-limiting library on the edge &mdash; [Read the guide](https://grafbase.com/guides/working-with-resolvers-and-upstash-ratelimit)
+This examples shows how to create a Grafbase resolver rate limited by the Upstash ratelimit library on the edge &mdash; [Read the guide](https://grafbase.com/guides/working-with-resolvers-and-upstash-ratelimit)
 
 ## Getting Started
 
