@@ -135,10 +135,13 @@ impl BatchResponse {
     /// Gets cache control value
     pub fn cache_control(&self) -> CacheControl {
         match self {
-            BatchResponse::Single(resp) => resp.cache_control,
-            BatchResponse::Batch(resp) => resp.iter().fold(CacheControl::default(), |acc, item| {
-                acc.merge(&item.cache_control)
-            }),
+            BatchResponse::Single(resp) => resp.cache_control.clone(),
+            BatchResponse::Batch(resp) => {
+                resp.iter().fold(CacheControl::default(), |mut acc, item| {
+                    acc.merge(item.cache_control.clone());
+                    acc
+                })
+            }
         }
     }
 

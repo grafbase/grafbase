@@ -61,7 +61,7 @@ where
             } = registry.create_fake_output_type::<B>()
             {
                 fields.extend(b_fields);
-                cc = cc.merge(&b_cc);
+                cc.merge(b_cc);
             }
 
             if let MetaType::Object {
@@ -71,7 +71,7 @@ where
             } = registry.create_fake_output_type::<A>()
             {
                 fields.extend(a_fields);
-                cc = cc.merge(&a_cc);
+                cc.merge(a_cc);
             }
 
             MetaType::Object {
@@ -121,7 +121,7 @@ where
             } = registry.create_fake_subscription_type::<B>()
             {
                 fields.extend(b_fields);
-                cc = cc.merge(&b_cc);
+                cc.merge(b_cc);
             }
 
             if let MetaType::Object {
@@ -131,7 +131,7 @@ where
             } = registry.create_fake_subscription_type::<A>()
             {
                 fields.extend(a_fields);
-                cc = cc.merge(&a_cc);
+                cc.merge(a_cc);
             }
 
             MetaType::Object {

@@ -36,11 +36,12 @@ use rules::visitor::{visit, RuleError, Visitor, VisitorContext};
 
 mod models;
 
-use crate::rules::cache_directive::{CacheDirective, CacheVisitor};
+use crate::rules::cache_directive::visitor::CacheVisitor;
+use crate::rules::cache_directive::CacheDirective;
 pub use connector_parsers::ConnectorParsers;
 pub use dynaql::registry::Registry;
 pub use migration_detection::{required_migrations, RequiredMigration};
-pub use rules::cache_directive::{GlobalCacheRules, GlobalCacheTarget};
+pub use rules::cache_directive::global::{GlobalCacheRules, GlobalCacheTarget};
 pub use rules::graphql_directive::GraphqlDirective;
 pub use rules::openapi_directive::{OpenApiDirective, OpenApiQueryNamingStrategy, OpenApiTransforms};
 

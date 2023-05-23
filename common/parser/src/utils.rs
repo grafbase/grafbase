@@ -6,7 +6,7 @@ use dynaql_parser::types::{BaseType, FieldDefinition, Type, TypeDefinition, Type
 use std::borrow::Cow;
 use std::collections::HashMap;
 
-fn is_type_primitive_internal(name: &str) -> bool {
+pub fn is_str_type_primitive(name: &str) -> bool {
     matches!(name, "String" | "Float" | "Boolean" | "ID" | "Int")
 }
 
@@ -20,7 +20,7 @@ fn is_type_primitive_internal(name: &str) -> bool {
 ///   - ID
 pub fn is_type_primitive(field: &FieldDefinition) -> bool {
     match &field.ty.node.base {
-        BaseType::Named(name) => is_type_primitive_internal(name.as_ref()),
+        BaseType::Named(name) => is_str_type_primitive(name.as_ref()),
         _ => false,
     }
 }

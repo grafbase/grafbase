@@ -149,6 +149,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                     public: #public,
                     max_age: #max_age,
                     stale_while_revalidate: #stale_while_revalidate,
+                    invalidation_policy: None,
                 }
             }
         };
@@ -270,6 +271,7 @@ pub fn generate(object_args: &args::SimpleObject) -> GeneratorResult<TokenStream
                 public: #public,
                 max_age: #max_age,
                 stale_while_revalidate: #stale_while_revalidate,
+                invalidation_policy: None,
             }
         }
     };

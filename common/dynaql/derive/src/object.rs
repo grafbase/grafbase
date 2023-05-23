@@ -322,6 +322,7 @@ pub fn generate(
                             public: #public,
                             max_age: #max_age,
                             stale_while_revalidate: #stale_while_revalidate,
+                            invalidation_policy: None,
                         }
                     }
                 };
@@ -555,6 +556,7 @@ pub fn generate(
                 public: #public,
                 max_age: #max_age,
                 stale_while_revalidate: #stale_while_revalidate,
+                invalidation_policy: None,
             }
         }
     };
