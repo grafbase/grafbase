@@ -3,6 +3,7 @@ import { Enum } from '../enum'
 import { FieldType } from '../field/typedefs'
 import { AuthDefinition } from './auth'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { ResolverDefinition } from './resolver'
 import { ScalarDefinition, DefaultValueType } from './scalar'
 import { UniqueDefinition } from './unique'
 
@@ -29,6 +30,10 @@ export class DefaultDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public resolver(name: string): ResolverDefinition {
+    return new ResolverDefinition(this, name)
   }
 
   public toString(): string {

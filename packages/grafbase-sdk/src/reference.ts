@@ -3,6 +3,7 @@ import { Enum } from './enum'
 import { ListDefinition } from './field/list'
 import { Type } from './type'
 import { AuthDefinition } from './typedefs/auth'
+import { ResolverDefinition } from './typedefs/resolver'
 
 export class ReferenceDefinition {
   referencedType: string
@@ -25,6 +26,10 @@ export class ReferenceDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public resolver(name: string): ResolverDefinition {
+    return new ResolverDefinition(this, name)
   }
 
   public toString(): string {

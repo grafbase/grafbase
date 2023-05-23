@@ -6,6 +6,7 @@ import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'
 import { DefaultDefinition } from './typedefs/default'
 import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
+import { ResolverDefinition } from './typedefs/resolver'
 import { ScalarDefinition } from './typedefs/scalar'
 import { SearchDefinition } from './typedefs/search'
 import { UniqueDefinition } from './typedefs/unique'
@@ -29,6 +30,7 @@ export type ModelFieldShape =
   | DefaultDefinition
   | LengthLimitedStringDefinition
   | AuthDefinition
+  | ResolverDefinition
 
 export class Model {
   name: string
