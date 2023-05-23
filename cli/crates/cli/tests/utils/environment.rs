@@ -145,7 +145,8 @@ impl Environment {
         self.write_file("schema.graphql", schema);
     }
 
-    pub fn write_ts_config(&self, config: impl AsRef<str>) {
+    #[allow(clippy::unused_self)]
+    pub fn prepare_ts_config_dependencies(&self) {
         fs::write(
             "package.json",
             r#"
@@ -166,6 +167,9 @@ impl Environment {
         )
         .unwrap();
         cmd!("npm", "install").run().unwrap();
+    }
+
+    pub fn write_ts_config(&self, config: impl AsRef<str>) {
         self.write_file("grafbase.config.ts", config);
     }
 
