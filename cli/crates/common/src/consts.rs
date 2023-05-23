@@ -20,6 +20,8 @@ pub const DOT_GRAFBASE_DIRECTORY: &str = ".grafbase";
 pub const REGISTRY_FILE: &str = "registry.json";
 /// the /resolvers directory containing resolver implementations
 pub const RESOLVERS_DIRECTORY_NAME: &str = "resolvers";
+/// the wrangler installation directory within ~/.grafbase
+pub const WRANGLER_DIRECTORY_NAME: &str = "wrangler";
 /// the tracing filter to be used when tracing is on
 pub const TRACE_LOG_FILTER: &str = "grafbase=trace,grafbase_local_common=trace,grafbase_local_server=trace,grafbase_local_backend=trace,tower_http=debug";
 /// the tracing filter to be used when tracing is off

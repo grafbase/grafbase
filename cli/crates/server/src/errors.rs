@@ -72,12 +72,20 @@ pub enum ServerError {
     SchemaRegistryWrite(IoError),
 
     /// returned if `tempfile::NamedTempFile::new()` fails.
-    #[error("could not create a temporary file for the parser result: {0}")]
+    #[error("could not create a temporary file: {0}")]
     CreateTemporaryFile(IoError),
 
+    /// returned if `tempfile::NamedTempFile::new()` fails.
+    #[error("could not write to a temporary file '{0}': {1}")]
+    CreateNotWriteToTemporaryFile(PathBuf, IoError),
+
     /// returned if a write to a resolver artifact file fails
-    #[error("could not create an output artifact file during a resolver build")]
-    CreateResolverArtifactFile(IoError),
+    #[error("could not create a file {0} during a resolver build: {1}")]
+    CreateResolverArtifactFile(PathBuf, IoError),
+
+    /// returned if a write to a resolver artifact file fails
+    #[error("could not read the file {0}: {1}")]
+    ReadFile(PathBuf, IoError),
 
     /// returned if the schema parser command exits unsuccessfully
     #[error("could not extract the resolver wrapper worker contents")]
@@ -149,6 +157,9 @@ pub enum ServerError {
     /// returned if a file watcher could not be initialized or was stopped due to an error
     #[error("A file watcher encountered an error\ncaused by: {0}")]
     FileWatcher(#[from] NotifyError),
+
+    #[error("Could not create a lock for the wrangler installation: {0}")]
+    Lock(#[from] fslock::Error),
 }
 
 impl From<SqlxError> for ServerError {
