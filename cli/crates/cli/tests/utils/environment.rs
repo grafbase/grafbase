@@ -22,6 +22,7 @@ pub struct Environment {
     schema_path: PathBuf,
     commands: Vec<Handle>,
     global_config_directory: Option<PathBuf>,
+    ts_config_dependencies_prepared: bool,
     #[cfg(feature = "dynamodb")]
     dynamodb_env: dynamodb::DynamoDbEnvironment,
 }
@@ -103,6 +104,7 @@ impl Environment {
             schema_path,
             commands,
             global_config_directory: None,
+            ts_config_dependencies_prepared: false,
             #[cfg(feature = "dynamodb")]
             dynamodb_env,
         }
@@ -125,6 +127,7 @@ impl Environment {
             temp_dir,
             port,
             global_config_directory: other.global_config_directory.clone(),
+            ts_config_dependencies_prepared: other.ts_config_dependencies_prepared,
             #[cfg(feature = "dynamodb")]
             dynamodb_env: dynamodb::DynamoDbEnvironment {
                 dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
@@ -145,8 +148,7 @@ impl Environment {
         self.write_file("schema.graphql", schema);
     }
 
-    #[allow(clippy::unused_self)]
-    pub fn prepare_ts_config_dependencies(&self) {
+    pub fn prepare_ts_config_dependencies(&mut self) {
         fs::write(
             "package.json",
             r#"
@@ -167,9 +169,14 @@ impl Environment {
         )
         .unwrap();
         cmd!("npm", "install").run().unwrap();
+        self.ts_config_dependencies_prepared = true;
     }
 
     pub fn write_ts_config(&self, config: impl AsRef<str>) {
+        assert!(
+            self.ts_config_dependencies_prepared,
+            "run environment.prepare_ts_config_dependencies() before writing the config"
+        );
         self.write_file("grafbase.config.ts", config);
     }
 
