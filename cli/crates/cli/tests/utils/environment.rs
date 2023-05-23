@@ -153,7 +153,7 @@ impl Environment {
         if self.ts_config_dependencies_prepared {
             return;
         }
-        fs::write("package.json", include_str!("assets/sdk-package.json")).unwrap();
+        fs::write("package.json", include_str!("../assets/sdk-package.json")).unwrap();
         cmd!("npm", "install").run().unwrap();
         self.ts_config_dependencies_prepared = true;
     }
