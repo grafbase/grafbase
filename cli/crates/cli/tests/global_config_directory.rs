@@ -1,6 +1,5 @@
 mod utils;
 
-use duct::cmd;
 use std::path::PathBuf;
 use utils::environment::Environment;
 
