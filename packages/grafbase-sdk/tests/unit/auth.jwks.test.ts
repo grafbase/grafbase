@@ -60,6 +60,35 @@ describe('OpenID auth provider', () => {
     `)
   })
 
+  it('renders a provider with issuer and jwksEndpoint', () => {
+    const derp = auth.JWKS({
+      jwksEndpoint: '{{ env.JWKS_ENDPOINT }}',
+      issuer: '{{ env.ISSUER }}'
+    })
+
+    const cfg = config({
+      schema: g,
+      auth: {
+        providers: [derp],
+        rules: (rules) => {
+          rules.private()
+        }
+      }
+    })
+
+    expect(cfg.toString()).toMatchInlineSnapshot(`
+      "extend schema
+        @auth(
+          providers: [
+            { type: jwks, issuer: "{{ env.ISSUER }}", jwksEndpoint: "{{ env.JWKS_ENDPOINT }}" }
+          ]
+          rules: [
+            { allow: private }
+          ]
+        )"
+    `)
+  })
+
   it('renders a provider with custom clientId', () => {
     const derp = auth.JWKS({
       issuer: '{{ env.ISSUER_URL }}',

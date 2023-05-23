@@ -436,21 +436,19 @@ const derp = auth.JWT({
 
 Required fields:
 
-- `issuer` or `jwksEndpoint`
+- `issuer`
 
 Optional fields:
 
 - `clientId`
 - `groupsClaim`
+- `jwksEndpoint`
+
+A JWKS provider has to define _either_ `issuer` or `jwksEndpoint`
 
 ```typescript
 const derp = auth.JWKS({
   issuer: '{{ env.ISSUER_URL }}'
-})
-
-// or
-const derp = auth.JWKS({
-  jwksEndpoint: '{{ env.JWKS_ENDPOINT }}'
 })
 ```
 

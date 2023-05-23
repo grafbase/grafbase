@@ -1,5 +1,8 @@
-import { RequireExactlyOne } from 'type-fest'
+import { RequireAtLeastOne } from 'type-fest'
 
+/**
+ * Input parameters to define a JWKS auth provider.
+ */
 export type JWKSParams = {
   issuer?: string
   jwksEndpoint?: string
@@ -14,7 +17,7 @@ export class JWKSAuth {
   groupsClaim?: string
 
   constructor(
-    params: RequireExactlyOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
+    params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
   ) {
     this.issuer = params.issuer
     this.jwksEndpoint = params.jwksEndpoint
@@ -24,9 +27,14 @@ export class JWKSAuth {
 
   public toString(): string {
     const issuer = this.issuer ? `issuer: "${this.issuer}"` : ''
-    const jwksEndpoint = this.jwksEndpoint
-      ? `jwksEndpoint: "${this.jwksEndpoint}"`
-      : ''
+
+    var jwksEndpoint = ''
+    if (!this.issuer && this.jwksEndpoint) {
+      jwksEndpoint = `jwksEndpoint: "${this.jwksEndpoint}"`
+    } else if (this.jwksEndpoint) {
+      jwksEndpoint = `, jwksEndpoint: "${this.jwksEndpoint}"`
+    }
+
     const clientId = this.clientId ? `, clientId: "${this.clientId}"` : ''
     const groupsClaim = this.groupsClaim
       ? `, groupsClaim: "${this.groupsClaim}"`
