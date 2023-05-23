@@ -93,11 +93,17 @@ impl<'a> Client<'a> {
         issuer_base_url: &url::Url,
         expected_issuer: &'a str,
     ) -> Result<VerifiedToken, VerificationError> {
-        let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
+        let token = UntrustedToken::new(&token).map_err(|err| {
+            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            VerificationError::InvalidToken
+        })?;
 
         let rsa = Self::get_rsa_algorithm(&token)?;
 
-        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+        let kid = token.header().key_id.as_ref().ok_or({
+            log::warn!(self.trace_id, "Rejecting JWT, kid is not present");
+            VerificationError::InvalidToken
+        })?;
         // Use JWK from cache if available
         let discovery_url = issuer_base_url.join(OIDC_DISCOVERY_PATH).expect("cannot fail");
         let caching_key = CachingKey::Oidc {
@@ -179,9 +185,17 @@ impl<'a> Client<'a> {
         jwks_endpoint_url: &'a Url,
         expected_issuer: Option<&'a str>,
     ) -> Result<VerifiedToken, VerificationError> {
-        let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
+        let token = UntrustedToken::new(&token).map_err(|err| {
+            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            VerificationError::InvalidToken
+        })?;
+
         let rsa = Self::get_rsa_algorithm(&token)?;
-        let kid = token.header().key_id.as_ref().ok_or(VerificationError::InvalidToken)?;
+
+        let kid = token.header().key_id.as_ref().ok_or({
+            log::warn!(self.trace_id, "Rejecting JWT, kid is not present");
+            VerificationError::InvalidToken
+        })?;
 
         let caching_key = CachingKey::Jwks { jwks_endpoint_url, kid };
         let cached_jwk = self
@@ -243,7 +257,10 @@ impl<'a> Client<'a> {
         use secrecy::ExposeSecret;
 
         let key = signing_key.expose_secret().as_bytes();
-        let token = UntrustedToken::new(&token).map_err(|_| VerificationError::InvalidToken)?;
+        let token = UntrustedToken::new(&token).map_err(|err| {
+            log::warn!(self.trace_id, "Cannot parse JWT - {err}");
+            VerificationError::InvalidToken
+        })?;
 
         let token = match token.algorithm() {
             "HS256" => Hs256
