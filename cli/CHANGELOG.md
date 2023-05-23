@@ -1,5 +1,53 @@
 # Changelog
 
+## [0.20.0] - 2023-05-22
+
+[CHANGELOG](changelog/0.20.0.md)
+
+## [0.19.2] - 2023-05-12
+
+[CHANGELOG](changelog/0.19.2.md)
+
+## [0.19.1] - 2023-05-12
+
+[CHANGELOG](changelog/0.19.1.md)
+
+## [0.19.0] - 2023-05-11
+
+[CHANGELOG](changelog/0.19.0.md)
+
+## [0.18.13] - 2023-05-09
+
+[CHANGELOG](changelog/0.18.13.md)
+
+## [0.18.12] - 2023-05-08
+
+[CHANGELOG](changelog/0.18.12.md)
+
+## [0.18.11] - 2023-05-05
+
+[CHANGELOG](changelog/0.18.11.md)
+
+## [0.18.10] - 2023-05-04
+
+[CHANGELOG](changelog/0.18.10.md)
+
+## [0.18.9] - 2023-05-02
+
+[CHANGELOG](changelog/0.18.9.md)
+
+## [0.18.8] - 2023-04-28
+
+[CHANGELOG](changelog/0.18.8.md)
+
+## [0.18.7] - 2023-04-26
+
+[CHANGELOG](changelog/0.18.7.md)
+
+## [0.18.6] - 2023-04-21
+
+[CHANGELOG](changelog/0.18.6.md)
+
 ## [0.18.4] - 2023-04-21
 
 [CHANGELOG](changelog/0.18.4.md)

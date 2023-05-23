@@ -1,4 +1,3 @@
-use crate::file_watcher::FileEventType;
 use std::path::PathBuf;
 use tokio::sync::broadcast::Receiver;
 
@@ -7,7 +6,7 @@ use tokio::sync::broadcast::Receiver;
 pub enum Event {
     /// emitted when a schema change is detected
     /// and the server should be reloaded
-    Reload(PathBuf, FileEventType),
+    Reload(PathBuf),
     /// emitted when the bridge is ready to receive requests
     BridgeReady,
 }

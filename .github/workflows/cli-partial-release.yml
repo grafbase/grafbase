@@ -31,6 +31,28 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
+
+      # This is annoying, but github doesn't pass env vars down to child workflows,
+      # and you can't use them as input parameters either so lets read them out the
+      # YAML
+      - name: Get PROD_ASSETS from cli workflow
+        id: lookup-prod-assets
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq '.env.PROD_ASSETS' './.github/workflows/cli.yml'
+
+      - name: Get ASSETS_VERSION from cli workflow
+        id: lookup-assets-version
+        uses: mikefarah/yq@master
+        with:
+          cmd: yq '.env.ASSETS_VERSION' './.github/workflows/cli.yml'
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
+          cdn: ${{ steps.lookup-prod-assets.outputs.result }}
+          assets_version: ${{ steps.lookup-assets-version.outputs.result }}
 
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3
@@ -82,33 +104,6 @@ jobs:
           (cd cli && cargo about generate -o "licenses.html" about.hbs)
           find cli/crates -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
           find cli/npm -maxdepth 1 -type d -exec cp cli/licenses.html {} \;
-
-      - name: Publish cargo
-        shell: bash
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_ACCESS_TOKEN }}
-        run: |
-          set -e
-          set -o pipefail
-
-          cd cli/crates
-
-          retryable() {
-            for i in {1..5}; do
-              $1 && break || echo 'Retrying in 5...'
-              sleep 5
-            done
-
-            if [ "$i" -ge 5 ]; then
-              echo "Failed to run $1"
-              exit 1
-            fi
-          }
-
-          (cd common && retryable 'cargo publish --allow-dirty')
-          (cd server && retryable 'cargo publish --allow-dirty')
-          (cd backend && retryable 'cargo publish --allow-dirty')
-          (cd cli && retryable 'cargo publish --allow-dirty')
 
       - name: Publish npm
         shell: bash

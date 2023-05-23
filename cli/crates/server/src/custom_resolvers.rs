@@ -198,10 +198,10 @@ async fn build_resolver(
                 artifact_directory_path_string,
                 "add",
                 "--save-dev",
-                "wrangler",
+                "wrangler@2",
             ],
             JavaScriptPackageManager::Pnpm => {
-                vec!["add", "-D", "wrangler"]
+                vec!["add", "-D", "wrangler@2"]
             }
             JavaScriptPackageManager::Yarn => {
                 vec![
@@ -209,7 +209,7 @@ async fn build_resolver(
                     "--modules-folder",
                     artifact_directory_modules_path_string,
                     "-D",
-                    "wrangler",
+                    "wrangler@2",
                 ]
             }
         };

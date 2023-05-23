@@ -1,16 +1,12 @@
-pub use crate::file_watcher::FileEventType;
 use common::types::ResolverMessageLevel;
-use rust_embed::RustEmbed;
 use std::path::PathBuf;
 
-#[derive(RustEmbed)]
-#[folder = "assets/"]
-pub struct Assets;
+pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets.tar.gz");
 
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
     Ready(u16),
-    Reload(PathBuf, FileEventType),
+    Reload(PathBuf),
     StartResolverBuild(String),
     CompleteResolverBuild {
         name: String,

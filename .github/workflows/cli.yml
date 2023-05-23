@@ -17,9 +17,11 @@ permissions:
 
 env:
   GRAFBASE_SKIP_ASSET_VERSION_CHECK: 'true'
-  ASSETS_VERSION: 'release/9ec0a56-2023-05-02'
+  ASSETS_VERSION: release/bcbbc34-2023-05-22
   PROD_ASSETS: assets.grafbase.com
   CARGO_TERM_COLOR: 'always'
+  CARGO_PROFILE_DEV_DEBUG: 0
+  CARGO_PROFILE_TEST_DEBUG: 0
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,7 +42,22 @@ jobs:
           filters: |
             build:
               - 'cli/**/*'
-              - '.github/**/*'
+              - '.github/workflows/cli.yml'
+              - '.github/actions/**/*'
+
+  prettier:
+    needs: [detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest-8-cores
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Run prettier on workspace
+        shell: bash
+        run: |
+          cd cli
+          npx prettier --check .
 
   lint:
     needs: [detect-change-type]
@@ -55,6 +72,7 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-dev
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -67,6 +85,31 @@ jobs:
         with:
           test: false
 
+  individual-builds:
+    needs: [detect-change-type]
+    if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [common, server, backend, cli]
+    runs-on: ubuntu-latest-8-cores
+    steps:
+      - name: Get sources
+        uses: actions/checkout@v3
+
+      - name: Rust job init
+        uses: ./.github/actions/init_rust_job
+        with:
+          platform: linux
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build-${{ matrix.package }}-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-build
+
+      - name: Fetch CDN assets
+        uses: ./.github/actions/cdn_assets
+        with:
+          cdn: ${{ env.PROD_ASSETS }}
+          assets_version: ${{ env.ASSETS_VERSION }}
+
       - name: Individual package build
         shell: bash
         run: |
@@ -76,10 +119,7 @@ jobs:
           # However, each package is published individually, so we're checking that all packages compile
           # with only their defined features.
           # See: https://github.com/rust-lang/cargo/issues/4463
-          (cd common && cargo check)
-          (cd server && cargo check)
-          (cd backend && cargo check)
-          (cd cli && cargo check)
+          cd ${{ matrix.package }} && cargo check
 
   windows:
     needs: [lint]
@@ -93,6 +133,7 @@ jobs:
         with:
           platform: windows
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -109,7 +150,12 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-pc-windows-msvc
+          cargo build --release --target x86_64-pc-windows-msvc --timings
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: windows-release-timings.html
+          path: cli/target/cargo-timings/cargo-timing.html
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
@@ -131,6 +177,7 @@ jobs:
         with:
           platform: linux
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -147,7 +194,12 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-unknown-linux-musl
+          cargo build --release --target x86_64-unknown-linux-musl --timings
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: linux-release-timings.html
+          path: cli/target/cargo-timings/cargo-timing.html
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
@@ -172,7 +224,8 @@ jobs:
         uses: ./.github/actions/init_rust_job
         with:
           platform: macos
-          cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          cache-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
+          restore-key: ${{ runner.os }}-${{ runner.arch }}-${{ matrix.target }}
 
       - name: Fetch CDN assets
         uses: ./.github/actions/cdn_assets
@@ -180,7 +233,7 @@ jobs:
           cdn: ${{ env.PROD_ASSETS }}
           assets_version: ${{ env.ASSETS_VERSION }}
 
-      - if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - if: ${{ !startsWith(github.ref, 'refs/tags/') && matrix.target == 'x86_64-apple-darwin' }}
         name: Sanitize
         uses: ./.github/actions/sanitize
         with:
@@ -189,7 +242,12 @@ jobs:
       - name: Build ${{ matrix.target }} release
         run: |
           cd cli
-          cargo build --release --target ${{ matrix.target }}
+          cargo build --release --target ${{ matrix.target }} --timings
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.target }}-release-timings.html
+          path: cli/target/cargo-timings/cargo-timing.html
 
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload ${{ matrix.target }} binary

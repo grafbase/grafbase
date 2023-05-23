@@ -1,0 +1,8 @@
+extend schema
+  @openapi(
+    name: "Tinybird"
+    schema: "{{ env.TINYBIRD_API_SCHEMA }}"
+    headers: [
+      { name: "Authorization", value: "Bearer {{ env.TINYBIRD_API_TOKEN }}" }
+    ]
+  )

@@ -1,6 +1,7 @@
 #[path = "../utils/mod.rs"]
 mod utils;
 
+mod introspection_headers;
 mod remote_unions;
 
 use std::net::SocketAddr;
@@ -13,13 +14,13 @@ use wiremock::{
     Match, Mock, ResponseTemplate,
 };
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn openapi_test() {
     let mock_server = wiremock::MockServer::start().await;
     mount_petstore_spec(&mock_server).await;
 
-    let mut env = Environment::init();
-    let client = start_grafbase_with_petstore_schema(&mut env, mock_server.address()).await;
+    let mut env = Environment::init_async().await;
+    let client = start_grafbase(&mut env, petstore_schema(mock_server.address())).await;
 
     Mock::given(method("GET"))
         .and(path("/pet/123"))
@@ -137,9 +138,9 @@ impl Match for RequestBodySpy {
     }
 }
 
-async fn start_grafbase_with_petstore_schema(env: &mut Environment, mock_address: &SocketAddr) -> AsyncClient {
+async fn start_grafbase(env: &mut Environment, schema: impl AsRef<str>) -> AsyncClient {
     env.grafbase_init();
-    env.write_schema(petstore_schema(mock_address));
+    env.write_schema(schema);
     env.set_variables([("API_KEY", "BLAH")]);
     env.grafbase_dev_watch();
 

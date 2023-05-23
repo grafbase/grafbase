@@ -73,7 +73,7 @@ pub async fn get_viewer_data_for_creation() -> Result<(Vec<Account>, Vec<Databas
 pub async fn create(
     account_id: &str,
     project_slug: &str,
-    database_regions: &[DatabaseRegion],
+    database_regions: &[String],
 ) -> Result<Vec<String>, ApiError> {
     let environment = Environment::get();
 

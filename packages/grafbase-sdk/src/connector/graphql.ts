@@ -1,0 +1,73 @@
+import { Header, Headers, HeaderGenerator } from './header'
+
+export interface GraphQLParams {
+  url: string
+  headers?: HeaderGenerator
+}
+
+export class PartialGraphQLAPI {
+  apiUrl: string
+  headers: Header[]
+  introspectionHeaders: Header[]
+
+  constructor(params: GraphQLParams) {
+    const headers = new Headers()
+
+    if (params.headers) {
+      params.headers(headers)
+    }
+
+    this.apiUrl = params.url
+    this.headers = headers.headers
+    this.introspectionHeaders = headers.introspectionHeaders
+  }
+
+  finalize(namespace: string): GraphQLAPI {
+    return new GraphQLAPI(
+      namespace,
+      this.apiUrl,
+      this.headers,
+      this.introspectionHeaders
+    )
+  }
+}
+
+export class GraphQLAPI {
+  namespace: string
+  url: string
+  headers: Header[]
+  introspectionHeaders: Header[]
+
+  constructor(
+    namespace: string,
+    url: string,
+    headers: Header[],
+    introspectionHeaders: Header[]
+  ) {
+    this.namespace = namespace
+    this.url = url
+    this.headers = headers
+    this.introspectionHeaders = introspectionHeaders
+  }
+
+  public toString(): string {
+    const header = '  @graphql(\n'
+    const namespace = this.namespace ? `    name: "${this.namespace}"\n` : ''
+    const url = this.url ? `    url: "${this.url}"\n` : ''
+
+    var headers = this.headers.map((header) => `      ${header}`).join('\n')
+    headers = headers ? `    headers: [\n${headers}\n    ]\n` : ''
+
+    var introspectionHeaders = this.introspectionHeaders
+      .map((header) => `      ${header}`)
+      .join('\n')
+
+    introspectionHeaders = headers
+      ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`
+      : ''
+
+    const footer = '  )'
+
+    return `${header}${namespace}${url}${headers}${introspectionHeaders}${footer}`
+  }
+}

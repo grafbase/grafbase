@@ -8,8 +8,8 @@ pub enum ApiError {
     #[error("could not start the login server")]
     StartLoginServer,
 
-    /// returned if the user is not logged in when attempting to log out
-    #[error("could not log out as you are not logged in")]
+    /// returned if the user is not logged in when attempting to use a command requiring auth
+    #[error("could not proceed as you are not logged in")]
     NotLoggedIn,
 
     /// returned if ~/.grafbase/credentials.json could not be deleted
@@ -43,6 +43,10 @@ pub enum ApiError {
     /// returned if the contents of the credential file are corrupt
     #[error("could not complete the action as your credential file is corrupt")]
     CorruptCredentialsFile,
+
+    /// returned if the provided access token is corrupt
+    #[error("could not complete the action as your access token is corrupt")]
+    CorruptAccessToken,
 
     /// returned if the contents of the project metadata file are corrupt
     #[error("could not complete the action as your project metadata file are corrupt")]

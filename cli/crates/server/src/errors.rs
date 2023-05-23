@@ -87,6 +87,10 @@ pub enum ServerError {
     #[error("could not parse grafbase/schema.graphql\n{0}")]
     ParseSchema(String),
 
+    /// returned if the typescript config parser command exits unsuccessfully
+    #[error("could not load grafbase/grafbase.config.ts\ncaused by: {0}")]
+    LoadTsConfig(String),
+
     #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
     ResolverDoesNotExist(PathBuf),
 
@@ -142,9 +146,9 @@ pub enum ServerError {
     #[error("Could not retrive the installed version of Node.js")]
     CheckNodeVersion,
 
-    /// returned if a file watcher could not be initialized
-    #[error("Could not initialize a file watcher: {0}")]
-    FileWatcherInit(#[from] NotifyError),
+    /// returned if a file watcher could not be initialized or was stopped due to an error
+    #[error("A file watcher encountered an error\ncaused by: {0}")]
+    FileWatcher(#[from] NotifyError),
 }
 
 impl From<SqlxError> for ServerError {

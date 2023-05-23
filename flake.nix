@@ -73,6 +73,9 @@
 
             # Formatting
             nodePackages.prettier
+
+            # Versioning
+            nodePackages.semver
           ]
           ++ optional (system == systems.aarch64-darwin) [
             darwin.apple_sdk.frameworks.Security

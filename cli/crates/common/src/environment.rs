@@ -2,16 +2,93 @@
 
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, REGISTRY_FILE,
-        RESOLVERS_DIRECTORY_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
 use once_cell::sync::OnceCell;
 use std::{
+    borrow::Cow,
     env,
     path::{Path, PathBuf},
 };
+
+#[derive(Debug)]
+pub enum SchemaLocation {
+    /// The path of `$PROJECT/grafbase/grafbase.config.ts`,
+    /// if exits.
+    TsConfig(PathBuf),
+    /// The path of `$PROJECT/grafbase/schema.graphql`, the
+    /// Grafbase schema, in the nearest ancestor directory
+    /// with said directory and file
+    Graphql(PathBuf),
+}
+
+/// Points to the location of the Grafabase schema file.
+#[derive(Debug)]
+pub struct GrafbaseSchemaPath {
+    location: SchemaLocation,
+}
+
+impl GrafbaseSchemaPath {
+    /// The location of the schema file.
+    #[must_use]
+    pub fn location(&self) -> &SchemaLocation {
+        &self.location
+    }
+
+    fn ts_config(path: PathBuf) -> Self {
+        Self {
+            location: SchemaLocation::TsConfig(path),
+        }
+    }
+
+    fn graphql(path: PathBuf) -> Self {
+        Self {
+            location: SchemaLocation::Graphql(path),
+        }
+    }
+
+    fn parent(&self) -> Option<&Path> {
+        use SchemaLocation::{Graphql, TsConfig};
+
+        match self.location() {
+            TsConfig(path) | Graphql(path) => path.parent(),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Warning {
+    message: Cow<'static, str>,
+    hint: Option<Cow<'static, str>>,
+}
+
+impl Warning {
+    pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
+        Self {
+            message: message.into(),
+            hint: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_hint(mut self, message: impl Into<Cow<'static, str>>) -> Self {
+        self.hint = Some(message.into());
+        self
+    }
+
+    #[must_use]
+    pub fn message(&self) -> &str {
+        &self.message
+    }
+
+    #[must_use]
+    pub fn hint(&self) -> Option<&str> {
+        self.hint.as_deref()
+    }
+}
 
 /// a static representation of the current environment
 ///
@@ -27,9 +104,9 @@ pub struct Environment {
     /// the path of `$PROJECT/grafbase/`, the Grafbase schema directory in the nearest ancestor directory
     /// with `grafbase/schema.graphql`
     pub project_grafbase_path: PathBuf,
-    /// the path of `$PROJECT/grafbase/schema.graphql`, the Grafbase schema,
-    /// in the nearest ancestor directory with said directory and file
-    pub project_grafbase_schema_path: PathBuf,
+    /// the path of the Grafbase schema, in the nearest ancestor directory with
+    /// said directory and file
+    pub project_grafbase_schema_path: GrafbaseSchemaPath,
     /// the path of `$HOME/.grafbase`, the user level local developer tool cache directory
     pub user_dot_grafbase_path: PathBuf,
     /// the path of `$PROJECT/.grafbase/registry.json`, the registry derived from `schema.graphql`,
@@ -41,6 +118,8 @@ pub struct Environment {
     pub resolvers_build_artifact_path: PathBuf,
     /// the path within '$PROJECT/.grafbase' containing the database
     pub database_directory_path: PathBuf,
+    /// warnings when loading the environment
+    pub warnings: Vec<Warning>,
 }
 
 /// static singleton for the environment struct
@@ -60,23 +139,30 @@ impl Environment {
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
     pub fn try_init() -> Result<(), CommonError> {
+        let mut warnings = Vec::new();
+
         let project_grafbase_schema_path =
-            Self::get_project_grafbase_path()?.ok_or(CommonError::FindGrafbaseDirectory)?;
+            Self::get_project_grafbase_path(&mut warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
+
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
             .expect("the schema directory must have a parent by definiton")
             .to_path_buf();
+
         let project_path = project_grafbase_path
             .parent()
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
-        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
+
         let user_dot_grafbase_path =
             get_user_dot_grafbase_path().unwrap_or_else(|| project_grafbase_path.join(DOT_GRAFBASE_DIRECTORY));
+
+        let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);
         let resolvers_source_path = project_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let database_directory_path = project_dot_grafbase_path.join(DATABASE_DIRECTORY);
+
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -88,6 +174,7 @@ impl Environment {
                 resolvers_source_path,
                 resolvers_build_artifact_path,
                 database_directory_path,
+                warnings,
             })
             .expect("cannot set environment twice");
 
@@ -109,44 +196,65 @@ impl Environment {
         }
     }
 
-    /// searches for the closest ancestor directory
-    /// named "grafbase" which contains a "schema.graphql" file.
-    /// if already inside a `grafbase` directory, looks for `schema.graphql` inside the current ancestor as well
+    /// searches for the closest ancestor directory named "grafbase" which
+    /// contains either a "grafbase.config.ts" or a "schema.graphql" file. if
+    /// already inside a `grafbase` directory, looks for `schema.graphql` inside
+    /// the current ancestor as well
     ///
     /// # Errors
     ///
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-    fn get_project_grafbase_path() -> Result<Option<PathBuf>, CommonError> {
-        let project_grafbase_path = env::current_dir()
-            .map_err(|_| CommonError::ReadCurrentDirectory)?
-            .ancestors()
-            .find_map(|ancestor| {
-                let mut path = PathBuf::from(ancestor);
+    fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
+        let ts_config = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)?;
+        let gql = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
 
-                // if we're looking at a directory called `grafbase`, also check for the schema in the current directory
-                if let Some(first) = path.components().next() {
-                    if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
-                        path.push(GRAFBASE_SCHEMA_FILE_NAME);
-                        if path.is_file() {
-                            return Some(path);
-                        }
-                        path.pop();
-                    }
-                }
+        if let Some(path) = ts_config {
+            let path = GrafbaseSchemaPath::ts_config(path);
 
-                path.push(
-                    [GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME]
-                        .iter()
-                        .collect::<PathBuf>(),
-                );
+            if gql.is_some() {
+                let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
+                    .with_hint("Delete one of them to avoid conflicts");
 
-                if path.is_file() {
-                    Some(path)
-                } else {
-                    None
-                }
-            });
+                warnings.push(warning);
+            }
 
-        Ok(project_grafbase_path)
+            Ok(Some(path))
+        } else {
+            Ok(gql.map(GrafbaseSchemaPath::graphql))
+        }
     }
+}
+
+/// Find a path to the given file in the project's grafbase directory.
+fn get_path_to_file_in_project_grafbase(file_name: &str) -> Result<Option<PathBuf>, CommonError> {
+    let path_to_file = env::current_dir()
+        .map_err(|_| CommonError::ReadCurrentDirectory)?
+        .ancestors()
+        .find_map(|ancestor| {
+            let mut path = PathBuf::from(ancestor);
+
+            // if we're looking at a directory called `grafbase`,
+            // also check for the file in the current directory
+            if let Some(first) = path.components().next() {
+                if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
+                    path.push(file_name);
+
+                    if path.is_file() {
+                        return Some(path);
+                    }
+
+                    path.pop();
+                }
+            }
+
+            path.push([GRAFBASE_DIRECTORY_NAME, file_name].iter().collect::<PathBuf>());
+
+            if path.is_file() {
+                Some(path)
+            } else {
+                None
+            }
+        });
+
+    Ok(path_to_file)
 }

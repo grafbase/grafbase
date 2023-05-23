@@ -1,7 +1,6 @@
 #![forbid(unsafe_code)]
 
 mod cli_input;
-mod completions;
 mod create;
 mod deploy;
 mod dev;
@@ -21,26 +20,32 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    create::create, deploy::deploy, dev::dev, init::init, link::link, login::login, logout::logout, reset::reset,
+    cli_input::{Args, SubCommand},
+    create::create,
+    deploy::deploy,
+    dev::dev,
+    init::init,
+    link::link,
+    login::login,
+    logout::logout,
+    reset::reset,
     unlink::unlink,
 };
-use cli_input::build_cli;
-use common::{
-    consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER},
-    environment::Environment,
-};
+use clap::Parser;
+use common::environment::Environment;
 use errors::CliError;
 use output::report;
-use std::{convert::AsRef, process};
+use std::process;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use watercolor::ShouldColorize;
 
 fn main() {
     panic_hook!();
 
+    let args = Args::parse();
     ShouldColorize::from_env();
 
-    let exit_code = match try_main() {
+    let exit_code = match try_main(args) {
         Ok(_) => 0,
         Err(error) => {
             report::error(&error);
@@ -51,62 +56,40 @@ fn main() {
     process::exit(exit_code);
 }
 
-fn try_main() -> Result<(), CliError> {
-    let matches = build_cli().get_matches();
-    let trace = matches.try_get_one::<u16>("trace");
-    let filter = EnvFilter::builder().parse_lossy(if matches!(trace, Ok(Some(level)) if *level >= 1) {
-        TRACE_LOG_FILTER
-    } else {
-        DEFAULT_LOG_FILTER
-    });
+fn try_main(args: Args) -> Result<(), CliError> {
+    let filter = EnvFilter::builder().parse_lossy(args.log_filter());
 
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
+    trace!("subcommand: {}", args.command);
+    report::cli_header();
 
-    let subcommand = matches.subcommand();
-
-    trace!("subcommand: {}", subcommand.expect("required").0);
-
-    if let Some(("dev" | "init" | "reset" | "login" | "logout" | "create" | "deploy" | "link" | "unlink", ..)) =
-        subcommand
-    {
-        report::cli_header();
-    }
-
-    if let Some(("dev" | "create" | "deploy" | "link" | "unlink", ..)) = subcommand {
+    if args.command.needs_environment() {
         Environment::try_init().map_err(CliError::CommonError)?;
+        report::warnings(&Environment::get().warnings);
     }
 
-    match subcommand {
-        Some(("completions", matches)) => {
-            let shell = matches.get_one::<String>("shell").expect("must be present");
+    match args.command {
+        SubCommand::Completions(cmd) => {
+            cmd.shell.completions();
 
-            completions::generate(shell)
+            Ok(())
         }
-        Some(("dev", matches)) => {
+        SubCommand::Dev(cmd) => {
             // ignoring any errors to fall back to the normal handler if there's an issue
             let _set_handler_result = ctrlc::set_handler(|| {
                 report::goodbye();
                 process::exit(exitcode::OK);
             });
 
-            let search = matches.get_flag("search");
-            let watch = !matches.get_flag("disable-watch");
-            let port = matches.get_one::<u16>("port").copied();
-
-            dev(search, watch, port, matches!(trace, Ok(Some(level)) if *level >= 2))
+            dev(cmd.search, !cmd.disable_watch, cmd.port, args.trace >= 2)
         }
-        Some(("init", matches)) => {
-            let name = matches.get_one::<String>("name").map(AsRef::as_ref);
-            let template = matches.get_one::<String>("template").map(AsRef::as_ref);
-            init(name, template)
-        }
-        Some(("reset", _)) => reset(),
-        Some(("login", _)) => login(),
-        Some(("logout", _)) => logout(),
-        Some(("create", _)) => create(),
-        Some(("deploy", _)) => deploy(),
-        Some(("link", _)) => link(),
-        Some(("unlink", _)) => unlink(),
-        _ => unreachable!(),
+        SubCommand::Init(cmd) => init(cmd.name(), cmd.template()),
+        SubCommand::Reset => reset(),
+        SubCommand::Login => login(),
+        SubCommand::Logout => logout(),
+        SubCommand::Create(cmd) => create(&cmd.create_arguments()),
+        SubCommand::Deploy => deploy(),
+        SubCommand::Link => link(),
+        SubCommand::Unlink => unlink(),
     }
 }

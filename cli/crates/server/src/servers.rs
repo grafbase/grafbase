@@ -1,18 +1,23 @@
 use crate::consts::{
-    ASSET_VERSION_FILE, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE, MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX,
+    ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
+    MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
 use crate::custom_resolvers::build_resolvers;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
-use crate::types::{Assets, ServerMessage};
+use crate::types::{ServerMessage, ASSETS_GZIP};
 use crate::{bridge, errors::ServerError};
-use common::consts::{EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME};
-use common::environment::Environment;
+use common::consts::{
+    EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
+};
+use common::environment::{Environment, SchemaLocation};
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
 
+use flate2::read::GzDecoder;
+use std::borrow::Cow;
 use std::env;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -69,9 +74,9 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                     let watch_event_bus = event_bus.clone();
 
                     tokio::select! {
-                        result = start_watcher(environment.project_grafbase_path.clone(),  move |path, event_type| {
+                        result = start_watcher(environment.project_grafbase_path.clone(), move |path| {
                             let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
-                            watch_event_bus.send(Event::Reload(relative_path, event_type)).expect("cannot fail");
+                            watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
                     }
@@ -99,13 +104,13 @@ async fn server_loop(
             result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
-            (path, file_event_type) = wait_for_event_and_match(receiver, |event| match event {
-                Event::Reload(path, file_event_type) => Some((path, file_event_type)),
+            path = wait_for_event_and_match(receiver, |event| match event {
+                Event::Reload(path) => Some(path),
                 Event::BridgeReady => None,
             }) => {
                 trace!("reload");
                 path_changed = Some(path.clone());
-                let _: Result<_, _> = sender.send(ServerMessage::Reload(path, file_event_type));
+                let _: Result<_, _> = sender.send(ServerMessage::Reload(path));
             }
         }
     }
@@ -146,9 +151,11 @@ async fn spawn_servers(
     // because the build naturally reuses the intermediate artifacts from node_modules from previous builds.
     // For this logic to become more fine-grained we would need to have an understanding of the module dependency graph
     // in resolvers, and that's a non-trivial problem.
-    if !path_changed
-        .map(|path| path == Path::new(GRAFBASE_DIRECTORY_NAME).join(GRAFBASE_SCHEMA_FILE_NAME))
-        .unwrap_or_default()
+    if path_changed
+        .map(|path| (Path::new(GRAFBASE_DIRECTORY_NAME), path))
+        .filter(|(dir, path)| path != &dir.join(GRAFBASE_SCHEMA_FILE_NAME))
+        .filter(|(dir, path)| path != &dir.join(GRAFBASE_TS_CONFIG_FILE_NAME))
+        .is_some()
     {
         for resolver in &mut resolvers {
             resolver.fresh = false;
@@ -238,6 +245,29 @@ async fn spawn_servers(
         ]
     }));
 
+    #[cfg(feature = "dynamodb")]
+    {
+        #[allow(clippy::panic)]
+        fn get_env(key: &str) -> String {
+            let val = std::env::var(key).unwrap_or_else(|_| panic!("Environment variable not found:{key}"));
+            format!("{key}={val}")
+        }
+
+        miniflare_arguments.extend(
+            vec![
+                "AWS_ACCESS_KEY_ID",
+                "AWS_SECRET_ACCESS_KEY",
+                "DYNAMODB_REGION",
+                "DYNAMODB_TABLE_NAME",
+            ]
+            .iter()
+            .map(|key| get_env(key))
+            .flat_map(|env| {
+                std::iter::once(std::borrow::Cow::Borrowed("--binding")).chain(std::iter::once(env.into()))
+            }),
+        );
+    }
+
     let mut miniflare = Command::new("node");
     miniflare
         // Unbounded worker limit
@@ -298,24 +328,12 @@ fn export_embedded_files() -> Result<(), ServerError> {
         fs::write(gitignore_path, GIT_IGNORE_CONTENTS)
             .map_err(|_| ServerError::WriteFile(gitignore_path.to_string_lossy().into_owned()))?;
 
-        let mut write_results = Assets::iter().map(|path| {
-            let file = Assets::get(path.as_ref());
-
-            let full_path = environment.user_dot_grafbase_path.join(path.as_ref());
-
-            let parent = full_path.parent().expect("must have a parent");
-            let create_dir_result = fs::create_dir_all(parent);
-
-            // must be Some(file) since we're iterating over existing paths
-            let write_result = create_dir_result.and_then(|_| fs::write(&full_path, file.unwrap().data));
-
-            (write_result, full_path)
-        });
-
-        if let Some((_, path)) = write_results.find(|(result, _)| result.is_err()) {
-            let error_path_string = path.to_string_lossy().into_owned();
-            return Err(ServerError::WriteFile(error_path_string));
-        }
+        let reader = GzDecoder::new(ASSETS_GZIP);
+        let mut archive = tar::Archive::new(reader);
+        let full_path = &environment.user_dot_grafbase_path;
+        archive
+            .unpack(full_path)
+            .map_err(|_| ServerError::WriteFile(full_path.to_string_lossy().into_owned()))?;
 
         if fs::write(&version_path, current_version).is_err() {
             let version_path_string = version_path.to_string_lossy().into_owned();
@@ -377,13 +395,17 @@ async fn run_schema_parser(
     );
 
     let output = {
+        let schema_path = match environment.project_grafbase_schema_path.location() {
+            SchemaLocation::TsConfig(ref ts_config_path) => {
+                Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
+            }
+            SchemaLocation::Graphql(ref path) => Cow::Borrowed(path.to_str().ok_or(ServerError::ProjectPath)?),
+        };
+
         let mut node_command = Command::new("node")
             .args([
                 parser_path.to_str().ok_or(ServerError::CachePath)?,
-                environment
-                    .project_grafbase_schema_path
-                    .to_str()
-                    .ok_or(ServerError::ProjectPath)?,
+                &schema_path,
                 parser_result_path.to_str().expect("must be a valid path"),
             ])
             .current_dir(&environment.project_dot_grafbase_path)
@@ -452,6 +474,57 @@ async fn run_schema_parser(
     .map_err(ServerError::SchemaRegistryWrite)?;
 
     Ok(detected_resolvers)
+}
+
+/// Parses a TypeScript Grafbase configuration and generates a GraphQL schema
+/// file to the filesystem, returning a path to the generated file.
+async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
+    let environment = Environment::get();
+
+    let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
+    let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
+
+    if !generated_schemas_dir.exists() {
+        std::fs::create_dir_all(generated_schemas_dir).map_err(ServerError::SchemaParserError)?;
+    }
+
+    let config_parser_path = environment
+        .user_dot_grafbase_path
+        .join(SCHEMA_PARSER_DIR)
+        .join(CONFIG_PARSER_SCRIPT);
+
+    let ts_node_path = environment.user_dot_grafbase_path.join(TS_NODE_SCRIPT_PATH);
+
+    let args = [
+        ts_node_path.as_path(),
+        config_parser_path.as_path(),
+        ts_config_path,
+        &generated_config_path,
+    ];
+
+    let node_command = Command::new("node")
+        .args(args)
+        .current_dir(&environment.user_dot_grafbase_path)
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .map_err(ServerError::SchemaParserError)?;
+
+    let output = node_command
+        .wait_with_output()
+        .await
+        .map_err(ServerError::SchemaParserError)?;
+
+    if !output.status.success() {
+        let msg = String::from_utf8_lossy(&output.stderr);
+        return Err(ServerError::LoadTsConfig(msg.into_owned()));
+    }
+
+    let generated_config_path = generated_config_path.to_str().ok_or(ServerError::ProjectPath)?;
+
+    trace!("Generated configuration in {}.", generated_config_path);
+
+    Ok(generated_config_path.to_string())
 }
 
 async fn get_node_version_string() -> Result<String, ServerError> {

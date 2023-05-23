@@ -36,7 +36,7 @@ const makeEventStreamSource = (url: string) => {
 
 const subscription = subscriptionExchange({
   enableAllOperations: true,
-  forwardSubscription: (operation) => ({
+  forwardSubscription: (request, operation) => ({
     subscribe: (sink) => ({
       unsubscribe: applyAsyncIterableIteratorToSink(
         makeAsyncIterableIteratorFromSink<ExecutionResult>((sink) => {
@@ -50,8 +50,8 @@ const subscription = subscriptionExchange({
           )
           const searchParams = new URLSearchParams({
             ...headers,
-            query: operation.query,
-            variables: JSON.stringify(operation.variables || {})
+            query: JSON.stringify(request.query ?? ''),
+            variables: JSON.stringify(request.variables ?? {})
           })
           const url = new URL(operation.context.url)
           url.search = searchParams.toString()
@@ -72,19 +72,19 @@ const isLiveOperation = (operation: Operation) =>
 
 export const sseExchange: Exchange = (input) => {
   const forwardSubscription = subscription(input)
-  const filterOeration = (operation: Operation) => isLiveOperation(operation)
+  const filterOperation = (operation: Operation) => isLiveOperation(operation)
 
   return (ops$) => {
     const sharedOps$ = share(ops$)
 
     const sseResults$ = pipe(
       sharedOps$,
-      filter(filterOeration),
+      filter(filterOperation),
       forwardSubscription
     )
     const forward$ = pipe(
       sharedOps$,
-      filter((ops) => !filterOeration(ops)),
+      filter((ops) => !filterOperation(ops)),
       input.forward
     )
 

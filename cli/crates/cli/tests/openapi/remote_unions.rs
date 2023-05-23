@@ -1,19 +1,21 @@
 use std::net::SocketAddr;
 
-use crate::utils::{async_client::AsyncClient, environment::Environment};
+use crate::utils::environment::Environment;
 use serde_json::{json, Value};
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
 };
 
-#[tokio::test]
+use super::start_grafbase;
+
+#[tokio::test(flavor = "multi_thread")]
 async fn remote_unions_test() {
     let mock_server = wiremock::MockServer::start().await;
     mount_remote_union_spec(&mock_server).await;
 
-    let mut env = Environment::init();
-    let client = start_grafbase(&mut env, mock_server.address()).await;
+    let mut env = Environment::init_async().await;
+    let client = start_grafbase(&mut env, schema(mock_server.address())).await;
 
     Mock::given(method("GET"))
         .and(path("/pets"))
@@ -100,18 +102,6 @@ async fn remote_unions_test() {
           data: Mrs Krabappel
     "###
     );
-}
-
-async fn start_grafbase(env: &mut Environment, mock_address: &SocketAddr) -> AsyncClient {
-    env.grafbase_init();
-    env.write_schema(schema(mock_address));
-    env.grafbase_dev_watch();
-
-    let client = env.create_async_client().with_api_key();
-
-    client.poll_endpoint(30, 300).await;
-
-    client
 }
 
 fn schema(address: &SocketAddr) -> String {
