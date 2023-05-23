@@ -121,7 +121,7 @@ export class GrafbaseSchema {
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(([name, type]) =>
-        query.pushArgument(name, type)
+        query.argument(name, type)
       )
     }
 
@@ -135,7 +135,7 @@ export class GrafbaseSchema {
 
     if (definition.args != null) {
       Object.entries(definition.args).forEach(
-        ([name, type]) => query.pushArgument(name, type),
+        ([name, type]) => query.argument(name, type),
         query
       )
     }

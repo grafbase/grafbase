@@ -1,5 +1,8 @@
 import { Type } from './type'
 
+/**
+* A builder to create a GraphQL union.
+*/
 export class Union {
   name: string
   types: string[]
@@ -9,6 +12,7 @@ export class Union {
     this.types = []
   }
 
+  /** Pushes a new type to the union definition. */
   public type(type: Type): Union {
     this.types.push(type.name)
 
