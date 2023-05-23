@@ -122,10 +122,10 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
             ConstValue::Number(num) if num.is_f64() => visitor.visit_f64(num.as_f64().unwrap()),
             ConstValue::Number(num) if num.is_u64() => visitor.visit_u64(num.as_u64().unwrap()),
             ConstValue::Number(num) => visitor.visit_i64(num.as_i64().unwrap()),
-            ConstValue::String(s) => visitor.visit_str(s),
+            ConstValue::String(_) => self.deserialize_str(visitor),
             ConstValue::Boolean(b) => visitor.visit_bool(*b),
             ConstValue::Binary(b) => visitor.visit_bytes(b),
-            ConstValue::Enum(en) => visitor.visit_enum(en.as_str().into_deserializer()),
+            ConstValue::Enum(en) => visitor.visit_str(en.as_str()), // Internally tagged.
             ConstValue::List(v) => visitor.visit_seq(Sequence {
                 values: v.iter(),
                 environment_variables: self.environment_variables,
@@ -138,10 +138,31 @@ impl<'de> serde::de::Deserializer<'de> for ValueDeserializer<'de> {
         }
     }
 
+    // Externally tagged.
+    fn deserialize_enum<V>(
+        self,
+        name: &'static str,
+        _variants: &'static [&'static str],
+        visitor: V,
+    ) -> Result<V::Value, Self::Error>
+    where
+        V: serde::de::Visitor<'de>,
+    {
+        match self.value {
+            ConstValue::Enum(en) => {
+                visitor.visit_enum::<serde::de::value::StrDeserializer<'_, Error>>(en.as_str().into_deserializer())
+            }
+            _ => Err(Error::custom(format!(
+                "attempted to deserialize {:?} as enum '{name}'",
+                self.value
+            ))),
+        }
+    }
+
     serde::forward_to_deserialize_any! {
         bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char
         bytes byte_buf unit unit_struct newtype_struct seq tuple
-        tuple_struct map struct enum identifier
+        tuple_struct map struct identifier
     }
 
     fn deserialize_option<V>(self, visitor: V) -> Result<V::Value, Self::Error>

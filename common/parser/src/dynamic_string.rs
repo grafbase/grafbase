@@ -60,10 +60,6 @@ impl std::str::FromStr for DynamicString {
 }
 
 impl DynamicString {
-    pub fn from_string_literal(s: String) -> Self {
-        Self(vec![DynamicStringSegment::Literal(s)])
-    }
-
     pub fn partially_evaluate(&mut self, environment_variables: &HashMap<String, String>) -> Result<(), ServerError> {
         self.0 = self
             .0
@@ -86,13 +82,6 @@ impl DynamicString {
             })
             .collect::<Vec<_>>();
         Ok(())
-    }
-
-    pub fn as_fully_evaluated_str(&self) -> Option<&str> {
-        match self.0.as_slice() {
-            [DynamicStringSegment::Literal(literal)] => Some(literal.as_str()),
-            _ => None,
-        }
     }
 
     pub fn into_fully_evaluated_str(self) -> Option<String> {

@@ -7,9 +7,7 @@ expression: req_string_b
     "allowed_group_ops": {},
     "allowed_owner_ops": 0,
     "allowed_private_ops": 0,
-    "jwks_providers": [],
-    "jwt_providers": [],
-    "oidc_providers": []
+    "provider": null
   },
   "directives": {
     "include": {

@@ -81,6 +81,17 @@ impl ServerError {
         }
     }
 
+    /// Create a new server error with the message.
+    pub fn new_with_locations(message: impl Into<String>, locations: Vec<Pos>) -> Self {
+        Self {
+            message: message.into(),
+            source: None,
+            locations,
+            path: Vec::new(),
+            extensions: None,
+        }
+    }
+
     /// Get the source of the error.
     ///
     /// # Examples

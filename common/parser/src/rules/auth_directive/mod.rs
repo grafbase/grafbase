@@ -22,7 +22,7 @@ impl AuthDirective {
         is_global: bool,
     ) -> Result<Option<dynaql::AuthConfig>, ServerError> {
         if let Some(directive) = directives.iter().find(|d| d.node.name.node == AUTH_DIRECTIVE) {
-            config::parse_auth_config(ctx, &directive.node, is_global).map(Some)
+            config::parse_auth_config(ctx, directive, is_global).map(Some)
         } else {
             Ok(None)
         }
@@ -365,12 +365,12 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            oidc_providers: vec![dynaql::OidcProvider {
+            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -443,12 +443,12 @@ mod tests {
             ("CLIENT_ID".to_string(), "some-id".to_string()),
         ]),
         dynaql::AuthConfig {
-            oidc_providers: vec![dynaql::OidcProvider {
+            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -463,7 +463,7 @@ mod tests {
         }
         "#,
         HashMap::new(),
-        "undefined variable `ISSUER_URL`"
+        "auth provider: undefined variable `ISSUER_URL`"
     );
 
     parse_fail!(
@@ -476,7 +476,7 @@ mod tests {
         }
         "#,
         HashMap::new(),
-        "undefined variable `ISSUER_URL`"
+        "auth provider: undefined variable `ISSUER_URL`"
     );
 
     parse_fail!(
@@ -518,12 +518,12 @@ mod tests {
             ("JWT_SECRET".to_string(), "s3cr3t".to_string())
         ]),
         dynaql::AuthConfig {
-            jwt_providers: vec![dynaql::JwtProvider {
+            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -538,12 +538,12 @@ mod tests {
         }
         "#,
         dynaql::AuthConfig {
-            jwt_providers: vec![dynaql::JwtProvider {
+            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
                 issuer: "https://my.idp.com".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: Some("some-id".to_string()),
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -558,12 +558,12 @@ mod tests {
       }
       "#,
         dynaql::AuthConfig {
-            jwt_providers: vec![dynaql::JwtProvider {
+            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -572,7 +572,7 @@ mod tests {
         multiple_providers,
         r#"
         schema @auth(
-          providers: [ { type: foo }, { type: bar } ]
+          providers: [ { type: jwt, issuer: "myidp", secret: "s" }, { type: jwks, issuer: "https://example.com" } ]
         ){
           query: Query
         }
@@ -590,12 +590,12 @@ mod tests {
       }
       "#,
         dynaql::AuthConfig {
-            oidc_providers: vec![dynaql::OidcProvider {
+            provider: Some(dynaql::AuthProvider::Oidc(dynaql::OidcProvider {
                 issuer: "https://my.idp.com".to_string(),
                 issuer_base_url: "https://my.idp.com".parse().unwrap(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
-            }],
+            })),
             ..Default::default()
         }
     );
@@ -610,12 +610,97 @@ mod tests {
     }
     "#,
         dynaql::AuthConfig {
-            jwt_providers: vec![dynaql::JwtProvider {
+            provider: Some(dynaql::AuthProvider::Jwt(dynaql::JwtProvider {
                 issuer: "myidp".to_string(),
                 groups_claim: "grps".to_string(),
                 client_id: None,
                 secret: secrecy::SecretString::new("s3cr3t".to_string()),
-            }],
+            })),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwks_provider_with_issuer,
+        r#"
+schema @auth(
+  providers: [ { type: jwks, issuer: "http://example.com" } ]
+){
+  query: Query
+}
+"#,
+        dynaql::AuthConfig {
+            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+                issuer: Some("http://example.com".to_string()),
+                jwks_endpoint: "http://example.com/.well-known/jwks.json".parse().unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+            })),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwks_provider_with_endpoint,
+        r#"
+  schema @auth(
+    providers: [ { type: jwks, jwksEndpoint: "http://example.com/jwks" } ]
+  ){
+    query: Query
+  }
+  "#,
+        dynaql::AuthConfig {
+            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+                issuer: None,
+                jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+            })),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwks_provider_with_issuer_and_endpoint,
+        r#"
+schema @auth(
+  providers: [ { type: jwks, issuer: "myidp", jwksEndpoint: "http://example.com/jwks" } ]
+){
+  query: Query
+}
+"#,
+        dynaql::AuthConfig {
+            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+                issuer: Some("myidp".to_string()),
+                jwks_endpoint: "http://example.com/jwks".parse().unwrap(),
+                groups_claim: DEFAULT_GROUPS_CLAIM.to_string(),
+                client_id: None,
+            })),
+            ..Default::default()
+        }
+    );
+
+    parse_test!(
+        jwks_provider_with_issuer_variable,
+        r#"
+schema @auth(
+providers: [ { type: jwks, issuer: "{{ env.ISSUER_URL }}", clientId: "{{ env.CLIENT_ID }}", groupsClaim: "grps" } ]
+){
+query: Query
+}
+"#,
+        HashMap::from([
+            ("ISSUER_URL".to_string(), "https://my.idp.com".to_string()),
+            ("CLIENT_ID".to_string(), "some-id".to_string()),
+            ("GROUPS".to_string(), "grps".to_string()),
+        ]),
+        dynaql::AuthConfig {
+            provider: Some(dynaql::AuthProvider::Jwks(dynaql::JwksProvider {
+                issuer: Some("https://my.idp.com".to_string()),
+                jwks_endpoint: "https://my.idp.com/.well-known/jwks.json".parse().unwrap(),
+                groups_claim: "grps".to_string(),
+                client_id: Some("some-id".to_string()),
+            })),
             ..Default::default()
         }
     );
