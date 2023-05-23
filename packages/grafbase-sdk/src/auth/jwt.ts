@@ -1,7 +1,7 @@
 export interface JWTParams {
-  issuer: string,
-  secret: string,
-  clientId?: string,
+  issuer: string
+  secret: string
+  clientId?: string
   groupsClaim?: string
 }
 
@@ -19,8 +19,10 @@ export class JWTAuth {
   }
 
   public toString(): string {
-    const clientId = this.clientId ? `, clientId: "${this.clientId}"` : ""
-    const groupsClaim = this.groupsClaim ? `, groupsClaim: "${this.groupsClaim}"` : ""
+    const clientId = this.clientId ? `, clientId: "${this.clientId}"` : ''
+    const groupsClaim = this.groupsClaim
+      ? `, groupsClaim: "${this.groupsClaim}"`
+      : ''
 
     return `{ type: jwt, issuer: "${this.issuer}", secret: "${this.secret}"${clientId}${groupsClaim} }`
   }

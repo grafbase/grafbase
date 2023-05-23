@@ -1,10 +1,16 @@
-import { JWKSAuth } from "./auth/jwks"
-import { JWTAuth } from "./auth/jwt"
-import { OpenIDAuth } from "./auth/openid"
+import { JWKSAuth } from './auth/jwks'
+import { JWTAuth } from './auth/jwt'
+import { OpenIDAuth } from './auth/openid'
 
 export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth
 export type AuthRuleF = (rules: AuthRules) => any
-export type AuthOperation = 'get' | 'list' | 'read' | 'create' | 'update' | 'delete'
+export type AuthOperation =
+  | 'get'
+  | 'list'
+  | 'read'
+  | 'create'
+  | 'update'
+  | 'delete'
 
 export class AuthGroups {
   groups: string[]
@@ -19,7 +25,7 @@ export class AuthGroups {
   }
 }
 
-export type AuthStrategy = "private" | "owner" | AuthGroups
+export type AuthStrategy = 'private' | 'owner' | AuthGroups
 
 export class AuthRule {
   strategy: AuthStrategy
@@ -62,7 +68,7 @@ export class AuthRule {
     const allow = `allow: ${this.strategy}`
 
     var ops = this.operations.map((op) => `${op}`).join(', ')
-    ops = ops ? `, operations: [${ops}]` : ""
+    ops = ops ? `, operations: [${ops}]` : ''
 
     return `{ ${allow}${ops} }`
   }
@@ -111,15 +117,15 @@ export class AuthRules {
     if (rules) {
       rules = `[\n${rules}\n    ]`
     } else {
-      rules = ""
+      rules = ''
     }
-    
+
     return rules
   }
 }
 
 export interface AuthParams {
-  providers: AuthProvider[],
+  providers: AuthProvider[]
   rules: AuthRuleF
 }
 
@@ -143,7 +149,7 @@ export class Authentication {
     if (rules) {
       rules = `\n    rules: ${rules}`
     } else {
-      rules = ""
+      rules = ''
     }
 
     return `extend schema\n  @auth(\n    providers: [\n      ${providers}\n    ]${rules}\n  )`

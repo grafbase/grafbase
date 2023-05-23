@@ -1,14 +1,3 @@
-import { ListDefinition, RelationListDefinition } from './field/list'
-import {
-  DefaultDefinition,
-  LengthLimitedStringDefinition,
-  ScalarDefinition,
-  SearchDefinition,
-  UniqueDefinition
-} from './field/typedefs'
-import { Model } from './model'
-import { ReferenceDefinition } from './reference'
-import { RelationDefinition } from './relation'
 import { GrafbaseSchema } from './grafbase-schema'
 import { Config, ConfigInput } from './config'
 import { OpenAPIParams, PartialOpenAPI } from './connector/openapi'
@@ -18,24 +7,7 @@ import { JWTAuth, JWTParams } from './auth/jwt'
 import { JWKSAuth, JWKSParams } from './auth/jwks'
 import { RequireExactlyOne } from 'type-fest'
 
-export type FieldShape =
-  | ScalarDefinition
-  | RelationDefinition
-  | ListDefinition
-  | RelationListDefinition
-  | SearchDefinition
-  | ReferenceDefinition
-  | UniqueDefinition
-  | DefaultDefinition
-  | LengthLimitedStringDefinition
-
 export type AtLeastOne<T> = [T, ...T[]]
-export type ScalarType = string | number | Date | object | boolean
-export type EnumShape = AtLeastOne<string> | { [s: number]: string }
-export type RelationRef = RelationF | Model
-export type Searchable = ScalarDefinition | ListDefinition | UniqueDefinition
-
-type RelationF = () => Model
 
 export const g = new GrafbaseSchema()
 
@@ -59,7 +31,9 @@ export const auth = {
   JWT: (params: JWTParams): JWTAuth => {
     return new JWTAuth(params)
   },
-  JWKS: (params: RequireExactlyOne<JWKSParams, 'issuer' | 'jwksEndpoint'>): JWKSAuth => {
+  JWKS: (
+    params: RequireExactlyOne<JWKSParams, 'issuer' | 'jwksEndpoint'>
+  ): JWKSAuth => {
     return new JWKSAuth(params)
   }
 }

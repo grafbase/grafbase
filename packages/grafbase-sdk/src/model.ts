@@ -1,6 +1,32 @@
-import { FieldShape } from '.'
 import { AuthRuleF, AuthRules } from './auth'
 import { Field } from './field'
+import { ListDefinition, RelationListDefinition } from './field/list'
+import { ReferenceDefinition } from './reference'
+import { RelationDefinition } from './relation'
+import { DefaultDefinition } from './typedefs/default'
+import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
+import { ScalarDefinition } from './typedefs/scalar'
+import { SearchDefinition } from './typedefs/search'
+import { UniqueDefinition } from './typedefs/unique'
+
+/**
+ * A collection of fields in a model.
+ */
+export type ModelFields = Record<string, ModelFieldShape>
+
+/**
+ * A combination of classes a field in a model can be.
+ */
+export type ModelFieldShape =
+  | ScalarDefinition
+  | RelationDefinition
+  | ListDefinition
+  | RelationListDefinition
+  | SearchDefinition
+  | ReferenceDefinition
+  | UniqueDefinition
+  | DefaultDefinition
+  | LengthLimitedStringDefinition
 
 export class Model {
   name: string
@@ -16,7 +42,7 @@ export class Model {
     this.isLive = false
   }
 
-  public field(name: string, definition: FieldShape): Model {
+  public field(name: string, definition: ModelFieldShape): Model {
     this.fields.push(new Field(name, definition))
 
     return this

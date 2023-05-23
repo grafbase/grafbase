@@ -1,6 +1,6 @@
 export interface OpenIDParams {
-  issuer: string,
-  clientId?: string,
+  issuer: string
+  clientId?: string
   groupsClaim?: string
 }
 
@@ -16,8 +16,10 @@ export class OpenIDAuth {
   }
 
   public toString(): string {
-    const clientId = this.clientId ? `, clientId: "${this.clientId}"` : ""
-    const groupsClaim = this.groupsClaim ? `, groupsClaim: "${this.groupsClaim}"` : ""
+    const clientId = this.clientId ? `, clientId: "${this.clientId}"` : ''
+    const groupsClaim = this.groupsClaim
+      ? `, groupsClaim: "${this.groupsClaim}"`
+      : ''
 
     return `{ type: oidc, issuer: "${this.issuer}"${clientId}${groupsClaim} }`
   }

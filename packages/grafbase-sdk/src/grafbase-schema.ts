@@ -1,24 +1,21 @@
-import { Model } from './model'
-import { RelationDefinition } from './relation'
-import { Enum } from './enum'
+import { Model, ModelFields } from './model'
+import { RelationDefinition, RelationRef } from './relation'
+import { Enum, EnumShape } from './enum'
+import { Type, TypeFields } from './type'
+import { ReferenceDefinition } from './reference'
+import { Union } from './union'
+import { Interface, InterfaceFields } from './interface'
+import { Query, QueryInput } from './query'
+import { OpenAPI, PartialOpenAPI } from './connector/openapi'
+import { GraphQLAPI, PartialGraphQLAPI } from './connector/graphql'
 import {
-  FieldType,
   BooleanDefinition,
   DateDefinition,
   NumberDefinition,
   ObjectDefinition,
-  StringDefinition,
-  ScalarDefinition
-} from './field/typedefs'
-import { ListDefinition } from './field/list'
-import { Type } from './type'
-import { ReferenceDefinition } from './reference'
-import { Union } from './union'
-import { Interface } from './interface'
-import { Query, QueryInput } from './query'
-import { EnumShape, FieldShape, RelationRef } from '.'
-import { OpenAPI, PartialOpenAPI } from './connector/openapi'
-import { GraphQLAPI, PartialGraphQLAPI } from './connector/graphql'
+  StringDefinition
+} from './typedefs/scalar'
+import { FieldType } from './field/typedefs'
 
 export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
 export type Datasource = OpenAPI | GraphQLAPI
@@ -75,7 +72,7 @@ export class GrafbaseSchema {
     this.datasources.push(datasource.finalize(params.namespace))
   }
 
-  public model(name: string, fields: Record<string, FieldShape>): Model {
+  public model(name: string, fields: ModelFields): Model {
     const model = Object.entries(fields).reduce(
       (model, [name, definition]) => model.field(name, definition),
       new Model(name)
@@ -86,13 +83,7 @@ export class GrafbaseSchema {
     return model
   }
 
-  public type(
-    name: string,
-    fields: Record<
-      string,
-      ScalarDefinition | ListDefinition | ReferenceDefinition
-    >
-  ): Type {
+  public type(name: string, fields: TypeFields): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),
       new Type(name)
@@ -103,11 +94,8 @@ export class GrafbaseSchema {
     return type
   }
 
-  public interface(
-    name: string,
-    types: Record<string, ScalarDefinition | ListDefinition>
-  ): Interface {
-    const iface = Object.entries(types).reduce(
+  public interface(name: string, fields: InterfaceFields): Interface {
+    const iface = Object.entries(fields).reduce(
       (iface, [name, definition]) => iface.field(name, definition),
       new Interface(name)
     )

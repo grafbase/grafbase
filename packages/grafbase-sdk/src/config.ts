@@ -20,7 +20,7 @@ export class Config {
 
   public toString(): string {
     const schema = this.schema.toString()
-    const auth = this.auth ? this.auth.toString() : ""
+    const auth = this.auth ? this.auth.toString() : ''
 
     return `${auth}${schema}`
   }

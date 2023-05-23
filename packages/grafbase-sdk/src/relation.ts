@@ -1,26 +1,50 @@
-import { RelationRef } from '.'
-import { ListDefinition, RelationListDefinition } from './field/list'
+import { RelationListDefinition } from './field/list'
+import { Model } from './model'
 
+/**
+ * A reference in a relation field. Can be a model, or a closure resolving to
+ * a model.
+ */
+export type RelationRef = RelationF | Model
+
+/**
+ * A closure to define the referenced model in a relation. Useful if the model
+ * is not defined yet. E.g. for self-relations or for models defined later in the
+ * configuration.
+ */
+type RelationF = () => Model
+
+/**
+ * Defines relation field in a model.
+ */
 export class RelationDefinition {
+  // For ambivalent relations, a name makes them distinct.
+  // Rendered as `@relation(name: "relationName")`.
   relationName?: string
+  // The model we refer from this field.
   referencedModel: RelationRef
+  // True, if the field can hold a null value.
   isOptional: boolean
 
+  /** @param {RelationRef} referencedModel */
   constructor(referencedModel: RelationRef) {
     this.referencedModel = referencedModel
     this.isOptional = false
   }
 
+  /** Make the field nullable. */
   public optional(): RelationDefinition {
     this.isOptional = true
 
     return this
   }
 
+  /** The field can hold multiple values */
   public list(): RelationListDefinition {
     return new RelationListDefinition(this)
   }
 
+  /** For ambivalent relations, a name makes them distinct. */
   public name(name: string): RelationDefinition {
     this.relationName = name
 

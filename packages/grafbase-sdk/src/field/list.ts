@@ -1,21 +1,21 @@
-import { ScalarType } from '..'
 import { ReferenceDefinition } from '../reference'
 import { RelationDefinition } from '../relation'
+import { renderDefault } from '../typedefs/default'
 import {
-  FieldType,
   BooleanDefinition,
   DateDefinition,
   NumberDefinition,
   ScalarDefinition,
-  SearchDefinition,
-  StringDefinition,
-  renderDefault
-} from './typedefs'
+  DefaultValueType,
+  StringDefinition
+} from '../typedefs/scalar'
+import { SearchDefinition } from '../typedefs/search'
+import { FieldType } from './typedefs'
 
 export class ListDefinition {
   fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
   isOptional: boolean
-  defaultValue?: ScalarType[]
+  defaultValue?: DefaultValueType[]
 
   constructor(
     fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition

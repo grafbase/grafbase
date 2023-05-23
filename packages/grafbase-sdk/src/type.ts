@@ -1,24 +1,38 @@
 import { Field } from './field'
 import { ListDefinition } from './field/list'
-import { ScalarDefinition } from './field/typedefs'
 import { Interface } from './interface'
 import { ReferenceDefinition } from './reference'
+import { ScalarDefinition } from './typedefs/scalar'
 
+/**
+ * A collection of fields in a model.
+ */
+export type TypeFields = Record<string, TypeFieldShape>
+
+/**
+ * A combination of classes a field in a non-model type can be.
+ */
+export type TypeFieldShape =
+  | ScalarDefinition
+  | ListDefinition
+  | ReferenceDefinition
+
+/**
+ * A composite type definition (e.g. not a model).
+ */
 export class Type {
   name: string
   fields: Field[]
   interfaces: Interface[]
 
+  /** @param {string} name */
   constructor(name: string) {
     this.name = name
     this.fields = []
     this.interfaces = []
   }
 
-  public field(
-    name: string,
-    definition: ScalarDefinition | ListDefinition | ReferenceDefinition
-  ): Type {
+  public field(name: string, definition: TypeFieldShape): Type {
     this.fields.push(new Field(name, definition))
 
     return this

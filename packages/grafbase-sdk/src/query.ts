@@ -1,6 +1,6 @@
 import { ListDefinition } from './field/list'
-import { ScalarDefinition } from './field/typedefs'
 import { ReferenceDefinition } from './reference'
+import { ScalarDefinition } from './typedefs/scalar'
 
 export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
