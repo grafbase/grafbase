@@ -149,25 +149,7 @@ impl Environment {
     }
 
     pub fn prepare_ts_config_dependencies(&mut self) {
-        fs::write(
-            "package.json",
-            r#"
-            {
-                "name": "grafbase-test-package",
-                "version": "1.0.0",
-                "main": "index.js",
-                "dependencies": {
-                    "@grafbase/sdk": "^0.0.8"
-                },
-                "devDependencies": {
-                    "@types/node": "^18.14.2",
-                    "ts-node": "^10.9.1",
-                    "typescript": "^5.0.2"
-                }
-            }
-            "#,
-        )
-        .unwrap();
+        fs::write("package.json", include_str!("assets/sdk-package.json")).unwrap();
         cmd!("npm", "install").run().unwrap();
         self.ts_config_dependencies_prepared = true;
     }
