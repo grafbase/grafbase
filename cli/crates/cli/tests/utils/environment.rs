@@ -149,6 +149,10 @@ impl Environment {
     }
 
     pub fn prepare_ts_config_dependencies(&mut self) {
+        assert!(
+            !self.ts_config_dependencies_prepared,
+            "prepare_ts_config_dependencies should only be run once"
+        );
         fs::write("package.json", include_str!("assets/sdk-package.json")).unwrap();
         cmd!("npm", "install").run().unwrap();
         self.ts_config_dependencies_prepared = true;
