@@ -459,7 +459,7 @@ const derp = auth.JWKS({
 Everywhere where one can define authentication rules, it happens through a lambda with a rules builder.
 
 ```typescript
-;(rules) => {
+(rules) => {
   rules.private().read()
   rules.owner().create()
   rules.group(['admin', 'root']).delete()
