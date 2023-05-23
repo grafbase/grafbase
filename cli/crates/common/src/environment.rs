@@ -144,7 +144,7 @@ impl Environment {
         let mut warnings = Vec::new();
 
         let project_grafbase_schema_path =
-            Self::get_project_grafbase_path(&mut warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
+            get_project_grafbase_path(&mut warnings)?.ok_or(CommonError::FindGrafbaseDirectory)?;
 
         let project_grafbase_path = project_grafbase_schema_path
             .parent()
@@ -165,6 +165,7 @@ impl Environment {
         let resolvers_build_artifact_path = project_dot_grafbase_path.join(RESOLVERS_DIRECTORY_NAME);
         let database_directory_path = project_dot_grafbase_path.join(DATABASE_DIRECTORY);
         let wrangler_installation_path = user_dot_grafbase_path.join(WRANGLER_DIRECTORY_NAME);
+
         ENVIRONMENT
             .set(Self {
                 project_path,
@@ -198,38 +199,17 @@ impl Environment {
             None => panic!("the environment object is uninitialized"),
         }
     }
-
-    /// searches for the closest ancestor directory named "grafbase" which
-    /// contains either a "grafbase.config.ts" or a "schema.graphql" file. if
-    /// already inside a `grafbase` directory, looks for `schema.graphql` inside
-    /// the current ancestor as well
-    ///
-    /// # Errors
-    ///
-    /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
-    fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
-        let ts_config = get_path_to_file_in_project_grafbase(GRAFBASE_TS_CONFIG_FILE_NAME)?;
-        let gql = get_path_to_file_in_project_grafbase(GRAFBASE_SCHEMA_FILE_NAME)?;
-
-        if let Some(path) = ts_config {
-            let path = GrafbaseSchemaPath::ts_config(path);
-
-            if gql.is_some() {
-                let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
-                    .with_hint("Delete one of them to avoid conflicts");
-
-                warnings.push(warning);
-            }
-
-            Ok(Some(path))
-        } else {
-            Ok(gql.map(GrafbaseSchemaPath::graphql))
-        }
-    }
 }
 
-/// Find a path to the given file in the project's grafbase directory.
-fn get_path_to_file_in_project_grafbase(file_name: &str) -> Result<Option<PathBuf>, CommonError> {
+/// searches for the closest ancestor directory named "grafbase" which
+/// contains either a "grafbase.config.ts" or a "schema.graphql" file. if
+/// already inside a `grafbase` directory, looks for `schema.graphql` inside
+/// the current ancestor as well
+///
+/// # Errors
+///
+/// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
+fn get_project_grafbase_path(warnings: &mut Vec<Warning>) -> Result<Option<GrafbaseSchemaPath>, CommonError> {
     let path_to_file = env::current_dir()
         .map_err(|_| CommonError::ReadCurrentDirectory)?
         .ancestors()
@@ -238,26 +218,39 @@ fn get_path_to_file_in_project_grafbase(file_name: &str) -> Result<Option<PathBu
 
             // if we're looking at a directory called `grafbase`,
             // also check for the file in the current directory
-            if let Some(first) = path.components().next() {
-                if Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME) {
-                    path.push(file_name);
+            let config = path
+                .components()
+                .next()
+                .filter(|first| Path::new(&first) == PathBuf::from(GRAFBASE_DIRECTORY_NAME))
+                .and_then(|_| find_grafbase_configuration(&path, warnings));
 
-                    if path.is_file() {
-                        return Some(path);
-                    }
-
-                    path.pop();
-                }
+            if let Some(config) = config {
+                return Some(config);
             }
 
-            path.push([GRAFBASE_DIRECTORY_NAME, file_name].iter().collect::<PathBuf>());
+            path.push(GRAFBASE_DIRECTORY_NAME);
 
-            if path.is_file() {
-                Some(path)
-            } else {
-                None
-            }
+            find_grafbase_configuration(&path, warnings)
         });
 
     Ok(path_to_file)
+}
+
+fn find_grafbase_configuration(path: &Path, warnings: &mut Vec<Warning>) -> Option<GrafbaseSchemaPath> {
+    let ts_config = path.join(GRAFBASE_TS_CONFIG_FILE_NAME);
+    let gql = path.join(GRAFBASE_SCHEMA_FILE_NAME);
+
+    match (ts_config.is_file(), gql.is_file()) {
+        (true, true) => {
+            let warning = Warning::new("Found both grafbase.config.ts and schema.graphql files")
+                .with_hint("Delete one of them to avoid conflicts");
+
+            warnings.push(warning);
+
+            Some(GrafbaseSchemaPath::ts_config(ts_config))
+        }
+        (true, false) => Some(GrafbaseSchemaPath::ts_config(ts_config)),
+        (false, true) => Some(GrafbaseSchemaPath::graphql(gql)),
+        (false, false) => None,
+    }
 }
