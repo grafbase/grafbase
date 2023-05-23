@@ -61,7 +61,7 @@ fn env_var(#[case] case_path: PathBuf) {
 #[case(dirs::home_dir().unwrap())]
 fn ts_config_flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
-    env.set_typescript_config(include_str!("configs/default.ts"));
+    env.set_typescript_config(include_str!("config/default.ts"));
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
     client.poll_endpoint(30, 300);
