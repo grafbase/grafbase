@@ -15,6 +15,8 @@ import {
 } from './length-limited-string'
 import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
+import { AuthDefinition } from './auth'
+import { AuthRuleF } from '../auth'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -44,6 +46,10 @@ export class ScalarDefinition {
 
   public list(): ListDefinition {
     return new ListDefinition(this)
+  }
+
+  public auth(rules: AuthRuleF): AuthDefinition {
+    return new AuthDefinition(this, rules)
   }
 
   fieldTypeVal(): FieldType | Enum {

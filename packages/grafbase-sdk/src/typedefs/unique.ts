@@ -1,3 +1,5 @@
+import { AuthRuleF } from '../auth'
+import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ScalarDefinition } from './scalar'
@@ -20,6 +22,10 @@ export class UniqueDefinition {
 
   public search(): SearchDefinition {
     return new SearchDefinition(this)
+  }
+
+  public auth(rules: AuthRuleF): AuthDefinition {
+    return new AuthDefinition(this, rules)
   }
 
   public toString(): string {

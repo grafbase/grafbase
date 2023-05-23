@@ -3,6 +3,7 @@ import { Field } from './field'
 import { ListDefinition, RelationListDefinition } from './field/list'
 import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from './relation'
+import { AuthDefinition } from './typedefs/auth'
 import { DefaultDefinition } from './typedefs/default'
 import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
 import { ScalarDefinition } from './typedefs/scalar'
@@ -27,6 +28,7 @@ export type ModelFieldShape =
   | UniqueDefinition
   | DefaultDefinition
   | LengthLimitedStringDefinition
+  | AuthDefinition
 
 export class Model {
   name: string

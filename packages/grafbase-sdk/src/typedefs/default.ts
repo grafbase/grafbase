@@ -1,5 +1,7 @@
+import { AuthRuleF } from '../auth'
 import { Enum } from '../enum'
 import { FieldType } from '../field/typedefs'
+import { AuthDefinition } from './auth'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ScalarDefinition, DefaultValueType } from './scalar'
 import { UniqueDefinition } from './unique'
@@ -23,6 +25,10 @@ export class DefaultDefinition {
   public optional(): DefaultDefinition {
     this.scalar.optional()
     return this
+  }
+
+  public auth(rules: AuthRuleF): AuthDefinition {
+    return new AuthDefinition(this, rules)
   }
 
   public toString(): string {

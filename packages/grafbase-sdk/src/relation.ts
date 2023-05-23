@@ -1,5 +1,7 @@
+import { AuthRuleF } from './auth'
 import { RelationListDefinition } from './field/list'
 import { Model } from './model'
+import { AuthDefinition } from './typedefs/auth'
 
 /**
  * A reference in a relation field. Can be a model, or a closure resolving to
@@ -49,6 +51,11 @@ export class RelationDefinition {
     this.relationName = name
 
     return this
+  }
+
+  /** Protect the field with authentication rules. */
+  public auth(rules: AuthRuleF): AuthDefinition {
+    return new AuthDefinition(this, rules)
   }
 
   public toString(): string {

@@ -408,12 +408,20 @@ describe('Model generator', () => {
 
   it('generates a kitchen sink model', () => {
     const user = g.model('User', {
-      name: g.string().length({ min: 2 }).default('foo').unique().search()
+      name: g
+        .string()
+        .length({ min: 2 })
+        .default('foo')
+        .unique()
+        .search()
+        .auth((rules) => {
+          rules.private()
+        })
     })
 
     expect(user.toString()).toMatchInlineSnapshot(`
       "type User @model {
-        name: String! @length(min: 2) @default(value: "foo") @unique @search
+        name: String! @length(min: 2) @default(value: "foo") @unique @search @auth(rules: [ { allow: private } ])
       }"
     `)
   })
@@ -494,6 +502,151 @@ describe('Model generator', () => {
             { allow: groups, groups: ["admin"] }
           ]) {
         name: String!
+      }"
+    `)
+  })
+
+  it('generates a field with a single auth rule', () => {
+    g.model('User', {
+      name: g.string().auth((rules) => {
+        rules.groups(['admin'])
+      })
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @auth(rules: [ { allow: groups, groups: ["admin"] } ])
+      }"
+    `)
+  })
+
+  it('generates a unique field with a single auth rule', () => {
+    g.model('User', {
+      name: g
+        .string()
+        .unique()
+        .auth((rules) => {
+          rules.groups(['admin'])
+        })
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @unique @auth(rules: [ { allow: groups, groups: ["admin"] } ])
+      }"
+    `)
+  })
+
+  it('generates a field with a default value and a single auth rule', () => {
+    g.model('User', {
+      age: g
+        .int()
+        .default(1)
+        .auth((rules) => {
+          rules.private()
+        })
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        age: Int! @default(value: 1) @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a searchable field with a single auth rule', () => {
+    g.model('User', {
+      name: g
+        .string()
+        .search()
+        .auth((rules) => {
+          rules.private()
+        })
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @search @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a composite type field with a single auth rule', () => {
+    const address = g.type('Address', {
+      street: g.string().optional()
+    })
+
+    g.model('User', {
+      address: g.ref(address).auth((rules) => {
+        rules.private()
+      })
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type Address {
+        street: String
+      }
+
+      type User @model {
+        address: Address! @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a list field with a single auth rule', () => {
+    g.model('User', {
+      cats: g
+        .string()
+        .list()
+        .optional()
+        .auth((rules) => rules.private())
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        cats: [String!] @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a length-limited field with a single auth rule', () => {
+    g.model('User', {
+      cats: g
+        .string()
+        .length({ min: 2 })
+        .auth((rules) => rules.private())
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        cats: String! @length(min: 2) @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a relation field with a single auth rule', () => {
+    const model = g.model('User', {
+      self: g.relation(() => model).auth((rules) => rules.private())
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        self: User! @auth(rules: [ { allow: private } ])
+      }"
+    `)
+  })
+
+  it('generates a relation list field with a single auth rule', () => {
+    const model = g.model('User', {
+      self: g
+        .relation(() => model)
+        .list()
+        .auth((rules) => rules.private())
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        self: [User!]! @auth(rules: [ { allow: private } ])
       }"
     `)
   })

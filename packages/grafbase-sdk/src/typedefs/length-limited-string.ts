@@ -5,6 +5,8 @@ import { DefaultDefinition } from './default'
 import { Enum } from '../enum'
 import { StringDefinition } from './scalar'
 import { SearchDefinition } from './search'
+import { AuthRuleF } from '../auth'
+import { AuthDefinition } from './auth'
 
 export interface FieldLength {
   min?: number
@@ -39,6 +41,10 @@ export class LengthLimitedStringDefinition {
     this.scalar.optional()
 
     return this
+  }
+
+  public auth(rules: AuthRuleF): AuthDefinition {
+    return new AuthDefinition(this, rules)
   }
 
   fieldTypeVal(): FieldType | Enum {

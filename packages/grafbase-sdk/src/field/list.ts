@@ -1,3 +1,4 @@
+import { AuthRuleF, AuthRules } from '../auth'
 import { ReferenceDefinition } from '../reference'
 import { RelationDefinition } from '../relation'
 import { renderDefault } from '../typedefs/default'
@@ -16,6 +17,7 @@ export class ListDefinition {
   fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
   isOptional: boolean
   defaultValue?: DefaultValueType[]
+  authRules?: AuthRules
 
   constructor(
     fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
@@ -34,16 +36,30 @@ export class ListDefinition {
     return new SearchDefinition(this)
   }
 
+  public auth(rules: AuthRuleF): ListDefinition {
+    const authRules = new AuthRules()
+    rules(authRules)
+
+    this.authRules = authRules
+
+    return this
+  }
+
   public toString(): string {
     const required = this.isOptional ? '' : '!'
 
-    return `[${this.fieldDefinition}]${required}`
+    const rules = this.authRules
+      ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
+      : ''
+
+    return `[${this.fieldDefinition}]${required}${rules}`
   }
 }
 
 export class RelationListDefinition {
   relation: RelationDefinition
   isOptional: boolean
+  authRules?: AuthRules
 
   constructor(fieldDefinition: RelationDefinition) {
     this.relation = fieldDefinition
@@ -52,6 +68,15 @@ export class RelationListDefinition {
 
   public optional(): RelationListDefinition {
     this.isOptional = true
+
+    return this
+  }
+
+  public auth(rules: AuthRuleF): RelationListDefinition {
+    const authRules = new AuthRules()
+    rules(authRules)
+
+    this.authRules = authRules
 
     return this
   }
@@ -71,7 +96,11 @@ export class RelationListDefinition {
       ? ` @relation(name: ${this.relation.relationName})`
       : ''
 
-    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}`
+    const rules = this.authRules
+      ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
+      : ''
+
+    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}${rules}`
   }
 }
 
