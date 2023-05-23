@@ -149,20 +149,15 @@ impl Environment {
     }
 
     pub fn prepare_ts_config_dependencies(&mut self) {
-        assert!(
-            !self.ts_config_dependencies_prepared,
-            "prepare_ts_config_dependencies should only be run once"
-        );
-        fs::write("package.json", include_str!("assets/sdk-package.json")).unwrap();
-        cmd!("npm", "install").run().unwrap();
-        self.ts_config_dependencies_prepared = true;
+        if !self.ts_config_dependencies_prepared {
+            fs::write("package.json", include_str!("assets/sdk-package.json")).unwrap();
+            cmd!("npm", "install").run().unwrap();
+            self.ts_config_dependencies_prepared = true;
+        }
     }
 
-    pub fn write_ts_config(&self, config: impl AsRef<str>) {
-        assert!(
-            self.ts_config_dependencies_prepared,
-            "run environment.prepare_ts_config_dependencies() before writing the config"
-        );
+    pub fn write_ts_config(&mut self, config: impl AsRef<str>) {
+        self.prepare_ts_config_dependencies();
         self.write_file("grafbase.config.ts", config);
     }
 

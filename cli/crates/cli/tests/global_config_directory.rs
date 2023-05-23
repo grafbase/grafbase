@@ -61,7 +61,6 @@ fn env_var(#[case] case_path: PathBuf) {
 #[case(dirs::home_dir().unwrap())]
 fn ts_config_flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
-    env.prepare_ts_config_dependencies();
     env.write_ts_config(
         r#"
         import { config, g } from '@grafbase/sdk'
