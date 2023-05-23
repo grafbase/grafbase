@@ -146,6 +146,9 @@ impl Environment {
     }
 
     pub fn write_ts_config(&self, config: impl AsRef<str>) {
+        cmd!("cd", "..").run().unwrap();
+        cmd!("npm", "init", "-y").run().unwrap();
+        cmd!("npm", "i", "@grafbase/sdk").run().unwrap();
         self.write_file("grafbase.config.ts", config);
     }
 

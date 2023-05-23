@@ -1,5 +1,6 @@
 mod utils;
 
+use duct::cmd;
 use std::path::PathBuf;
 use utils::environment::Environment;
 
@@ -8,7 +9,7 @@ use utils::environment::Environment;
 #[case(dirs::home_dir().unwrap())]
 fn flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
-    env.write_ts_config(
+    env.write_schema(
         r#" 
         type Post @model {
             title: String @resolver(name: "return-title")
@@ -19,7 +20,7 @@ fn flag(#[case] case_path: PathBuf) {
         "return-title.js",
         r#"
         export default function Resolver({ parent, args, context, info }) {
-            return parent.title;
+            return "title";
         }
         "#,
     );
@@ -62,7 +63,7 @@ fn env_var(#[case] case_path: PathBuf) {
 fn ts_config_flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
     env.write_ts_config(
-        r#" 
+        r#"
         import { config, g } from '@grafbase/sdk'
 
         const address = g.type('Address', {
