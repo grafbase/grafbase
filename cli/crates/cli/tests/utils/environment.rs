@@ -144,6 +144,7 @@ impl Environment {
         AsyncClient::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
+    // TODO: change this to set_schema
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         self.write_file("schema.graphql", schema);
     }
@@ -157,7 +158,7 @@ impl Environment {
         self.ts_config_dependencies_prepared = true;
     }
 
-    pub fn write_ts_config(&mut self, config: impl AsRef<str>) {
+    pub fn set_typescript_config(&mut self, config: impl AsRef<str>) {
         self.prepare_ts_config_dependencies();
         self.write_file("grafbase.config.ts", config);
     }
