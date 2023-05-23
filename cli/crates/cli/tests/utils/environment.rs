@@ -146,9 +146,26 @@ impl Environment {
     }
 
     pub fn write_ts_config(&self, config: impl AsRef<str>) {
-        cmd!("cd", "..").run().unwrap();
-        cmd!("npm", "init", "-y").run().unwrap();
-        cmd!("npm", "i", "@grafbase/sdk").run().unwrap();
+        fs::write(
+            "package.json",
+            r#"
+            {
+                "name": "grafbase-test-package",
+                "version": "1.0.0",
+                "main": "index.js",
+                "dependencies": {
+                    "@grafbase/sdk": "^0.0.8"
+                },
+                "devDependencies": {
+                    "@types/node": "^18.14.2",
+                    "ts-node": "^10.9.1",
+                    "typescript": "^5.0.2"
+                }
+            }
+            "#,
+        )
+        .unwrap();
+        cmd!("npm", "install").run().unwrap();
         self.write_file("grafbase.config.ts", config);
     }
 
