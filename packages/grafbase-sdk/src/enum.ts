@@ -1,4 +1,6 @@
-import { EnumShape } from '.'
+import { AtLeastOne } from '.'
+
+export type EnumShape = AtLeastOne<string> | { [s: number]: string }
 
 export class Enum {
   name: string
