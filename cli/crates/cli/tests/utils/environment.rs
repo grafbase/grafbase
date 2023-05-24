@@ -247,7 +247,7 @@ impl Environment {
             "--home",
             self.home
                 .clone()
-                .expect("must supply a config dir")
+                .expect("self.home must be set first")
                 .to_string_lossy()
                 .to_string(),
             "dev",
