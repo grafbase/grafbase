@@ -16,7 +16,7 @@ pub struct GraphqlDirective {
     #[serde(default)]
     headers: Vec<Header>,
     #[serde(default)]
-    introspection_headers: Vec<Header>,
+    introspection_headers: Option<Vec<Header>>,
 }
 
 impl GraphqlDirective {
@@ -28,6 +28,8 @@ impl GraphqlDirective {
 
     pub fn introspection_headers(&self) -> impl ExactSizeIterator<Item = (&str, &str)> {
         self.introspection_headers
+            .as_ref()
+            .unwrap_or(&self.headers)
             .iter()
             .map(|header| (header.name.as_str(), header.value.as_str()))
     }
@@ -150,12 +152,14 @@ mod tests {
                         value: "Bearer i_am_a_key",
                     },
                 ],
-                introspection_headers: [
-                    Header {
-                        name: "x-user-id",
-                        value: "root",
-                    },
-                ],
+                introspection_headers: Some(
+                    [
+                        Header {
+                            name: "x-user-id",
+                            value: "root",
+                        },
+                    ],
+                ),
             },
         ]
         "###);
@@ -216,6 +220,53 @@ mod tests {
               )
             "#,
             "[5:39] invalid type: integer `12`, expected a string"
+        );
+    }
+
+    #[test]
+    fn test_no_introspection_headers() {
+        let schema = r#"
+            extend schema
+              @graphql(
+                name: "countries",
+                url: "https://countries.trevorblades.com",
+                headers: [{ name: "authorization", value: "Bearer blah"}],
+                introspectionHeaders: []
+              )
+            "#;
+
+        let connector_parsers = MockConnectorParsers::default();
+
+        block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
+
+        assert_eq!(
+            connector_parsers.graphql_directives.lock().unwrap()[0]
+                .introspection_headers()
+                .collect::<Vec<_>>(),
+            vec![]
+        );
+    }
+
+    #[test]
+    fn test_introspection_headers_inherits_headers_by_default() {
+        let schema = r#"
+            extend schema
+              @graphql(
+                name: "countries",
+                url: "https://countries.trevorblades.com",
+                headers: [{ name: "authorization", value: "Bearer blah"}],
+              )
+            "#;
+
+        let connector_parsers = MockConnectorParsers::default();
+
+        block_on(crate::parse(schema, &HashMap::new(), &connector_parsers)).unwrap();
+
+        assert_eq!(
+            connector_parsers.graphql_directives.lock().unwrap()[0]
+                .introspection_headers()
+                .collect::<Vec<_>>(),
+            vec![("authorization", "Bearer blah")]
         );
     }
 }
