@@ -64,7 +64,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     report::cli_header();
 
     if args.command.needs_environment() {
-        Environment::try_init().map_err(CliError::CommonError)?;
+        Environment::try_init(args.home).map_err(CliError::CommonError)?;
         report::warnings(&Environment::get().warnings);
     }
 

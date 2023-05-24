@@ -408,7 +408,6 @@ async fn run_schema_parser(
                 &schema_path,
                 parser_result_path.to_str().expect("must be a valid path"),
             ])
-            .current_dir(&environment.project_dot_grafbase_path)
             .stdin(Stdio::piped())
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
@@ -504,7 +503,6 @@ async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<Stri
 
     let node_command = Command::new("node")
         .args(args)
-        .current_dir(&environment.user_dot_grafbase_path)
         .stderr(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

@@ -21,6 +21,8 @@ pub struct Environment {
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
+    home: Option<PathBuf>,
+    ts_config_dependencies_prepared: bool,
     #[cfg(feature = "dynamodb")]
     dynamodb_env: dynamodb::DynamoDbEnvironment,
 }
@@ -101,6 +103,8 @@ impl Environment {
             temp_dir,
             schema_path,
             commands,
+            home: None,
+            ts_config_dependencies_prepared: false,
             #[cfg(feature = "dynamodb")]
             dynamodb_env,
         }
@@ -122,6 +126,8 @@ impl Environment {
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
+            home: other.home.clone(),
+            ts_config_dependencies_prepared: other.ts_config_dependencies_prepared,
             #[cfg(feature = "dynamodb")]
             dynamodb_env: dynamodb::DynamoDbEnvironment {
                 dynamodb_client: None, // Only one dynamodb client is needed for the cleanup.
@@ -138,8 +144,25 @@ impl Environment {
         AsyncClient::new(self.endpoint.clone(), self.playground_endpoint.clone())
     }
 
+    // TODO: change this to set_schema
     pub fn write_schema(&self, schema: impl AsRef<str>) {
         self.write_file("schema.graphql", schema);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn prepare_ts_config_dependencies(&mut self) {
+        if self.ts_config_dependencies_prepared {
+            return;
+        }
+        fs::write("package.json", include_str!("../assets/sdk-package.json")).unwrap();
+        cmd!("npm", "install").run().unwrap();
+        self.ts_config_dependencies_prepared = true;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn set_typescript_config(&mut self, config: impl AsRef<str>) {
+        self.prepare_ts_config_dependencies();
+        self.write_file("grafbase.config.ts", config);
     }
 
     pub fn write_resolver(&self, path: impl AsRef<Path>, contents: impl AsRef<str>) {
@@ -194,6 +217,12 @@ impl Environment {
         fs::remove_dir_all(directory).unwrap();
     }
 
+    pub fn with_home(mut self, path: PathBuf) -> Self {
+        fs::create_dir_all(self.directory.join(&path)).unwrap();
+        self.home = Some(path);
+        self
+    }
+
     pub fn grafbase_dev(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),
@@ -208,6 +237,29 @@ impl Environment {
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();
+
+        self.commands.push(command);
+    }
+
+    pub fn grafbase_dev_with_home_flag(&mut self) {
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "--home",
+            self.home
+                .clone()
+                .expect("self.home must be set first")
+                .to_string_lossy()
+                .to_string(),
+            "dev",
+            "--disable-watch",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory)
+        .start()
+        .unwrap();
 
         self.commands.push(command);
     }

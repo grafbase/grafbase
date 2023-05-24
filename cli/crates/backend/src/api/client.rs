@@ -3,7 +3,7 @@ use super::types::Credentials;
 use super::{consts::CREDENTIALS_FILE, errors::ApiError};
 use crate::consts::USER_AGENT;
 use axum::http::{HeaderMap, HeaderValue};
-use common::environment::get_user_dot_grafbase_path;
+use common::environment::Environment;
 use reqwest::{header, Client};
 use std::env;
 use tokio::fs::read_to_string;
@@ -38,17 +38,15 @@ async fn get_access_token() -> Result<String, ApiError> {
 }
 
 async fn get_access_token_from_file() -> Result<String, ApiError> {
-    // needed to bypass the project fallback behavior of Environment's dot grafbase folder
-    // TODO consider removing the fallback
-    let user_dot_grafbase_path = get_user_dot_grafbase_path().ok_or(ApiError::FindUserDotGrafbaseFolder)?;
+    let environment = Environment::get();
 
-    match user_dot_grafbase_path.try_exists() {
+    match environment.user_dot_grafbase_path.try_exists() {
         Ok(true) => {}
         Ok(false) => return Err(ApiError::NotLoggedIn),
         Err(error) => return Err(ApiError::ReadUserDotGrafbaseFolder(error)),
     }
 
-    let credentials_file_path = user_dot_grafbase_path.join(CREDENTIALS_FILE);
+    let credentials_file_path = environment.user_dot_grafbase_path.join(CREDENTIALS_FILE);
 
     match credentials_file_path.try_exists() {
         Ok(true) => {}
@@ -56,7 +54,7 @@ async fn get_access_token_from_file() -> Result<String, ApiError> {
         Err(error) => return Err(ApiError::ReadCredentialsFile(error)),
     }
 
-    let credential_file = read_to_string(user_dot_grafbase_path.join(CREDENTIALS_FILE))
+    let credential_file = read_to_string(environment.user_dot_grafbase_path.join(CREDENTIALS_FILE))
         .await
         .map_err(ApiError::ReadCredentialsFile)?;
 

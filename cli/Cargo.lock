@@ -1530,6 +1530,7 @@ dependencies = [
  "colored",
  "crossbeam-channel",
  "ctrlc",
+ "dirs 5.0.0",
  "duct",
  "exitcode",
  "fslock",

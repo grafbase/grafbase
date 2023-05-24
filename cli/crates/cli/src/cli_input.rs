@@ -1,10 +1,8 @@
-use std::fmt;
-
+use crate::create::CreateArguments;
 use clap::{arg, command, CommandFactory, Parser};
 use clap_complete::{shells, Generator};
 use common::consts::{DEFAULT_LOG_FILTER, TRACE_LOG_FILTER};
-
-use crate::create::CreateArguments;
+use std::{fmt, path::PathBuf};
 
 #[derive(Debug, Parser)]
 pub struct DevCommand {
@@ -135,7 +133,7 @@ impl SubCommand {
     pub(crate) fn needs_environment(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link | Self::Unlink
+            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link | Self::Unlink | Self::Reset
         )
     }
 }
@@ -167,11 +165,14 @@ impl fmt::Display for SubCommand {
 #[command(name = "Grafbase CLI", version)]
 /// The Grafbase command line interface
 pub struct Args {
-    /// Set tracing level
+    /// Set the tracing level
     #[arg(short, long, default_value_t = 0)]
     pub trace: u16,
     #[command(subcommand)]
     pub command: SubCommand,
+    /// An optional replacement path for the home directory
+    #[arg(long)]
+    pub home: Option<PathBuf>,
 }
 
 impl Args {
