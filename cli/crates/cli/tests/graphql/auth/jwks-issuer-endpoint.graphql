@@ -1,6 +1,6 @@
 schema
   @auth(
-    providers: [{ type: jwks, jwksEndpoint: "{{ env.JWKS_ENDPOINT_URL }}" }]
+    providers: [{ type: jwks, issuer: "{{ env.ISSUER_URL }}", jwksEndpoint: "{{ env.JWKS_ENDPOINT_URL }}" }]
     rules: [{ allow: groups, groups: ["backend"] }]
   ) {
   query: Query
