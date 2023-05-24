@@ -149,7 +149,8 @@ impl Environment {
         self.write_file("schema.graphql", schema);
     }
 
-    fn prepare_ts_config_dependencies(&mut self) {
+    #[cfg(not(target_os = "windows"))]
+    pub fn prepare_ts_config_dependencies(&mut self) {
         if self.ts_config_dependencies_prepared {
             return;
         }
