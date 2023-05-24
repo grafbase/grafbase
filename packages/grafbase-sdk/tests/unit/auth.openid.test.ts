@@ -398,39 +398,6 @@ describe('OpenID auth provider', () => {
     `)
   })
 
-  it('renders multiple providers like a champ', () => {
-    const clerk = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
-    const derp = auth.OpenIDConnect({
-      issuer: '{{ env.ISSUER_URL }}'
-    })
-
-    const cfg = config({
-      schema: g,
-      auth: {
-        providers: [clerk, derp],
-        rules: (rules) => {
-          rules.private()
-        }
-      }
-    })
-
-    expect(cfg.toString()).toMatchInlineSnapshot(`
-      "extend schema
-        @auth(
-          providers: [
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-            { type: oidc, issuer: "{{ env.ISSUER_URL }}" }
-          ]
-          rules: [
-            { allow: private }
-          ]
-        )"
-    `)
-  })
-
   it('renders multiple rules like a champ', () => {
     const clerk = auth.OpenIDConnect({
       issuer: '{{ env.ISSUER_URL }}'

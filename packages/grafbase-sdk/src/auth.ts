@@ -1,3 +1,4 @@
+import { FixedLengthArray } from 'type-fest'
 import { JWKSAuth } from './auth/jwks'
 import { JWTAuth } from './auth/jwt'
 import { OpenIDAuth } from './auth/openid'
@@ -121,12 +122,12 @@ export class AuthRules {
 }
 
 export interface AuthParams {
-  providers: AuthProvider[]
+  providers: FixedLengthArray<AuthProvider, 1>
   rules: AuthRuleF
 }
 
 export class Authentication {
-  providers: AuthProvider[]
+  providers: FixedLengthArray<AuthProvider, 1>
   rules: AuthRules
 
   constructor(params: AuthParams) {
