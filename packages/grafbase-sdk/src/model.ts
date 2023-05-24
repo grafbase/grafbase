@@ -1,7 +1,7 @@
 import { AuthRuleF, AuthRules } from './auth'
 import { Field } from './field'
 import { ListDefinition, RelationListDefinition } from './field/list'
-import { ReferenceDefinition } from './reference'
+import { ReferenceDefinition } from './typedefs/reference'
 import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'

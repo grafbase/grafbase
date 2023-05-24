@@ -1,5 +1,5 @@
 import { AuthRuleF, AuthRules } from '../auth'
-import { ReferenceDefinition } from '../reference'
+import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from '../relation'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { DefaultDefinition } from './default'

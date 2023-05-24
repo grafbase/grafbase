@@ -1,8 +1,8 @@
 import { Field } from './field'
 import { ListDefinition } from './field/list'
 import { Interface } from './interface'
-import { ReferenceDefinition } from './reference'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
+import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 
 /**

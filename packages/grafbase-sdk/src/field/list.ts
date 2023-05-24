@@ -1,5 +1,5 @@
 import { AuthRuleF, AuthRules } from '../auth'
-import { ReferenceDefinition } from '../reference'
+import { ReferenceDefinition } from '../typedefs/reference'
 import { RelationDefinition } from '../relation'
 import { renderDefault } from '../typedefs/default'
 import {
