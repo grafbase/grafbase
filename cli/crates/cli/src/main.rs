@@ -20,7 +20,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, SubCommand},
+    cli_input::{Args, ArgumentNames, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -32,7 +32,7 @@ use crate::{
     unlink::unlink,
 };
 use clap::Parser;
-use common::environment::Environment;
+use common::{analytics::Analytics, environment::Environment};
 use errors::CliError;
 use output::report;
 use std::process;
@@ -62,6 +62,9 @@ fn try_main(args: Args) -> Result<(), CliError> {
     tracing_subscriber::registry().with(fmt::layer()).with(filter).init();
     trace!("subcommand: {}", args.command);
     report::cli_header();
+
+    Analytics::init();
+    Analytics::subcommand(args.command.as_ref(), &[]);
 
     if args.command.needs_environment() {
         Environment::try_init(args.home).map_err(CliError::CommonError)?;
