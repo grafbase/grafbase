@@ -20,7 +20,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, ArgumentNames, SubCommand},
+    cli_input::{Args, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
