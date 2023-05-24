@@ -127,12 +127,6 @@ jobs:
     steps:
       - name: Get sources
         uses: actions/checkout@v3
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:

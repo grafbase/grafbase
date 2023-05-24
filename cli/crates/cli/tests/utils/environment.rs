@@ -149,7 +149,7 @@ impl Environment {
         self.write_file("schema.graphql", schema);
     }
 
-    pub fn prepare_ts_config_dependencies(&mut self) {
+    fn prepare_ts_config_dependencies(&mut self) {
         if self.ts_config_dependencies_prepared {
             return;
         }
@@ -158,6 +158,7 @@ impl Environment {
         self.ts_config_dependencies_prepared = true;
     }
 
+    #[cfg(not(target_os = "windows"))]
     pub fn set_typescript_config(&mut self, config: impl AsRef<str>) {
         self.prepare_ts_config_dependencies();
         self.write_file("grafbase.config.ts", config);
