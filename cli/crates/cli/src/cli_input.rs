@@ -170,7 +170,7 @@ pub struct Args {
     pub trace: u16,
     #[command(subcommand)]
     pub command: SubCommand,
-    /// An optional replacement location for the home directory
+    /// An optional replacement path for the home directory
     #[arg(long)]
     pub home: Option<PathBuf>,
 }
