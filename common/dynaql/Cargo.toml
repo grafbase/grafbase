@@ -74,10 +74,12 @@ grafbase = { path = "../grafbase", features = ["json"] }
 arrow-schema = { workspace = true, features = ["serde"] }
 
 # API dependencies
-query-planning = { path = "../query-planning", optional = true, default-features = false}
+query-planning = { path = "../query-planning", optional = true, default-features = false }
 dynamodb = { path = "../dynamodb" }
 graph-entities = { path = "../graph-entities" }
-logworker = { path = "../log", package = "log", optional = true }
+logworker = { path = "../log", package = "log", features = [
+  "with-worker",
+], optional = true }
 
 # Feature optional dependencies
 chrono-tz = { version = "0.8", optional = true }

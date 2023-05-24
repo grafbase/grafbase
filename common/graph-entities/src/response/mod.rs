@@ -30,7 +30,7 @@ use derivative::Derivative;
 use dynaql_value::Name;
 use internment::ArcIntern;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 mod entity_id;
 mod into_response_node;
@@ -84,26 +84,27 @@ pub mod vectorize {
 }
 
 impl<'a> Iterator for Children<'a> {
-    type Item = &'a QueryResponseNode;
+    type Item = (ResponseNodeId, &'a QueryResponseNode);
 
-    fn next(&mut self) -> Option<&'a QueryResponseNode> {
-        let node = self.nodes.pop().and_then(|x| self.response.get_node(&x));
-        match node {
-            base @ Some(QueryResponseNode::Container(container)) => {
-                container.children.iter().for_each(|(_, elt)| {
-                    self.nodes.push(*elt);
-                });
-                base
-            }
-            base @ Some(QueryResponseNode::List(container)) => {
-                container.children.iter().for_each(|elt| {
-                    self.nodes.push(*elt);
-                });
-                base
-            }
-            base @ Some(QueryResponseNode::Primitive(_)) => base,
-            None => None,
-        }
+    fn next(&mut self) -> Option<Self::Item> {
+        self.nodes.pop().and_then(|id| {
+            self.response.get_node(&id).map(|node| {
+                match &node {
+                    QueryResponseNode::Container(container) => {
+                        container.children.iter().for_each(|(_, elt)| {
+                            self.nodes.push(*elt);
+                        });
+                    }
+                    QueryResponseNode::List(container) => {
+                        container.children.iter().for_each(|elt| {
+                            self.nodes.push(*elt);
+                        });
+                    }
+                    _ => (),
+                };
+                (id, node)
+            })
+        })
     }
 }
 #[derive(Clone)]
@@ -129,10 +130,10 @@ impl QueryResponse {
         }
     }
 
-    pub fn relations(&self) -> Relations<'_> {
-        Relations {
+    pub fn relations(&self) -> RelationsIterator<'_> {
+        RelationsIterator {
             nodes: self.children(),
-            relations: Vec::new(),
+            items: VecDeque::new(),
         }
     }
 
@@ -143,25 +144,29 @@ impl QueryResponse {
 
 // TODO: iterator are little flawed right now as it's just a draft impl; it'll be switched to a
 // more compact and efficient form later.
-impl<'a> Iterator for Relations<'a> {
-    type Item = (ResponseNodeRelation, EntityId);
+impl<'a> Iterator for RelationsIterator<'a> {
+    type Item = RelationsIteratorItem;
 
-    fn next(&mut self) -> Option<(ResponseNodeRelation, EntityId)> {
+    fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(relation) = self.relations.pop() {
+            if let Some(relation) = self.items.pop_front() {
                 return Some(relation);
             }
 
-            if let Some(node) = self.nodes.next() {
+            if let Some((node_id, node)) = self.nodes.next() {
                 match node {
                     QueryResponseNode::Container(container) => {
-                        self.relations.extend(
-                            container
-                                .children
-                                .iter()
-                                .filter(|(rel, _)| matches!(rel, ResponseNodeRelation::Relation { .. }))
-                                .filter_map(|(rel, _)| Some((rel.clone(), container.id.clone()?))),
-                        );
+                        self.items.extend(container.children.iter().filter_map(|(rel, _)| {
+                            if matches!(rel, ResponseNodeRelation::Relation { .. }) {
+                                Some(RelationsIteratorItem {
+                                    relation: rel.clone(),
+                                    parent_node_id: node_id,
+                                    parent_entity_id: container.id.clone(),
+                                })
+                            } else {
+                                None
+                            }
+                        }));
                         continue;
                     }
                     _ => {
@@ -176,9 +181,15 @@ impl<'a> Iterator for Relations<'a> {
 }
 
 /// An iterator of the IDs of the children of a given node with forward depth-first
-pub struct Relations<'a> {
+pub struct RelationsIterator<'a> {
     nodes: Children<'a>,
-    relations: Vec<(ResponseNodeRelation, EntityId)>,
+    items: VecDeque<RelationsIteratorItem>,
+}
+
+pub struct RelationsIteratorItem {
+    pub parent_node_id: ResponseNodeId,
+    pub parent_entity_id: Option<EntityId>,
+    pub relation: ResponseNodeRelation,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -374,22 +385,22 @@ impl QueryResponse {
 }
 
 impl QueryResponseNode {
-    pub fn id(&self) -> Option<EntityId> {
+    pub fn entity_id(&self) -> Option<EntityId> {
         match self {
             QueryResponseNode::Container(value) => value.id.clone(),
             QueryResponseNode::List(_) | QueryResponseNode::Primitive(_) => None,
         }
     }
 
-    pub fn is_node(&self) -> bool {
-        matches!(self.id(), Some(_))
+    pub fn is_entity_node(&self) -> bool {
+        matches!(self.entity_id(), Some(_))
     }
 
     pub const fn is_list(&self) -> bool {
         matches!(self, QueryResponseNode::List(_))
     }
 
-    pub const fn is_container_or_node(&self) -> bool {
+    pub const fn is_container(&self) -> bool {
         matches!(self, QueryResponseNode::Container(_))
     }
 
