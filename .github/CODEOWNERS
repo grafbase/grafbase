@@ -1,7 +1,12 @@
 # These owners will be the default owners for everything in the repo. Unless a
-
 # later match takes precedence, the team will be requested for review when
-
 # someone opens a pull request.
 
 cli/ @grafbase/backend
+.github/actions/ @grafbase/infrastructure
+.github/workflows/ @grafbase/infrastructure
+examples/ @grafbase/frontend
+packages/ @grafbase/frontend
+packages/grafbase-sdk @grafbase/backend
+templates/ @grafbase/frontend
+
