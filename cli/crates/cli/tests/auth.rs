@@ -97,13 +97,14 @@ fn generate_hs512_token(sub: &str, groups: &[&str]) -> String {
     Hs512.token(header, &claims, &key).unwrap()
 }
 
-const OIDC_DISCOVERY_PATH: &str = "/.well-known/openid-configuration";
-const JWKS_PATH: &str = "/.well-known/jwks.json";
+const OIDC_DISCOVERY_PATH: &str = ".well-known/openid-configuration";
+const JWKS_PATH: &str = ".well-known/jwks.json";
 
 async fn set_up_oidc_server(issuer: &Url, server: &MockServer, key_set: JsonWebKeySet<'_>) {
+    let discovery_url = issuer.join(OIDC_DISCOVERY_PATH).unwrap();
     let jwks_uri = issuer.join(JWKS_PATH).unwrap();
     Mock::given(method("GET"))
-        .and(path(OIDC_DISCOVERY_PATH))
+        .and(path(discovery_url.path()))
         .respond_with(ResponseTemplate::new(200).set_body_json(json!(
             { "issuer": issuer, "jwks_uri": jwks_uri }
         )))
@@ -194,12 +195,29 @@ struct SetUpOidc {
 }
 
 async fn set_up_oidc() -> SetUpOidc {
+    set_up_oidc_with_path(None).await
+}
+
+async fn set_up_oidc_with_path(path: Option<&str>) -> SetUpOidc {
     let mut rng = rand::thread_rng();
     let (priv_key, pub_key) =
         Rsa::generate(&mut rng, jwt_compact::alg::ModulusBits::TwoKibibytes).expect("key must be generated");
     let key_set = to_verifying_key_set(&pub_key, KEY_ID);
     let server = MockServer::start().await;
-    let issuer_url: Url = server.uri().parse().unwrap();
+    let issuer_url: Url = {
+        let issuer_url = server.uri().parse::<url::Url>().unwrap();
+        match path {
+            None => issuer_url,
+            Some(path) => {
+                let path = if path.ends_with('/') {
+                    path.to_string()
+                } else {
+                    format!("{path}/")
+                };
+                issuer_url.join(&path).unwrap()
+            }
+        }
+    };
     set_up_oidc_server(&issuer_url, &server, key_set).await;
     let mut env = Environment::init_async().await;
     env.grafbase_init();
@@ -261,6 +279,38 @@ async fn oidc_without_token_should_only_allow_introspection() {
 async fn oidc_token_with_valid_group_should_work() {
     let set_up = set_up_oidc().await;
 
+    let token = generate_rs256_token(
+        &set_up.priv_key,
+        "cli_user",
+        &["backend"],
+        Some(set_up.issuer_url.as_str()),
+        KEY_ID,
+    );
+    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let errors: Option<Value> = dot_get_opt!(resp, "errors");
+    assert!(errors.is_none(), "errors: {errors:#?}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn oidc_with_path_with_trailing_slash_should_work() {
+    let set_up = set_up_oidc_with_path(Some("some/path/")).await;
+    let token = generate_rs256_token(
+        &set_up.priv_key,
+        "cli_user",
+        &["backend"],
+        Some(set_up.issuer_url.as_str()),
+        KEY_ID,
+    );
+    let client = set_up.client.with_header("Authorization", &format!("Bearer {token}"));
+    let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).await;
+    let errors: Option<Value> = dot_get_opt!(resp, "errors");
+    assert!(errors.is_none(), "errors: {errors:#?}");
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn oidc_with_path_without_trailing_slash_should_work() {
+    let set_up = set_up_oidc_with_path(Some("some/path")).await;
     let token = generate_rs256_token(
         &set_up.priv_key,
         "cli_user",
