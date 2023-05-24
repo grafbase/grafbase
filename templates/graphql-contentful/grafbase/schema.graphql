@@ -5,4 +5,7 @@ extend schema
     headers: [
       { name: "Authorization", value: "Bearer {{ env.CONTENTFUL_API_TOKEN }}" }
     ]
+    introspectionHeaders: [
+      { name: "Authorization", value: "Bearer {{ env.CONTENTFUL_API_TOKEN }}" }
+    ]
   )
