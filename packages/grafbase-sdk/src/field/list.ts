@@ -1,21 +1,24 @@
-import { ScalarType } from '..'
+import { AuthRuleF, AuthRules } from '../auth'
 import { ReferenceDefinition } from '../reference'
 import { RelationDefinition } from '../relation'
+import { renderDefault } from '../typedefs/default'
 import {
-  FieldType,
   BooleanDefinition,
   DateDefinition,
   NumberDefinition,
   ScalarDefinition,
-  SearchDefinition,
-  StringDefinition,
-  renderDefault
-} from './typedefs'
+  DefaultValueType,
+  StringDefinition
+} from '../typedefs/scalar'
+import { SearchDefinition } from '../typedefs/search'
+import { FieldType } from './typedefs'
 
 export class ListDefinition {
   fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
   isOptional: boolean
-  defaultValue?: ScalarType[]
+  defaultValue?: DefaultValueType[]
+  authRules?: AuthRules
+  resolverName?: string
 
   constructor(
     fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
@@ -34,16 +37,40 @@ export class ListDefinition {
     return new SearchDefinition(this)
   }
 
+  public auth(rules: AuthRuleF): ListDefinition {
+    const authRules = new AuthRules()
+    rules(authRules)
+
+    this.authRules = authRules
+
+    return this
+  }
+
+  public resolver(name: string): ListDefinition {
+    this.resolverName = name
+
+    return this
+  }
+
   public toString(): string {
     const required = this.isOptional ? '' : '!'
 
-    return `[${this.fieldDefinition}]${required}`
+    const rules = this.authRules
+      ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
+      : ''
+
+    const resolver = this.resolverName
+      ? ` @resolver(name: "${this.resolverName}")`
+      : ''
+
+    return `[${this.fieldDefinition}]${required}${rules}${resolver}`
   }
 }
 
 export class RelationListDefinition {
   relation: RelationDefinition
   isOptional: boolean
+  authRules?: AuthRules
 
   constructor(fieldDefinition: RelationDefinition) {
     this.relation = fieldDefinition
@@ -52,6 +79,15 @@ export class RelationListDefinition {
 
   public optional(): RelationListDefinition {
     this.isOptional = true
+
+    return this
+  }
+
+  public auth(rules: AuthRuleF): RelationListDefinition {
+    const authRules = new AuthRules()
+    rules(authRules)
+
+    this.authRules = authRules
 
     return this
   }
@@ -71,7 +107,11 @@ export class RelationListDefinition {
       ? ` @relation(name: ${this.relation.relationName})`
       : ''
 
-    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}`
+    const rules = this.authRules
+      ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
+      : ''
+
+    return `[${modelName}${relationRequired}]${listRequired}${relationAttribute}${rules}`
   }
 }
 

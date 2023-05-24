@@ -10,12 +10,12 @@ import { g, config } from '@grafbase/sdk'
 
 // types are generated with the `type` method,
 // followed by the name and fields.
-const profile = g.type("Profile", {
-  address: g.string(),
+const profile = g.type('Profile', {
+  address: g.string()
 })
 
 // models can be generated with the `model` method
-const user = g.model("User", {
+const user = g.model('User', {
   name: g.string(),
   age: g.int().optional(),
   profile: g.ref(profile).optional(),
@@ -50,7 +50,7 @@ The above SDL is now used when starting the dev.
 Types are generated with the `type` method:
 
 ```typescript
-g.type("Profile", {
+g.type('Profile', {
   address: g.string()
 })
 ```
@@ -60,7 +60,7 @@ g.type("Profile", {
 Types are generated with the `model` method:
 
 ```typescript
-g.model("User", {
+g.model('User', {
   name: g.string()
 })
 ```
@@ -89,7 +89,7 @@ An enum can be used as a field type with the `ref` method:
 ```typescript
 const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
-g.type("User", {
+g.type('User', {
   favoriteFruit: g.ref(e)
 })
 ```
@@ -178,10 +178,10 @@ enum Fruits {
   Oranges
 }
 
-const fruits = g.enumType("Fruits", Fruits)
+const fruits = g.enumType('Fruits', Fruits)
 
 // then use it e.g. in a model
-g.model("User", {
+g.model('User', {
   favoriteFruit: g.enum(fruits)
 })
 ```
@@ -191,11 +191,11 @@ g.model("User", {
 Referencing a type is with the `ref` method:
 
 ```typescript
-const profile = g.type("Profile", {
+const profile = g.type('Profile', {
   address: g.string()
 })
 
-g.model("User", {
+g.model('User', {
   profile: g.ref(profile)
 })
 ```
@@ -205,12 +205,15 @@ g.model("User", {
 Creating a relation between models is with the `relation` method.
 
 ```typescript
-const user = g.model("User", {
-  posts: g.relation(() => post).name("relationName").list()
+const user = g.model('User', {
+  posts: g
+    .relation(() => post)
+    .name('relationName')
+    .list()
 })
 
-const post = g.model("Post", {
-  author: g.relation(user).name("relationName")
+const post = g.model('Post', {
+  author: g.relation(user).name('relationName')
 })
 ```
 
@@ -219,7 +222,7 @@ const post = g.model("Post", {
 By default the generated fields are _required_. To make them optional is with the `optional` method:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   posts: g.string().optional()
 })
 ```
@@ -229,7 +232,7 @@ const user = g.model("User", {
 List fields can be done with the `list` method:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   names: g.string().list()
 })
 ```
@@ -237,7 +240,7 @@ const user = g.model("User", {
 By default, the list or list items are _required_. To make the items nullable, call the `optional` method to the base type:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   names: g.string().optional().list()
 })
 ```
@@ -245,7 +248,7 @@ const user = g.model("User", {
 To make the list itself optional, call the `optional` method to the list type:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   names: g.string().list().optional()
 })
 ```
@@ -255,7 +258,7 @@ const user = g.model("User", {
 Unique field can be defined to certain types of fields with the `unique` method:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   name: g.string().unique()
 })
 ```
@@ -263,8 +266,8 @@ const user = g.model("User", {
 Additional unique scope can be given as a parameter:
 
 ```typescript
-const user = g.model("User", {
-  name: g.string().unique(["email"]),
+const user = g.model('User', {
+  name: g.string().unique(['email']),
   email: g.string()
 })
 ```
@@ -274,7 +277,7 @@ const user = g.model("User", {
 Certain field types can have a limited length:
 
 ```typescript
-const user = g.model("User", {
+const user = g.model('User', {
   name: g.string().length({ min: 1, max: 255 })
 })
 ```
@@ -284,8 +287,8 @@ const user = g.model("User", {
 Default values for certain field types can be given with the `default` method. The default parameters are type-checked to fit the field type:
 
 ```typescript
-const user = g.model("User", {
-  name: g.string().default("meow"),
+const user = g.model('User', {
+  name: g.string().default('meow'),
   age: g.int().default(11)
 })
 ```
@@ -295,18 +298,20 @@ const user = g.model("User", {
 Certain types of fields can be searchable:
 
 ```typescript
-const user = g.model("User", {
-  name: g.string().search(),
+const user = g.model('User', {
+  name: g.string().search()
 })
 ```
 
 Additionally, the whole model can be searchable:
 
 ```typescript
-const user = g.model("User", {
-  name: g.string(),
-  age: g.int()
-}).search()
+const user = g
+  .model('User', {
+    name: g.string(),
+    age: g.int()
+  })
+  .search()
 ```
 
 ## Connectors
@@ -323,19 +328,20 @@ The OpenAPI connector can be created with the `OpenAPI` method:
 
 ```typescript
 const openai = connector.OpenAPI({
-  schema: 'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
+  schema:
+    'https://raw.githubusercontent.com/openai/openai-openapi/master/openapi.yaml'
 })
 
-const stripe = connector
-  .OpenAPI({
-    schema: 'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
-    headers: (headers) => {
-      // used in client and introspection requests
-      headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
-      // used only in introspection requests
-      headers.introspection('foo', 'bar')
-    }
-  })
+const stripe = connector.OpenAPI({
+  schema:
+    'https://raw.githubusercontent.com/stripe/openapi/master/openapi/spec3.json',
+  headers: (headers) => {
+    // used in client and introspection requests
+    headers.static('Authorization', 'Bearer {{ env.STRIPE_API_KEY }}')
+    // used only in introspection requests
+    headers.introspection('foo', 'bar')
+  }
+})
 ```
 
 Introspecting the connector namespace to the schema happens with the `datasource` method of the schema:
@@ -368,4 +374,136 @@ Introspecting the connector namespace to the schema happens with the `introspect
 ```typescript
 g.datasource(contentful, { namespace: 'Contentful' })
 g.datasource(github, { namespace: 'GitHub' })
+```
+
+### Authentication
+
+Auth providers can be created through the `auth` object.
+
+```typescript
+import { auth } from '@grafbase/sdk'
+```
+
+#### OpenID
+
+Required fields:
+
+- `issuer`
+
+Optional fields:
+
+- `clientId`
+- `groupsClaim`
+
+```typescript
+// first create the provider
+const clerk = auth.OpenIDConnect({
+  issuer: '{{ env.ISSUER_URL }}'
+})
+
+// add it to the config with the rules
+const cfg = config({
+  schema: g,
+  auth: {
+    providers: [clerk],
+    rules: (rules) => {
+      rules.private()
+    }
+  }
+})
+```
+
+#### JWT
+
+Required fields:
+
+- `issuer`
+- `secret`
+
+Optional fields:
+
+- `clientId`
+- `groupsClaim`
+
+```typescript
+const derp = auth.JWT({
+  issuer: '{{ env.ISSUER_URL }}',
+  secret: '{{ env.JWT_SECRET }}'
+})
+```
+
+## JWKS
+
+Required fields:
+
+- `issuer`
+
+Optional fields:
+
+- `clientId`
+- `groupsClaim`
+- `jwksEndpoint`
+
+A JWKS provider has to define _either_ `issuer` or `jwksEndpoint`
+
+```typescript
+const derp = auth.JWKS({
+  issuer: '{{ env.ISSUER_URL }}'
+})
+```
+
+## Rule Definitions
+
+Everywhere where one can define authentication rules, it happens through a lambda with a rules builder.
+
+```typescript
+(rules) => {
+  rules.private().read()
+  rules.owner().create()
+  rules.group(['admin', 'root']).delete()
+}
+```
+
+### Global Rules
+
+Global rules are defined through the auth definition in the configuration.
+
+```typescript
+const clerk = auth.OpenIDConnect({
+  issuer: '{{ env.ISSUER_URL }}'
+})
+
+const cfg = config({
+  schema: g,
+  auth: {
+    providers: [clerk],
+    rules: (rules) => {
+      rules.private()
+    }
+  }
+})
+```
+
+### Model-level Rules
+
+Model-level rules are defined through the auth method of the model.
+
+```typescript
+g.model('User', {
+  name: g.string()
+}).auth((rules) => {
+  rules.private().read()
+})
+```
+
+### Field-level Rules
+
+Field-level rules are defined through the auth method of the field.
+
+```typescript
+g.model('User', {
+  name: g.string().auth((rules) => {
+    rules.groups(['admin'])
+  })
+})
 ```

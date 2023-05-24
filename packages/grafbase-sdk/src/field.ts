@@ -1,10 +1,10 @@
-import { FieldShape } from '.'
+import { ModelFieldShape } from './model'
 
 export class Field {
   name: string
-  shape: FieldShape
+  shape: ModelFieldShape
 
-  constructor(name: string, shape: FieldShape) {
+  constructor(name: string, shape: ModelFieldShape) {
     this.name = name
     this.shape = shape
   }

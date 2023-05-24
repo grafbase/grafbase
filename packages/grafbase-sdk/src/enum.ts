@@ -1,4 +1,10 @@
-import { EnumShape } from '.'
+import { AtLeastOne } from '.'
+
+/**
+* Defines how an input enum can look like. Either an array of
+* strings with at least one item, or a TypeScript enum definition.
+*/
+export type EnumShape = AtLeastOne<string> | { [s: number]: string }
 
 export class Enum {
   name: string

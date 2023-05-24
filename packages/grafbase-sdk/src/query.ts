@@ -1,16 +1,25 @@
 import { ListDefinition } from './field/list'
-import { ScalarDefinition } from './field/typedefs'
 import { ReferenceDefinition } from './reference'
+import { ScalarDefinition } from './typedefs/scalar'
 
+/** The possible types of an input parameters of a query. */
 export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
+
+/** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
 
+/**
+* Parameters to create a new query definition.
+*/
 export interface QueryInput {
   args?: Record<string, InputType>
   returns: OutputType
   resolver: string
 }
 
+/**
+* An input argument shape of a query.
+*/
 export class QueryArgument {
   name: string
   type: InputType
@@ -25,6 +34,9 @@ export class QueryArgument {
   }
 }
 
+/**
+* An edge resolver query definition.
+*/
 export class Query {
   name: string
   arguments: QueryArgument[]
@@ -38,7 +50,10 @@ export class Query {
     this.resolver = resolverName
   }
 
-  public pushArgument(name: string, type: InputType): Query {
+  /**
+  * Pushes a new input argument to the query.
+  */
+  public argument(name: string, type: InputType): Query {
     this.arguments.push(new QueryArgument(name, type))
 
     return this
