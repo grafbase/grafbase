@@ -1,6 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { Enum } from '../enum'
-import { FieldType } from '../field/typedefs'
+import { FieldType } from '../typedefs'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, TypeLevelCache, CacheParams } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'

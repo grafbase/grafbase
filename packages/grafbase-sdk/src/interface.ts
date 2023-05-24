@@ -1,5 +1,5 @@
 import { Field } from './field'
-import { ListDefinition } from './field/list'
+import { ListDefinition } from './typedefs/list'
 import { ScalarDefinition } from './typedefs/scalar'
 
 /**

@@ -1,5 +1,5 @@
 import { AuthRuleF } from './auth'
-import { RelationListDefinition } from './field/list'
+import { RelationListDefinition } from './typedefs/list'
 import { Model } from './model'
 import { AuthDefinition } from './typedefs/auth'
 

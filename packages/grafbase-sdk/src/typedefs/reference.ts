@@ -1,6 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { Enum } from '../enum'
-import { ListDefinition } from '../field/list'
+import { ListDefinition } from './list'
 import { Type } from '../type'
 import { AuthDefinition } from './auth'
 import { ResolverDefinition } from './resolver'

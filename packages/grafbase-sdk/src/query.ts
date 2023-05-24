@@ -1,4 +1,4 @@
-import { ListDefinition } from './field/list'
+import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 

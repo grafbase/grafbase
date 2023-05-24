@@ -1,6 +1,6 @@
 import { AuthRuleF, AuthRules } from './auth'
 import { Field } from './field'
-import { ListDefinition, RelationListDefinition } from './field/list'
+import { ListDefinition, RelationListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
 import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'

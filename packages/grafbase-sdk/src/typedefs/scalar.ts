@@ -6,8 +6,8 @@ import {
   ListDefinition,
   NumberListDefinition,
   StringListDefinition
-} from '../field/list'
-import { FieldType } from '../field/typedefs'
+} from './list'
+import { FieldType } from '../typedefs'
 import { DefaultDefinition } from './default'
 import {
   FieldLength,

@@ -1,5 +1,5 @@
 import { RequireAtLeastOne } from 'type-fest'
-import { FieldType } from '../field/typedefs'
+import { FieldType } from '../typedefs'
 import { UniqueDefinition } from './unique'
 import { DefaultDefinition } from './default'
 import { Enum } from '../enum'

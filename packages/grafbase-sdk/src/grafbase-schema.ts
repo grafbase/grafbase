@@ -15,7 +15,7 @@ import {
   ObjectDefinition,
   StringDefinition
 } from './typedefs/scalar'
-import { FieldType } from './field/typedefs'
+import { FieldType } from './typedefs'
 
 export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
 export type Datasource = OpenAPI | GraphQLAPI

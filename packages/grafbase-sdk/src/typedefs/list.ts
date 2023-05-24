@@ -1,7 +1,7 @@
 import { AuthRuleF, AuthRules } from '../auth'
-import { ReferenceDefinition } from '../typedefs/reference'
+import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from '../relation'
-import { renderDefault } from '../typedefs/default'
+import { renderDefault } from './default'
 import {
   BooleanDefinition,
   DateDefinition,
@@ -9,9 +9,9 @@ import {
   ScalarDefinition,
   DefaultValueType,
   StringDefinition
-} from '../typedefs/scalar'
-import { SearchDefinition } from '../typedefs/search'
-import { FieldType } from './typedefs'
+} from './scalar'
+import { SearchDefinition } from './search'
+import { FieldType } from '../typedefs'
 
 export class ListDefinition {
   fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition

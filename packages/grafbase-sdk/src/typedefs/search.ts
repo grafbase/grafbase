@@ -1,5 +1,5 @@
 import { AuthRuleF } from '../auth'
-import { ListDefinition } from '../field/list'
+import { ListDefinition } from './list'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
