@@ -1,7 +1,7 @@
 use common::types::ResolverMessageLevel;
 use std::path::PathBuf;
 
-pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets.tar.gz");
+pub const ASSETS_GZIP: &[u8] = include_bytes!("../assets/assets.tar.gz");
 
 #[derive(Clone, Debug)]
 pub enum ServerMessage {
