@@ -2,9 +2,8 @@
 
 use crate::{
     consts::{
-        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_GLOBAL_CONFIG_DIRECTORY,
-        GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME,
-        WRANGLER_DIRECTORY_NAME,
+        DATABASE_DIRECTORY, DOT_GRAFBASE_DIRECTORY, GRAFBASE_DIRECTORY_NAME, GRAFBASE_HOME, GRAFBASE_SCHEMA_FILE_NAME,
+        GRAFBASE_TS_CONFIG_FILE_NAME, REGISTRY_FILE, RESOLVERS_DIRECTORY_NAME, WRANGLER_DIRECTORY_NAME,
     },
     errors::CommonError,
 };
@@ -134,7 +133,7 @@ pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
 }
 
 pub fn get_user_dot_grafbase_path_from_env() -> Option<PathBuf> {
-    env::var(GRAFBASE_GLOBAL_CONFIG_DIRECTORY)
+    env::var(GRAFBASE_HOME)
         .ok()
         .map(PathBuf::from)
         .map(|env_override| env_override.join(DOT_GRAFBASE_DIRECTORY))
@@ -155,7 +154,7 @@ impl Environment {
     /// returns [`CommonError::ReadCurrentDirectory`] if the current directory path cannot be read
     ///
     /// returns [`CommonError::FindGrafbaseDirectory`] if the grafbase directory is not found
-    pub fn try_init(config_dir_override: Option<PathBuf>) -> Result<(), CommonError> {
+    pub fn try_init(home_override: Option<PathBuf>) -> Result<(), CommonError> {
         let mut warnings = Vec::new();
 
         let project_grafbase_schema_path =
@@ -171,8 +170,7 @@ impl Environment {
             .expect("the grafbase directory must have a parent directory by definition")
             .to_path_buf();
 
-        let user_dot_grafbase_path =
-            get_user_dot_grafbase_path(config_dir_override).ok_or(CommonError::FindHomeDirectory)?;
+        let user_dot_grafbase_path = get_user_dot_grafbase_path(home_override).ok_or(CommonError::FindHomeDirectory)?;
 
         let project_dot_grafbase_path = project_path.join(DOT_GRAFBASE_DIRECTORY);
         let project_grafbase_registry_path = project_dot_grafbase_path.join(REGISTRY_FILE);

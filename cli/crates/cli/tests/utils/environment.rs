@@ -21,7 +21,7 @@ pub struct Environment {
     temp_dir: Arc<TempDir>,
     schema_path: PathBuf,
     commands: Vec<Handle>,
-    global_config_directory: Option<PathBuf>,
+    home: Option<PathBuf>,
     ts_config_dependencies_prepared: bool,
     #[cfg(feature = "dynamodb")]
     dynamodb_env: dynamodb::DynamoDbEnvironment,
@@ -103,7 +103,7 @@ impl Environment {
             temp_dir,
             schema_path,
             commands,
-            global_config_directory: None,
+            home: None,
             ts_config_dependencies_prepared: false,
             #[cfg(feature = "dynamodb")]
             dynamodb_env,
@@ -126,7 +126,7 @@ impl Environment {
             schema_path: other.schema_path.clone(),
             temp_dir,
             port,
-            global_config_directory: other.global_config_directory.clone(),
+            home: other.home.clone(),
             ts_config_dependencies_prepared: other.ts_config_dependencies_prepared,
             #[cfg(feature = "dynamodb")]
             dynamodb_env: dynamodb::DynamoDbEnvironment {
@@ -215,9 +215,9 @@ impl Environment {
         fs::remove_dir_all(directory).unwrap();
     }
 
-    pub fn with_global_config_directory(mut self, path: PathBuf) -> Self {
+    pub fn with_home(mut self, path: PathBuf) -> Self {
         fs::create_dir_all(self.directory.join(&path)).unwrap();
-        self.global_config_directory = Some(path);
+        self.home = Some(path);
         self
     }
 
@@ -239,13 +239,13 @@ impl Environment {
         self.commands.push(command);
     }
 
-    pub fn grafbase_dev_with_config_direcory_flag(&mut self) {
+    pub fn grafbase_dev_with_home_flag(&mut self) {
         let command = cmd!(
             cargo_bin("grafbase"),
             "--trace",
             "2",
-            "--global-config-directory",
-            self.global_config_directory
+            "--home",
+            self.home
                 .clone()
                 .expect("must supply a config dir")
                 .to_string_lossy()

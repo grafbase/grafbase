@@ -170,9 +170,9 @@ pub struct Args {
     pub trace: u16,
     #[command(subcommand)]
     pub command: SubCommand,
-    /// An optional replacement location for the global configuration directory
+    /// An optional replacement location for the home directory
     #[arg(long)]
-    pub global_config_directory: Option<PathBuf>,
+    pub home: Option<PathBuf>,
 }
 
 impl Args {

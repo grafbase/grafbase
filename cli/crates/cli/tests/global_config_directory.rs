@@ -7,7 +7,7 @@ use utils::environment::Environment;
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
 fn flag(#[case] case_path: PathBuf) {
-    let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
+    let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.write_schema(
         r#" 
         type Post @model {
@@ -32,7 +32,7 @@ fn flag(#[case] case_path: PathBuf) {
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
 fn env_var(#[case] case_path: PathBuf) {
-    std::env::set_var("GRAFBASE_GLOBAL_CONFIG_DIRECTORY", case_path.as_os_str());
+    std::env::set_var("GRAFBASE_HOME", case_path.as_os_str());
 
     let mut env = Environment::init();
     env.grafbase_init();
@@ -60,7 +60,7 @@ fn env_var(#[case] case_path: PathBuf) {
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
 fn ts_config_flag(#[case] case_path: PathBuf) {
-    let mut env = Environment::init().with_global_config_directory(PathBuf::from(&case_path));
+    let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.set_typescript_config(include_str!("config/default.ts"));
     env.grafbase_dev();
     let client = env.create_client().with_api_key();
