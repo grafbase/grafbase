@@ -52,7 +52,7 @@ export class LengthLimitedStringDefinition {
     return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
-  fieldTypeVal(): FieldType | Enum {
+  fieldTypeVal(): FieldType | Enum<any, any> {
     return this.scalar.fieldType
   }
 

@@ -18,27 +18,11 @@ describe('Enum generator', () => {
     `)
   })
 
-  it('generates an enum from a typescript enum', () => {
-    enum Fruits {
-      Apples,
-      Oranges
-    }
-
-    const e = g.enum('Fruits', Fruits)
-
-    expect(renderGraphQL(e)).toMatchInlineSnapshot(`
-      "enum Fruits {
-        Apples,
-        Oranges
-      }"
-    `)
-  })
-
   it('generates an enum field', () => {
     const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
     g.model('Basket', {
-      fruitType: g.ref(e)
+      fruitType: g.enumRef(e)
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
@@ -49,6 +33,25 @@ describe('Enum generator', () => {
 
       type Basket @model {
         fruitType: Fruits!
+      }"
+    `)
+  })
+
+  it('generates an enum field with a default', () => {
+    const e = g.enum('Fruits', ['Apples', 'Oranges'])
+
+    g.model('Basket', {
+      fruitType: g.enumRef(e).default('Oranges')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "enum Fruits {
+        Apples,
+        Oranges
+      }
+
+      type Basket @model {
+        fruitType: Fruits! @default(value: Oranges)
       }"
     `)
   })

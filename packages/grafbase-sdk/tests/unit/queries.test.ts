@@ -138,7 +138,7 @@ describe('Query generator', () => {
 
     g.query('sweet', {
       args: { game: g.int().optional() },
-      returns: g.ref(enm).list(),
+      returns: g.enumRef(enm).list(),
       resolver: 'jello'
     })
 

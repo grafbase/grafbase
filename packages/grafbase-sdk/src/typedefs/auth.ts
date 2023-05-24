@@ -8,6 +8,7 @@ import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
+import { EnumDefinition } from './enum'
 
 export type Authenticable =
   | ScalarDefinition
@@ -19,6 +20,7 @@ export type Authenticable =
   | RelationDefinition
   | CacheDefinition
   | ResolverDefinition
+  | EnumDefinition<any, any>
 
 export class AuthDefinition {
   field: Authenticable

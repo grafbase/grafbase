@@ -1,5 +1,4 @@
 import { AuthRuleF } from '../auth'
-import { Enum } from '../enum'
 import { ListDefinition } from './list'
 import { Type } from '../type'
 import { AuthDefinition } from './auth'
@@ -9,7 +8,7 @@ export class ReferenceDefinition {
   referencedType: string
   isOptional: boolean
 
-  constructor(referencedType: Type | Enum) {
+  constructor(referencedType: Type) {
     this.referencedType = referencedType.name
     this.isOptional = false
   }

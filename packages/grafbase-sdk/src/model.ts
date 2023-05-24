@@ -11,6 +11,7 @@ import { ResolverDefinition } from './typedefs/resolver'
 import { ScalarDefinition } from './typedefs/scalar'
 import { SearchDefinition } from './typedefs/search'
 import { UniqueDefinition } from './typedefs/unique'
+import { EnumDefinition } from './typedefs/enum'
 
 /**
  * A collection of fields in a model.
@@ -33,6 +34,7 @@ export type ModelFieldShape =
   | AuthDefinition
   | ResolverDefinition
   | CacheDefinition
+  | EnumDefinition<any, any>
 
 export class Model {
   name: string

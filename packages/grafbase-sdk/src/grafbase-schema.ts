@@ -16,6 +16,7 @@ import {
   StringDefinition
 } from './typedefs/scalar'
 import { FieldType } from './typedefs'
+import { EnumDefinition } from './typedefs/enum'
 
 export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
 export type Datasource = OpenAPI | GraphQLAPI
@@ -48,7 +49,7 @@ export interface IntrospectParams {
 }
 
 export class GrafbaseSchema {
-  enums: Enum[]
+  enums: Enum<any, any>[]
   types: Type[]
   unions: Union[]
   models: Model[]
@@ -68,10 +69,16 @@ export class GrafbaseSchema {
     this.datasources = new Datasources()
   }
 
+  /**
+   * Adds a new datasource to the schema.
+   */
   public datasource(datasource: PartialDatasource, params: IntrospectParams) {
     this.datasources.push(datasource.finalize(params.namespace))
   }
 
+  /**
+   * Adds a new model to the schema.
+   */
   public model(name: string, fields: ModelFields): Model {
     const model = Object.entries(fields).reduce(
       (model, [name, definition]) => model.field(name, definition),
@@ -83,6 +90,9 @@ export class GrafbaseSchema {
     return model
   }
 
+  /**
+   * Adds a new composite type to the schema.
+   */
   public type(name: string, fields: TypeFields): Type {
     const type = Object.entries(fields).reduce(
       (type, [name, definition]) => type.field(name, definition),
@@ -94,6 +104,9 @@ export class GrafbaseSchema {
     return type
   }
 
+  /**
+   * Adds a new interface to the schema.
+   */
   public interface(name: string, fields: InterfaceFields): Interface {
     const iface = Object.entries(fields).reduce(
       (iface, [name, definition]) => iface.field(name, definition),
@@ -105,6 +118,9 @@ export class GrafbaseSchema {
     return iface
   }
 
+  /**
+   * Adds a new union to the schema.
+   */
   public union(name: string, types: Record<string, Type>): Union {
     const union = Object.entries(types).reduce(
       (model, [_, type]) => model.type(type),
@@ -116,6 +132,9 @@ export class GrafbaseSchema {
     return union
   }
 
+  /**
+   * Adds a new query to the schema.
+   */
   public query(name: string, definition: QueryInput): Query {
     var query = new Query(name, definition.returns, definition.resolver)
 
@@ -130,6 +149,9 @@ export class GrafbaseSchema {
     return query
   }
 
+  /**
+   * Adds a new mutation to the schema.
+   */
   public mutation(name: string, definition: QueryInput): Query {
     var query = new Query(name, definition.returns, definition.resolver)
 
@@ -145,74 +167,136 @@ export class GrafbaseSchema {
     return query
   }
 
-  public enum(name: string, variants: EnumShape): Enum {
+  /**
+   * Adds a new enum to the schema.
+   */
+  public enum<T extends string, U extends EnumShape<T>>(
+    name: string,
+    variants: U
+  ): Enum<T, U> {
     const e = new Enum(name, variants)
-
     this.enums.push(e)
 
     return e
   }
 
+  /**
+   * Creates a new string field.
+   */
   public string(): StringDefinition {
     return new StringDefinition(FieldType.String)
   }
 
+  /**
+   * Creates a new ID field.
+   */
   public id(): StringDefinition {
     return new StringDefinition(FieldType.ID)
   }
 
+  /**
+   * Creates a new email field.
+   */
   public email(): StringDefinition {
     return new StringDefinition(FieldType.Email)
   }
 
+  /**
+   * Creates a new int field.
+   */
   public int(): NumberDefinition {
     return new NumberDefinition(FieldType.Int)
   }
 
+  /**
+   * Creates a new float field.
+   */
   public float(): NumberDefinition {
     return new NumberDefinition(FieldType.Float)
   }
 
+  /**
+   * Creates a new boolean field.
+   */
   public boolean(): BooleanDefinition {
     return new BooleanDefinition(FieldType.Boolean)
   }
 
+  /**
+   * Creates a new date field.
+   */
   public date(): DateDefinition {
     return new DateDefinition(FieldType.Date)
   }
 
+  /**
+   * Creates a new datetime field.
+   */
   public datetime(): DateDefinition {
     return new DateDefinition(FieldType.DateTime)
   }
 
+  /**
+   * Creates a new IP address field.
+   */
   public ipAddress(): StringDefinition {
     return new StringDefinition(FieldType.IPAddress)
   }
 
+  /**
+   * Creates a new timestamp field.
+   */
   public timestamp(): NumberDefinition {
     return new NumberDefinition(FieldType.Timestamp)
   }
 
+  /**
+   * Creates a new URL field.
+   */
   public url(): StringDefinition {
     return new StringDefinition(FieldType.URL)
   }
 
+  /**
+   * Creates a new JSON field.
+   */
   public json(): ObjectDefinition {
     return new ObjectDefinition(FieldType.JSON)
   }
 
+  /**
+   * Creates a new phone number field.
+   */
   public phoneNumber(): StringDefinition {
     return new StringDefinition(FieldType.PhoneNumber)
   }
 
+  /**
+   * Creates a new relation field.
+   */
   public relation(ref: RelationRef): RelationDefinition {
     return new RelationDefinition(ref)
   }
 
-  public ref(type: Type | Enum): ReferenceDefinition {
+  /**
+   * Creates a new reference field, referencing a type.
+   */
+  public ref(type: Type): ReferenceDefinition {
     return new ReferenceDefinition(type)
   }
 
+  /**
+   * Creates a new enum field.
+   */
+  public enumRef<T extends string, U extends EnumShape<T>>(
+    e: Enum<T, U>
+  ): EnumDefinition<T, U> {
+    return new EnumDefinition(e)
+  }
+
+  /**
+   * Empties the schema.
+   */
   public clear() {
     this.queries = []
     this.mutations = []

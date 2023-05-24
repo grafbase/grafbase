@@ -115,7 +115,7 @@ describe('Type generator', () => {
 
     g.type('Address', {
       street: g.string().optional(),
-      color: g.ref(enm).optional()
+      color: g.enumRef(enm).optional()
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
