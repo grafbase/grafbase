@@ -59,7 +59,7 @@ fn env_var(#[case] case_path: PathBuf) {
 #[rstest::rstest]
 #[case(PathBuf::from("./temp"))]
 #[case(dirs::home_dir().unwrap())]
-#[cfg_attr(target_os = "windows", ignore)]
+#[cfg(not(target_os = "windows"))]
 fn ts_config_flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.set_typescript_config(include_str!("config/default.ts"));
