@@ -650,4 +650,72 @@ describe('Model generator', () => {
       }"
     `)
   })
+
+  it('generates a resolver to a field', () => {
+    g.model('User', {
+      name: g.string().resolver('a-field')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @resolver(name: "a-field")
+      }"
+    `)
+  })
+
+  it('generates a unique field with a resolver', () => {
+    g.model('User', {
+      name: g.string().unique().resolver('a-field')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @unique @resolver(name: "a-field")
+      }"
+    `)
+  })
+
+  it('generates a field with a default value and a resolver', () => {
+    g.model('User', {
+      name: g.string().default('Bob').resolver('a-field')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: String! @default(value: "Bob") @resolver(name: "a-field")
+      }"
+    `)
+  })
+
+  it('generates a composite type field with a resolver', () => {
+    const address = g.type('Address', {
+      street: g.string().optional()
+    })
+
+    g.model('User', {
+      name: g.ref(address).resolver('a-field')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type Address {
+        street: String
+      }
+
+      type User @model {
+        name: Address! @resolver(name: "a-field")
+      }"
+    `)
+  })
+
+  it('generates a list field with a resolver', () => {
+    g.model('User', {
+      name: g.string().list().resolver('a-field')
+    })
+
+    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+      "type User @model {
+        name: [String!]! @resolver(name: "a-field")
+      }"
+    `)
+  })
 })

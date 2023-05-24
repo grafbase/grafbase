@@ -18,6 +18,7 @@ export class ListDefinition {
   isOptional: boolean
   defaultValue?: DefaultValueType[]
   authRules?: AuthRules
+  resolverName?: string
 
   constructor(
     fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
@@ -45,6 +46,12 @@ export class ListDefinition {
     return this
   }
 
+  public resolver(name: string): ListDefinition {
+    this.resolverName = name
+
+    return this
+  }
+
   public toString(): string {
     const required = this.isOptional ? '' : '!'
 
@@ -52,7 +59,11 @@ export class ListDefinition {
       ? ` @auth(rules: ${this.authRules.toString().replace(/\s\s+/g, ' ')})`
       : ''
 
-    return `[${this.fieldDefinition}]${required}${rules}`
+    const resolver = this.resolverName
+      ? ` @resolver(name: "${this.resolverName}")`
+      : ''
+
+    return `[${this.fieldDefinition}]${required}${rules}${resolver}`
   }
 }
 

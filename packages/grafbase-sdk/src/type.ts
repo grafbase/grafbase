@@ -25,19 +25,24 @@ export class Type {
   fields: Field[]
   interfaces: Interface[]
 
-  /** @param {string} name */
   constructor(name: string) {
     this.name = name
     this.fields = []
     this.interfaces = []
   }
 
+  /**
+  * Pushes a field to the type definition.
+  */
   public field(name: string, definition: TypeFieldShape): Type {
     this.fields.push(new Field(name, definition))
 
     return this
   }
 
+  /**
+  * Pushes an interface implemented by the type.
+  */
   public implements(i: Interface): Type {
     this.interfaces.push(i)
 

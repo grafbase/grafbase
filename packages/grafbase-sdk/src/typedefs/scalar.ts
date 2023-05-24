@@ -17,6 +17,7 @@ import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 import { AuthDefinition } from './auth'
 import { AuthRuleF } from '../auth'
+import { ResolverDefinition } from './resolver'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -50,6 +51,10 @@ export class ScalarDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public resolver(name: string): ResolverDefinition {
+    return new ResolverDefinition(this, name)
   }
 
   fieldTypeVal(): FieldType | Enum {

@@ -1,11 +1,17 @@
 import { AuthParams, Authentication } from './auth'
 import { GrafbaseSchema } from './grafbase-schema'
 
+/**
+* An interface to create the complete config definition.
+*/
 export interface ConfigInput {
   schema: GrafbaseSchema
   auth?: AuthParams
 }
 
+/**
+* Defines the complete Grafbase configuration.
+*/
 export class Config {
   schema: GrafbaseSchema
   auth?: Authentication

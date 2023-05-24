@@ -2,6 +2,7 @@ import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
 
@@ -26,6 +27,10 @@ export class UniqueDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public resolver(name: string): ResolverDefinition {
+    return new ResolverDefinition(this, name)
   }
 
   public toString(): string {

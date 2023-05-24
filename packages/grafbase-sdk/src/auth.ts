@@ -3,8 +3,19 @@ import { JWKSAuth } from './auth/jwks'
 import { JWTAuth } from './auth/jwt'
 import { OpenIDAuth } from './auth/openid'
 
+/**
+* A list of authentication providers which can be used in the configuration.
+*/
 export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth
+
+/**
+* A closure to define authentication rules.
+*/
 export type AuthRuleF = (rules: AuthRules) => any
+
+/**
+* A list of supported authenticated operations.
+*/
 export type AuthOperation =
   | 'get'
   | 'list'
@@ -13,6 +24,14 @@ export type AuthOperation =
   | 'update'
   | 'delete'
 
+/**
+* A list of supported authentication strategies.
+*/
+export type AuthStrategy = 'private' | 'owner' | AuthGroups
+
+/**
+* A builder to greate auth groups.
+*/
 export class AuthGroups {
   groups: string[]
 
@@ -26,8 +45,9 @@ export class AuthGroups {
   }
 }
 
-export type AuthStrategy = 'private' | 'owner' | AuthGroups
-
+/**
+* A builder to create a rule to the auth attribute.
+*/
 export class AuthRule {
   strategy: AuthStrategy
   operations: AuthOperation[]
@@ -37,26 +57,32 @@ export class AuthRule {
     this.operations = []
   }
 
+  /** Allows the `get` operation for the given strategy. */
   public get(): AuthRule {
     return this.operation('get')
   }
 
+  /** Allows the `list` operation for the given strategy. */
   public list(): AuthRule {
     return this.operation('list')
   }
 
+  /** Allows the `read` operation for the given strategy. */
   public read(): AuthRule {
     return this.operation('read')
   }
 
+  /** Allows the `create` operation for the given strategy. */
   public create(): AuthRule {
     return this.operation('create')
   }
 
+  /** Allows the `update` operation for the given strategy. */
   public update(): AuthRule {
     return this.operation('update')
   }
 
+  /** Allows the `delete` operation for the given strategy. */
   public delete(): AuthRule {
     return this.operation('delete')
   }
@@ -77,6 +103,9 @@ export class AuthRule {
   }
 }
 
+/**
+* A builder to generate a set of rules to the auth attribute.
+*/
 export class AuthRules {
   rules: AuthRule[]
 
@@ -84,6 +113,9 @@ export class AuthRules {
     this.rules = []
   }
 
+  /**
+  * Allow access to any signed-in user.
+  */
   public private(): AuthRule {
     const rule = new AuthRule('private')
 
@@ -92,6 +124,9 @@ export class AuthRules {
     return rule
   }
 
+  /**
+  * Allow access to the owner only.
+  */
   public owner(): AuthRule {
     const rule = new AuthRule('owner')
 
@@ -100,6 +135,9 @@ export class AuthRules {
     return rule
   }
 
+  /**
+  * Allow access to users of a group.
+  */
   public groups(groups: string[]): AuthRule {
     const rule = new AuthRule(new AuthGroups(groups))
 

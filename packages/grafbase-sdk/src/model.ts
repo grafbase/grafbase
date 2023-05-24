@@ -6,6 +6,7 @@ import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'
 import { DefaultDefinition } from './typedefs/default'
 import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
+import { ResolverDefinition } from './typedefs/resolver'
 import { ScalarDefinition } from './typedefs/scalar'
 import { SearchDefinition } from './typedefs/search'
 import { UniqueDefinition } from './typedefs/unique'
@@ -29,6 +30,7 @@ export type ModelFieldShape =
   | DefaultDefinition
   | LengthLimitedStringDefinition
   | AuthDefinition
+  | ResolverDefinition
 
 export class Model {
   name: string
@@ -44,24 +46,36 @@ export class Model {
     this.isLive = false
   }
 
+  /**
+  * Pushes a field to the model definition.
+  */
   public field(name: string, definition: ModelFieldShape): Model {
     this.fields.push(new Field(name, definition))
 
     return this
   }
 
+  /**
+  * Makes the model searchable.
+  */
   public search(): Model {
     this.isSearch = true
 
     return this
   }
 
+  /**
+  * Enables live queries to the model.
+  */
   public live(): Model {
     this.isLive = true
 
     return this
   }
 
+  /**
+  * Sets the per-model `@auth` directive.
+  */
   public auth(rules: AuthRuleF): Model {
     const authRules = new AuthRules()
     rules(authRules)
