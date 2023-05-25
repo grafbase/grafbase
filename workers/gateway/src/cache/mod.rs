@@ -1,11 +1,18 @@
 mod edge;
 mod error;
 mod gcache;
+mod global;
 mod key;
 
+use async_trait::async_trait;
+use dynaql::parser::types::OperationType;
 pub use edge::EdgeCache;
 pub use error::CacheError;
-pub use gcache::Cache;
+pub use gcache::{Cache, CacheResponse};
+#[cfg(feature = "local")]
+pub use global::noop::NoopGlobalCache;
+#[cfg(not(feature = "local"))]
+pub use global::remote::CloudflareGlobal;
 pub use key::CacheKey;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
@@ -16,6 +23,7 @@ pub type CacheResult<T> = Result<T, CacheError>;
 
 pub enum CacheReadStatus {
     Hit,
+    Bypass,
     Miss { max_age: Duration },
     Stale { is_updating: bool },
 }
@@ -43,13 +51,14 @@ impl ToString for CacheReadStatus {
                     "STALE".to_string()
                 }
             }
+            CacheReadStatus::Bypass => "BYPASS".to_string(),
         }
     }
 }
 
-pub enum CacheResponse<Type> {
+pub enum CacheProviderResponse<Type> {
     Hit(Type),
-    Miss(Type),
+    Miss,
     Stale { response: Type, is_updating: bool },
 }
 
@@ -57,7 +66,7 @@ pub enum CacheResponse<Type> {
 pub trait CacheProvider {
     type Value;
 
-    async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+    async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
         unimplemented!()
     }
 
@@ -67,6 +76,7 @@ pub trait CacheProvider {
         _key: &str,
         _status: CacheEntryState,
         _value: Arc<Self::Value>,
+        _tags: Vec<String>,
     ) -> CacheResult<()> {
         unimplemented!()
     }
@@ -76,10 +86,13 @@ pub trait CacheProvider {
     }
 }
 
-pub trait Cacheable: DeserializeOwned + Serialize + Default {
+pub trait Cacheable: DeserializeOwned + Serialize {
     fn max_age_seconds(&self) -> usize;
     fn stale_seconds(&self) -> usize;
     fn ttl_seconds(&self) -> usize;
+    fn cache_tags(&self, priority_tags: Vec<String>) -> Vec<String>;
+    fn should_purge_related(&self) -> bool;
+    fn should_cache(&self) -> bool;
 }
 
 impl Cacheable for dynaql::Response {
@@ -93,5 +106,31 @@ impl Cacheable for dynaql::Response {
 
     fn ttl_seconds(&self) -> usize {
         self.cache_control.max_age + self.cache_control.stale_while_revalidate
+    }
+
+    fn cache_tags(&self, mut priority_tags: Vec<String>) -> Vec<String> {
+        let response_tags = self.data.cache_tags().iter().cloned().collect::<Vec<_>>();
+        priority_tags.extend(response_tags);
+
+        priority_tags
+    }
+
+    fn should_purge_related(&self) -> bool {
+        self.operation_type == OperationType::Mutation && !self.data.cache_tags().is_empty()
+    }
+
+    fn should_cache(&self) -> bool {
+        self.operation_type != OperationType::Mutation
+    }
+}
+
+// this trait exists because:
+// - the cache api from workers is specific to colocations
+// - the cache api from workers doesn't support delete by tags
+// - its not meant to be statically dispatched
+#[async_trait(?Send)]
+pub trait GlobalCacheProvider {
+    async fn purge_by_tags(&self, _tags: Vec<String>) -> CacheResult<()> {
+        unimplemented!()
     }
 }

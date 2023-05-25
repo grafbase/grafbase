@@ -4,9 +4,11 @@ use std::sync::Arc;
 use worker::{Cache, Date, Headers, Response};
 
 use crate::cache::error::CacheError;
-use crate::cache::{CacheEntryState, CacheProvider, CacheResponse, CacheResult, Cacheable};
+use crate::cache::{CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable};
 
 const STALE_AT_HEADER: &str = "stale_at";
+const CACHE_TAG_HEADER: &str = "Cache-Tag";
+const MAX_CACHE_TAG_HEADER_SIZE: usize = 16_000;
 
 pub struct EdgeCache<T> {
     _cache_value: PhantomData<T>,
@@ -16,7 +18,7 @@ pub struct EdgeCache<T> {
 impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
     type Value = T;
 
-    async fn get(cache_name: &str, key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+    async fn get(cache_name: &str, key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
         let cache = Cache::open(cache_name.to_string()).await;
 
         let cf_response = cache
@@ -34,15 +36,15 @@ impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
                     let gql_response = worker_utils::json_request::deserialize(bytes)?;
 
                     if response.is_stale() {
-                        Ok(CacheResponse::Stale {
+                        Ok(CacheProviderResponse::Stale {
                             response: gql_response,
                             is_updating: matches!(response.cache_state(), CacheEntryState::Updating),
                         })
                     } else {
-                        Ok(CacheResponse::Hit(gql_response))
+                        Ok(CacheProviderResponse::Hit(gql_response))
                     }
                 }
-                None => Ok(CacheResponse::Miss(Self::Value::default())),
+                None => Ok(CacheProviderResponse::Miss),
             }
         }
         .await
@@ -54,6 +56,7 @@ impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
         key: &str,
         status: CacheEntryState,
         value: Arc<Self::Value>,
+        tags: Vec<String>,
     ) -> CacheResult<()> {
         let now_millis = Date::now().as_millis();
         let mut cache_headers = Headers::new();
@@ -89,6 +92,23 @@ impl<T: Cacheable + 'static> CacheProvider for EdgeCache<T> {
         cache_headers
             .set(http::header::CACHE_STATUS.as_str(), status.into())
             .map_err(|err| CacheError::CachePut(err.to_string()))?;
+
+        // cache entry tags - cloudflare has a max 16KB on `Cache-Tag` values. lets make sure we don't hit that
+        let mut tags_str = String::with_capacity(MAX_CACHE_TAG_HEADER_SIZE);
+        for tag in tags {
+            if tags_str.bytes().len() + tag.bytes().len() > MAX_CACHE_TAG_HEADER_SIZE {
+                break;
+            }
+
+            tags_str.push_str(&tag);
+            tags_str.push(',');
+        }
+
+        cache_headers
+            .set(CACHE_TAG_HEADER, &tags_str)
+            .map_err(|err| CacheError::CachePut(err.to_string()))?;
+
+        log::info!(ray_id, "cache {key} headers {cache_headers:?}");
 
         let bytes = worker_utils::json_request::serialize(value.as_ref())?;
         let cached_response = Response::from_bytes(bytes)

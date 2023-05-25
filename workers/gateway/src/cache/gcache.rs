@@ -1,4 +1,4 @@
-use futures_util::FutureExt;
+use futures_util::{FutureExt, TryFutureExt};
 use send_wrapper::SendWrapper;
 use std::future::Future;
 use std::marker::PhantomData;
@@ -7,19 +7,30 @@ use std::sync::Arc;
 use tracing_futures::Instrument;
 
 use crate::cache::error::CacheError;
-use crate::cache::{CacheEntryState, CacheProvider, CacheResponse, CacheResult, Cacheable};
+use crate::cache::{
+    CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable, GlobalCacheProvider,
+};
 use crate::platform::context::RequestContext;
+
+pub enum CacheResponse<Type> {
+    Hit(Type),
+    Miss(Type),
+    Bypass(Type),
+    Stale { response: Type, is_updating: bool },
+}
 
 pub struct Cache<CV, Provider> {
     cache_name: String,
+    global_cache: Arc<Box<dyn GlobalCacheProvider>>,
     _cache_value: PhantomData<CV>,
     _cache_provider: PhantomData<Provider>,
 }
 
 impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
-    pub fn new(cache_name: String) -> Self {
+    pub fn new(cache_name: String, global_cache: Box<dyn GlobalCacheProvider>) -> Self {
         Cache {
             cache_name,
+            global_cache: Arc::new(global_cache),
             _cache_value: PhantomData,
             _cache_provider: PhantomData,
         }
@@ -34,7 +45,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
     where
         CV: Default,
     {
-        let cached_value: CacheResponse<CV> = P::get(&self.cache_name, cache_key)
+        let cached_value: CacheProviderResponse<CV> = P::get(&self.cache_name, cache_key)
             .instrument(tracing::info_span!("cache_get"))
             .await
             .unwrap_or_else(|e| {
@@ -42,11 +53,15 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     request_context.cloudflare_request_context.ray_id,
                     "Error loading {cache_key} from cache: {e}",
                 );
-                CacheResponse::Miss(CV::default())
+                CacheProviderResponse::Miss
             });
+        let mut priority_cache_tags = vec![request_context.config.customer_deployment_config.project_id.clone()];
+        if let Some(branch) = &request_context.config.customer_deployment_config.github_ref_name {
+            priority_cache_tags.insert(0, branch.clone());
+        }
 
         match cached_value {
-            CacheResponse::Stale {
+            CacheProviderResponse::Stale {
                 response,
                 mut is_updating,
             } => {
@@ -58,7 +73,13 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                 let response_arc = Arc::new(response);
                 if !is_updating {
                     is_updating = self
-                        .update_stale(request_context, cache_key, response_arc.clone(), source_future)
+                        .update_stale(
+                            request_context,
+                            cache_key,
+                            response_arc.clone(),
+                            source_future,
+                            priority_cache_tags,
+                        )
                         .await?;
                 }
 
@@ -67,7 +88,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     is_updating,
                 })
             }
-            CacheResponse::Hit(gql_response) => {
+            CacheProviderResponse::Hit(gql_response) => {
                 log::info!(
                     request_context.cloudflare_request_context.ray_id,
                     "Cache HIT - {cache_key}"
@@ -75,51 +96,87 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
 
                 Ok(CacheResponse::Hit(Arc::new(gql_response)))
             }
-            CacheResponse::Miss(_) => {
+            CacheProviderResponse::Miss => {
                 log::info!(
                     request_context.cloudflare_request_context.ray_id,
                     "Cache MISS - {cache_key}"
                 );
 
                 let origin_result = Arc::new(source_future.await.map_err(CacheError::Origin)?);
-                let key = cache_key.to_string();
-                let cache_name = self.cache_name.to_string();
-                let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
-                let put_value = origin_result.clone();
+                let origin_tags = origin_result.cache_tags(priority_cache_tags);
 
-                request_context
-                    .wait_until_promises
-                    .borrow_mut() // safe due to the single threaded runtime
-                    .push(
-                        SendWrapper::new(async move {
-                            if let Err(err) = P::put(&cache_name, &ray_id, &key, CacheEntryState::Fresh, put_value)
+                if origin_result.should_purge_related() {
+                    let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
+                    let global_cache = self.global_cache.clone();
+                    let purge_cache_tags = origin_tags.clone();
+
+                    log::info!(ray_id, "Purging global cache by tags: {:?}", purge_cache_tags);
+
+                    request_context
+                        .wait_until_promises
+                        .borrow_mut() // safe due to the single threaded runtime
+                        .push(
+                            SendWrapper::new(async move {
+                                if let Err(err) = global_cache
+                                    .purge_by_tags(purge_cache_tags)
+                                    .instrument(tracing::info_span!("cache_tags_purge"))
+                                    .await
+                                {
+                                    log::error!(ray_id, "Error global cache purge by tags: {err}");
+                                }
+                            })
+                            .boxed(),
+                        );
+                }
+
+                if origin_result.should_cache() {
+                    let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
+                    let key = cache_key.to_string();
+                    let cache_name = self.cache_name.to_string();
+                    let put_value = origin_result.clone();
+
+                    request_context
+                        .wait_until_promises
+                        .borrow_mut() // safe due to the single threaded runtime
+                        .push(
+                            SendWrapper::new(async move {
+                                if let Err(err) = P::put(
+                                    &cache_name,
+                                    &ray_id,
+                                    &key,
+                                    CacheEntryState::Fresh,
+                                    put_value,
+                                    origin_tags,
+                                )
                                 .instrument(tracing::info_span!("cache_put"))
                                 .await
-                            {
-                                log::error!(ray_id, "Error cache PUT: {err}");
-                            }
-                        })
-                        .boxed(),
-                    );
+                                {
+                                    log::error!(ray_id, "Error cache PUT: {err}");
+                                }
+                            })
+                            .boxed(),
+                        );
 
-                Ok(CacheResponse::Miss(origin_result))
+                    return Ok(CacheResponse::Miss(origin_result));
+                }
+
+                Ok(CacheResponse::Bypass(origin_result))
             }
         }
     }
 
-    #[allow(clippy::type_complexity)]
     async fn update_stale(
         &self,
         request_context: &RequestContext<'_>,
         key: &str,
         existing_value: Arc<CV>,
         source_future: impl Future<Output = worker::Result<CV>> + 'static,
+        priority_tags: Vec<String>,
     ) -> CacheResult<bool> {
-        use futures_util::TryFutureExt;
-
         let key = key.to_string();
         let cache_name = self.cache_name.to_string();
         let ray_id = request_context.cloudflare_request_context.ray_id.to_string();
+        let existing_tags = existing_value.cache_tags(priority_tags.clone());
 
         // refresh the cache async and update the existing entry state
         request_context.wait_until_promises.borrow_mut().push(
@@ -130,6 +187,7 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     &key,
                     CacheEntryState::Updating,
                     existing_value.clone(),
+                    existing_tags.clone(),
                 )
                 .instrument(tracing::info_span!("cache_put_updating"))
                 .inspect_err(|err| {
@@ -145,12 +203,15 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                 match source_result {
                     Ok(fresh_value) => {
                         log::info!(ray_id, "Successfully fetched new value for cache from origin");
+                        let fresh_cache_tags = fresh_value.cache_tags(priority_tags);
+
                         let _ = P::put(
                             &cache_name,
                             &ray_id,
                             &key,
                             CacheEntryState::Fresh,
                             Arc::new(fresh_value),
+                            fresh_cache_tags,
                         )
                         .instrument(tracing::info_span!("cache_put_refresh"))
                         .inspect_err(|err| {
@@ -162,19 +223,25 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
                     }
                     Err(err) => {
                         log::error!(ray_id, "Error fetching fresh value for a stale cache entry: {err}");
-
-                        let _ = P::put(&cache_name, &ray_id, &key, CacheEntryState::Stale, existing_value)
-                            .instrument(tracing::info_span!("cache_put_stale"))
-                            .inspect_err(|err| {
-                                // if this errors we're probably stuck in `UPDATING` state or
-                                // we're serving cache entries as `FRESH` when in reality they are stale (in case the `UPDATING` transition failed)
-                                log::error!(
-                                    ray_id,
-                                    "Error transitioning cache entry to {} - {err}",
-                                    CacheEntryState::Stale
-                                );
-                            })
-                            .await;
+                        let _ = P::put(
+                            &cache_name,
+                            &ray_id,
+                            &key,
+                            CacheEntryState::Stale,
+                            existing_value,
+                            existing_tags,
+                        )
+                        .instrument(tracing::info_span!("cache_put_stale"))
+                        .inspect_err(|err| {
+                            // if this errors we're probably stuck in `UPDATING` state or
+                            // we're serving cache entries as `FRESH` when in reality they are stale (in case the `UPDATING` transition failed)
+                            log::error!(
+                                ray_id,
+                                "Error transitioning cache entry to {} - {err}",
+                                CacheEntryState::Stale
+                            );
+                        })
+                        .await;
                     }
                 };
             })
@@ -187,29 +254,42 @@ impl<CV: Cacheable + 'static, P: CacheProvider<Value = CV>> Cache<CV, P> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cache::{Cache, CacheEntryState, CacheProvider, CacheResponse, CacheResult, Cacheable};
+    use crate::cache::gcache::CacheResponse;
+    use crate::cache::{
+        Cache, CacheEntryState, CacheProvider, CacheProviderResponse, CacheResult, Cacheable, GlobalCacheProvider,
+    };
     use crate::platform::config::Config;
     use crate::platform::context::RequestContext;
+    use dynaql::parser::types::OperationType;
     use futures_util::future::BoxFuture;
+    use gateway_protocol::CustomerDeploymentConfig;
     use std::cell::RefCell;
     use std::collections::HashSet;
+    use std::hash::Hash;
     use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
     use std::sync::{Arc, RwLock};
     use worker_utils::CloudflareRequestContext;
+
+    struct DefaultTestGlobalCache;
+    impl GlobalCacheProvider for DefaultTestGlobalCache {}
 
     #[derive(serde::Deserialize, serde::Serialize, Default, Clone, Eq, PartialEq, Debug, Hash)]
     struct TestCacheValue {
         max_age_seconds: usize,
         stale_seconds: usize,
         ttl_seconds: usize,
+        operation_type: OperationType,
+        tags: Vec<String>,
     }
 
     impl TestCacheValue {
-        fn builder(n: usize) -> Self {
+        fn builder(n: usize, operation_type: OperationType, tags: Vec<String>) -> Self {
             Self {
                 max_age_seconds: n,
                 stale_seconds: n,
                 ttl_seconds: n,
+                operation_type,
+                tags,
             }
         }
     }
@@ -225,6 +305,23 @@ mod tests {
 
         fn ttl_seconds(&self) -> usize {
             self.max_age_seconds + self.stale_seconds
+        }
+
+        fn cache_tags(&self, priority_tags: Vec<String>) -> Vec<String> {
+            let mut cache_tags = Vec::with_capacity(self.tags.len() + priority_tags.len());
+
+            cache_tags.extend(priority_tags);
+            cache_tags.extend(self.tags.clone());
+
+            cache_tags
+        }
+
+        fn should_purge_related(&self) -> bool {
+            self.operation_type == OperationType::Mutation && !self.tags.is_empty()
+        }
+
+        fn should_cache(&self) -> bool {
+            self.operation_type != OperationType::Mutation
         }
     }
 
@@ -253,9 +350,9 @@ mod tests {
         impl CacheProvider for TestCache {
             type Value = TestCacheValue;
 
-            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(CacheResponse::Miss(TestCacheValue::default()))
+                Ok(CacheProviderResponse::Miss)
             }
 
             async fn put(
@@ -264,6 +361,7 @@ mod tests {
                 _key: &str,
                 _status: CacheEntryState,
                 _value: Arc<Self::Value>,
+                _tags: Vec<String>,
             ) -> CacheResult<()> {
                 PUT_CALLS.fetch_add(1, Ordering::SeqCst);
                 Ok(())
@@ -273,11 +371,13 @@ mod tests {
         let config = Box::leak(Box::default());
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
-        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
 
         // act
         let cache_result = g_cache
-            .cached(&request_context, "key", async { Ok(TestCacheValue::builder(2)) })
+            .cached(&request_context, "key", async {
+                Ok(TestCacheValue::builder(2, OperationType::Query, vec![]))
+            })
             .await;
         let futures = wait_until_promises
             .borrow_mut()
@@ -291,7 +391,10 @@ mod tests {
 
         match cache_response {
             CacheResponse::Miss(cache_value) => {
-                assert_eq!(cache_value.as_ref(), &TestCacheValue::builder(2));
+                assert_eq!(
+                    cache_value.as_ref(),
+                    &TestCacheValue::builder(2, OperationType::Query, vec![])
+                );
                 assert_eq!(1, PUT_CALLS.load(Ordering::SeqCst));
                 assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
             }
@@ -312,20 +415,26 @@ mod tests {
         impl CacheProvider for TestCache {
             type Value = TestCacheValue;
 
-            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(CacheResponse::Hit(TestCacheValue::builder(1)))
+                Ok(CacheProviderResponse::Hit(TestCacheValue::builder(
+                    1,
+                    OperationType::Query,
+                    vec![],
+                )))
             }
         }
 
         let config = Box::leak(Box::default());
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
-        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
 
         // act
         let cache_result = g_cache
-            .cached(&request_context, "key", async { Ok(TestCacheValue::builder(2)) })
+            .cached(&request_context, "key", async {
+                Ok(TestCacheValue::builder(2, OperationType::Query, vec![]))
+            })
             .await;
         let futures = wait_until_promises
             .borrow_mut()
@@ -339,7 +448,10 @@ mod tests {
 
         match cache_response {
             CacheResponse::Hit(cache_value) => {
-                assert_eq!(cache_value.as_ref(), &TestCacheValue::builder(1));
+                assert_eq!(
+                    cache_value.as_ref(),
+                    &TestCacheValue::builder(1, OperationType::Query, vec![])
+                );
                 assert_eq!(0, PUT_CALLS.load(Ordering::SeqCst));
                 assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
             }
@@ -362,10 +474,10 @@ mod tests {
         impl CacheProvider for TestCache {
             type Value = TestCacheValue;
 
-            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(CacheResponse::Stale {
-                    response: TestCacheValue::builder(1),
+                Ok(CacheProviderResponse::Stale {
+                    response: TestCacheValue::builder(1, OperationType::Query, vec![]),
                     is_updating: false,
                 })
             }
@@ -376,6 +488,7 @@ mod tests {
                 _key: &str,
                 status: CacheEntryState,
                 value: Arc<Self::Value>,
+                _tags: Vec<String>,
             ) -> CacheResult<()> {
                 PUT_CALLS.fetch_add(1, Ordering::SeqCst);
                 CACHE_ENTRY_STATES.write().unwrap().push(status);
@@ -387,11 +500,13 @@ mod tests {
         let config = Box::leak(Box::default());
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
-        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
 
         // act
         let cache_result = g_cache
-            .cached(&request_context, "key", async { Ok(TestCacheValue::builder(2)) })
+            .cached(&request_context, "key", async {
+                Ok(TestCacheValue::builder(2, OperationType::Query, vec![]))
+            })
             .await;
         let futures = wait_until_promises
             .borrow_mut()
@@ -405,7 +520,10 @@ mod tests {
 
         match cache_response {
             CacheResponse::Stale { response, is_updating } => {
-                assert_eq!(response.as_ref(), &TestCacheValue::builder(1));
+                assert_eq!(
+                    response.as_ref(),
+                    &TestCacheValue::builder(1, OperationType::Query, vec![])
+                );
                 assert!(is_updating);
             }
             _ => return Err("should be a CacheResponse::Stale"),
@@ -422,7 +540,10 @@ mod tests {
         assert_eq!(expected_states, cache_entry_states);
 
         let cache_entry_values = CACHE_ENTRY_VALUES.read().unwrap();
-        let expected_cache_values = vec![TestCacheValue::builder(1), TestCacheValue::builder(2)];
+        let expected_cache_values = vec![
+            TestCacheValue::builder(1, OperationType::Query, vec![]),
+            TestCacheValue::builder(2, OperationType::Query, vec![]),
+        ];
 
         let cache_entry_values: HashSet<&TestCacheValue> = cache_entry_values.iter().map(|v| v.as_ref()).collect();
         let expected_cache_values: HashSet<&TestCacheValue> = expected_cache_values.iter().collect();
@@ -445,10 +566,10 @@ mod tests {
         impl CacheProvider for TestCache {
             type Value = TestCacheValue;
 
-            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(CacheResponse::Stale {
-                    response: TestCacheValue::builder(1),
+                Ok(CacheProviderResponse::Stale {
+                    response: TestCacheValue::builder(1, OperationType::Query, vec![]),
                     is_updating: false,
                 })
             }
@@ -459,6 +580,7 @@ mod tests {
                 _key: &str,
                 status: CacheEntryState,
                 value: Arc<Self::Value>,
+                _tags: Vec<String>,
             ) -> CacheResult<()> {
                 PUT_CALLS.fetch_add(1, Ordering::SeqCst);
                 CACHE_ENTRY_STALE.swap(matches!(status, CacheEntryState::Stale), Ordering::SeqCst);
@@ -471,7 +593,7 @@ mod tests {
         let config = Box::leak(Box::default());
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
-        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
 
         // act
         let cache_result = g_cache
@@ -492,7 +614,10 @@ mod tests {
 
         match cache_response {
             CacheResponse::Stale { response, is_updating } => {
-                assert_eq!(response.as_ref(), &TestCacheValue::builder(1));
+                assert_eq!(
+                    response.as_ref(),
+                    &TestCacheValue::builder(1, OperationType::Query, vec![])
+                );
                 assert!(is_updating);
             }
             _ => return Err("should be a CacheResponse::Stale"),
@@ -510,7 +635,10 @@ mod tests {
         assert_eq!(expected_states, cache_entry_states);
 
         let cache_entry_values = CACHE_ENTRY_VALUES.read().unwrap();
-        let expected_cache_values = vec![TestCacheValue::builder(1), TestCacheValue::builder(1)];
+        let expected_cache_values = vec![
+            TestCacheValue::builder(1, OperationType::Query, vec![]),
+            TestCacheValue::builder(1, OperationType::Query, vec![]),
+        ];
 
         let cache_entry_values: HashSet<&TestCacheValue> = cache_entry_values.iter().map(|v| v.as_ref()).collect();
         let expected_cache_values: HashSet<&TestCacheValue> = expected_cache_values.iter().collect();
@@ -529,10 +657,10 @@ mod tests {
         impl CacheProvider for TestCache {
             type Value = TestCacheValue;
 
-            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheResponse<Self::Value>> {
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
                 GET_CALLS.fetch_add(1, Ordering::SeqCst);
-                Ok(CacheResponse::Stale {
-                    response: TestCacheValue::builder(1),
+                Ok(CacheProviderResponse::Stale {
+                    response: TestCacheValue::builder(1, OperationType::Query, vec![]),
                     is_updating: true,
                 })
             }
@@ -541,7 +669,7 @@ mod tests {
         let config = Box::leak(Box::default());
         let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
         let request_context = build_request_context(config, wait_until_promises.clone());
-        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
 
         // act
         let cache_result = g_cache
@@ -562,12 +690,184 @@ mod tests {
 
         match cache_response {
             CacheResponse::Stale { response, is_updating } => {
-                assert_eq!(response.as_ref(), &TestCacheValue::builder(1));
+                assert_eq!(
+                    response.as_ref(),
+                    &TestCacheValue::builder(1, OperationType::Query, vec![])
+                );
                 assert!(is_updating);
                 assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
             }
             _ => return Err("should be a CacheResponse::Stale"),
         }
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn should_successfully_get_bypass() -> Result<(), &'static str> {
+        // prepare
+        static GET_CALLS: AtomicUsize = AtomicUsize::new(0);
+        static PUT_CALLS: AtomicUsize = AtomicUsize::new(0);
+
+        struct TestCache;
+        #[async_trait::async_trait(? Send)]
+        impl CacheProvider for TestCache {
+            type Value = TestCacheValue;
+
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
+                GET_CALLS.fetch_add(1, Ordering::SeqCst);
+                Ok(CacheProviderResponse::Miss)
+            }
+
+            async fn put(
+                _cache_name: &str,
+                _ray_id: &str,
+                _key: &str,
+                _status: CacheEntryState,
+                _value: Arc<Self::Value>,
+                _tags: Vec<String>,
+            ) -> CacheResult<()> {
+                PUT_CALLS.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            }
+        }
+
+        let config = Box::leak(Box::default());
+        let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
+        let request_context = build_request_context(config, wait_until_promises.clone());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(DefaultTestGlobalCache));
+
+        // act
+        let cache_result = g_cache
+            .cached(&request_context, "key", async {
+                Ok(TestCacheValue::builder(2, OperationType::Mutation, vec![]))
+            })
+            .await;
+        let futures = wait_until_promises
+            .borrow_mut()
+            .drain(..)
+            .collect::<Vec<BoxFuture<'static, ()>>>();
+        futures_util::future::join_all(futures).await;
+
+        // assert
+        assert!(cache_result.is_ok());
+        let cache_response = cache_result.unwrap();
+
+        match cache_response {
+            CacheResponse::Bypass(cache_value) => {
+                assert_eq!(
+                    cache_value.as_ref(),
+                    &TestCacheValue::builder(2, OperationType::Mutation, vec![])
+                );
+                assert_eq!(0, PUT_CALLS.load(Ordering::SeqCst));
+                assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
+            }
+            _ => return Err("should be a CacheResponse::Bypass"),
+        };
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn should_successfully_purge_global() -> Result<(), &'static str> {
+        // prepare
+        static GET_CALLS: AtomicUsize = AtomicUsize::new(0);
+        static PUT_CALLS: AtomicUsize = AtomicUsize::new(0);
+        static PURGE_CALLS: AtomicUsize = AtomicUsize::new(0);
+        static PURGE_TAGS: RwLock<Vec<String>> = RwLock::new(Vec::new());
+
+        struct TestCache;
+        #[async_trait::async_trait(? Send)]
+        impl CacheProvider for TestCache {
+            type Value = TestCacheValue;
+
+            async fn get(_cache_name: &str, _key: &str) -> CacheResult<CacheProviderResponse<Self::Value>> {
+                GET_CALLS.fetch_add(1, Ordering::SeqCst);
+                Ok(CacheProviderResponse::Miss)
+            }
+
+            async fn put(
+                _cache_name: &str,
+                _ray_id: &str,
+                _key: &str,
+                _status: CacheEntryState,
+                _value: Arc<Self::Value>,
+                _tags: Vec<String>,
+            ) -> CacheResult<()> {
+                PUT_CALLS.fetch_add(1, Ordering::SeqCst);
+                Ok(())
+            }
+        }
+
+        struct PurgeTestGlobalCache;
+        #[async_trait::async_trait(?Send)]
+        impl GlobalCacheProvider for PurgeTestGlobalCache {
+            async fn purge_by_tags(&self, tags: Vec<String>) -> CacheResult<()> {
+                PURGE_CALLS.fetch_add(1, Ordering::SeqCst);
+                PURGE_TAGS.write().unwrap().extend(tags);
+                Ok(())
+            }
+        }
+
+        let config = Box::leak(Box::new(Config {
+            customer_deployment_config: CustomerDeploymentConfig {
+                project_id: "project_id".to_string(),
+                github_ref_name: Some("github_ref_name".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        }));
+        let wait_until_promises = Arc::new(RefCell::new(Vec::new()));
+        let request_context = build_request_context(config, wait_until_promises.clone());
+        let g_cache = Cache::<TestCacheValue, TestCache>::new("test".to_string(), Box::new(PurgeTestGlobalCache));
+
+        // act
+        let cache_result = g_cache
+            .cached(&request_context, "key", async {
+                Ok(TestCacheValue::builder(
+                    2,
+                    OperationType::Mutation,
+                    vec!["tag".to_string()],
+                ))
+            })
+            .await;
+        let futures = wait_until_promises
+            .borrow_mut()
+            .drain(..)
+            .collect::<Vec<BoxFuture<'static, ()>>>();
+        futures_util::future::join_all(futures).await;
+
+        // assert
+        assert!(cache_result.is_ok());
+        let cache_response = cache_result.unwrap();
+
+        match cache_response {
+            CacheResponse::Bypass(cache_value) => {
+                assert_eq!(
+                    cache_value.as_ref(),
+                    &TestCacheValue::builder(2, OperationType::Mutation, vec!["tag".to_string()])
+                );
+                assert_eq!(0, PUT_CALLS.load(Ordering::SeqCst));
+                assert_eq!(1, GET_CALLS.load(Ordering::SeqCst));
+                assert_eq!(1, PURGE_CALLS.load(Ordering::SeqCst));
+
+                // order is important because the edge cache implementation caps at 16KB
+                // we want to make sure project_id and branch are included
+                let expected_purge_tags = vec![
+                    "github_ref_name".to_string(),
+                    "project_id".to_string(),
+                    "tag".to_string(),
+                ];
+                let purge_tags = PURGE_TAGS
+                    .read()
+                    .unwrap()
+                    .iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>();
+                assert_eq!(expected_purge_tags, purge_tags);
+            }
+            _ => return Err("should be a CacheResponse::Bypass"),
+        };
 
         Ok(())
     }

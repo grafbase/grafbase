@@ -6,6 +6,8 @@ pub enum CacheError {
     CachePut(String),
     #[error("{0}")]
     CacheDelete(String),
+    #[error("{0}")]
+    CachePurgeByTags(String),
     #[error("Origin error: {0}")]
     Origin(#[from] worker::Error),
 }
