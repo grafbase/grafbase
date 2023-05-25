@@ -1,7 +1,9 @@
 import { AuthRuleF } from '../auth'
 import { ListDefinition } from '../field/list'
 import { AuthDefinition } from './auth'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 
@@ -13,6 +15,9 @@ export type Searchable =
   | ListDefinition
   | UniqueDefinition
   | LengthLimitedStringDefinition
+  | CacheDefinition
+  | AuthDefinition
+  | ResolverDefinition
 
 export class SearchDefinition {
   field: Searchable
@@ -23,6 +28,14 @@ export class SearchDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
+  }
+
+  public unique(scope?: string[]): UniqueDefinition {
+    return new UniqueDefinition(this, scope)
   }
 
   public toString(): string {

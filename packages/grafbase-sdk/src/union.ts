@@ -1,8 +1,8 @@
 import { Type } from './type'
 
 /**
-* A builder to create a GraphQL union.
-*/
+ * A builder to create a GraphQL union.
+ */
 export class Union {
   name: string
   types: string[]

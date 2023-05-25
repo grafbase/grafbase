@@ -3,8 +3,8 @@ import { CacheParams, GlobalCache } from './cache'
 import { GrafbaseSchema } from './grafbase-schema'
 
 /**
-* An interface to create the complete config definition.
-*/
+ * An interface to create the complete config definition.
+ */
 export interface ConfigInput {
   schema: GrafbaseSchema
   auth?: AuthParams
@@ -12,8 +12,8 @@ export interface ConfigInput {
 }
 
 /**
-* Defines the complete Grafbase configuration.
-*/
+ * Defines the complete Grafbase configuration.
+ */
 export class Config {
   schema: GrafbaseSchema
   auth?: Authentication

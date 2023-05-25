@@ -7,6 +7,7 @@ import { StringDefinition } from './scalar'
 import { SearchDefinition } from './search'
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 
 export interface FieldLength {
   min?: number
@@ -45,6 +46,10 @@ export class LengthLimitedStringDefinition {
 
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
+  }
+
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
   fieldTypeVal(): FieldType | Enum {

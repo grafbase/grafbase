@@ -1,22 +1,22 @@
 import util from 'node:util'
 
 /**
-* Defines a cached type with fields.
-*/
+ * Defines a cached type with fields.
+ */
 export interface StructuredCacheRuleType {
   name: string
-  fields: string[]  
+  fields: string[]
 }
 
 /**
-* Defines a type to be cached. Can be a single type, multiple types
-* or more granularly types with specific fields.
-*/
+ * Defines a type to be cached. Can be a single type, multiple types
+ * or more granularly types with specific fields.
+ */
 export type CachedType = string | string[] | StructuredCacheRuleType[]
 
 /**
-* Defines a single global cache rule.
-*/
+ * Defines a single global cache rule.
+ */
 export interface CacheRuleParam {
   types: CachedType
   maxAge: number
@@ -24,8 +24,8 @@ export interface CacheRuleParam {
 }
 
 /**
-* Defines global cache rules.
-*/
+ * Defines global cache rules.
+ */
 export interface CacheParams {
   rules: CacheRuleParam[]
 }
@@ -43,14 +43,16 @@ export class GlobalCache {
       if (typeof rule.types === 'string') {
         types = `"${rule.types}"`
       } else {
-        const inner = rule.types.map((type) => {
-          if (typeof type === 'string') {
-            return `"${type}"`
-          } else {
-            const fields = type.fields.map((field) => `"${field}"`).join(',')
-            return `{\n        name: "${type.name}",\n        fields: [${fields}]\n      }`
-          }
-        }).join(', ')
+        const inner = rule.types
+          .map((type) => {
+            if (typeof type === 'string') {
+              return `"${type}"`
+            } else {
+              const fields = type.fields.map((field) => `"${field}"`).join(',')
+              return `{\n        name: "${type.name}",\n        fields: [${fields}]\n      }`
+            }
+          })
+          .join(', ')
 
         types = `[${inner}]`
       }

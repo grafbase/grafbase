@@ -4,18 +4,18 @@ import { JWTAuth } from './auth/jwt'
 import { OpenIDAuth } from './auth/openid'
 
 /**
-* A list of authentication providers which can be used in the configuration.
-*/
+ * A list of authentication providers which can be used in the configuration.
+ */
 export type AuthProvider = OpenIDAuth | JWTAuth | JWKSAuth
 
 /**
-* A closure to define authentication rules.
-*/
+ * A closure to define authentication rules.
+ */
 export type AuthRuleF = (rules: AuthRules) => any
 
 /**
-* A list of supported authenticated operations.
-*/
+ * A list of supported authenticated operations.
+ */
 export type AuthOperation =
   | 'get'
   | 'list'
@@ -25,13 +25,13 @@ export type AuthOperation =
   | 'delete'
 
 /**
-* A list of supported authentication strategies.
-*/
+ * A list of supported authentication strategies.
+ */
 export type AuthStrategy = 'private' | 'owner' | AuthGroups
 
 /**
-* A builder to greate auth groups.
-*/
+ * A builder to greate auth groups.
+ */
 export class AuthGroups {
   groups: string[]
 
@@ -46,8 +46,8 @@ export class AuthGroups {
 }
 
 /**
-* A builder to create a rule to the auth attribute.
-*/
+ * A builder to create a rule to the auth attribute.
+ */
 export class AuthRule {
   strategy: AuthStrategy
   operations: AuthOperation[]
@@ -104,8 +104,8 @@ export class AuthRule {
 }
 
 /**
-* A builder to generate a set of rules to the auth attribute.
-*/
+ * A builder to generate a set of rules to the auth attribute.
+ */
 export class AuthRules {
   rules: AuthRule[]
 
@@ -114,8 +114,8 @@ export class AuthRules {
   }
 
   /**
-  * Allow access to any signed-in user.
-  */
+   * Allow access to any signed-in user.
+   */
   public private(): AuthRule {
     const rule = new AuthRule('private')
 
@@ -125,8 +125,8 @@ export class AuthRules {
   }
 
   /**
-  * Allow access to the owner only.
-  */
+   * Allow access to the owner only.
+   */
   public owner(): AuthRule {
     const rule = new AuthRule('owner')
 
@@ -136,8 +136,8 @@ export class AuthRules {
   }
 
   /**
-  * Allow access to users of a group.
-  */
+   * Allow access to users of a group.
+   */
   public groups(groups: string[]): AuthRule {
     const rule = new AuthRule(new AuthGroups(groups))
 

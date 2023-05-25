@@ -2,7 +2,7 @@ import { parse } from 'graphql'
 
 export function renderGraphQL(obj: any): string {
   const stringified = obj.toString()
-  try { 
+  try {
     // check if it's valid graphql
     parse(stringified)
 

@@ -9,8 +9,8 @@ export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
 
 /**
-* Parameters to create a new query definition.
-*/
+ * Parameters to create a new query definition.
+ */
 export interface QueryInput {
   args?: Record<string, InputType>
   returns: OutputType
@@ -18,8 +18,8 @@ export interface QueryInput {
 }
 
 /**
-* An input argument shape of a query.
-*/
+ * An input argument shape of a query.
+ */
 export class QueryArgument {
   name: string
   type: InputType
@@ -35,8 +35,8 @@ export class QueryArgument {
 }
 
 /**
-* An edge resolver query definition.
-*/
+ * An edge resolver query definition.
+ */
 export class Query {
   name: string
   arguments: QueryArgument[]
@@ -51,8 +51,8 @@ export class Query {
   }
 
   /**
-  * Pushes a new input argument to the query.
-  */
+   * Pushes a new input argument to the query.
+   */
   public argument(name: string, type: InputType): Query {
     this.arguments.push(new QueryArgument(name, type))
 

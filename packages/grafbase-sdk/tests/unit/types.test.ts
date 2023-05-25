@@ -33,6 +33,20 @@ describe('Type generator', () => {
     `)
   })
 
+  it('generates one with cache', () => {
+    const t = g
+      .type('User', {
+        name: g.string().cache({ maxAge: 10, staleWhileRevalidate: 20 })
+      })
+      .cache({ maxAge: 10, staleWhileRevalidate: 20 })
+
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
+      "type User @cache(maxAge: 10, staleWhileRevalidate: 20) {
+        name: String! @cache(maxAge: 10, staleWhileRevalidate: 20)
+      }"
+    `)
+  })
+
   it('generates a union of multiple types', () => {
     const user = g.type('User', {
       name: g.string(),
