@@ -2,10 +2,12 @@ import { AuthRuleF } from '../auth'
 import { Enum } from '../enum'
 import { FieldType } from '../field/typedefs'
 import { AuthDefinition } from './auth'
+import { CacheDefinition, TypeLevelCache, CacheParams } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
-import { ResolverDefinition } from './resolver'
 import { ScalarDefinition, DefaultValueType } from './scalar'
 import { UniqueDefinition } from './unique'
+
+export type DefaultAllowed = ScalarDefinition | LengthLimitedStringDefinition
 
 export class DefaultDefinition {
   defaultValue: DefaultValueType
@@ -32,8 +34,8 @@ export class DefaultDefinition {
     return new AuthDefinition(this, rules)
   }
 
-  public resolver(name: string): ResolverDefinition {
-    return new ResolverDefinition(this, name)
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
   public toString(): string {

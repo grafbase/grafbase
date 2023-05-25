@@ -1,8 +1,10 @@
 import { AuthRuleF, AuthRules } from '../auth'
 import { ReferenceDefinition } from '../reference'
 import { RelationDefinition } from '../relation'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
+import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
@@ -15,6 +17,8 @@ export type Authenticable =
   | ReferenceDefinition
   | LengthLimitedStringDefinition
   | RelationDefinition
+  | CacheDefinition
+  | ResolverDefinition
 
 export class AuthDefinition {
   field: Authenticable
@@ -26,6 +30,18 @@ export class AuthDefinition {
 
     this.authRules = authRules
     this.field = field
+  }
+
+  public search(): SearchDefinition {
+    return new SearchDefinition(this)
+  }
+
+  public unique(scope?: string[]): UniqueDefinition {
+    return new UniqueDefinition(this, scope)
+  }
+
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
   public toString(): string {

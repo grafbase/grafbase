@@ -1,5 +1,6 @@
 import { g } from '../../src/index'
 import { describe, expect, it } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Default value generation', () => {
   it('generates String default', () => {
@@ -7,7 +8,7 @@ describe('Default value generation', () => {
       name: g.string().default('Bob')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @default(value: "Bob")
       }"
@@ -19,7 +20,7 @@ describe('Default value generation', () => {
       name: g.string().default('Bob').optional()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String @default(value: "Bob")
       }"
@@ -31,7 +32,7 @@ describe('Default value generation', () => {
       name: g.string().list().default(['Bob'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!]! @default(value: ["Bob"])
       }"
@@ -43,7 +44,7 @@ describe('Default value generation', () => {
       name: g.id().default('asdf123')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: ID! @default(value: "asdf123")
       }"
@@ -55,7 +56,7 @@ describe('Default value generation', () => {
       name: g.id().list().default(['asdf123', 'omg123'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [ID!]! @default(value: ["asdf123", "omg123"])
       }"
@@ -67,7 +68,7 @@ describe('Default value generation', () => {
       name: g.phoneNumber().default('555 123 123')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: PhoneNumber! @default(value: "555 123 123")
       }"
@@ -79,7 +80,7 @@ describe('Default value generation', () => {
       name: g.phoneNumber().list().default(['555 123 123', '555 432 432'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [PhoneNumber!]! @default(value: ["555 123 123", "555 432 432"])
       }"
@@ -91,7 +92,7 @@ describe('Default value generation', () => {
       name: g.ipAddress().default('0.0.0.0')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: IPAddress! @default(value: "0.0.0.0")
       }"
@@ -103,7 +104,7 @@ describe('Default value generation', () => {
       name: g.ipAddress().list().default(['0.0.0.0', '1.1.1.1'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [IPAddress!]! @default(value: ["0.0.0.0", "1.1.1.1"])
       }"
@@ -115,7 +116,7 @@ describe('Default value generation', () => {
       name: g.email().default('foo@bar.lol')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: Email! @default(value: "foo@bar.lol")
       }"
@@ -127,7 +128,7 @@ describe('Default value generation', () => {
       name: g.email().list().default(['foo@bar.lol'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [Email!]! @default(value: ["foo@bar.lol"])
       }"
@@ -139,7 +140,7 @@ describe('Default value generation', () => {
       name: g.url().default('https://github.com')
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: URL! @default(value: "https://github.com")
       }"
@@ -154,7 +155,7 @@ describe('Default value generation', () => {
         .default(['https://github.com', 'https://codeberg.org'])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [URL!]! @default(value: ["https://github.com", "https://codeberg.org"])
       }"
@@ -166,7 +167,7 @@ describe('Default value generation', () => {
       name: g.int().default(2)
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: Int! @default(value: 2)
       }"
@@ -178,7 +179,7 @@ describe('Default value generation', () => {
       name: g.int().list().default([2])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [Int!]! @default(value: [2])
       }"
@@ -190,7 +191,7 @@ describe('Default value generation', () => {
       name: g.float().default(1.337)
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: Float! @default(value: 1.337)
       }"
@@ -202,7 +203,7 @@ describe('Default value generation', () => {
       name: g.float().list().default([1.337, 2.32])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [Float!]! @default(value: [1.337, 2.32])
       }"
@@ -214,7 +215,7 @@ describe('Default value generation', () => {
       name: g.boolean().default(false)
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: Boolean! @default(value: false)
       }"
@@ -226,7 +227,7 @@ describe('Default value generation', () => {
       name: g.boolean().list().default([true, false])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [Boolean!]! @default(value: [true, false])
       }"
@@ -238,7 +239,7 @@ describe('Default value generation', () => {
       date: g.date().default(new Date('1995-12-17'))
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: Date! @default(value: "1995-12-17")
       }"
@@ -253,7 +254,7 @@ describe('Default value generation', () => {
         .default([new Date('1995-12-17'), new Date('2002-01-01')])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: [Date!]! @default(value: ["1995-12-17", "2002-01-01"])
       }"
@@ -265,7 +266,7 @@ describe('Default value generation', () => {
       date: g.datetime().default(new Date('1995-12-17T04:20:00Z'))
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: DateTime! @default(value: "1995-12-17T04:20:00Z")
       }"
@@ -283,7 +284,7 @@ describe('Default value generation', () => {
         ])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: [DateTime!]! @default(value: ["1995-12-17T04:20:00Z", "2002-12-17T04:20:00Z"])
       }"
@@ -295,7 +296,7 @@ describe('Default value generation', () => {
       date: g.timestamp().default(1683644443566)
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: Timestamp! @default(value: 1683644443566)
       }"
@@ -307,7 +308,7 @@ describe('Default value generation', () => {
       date: g.timestamp().list().default([1683644443566, 1683644443569])
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         date: [Timestamp!]! @default(value: [1683644443566, 1683644443569])
       }"

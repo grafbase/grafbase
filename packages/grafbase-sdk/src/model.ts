@@ -4,6 +4,7 @@ import { ListDefinition, RelationListDefinition } from './field/list'
 import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
 import { DefaultDefinition } from './typedefs/default'
 import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
 import { ResolverDefinition } from './typedefs/resolver'
@@ -31,6 +32,7 @@ export type ModelFieldShape =
   | LengthLimitedStringDefinition
   | AuthDefinition
   | ResolverDefinition
+  | CacheDefinition
 
 export class Model {
   name: string
@@ -38,6 +40,7 @@ export class Model {
   authRules?: AuthRules
   isSearch: boolean
   isLive: boolean
+  cacheDirective?: TypeLevelCache
 
   constructor(name: string) {
     this.name = name
@@ -47,8 +50,8 @@ export class Model {
   }
 
   /**
-  * Pushes a field to the model definition.
-  */
+   * Pushes a field to the model definition.
+   */
   public field(name: string, definition: ModelFieldShape): Model {
     this.fields.push(new Field(name, definition))
 
@@ -56,8 +59,8 @@ export class Model {
   }
 
   /**
-  * Makes the model searchable.
-  */
+   * Makes the model searchable.
+   */
   public search(): Model {
     this.isSearch = true
 
@@ -65,8 +68,8 @@ export class Model {
   }
 
   /**
-  * Enables live queries to the model.
-  */
+   * Enables live queries to the model.
+   */
   public live(): Model {
     this.isLive = true
 
@@ -74,8 +77,8 @@ export class Model {
   }
 
   /**
-  * Sets the per-model `@auth` directive.
-  */
+   * Sets the per-model `@auth` directive.
+   */
   public auth(rules: AuthRuleF): Model {
     const authRules = new AuthRules()
     rules(authRules)
@@ -84,11 +87,21 @@ export class Model {
     return this
   }
 
+  /**
+   * Sets the model `@cache` directive.
+   */
+  public cache(params: CacheParams): Model {
+    this.cacheDirective = new TypeLevelCache(params)
+
+    return this
+  }
+
   public toString(): string {
     const search = this.isSearch ? ' @search' : ''
     const live = this.isLive ? ' @live' : ''
     const auth = this.authRules ? ` @auth(\n    rules: ${this.authRules})` : ''
-    const header = `type ${this.name} @model${search}${live}${auth} {`
+    const cache = this.cacheDirective ? ` ${this.cacheDirective}` : ''
+    const header = `type ${this.name} @model${search}${live}${auth}${cache} {`
 
     const fields = this.fields.map((field) => `  ${field}`).join('\n')
 

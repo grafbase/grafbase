@@ -1,5 +1,6 @@
 import { config, g } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Interface generator', () => {
   beforeEach(() => g.clear())
@@ -12,7 +13,7 @@ describe('Interface generator', () => {
       nutrients: g.string().optional().list().optional()
     })
 
-    expect(i.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(i)).toMatchInlineSnapshot(`
       "interface Produce {
         name: String!
         quantity: Int!
@@ -35,7 +36,7 @@ describe('Interface generator', () => {
       ripenessIndicators: g.string().optional().list().optional()
     }).implements(produce)
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "interface Produce {
         name: String!
         quantity: Int!
@@ -71,7 +72,7 @@ describe('Interface generator', () => {
       .implements(produce)
       .implements(sweets)
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "interface Produce {
         name: String!
       }

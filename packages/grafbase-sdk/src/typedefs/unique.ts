@@ -1,5 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
@@ -11,6 +12,9 @@ type UniqueScalarType =
   | DefaultDefinition
   | SearchDefinition
   | LengthLimitedStringDefinition
+  | AuthDefinition
+  | ResolverDefinition
+  | CacheDefinition
 
 export class UniqueDefinition {
   compoundScope?: string[]
@@ -29,8 +33,8 @@ export class UniqueDefinition {
     return new AuthDefinition(this, rules)
   }
 
-  public resolver(name: string): ResolverDefinition {
-    return new ResolverDefinition(this, name)
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
   public toString(): string {

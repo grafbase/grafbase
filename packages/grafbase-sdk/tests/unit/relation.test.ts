@@ -1,5 +1,6 @@
 import { g, config } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Relations generator', () => {
   beforeEach(() => g.clear())
@@ -13,7 +14,7 @@ describe('Relations generator', () => {
       user: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         profile: Profile!
       }
@@ -33,7 +34,7 @@ describe('Relations generator', () => {
       user: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         profile: Profile
       }
@@ -53,7 +54,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]!
       }
@@ -76,7 +77,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post]!
       }
@@ -99,7 +100,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]
       }
@@ -123,7 +124,7 @@ describe('Relations generator', () => {
       author: g.relation(user)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post]
       }
@@ -143,7 +144,7 @@ describe('Relations generator', () => {
       author: g.relation(user).list()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
         posts: [Post!]!
       }
@@ -160,7 +161,7 @@ describe('Relations generator', () => {
       parent: g.relation(() => human).optional()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type Human @model {
         children: [Human!]!
         parent: Human
@@ -178,7 +179,7 @@ describe('Relations generator', () => {
       shippingAddress: g.relation(address).name('shipping')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type Address @model {
         line1: String!
       }
@@ -200,7 +201,7 @@ describe('Relations generator', () => {
       shippingAddresses: g.relation(address).name('shipping').list()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type Address @model {
         line1: String!
       }

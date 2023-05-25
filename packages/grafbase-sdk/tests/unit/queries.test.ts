@@ -1,5 +1,6 @@
 import { config, g } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Query generator', () => {
   beforeEach(() => g.clear())
@@ -10,7 +11,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet: String! @resolver(name: "hello")
       }"
@@ -24,7 +25,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: String!): String! @resolver(name: "hello")
       }"
@@ -38,7 +39,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: String): String! @resolver(name: "hello")
       }"
@@ -52,7 +53,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: String): String @resolver(name: "hello")
       }"
@@ -66,7 +67,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: [String!]!): String! @resolver(name: "hello")
       }"
@@ -80,7 +81,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: String!): [String!]! @resolver(name: "hello")
       }"
@@ -94,7 +95,7 @@ describe('Query generator', () => {
       resolver: 'hello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend type Query {
         greet(name: String!): [String!]! @resolver(name: "hello")
       }"
@@ -111,7 +112,7 @@ describe('Query generator', () => {
       resolver: 'checkout'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type CheckoutSessionInput {
         name: String!
       }
@@ -141,7 +142,7 @@ describe('Query generator', () => {
       resolver: 'jello'
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "enum Foo {
         Bar,
         Baz

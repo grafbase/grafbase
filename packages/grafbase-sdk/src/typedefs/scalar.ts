@@ -18,6 +18,7 @@ import { UniqueDefinition } from './unique'
 import { AuthDefinition } from './auth'
 import { AuthRuleF } from '../auth'
 import { ResolverDefinition } from './resolver'
+import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 
 export type DefaultValueType = string | number | Date | object | boolean
 
@@ -31,7 +32,7 @@ export class ScalarDefinition {
     this.isOptional = false
   }
 
-  public optional(): ScalarDefinition {
+  public optional(): this {
     this.isOptional = true
 
     return this
@@ -55,6 +56,10 @@ export class ScalarDefinition {
 
   public resolver(name: string): ResolverDefinition {
     return new ResolverDefinition(this, name)
+  }
+
+  public cache(params: CacheParams): CacheDefinition {
+    return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
   fieldTypeVal(): FieldType | Enum {
