@@ -1,4 +1,5 @@
 import { AuthParams, Authentication } from './auth'
+import { CacheParams, GlobalCache } from './cache'
 import { GrafbaseSchema } from './grafbase-schema'
 
 /**
@@ -7,6 +8,7 @@ import { GrafbaseSchema } from './grafbase-schema'
 export interface ConfigInput {
   schema: GrafbaseSchema
   auth?: AuthParams
+  cache?: CacheParams
 }
 
 /**
@@ -15,6 +17,7 @@ export interface ConfigInput {
 export class Config {
   schema: GrafbaseSchema
   auth?: Authentication
+  cache?: GlobalCache
 
   constructor(input: ConfigInput) {
     this.schema = input.schema
@@ -22,12 +25,17 @@ export class Config {
     if (input.auth) {
       this.auth = new Authentication(input.auth)
     }
+
+    if (input.cache) {
+      this.cache = new GlobalCache(input.cache)
+    }
   }
 
   public toString(): string {
     const schema = this.schema.toString()
     const auth = this.auth ? this.auth.toString() : ''
+    const cache = this.cache ? this.cache.toString() : ''
 
-    return `${auth}${schema}`
+    return `${auth}${cache}${schema}`
   }
 }
