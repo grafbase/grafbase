@@ -4,7 +4,6 @@
 
 cli/ @grafbase/backend
 .github/actions/ @grafbase/infrastructure
-.github/workflows/ @grafbase/infrastructure
 examples/ @grafbase/frontend
 packages/ @grafbase/frontend
 packages/grafbase-sdk @grafbase/backend
