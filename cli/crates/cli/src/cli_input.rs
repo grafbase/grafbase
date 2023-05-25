@@ -133,7 +133,14 @@ impl SubCommand {
     pub(crate) fn needs_environment(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link | Self::Unlink | Self::Reset
+            Self::Dev(_)
+                | Self::Create(_)
+                | Self::Deploy
+                | Self::Link
+                | Self::Unlink
+                | Self::Reset
+                | Self::Login
+                | Self::Logout
         )
     }
 }
