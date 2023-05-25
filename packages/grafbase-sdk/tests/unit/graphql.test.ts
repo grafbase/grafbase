@@ -1,5 +1,6 @@
 import { config, g, connector } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('GraphQL connector', () => {
   beforeEach(() => g.clear())
@@ -11,7 +12,7 @@ describe('GraphQL connector', () => {
 
     g.datasource(contentful, { namespace: 'Contentful' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "Contentful"
@@ -32,7 +33,7 @@ describe('GraphQL connector', () => {
 
     g.datasource(contentful, { namespace: 'Contentful' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "Contentful"
@@ -60,7 +61,7 @@ describe('GraphQL connector', () => {
     g.datasource(contentful, { namespace: 'Contentful' })
     g.datasource(github, { namespace: 'GitHub' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @graphql(
           name: "Contentful"

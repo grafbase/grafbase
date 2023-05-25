@@ -1,5 +1,6 @@
 import { g, config } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Type generator', () => {
   beforeEach(() => {
@@ -11,7 +12,7 @@ describe('Type generator', () => {
       name: g.string()
     })
 
-    expect(t.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
       "type User {
         name: String!
       }"
@@ -24,7 +25,7 @@ describe('Type generator', () => {
       age: g.int().optional()
     })
 
-    expect(t.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
       "type User {
         name: String!
         age: Int
@@ -44,7 +45,7 @@ describe('Type generator', () => {
 
     g.union('UserOrAddress', { user, address })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User {
         name: String!
         age: Int
@@ -73,7 +74,7 @@ describe('Type generator', () => {
       city: g.ref(city)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User {
         name: String!
         age: Int
@@ -103,7 +104,7 @@ describe('Type generator', () => {
       color: g.ref(enm).optional()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "enum Color {
         Red,
         Green

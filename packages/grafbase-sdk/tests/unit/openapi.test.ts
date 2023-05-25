@@ -1,5 +1,6 @@
 import { config, g, connector } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('OpenAPI generator', () => {
   beforeEach(() => g.clear())
@@ -12,7 +13,7 @@ describe('OpenAPI generator', () => {
 
     g.datasource(stripe, { namespace: 'Stripe' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
           name: "Stripe"
@@ -37,7 +38,7 @@ describe('OpenAPI generator', () => {
 
     g.datasource(stripe, { namespace: 'Stripe' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
           name: "Stripe"
@@ -69,7 +70,7 @@ describe('OpenAPI generator', () => {
     g.datasource(stripe, { namespace: 'Stripe' })
     g.datasource(openai, { namespace: 'OpenAI' })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "extend schema
         @openapi(
           name: "Stripe"

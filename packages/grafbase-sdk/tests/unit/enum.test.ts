@@ -1,5 +1,6 @@
 import { config, g } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Enum generator', () => {
   beforeEach(() => {
@@ -9,7 +10,7 @@ describe('Enum generator', () => {
   it('generates an enum from an array of strings', () => {
     const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
-    expect(e.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(e)).toMatchInlineSnapshot(`
       "enum Fruits {
         Apples,
         Oranges
@@ -25,7 +26,7 @@ describe('Enum generator', () => {
 
     const e = g.enum('Fruits', Fruits)
 
-    expect(e.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(e)).toMatchInlineSnapshot(`
       "enum Fruits {
         Apples,
         Oranges
@@ -40,7 +41,7 @@ describe('Enum generator', () => {
       fruitType: g.ref(e)
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "enum Fruits {
         Apples,
         Oranges

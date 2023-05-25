@@ -1,5 +1,6 @@
 import { config, g, auth } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('OpenID auth provider', () => {
   beforeEach(() => g.clear())
@@ -20,7 +21,7 @@ describe('OpenID auth provider', () => {
       }
     })
 
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @auth(
           providers: [
@@ -50,7 +51,7 @@ describe('OpenID auth provider', () => {
       }
     })
 
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @auth(
           providers: [
@@ -80,7 +81,7 @@ describe('OpenID auth provider', () => {
       }
     })
 
-    expect(cfg.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
       "extend schema
         @auth(
           providers: [

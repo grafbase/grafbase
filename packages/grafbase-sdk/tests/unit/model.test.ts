@@ -1,5 +1,6 @@
 import { config, g } from '../../src/index'
 import { describe, expect, it, beforeEach } from '@jest/globals'
+import { renderGraphQL } from '../utils'
 
 describe('Model generator', () => {
   beforeEach(() => g.clear())
@@ -9,7 +10,7 @@ describe('Model generator', () => {
       name: g.string()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String!
       }"
@@ -21,7 +22,7 @@ describe('Model generator', () => {
       identifier: g.id()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         identifier: ID!
       }"
@@ -33,7 +34,7 @@ describe('Model generator', () => {
       age: g.int()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         age: Int!
       }"
@@ -45,7 +46,7 @@ describe('Model generator', () => {
       weight: g.float()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         weight: Float!
       }"
@@ -57,7 +58,7 @@ describe('Model generator', () => {
       registered: g.boolean()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         registered: Boolean!
       }"
@@ -69,7 +70,7 @@ describe('Model generator', () => {
       birthday: g.date()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         birthday: Date!
       }"
@@ -81,7 +82,7 @@ describe('Model generator', () => {
       registerationDate: g.datetime()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         registerationDate: DateTime!
       }"
@@ -93,7 +94,7 @@ describe('Model generator', () => {
       email: g.email()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         email: Email!
       }"
@@ -105,7 +106,7 @@ describe('Model generator', () => {
       ipAddress: g.ipAddress()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         ipAddress: IPAddress!
       }"
@@ -117,7 +118,7 @@ describe('Model generator', () => {
       lastSeen: g.timestamp()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         lastSeen: Timestamp!
       }"
@@ -129,7 +130,7 @@ describe('Model generator', () => {
       fediverseInstance: g.url()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         fediverseInstance: URL!
       }"
@@ -141,7 +142,7 @@ describe('Model generator', () => {
       customData: g.json()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         customData: JSON!
       }"
@@ -153,7 +154,7 @@ describe('Model generator', () => {
       phoneNumber: g.phoneNumber()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         phoneNumber: PhoneNumber!
       }"
@@ -166,7 +167,7 @@ describe('Model generator', () => {
       age: g.int()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String!
         age: Int!
@@ -179,7 +180,7 @@ describe('Model generator', () => {
       name: g.string().optional()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String
       }"
@@ -191,7 +192,7 @@ describe('Model generator', () => {
       name: g.string().list()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!]!
       }"
@@ -203,7 +204,7 @@ describe('Model generator', () => {
       name: g.string().list().search()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!]! @search
       }"
@@ -215,7 +216,7 @@ describe('Model generator', () => {
       name: g.string().list().optional().search()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!] @search
       }"
@@ -227,7 +228,7 @@ describe('Model generator', () => {
       name: g.string().optional().list().optional().search()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String] @search
       }"
@@ -239,7 +240,7 @@ describe('Model generator', () => {
       name: g.string().list().optional()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!]
       }"
@@ -251,7 +252,7 @@ describe('Model generator', () => {
       name: g.string().optional().list().optional()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String]
       }"
@@ -263,7 +264,7 @@ describe('Model generator', () => {
       name: g.string().optional().list()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: [String]!
       }"
@@ -277,7 +278,7 @@ describe('Model generator', () => {
       })
       .search()
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model @search {
         name: String!
       }"
@@ -289,7 +290,7 @@ describe('Model generator', () => {
       name: g.string().search()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @search
       }"
@@ -301,7 +302,7 @@ describe('Model generator', () => {
       name: g.string().unique()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @unique
       }"
@@ -314,7 +315,7 @@ describe('Model generator', () => {
       age: g.int()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @unique(fields: ["age"])
         age: Int!
@@ -329,7 +330,7 @@ describe('Model generator', () => {
       })
       .live()
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model @live {
         name: String!
       }"
@@ -341,7 +342,7 @@ describe('Model generator', () => {
       name: g.string().length({ min: 2 })
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2)
       }"
@@ -353,7 +354,7 @@ describe('Model generator', () => {
       name: g.string().length({ min: 2 }).unique().search()
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2) @unique @search
       }"
@@ -365,7 +366,7 @@ describe('Model generator', () => {
       name: g.string().length({ max: 255 })
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(max: 255)
       }"
@@ -377,7 +378,7 @@ describe('Model generator', () => {
       name: g.string().length({ min: 2, max: 255 })
     })
 
-    expect(model.toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(model)).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @length(min: 2, max: 255)
       }"
@@ -394,7 +395,7 @@ describe('Model generator', () => {
       address: g.ref(address).optional()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -436,7 +437,7 @@ describe('Model generator', () => {
       address: g.ref(address).optional()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -458,7 +459,7 @@ describe('Model generator', () => {
       addresses: g.ref(address).list()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -477,7 +478,7 @@ describe('Model generator', () => {
       rules.private().read()
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model @auth(
           rules: [
             { allow: private, operations: [read] }
@@ -495,7 +496,7 @@ describe('Model generator', () => {
       rules.groups(['admin'])
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model @auth(
           rules: [
             { allow: private, operations: [read] }
@@ -513,7 +514,7 @@ describe('Model generator', () => {
       })
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @auth(rules: [ { allow: groups, groups: ["admin"] } ])
       }"
@@ -530,7 +531,7 @@ describe('Model generator', () => {
         })
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @unique @auth(rules: [ { allow: groups, groups: ["admin"] } ])
       }"
@@ -547,7 +548,7 @@ describe('Model generator', () => {
         })
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         age: Int! @default(value: 1) @auth(rules: [ { allow: private } ])
       }"
@@ -564,7 +565,7 @@ describe('Model generator', () => {
         })
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @search @auth(rules: [ { allow: private } ])
       }"
@@ -582,7 +583,7 @@ describe('Model generator', () => {
       })
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -602,7 +603,7 @@ describe('Model generator', () => {
         .auth((rules) => rules.private())
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         cats: [String!] @auth(rules: [ { allow: private } ])
       }"
@@ -617,7 +618,7 @@ describe('Model generator', () => {
         .auth((rules) => rules.private())
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         cats: String! @length(min: 2) @auth(rules: [ { allow: private } ])
       }"
@@ -629,7 +630,7 @@ describe('Model generator', () => {
       self: g.relation(() => model).auth((rules) => rules.private())
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         self: User! @auth(rules: [ { allow: private } ])
       }"
@@ -644,7 +645,7 @@ describe('Model generator', () => {
         .auth((rules) => rules.private())
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         self: [User!]! @auth(rules: [ { allow: private } ])
       }"
@@ -656,7 +657,7 @@ describe('Model generator', () => {
       name: g.string().resolver('a-field')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @resolver(name: "a-field")
       }"
@@ -668,7 +669,7 @@ describe('Model generator', () => {
       name: g.string().unique().resolver('a-field')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @unique @resolver(name: "a-field")
       }"
@@ -680,7 +681,7 @@ describe('Model generator', () => {
       name: g.string().default('Bob').resolver('a-field')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: String! @default(value: "Bob") @resolver(name: "a-field")
       }"
@@ -696,7 +697,7 @@ describe('Model generator', () => {
       name: g.ref(address).resolver('a-field')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type Address {
         street: String
       }
@@ -712,7 +713,7 @@ describe('Model generator', () => {
       name: g.string().list().resolver('a-field')
     })
 
-    expect(config({ schema: g }).toString()).toMatchInlineSnapshot(`
+    expect(renderGraphQL(config({ schema: g}))).toMatchInlineSnapshot(`
       "type User @model {
         name: [String!]! @resolver(name: "a-field")
       }"
