@@ -52,16 +52,6 @@ use self::scalars::{DynamicScalar, PossibleScalar};
 use self::transformers::Transformer;
 use self::utils::type_to_base_type;
 
-#[cfg(feature = "query-planning")]
-use query_planning::logical_plan::LogicalPlan;
-#[cfg(feature = "query-planning")]
-use query_planning::logical_query::{FieldPlan, SelectionPlan, SelectionPlanSet};
-
-#[cfg(feature = "query-planning")]
-use crate::logical_plan_utils::resolve_logical_plan_container;
-#[cfg(feature = "query-planning")]
-use query_planning::reexport::internment::ArcIntern;
-
 fn strip_brackets(type_name: &str) -> Option<&str> {
     type_name
         .strip_prefix('[')
@@ -1556,109 +1546,6 @@ impl Registry {
                 ServerError::new("An error occured while interpreting your data schema.", pos)
             })
             .cloned()
-    }
-
-    #[cfg(feature = "query-planning")]
-    /// Function used to resolve a Field of a [`MetaType`] and return a Plan.
-    pub async fn resolve_logic_field<'a>(
-        &self,
-        ctx: &'a Context<'a>,
-        root: &'a MetaType,
-        previous_logical_plan: Option<ArcIntern<LogicalPlan>>,
-    ) -> ServerResult<Positioned<SelectionPlan>> {
-        use query_planning::logical_query::dynaql::to_selection_plan;
-
-        let field = ctx.item;
-
-        // Need to be async for this old interop
-        // TODO: When removing this, you have to remove the async pattern as it won't be usefull
-        // anymore.
-        if ctx.item.node.name.node == "__schema" {
-            let ctx_obj = ctx.with_selection_set(&ctx.item.node.selection_set);
-            let visible_types = ctx.schema_env.registry.find_visible_types(ctx);
-            let node_id = OutputType::resolve(
-                &__Schema::new(&ctx.schema_env.registry, &visible_types),
-                &ctx_obj,
-                ctx.item,
-            )
-            .await?;
-
-            let mut graph = ctx.response_graph.write().await;
-
-            let plan = to_selection_plan(
-                field.node.response_key().node.as_str(),
-                graph
-                    .take_node_into_const_value(node_id)
-                    .ok_or_else(|| {
-                        ServerError::new(
-                            "Internal error in introspection query",
-                            Some(field.node.name.pos),
-                        )
-                    })?
-                    .into(),
-                ctx_obj.item.pos,
-            );
-            return Ok(plan);
-        }
-
-        let actual_logic_plan = ctx.to_logic_plan(root, previous_logical_plan)?;
-        let associated_meta_field = root
-            .field_by_name(field.node.name.node.as_str())
-            .ok_or_else(|| {
-                ServerError::new(
-                    format!("Can't find the associated field: {}", field.node.name),
-                    Some(field.node.name.pos),
-                )
-            })?;
-
-        let selection_set = if !field.node.selection_set.node.items.is_empty() {
-            let associated_meta_ty = ctx
-                .registry()
-                .types
-                .get(&type_to_base_type(&associated_meta_field.ty).unwrap_or_default())
-                .ok_or_else(|| {
-                    ServerError::new(
-                        format!(
-                            "Can't find the associated type: {}",
-                            &associated_meta_field.ty
-                        ),
-                        Some(field.node.name.pos),
-                    )
-                })?;
-            let ctx_selection_set = ctx.with_selection_set(&field.node.selection_set);
-
-            resolve_logical_plan_container(
-                &ctx_selection_set,
-                associated_meta_ty,
-                Some(actual_logic_plan.clone()),
-            )
-            .await?
-        } else {
-            ctx.item.position_node(SelectionPlanSet::default())
-        };
-
-        use dynaql_parser::types::Type;
-        use query_planning::scalar::graphql::as_graphql_scalar;
-        let ty = Type::new(&associated_meta_field.ty).ok_or_else(|| {
-            ServerError::new(
-                format!(
-                    "Can't find the associated type for field: {}",
-                    field.node.name
-                ),
-                Some(field.node.name.pos),
-            )
-        })?;
-
-        let plan = field.position_node(SelectionPlan::Field(ctx.item.position_node(FieldPlan {
-            nullable: ty.nullable,
-            ty: as_graphql_scalar(ty.base.to_base_type_str()),
-            array: ty.base.is_list(),
-            name: field.node.response_key().clone().map(|x| x.to_string()),
-            logic_plan: actual_logic_plan,
-            selection_set,
-        })));
-
-        Ok(plan)
     }
 
     /// Function ran when resolving a field.

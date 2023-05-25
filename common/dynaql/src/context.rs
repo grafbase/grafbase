@@ -103,8 +103,11 @@ impl Debug for Data {
     }
 }
 
-/// Context for `SelectionSet`
+/// Context when we're resolving a `SelectionSet`
 pub type ContextSelectionSet<'a> = ContextBase<'a, &'a Positioned<SelectionSet>>;
+
+/// Context when we're resolving a `Field`
+pub type ContextField<'a> = ContextBase<'a, &'a Positioned<Field>>;
 
 /// When inside a Connection, we get the subfields asked by alias which are a relation
 /// (response_key, relation)

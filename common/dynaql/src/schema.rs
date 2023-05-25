@@ -14,11 +14,11 @@ use indexmap::map::IndexMap;
 use crate::context::{Data, QueryEnvInner};
 use crate::custom_directive::CustomDirectiveFactory;
 use crate::extensions::{ExtensionFactory, Extensions};
-#[cfg(feature = "query-planning")]
-use crate::logical_plan_utils::resolve_logical_plan_container;
 use crate::model::__DirectiveLocation;
 use crate::parser::types::{Directive, DocumentOperations, OperationType, Selection, SelectionSet};
 use crate::parser::{parse_query, Positioned};
+#[cfg(feature = "query-planning")]
+use crate::planning::build_parallel_selection_plan;
 use crate::registry::{MetaDirective, MetaInputValue, Registry};
 use crate::resolver_utils::{resolve_container, resolve_container_serial};
 use crate::subscription::collect_subscription_streams;
@@ -598,6 +598,7 @@ impl Schema {
     /// query before executing it.
     #[cfg(feature = "query-planning")]
     #[allow(unused)]
+    #[cfg(do_we_even_need_this)]
     async fn logical_query_once(&self, env: QueryEnv) -> Response {
         use query_planning::logical_query::QueryOperations;
 
@@ -659,6 +660,8 @@ impl Schema {
         use query_planning::execution_query::ExecuteStream;
         use query_planning::logical_query::QueryOperations;
 
+        use crate::planning::build_serial_selection_plan;
+
         let ctx = ContextBase {
             path_node: None,
             resolver_node: None,
@@ -682,27 +685,28 @@ impl Schema {
 
         let query = ctx.registry().query_root();
 
-        let res =
-            match &env.operation.node.ty {
-                OperationType::Query => resolve_logical_plan_container(&ctx, query, None)
+        let res = match &env.operation.node.ty {
+            OperationType::Query => {
+                build_parallel_selection_plan(&ctx, query, None)
                     .await
                     .map(|x| QueryOperationDefinition {
                         ty: OperationType::Query,
                         selection_set: x,
-                    }),
-                OperationType::Mutation => {
-                    resolve_logical_plan_container(&ctx, ctx.registry().mutation_root(), None)
-                        .await
-                        .map(|x| QueryOperationDefinition {
-                            ty: OperationType::Mutation,
-                            selection_set: x,
-                        })
-                }
-                OperationType::Subscription => Err(ServerError::new(
-                    "Subscriptions are not supported on this transport.",
-                    None,
-                )),
-            };
+                    })
+            }
+            OperationType::Mutation => {
+                build_serial_selection_plan(&ctx, ctx.registry().mutation_root(), None)
+                    .await
+                    .map(|x| QueryOperationDefinition {
+                        ty: OperationType::Mutation,
+                        selection_set: x,
+                    })
+            }
+            OperationType::Subscription => Err(ServerError::new(
+                "Subscriptions are not supported on this transport.",
+                None,
+            )),
+        };
 
         let mut resp = match res {
             Ok(value) => {
