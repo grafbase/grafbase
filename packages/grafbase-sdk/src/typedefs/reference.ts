@@ -1,15 +1,14 @@
-import { AuthRuleF } from './auth'
-import { Enum } from './enum'
-import { ListDefinition } from './field/list'
-import { Type } from './type'
-import { AuthDefinition } from './typedefs/auth'
-import { ResolverDefinition } from './typedefs/resolver'
+import { AuthRuleF } from '../auth'
+import { ListDefinition } from './list'
+import { Type } from '../type'
+import { AuthDefinition } from './auth'
+import { ResolverDefinition } from './resolver'
 
 export class ReferenceDefinition {
   referencedType: string
   isOptional: boolean
 
-  constructor(referencedType: Type | Enum) {
+  constructor(referencedType: Type) {
     this.referencedType = referencedType.name
     this.isOptional = false
   }

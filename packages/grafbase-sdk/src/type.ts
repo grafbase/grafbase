@@ -1,9 +1,10 @@
 import { Field } from './field'
-import { ListDefinition } from './field/list'
+import { ListDefinition } from './typedefs/list'
 import { Interface } from './interface'
-import { ReferenceDefinition } from './reference'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
+import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
+import { EnumDefinition } from './typedefs/enum'
 
 /**
  * A collection of fields in a model.
@@ -18,6 +19,7 @@ export type TypeFieldShape =
   | ListDefinition
   | ReferenceDefinition
   | CacheDefinition
+  | EnumDefinition<any, any>
 
 /**
  * A composite type definition (e.g. not a model).

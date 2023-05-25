@@ -1,5 +1,5 @@
-import { ListDefinition } from './field/list'
-import { ReferenceDefinition } from './reference'
+import { ListDefinition } from './typedefs/list'
+import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 
 /** The possible types of an input parameters of a query. */

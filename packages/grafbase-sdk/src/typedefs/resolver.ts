@@ -1,10 +1,10 @@
 import { AuthRuleF } from '../auth'
-import { ReferenceDefinition } from '../reference'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
-import { DefaultDefinition } from './default'
-import { ScalarDefinition } from './scalar'
 import { SearchDefinition } from './search'
+import { DefaultDefinition } from './default'
+import { ReferenceDefinition } from './reference'
+import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
 
 /**
@@ -12,6 +12,7 @@ import { UniqueDefinition } from './unique'
  */
 export type Resolvable =
   | ScalarDefinition
+  | UniqueDefinition
   | DefaultDefinition
   | ReferenceDefinition
   | CacheDefinition

@@ -1,11 +1,12 @@
 import { AuthRuleF } from '../auth'
-import { ListDefinition } from '../field/list'
+import { ListDefinition } from './list'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
+import { EnumDefinition } from './enum'
 
 /**
  * A list of field types that can hold a `@search` attribute.
@@ -18,6 +19,7 @@ export type Searchable =
   | CacheDefinition
   | AuthDefinition
   | ResolverDefinition
+  | EnumDefinition<any, any>
 
 export class SearchDefinition {
   field: Searchable

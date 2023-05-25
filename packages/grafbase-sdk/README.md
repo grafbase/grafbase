@@ -67,30 +67,35 @@ g.model('User', {
 
 ## Enums
 
-Enums can be generated either from TypeScript enums or from a dynamic array:
-
-```typescript
-enum Fruits {
-  Apples,
-  Oranges
-}
-
-g.enum('Fruits', Fruits)
-```
-
-or
+Enums can be generated with the `enum` method:
 
 ```typescript
 g.enum('Fruits', ['Apples', 'Oranges'])
 ```
 
-An enum can be used as a field type with the `ref` method:
+An enum can be used as a field type with the `enumRef` method:
 
 ```typescript
 const e = g.enum('Fruits', ['Apples', 'Oranges'])
 
 g.type('User', {
-  favoriteFruit: g.ref(e)
+  favoriteFruit: g.enumRef(e)
+})
+```
+
+Default values are checked against the given variants:
+
+```ts
+const e = g.enum('Fruits', ['Apples', 'Oranges'])
+
+// this works
+g.type('User', {
+  favoriteFruit: g.enumRef(e).default('Oranges')
+})
+
+// this gives a compiler error
+g.type('User', {
+  favoriteFruit: g.enumRef(e).default('Bananas')
 })
 ```
 

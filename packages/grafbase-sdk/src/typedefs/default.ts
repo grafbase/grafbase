@@ -1,22 +1,25 @@
 import { AuthRuleF } from '../auth'
 import { Enum } from '../enum'
-import { FieldType } from '../field/typedefs'
+import { FieldType } from '../typedefs'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, TypeLevelCache, CacheParams } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
-import { ScalarDefinition, DefaultValueType } from './scalar'
+import { ScalarDefinition } from './scalar'
 import { UniqueDefinition } from './unique'
+import { EnumDefinition } from './enum'
 
-export type DefaultAllowed = ScalarDefinition | LengthLimitedStringDefinition
+export type DefaultValueType = string | number | Date | object | boolean
+
+export type DefaultFieldShape =
+  | ScalarDefinition
+  | LengthLimitedStringDefinition
+  | EnumDefinition<any, any>
 
 export class DefaultDefinition {
   defaultValue: DefaultValueType
-  scalar: ScalarDefinition | LengthLimitedStringDefinition
+  scalar: DefaultFieldShape
 
-  constructor(
-    scalar: ScalarDefinition | LengthLimitedStringDefinition,
-    defaultValue: DefaultValueType
-  ) {
+  constructor(scalar: DefaultFieldShape, defaultValue: DefaultValueType) {
     this.defaultValue = defaultValue
     this.scalar = scalar
   }
@@ -46,7 +49,7 @@ export class DefaultDefinition {
   }
 }
 
-export function renderDefault(val: any, fieldType: FieldType | Enum) {
+export function renderDefault(val: any, fieldType: FieldType | Enum<any, any>) {
   const pad2 = (n: number): string => {
     return n < 10 ? `0${n}` : `${n}`
   }

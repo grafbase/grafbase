@@ -1,28 +1,32 @@
 import { AuthRuleF, AuthRules } from '../auth'
-import { ReferenceDefinition } from '../reference'
+import { ReferenceDefinition } from './reference'
 import { RelationDefinition } from '../relation'
-import { renderDefault } from '../typedefs/default'
+import { DefaultValueType, renderDefault } from './default'
 import {
   BooleanDefinition,
   DateDefinition,
   NumberDefinition,
   ScalarDefinition,
-  DefaultValueType,
   StringDefinition
-} from '../typedefs/scalar'
-import { SearchDefinition } from '../typedefs/search'
-import { FieldType } from './typedefs'
+} from './scalar'
+import { SearchDefinition } from './search'
+import { FieldType } from '../typedefs'
+import { EnumDefinition } from './enum'
+
+export type ListScalarType =
+  | ScalarDefinition
+  | RelationDefinition
+  | ReferenceDefinition
+  | EnumDefinition<any, any>
 
 export class ListDefinition {
-  fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
+  fieldDefinition: ListScalarType
   isOptional: boolean
   defaultValue?: DefaultValueType[]
   authRules?: AuthRules
   resolverName?: string
 
-  constructor(
-    fieldDefinition: ScalarDefinition | RelationDefinition | ReferenceDefinition
-  ) {
+  constructor(fieldDefinition: ListScalarType) {
     this.fieldDefinition = fieldDefinition
     this.isOptional = false
   }

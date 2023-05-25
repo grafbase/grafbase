@@ -1,5 +1,5 @@
 import { RequireAtLeastOne } from 'type-fest'
-import { FieldType } from '../field/typedefs'
+import { FieldType } from '../typedefs'
 import { UniqueDefinition } from './unique'
 import { DefaultDefinition } from './default'
 import { Enum } from '../enum'
@@ -52,7 +52,7 @@ export class LengthLimitedStringDefinition {
     return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
-  fieldTypeVal(): FieldType | Enum {
+  fieldTypeVal(): FieldType | Enum<any, any> {
     return this.scalar.fieldType
   }
 

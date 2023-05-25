@@ -2,6 +2,7 @@ import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 import { DefaultDefinition } from './default'
+import { EnumDefinition } from './enum'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
@@ -15,6 +16,7 @@ type UniqueScalarType =
   | AuthDefinition
   | ResolverDefinition
   | CacheDefinition
+  | EnumDefinition<any, any>
 
 export class UniqueDefinition {
   compoundScope?: string[]

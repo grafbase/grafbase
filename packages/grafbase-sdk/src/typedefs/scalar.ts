@@ -6,9 +6,9 @@ import {
   ListDefinition,
   NumberListDefinition,
   StringListDefinition
-} from '../field/list'
-import { FieldType } from '../field/typedefs'
-import { DefaultDefinition } from './default'
+} from './list'
+import { FieldType } from '../typedefs'
+import { DefaultDefinition, DefaultValueType } from './default'
 import {
   FieldLength,
   LengthLimitedStringDefinition
@@ -20,14 +20,12 @@ import { AuthRuleF } from '../auth'
 import { ResolverDefinition } from './resolver'
 import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
 
-export type DefaultValueType = string | number | Date | object | boolean
-
 export class ScalarDefinition {
-  fieldType: FieldType | Enum
+  fieldType: FieldType | Enum<any, any>
   isOptional: boolean
   defaultValue?: DefaultValueType
 
-  constructor(fieldType: FieldType | Enum) {
+  constructor(fieldType: FieldType | Enum<any, any>) {
     this.fieldType = fieldType
     this.isOptional = false
   }
@@ -62,7 +60,7 @@ export class ScalarDefinition {
     return new CacheDefinition(this, new TypeLevelCache(params))
   }
 
-  fieldTypeVal(): FieldType | Enum {
+  fieldTypeVal(): FieldType | Enum<any, any> {
     return this.fieldType
   }
 
