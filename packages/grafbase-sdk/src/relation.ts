@@ -69,7 +69,7 @@ export class RelationDefinition {
 
     const required = this.isOptional ? '' : '!'
     const relationAttribute = this.relationName
-      ? ` @relation(name: ${this.relationName})`
+      ? ` @relation(name: "${this.relationName}")`
       : ''
 
     return `${modelName}${required}${relationAttribute}`

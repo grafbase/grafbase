@@ -1,6 +1,7 @@
 import { Field } from './field'
 import { ListDefinition } from './typedefs/list'
 import { ScalarDefinition } from './typedefs/scalar'
+import { validateIdentifier } from './validation'
 
 /**
  * A collection of fields in an interface.
@@ -17,6 +18,8 @@ export class Interface {
   fields: Field[]
 
   constructor(name: string) {
+    validateIdentifier(name)
+
     this.name = name
     this.fields = []
   }

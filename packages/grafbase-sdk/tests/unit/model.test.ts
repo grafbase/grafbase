@@ -804,4 +804,40 @@ describe('Model generator', () => {
       }"
     `)
   })
+
+  it('prevents using of whitespaced identifier as the name', () => {
+    expect(() => g.model('white space', { name: g.string() })).toThrow(
+      'Given name "white space" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of number-prefixed identifier as the name', () => {
+    expect(() => g.model('0User', { name: g.string() })).toThrow(
+      'Given name "0User" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of weird characters identifier as the name', () => {
+    expect(() => g.model('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of whitespaced identifier as a field name', () => {
+    expect(() => g.model('A', { 'white space': g.string() })).toThrow(
+      'Given name "white space" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of number-prefixed identifier as a field name', () => {
+    expect(() => g.model('A', { '0name': g.string() })).toThrow(
+      'Given name "0name" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of weird characters identifier as a field name', () => {
+    expect(() => g.model('A', { '!@#$%^&*()+|~`\=-': g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    )
+  })
 })

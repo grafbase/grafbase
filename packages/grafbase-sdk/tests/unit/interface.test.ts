@@ -23,6 +23,24 @@ describe('Interface generator', () => {
     `)
   })
 
+  it('prevents using of whitespaced identifier as the name', () => {
+    expect(() => g.interface('white space', { name: g.string() })).toThrow(
+      'Given name "white space" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of number-prefixed identifier as the name', () => {
+    expect(() => g.interface('0User', { name: g.string() })).toThrow(
+      'Given name "0User" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of weird characters identifier as the name', () => {
+    expect(() => g.interface('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    )
+  })
+
   it('generates a type implementing an interface', () => {
     const produce = g.interface('Produce', {
       name: g.string(),

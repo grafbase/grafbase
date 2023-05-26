@@ -1,3 +1,5 @@
+import { validateIdentifier } from "./validation"
+
 /**
  * Defines how an input enum can look like. Either an array of
  * strings with at least one item, or a TypeScript enum definition.
@@ -9,6 +11,9 @@ export class Enum<T extends string, U extends EnumShape<T>> {
   variants: U
 
   constructor(name: string, variants: U) {
+    validateIdentifier(name)
+    variants.forEach((variant) => validateIdentifier(variant))
+
     this.name = name
     this.variants = variants
   }

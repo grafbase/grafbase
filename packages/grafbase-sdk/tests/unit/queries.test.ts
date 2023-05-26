@@ -154,4 +154,68 @@ describe('Query generator', () => {
       }"
     `)
   })
+
+  it('prevents using of whitespaced identifier as the name', () => {
+    expect(() =>
+      g.query('white space', {
+        args: { name: g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow('Given name "white space" is not a valid TypeScript identifier.')
+  })
+
+  it('prevents using of number-prefixed identifier as the name', () => {
+    expect(() =>
+      g.query('0User', {
+        args: { name: g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow('Given name "0User" is not a valid TypeScript identifier.')
+  })
+
+  it('prevents using of weird characters identifier as the name', () => {
+    expect(() =>
+      g.query('!@#$%^&*()+|~`=-', {
+        args: { name: g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of whitespaced identifier an argument name', () => {
+    expect(() =>
+      g.query('Test', {
+        args: { 'white space': g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow('Given name "white space" is not a valid TypeScript identifier.')
+  })
+
+  it('prevents using of number-prefixed identifier as an argument name', () => {
+    expect(() =>
+      g.query('Test', {
+        args: { '0name': g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow('Given name "0name" is not a valid TypeScript identifier.')
+  })
+
+  it('prevents using of weird characters identifier as an argument name', () => {
+    expect(() =>
+      g.query('Test', {
+        args: { '!@#$%^&*()+|~`=-': g.string() },
+        returns: g.string(),
+        resolver: 'hello'
+      })
+    ).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
+    )
+  })
 })
