@@ -512,3 +512,49 @@ g.model('User', {
   })
 })
 ```
+
+## Caching
+
+Caching can be defined globally, per type or per field.
+
+```ts
+config({
+  schema: g,
+  cache: {
+    rules: [
+      {
+        types: 'Query',
+        maxAge: 60
+      },
+      {
+        types: ['GitHub', 'Strava'],
+        maxAge: 60,
+        staleWhileRevalidate: 60
+      },
+      {
+        types: [{ name: 'Query' }, { name: 'GitHub', fields: ['name'] }]
+      }
+    ]
+  }
+})
+
+g.model('User', {
+  name: g.string().optional()
+}).cache({
+  maxAge: 60,
+  staleWhileRevalidate: 60,
+  mutationInvalidation: 'entity'
+})
+
+g.type('User', {
+  name: g.string().optional()
+}).cache({
+  maxAge: 60,
+  staleWhileRevalidate: 60,
+  mutationInvalidation: 'type'
+})
+
+g.model('User', {
+  name: g.string().cache({ maxAge: 60, staleWhileRevalidate: 60 })
+})
+```
