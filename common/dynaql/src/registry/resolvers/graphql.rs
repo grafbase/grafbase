@@ -139,14 +139,21 @@ impl Resolver {
                     })?;
             }
 
-            let mut data = value
-                .get_mut("data")
-                .ok_or(Error::MalformedUpstreamResponse)?
-                .take();
+            let mut data = match value.get_mut("data") {
+                Some(value) => value.take(),
+                None => serde_json::Value::Null,
+            };
+
+            let is_null = data.is_null();
 
             prefix_result_typename(&mut data, &prefix);
+            let mut resolved_value = ResolvedValue::new(Arc::new(data));
 
-            Ok(ResolvedValue::new(Arc::new(data)))
+            if is_null {
+                resolved_value.early_return_null = true;
+            }
+
+            Ok(resolved_value)
         }))
     }
 }

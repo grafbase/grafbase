@@ -20,7 +20,8 @@ use cynic_introspection::{query::IntrospectionQuery, SchemaError};
 use dynaql::{
     indexmap::IndexMap,
     registry::{
-        resolvers::{context_data::ContextDataResolver, graphql, Resolver, ResolverType},
+        resolvers::{graphql, Resolver, ResolverType},
+        transformers::Transformer,
         Deprecation, MetaField, MetaType, Registry,
     },
     CacheControl,
@@ -232,13 +233,8 @@ impl Parser {
                     continue;
                 };
 
-                f.resolve = f.resolve.take().or_else(|| {
-                    Some(Resolver {
-                        id: None,
-                        r#type: ResolverType::ContextDataResolver(ContextDataResolver::LocalKey {
-                            key: f.name.clone(),
-                        }),
-                    })
+                f.transformer = Some(Transformer::JSONSelect {
+                    property: f.name.clone(),
                 });
             }
         }

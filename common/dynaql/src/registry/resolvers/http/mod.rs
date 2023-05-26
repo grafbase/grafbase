@@ -124,7 +124,14 @@ impl HttpResolver {
                 .await
                 .map_err(|e| Error::new(e.to_string()))?;
 
-            Ok(ResolvedValue::new(Arc::new(dbg!(data))))
+            let is_null = data.is_null();
+            let mut resolved_value = ResolvedValue::new(Arc::new(dbg!(data)));
+
+            if is_null {
+                resolved_value.early_return_null = true;
+            }
+
+            Ok(resolved_value)
         }))
     }
 
