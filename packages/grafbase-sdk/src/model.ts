@@ -4,7 +4,11 @@ import { ListDefinition, RelationListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
 import { RelationDefinition } from './relation'
 import { AuthDefinition } from './typedefs/auth'
-import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
+import {
+  CacheDefinition,
+  TypeCacheParams,
+  TypeLevelCache
+} from './typedefs/cache'
 import { DefaultDefinition } from './typedefs/default'
 import { LengthLimitedStringDefinition } from './typedefs/length-limited-string'
 import { ResolverDefinition } from './typedefs/resolver'
@@ -92,7 +96,7 @@ export class Model {
   /**
    * Sets the model `@cache` directive.
    */
-  public cache(params: CacheParams): Model {
+  public cache(params: TypeCacheParams): Model {
     this.cacheDirective = new TypeLevelCache(params)
 
     return this

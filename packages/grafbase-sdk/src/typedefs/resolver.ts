@@ -1,6 +1,6 @@
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
-import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
+import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { SearchDefinition } from './search'
 import { DefaultDefinition } from './default'
 import { ReferenceDefinition } from './reference'
@@ -38,8 +38,8 @@ export class ResolverDefinition {
     return new UniqueDefinition(this, scope)
   }
 
-  public cache(params: CacheParams): CacheDefinition {
-    return new CacheDefinition(this, new TypeLevelCache(params))
+  public cache(params: FieldCacheParams): CacheDefinition {
+    return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
   public toString(): string {
