@@ -185,8 +185,8 @@ describe('Relations generator', () => {
       }
 
       type Order @model {
-        billingAddress: Address! @relation(name: billing)
-        shippingAddress: Address! @relation(name: shipping)
+        billingAddress: Address! @relation(name: "billing")
+        shippingAddress: Address! @relation(name: "shipping")
       }"
     `)
   })
