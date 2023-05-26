@@ -1,11 +1,9 @@
-import util from 'node:util'
-
 /**
  * Defines a cached type with fields.
  */
 export interface StructuredCacheRuleType {
   name: string
-  fields: string[]
+  fields?: string[]
 }
 
 /**
@@ -48,8 +46,10 @@ export class GlobalCache {
             if (typeof type === 'string') {
               return `"${type}"`
             } else {
-              const fields = type.fields.map((field) => `"${field}"`).join(',')
-              return `{\n        name: "${type.name}",\n        fields: [${fields}]\n      }`
+              var fields = type.fields ? type.fields.map((field) => `"${field}"`).join(',') : ''
+              fields = fields ? `,\n        fields: [${fields}]\n` : '\n'
+
+              return `{\n        name: "${type.name}"${fields}      }`
             }
           })
           .join(', ')

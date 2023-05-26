@@ -84,7 +84,7 @@ describe('Cache generator', () => {
         rules: [
           {
             types: [
-              { name: 'User', fields: ['name', 'age'] },
+              { name: 'User' },
               { name: 'Address', fields: ['street', 'city'] }
             ],
             maxAge: 60,
@@ -99,8 +99,7 @@ describe('Cache generator', () => {
         @cache(rules: [
           {
             types: [{
-              name: "User",
-              fields: ["name","age"]
+              name: "User"
             }, {
               name: "Address",
               fields: ["street","city"]
