@@ -16,8 +16,40 @@ describe('Cache generator', () => {
         rules: [
           {
             types: 'Query',
+            maxAge: 60
+          }
+        ]
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @cache(rules: [
+          {
+            types: "Query",
+            maxAge: 60
+          }
+        ])
+
+      type A {
+        b: Int
+      }"
+    `)
+  })
+
+  it('renders type invalidation strategy', async () => {
+    g.type('A', {
+      b: g.int().optional()
+    })
+
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: 'Query',
             maxAge: 60,
-            staleWhileRevalidate: 60
+            mutationInvalidation: 'type'
           }
         ]
       }
@@ -29,7 +61,109 @@ describe('Cache generator', () => {
           {
             types: "Query",
             maxAge: 60,
-            staleWhileRevalidate: 60
+            mutationInvalidation: type
+          }
+        ])
+
+      type A {
+        b: Int
+      }"
+    `)
+  })
+
+  it('renders entity invalidation strategy', async () => {
+    g.type('A', {
+      b: g.int().optional()
+    })
+
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: 'Query',
+            maxAge: 60,
+            mutationInvalidation: 'entity'
+          }
+        ]
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @cache(rules: [
+          {
+            types: "Query",
+            maxAge: 60,
+            mutationInvalidation: entity
+          }
+        ])
+
+      type A {
+        b: Int
+      }"
+    `)
+  })
+
+  it('renders list invalidation strategy', async () => {
+    g.type('A', {
+      b: g.int().optional()
+    })
+
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: 'Query',
+            maxAge: 60,
+            mutationInvalidation: 'list'
+          }
+        ]
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @cache(rules: [
+          {
+            types: "Query",
+            maxAge: 60,
+            mutationInvalidation: list
+          }
+        ])
+
+      type A {
+        b: Int
+      }"
+    `)
+  })
+
+  it('renders custom field invalidation strategy', async () => {
+    g.type('A', {
+      b: g.int().optional()
+    })
+
+    const cfg = config({
+      schema: g,
+      cache: {
+        rules: [
+          {
+            types: 'Query',
+            maxAge: 60,
+            mutationInvalidation: { field: 'name' }
+          }
+        ]
+      }
+    })
+
+    expect(renderGraphQL(cfg)).toMatchInlineSnapshot(`
+      "extend schema
+        @cache(rules: [
+          {
+            types: "Query",
+            maxAge: 60,
+            mutationInvalidation: { field: "name" }
           }
         ])
 
@@ -84,7 +218,7 @@ describe('Cache generator', () => {
         rules: [
           {
             types: [
-              { name: 'User', fields: ['name', 'age'] },
+              { name: 'User' },
               { name: 'Address', fields: ['street', 'city'] }
             ],
             maxAge: 60,
@@ -99,8 +233,7 @@ describe('Cache generator', () => {
         @cache(rules: [
           {
             types: [{
-              name: "User",
-              fields: ["name","age"]
+              name: "User"
             }, {
               name: "Address",
               fields: ["street","city"]

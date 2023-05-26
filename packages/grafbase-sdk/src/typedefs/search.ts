@@ -1,7 +1,7 @@
 import { AuthRuleF } from '../auth'
 import { ListDefinition } from './list'
 import { AuthDefinition } from './auth'
-import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
+import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
@@ -32,8 +32,8 @@ export class SearchDefinition {
     return new AuthDefinition(this, rules)
   }
 
-  public cache(params: CacheParams): CacheDefinition {
-    return new CacheDefinition(this, new TypeLevelCache(params))
+  public cache(params: FieldCacheParams): CacheDefinition {
+    return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
   public unique(scope?: string[]): UniqueDefinition {

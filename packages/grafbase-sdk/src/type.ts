@@ -1,7 +1,11 @@
 import { Field } from './field'
 import { ListDefinition } from './typedefs/list'
 import { Interface } from './interface'
-import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
+import {
+  CacheDefinition,
+  TypeCacheParams,
+  TypeLevelCache
+} from './typedefs/cache'
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { EnumDefinition } from './typedefs/enum'
@@ -60,7 +64,7 @@ export class Type {
   /**
    * Sets the type `@cache` directive.
    */
-  public cache(params: CacheParams): this {
+  public cache(params: TypeCacheParams): this {
     this.cacheDirective = new TypeLevelCache(params)
 
     return this

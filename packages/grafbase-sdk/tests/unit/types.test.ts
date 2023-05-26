@@ -47,6 +47,62 @@ describe('Type generator', () => {
     `)
   })
 
+  it('generates one with cache using type mutation invalidation', () => {
+    const t = g
+      .type('User', {
+        name: g.string()
+      })
+      .cache({ maxAge: 10, mutationInvalidation: 'type' })
+
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
+      "type User @cache(maxAge: 10, mutationInvalidation: type) {
+        name: String!
+      }"
+    `)
+  })
+
+  it('generates one with cache using entity mutation invalidation', () => {
+    const t = g
+      .type('User', {
+        name: g.string()
+      })
+      .cache({ maxAge: 10, mutationInvalidation: 'entity' })
+
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
+      "type User @cache(maxAge: 10, mutationInvalidation: entity) {
+        name: String!
+      }"
+    `)
+  })
+
+  it('generates one with cache using list mutation invalidation', () => {
+    const t = g
+      .type('User', {
+        name: g.string()
+      })
+      .cache({ maxAge: 10, mutationInvalidation: 'list' })
+
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
+      "type User @cache(maxAge: 10, mutationInvalidation: list) {
+        name: String!
+      }"
+    `)
+  })
+
+  it('generates one with cache using custom field mutation invalidation', () => {
+    const t = g
+      .type('User', {
+        name: g.string()
+      })
+      .cache({ maxAge: 10, mutationInvalidation: { field: 'name' } })
+
+    expect(renderGraphQL(t)).toMatchInlineSnapshot(`
+      "type User @cache(maxAge: 10, mutationInvalidation: { field: "name" }) {
+        name: String!
+      }"
+    `)
+  })
+
   it('generates a union of multiple types', () => {
     const user = g.type('User', {
       name: g.string(),

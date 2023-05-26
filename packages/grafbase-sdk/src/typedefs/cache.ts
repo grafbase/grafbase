@@ -1,4 +1,5 @@
 import { AuthRuleF } from '../auth'
+import { MutationInvalidation, renderMutationInvalidation } from '../cache'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
 import { LengthLimitedStringDefinition } from './length-limited-string'
@@ -16,20 +17,56 @@ export type Cacheable =
   | SearchDefinition
   | UniqueDefinition
 
-export interface CacheParams {
+export interface TypeCacheParams {
   maxAge: number
-  staleWhileRevalidate: number
+  staleWhileRevalidate?: number
+  mutationInvalidation?: MutationInvalidation
+}
+
+export interface FieldCacheParams {
+  maxAge: number
+  staleWhileRevalidate?: number
 }
 
 export class TypeLevelCache {
-  params: CacheParams
+  params: TypeCacheParams
 
-  constructor(params: CacheParams) {
+  constructor(params: TypeCacheParams) {
     this.params = params
   }
 
   public toString(): string {
-    return `@cache(maxAge: ${this.params.maxAge}, staleWhileRevalidate: ${this.params.staleWhileRevalidate})`
+    let maxAge = `maxAge: ${this.params.maxAge}`
+
+    let staleWhileRevalidate = this.params.staleWhileRevalidate
+      ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
+      : ''
+
+    let mutationInvalidation = this.params.mutationInvalidation
+      ? `, mutationInvalidation: ${renderMutationInvalidation(
+          this.params.mutationInvalidation
+        )}`
+      : ''
+
+    return `@cache(${maxAge}${staleWhileRevalidate}${mutationInvalidation})`
+  }
+}
+
+export class FieldLevelCache {
+  params: FieldCacheParams
+
+  constructor(params: FieldCacheParams) {
+    this.params = params
+  }
+
+  public toString(): string {
+    let maxAge = `maxAge: ${this.params.maxAge}`
+
+    let staleWhileRevalidate = this.params.staleWhileRevalidate
+      ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
+      : ''
+
+    return `@cache(${maxAge}${staleWhileRevalidate})`
   }
 }
 

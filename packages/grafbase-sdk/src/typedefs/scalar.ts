@@ -18,7 +18,7 @@ import { UniqueDefinition } from './unique'
 import { AuthDefinition } from './auth'
 import { AuthRuleF } from '../auth'
 import { ResolverDefinition } from './resolver'
-import { CacheDefinition, CacheParams, TypeLevelCache } from './cache'
+import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 
 export class ScalarDefinition {
   fieldType: FieldType | Enum<any, any>
@@ -56,8 +56,8 @@ export class ScalarDefinition {
     return new ResolverDefinition(this, name)
   }
 
-  public cache(params: CacheParams): CacheDefinition {
-    return new CacheDefinition(this, new TypeLevelCache(params))
+  public cache(params: FieldCacheParams): CacheDefinition {
+    return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
   fieldTypeVal(): FieldType | Enum<any, any> {
