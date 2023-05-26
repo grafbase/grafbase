@@ -532,7 +532,8 @@ config({
         staleWhileRevalidate: 60
       },
       {
-        types: [{ name: 'Query' }, { name: 'GitHub', fields: ['name'] }]
+        types: [{ name: 'Query' }, { name: 'GitHub', fields: ['name'] }],
+        maxAge: 60
       }
     ]
   }
