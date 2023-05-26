@@ -1,4 +1,5 @@
 import { Type } from './type'
+import { validateIdentifier } from './validation'
 
 /**
  * A builder to create a GraphQL union.
@@ -8,6 +9,8 @@ export class Union {
   types: string[]
 
   constructor(name: string) {
+    validateIdentifier(name)
+
     this.name = name
     this.types = []
   }

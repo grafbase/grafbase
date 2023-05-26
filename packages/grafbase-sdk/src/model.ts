@@ -12,6 +12,7 @@ import { ScalarDefinition } from './typedefs/scalar'
 import { SearchDefinition } from './typedefs/search'
 import { UniqueDefinition } from './typedefs/unique'
 import { EnumDefinition } from './typedefs/enum'
+import { validateIdentifier } from './validation'
 
 /**
  * A collection of fields in a model.
@@ -45,6 +46,8 @@ export class Model {
   cacheDirective?: TypeLevelCache
 
   constructor(name: string) {
+    validateIdentifier(name)
+
     this.name = name
     this.fields = []
     this.isSearch = false

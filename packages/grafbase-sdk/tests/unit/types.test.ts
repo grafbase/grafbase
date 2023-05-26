@@ -73,6 +73,51 @@ describe('Type generator', () => {
     `)
   })
 
+  it('prevents using of whitespaced identifier as a union name', () => {
+    const user = g.type('User', {
+      name: g.string(),
+      age: g.int().optional()
+    })
+
+    const address = g.type('Address', {
+      street: g.string().optional()
+    })
+
+    expect(() => g.union('white space', { user, address })).toThrow(
+      'Given name "white space" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of number-prefixed identifier as a union name', () => {
+    const user = g.type('User', {
+      name: g.string(),
+      age: g.int().optional()
+    })
+
+    const address = g.type('Address', {
+      street: g.string().optional()
+    })
+
+    expect(() => g.union('0User', { user, address })).toThrow(
+      'Given name "0User" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of weird characters identifier as a union name', () => {
+    const user = g.type('User', {
+      name: g.string(),
+      age: g.int().optional()
+    })
+
+    const address = g.type('Address', {
+      street: g.string().optional()
+    })
+
+    expect(() => g.union('!@#$%^&*()+|~`\=-', { user, address })).toThrow(
+      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    )
+  })
+
   it('references another type', () => {
     g.type('User', {
       name: g.string(),
@@ -134,5 +179,23 @@ describe('Type generator', () => {
         color: Color
       }"
     `)
+  })
+
+  it('prevents using of whitespaced identifier as the name', () => {
+    expect(() => g.type('white space', { name: g.string() })).toThrow(
+      'Given name "white space" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of number-prefixed identifier as the name', () => {
+    expect(() => g.type('0User', { name: g.string() })).toThrow(
+      'Given name "0User" is not a valid TypeScript identifier.'
+    )
+  })
+
+  it('prevents using of weird characters identifier as the name', () => {
+    expect(() => g.type('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    )
   })
 })

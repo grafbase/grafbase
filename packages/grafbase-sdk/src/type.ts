@@ -5,6 +5,7 @@ import { CacheDefinition, CacheParams, TypeLevelCache } from './typedefs/cache'
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { EnumDefinition } from './typedefs/enum'
+import { validateIdentifier } from './validation'
 
 /**
  * A collection of fields in a model.
@@ -31,6 +32,8 @@ export class Type {
   cacheDirective?: TypeLevelCache
 
   constructor(name: string) {
+    validateIdentifier(name)
+
     this.name = name
     this.fields = []
     this.interfaces = []
