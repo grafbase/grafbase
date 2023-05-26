@@ -18,7 +18,7 @@ export type Cacheable =
 
 export interface CacheParams {
   maxAge: number
-  staleWhileRevalidate: number
+  staleWhileRevalidate?: number
 }
 
 export class TypeLevelCache {
@@ -29,7 +29,13 @@ export class TypeLevelCache {
   }
 
   public toString(): string {
-    return `@cache(maxAge: ${this.params.maxAge}, staleWhileRevalidate: ${this.params.staleWhileRevalidate})`
+    let maxAge = `maxAge: ${this.params.maxAge}`
+
+    let staleWhileRevalidate = this.params.staleWhileRevalidate
+      ? `, staleWhileRevalidate: ${this.params.staleWhileRevalidate}`
+      : ''
+
+    return `@cache(${maxAge}${staleWhileRevalidate})`
   }
 }
 

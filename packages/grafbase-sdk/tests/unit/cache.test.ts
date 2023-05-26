@@ -16,8 +16,7 @@ describe('Cache generator', () => {
         rules: [
           {
             types: 'Query',
-            maxAge: 60,
-            staleWhileRevalidate: 60
+            maxAge: 60
           }
         ]
       }
@@ -28,8 +27,7 @@ describe('Cache generator', () => {
         @cache(rules: [
           {
             types: "Query",
-            maxAge: 60,
-            staleWhileRevalidate: 60
+            maxAge: 60
           }
         ])
 

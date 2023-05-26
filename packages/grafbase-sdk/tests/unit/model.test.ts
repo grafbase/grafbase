@@ -701,6 +701,18 @@ describe('Model generator', () => {
   it('generates a model level cache', () => {
     g.model('User', {
       name: g.string().optional()
+    }).cache({ maxAge: 60 })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User @model @cache(maxAge: 60) {
+        name: String
+      }"
+    `)
+  })
+
+  it('generates a model level cache with staleWhileRevalidate', () => {
+    g.model('User', {
+      name: g.string().optional()
     }).cache({ maxAge: 60, staleWhileRevalidate: 50 })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
@@ -731,12 +743,12 @@ describe('Model generator', () => {
         .string()
         .optional()
         .unique()
-        .cache({ maxAge: 60, staleWhileRevalidate: 50 })
+        .cache({ maxAge: 60 })
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
       "type User @model {
-        name: String @unique @cache(maxAge: 60, staleWhileRevalidate: 50)
+        name: String @unique @cache(maxAge: 60)
       }"
     `)
   })
