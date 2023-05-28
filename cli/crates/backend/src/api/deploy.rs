@@ -8,7 +8,7 @@ use super::graphql::mutations::{
 use super::types::ProjectMetadata;
 use crate::consts::USER_AGENT;
 use common::consts::GRAFBASE_DIRECTORY_NAME;
-use common::environment::Environment;
+use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::{Id, MutationBuilder};
 use reqwest::{header, Body, Client};
@@ -20,9 +20,9 @@ use tokio_util::compat::TokioAsyncReadCompatExt;
 ///
 /// See [`ApiError`]
 pub async fn deploy() -> Result<(), ApiError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
-    let project_metadata_file_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
+    let project_metadata_file_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
     match project_metadata_file_path.try_exists() {
         Ok(true) => {}
@@ -47,13 +47,13 @@ pub async fn deploy() -> Result<(), ApiError> {
     let mut tar = async_tar::Builder::new(tar_file);
     tar.mode(async_tar::HeaderMode::Deterministic);
 
-    if environment.project_path.join(PACKAGE_JSON).exists() {
-        tar.append_path_with_name(environment.project_path.join(PACKAGE_JSON), PACKAGE_JSON)
+    if project.path.join(PACKAGE_JSON).exists() {
+        tar.append_path_with_name(project.path.join(PACKAGE_JSON), PACKAGE_JSON)
             .await
             .map_err(ApiError::AppendToArchive)?;
     }
 
-    tar.append_dir_all(GRAFBASE_DIRECTORY_NAME, &environment.project_grafbase_path)
+    tar.append_dir_all(GRAFBASE_DIRECTORY_NAME, &project.grafbase_directory_path)
         .await
         .map_err(ApiError::AppendToArchive)?;
 

@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::mpsc::Sender;
 
-use common::environment::Environment;
+use common::environment::{Environment, Project};
 use futures_util::pin_mut;
 use itertools::Itertools;
 use tokio::io::AsyncWriteExt;
@@ -102,6 +102,7 @@ async fn guess_package_manager_from_package_root(path: impl AsRef<Path>) -> Opti
 #[allow(clippy::too_many_lines)]
 async fn build_resolver(
     environment: &Environment,
+    project: &Project,
     environment_variables: &std::collections::HashMap<String, String>,
     resolver_name: &str,
     resolver_wrapper_worker_contents: &str,
@@ -114,8 +115,8 @@ async fn build_resolver(
 
     trace!("building resolver {resolver_name}");
 
-    let package_root_path = environment.project_grafbase_path.as_path();
-    let resolver_input_file_path_without_extension = environment.resolvers_source_path.join(resolver_name);
+    let package_root_path = project.grafbase_directory_path.as_path();
+    let resolver_input_file_path_without_extension = project.resolvers_source_path.join(resolver_name);
 
     let resolver_paths = futures_util::stream::iter(
         EXTENSIONS
@@ -139,7 +140,7 @@ async fn build_resolver(
             resolver_input_file_path
                 .ancestors()
                 .skip(1)
-                .take_while(|path| path.starts_with(&environment.project_path))
+                .take_while(|path| path.starts_with(&project.path))
                 .map(|directory_path| directory_path.join("package.json")),
         )
         .filter_map(|path| async {
@@ -402,6 +403,8 @@ pub async fn build_resolvers(
 
     const RESOLVER_BUILD_CONCURRENCY: usize = 8;
 
+    let project = Project::get();
+
     let mut resolvers_iterator = resolvers.into_iter().peekable();
     if resolvers_iterator.peek().is_none() {
         return Ok(HashMap::new());
@@ -412,7 +415,7 @@ pub async fn build_resolvers(
 
     let resolver_wrapper_worker_contents = extract_resolver_wrapper_worker_contents().await?;
 
-    let resolvers_build_artifact_directory_path = environment.resolvers_build_artifact_path.as_path();
+    let resolvers_build_artifact_directory_path = project.resolvers_build_artifact_path.as_path();
 
     futures_util::stream::iter(resolvers_iterator)
         .map(Ok)
@@ -435,6 +438,7 @@ pub async fn build_resolvers(
                     let _: Result<_, _> = sender.send(ServerMessage::StartResolverBuild(resolver_name.clone()));
                     build_resolver(
                         environment,
+                        project,
                         environment_variables,
                         resolver_name.as_str(),
                         resolver_wrapper_worker_contents,

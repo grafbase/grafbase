@@ -4,12 +4,12 @@ use super::deploy;
 use super::errors::{ApiError, CreateError};
 use super::graphql::mutations::{
     CurrentPlanLimitReachedError, DuplicateDatabaseRegionsError, InvalidDatabaseRegionsError, ProjectCreate,
-    ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload, ProjectCreateSuccess, SlugTooLongError,
+    ProjectCreateArguments, ProjectCreateInput, ProjectCreatePayload, SlugTooLongError,
 };
 use super::graphql::queries::viewer_and_regions::{PersonalAccount, ViewerAndRegions};
 use super::types::{Account, DatabaseRegion, ProjectMetadata};
 use super::utils::project_linked;
-use common::environment::Environment;
+use common::environment::Project;
 use cynic::http::ReqwestExt;
 use cynic::Id;
 use cynic::{MutationBuilder, QueryBuilder};
@@ -75,11 +75,11 @@ pub async fn create(
     project_slug: &str,
     database_regions: &[String],
 ) -> Result<Vec<String>, ApiError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
-    match environment.project_dot_grafbase_path.try_exists() {
+    match project.dot_grafbase_directory_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => fs::create_dir_all(&environment.project_dot_grafbase_path)
+        Ok(false) => fs::create_dir_all(&project.dot_grafbase_directory_path)
             .await
             .map_err(ApiError::CreateProjectDotGrafbaseFolder)?,
         Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
@@ -100,14 +100,14 @@ pub async fn create(
     let payload = response.data.ok_or(ApiError::UnauthorizedOrDeletedUser)?.project_create;
 
     match payload {
-        ProjectCreatePayload::ProjectCreateSuccess(ProjectCreateSuccess { project, .. }) => {
-            let project_metadata_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
+        ProjectCreatePayload::ProjectCreateSuccess(project_create_success) => {
+            let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
             tokio::fs::write(
                 &project_metadata_path,
                 ProjectMetadata {
                     account_id: account_id.to_owned(),
-                    project_id: project.id.into_inner().clone(),
+                    project_id: project_create_success.project.id.into_inner().clone(),
                 }
                 .to_string(),
             )
@@ -116,7 +116,7 @@ pub async fn create(
 
             deploy::deploy().await?;
 
-            Ok(project.production_branch.domains)
+            Ok(project_create_success.project.production_branch.domains)
         }
         ProjectCreatePayload::SlugAlreadyExistsError(_) => Err(CreateError::SlugAlreadyExists.into()),
         ProjectCreatePayload::SlugInvalidError(_) => Err(CreateError::SlugInvalid.into()),

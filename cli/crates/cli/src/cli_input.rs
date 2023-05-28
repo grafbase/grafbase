@@ -202,17 +202,10 @@ impl ArgumentNames for SubCommand {
 }
 
 impl SubCommand {
-    pub(crate) fn needs_environment(&self) -> bool {
+    pub(crate) fn in_project_context(&self) -> bool {
         matches!(
             self,
-            Self::Dev(_)
-                | Self::Create(_)
-                | Self::Deploy
-                | Self::Link
-                | Self::Unlink
-                | Self::Reset
-                | Self::Login
-                | Self::Logout
+            Self::Dev(_) | Self::Create(_) | Self::Deploy | Self::Link | Self::Unlink | Self::Reset
         )
     }
 }

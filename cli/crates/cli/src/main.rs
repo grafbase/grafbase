@@ -63,13 +63,16 @@ fn try_main(args: Args) -> Result<(), CliError> {
     trace!("subcommand: {}", args.command);
     report::cli_header();
 
+    if args.command.in_project_context() {
+        Environment::try_init_with_project(args.home).map_err(CliError::CommonError)?;
+    } else {
+        Environment::try_init(args.home).map_err(CliError::CommonError)?;
+    }
+
     Analytics::init();
     Analytics::subcommand(args.command.as_ref(), &[]);
 
-    if args.command.needs_environment() {
-        Environment::try_init(args.home).map_err(CliError::CommonError)?;
-        report::warnings(&Environment::get().warnings);
-    }
+    report::warnings(&Environment::get().warnings);
 
     match args.command {
         SubCommand::Completions(cmd) => {

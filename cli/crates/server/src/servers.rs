@@ -11,7 +11,7 @@ use crate::{bridge, errors::ServerError};
 use common::consts::{
     EPHEMERAL_PORT_RANGE, GRAFBASE_DIRECTORY_NAME, GRAFBASE_SCHEMA_FILE_NAME, GRAFBASE_TS_CONFIG_FILE_NAME,
 };
-use common::environment::{Environment, SchemaLocation};
+use common::environment::{Environment, Project, SchemaLocation};
 use common::types::LocalAddressType;
 use common::utils::find_available_port_in_range;
 use futures_util::FutureExt;
@@ -53,7 +53,7 @@ const EVENT_BUS_BOUND: usize = 5;
 pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), ServerError>>, Receiver<ServerMessage>) {
     let (sender, receiver): (Sender<ServerMessage>, Receiver<ServerMessage>) = mpsc::channel();
 
-    let environment = Environment::get();
+    let project = Project::get();
 
     let handle = thread::spawn(move || {
         export_embedded_files()?;
@@ -74,8 +74,8 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                     let watch_event_bus = event_bus.clone();
 
                     tokio::select! {
-                        result = start_watcher(environment.project_grafbase_path.clone(), move |path| {
-                            let relative_path = path.strip_prefix(&environment.project_path).expect("must succeed by definition").to_owned();
+                        result = start_watcher(project.grafbase_directory_path.clone(), move |path| {
+                            let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
                         result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
@@ -163,6 +163,7 @@ async fn spawn_servers(
     }
 
     let environment = Environment::get();
+    let project = Project::get();
 
     let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
         Ok(resolver_paths) => resolver_paths,
@@ -198,10 +199,7 @@ async fn spawn_servers(
     };
     trace!("bridge ready");
 
-    let registry_path = environment
-        .project_grafbase_registry_path
-        .to_str()
-        .ok_or(ServerError::ProjectPath)?;
+    let registry_path = project.registry_path.to_str().ok_or(ServerError::ProjectPath)?;
 
     trace!("spawning miniflare for the main worker");
 
@@ -345,9 +343,9 @@ fn export_embedded_files() -> Result<(), ServerError> {
 }
 
 fn create_project_dot_grafbase_directory() -> Result<(), ServerError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
-    let project_dot_grafbase_path = environment.project_dot_grafbase_path.clone();
+    let project_dot_grafbase_path = project.dot_grafbase_directory_path.clone();
 
     if fs::metadata(&project_dot_grafbase_path).is_err() {
         trace!("creating .grafbase directory");
@@ -376,8 +374,8 @@ async fn run_schema_parser(
     environment_variables: &std::collections::HashMap<String, String>,
 ) -> Result<Vec<DetectedResolver>, ServerError> {
     trace!("parsing schema");
-
     let environment = Environment::get();
+    let project = Project::get();
 
     let parser_path = environment
         .user_dot_grafbase_path
@@ -395,7 +393,7 @@ async fn run_schema_parser(
     );
 
     let output = {
-        let schema_path = match environment.project_grafbase_schema_path.location() {
+        let schema_path = match project.schema_path.location() {
             SchemaLocation::TsConfig(ref ts_config_path) => {
                 Cow::Owned(parse_and_generate_config_from_ts(ts_config_path).await?)
             }
@@ -440,14 +438,14 @@ async fn run_schema_parser(
         required_resolvers,
     } = serde_json::from_str(&parser_result_string).map_err(ServerError::SchemaParserResultJson)?;
 
-    let registry_mtime = tokio::fs::metadata(&environment.project_grafbase_registry_path)
+    let registry_mtime = tokio::fs::metadata(&project.registry_path)
         .await
         .ok()
         .map(|metadata| metadata.modified().expect("must be supported"));
 
     let detected_resolvers = futures_util::future::join_all(required_resolvers.into_iter().map(|resolver_name| {
         // Last file to be written to in the build process.
-        let wrangler_toml_path = environment
+        let wrangler_toml_path = project
             .resolvers_build_artifact_path
             .join(&resolver_name)
             .join("wrangler.toml");
@@ -466,7 +464,7 @@ async fn run_schema_parser(
     .await;
 
     tokio::fs::write(
-        &environment.project_grafbase_registry_path,
+        &project.registry_path,
         serde_json::to_string(&versioned_registry).expect("serde_json::Value serialises just fine for sure"),
     )
     .await
@@ -479,8 +477,9 @@ async fn run_schema_parser(
 /// file to the filesystem, returning a path to the generated file.
 async fn parse_and_generate_config_from_ts(ts_config_path: &Path) -> Result<String, ServerError> {
     let environment = Environment::get();
+    let project = Project::get();
 
-    let generated_schemas_dir = environment.project_dot_grafbase_path.join(GENERATED_SCHEMAS_DIR);
+    let generated_schemas_dir = project.dot_grafbase_directory_path.join(GENERATED_SCHEMAS_DIR);
     let generated_config_path = generated_schemas_dir.join(GRAFBASE_SCHEMA_FILE_NAME);
 
     if !generated_schemas_dir.exists() {

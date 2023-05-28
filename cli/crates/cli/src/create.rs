@@ -3,7 +3,7 @@ use backend::api::{
     create,
     types::{Account, DatabaseRegion},
 };
-use common::environment::Environment;
+use common::environment::Project;
 use inquire::{validator::Validation, Confirm, Select, Text};
 use slugify::slugify;
 use std::fmt::Display;
@@ -65,7 +65,7 @@ async fn from_arguments(arguments: &CreateArguments<'_>) -> Result<(), CliError>
 }
 
 async fn interactive() -> Result<(), CliError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
     let (accounts, available_regions, closest_region) = create::get_viewer_data_for_creation()
         .await
@@ -73,11 +73,7 @@ async fn interactive() -> Result<(), CliError> {
 
     let options: Vec<AccountSelection> = accounts.into_iter().map(AccountSelection).collect();
 
-    let dir_name = environment
-        .project_path
-        .file_name()
-        .expect("must exist")
-        .to_string_lossy();
+    let dir_name = project.path.file_name().expect("must exist").to_string_lossy();
 
     let project_name = Text::new("What should your new project be called?")
         .with_default(&dir_name)

@@ -13,8 +13,7 @@ use crate::types::ServerMessage;
 use axum::extract::State;
 use axum::Json;
 use axum::{http::StatusCode, routing::post, Router};
-
-use common::environment::Environment;
+use common::environment::Project;
 
 use sqlx::query::{Query, QueryAs};
 use sqlx::{migrate::MigrateDatabase, query, query_as, sqlite::SqlitePoolOptions, Sqlite, SqlitePool};
@@ -100,8 +99,10 @@ async fn search_endpoint(
     State(handler_state): State<Arc<HandlerState>>,
     Json(request): Json<QueryExecutionRequest>,
 ) -> Result<Json<QueryExecutionResponse>, ApiError> {
+    let project = Project::get();
+
     let registry: Registry = {
-        let path = &Environment::get().project_grafbase_registry_path;
+        let path = &project.registry_path;
         let file = File::open(path).map_err(|err| {
             error!("Failed to open {path:?}: {err:?}");
             ApiError::ServerError
@@ -144,17 +145,17 @@ pub async fn start(
 ) -> Result<(), ServerError> {
     trace!("starting bridge at port {port}");
 
-    let environment = Environment::get();
+    let project = Project::get();
 
-    match environment.database_directory_path.try_exists() {
+    match project.database_directory_path.try_exists() {
         Ok(true) => {}
-        Ok(false) => fs::create_dir_all(&environment.database_directory_path)
+        Ok(false) => fs::create_dir_all(&project.database_directory_path)
             .await
             .map_err(ServerError::CreateDatabaseDir)?,
         Err(error) => return Err(ServerError::ReadDatabaseDir(error)),
     }
 
-    let database_file = environment.database_directory_path.join(DATABASE_FILE);
+    let database_file = project.database_directory_path.join(DATABASE_FILE);
 
     let db_url = match database_file.to_str() {
         Some(db_file) => format!("{DATABASE_URL_PREFIX}{db_file}"),

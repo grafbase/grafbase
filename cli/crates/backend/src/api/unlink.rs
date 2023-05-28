@@ -1,5 +1,5 @@
 use super::{consts::PROJECT_METADATA_FILE, errors::ApiError};
-use common::environment::Environment;
+use common::environment::Project;
 use std::fs;
 
 /// # Errors
@@ -10,9 +10,9 @@ use std::fs;
 ///
 /// - returns [`BackendError::ReadProjectMetadataFile`] if ~/.grafbase/project.json could not be read
 pub fn unlink() -> Result<(), ApiError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
-    let project_metadata_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
+    let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
 
     match project_metadata_path.try_exists() {
         Ok(true) => fs::remove_file(project_metadata_path).map_err(ApiError::DeleteProjectMetadataFile),
