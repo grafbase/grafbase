@@ -69,7 +69,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
         Environment::try_init(args.home).map_err(CliError::CommonError)?;
     }
 
-    Analytics::init();
+    Analytics::init().map_err(CliError::CommonError)?;
     Analytics::subcommand(args.command.as_ref(), &[]);
 
     report::warnings(&Environment::get().warnings);
