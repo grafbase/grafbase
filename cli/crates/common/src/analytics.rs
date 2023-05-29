@@ -21,6 +21,7 @@ pub struct Analytics {
     client: RudderAnalytics,
     session_id: Ulid,
     start_time: DateTime<Utc>,
+    version: String,
 }
 
 // TODO move this to [`Environment`]
@@ -70,6 +71,7 @@ impl Analytics {
                     client: RudderAnalytics::load(write_key.to_owned(), dataplane_url.to_owned()),
                     session_id: Ulid::new(),
                     start_time: Utc::now(),
+                    version: env!("CARGO_PKG_VERSION").to_owned(),
                 }),
             )
             .expect("cannot set analytics twice");
@@ -83,6 +85,15 @@ impl Analytics {
             std::fs::create_dir_all(parent).map_err(CommonError::CreateUserDotGrafbaseFolder)?;
         }
         std::fs::write(data_location, data.to_string()).map_err(CommonError::WriteAnalyticsDataFile)
+    }
+
+    #[must_use]
+    pub fn get_context(&self) -> Value {
+        json!({
+            "startTime": self.start_time,
+            "sessionId": self.session_id,
+            "version": self.version,
+        })
     }
 
     fn init_data() -> Result<(), CommonError> {
@@ -143,11 +154,7 @@ impl Analytics {
                         event: event_name,
                         anonymous_id: Some(anonymous_id.to_string()),
                         properties,
-                        context: Some(json!({
-                            "startTime": analytics.start_time,
-                            "sessionId": analytics.session_id,
-                            "version": env!("CARGO_PKG_VERSION")
-                        })),
+                        context: Some(analytics.get_context()),
                         ..Default::default()
                     }));
                 })
