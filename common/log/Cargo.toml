@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bitflags = "1"
+bitflags = { workspace = true }
 futures-util = { workspace = true, features = [
     "std",
     "async-await",

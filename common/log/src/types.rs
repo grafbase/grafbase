@@ -35,6 +35,7 @@ pub struct LogEntry {
 }
 
 bitflags::bitflags! {
+    #[derive(Clone, Copy)]
     pub struct Config: u8 {
         const DATADOG = 0b0000_0001;
         #[cfg(feature = "with-worker")]

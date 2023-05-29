@@ -2141,9 +2141,13 @@ Registry {
     enable_federation: false,
     federation_subscription: false,
     auth: AuthConfig {
-        allowed_private_ops: (empty),
+        allowed_private_ops: Operations(
+            0x0,
+        ),
         allowed_group_ops: {},
-        allowed_owner_ops: (empty),
+        allowed_owner_ops: Operations(
+            0x0,
+        ),
         provider: None,
     },
     schemas: {},
