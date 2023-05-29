@@ -145,7 +145,8 @@ impl Analytics {
                         properties,
                         context: Some(json!({
                             "startTime": analytics.start_time,
-                            "sessionId": analytics.session_id
+                            "sessionId": analytics.session_id,
+                            "version": env!("CARGO_PKG_VERSION")
                         })),
                         ..Default::default()
                     }));
