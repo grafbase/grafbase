@@ -20,7 +20,7 @@ mod watercolor;
 extern crate log;
 
 use crate::{
-    cli_input::{Args, SubCommand},
+    cli_input::{Args, ArgumentNames, SubCommand},
     create::create,
     deploy::deploy,
     dev::dev,
@@ -70,7 +70,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     }
 
     Analytics::init().map_err(CliError::CommonError)?;
-    Analytics::subcommand(args.command.as_ref(), &[]);
+    Analytics::command_executed(args.command.as_ref(), &args.command.argument_names());
 
     report::warnings(&Environment::get().warnings);
 

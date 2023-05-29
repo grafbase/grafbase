@@ -1,5 +1,6 @@
 #![allow(clippy::let_underscore_untyped)] // derivative
 
+use crate::{environment::Environment, errors::CommonError};
 use chrono::{DateTime, Utc};
 use core::panic;
 use derivative::Derivative;
@@ -12,8 +13,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{path::PathBuf, thread};
 use ulid::Ulid;
-
-use crate::{environment::Environment, errors::CommonError};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -48,7 +47,6 @@ fn reverse_option<T>(option: &Option<T>) -> Option<()> {
 }
 
 impl Analytics {
-    /// # Errors
     pub fn init() -> Result<(), CommonError> {
         let write_key = option_env!("GRAFBASE_RUDDERSTACK_WRITE_KEY");
         let dataplane_url = option_env!("GRAFBASE_RUDDERSTACK_DATAPLANE_URL");
@@ -119,7 +117,6 @@ impl Analytics {
         Ok(Some(data))
     }
 
-    /// # Errors
     pub fn opt_out() -> Result<(), CommonError> {
         Self::write_data(&AnalyticsData {
             opt_out: true,
@@ -127,17 +124,17 @@ impl Analytics {
         })
     }
 
-    /// # Errors
     pub fn opt_in() -> Result<(), CommonError> {
         Self::init_data()
     }
 
-    /// # Errors
     pub fn reset_identifier() -> Result<(), CommonError> {
         Self::init_data()
     }
 
     /// # Panics
+    ///
+    /// - panics if the static ANALYTICS object was not previously initialized
     pub fn get() -> &'static Option<Self> {
         match ANALYTICS.get() {
             Some(analytics) => analytics,
@@ -156,7 +153,7 @@ impl Analytics {
                 // purposely ignoring errors
                 // TODO possibly change this to a long lived thread once we add more events
                 thread::spawn(move || {
-                    let _ = analytics.client.send(&Message::Track(Track {
+                    let _: Result<_, _> = analytics.client.send(&Message::Track(Track {
                         event: event_name,
                         anonymous_id: Some(anonymous_id.to_string()),
                         properties,
@@ -170,12 +167,11 @@ impl Analytics {
             });
     }
 
-    pub fn subcommand(name: &str, arguments: &[&'static str]) {
-        Self::track("subcommand", Some(json!({ "name": name, "arguments": arguments })));
-    }
-
-    pub fn end(status: bool) {
-        Self::track("end", Some(json!({ "status": status })));
+    pub fn command_executed(name: &str, arguments: &[&'static str]) {
+        Self::track(
+            "Command Executed",
+            Some(json!({ "name": name, "arguments": arguments })),
+        );
     }
 }
 
