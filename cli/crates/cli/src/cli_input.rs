@@ -137,16 +137,6 @@ pub trait ArgumentNames {
     fn argument_names(&self) -> Option<Vec<&'static str>>;
 }
 
-/// returns a tuple of (bool, &'static str), 0 being whether the condition on the field is met, 1 being the field name
-macro_rules! argument_exists {
-    ($self:ident, $field:ident$($condition:tt)+) => {
-        ($self.$field$($condition)+, stringify!($field))
-    };
-    ($self:ident, $field:ident) => {
-        ($self.$field, stringify!($field))
-    };
-}
-
 fn filter_existing_arguments(arguments: &[(bool, &'static str)]) -> Option<Vec<&'static str>> {
     let arguments = arguments
         .iter()
@@ -163,19 +153,16 @@ fn filter_existing_arguments(arguments: &[(bool, &'static str)]) -> Option<Vec<&
 impl ArgumentNames for DevCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
         filter_existing_arguments(&[
-            argument_exists!(self, port != DEFAULT_PORT),
-            argument_exists!(self, search),
-            argument_exists!(self, disable_watch),
+            (self.port != DEFAULT_PORT, "port"),
+            (self.search, "search"),
+            (self.disable_watch, "disable-watch"),
         ])
     }
 }
 
 impl ArgumentNames for InitCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
-        filter_existing_arguments(&[
-            argument_exists!(self, name.is_some()),
-            argument_exists!(self, template.is_some()),
-        ])
+        filter_existing_arguments(&[(self.name.is_some(), "name"), (self.template.is_some(), "template")])
     }
 }
 
