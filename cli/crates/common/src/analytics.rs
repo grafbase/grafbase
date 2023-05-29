@@ -120,7 +120,7 @@ impl Analytics {
 
     /// # Panics
     ///
-    /// - panics if the static ANALYTICS object was not previously initialized
+    /// panics if the static [`ANALYTICS`] object was not previously initialized
     pub fn get() -> &'static Option<Self> {
         match ANALYTICS.get() {
             Some(analytics) => analytics,
