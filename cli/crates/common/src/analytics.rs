@@ -14,10 +14,12 @@ use serde_json::{json, Value};
 use std::{path::PathBuf, thread};
 use ulid::Ulid;
 
-#[derive(Derivative)]
+#[derive(Derivative, Serialize)]
+#[serde(rename_all = "camelCase")]
 #[derivative(Debug)]
 pub struct Analytics {
     #[derivative(Debug = "ignore")]
+    #[serde(skip)]
     client: RudderAnalytics,
     session_id: Ulid,
     start_time: DateTime<Utc>,
@@ -87,13 +89,13 @@ impl Analytics {
         std::fs::write(data_location, data.to_string()).map_err(CommonError::WriteAnalyticsDataFile)
     }
 
+    fn to_value(&self) -> Value {
+        serde_json::to_value(self).expect("must parse")
+    }
+
     #[must_use]
     pub fn get_context(&self) -> Value {
-        json!({
-            "startTime": self.start_time,
-            "sessionId": self.session_id,
-            "version": self.version,
-        })
+        self.to_value()
     }
 
     fn init_data() -> Result<(), CommonError> {
