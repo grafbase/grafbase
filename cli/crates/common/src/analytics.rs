@@ -161,7 +161,7 @@ impl Analytics {
             });
     }
 
-    pub fn command_executed(name: &str, arguments: &[&'static str]) {
+    pub fn command_executed(name: &str, arguments: &Option<Vec<&'static str>>) {
         Self::track(
             "Command Executed",
             Some(json!({ "name": name, "arguments": arguments })),

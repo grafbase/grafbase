@@ -134,7 +134,7 @@ pub enum SubCommand {
 // TODO see if there's a way to do this automatically (https://github.com/clap-rs/clap/discussions/4921)
 pub trait ArgumentNames {
     /// returns the argument names used in a specific invocation of the CLI
-    fn argument_names(&self) -> Vec<&'static str>;
+    fn argument_names(&self) -> Option<Vec<&'static str>>;
 }
 
 /// returns a tuple of (bool, &'static str), 0 being whether the condition on the field is met, 1 being the field name
@@ -147,16 +147,21 @@ macro_rules! argument_exists {
     };
 }
 
-fn filter_existing_arguments(arguments: &[(bool, &'static str)]) -> Vec<&'static str> {
-    arguments
+fn filter_existing_arguments(arguments: &[(bool, &'static str)]) -> Option<Vec<&'static str>> {
+    let arguments = arguments
         .iter()
         .filter(|arguments| arguments.0)
         .map(|arguments| arguments.1)
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+    if arguments.is_empty() {
+        None
+    } else {
+        Some(arguments)
+    }
 }
 
 impl ArgumentNames for DevCommand {
-    fn argument_names(&self) -> Vec<&'static str> {
+    fn argument_names(&self) -> Option<Vec<&'static str>> {
         filter_existing_arguments(&[
             argument_exists!(self, port != DEFAULT_PORT),
             argument_exists!(self, search),
@@ -166,7 +171,7 @@ impl ArgumentNames for DevCommand {
 }
 
 impl ArgumentNames for InitCommand {
-    fn argument_names(&self) -> Vec<&'static str> {
+    fn argument_names(&self) -> Option<Vec<&'static str>> {
         filter_existing_arguments(&[
             argument_exists!(self, name.is_some()),
             argument_exists!(self, template.is_some()),
@@ -175,17 +180,22 @@ impl ArgumentNames for InitCommand {
 }
 
 impl ArgumentNames for CreateCommand {
-    fn argument_names(&self) -> Vec<&'static str> {
-        [(self.arguments.is_some(), vec!["name", "account", "regions"])]
+    fn argument_names(&self) -> Option<Vec<&'static str>> {
+        let arguments = [(self.arguments.is_some(), vec!["name", "account", "regions"])]
             .iter()
             .filter(|arguments| arguments.0)
             .flat_map(|arguments| arguments.1.clone())
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        if arguments.is_empty() {
+            None
+        } else {
+            Some(arguments)
+        }
     }
 }
 
 impl ArgumentNames for SubCommand {
-    fn argument_names(&self) -> Vec<&'static str> {
+    fn argument_names(&self) -> Option<Vec<&'static str>> {
         match self {
             SubCommand::Dev(command) => command.argument_names(),
             SubCommand::Init(command) => command.argument_names(),
@@ -196,7 +206,7 @@ impl ArgumentNames for SubCommand {
             | SubCommand::Deploy
             | SubCommand::Link
             | SubCommand::Unlink
-            | SubCommand::Completions(_) => vec![],
+            | SubCommand::Completions(_) => None,
         }
     }
 }
