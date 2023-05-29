@@ -23,21 +23,22 @@ pub struct Analytics {
     start_time: DateTime<Utc>,
 }
 
+// TODO move this to [`Environment`]
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[allow(clippy::module_name_repetitions)]
-pub struct AnalyticsData {
-    pub opt_out: bool,
+pub struct GrafbaseConfig {
+    pub enable_analytics: bool,
     pub anonymous_id: Option<Ulid>,
 }
 
-impl ToString for AnalyticsData {
+impl ToString for GrafbaseConfig {
     fn to_string(&self) -> String {
         serde_json::to_string(&self).expect("must parse")
     }
 }
 
-const ANALYTICS_DATA_FILE: &str = "analytics.json";
+const GRAFBASE_CONFIG_FILE: &str = "config.json";
 
 fn reverse_option<T>(option: &Option<T>) -> Option<()> {
     match option {
@@ -56,10 +57,10 @@ impl Analytics {
 
         let analytics_data_and_variables = write_key
             .zip(dataplane_url)
-            .zip(do_not_track)
-            .zip(reverse_option(&data.filter(|data| data.opt_out)));
+            .zip(reverse_option(&do_not_track))
+            .zip(reverse_option(&data.filter(|data| !data.enable_analytics)));
 
-        if analytics_data_and_variables.is_some() && !Self::data_exists()? {
+        if analytics_data_and_variables.is_some() && !Self::config_exists()? {
             Self::init_data()?;
         }
 
@@ -76,8 +77,8 @@ impl Analytics {
         Ok(())
     }
 
-    fn write_data(data: &AnalyticsData) -> Result<(), CommonError> {
-        let data_location = Self::get_data_location();
+    fn write_data(data: &GrafbaseConfig) -> Result<(), CommonError> {
+        let data_location = Self::get_config_location();
         if let Some(parent) = data_location.parent() {
             std::fs::create_dir_all(parent).map_err(CommonError::CreateUserDotGrafbaseFolder)?;
         }
@@ -85,51 +86,36 @@ impl Analytics {
     }
 
     fn init_data() -> Result<(), CommonError> {
-        Self::write_data(&AnalyticsData {
-            opt_out: false,
+        Self::write_data(&GrafbaseConfig {
+            enable_analytics: true,
             anonymous_id: Some(Ulid::new()),
         })
     }
 
-    fn get_data_location() -> PathBuf {
-        Environment::get().user_dot_grafbase_path.join(ANALYTICS_DATA_FILE)
+    fn get_config_location() -> PathBuf {
+        Environment::get().user_dot_grafbase_path.join(GRAFBASE_CONFIG_FILE)
     }
 
-    fn data_exists() -> Result<bool, CommonError> {
-        match Self::get_data_location().try_exists() {
+    fn config_exists() -> Result<bool, CommonError> {
+        match Self::get_config_location().try_exists() {
             Ok(result) => Ok(result),
             Err(error) => Err(CommonError::ReadAnalyticsDataFile(error)),
         }
     }
 
-    fn read_data() -> Result<Option<AnalyticsData>, CommonError> {
-        if !Self::data_exists()? {
+    fn read_data() -> Result<Option<GrafbaseConfig>, CommonError> {
+        if !Self::config_exists()? {
             return Ok(None);
         }
 
-        let data_path = Self::get_data_location();
+        let data_path = Self::get_config_location();
 
         let data_string = std::fs::read_to_string(data_path).map_err(CommonError::ReadAnalyticsDataFile)?;
 
-        let data: AnalyticsData =
+        let data: GrafbaseConfig =
             serde_json::from_str(&data_string).map_err(|_| CommonError::CorruptAnalyticsDataFile)?;
 
         Ok(Some(data))
-    }
-
-    pub fn opt_out() -> Result<(), CommonError> {
-        Self::write_data(&AnalyticsData {
-            opt_out: true,
-            anonymous_id: None,
-        })
-    }
-
-    pub fn opt_in() -> Result<(), CommonError> {
-        Self::init_data()
-    }
-
-    pub fn reset_identifier() -> Result<(), CommonError> {
-        Self::init_data()
     }
 
     /// # Panics
