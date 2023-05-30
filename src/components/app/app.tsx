@@ -41,13 +41,11 @@ export const App = () => {
             protocol: 'EVENT_SOURCE'
           }
         }}
+        withPolling={true}
         toRender={
           <StyledToolsContainer>
             <StyledToolDisplayWrapper isVisible={visibleTool === 'Pathfinder'}>
-              <Pathfinder
-                withPolling={true}
-                withVisualOperationBuilder={true}
-              />
+              <Pathfinder withVisualOperationBuilder={true} />
             </StyledToolDisplayWrapper>
             <StyledToolDisplayWrapper
               isVisible={visibleTool === 'SchemaDocumentation'}
