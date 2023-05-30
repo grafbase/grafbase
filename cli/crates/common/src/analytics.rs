@@ -11,7 +11,11 @@ use rudderanalytics::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use std::{path::PathBuf, thread};
+use std::{
+    fmt::{self, Display, Write},
+    path::PathBuf,
+    thread,
+};
 use ulid::Ulid;
 
 #[derive(Derivative, Serialize)]
@@ -35,9 +39,9 @@ pub struct GrafbaseConfig {
     pub anonymous_id: Option<Ulid>,
 }
 
-impl ToString for GrafbaseConfig {
-    fn to_string(&self) -> String {
-        serde_json::to_string(&self).expect("must parse")
+impl Display for GrafbaseConfig {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&serde_json::to_string(&self).expect("must parse"))
     }
 }
 
