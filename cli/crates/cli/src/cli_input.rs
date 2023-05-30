@@ -75,32 +75,30 @@ impl InitCommand {
 }
 
 #[derive(Debug, clap::Args)]
-#[group(required = true, requires_all = ["name", "account", "regions"])]
-pub struct CreateArgs {
+#[group(requires_all = ["name", "account", "regions"], multiple = true)]
+pub struct CreateCommand {
     /// The name to use for the new project
     #[arg(short, long)]
-    pub name: String,
+    pub name: Option<String>,
     /// The slug of the account in which the new project should be created
     #[arg(short, long, value_name = "SLUG")]
-    pub account: String,
+    pub account: Option<String>,
     /// The regions in which the database for the new project should be created
     #[arg(short, long, value_name = "REGION")]
-    pub regions: Vec<String>,
-}
-
-#[derive(Debug, Parser)]
-pub struct CreateCommand {
-    #[command(flatten)]
-    arguments: Option<CreateArgs>,
+    pub regions: Option<Vec<String>>,
 }
 
 impl CreateCommand {
     pub fn create_arguments(&self) -> Option<CreateArguments<'_>> {
-        self.arguments.as_ref().map(|args| CreateArguments {
-            name: &args.name,
-            account_slug: &args.account,
-            regions: &args.regions,
-        })
+        self.name
+            .as_deref()
+            .zip(self.account.as_deref())
+            .zip(self.regions.as_deref())
+            .map(|((name, account_slug), regions)| CreateArguments {
+                account_slug,
+                name,
+                regions,
+            })
     }
 }
 
