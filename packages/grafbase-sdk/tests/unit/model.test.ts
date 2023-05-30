@@ -874,8 +874,8 @@ describe('Model generator', () => {
   })
 
   it('prevents using of weird characters identifier as the name', () => {
-    expect(() => g.model('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.model('!@#$%^&*()+|~`=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 
@@ -892,8 +892,8 @@ describe('Model generator', () => {
   })
 
   it('prevents using of weird characters identifier as a field name', () => {
-    expect(() => g.model('A', { '!@#$%^&*()+|~`\=-': g.string() })).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.model('A', { '!@#$%^&*()+|~`=-': g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 })

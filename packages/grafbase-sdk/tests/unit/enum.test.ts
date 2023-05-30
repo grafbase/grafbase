@@ -57,38 +57,38 @@ describe('Enum generator', () => {
   })
 
   it('prevents using of whitespaced identifier as the name', () => {
-    expect(() => g.enum('white space', ["Foo", "Bar"])).toThrow(
+    expect(() => g.enum('white space', ['Foo', 'Bar'])).toThrow(
       'Given name "white space" is not a valid TypeScript identifier.'
     )
   })
 
   it('prevents using of number-prefixed identifier as the name', () => {
-    expect(() => g.enum('0User', ["Foo", "Bar"])).toThrow(
+    expect(() => g.enum('0User', ['Foo', 'Bar'])).toThrow(
       'Given name "0User" is not a valid TypeScript identifier.'
     )
   })
 
   it('prevents using of weird characters identifier as the name', () => {
-    expect(() => g.enum('!@#$%^&*()+|~`\=-', ["Foo", "Bar"])).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.enum('!@#$%^&*()+|~`=-', ['Foo', 'Bar'])).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 
   it('prevents using of whitespaced identifier as a variant name', () => {
-    expect(() => g.enum('A', ["white space"])).toThrow(
+    expect(() => g.enum('A', ['white space'])).toThrow(
       'Given name "white space" is not a valid TypeScript identifier.'
     )
   })
 
   it('prevents using of number-prefixed identifier as a variant name', () => {
-    expect(() => g.enum('A', ["0User"])).toThrow(
+    expect(() => g.enum('A', ['0User'])).toThrow(
       'Given name "0User" is not a valid TypeScript identifier.'
     )
   })
 
   it('prevents using of weird characters identifier as a variant name', () => {
-    expect(() => g.enum('A', ["!@#$%^&*()+|~`\=-"])).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.enum('A', ['!@#$%^&*()+|~`=-'])).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 })

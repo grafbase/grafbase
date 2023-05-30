@@ -36,8 +36,8 @@ describe('Interface generator', () => {
   })
 
   it('prevents using of weird characters identifier as the name', () => {
-    expect(() => g.interface('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.interface('!@#$%^&*()+|~`=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 

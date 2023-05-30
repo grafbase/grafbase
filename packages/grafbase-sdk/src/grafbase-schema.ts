@@ -1,7 +1,7 @@
 import { Model, ModelFields } from './model'
 import { RelationDefinition, RelationRef } from './relation'
 import { Enum, EnumShape } from './enum'
-import { Type, TypeFields } from './type'
+import { Type, TypeExtension, TypeFields } from './type'
 import { ReferenceDefinition } from './typedefs/reference'
 import { Union } from './union'
 import { Interface, InterfaceFields } from './interface'
@@ -54,9 +54,10 @@ export class GrafbaseSchema {
   unions: Union[]
   models: Model[]
   interfaces: Interface[]
-  queries: Query[]
-  mutations: Query[]
+  queries?: TypeExtension
+  mutations?: TypeExtension
   datasources: Datasources
+  extendedTypes: TypeExtension[]
 
   constructor() {
     this.enums = []
@@ -64,9 +65,8 @@ export class GrafbaseSchema {
     this.unions = []
     this.models = []
     this.interfaces = []
-    this.queries = []
-    this.mutations = []
     this.datasources = new Datasources()
+    this.extendedTypes = []
   }
 
   /**
@@ -162,7 +162,11 @@ export class GrafbaseSchema {
       )
     }
 
-    this.queries.push(query)
+    if (!this.queries) {
+      this.queries = new TypeExtension('Query')
+    }
+
+    this.queries.query(query)
 
     return query
   }
@@ -183,7 +187,11 @@ export class GrafbaseSchema {
       )
     }
 
-    this.mutations.push(query)
+    if (!this.mutations) {
+      this.mutations = new TypeExtension('Mutation')
+    }
+
+    this.mutations.query(query)
 
     return query
   }
@@ -325,29 +333,53 @@ export class GrafbaseSchema {
   }
 
   /**
+   * Extends an existing type with the given queries.
+   *
+   * @param type - Either a type if the given type is directly in the schema,
+   *               or a string if extending an external type introspected from an
+   *               external datasource.
+   * @param definition - A collection of queries to be added to the extension.
+   */
+  public extend(type: string | Type, definition: Record<string, QueryInput>) {
+    const extension = new TypeExtension(type)
+
+    Object.entries(definition).forEach(([name, input]) => {
+      const query = new Query(name, input.returns, input.resolver)
+
+      if (input.args != null) {
+        Object.entries(input.args).forEach(([name, type]) =>
+          query.argument(name, type)
+        )
+      }
+
+      extension.query(query)
+    })
+
+    this.extendedTypes.push(extension)
+  }
+
+  /**
    * Empty the schema.
    */
   public clear() {
-    this.queries = []
-    this.mutations = []
+    this.queries = undefined
+    this.mutations = undefined
     this.interfaces = []
     this.types = []
     this.unions = []
     this.enums = []
     this.models = []
     this.datasources = new Datasources()
+    this.extendedTypes = []
   }
 
   public toString(): string {
-    var queries = this.queries.map(String).join('\n')
-    var mutations = this.mutations.map(String).join('\n')
-
-    queries = queries ? `extend type Query {\n${queries}\n}` : ''
-    mutations = mutations ? `extend type Mutation {\n${mutations}\n}` : ''
-
     const datasources = this.datasources.toString()
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')
+    const queries = this.queries ? this.queries.toString() : ''
+    const mutations = this.mutations ? this.mutations.toString() : ''
+    const extendedTypes = this.extendedTypes.map(String).join('\n\n')
     const unions = this.unions.map(String).join('\n\n')
     const enums = this.enums.map(String).join('\n\n')
     const models = this.models.map(String).join('\n\n')
@@ -357,6 +389,7 @@ export class GrafbaseSchema {
       interfaces,
       enums,
       types,
+      extendedTypes,
       queries,
       mutations,
       unions,
