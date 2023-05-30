@@ -559,3 +559,35 @@ g.model('User', {
   name: g.string().cache({ maxAge: 60, staleWhileRevalidate: 60 })
 })
 ```
+
+### Extending Types
+
+Types can be extended with extra queries, handled with resolvers.
+
+To extend a type that is defined in the Grafbase schema, define the type first and extend it by using the type as the parameter:
+
+```ts
+const user = g.type('User', {
+  name: g.string()
+})
+
+g.extend(user, {
+  myField: {
+    args: { myArg: g.string() },
+    returns: g.string(),
+    resolver: 'file'
+  }
+})
+```
+
+Sometimes a type is not defined directly in the schema, but instead introspected from an external connector. In these cases passing a string as the first argument allows extending the type with custom queries. Keep in mind that in these cases it is not validated in compile-time if the type exist.
+
+```ts
+g.extend('StripeCustomer', {
+  myField: {
+    args: { myArg: g.string() },
+    returns: g.string(),
+    resolver: 'file'
+  }
+})
+```

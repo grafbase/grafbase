@@ -10,6 +10,7 @@ import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { EnumDefinition } from './typedefs/enum'
 import { validateIdentifier } from './validation'
+import { InputType, OutputType, Query, QueryArgument } from './query'
 
 /**
  * A collection of fields in a model.
@@ -92,6 +93,43 @@ export class Type {
     const footer = '}'
 
     return `${header}\n${fields}\n${footer}`
+  }
+}
+
+export class TypeExtension {
+  name: string
+  queries: Query[]
+
+  constructor(type: string | Type) {
+    if (type instanceof Type) {
+      this.name = type.name
+    } else {
+      validateIdentifier(type)
+      this.name = type
+    }
+
+    this.queries = []
+  }
+
+  /**
+   * Pushes a query to the extension.
+   *
+   * @param query - The query to be added.
+   */
+  public query(query: Query): this {
+    this.queries.push(query)
+
+    return this
+  }
+
+  public toString(): string {
+    if (this.queries.length > 0) {
+      const queries = this.queries.map(String).join('\n')
+
+      return `extend type ${this.name} {\n${queries}\n}`
+    } else {
+      return ''
+    }
   }
 }
 

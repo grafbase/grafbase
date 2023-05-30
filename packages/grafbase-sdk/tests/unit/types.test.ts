@@ -169,8 +169,8 @@ describe('Type generator', () => {
       street: g.string().optional()
     })
 
-    expect(() => g.union('!@#$%^&*()+|~`\=-', { user, address })).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.union('!@#$%^&*()+|~`=-', { user, address })).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
   })
 
@@ -250,8 +250,48 @@ describe('Type generator', () => {
   })
 
   it('prevents using of weird characters identifier as the name', () => {
-    expect(() => g.type('!@#$%^&*()+|~`\=-', { name: g.string() })).toThrow(
-      'Given name "!@#$%^&*()+|~`\=-" is not a valid TypeScript identifier.'
+    expect(() => g.type('!@#$%^&*()+|~`=-', { name: g.string() })).toThrow(
+      'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
+  })
+
+  it('extends an internal type', () => {
+    const t = g.type('User', {
+      name: g.string()
+    })
+
+    g.extend(t, {
+      myField: {
+        args: { myArg: g.string() },
+        returns: g.string(),
+        resolver: 'file'
+      }
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "type User {
+        name: String!
+      }
+
+      extend type User {
+        myField(myArg: String!): String! @resolver(name: "file")
+      }"
+    `)
+  })
+
+  it('extends an external type', () => {
+    g.extend('StripeCustomer', {
+      myField: {
+        args: { myArg: g.string() },
+        returns: g.string(),
+        resolver: 'file'
+      }
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "extend type StripeCustomer {
+        myField(myArg: String!): String! @resolver(name: "file")
+      }"
+    `)
   })
 })
