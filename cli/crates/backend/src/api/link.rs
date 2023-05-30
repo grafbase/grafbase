@@ -3,10 +3,10 @@ use super::{
     consts::{API_URL, PROJECT_METADATA_FILE},
     errors::ApiError,
     graphql::queries::viewer::{PersonalAccount, Viewer},
-    types::{AccountWithProjects, Project, ProjectMetadata},
+    types::{self, AccountWithProjects, ProjectMetadata},
     utils::project_linked,
 };
-use common::environment::Environment;
+use common::environment::Project;
 use cynic::{http::ReqwestExt, QueryBuilder};
 use std::iter;
 
@@ -49,7 +49,7 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
         projects: projects
             .nodes
             .into_iter()
-            .map(|project| Project {
+            .map(|project| types::Project {
                 id: project.id.into_inner(),
                 slug: project.slug,
             })
@@ -68,7 +68,7 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
                     .nodes
                     .iter()
                     .cloned()
-                    .map(|project| Project {
+                    .map(|project| types::Project {
                         id: project.id.into_inner(),
                         slug: project.slug,
                     })
@@ -85,8 +85,8 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 /// see [`ApiError`]
 #[allow(clippy::module_name_repetitions)]
 pub async fn link_project(account_id: String, project_id: String) -> Result<(), ApiError> {
-    let environment = Environment::get();
-    let project_metadata_path = environment.project_dot_grafbase_path.join(PROJECT_METADATA_FILE);
+    let project = Project::get();
+    let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
     tokio::fs::write(
         &project_metadata_path,
         ProjectMetadata { account_id, project_id }.to_string(),

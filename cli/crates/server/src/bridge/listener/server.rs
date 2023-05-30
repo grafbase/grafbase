@@ -8,7 +8,7 @@ use crate::{
     errors::ServerError,
     event::{wait_for_event, Event},
 };
-use common::environment::Environment;
+use common::environment::Project;
 use reqwest::Client;
 use sqlx::{query, query_as, Connection, SqliteConnection};
 use tokio::sync::broadcast::Sender;
@@ -16,9 +16,9 @@ use tokio::time::sleep;
 use uuid::Uuid;
 
 async fn event_listener(worker_port: u16) -> Result<(), ServerError> {
-    let environment = Environment::get();
+    let project = Project::get();
     // existence is already guaranteed by the bridge server
-    let database_file = environment.database_directory_path.join(DATABASE_FILE);
+    let database_file = project.database_directory_path.join(DATABASE_FILE);
 
     let database_url = match database_file.to_str() {
         Some(database_file) => format!("{DATABASE_URL_PREFIX}{database_file}"),

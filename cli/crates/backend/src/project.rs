@@ -3,7 +3,7 @@ use crate::errors::BackendError;
 use async_compression::tokio::bufread::GzipDecoder;
 use async_tar::Archive;
 use common::consts::{GRAFBASE_DIRECTORY_NAME, GRAFBASE_ENV_FILE_NAME, GRAFBASE_SCHEMA_FILE_NAME};
-use common::environment::Environment;
+use common::environment::Project;
 use http_cache_reqwest::{CACacheManager, Cache, CacheMode, HttpCache};
 use reqwest::{header, Client};
 use reqwest_middleware::ClientBuilder;
@@ -362,9 +362,9 @@ async fn stream_github_archive<'a>(
 ///
 /// - returns [`BackendError::DeleteDatabaseDirectory`] if the `.grafbase` directory cannot be deleted
 pub fn reset() -> Result<(), BackendError> {
-    let environment = Environment::get();
+    let project = Project::get();
 
-    fs::remove_dir_all(&environment.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
+    fs::remove_dir_all(&project.database_directory_path).map_err(BackendError::DeleteDatabaseDirectory)?;
 
     Ok(())
 }
