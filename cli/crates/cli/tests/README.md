@@ -5,7 +5,7 @@
 Assets in the API repo need to be built:
 
 ```sh
-RELEASE_FLAG="--dev" GATEWAY_FEATURES=local ./scripts/dev/build-cli-assets.sh
+RELEASE_FLAG="--dev" GATEWAY_FEATURES=local,dynamodb ./scripts/dev/build-cli-assets.sh
 ```
 
 ## Set up
@@ -16,7 +16,6 @@ DynamoDB Local must be running:
 docker run -p 8000:8000 --rm --name dynamodb -d amazon/dynamodb-local
 ```
 
-Testing tables are created and deleted on the fly.
 To execute the CLI, one must create a table:
 
 ## Preparing the table for the CLI
@@ -43,6 +42,8 @@ cargo run -p grafbase --features=dynamodb -- -t 2 dev
 ```
 
 ## Running the tests
+
+Testing tables are created and deleted on the fly.
 
 ```sh
 export AWS_ACCESS_KEY_ID="fakeMyKeyId"
