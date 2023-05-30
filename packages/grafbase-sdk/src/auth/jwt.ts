@@ -1,5 +1,5 @@
 /**
- * Input parameters to define a JWT auth provider. Requres `issuer` and `secret`
+ * Input parameters to define a JWT auth provider. Requires `issuer` and `secret`
  * to be defined, and optionally supports the `clientId` and `groupsClaim`
  * definitions.
  *

@@ -46,14 +46,22 @@ export class RelationDefinition {
     return new RelationListDefinition(this)
   }
 
-  /** For ambivalent relations, a name makes them distinct. */
+  /**
+   * For ambivalent relations, a name makes them distinct.
+   *
+   * @param name - The name of the relation.
+   */
   public name(name: string): RelationDefinition {
     this.relationName = name
 
     return this
   }
 
-  /** Protect the field with authentication rules. */
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
   }

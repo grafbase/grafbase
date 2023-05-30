@@ -17,7 +17,7 @@ describe('Default value generation', () => {
 
   it('generates String default as optional', () => {
     const model = g.model('User', {
-      name: g.string().default('Bob').optional()
+      name: g.string().optional().default('Bob')
     })
 
     expect(renderGraphQL(model)).toMatchInlineSnapshot(`

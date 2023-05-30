@@ -31,16 +31,27 @@ export class ListDefinition {
     this.isOptional = false
   }
 
+  /**
+   * Make the field optional.
+   */
   public optional(): ListDefinition {
     this.isOptional = true
 
     return this
   }
 
+  /**
+   * Make the field searchable.
+   */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): ListDefinition {
     const authRules = new AuthRules()
     rules(authRules)
@@ -50,6 +61,11 @@ export class ListDefinition {
     return this
   }
 
+  /**
+   * Attach a resolver function to the field.
+   *
+   * @param name - The name of the resolver function file without the extension or directory.
+   */
   public resolver(name: string): ListDefinition {
     this.resolverName = name
 
@@ -81,12 +97,20 @@ export class RelationListDefinition {
     this.isOptional = false
   }
 
+  /**
+   * Make the field optional.
+   */
   public optional(): RelationListDefinition {
     this.isOptional = true
 
     return this
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): RelationListDefinition {
     const authRules = new AuthRules()
     rules(authRules)
@@ -145,6 +169,11 @@ export class StringListDefinition extends ListWithDefaultDefinition {
     super(fieldDefinition)
   }
 
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
   public default(val: string[]): StringListDefinition {
     this.defaultValue = val
 
@@ -157,6 +186,11 @@ export class NumberListDefinition extends ListWithDefaultDefinition {
     super(fieldDefinition)
   }
 
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
   public default(val: number[]): NumberListDefinition {
     this.defaultValue = val
 
@@ -169,6 +203,11 @@ export class BooleanListDefinition extends ListWithDefaultDefinition {
     super(fieldDefinition)
   }
 
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
   public default(val: boolean[]): BooleanListDefinition {
     this.defaultValue = val
 
@@ -181,6 +220,11 @@ export class DateListDefinition extends ListWithDefaultDefinition {
     super(fieldDefinition)
   }
 
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
   public default(val: Date[]): DateListDefinition {
     this.defaultValue = val
 

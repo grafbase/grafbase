@@ -2,6 +2,7 @@ import { AuthRuleF } from '../auth'
 import { MutationInvalidation, renderMutationInvalidation } from '../cache'
 import { AuthDefinition } from './auth'
 import { DefaultDefinition } from './default'
+import { EnumDefinition } from './enum'
 import { LengthLimitedStringDefinition } from './length-limited-string'
 import { ResolverDefinition } from './resolver'
 import { ScalarDefinition } from './scalar'
@@ -16,6 +17,7 @@ export type Cacheable =
   | LengthLimitedStringDefinition
   | SearchDefinition
   | UniqueDefinition
+  | EnumDefinition<any, any>
 
 export interface TypeCacheParams {
   maxAge: number
@@ -79,10 +81,18 @@ export class CacheDefinition {
     this.field = field
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
   }
 
+  /**
+   * Make the field searchable.
+   */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
   }

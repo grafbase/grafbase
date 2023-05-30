@@ -1,4 +1,4 @@
-import { validateIdentifier } from "./validation"
+import { validateIdentifier } from './validation'
 
 /**
  * Defines how an input enum can look like. Either an array of

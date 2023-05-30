@@ -24,6 +24,12 @@ export class Interface {
     this.fields = []
   }
 
+  /**
+   * Push a new field to the interface definition.
+   *
+   * @param name - The name of the field.
+   * @param definition - The type and attirbutes of the field.
+   */
   public field(name: string, definition: InterfaceFieldShape): Interface {
     this.fields.push(new Field(name, definition))
 

@@ -45,6 +45,9 @@ export class Type {
 
   /**
    * Pushes a field to the type definition.
+   *
+   * @param name - The name of the field.
+   * @param definition - The type definition with optional attributes.
    */
   public field(name: string, definition: TypeFieldShape): this {
     this.fields.push(new Field(name, definition))
@@ -54,15 +57,19 @@ export class Type {
 
   /**
    * Pushes an interface implemented by the type.
+   *
+   * @param iface - The interface this type implements.
    */
-  public implements(i: Interface): this {
-    this.interfaces.push(i)
+  public implements(iface: Interface): this {
+    this.interfaces.push(iface)
 
     return this
   }
 
   /**
    * Sets the type `@cache` directive.
+   *
+   * @param params - The cache definition parameters.
    */
   public cache(params: TypeCacheParams): this {
     this.cacheDirective = new TypeLevelCache(params)
