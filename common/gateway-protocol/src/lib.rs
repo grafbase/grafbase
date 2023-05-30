@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use aws_region_nearby::AwsRegion;
+use dynaql::AuthConfig;
 use grafbase::auth::ExecutionAuth;
 use worker::js_sys::Uint8Array;
 use worker::{Headers, Method, RequestInit};
@@ -9,12 +10,6 @@ use worker::{Headers, Method, RequestInit};
 pub struct VersionedRegistry<'a> {
     pub registry: std::borrow::Cow<'a, dynaql::registry::Registry>,
     pub deployment_id: std::borrow::Cow<'a, str>,
-}
-
-#[derive(serde::Serialize)]
-pub struct VersionedRegistrySerializable {
-    pub registry: Box<serde_json::value::RawValue>,
-    pub deployment_id: String,
 }
 
 #[derive(serde::Serialize)]
@@ -52,8 +47,6 @@ impl TryFrom<GatewayRequest> for worker::Request {
 /// Owned execution request
 #[derive(serde::Deserialize, serde::Serialize)]
 pub struct ExecutionRequest {
-    /// The versioned registry to be used when executing the request
-    pub versioned_registry: VersionedRegistry<'static>,
     /// The request to execute
     pub request: dynaql::Request,
     /// Customer specific configuration needed to execute the request
@@ -108,7 +101,6 @@ pub struct CustomerDeploymentConfig {
     /// Default dynamodb Secret Access Key
     pub globaldb_aws_secret_access_key: String,
     /// Default dynamodb Replication Regions
-    /// Default dynamodb Replication Regions
     #[serde(
         deserialize_with = "deserialize_aws_regions",
         serialize_with = "serialize_aws_regions"
@@ -134,6 +126,10 @@ pub struct CustomerDeploymentConfig {
     // FIXME: 2023-04-15: Optional for now until legacy projects are redeployed.
     #[serde(default)]
     pub account_plan: Option<grafbase::Plan>,
+    #[serde(default)]
+    pub caching_enabled: bool,
+    #[serde(default)]
+    pub auth_config: AuthConfig,
 }
 
 impl CustomerDeploymentConfig {
