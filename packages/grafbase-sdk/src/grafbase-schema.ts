@@ -70,14 +70,20 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new datasource to the schema.
+   * Add a new datasource to the schema.
+   *
+   * @param datasource - The datasource to add.
+   * @param params - The introspection parameters.
    */
   public datasource(datasource: PartialDatasource, params: IntrospectParams) {
     this.datasources.push(datasource.finalize(params.namespace))
   }
 
   /**
-   * Adds a new model to the schema.
+   * Add a new model to the schema.
+   *
+   * @param name - The name of the model.
+   * @param fields - The fields to be included.
    */
   public model(name: string, fields: ModelFields): Model {
     const model = Object.entries(fields).reduce(
@@ -91,7 +97,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new composite type to the schema.
+   * Add a new composite type to the schema.
+   *
+   * @param name - The name of the type.
+   * @param fields - The fields to be included.
    */
   public type(name: string, fields: TypeFields): Type {
     const type = Object.entries(fields).reduce(
@@ -105,7 +114,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new interface to the schema.
+   * Add a new interface to the schema.
+   *
+   * @param name - The name of the interface.
+   * @param fields - The fields to be included.
    */
   public interface(name: string, fields: InterfaceFields): Interface {
     const iface = Object.entries(fields).reduce(
@@ -119,7 +131,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new union to the schema.
+   * Add a new union to the schema.
+   *
+   * @param name - The name of the union.
+   * @param types - The types to be included.
    */
   public union(name: string, types: Record<string, Type>): Union {
     const union = Object.entries(types).reduce(
@@ -133,7 +148,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new query to the schema.
+   * Add a new query to the schema.
+   *
+   * @param name - The name of the query.
+   * @param definition - The query definition.
    */
   public query(name: string, definition: QueryInput): Query {
     var query = new Query(name, definition.returns, definition.resolver)
@@ -150,7 +168,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new mutation to the schema.
+   * Add a new mutation to the schema.
+   *
+   * @param name - The name of the mutation.
+   * @param fields - The mutation definition.
    */
   public mutation(name: string, definition: QueryInput): Query {
     var query = new Query(name, definition.returns, definition.resolver)
@@ -168,7 +189,10 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Adds a new enum to the schema.
+   * Add a new enum to the schema.
+   *
+   * @param name - The name of the enum.
+   * @param variants - A list of variants of the enum.
    */
   public enum<T extends string, U extends EnumShape<T>>(
     name: string,
@@ -181,112 +205,118 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Creates a new string field.
+   * Create a new string field.
    */
   public string(): StringDefinition {
     return new StringDefinition(FieldType.String)
   }
 
   /**
-   * Creates a new ID field.
+   * Create a new ID field.
    */
   public id(): StringDefinition {
     return new StringDefinition(FieldType.ID)
   }
 
   /**
-   * Creates a new email field.
+   * Create a new email field.
    */
   public email(): StringDefinition {
     return new StringDefinition(FieldType.Email)
   }
 
   /**
-   * Creates a new int field.
+   * Create a new int field.
    */
   public int(): NumberDefinition {
     return new NumberDefinition(FieldType.Int)
   }
 
   /**
-   * Creates a new float field.
+   * Create a new float field.
    */
   public float(): NumberDefinition {
     return new NumberDefinition(FieldType.Float)
   }
 
   /**
-   * Creates a new boolean field.
+   * Create a new boolean field.
    */
   public boolean(): BooleanDefinition {
     return new BooleanDefinition(FieldType.Boolean)
   }
 
   /**
-   * Creates a new date field.
+   * Create a new date field.
    */
   public date(): DateDefinition {
     return new DateDefinition(FieldType.Date)
   }
 
   /**
-   * Creates a new datetime field.
+   * Create a new datetime field.
    */
   public datetime(): DateDefinition {
     return new DateDefinition(FieldType.DateTime)
   }
 
   /**
-   * Creates a new IP address field.
+   * Create a new IP address field.
    */
   public ipAddress(): StringDefinition {
     return new StringDefinition(FieldType.IPAddress)
   }
 
   /**
-   * Creates a new timestamp field.
+   * Create a new timestamp field.
    */
   public timestamp(): NumberDefinition {
     return new NumberDefinition(FieldType.Timestamp)
   }
 
   /**
-   * Creates a new URL field.
+   * Create a new URL field.
    */
   public url(): StringDefinition {
     return new StringDefinition(FieldType.URL)
   }
 
   /**
-   * Creates a new JSON field.
+   * Create a new JSON field.
    */
   public json(): ObjectDefinition {
     return new ObjectDefinition(FieldType.JSON)
   }
 
   /**
-   * Creates a new phone number field.
+   * Create a new phone number field.
    */
   public phoneNumber(): StringDefinition {
     return new StringDefinition(FieldType.PhoneNumber)
   }
 
   /**
-   * Creates a new relation field.
+   * Create a new relation field.
+   *
+   * @param ref - A model to be referred. Takes either a model or a closure resolving to a model.
    */
   public relation(ref: RelationRef): RelationDefinition {
     return new RelationDefinition(ref)
   }
 
   /**
-   * Creates a new reference field, referencing a type.
+   * Create a new reference field, referencing a type.
+   *
+   * @param type - A type to be referred.
    */
   public ref(type: Type): ReferenceDefinition {
     return new ReferenceDefinition(type)
   }
 
   /**
-   * Creates a new enum field.
+   * Create a new enum field.
+   *
+   * @param e - An enum to be referred.
    */
   public enumRef<T extends string, U extends EnumShape<T>>(
     e: Enum<T, U>
@@ -295,7 +325,7 @@ export class GrafbaseSchema {
   }
 
   /**
-   * Empties the schema.
+   * Empty the schema.
    */
   public clear() {
     this.queries = []

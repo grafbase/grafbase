@@ -15,7 +15,11 @@ export class Union {
     this.types = []
   }
 
-  /** Pushes a new type to the union definition. */
+  /**
+   * Push a new type to the union definition.
+   *
+   * @param type - The included type.
+   */
   public type(type: Type): Union {
     this.types.push(type.name)
 

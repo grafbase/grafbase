@@ -28,14 +28,29 @@ export class SearchDefinition {
     this.field = field
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
   }
 
+  /**
+   * Set the field-level cache directive.
+   *
+   * @param params - The cache definition parameters.
+   */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }
 
+  /**
+   * Make the field unique.
+   *
+   * @param scope - Additional fields to be added to the constraint.
+   */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
   }

@@ -57,32 +57,32 @@ export class AuthRule {
     this.operations = []
   }
 
-  /** Allows the `get` operation for the given strategy. */
+  /** Allow the `get` operation for the given strategy. */
   public get(): AuthRule {
     return this.operation('get')
   }
 
-  /** Allows the `list` operation for the given strategy. */
+  /** Allow the `list` operation for the given strategy. */
   public list(): AuthRule {
     return this.operation('list')
   }
 
-  /** Allows the `read` operation for the given strategy. */
+  /** Allow the `read` operation for the given strategy. */
   public read(): AuthRule {
     return this.operation('read')
   }
 
-  /** Allows the `create` operation for the given strategy. */
+  /** Allow the `create` operation for the given strategy. */
   public create(): AuthRule {
     return this.operation('create')
   }
 
-  /** Allows the `update` operation for the given strategy. */
+  /** Allow the `update` operation for the given strategy. */
   public update(): AuthRule {
     return this.operation('update')
   }
 
-  /** Allows the `delete` operation for the given strategy. */
+  /** Allow the `delete` operation for the given strategy. */
   public delete(): AuthRule {
     return this.operation('delete')
   }
@@ -137,6 +137,8 @@ export class AuthRules {
 
   /**
    * Allow access to users of a group.
+   *
+   * @param groups - A list of groups with access.
    */
   public groups(groups: string[]): AuthRule {
     const rule = new AuthRule(new AuthGroups(groups))

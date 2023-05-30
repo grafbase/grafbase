@@ -34,14 +34,27 @@ export class AuthDefinition {
     this.field = field
   }
 
+  /**
+   * Make the field searchable.
+   */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
   }
 
+  /**
+   * Make the field unique.
+   *
+   * @param scope - Additional fields to be added to the constraint.
+   */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
   }
 
+  /**
+   * Set the field-level cache directive.
+   *
+   * @param params - The cache definition parameters.
+   */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }

@@ -27,14 +27,27 @@ export class UniqueDefinition {
     this.compoundScope = scope
   }
 
+  /**
+   * Make the field searchable.
+   */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
   }
 
+  /**
+   * Set the field-level cache directive.
+   *
+   * @param params - The cache definition parameters.
+   */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }

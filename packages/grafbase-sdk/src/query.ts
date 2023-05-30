@@ -56,7 +56,10 @@ export class Query {
   }
 
   /**
-   * Pushes a new input argument to the query.
+   * Push a new input argument to the query.
+   *
+   * @param name - The name of the input parameter.
+   * @param type - The type of the input parameter.
    */
   public argument(name: string, type: InputType): Query {
     this.arguments.push(new QueryArgument(name, type))

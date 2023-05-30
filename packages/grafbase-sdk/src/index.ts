@@ -24,12 +24,16 @@ export function config(input: ConfigInput): Config {
 export const connector = {
   /**
    * Create a new OpenAPI connector object.
+   *
+   * @param params - The configuration parameters.
    */
   OpenAPI: (params: OpenAPIParams): PartialOpenAPI => {
     return new PartialOpenAPI(params)
   },
   /**
    * Create a new GraphQL connector object.
+   *
+   * @param params - The configuration parameters.
    */
   GraphQL: (params: GraphQLParams): PartialGraphQLAPI => {
     return new PartialGraphQLAPI(params)
@@ -39,18 +43,24 @@ export const connector = {
 export const auth = {
   /**
    * Create a new OpenID authenticator.
+   *
+   * @param params - The configuration parameters.
    */
   OpenIDConnect: (params: OpenIDParams): OpenIDAuth => {
     return new OpenIDAuth(params)
   },
   /**
    * Create a new JWT authenticator.
+   *
+   * @param params - The configuration parameters.
    */
   JWT: (params: JWTParams): JWTAuth => {
     return new JWTAuth(params)
   },
   /**
    * Create a new JWKS authenticator.
+   *
+   * @param params - The configuration parameters.
    */
   JWKS: (
     params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>

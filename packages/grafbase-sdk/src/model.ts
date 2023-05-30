@@ -59,7 +59,10 @@ export class Model {
   }
 
   /**
-   * Pushes a field to the model definition.
+   * Push a field to the model definition.
+   *
+   * @param name - The name of the model.
+   * @param definition - Fields to be included in the model.
    */
   public field(name: string, definition: ModelFieldShape): Model {
     this.fields.push(new Field(name, definition))
@@ -68,7 +71,7 @@ export class Model {
   }
 
   /**
-   * Makes the model searchable.
+   * Make the model searchable.
    */
   public search(): Model {
     this.isSearch = true
@@ -77,7 +80,7 @@ export class Model {
   }
 
   /**
-   * Enables live queries to the model.
+   * Enable live queries to the model.
    */
   public live(): Model {
     this.isLive = true
@@ -86,7 +89,9 @@ export class Model {
   }
 
   /**
-   * Sets the per-model `@auth` directive.
+   * Set the per-model `@auth` directive.
+   *
+   * @param rules - A closure to build the authentication rules.
    */
   public auth(rules: AuthRuleF): Model {
     const authRules = new AuthRules()
@@ -97,7 +102,9 @@ export class Model {
   }
 
   /**
-   * Sets the model `@cache` directive.
+   * Set the per-model `@cache` directive.
+   *
+   * @param params - The cache definition parameters.
    */
   public cache(params: TypeCacheParams): Model {
     this.cacheDirective = new TypeLevelCache(params)

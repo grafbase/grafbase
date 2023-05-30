@@ -36,26 +36,52 @@ export class ScalarDefinition {
     return this
   }
 
+  /**
+   * Make the field unique.
+   *
+   * @param scope - Additional fields to be added to the constraint.
+   */
   public unique(scope?: string[]): UniqueDefinition {
     return new UniqueDefinition(this, scope)
   }
 
+  /**
+   * Make the field searchable.
+   */
   public search(): SearchDefinition {
     return new SearchDefinition(this)
   }
 
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
   public list(): ListDefinition {
     return new ListDefinition(this)
   }
 
+  /**
+   * Set the field-level auth directive.
+   *
+   * @param rules - A closure to build the authentication rules.
+   */
   public auth(rules: AuthRuleF): AuthDefinition {
     return new AuthDefinition(this, rules)
   }
 
+  /**
+   * Attach a resolver function to the field.
+   *
+   * @param name - The name of the resolver function file without the extension or directory.
+   */
   public resolver(name: string): ResolverDefinition {
     return new ResolverDefinition(this, name)
   }
 
+  /**
+   * Set the field-level cache directive.
+   *
+   * @param params - The cache definition parameters.
+   */
   public cache(params: FieldCacheParams): CacheDefinition {
     return new CacheDefinition(this, new FieldLevelCache(params))
   }
@@ -79,53 +105,95 @@ export class ScalarDefinition {
 }
 
 export class StringDefinition extends ScalarDefinition {
-  public default(val: string): DefaultDefinition {
-    return new DefaultDefinition(this, val)
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: string): DefaultDefinition {
+    return new DefaultDefinition(this, value)
   }
 
+  /**
+   * Specify a minimum or a maximum (or both) length of the field.
+   *
+   * @param fieldLength - Either `min`, `max` or both.
+   */
   public length(
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   ): LengthLimitedStringDefinition {
     return new LengthLimitedStringDefinition(this, fieldLength)
   }
 
+  /**
+   * Specify a minimum or a maximum (or both) length of the field.
+   */
   public list(): StringListDefinition {
     return new StringListDefinition(this)
   }
 }
 
 export class NumberDefinition extends ScalarDefinition {
-  public default(val: number): DefaultDefinition {
-    return new DefaultDefinition(this, val)
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: number): DefaultDefinition {
+    return new DefaultDefinition(this, value)
   }
 
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
   public list(): NumberListDefinition {
     return new NumberListDefinition(this)
   }
 }
 
 export class BooleanDefinition extends ScalarDefinition {
-  public default(val: boolean): DefaultDefinition {
-    return new DefaultDefinition(this, val)
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: boolean): DefaultDefinition {
+    return new DefaultDefinition(this, value)
   }
 
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
   public list(): BooleanListDefinition {
     return new BooleanListDefinition(this)
   }
 }
 
 export class DateDefinition extends ScalarDefinition {
-  public default(val: Date): DefaultDefinition {
-    return new DefaultDefinition(this, val)
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: Date): DefaultDefinition {
+    return new DefaultDefinition(this, value)
   }
 
+  /**
+   * Allow multiple scalars to be used as values for the field.
+   */
   public list(): DateListDefinition {
     return new DateListDefinition(this)
   }
 }
 
 export class ObjectDefinition extends ScalarDefinition {
-  public default(val: object): DefaultDefinition {
-    return new DefaultDefinition(this, val)
+  /**
+   * Set the default value of the field.
+   *
+   * @param value - The value written to the database.
+   */
+  public default(value: object): DefaultDefinition {
+    return new DefaultDefinition(this, value)
   }
 }
