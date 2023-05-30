@@ -12,7 +12,7 @@ use rudderanalytics::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
-    fmt::{self, Display, Write},
+    fmt::{self, Display},
     path::PathBuf,
     thread,
 };
