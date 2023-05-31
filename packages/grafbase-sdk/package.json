@@ -1,6 +1,6 @@
 {
   "name": "@grafbase/sdk",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "The Grafbase SDK",
   "repository": {
     "type": "git",
@@ -19,7 +19,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "pnpm exec jest"
+    "test": "pnpm exec jest",
+    "bump-patch": "node scripts/bump-version.js patch",
+    "bump-minor": "node scripts/bump-version.js minor",
+    "bump-major": "node scripts/bump-version.js major",
+    "release": "node scripts/release.js"
   },
   "watch": {
     "build": {
@@ -43,7 +47,8 @@
     "ts-jest": "=29.1.0",
     "ts-node": "^10.9.1",
     "tsconfig": "workspace:*",
-    "typescript": "^5.0.2"
+    "typescript": "^5.0.2",
+    "semver": "^7.5.1"
   },
   "dependencies": {
     "type-fest": "^3.9.0"

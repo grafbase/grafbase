@@ -64,7 +64,7 @@ git pull
 cd crates/cli
 VERSION=$(cargo pkgid | rev | cut -d '@' -f 1 | rev)
 cd ../..
-git tag $VERSION
+git tag cli-$VERSION
 git push --tags
 '''
 

@@ -255,9 +255,9 @@ jobs:
           name: ${{ github.ref_name }}-${{ matrix.target }}
           path: cli/target/${{ matrix.target }}/release/grafbase
 
-  release:
+  release-cli:
     needs: [windows, linux, darwin]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') && startsWith(github.ref_name, 'cli-')
     uses: ./.github/workflows/cli-partial-release.yml
     with:
       draft: false

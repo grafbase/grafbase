@@ -23,6 +23,11 @@ jobs:
     name: Release CLI
     runs-on: ubuntu-latest-8-cores
     steps:
+      - name: Parse version tag
+        run: |
+          VERSION_BUMP="${{ inputs.tag }}"
+          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
       - name: Get sources
         uses: actions/checkout@v3
 
@@ -57,25 +62,25 @@ jobs:
       - name: Download darwin-x86_64 artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-x86_64-apple-darwin
+          name: ${{ env.VERSION_BUMP }}-x86_64-apple-darwin
           path: cli/npm/x86_64-apple-darwin
 
       - name: Download darwin-aarch64 artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-aarch64-apple-darwin
+          name: ${{ env.VERSION_BUMP }}-aarch64-apple-darwin
           path: cli/npm/aarch64-apple-darwin
 
       - name: Download linux artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-linux
+          name: ${{ env.VERSION_BUMP }}-linux
           path: cli/npm/x86_64-unknown-linux-musl
 
       - name: Download windows artifact
         uses: actions/download-artifact@v3
         with:
-          name: ${{ inputs.tag }}-windows
+          name: ${{ env.VERSION_BUMP }}-windows
           path: cli/npm/x86_64-pc-windows-msvc
 
       - name: Process artifacts
