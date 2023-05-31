@@ -57,12 +57,14 @@ jobs:
           pnpm install --ignore-scripts --frozen-lockfile
 
       - name: Build @grafbase/sdk
+        shell: bash
         working-directory: ./packages/grafbase-sdk
         run: |
           pnpm build
 
       - name: Publish @grafbase/sdk
-        working-directory: ./packages/grafbase-sdk
+        shell: bash
         run: |
           npm set "//registry.npmjs.org/:_authToken" ${{ secrets.NPM_ACCESS_TOKEN }}
+          cd packages/grafbase-sdk
           npm publish
