@@ -166,7 +166,7 @@ impl ArgumentNames for InitCommand {
 
 impl ArgumentNames for CreateCommand {
     fn argument_names(&self) -> Option<Vec<&'static str>> {
-        let arguments = [(self.arguments.is_some(), vec!["name", "account", "regions"])]
+        let arguments = [(self.name.is_some(), vec!["name", "account", "regions"])]
             .iter()
             .filter(|arguments| arguments.0)
             .flat_map(|arguments| arguments.1.clone())
