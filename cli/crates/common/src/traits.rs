@@ -1,8 +1,12 @@
-pub trait Invert<T> {
-    fn invert(&self) -> T;
+pub trait Invert {
+    type Output;
+
+    fn invert(&self) -> Self::Output;
 }
 
-impl<T> Invert<Option<()>> for Option<T> {
+impl<T> Invert for Option<T> {
+    type Output = Option<()>;
+
     /// Returns [`Some(())`] if the option is [`None`], or [`None`] if the option is [`Some(_)`]
     fn invert(&self) -> Option<()> {
         match self {
