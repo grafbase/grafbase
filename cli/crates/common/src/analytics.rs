@@ -1,6 +1,6 @@
 #![allow(clippy::let_underscore_untyped)] // derivative
 
-use crate::{environment::Environment, errors::CommonError};
+use crate::{environment::Environment, errors::CommonError, traits::Invert};
 use chrono::{DateTime, Utc};
 use core::panic;
 use derivative::Derivative;
@@ -47,13 +47,6 @@ impl Display for GrafbaseConfig {
 
 const GRAFBASE_CONFIG_FILE: &str = "config.json";
 
-fn reverse_option<T>(option: &Option<T>) -> Option<()> {
-    match option {
-        Some(_) => None,
-        None => Some(()),
-    }
-}
-
 impl Analytics {
     pub fn init() -> Result<(), CommonError> {
         let write_key = option_env!("GRAFBASE_RUDDERSTACK_WRITE_KEY");
@@ -64,8 +57,8 @@ impl Analytics {
 
         let analytics_data_and_variables = write_key
             .zip(dataplane_url)
-            .zip(reverse_option(&do_not_track))
-            .zip(reverse_option(&data.filter(|data| !data.enable_analytics)));
+            .zip(do_not_track.invert())
+            .zip(data.filter(|data| !data.enable_analytics).invert());
 
         if analytics_data_and_variables.is_some() && !Self::config_exists()? {
             Self::init_data()?;
