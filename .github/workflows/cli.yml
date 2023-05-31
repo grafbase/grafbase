@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     tags:
-      - '*'
+      - 'cli-*'
 
 permissions:
   # Allow checks read

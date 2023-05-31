@@ -3,6 +3,9 @@ name: packages
 on:
   workflow_dispatch:
   pull_request:
+  push:
+    tags:
+      - 'sdk-*'
 
 permissions:
   contents: read
