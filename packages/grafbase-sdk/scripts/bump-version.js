@@ -1,5 +1,6 @@
 const fs = require('fs')
 const semver = require('semver')
+const childProcess = require('node:child_process')
 
 const pkg = JSON.parse(fs.readFileSync('package.json'))
 pkg.version = semver.inc(pkg.version, process.argv.slice(2)[0])
@@ -19,6 +20,8 @@ TODO
 `
 
 fs.writeFileSync(`changelog/${pkg.version}.md`, changelog)
+
+childProcess.execSync(`git add changelog/${pkg.version}.md`)
 
 var fullChangelog = "# Changelog\n\n"
 
