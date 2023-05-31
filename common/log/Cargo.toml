@@ -13,7 +13,7 @@ log_ = { package = "log", version = "0.4" }
 maplit = "1"
 sentry-cf-worker = { path = "../sentry-cf-worker", optional = true }
 serde = { workspace = true }
-strum = { version = "0.24", features = ["derive"] }
+strum = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 wasm-timer = "0.2"
 worker = { workspace = true, optional = true }
