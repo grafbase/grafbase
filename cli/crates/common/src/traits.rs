@@ -3,7 +3,7 @@ pub trait Invert<T> {
 }
 
 impl<T> Invert<Option<()>> for Option<T> {
-    /// Returns [`Some(())`] if the option is [`None`], and [`None`] if the option is [`Some(_)`]
+    /// Returns [`Some(())`] if the option is [`None`], or [`None`] if the option is [`Some(_)`]
     fn invert(&self) -> Option<()> {
         match self {
             Some(_) => None,
