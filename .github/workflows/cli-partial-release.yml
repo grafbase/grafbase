@@ -28,6 +28,7 @@ jobs:
           VERSION_BUMP="${{ inputs.tag }}"
           VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
           echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
       - name: Get sources
         uses: actions/checkout@v3
 
