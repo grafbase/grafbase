@@ -133,7 +133,7 @@ jobs:
         id: gh-release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: cli/changelog/${{ inputs.tag }}.md
+          body_path: cli/changelog/${{ env.VERSION_BUMP }}.md
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           files: |
