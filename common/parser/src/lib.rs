@@ -20,6 +20,7 @@ use rules::default_directive::DefaultDirective;
 use rules::default_directive_types::DefaultDirectiveTypes;
 use rules::directive::Directives;
 use rules::enum_type::EnumType;
+use rules::extend_connector_types::ExtendConnectorTypes;
 use rules::extend_query_and_mutation_types::ExtendQueryAndMutationTypes;
 use rules::graphql_directive::GraphqlVisitor;
 use rules::input_object::InputObjectVisitor;
@@ -89,6 +90,7 @@ impl Error {
     }
 }
 
+#[derive(Debug)]
 pub struct ParseResult<'a> {
     pub registry: Registry,
     pub required_resolvers: HashSet<String>,
@@ -196,6 +198,7 @@ fn parse_types<'a>(schema: &'a ServiceDocument, ctx: &mut VisitorContext<'a>) {
         .with(InputObjectVisitor)
         .with(BasicType)
         .with(ExtendQueryAndMutationTypes)
+        .with(ExtendConnectorTypes)
         .with(EnumType)
         .with(ScalarHydratation)
         .with(LengthDirective)
