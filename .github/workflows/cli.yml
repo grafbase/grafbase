@@ -23,6 +23,8 @@ env:
   CARGO_PROFILE_DEV_DEBUG: 0
   CARGO_PROFILE_TEST_DEBUG: 0
   DO_NOT_TRACK: 1
+  GRAFBASE_RUDDERSTACK_WRITE_KEY: ${{ secrets.GRAFBASE_RUDDERSTACK_WRITE_KEY }}
+  GRAFBASE_RUDDERSTACK_DATAPLANE_URL: ${{ secrets.GRAFBASE_RUDDERSTACK_DATAPLANE_URL }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -88,7 +90,6 @@ jobs:
 
   individual-builds:
     needs: [detect-change-type]
-    environment: release
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
     strategy:
       fail-fast: false
@@ -126,7 +127,6 @@ jobs:
   windows:
     needs: [lint]
     runs-on: windows-latest-8-cores
-    environment: release
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -178,7 +178,6 @@ jobs:
   linux:
     needs: [lint]
     runs-on: ubuntu-latest-8-cores
-    environment: release
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -230,7 +229,6 @@ jobs:
   darwin:
     needs: [lint]
     runs-on: macos-latest
-    environment: release
     strategy:
       fail-fast: false
       matrix:
