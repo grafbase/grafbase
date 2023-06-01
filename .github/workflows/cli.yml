@@ -156,11 +156,18 @@ jobs:
           name: windows-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
+      - name: Parse version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION_BUMP="${{ github.ref_name }}"
+          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.ref_name }}-windows
+          name: ${{ env.VERSION_BUMP }}-windows
           path: |
             cli/target/x86_64-pc-windows-msvc/release/grafbase.exe
 
@@ -200,11 +207,18 @@ jobs:
           name: linux-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
+      - name: Parse version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION_BUMP="${{ github.ref_name }}"
+          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload binaries
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.ref_name }}-linux
+          name: ${{ env.VERSION_BUMP }}-linux
           path: |
             cli/target/x86_64-unknown-linux-musl/release/grafbase
 
@@ -248,11 +262,18 @@ jobs:
           name: ${{ matrix.target }}-release-timings.html
           path: cli/target/cargo-timings/cargo-timing.html
 
+      - name: Parse version tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VERSION_BUMP="${{ github.ref_name }}"
+          VERSION_BUMP=${VERSION_BUMP//cli-} # remove the cli prefix from the tag
+          echo VERSION_BUMP=${VERSION_BUMP} >> $GITHUB_ENV
+
       - if: startsWith(github.ref, 'refs/tags/')
         name: Upload ${{ matrix.target }} binary
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.ref_name }}-${{ matrix.target }}
+          name: ${{ env.VERSION_BUMP }}-${{ matrix.target }}
           path: cli/target/${{ matrix.target }}/release/grafbase
 
   release-cli:
