@@ -4,13 +4,13 @@ use crate::{environment::Environment, errors::CommonError};
 use chrono::{DateTime, Utc};
 use core::panic;
 use derivative::Derivative;
-use once_cell::sync::OnceCell;
 use rudderanalytics::{
     client::RudderAnalytics,
     message::{Message, Track},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::sync::OnceLock;
 use std::{
     fmt::{self, Display},
     path::PathBuf,
@@ -175,4 +175,4 @@ impl Analytics {
     }
 }
 
-static ANALYTICS: OnceCell<Option<Analytics>> = OnceCell::new();
+static ANALYTICS: OnceLock<Option<Analytics>> = OnceLock::new();
