@@ -7,7 +7,7 @@ use crate::{
     },
     errors::CommonError,
 };
-use once_cell::sync::OnceCell;
+use std::sync::OnceLock;
 use std::{
     borrow::Cow,
     env,
@@ -131,7 +131,7 @@ pub struct Environment {
 }
 
 /// static singleton for the environment struct
-static ENVIRONMENT: OnceCell<Environment> = OnceCell::new();
+static ENVIRONMENT: OnceLock<Environment> = OnceLock::new();
 
 #[must_use]
 pub fn get_default_user_dot_grafbase_path() -> Option<PathBuf> {
