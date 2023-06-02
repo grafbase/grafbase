@@ -70,7 +70,7 @@ fn try_main(args: Args) -> Result<(), CliError> {
     }
 
     Analytics::init().map_err(CliError::CommonError)?;
-    Analytics::command_executed(args.command.as_ref(), &args.command.argument_names());
+    Analytics::command_executed(args.command.as_ref(), args.command.argument_names());
 
     report::warnings(&Environment::get().warnings);
 
