@@ -108,7 +108,7 @@ async fn interactive() -> Result<(), CliError> {
     .map_err(handle_inquire_error)?;
 
     let confirm = Confirm::new("Please confirm the above to create and deploy your new project")
-        .with_default(false)
+        .with_default(true)
         .prompt()
         .map_err(handle_inquire_error)?;
 
