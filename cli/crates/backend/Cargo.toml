@@ -39,5 +39,8 @@ webbrowser = "0.8"
 common = { package = "grafbase-local-common", path = "../common", version = "0.22.0-rc.7" }
 server = { package = "grafbase-local-server", path = "../server", version = "0.22.0-rc.7" }
 
+[build-dependencies]
+cynic-codegen = { version = "3", features = ["rkyv"]}
+
 [features]
 dynamodb = ["server/dynamodb"]

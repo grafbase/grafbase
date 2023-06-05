@@ -90,8 +90,8 @@ pub async fn create(
     let operation = ProjectCreate::build(ProjectCreateArguments {
         input: ProjectCreateInput {
             account_id: Id::new(account_id),
-            database_regions: database_regions.iter().map(ToString::to_string).collect(),
-            project_slug: project_slug.to_owned(),
+            database_regions,
+            project_slug,
         },
     });
 
