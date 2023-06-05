@@ -268,6 +268,11 @@ fn basic_search(#[case] name: &str, #[case] create_query: &str, #[case] search_q
     assert_hits_unordered!(search_text("Dogs best"), dog_id);
     assert_hits_unordered!(search_text("\"Dogs are the best\""), dog_id);
 
+    // Trims whitespace
+    assert_hits_unordered!(search_text("the "), dog_id, cat_id);
+    assert_hits_unordered!(search_text(" the"), dog_id, cat_id);
+    assert_hits_unordered!(search_text("  the  "), dog_id, cat_id);
+
     // URL / Email
     assert_hits_unordered!(search_text("bestfriends"), dog_id);
     assert_hits_unordered!(search_text("domination"), cat_id);

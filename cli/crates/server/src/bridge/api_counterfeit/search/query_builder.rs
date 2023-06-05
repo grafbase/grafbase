@@ -318,14 +318,14 @@ fn parser<'a>() -> impl Parser<&'a str, Output = Vec<Text>> {
     use combine::{
         many1,
         parser::char::{char, spaces},
-        satisfy, sep_by,
+        satisfy, sep_end_by,
     };
     let word = many1(satisfy(|c: char| !c.is_whitespace())).map(Text::Word);
     let phrase = char('"')
         .with(many1(satisfy(|c: char| c != '"')))
         .skip(char('"'))
         .map(Text::Phrase);
-    sep_by(phrase.or(word), spaces())
+    spaces().with(sep_end_by(phrase.or(word), spaces()))
 }
 
 fn to_term(field: Field, value: ScalarValue) -> Term {
