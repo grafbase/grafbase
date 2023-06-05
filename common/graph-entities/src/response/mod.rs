@@ -245,7 +245,7 @@ impl QueryResponse {
         let entity_id = node.entity_id();
         let node_id = entity_id
             .as_ref()
-            .and_then(|entity_id| dbg!(self.entity_ids.get(dbg!(entity_id))))
+            .and_then(|entity_id| self.entity_ids.get(entity_id))
             .copied()
             .unwrap_or_else(|| {
                 let next_id = self.next_id();

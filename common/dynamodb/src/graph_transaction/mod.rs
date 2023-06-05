@@ -391,14 +391,10 @@ impl GetIds for UpdateNodeInput {
             }
 
             for val in ids {
-                if let Some((pk, sk)) = val.node.and_then(|mut node| {
-                    let pk = node.remove(PK).and_then(|x| x.s);
-                    let sk = node.remove(SK).and_then(|x| x.s);
-                    match (pk, sk) {
-                        (Some(pk), Some(sk)) => Some((pk, sk)),
-                        _ => None,
-                    }
-                }) {
+                if let Some((pk, sk)) = val
+                    .node
+                    .and_then(|mut node| Some((node.remove(PK)?.s?, node.remove(SK)?.s?)))
+                {
                     let from = NodeID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
                     let from_ty = from.ty().to_string();
@@ -483,29 +479,35 @@ impl GetIds for UpdateNodeInput {
                     }
                 }
 
-                for mut relation in val.edges.into_iter().flat_map(|(_, x)| x.into_iter()) {
-                    if let Some((pk, sk)) = {
-                        let pk = relation.remove(PK).and_then(|x| x.s);
-                        let sk = relation.remove(SK).and_then(|x| x.s);
+                let flattened_relations = val
+                    .edges
+                    .into_iter()
+                    .flat_map(|(relation_name, row)| row.into_iter().map(move |row| (relation_name.clone(), row)));
 
-                        match (pk, sk) {
-                            (Some(pk), Some(sk)) => Some((pk, sk)),
-                            _ => None,
-                        }
-                    } {
+                for (relation_name, mut relation_row) in flattened_relations {
+                    if let Some((pk, sk)) = relation_row
+                        .remove(PK)
+                        .zip(relation_row.remove(SK))
+                        .and_then(|(pk, sk)| Some((pk.s?, sk.s?)))
+                    {
                         let from = NodeID::from_owned(pk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
+                        let to = NodeID::from_owned(sk).map_err(|_| BatchGetItemLoaderError::UnknownError)?;
 
                         let from_ty = from.ty().to_string();
                         let from_id = from.ulid().to_string();
+                        let to_ty = to.ty().to_string();
+                        let to_id = to.ulid().to_string();
 
                         result.insert(
-                            (from.to_string(), sk),
-                            InternalChanges::Node(InternalNodeChanges::Update(UpdateNodeInternalInput {
+                            (from.to_string(), to.to_string()),
+                            InternalChanges::Relation(InternalRelationChanges::Update(UpdateRelationInternalInput {
                                 current_datetime: self.current_datetime.clone(),
-                                id: from_id,
-                                ty: from_ty,
                                 user_defined_item: self.user_defined_item.clone(),
-                                increments: self.increments.clone(),
+                                from_id,
+                                from_ty,
+                                to_id,
+                                to_ty,
+                                relation_names: vec![UpdateRelation::Add(relation_name)],
                             })),
                         );
                     }
@@ -1182,8 +1184,6 @@ pub enum InternalChanges {
 
 #[derive(Debug, thiserror::Error)]
 pub enum PossibleChangesInternalError {
-    #[error("Internal error")]
-    Unknown,
     #[error("You try to insert multiple node at the same time")]
     MultipleInsertWithSameNode,
     #[error("You try to insert and delete a node at the same time")]
@@ -1360,32 +1360,20 @@ impl Add<UpdateRelationInternalInput> for DeleteMultipleRelationsInternalInput {
 }
 
 impl Add<DeleteAllRelationsInternalInput> for UpdateRelationInternalInput {
-    type Output = Self;
+    type Output = DeleteAllRelationsInternalInput;
 
     fn add(self, rhs: DeleteAllRelationsInternalInput) -> Self::Output {
-        Self::Output {
-            relation_names: {
-                // TODO: shouldn't be empty
-                let mut update_into_insert = self.relation_names;
-                update_into_insert.extend(
-                    rhs.relation_names
-                        .unwrap_or_default()
-                        .into_iter()
-                        .map(UpdateRelation::Remove),
-                );
-                update_into_insert.into_iter().unique().collect()
-            },
-            user_defined_item: self.user_defined_item,
-            ..self
-        }
+        // If we're updating and deleting the delete takes precedence.
+        rhs
     }
 }
 
 impl Add<UpdateRelationInternalInput> for DeleteAllRelationsInternalInput {
-    type Output = UpdateRelationInternalInput;
+    type Output = DeleteAllRelationsInternalInput;
 
-    fn add(self, rhs: UpdateRelationInternalInput) -> Self::Output {
-        rhs + self
+    fn add(self, _rhs: UpdateRelationInternalInput) -> Self::Output {
+        // If we're updating and deleting the delete takes precedence.
+        self
     }
 }
 
@@ -1426,7 +1414,9 @@ impl InternalRelationChanges {
             (Self::Update(a), Self::Insert(b)) => Ok(Self::Insert(a + b)),
             (Self::Update(a), Self::Update(b)) => Ok(Self::Update(a + b)),
             (Self::Update(b), Self::Delete(DeleteRelationInternalInput::All(a)))
-            | (Self::Delete(DeleteRelationInternalInput::All(a)), Self::Update(b)) => Ok(Self::Update(a + b)),
+            | (Self::Delete(DeleteRelationInternalInput::All(a)), Self::Update(b)) => {
+                Ok(Self::Delete(DeleteRelationInternalInput::All(a + b)))
+            }
             (Self::Update(b), Self::Delete(DeleteRelationInternalInput::Multiple(a)))
             | (Self::Delete(DeleteRelationInternalInput::Multiple(a)), Self::Update(b)) => Ok(Self::Update(a + b)),
         }
