@@ -465,7 +465,7 @@ Everywhere where one can define authentication rules, it happens through a lambd
 (rules) => {
   rules.private().read()
   rules.owner().create()
-  rules.group(['admin', 'root']).delete()
+  rules.groups(['admin', 'root']).delete()
 }
 ```
 
