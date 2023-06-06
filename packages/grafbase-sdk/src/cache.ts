@@ -45,7 +45,7 @@ export interface CacheParams {
 }
 
 export class GlobalCache {
-  params: CacheParams
+  private params: CacheParams
 
   constructor(params: CacheParams) {
     this.params = params

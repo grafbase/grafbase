@@ -22,11 +22,11 @@ export type ListScalarType =
   | InputDefinition
 
 export class ListDefinition {
-  fieldDefinition: ListScalarType
-  isOptional: boolean
-  defaultValue?: DefaultValueType[]
-  authRules?: AuthRules
-  resolverName?: string
+  private fieldDefinition: ListScalarType
+  private isOptional: boolean
+  protected defaultValue?: DefaultValueType[]
+  private authRules?: AuthRules
+  private resolverName?: string
 
   constructor(fieldDefinition: ListScalarType) {
     this.fieldDefinition = fieldDefinition
@@ -90,9 +90,9 @@ export class ListDefinition {
 }
 
 export class RelationListDefinition {
-  relation: RelationDefinition
-  isOptional: boolean
-  authRules?: AuthRules
+  private relation: RelationDefinition
+  private isOptional: boolean
+  private authRules?: AuthRules
 
   constructor(fieldDefinition: RelationDefinition) {
     this.relation = fieldDefinition
@@ -146,7 +146,7 @@ export class RelationListDefinition {
 }
 
 class ListWithDefaultDefinition extends ListDefinition {
-  fieldType: FieldType
+  private fieldType: FieldType
 
   constructor(fieldDefinition: ScalarDefinition) {
     super(fieldDefinition)

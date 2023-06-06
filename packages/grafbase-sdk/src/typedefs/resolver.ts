@@ -20,8 +20,8 @@ export type Resolvable =
   | EnumDefinition<any, any>
 
 export class ResolverDefinition {
-  field: Resolvable
-  resolver: string
+  private field: Resolvable
+  private resolver: string
 
   constructor(field: Resolvable, resolver: string) {
     this.field = field

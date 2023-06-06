@@ -6,9 +6,9 @@ export interface GraphQLParams {
 }
 
 export class PartialGraphQLAPI {
-  apiUrl: string
-  headers: Header[]
-  introspectionHeaders: Header[]
+  private apiUrl: string
+  private headers: Header[]
+  private introspectionHeaders: Header[]
 
   constructor(params: GraphQLParams) {
     const headers = new Headers()
@@ -33,10 +33,10 @@ export class PartialGraphQLAPI {
 }
 
 export class GraphQLAPI {
-  namespace: string
-  url: string
-  headers: Header[]
-  introspectionHeaders: Header[]
+  private namespace: string
+  private url: string
+  private headers: Header[]
+  private introspectionHeaders: Header[]
 
   constructor(
     namespace: string,

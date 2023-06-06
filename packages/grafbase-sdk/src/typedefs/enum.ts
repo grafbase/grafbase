@@ -9,9 +9,9 @@ import { SearchDefinition } from './search'
 import { UniqueDefinition } from './unique'
 
 export class EnumDefinition<T extends string, U extends EnumShape<T>> {
-  enumName: string
-  enumVariants: U
-  isOptional: boolean
+  private enumName: string
+  private enumVariants: U
+  private isOptional: boolean
 
   constructor(referencedEnum: Enum<T, U>) {
     this.enumName = referencedEnum.name

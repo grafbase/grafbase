@@ -15,9 +15,9 @@ export interface ConfigInput {
  * Defines the complete Grafbase configuration.
  */
 export class Config {
-  schema: GrafbaseSchema
-  auth?: Authentication
-  cache?: GlobalCache
+  private schema: GrafbaseSchema
+  private auth?: Authentication
+  private cache?: GlobalCache
 
   constructor(input: ConfigInput) {
     this.schema = input.schema

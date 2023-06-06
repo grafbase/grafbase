@@ -23,8 +23,8 @@ export interface QueryInput {
  * An input argument shape of a query.
  */
 export class QueryArgument {
-  name: string
-  type: InputType
+  private name: string
+  private type: InputType
 
   constructor(name: string, type: InputType) {
     validateIdentifier(name)
@@ -42,10 +42,10 @@ export class QueryArgument {
  * An edge resolver query definition.
  */
 export class Query {
-  name: string
-  arguments: QueryArgument[]
-  returns: OutputType
-  resolver: string
+  private name: string
+  private arguments: QueryArgument[]
+  private returns: OutputType
+  private resolver: string
 
   constructor(name: string, returnType: OutputType, resolverName: string) {
     validateIdentifier(name)

@@ -21,15 +21,25 @@ import { ResolverDefinition } from './resolver'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
 
 export class ScalarDefinition {
-  fieldType: FieldType | Enum<any, any>
-  isOptional: boolean
-  defaultValue?: DefaultValueType
+  private _fieldType: FieldType | Enum<any, any>
+  private isOptional: boolean
+  protected defaultValue?: DefaultValueType
 
   constructor(fieldType: FieldType | Enum<any, any>) {
-    this.fieldType = fieldType
+    this._fieldType = fieldType
     this.isOptional = false
   }
 
+  /**
+   * The type of the field
+   */
+  public get fieldType(): FieldType | Enum<any, any> {
+    return this._fieldType
+  }
+
+  /**
+   * Make the field optional.
+   */
   public optional(): this {
     this.isOptional = true
 

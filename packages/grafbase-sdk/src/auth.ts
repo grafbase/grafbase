@@ -33,7 +33,7 @@ export type AuthStrategy = 'private' | 'owner' | AuthGroups
  * A builder to greate auth groups.
  */
 export class AuthGroups {
-  groups: string[]
+  private groups: string[]
 
   constructor(groups: string[]) {
     this.groups = groups
@@ -49,8 +49,8 @@ export class AuthGroups {
  * A builder to create a rule to the auth attribute.
  */
 export class AuthRule {
-  strategy: AuthStrategy
-  operations: AuthOperation[]
+  private strategy: AuthStrategy
+  private operations: AuthOperation[]
 
   constructor(strategy: AuthStrategy) {
     this.strategy = strategy
@@ -96,7 +96,7 @@ export class AuthRule {
     return `{ ${allow}${ops} }`
   }
 
-  operation(op: AuthOperation): AuthRule {
+  private operation(op: AuthOperation): AuthRule {
     this.operations.push(op)
 
     return this
@@ -107,7 +107,7 @@ export class AuthRule {
  * A builder to generate a set of rules to the auth attribute.
  */
 export class AuthRules {
-  rules: AuthRule[]
+  private rules: AuthRule[]
 
   constructor() {
     this.rules = []
@@ -167,8 +167,8 @@ export interface AuthParams {
 }
 
 export class Authentication {
-  providers: FixedLengthArray<AuthProvider, 1>
-  rules: AuthRules
+  private providers: FixedLengthArray<AuthProvider, 1>
+  private rules: AuthRules
 
   constructor(params: AuthParams) {
     this.providers = params.providers

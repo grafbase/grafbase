@@ -10,11 +10,11 @@ export interface OpenAPIParams {
 }
 
 export class PartialOpenAPI {
-  schema: string
-  apiUrl?: string
-  transforms?: OpenApiTransforms
-  headers: Header[]
-  introspectionHeaders: Header[]
+  private schema: string
+  private apiUrl?: string
+  private transforms?: OpenApiTransforms
+  private headers: Header[]
+  private introspectionHeaders: Header[]
 
   constructor(params: OpenAPIParams) {
     const headers = new Headers()
@@ -43,12 +43,12 @@ export class PartialOpenAPI {
 }
 
 export class OpenAPI {
-  namespace: string
-  schema: string
-  apiUrl?: string
-  transforms?: OpenApiTransforms
-  headers: Header[]
-  introspectionHeaders: Header[]
+  private namespace: string
+  private schema: string
+  private apiUrl?: string
+  private transforms?: OpenApiTransforms
+  private headers: Header[]
+  private introspectionHeaders: Header[]
 
   constructor(
     namespace: string,

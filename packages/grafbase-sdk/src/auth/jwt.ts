@@ -22,10 +22,10 @@ export interface JWTParams {
  * requests using a JWT signed by yourself or a third-party service.
  */
 export class JWTAuth {
-  issuer: string
-  secret: string
-  clientId?: string
-  groupsClaim?: string
+  private issuer: string
+  private secret: string
+  private clientId?: string
+  private groupsClaim?: string
 
   constructor(params: JWTParams) {
     this.issuer = params.issuer

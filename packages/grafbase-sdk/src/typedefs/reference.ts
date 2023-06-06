@@ -5,8 +5,8 @@ import { AuthDefinition } from './auth'
 import { ResolverDefinition } from './resolver'
 
 export class ReferenceDefinition {
-  referencedType: string
-  isOptional: boolean
+  private referencedType: string
+  private isOptional: boolean
 
   constructor(referencedType: Type) {
     this.referencedType = referencedType.name

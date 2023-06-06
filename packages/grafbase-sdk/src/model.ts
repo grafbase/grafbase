@@ -42,20 +42,27 @@ export type ModelFieldShape =
   | EnumDefinition<any, any>
 
 export class Model {
-  name: string
-  fields: Field[]
-  authRules?: AuthRules
-  isSearch: boolean
-  isLive: boolean
-  cacheDirective?: TypeLevelCache
+  private _name: string
+  private fields: Field[]
+  private authRules?: AuthRules
+  private isSearch: boolean
+  private isLive: boolean
+  private cacheDirective?: TypeLevelCache
 
   constructor(name: string) {
     validateIdentifier(name)
 
-    this.name = name
+    this._name = name
     this.fields = []
     this.isSearch = false
     this.isLive = false
+  }
+
+  /**
+   * Get the name of the model.
+   */
+  public get name(): string {
+    return this._name
   }
 
   /**

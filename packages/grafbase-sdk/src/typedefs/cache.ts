@@ -31,7 +31,7 @@ export interface FieldCacheParams {
 }
 
 export class TypeLevelCache {
-  params: TypeCacheParams
+  private params: TypeCacheParams
 
   constructor(params: TypeCacheParams) {
     this.params = params
@@ -55,7 +55,7 @@ export class TypeLevelCache {
 }
 
 export class FieldLevelCache {
-  params: FieldCacheParams
+  private params: FieldCacheParams
 
   constructor(params: FieldCacheParams) {
     this.params = params
@@ -73,10 +73,10 @@ export class FieldLevelCache {
 }
 
 export class CacheDefinition {
-  attribute: TypeLevelCache
-  field: Cacheable
+  private attribute: FieldLevelCache
+  private field: Cacheable
 
-  constructor(field: Cacheable, attribute: TypeLevelCache) {
+  constructor(field: Cacheable, attribute: FieldLevelCache) {
     this.attribute = attribute
     this.field = field
   }

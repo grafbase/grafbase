@@ -15,14 +15,21 @@ export type InputFieldShape = ScalarDefinition
  * A GraphQL Input Object defines a set of input fields, used in queries and mutations.
  */
 export class Input {
-  public name: string
+  private _name: string
   private fields: InputField[]
 
   constructor(name: string) {
     validateIdentifier(name)
 
-    this.name = name
+    this._name = name
     this.fields = []
+  }
+
+  /**
+   * The name of the input.
+   */
+  public get name(): string {
+    return this._name
   }
  
   /**

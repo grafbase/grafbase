@@ -24,7 +24,7 @@ export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
 export type Datasource = OpenAPI | GraphQLAPI
 
 export class Datasources {
-  inner: Datasource[]
+  private inner: Datasource[]
 
   constructor() {
     this.inner = []
@@ -51,16 +51,16 @@ export interface IntrospectParams {
 }
 
 export class GrafbaseSchema {
-  enums: Enum<any, any>[]
-  types: Type[]
-  unions: Union[]
-  models: Model[]
-  interfaces: Interface[]
-  queries?: TypeExtension
-  mutations?: TypeExtension
-  datasources: Datasources
-  extendedTypes: TypeExtension[]
-  inputs: Input[]
+  private enums: Enum<any, any>[]
+  private types: Type[]
+  private unions: Union[]
+  private models: Model[]
+  private interfaces: Interface[]
+  private queries?: TypeExtension
+  private mutations?: TypeExtension
+  private datasources: Datasources
+  private extendedTypes: TypeExtension[]
+  private inputs: Input[]
 
   constructor() {
     this.enums = []

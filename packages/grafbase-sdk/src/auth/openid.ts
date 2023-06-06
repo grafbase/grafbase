@@ -17,9 +17,9 @@ export interface OpenIDParams {
 }
 
 export class OpenIDAuth {
-  issuer: string
-  clientId?: string
-  groupsClaim?: string
+  private issuer: string
+  private clientId?: string
+  private groupsClaim?: string
 
   constructor(params: OpenIDParams) {
     this.issuer = params.issuer

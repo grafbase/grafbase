@@ -5,8 +5,8 @@ import { ListDefinition } from "./list"
  * Defines a reference to an input object
  */
 export class InputDefinition {
-  name: string
-  isOptional: boolean
+  private name: string
+  private isOptional: boolean
 
   constructor(input: Input) {
     this.name = input.name
