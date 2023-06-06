@@ -112,3 +112,223 @@ fn relations() {
 
     assert!(errors.is_none(), "errors: {errors:#?}");
 }
+
+#[test]
+fn test_relation_unlinking() {
+    const SCHEMA: &str = r#"
+        type Environment @model {
+            groups: [Group]
+        }
+        type Group @model {
+            environment: Environment
+        }
+    "#;
+
+    let mut env = Environment::init();
+
+    env.grafbase_init();
+
+    env.write_schema(SCHEMA);
+
+    env.grafbase_dev_watch();
+
+    let client = env.create_client().with_api_key();
+
+    // wait for node to be ready
+    client.poll_endpoint(30, 300);
+
+    let value = client
+        .gql::<Value>(
+            r#"
+            mutation CreateEnv {
+                environmentCreate(input: {groups: {create: {}}}) {
+                    environment {
+                        id
+                        groups(first: 10) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        )
+        .send();
+
+    let env_id = dot_get!(value, "data.environmentCreate.environment.id", String);
+    let group_id = dot_get!(
+        value,
+        "data.environmentCreate.environment.groups.edges.0.node.id",
+        String
+    );
+
+    let result = client
+        .gql::<Value>(
+            r#"
+            mutation UnlinkGroupFromEnv($groupId: ID!, $envId: ID) {
+                groupUpdate(
+                  by: {
+                    id: $groupId
+                  }
+                  input: { environment: { unlink: $envId} }
+                ) {
+                  group {
+                    id
+                    environment {
+                        id
+                    }
+                  }
+                }
+            }
+        "#,
+        )
+        .variables(serde_json::json!({ "groupId": group_id, "envId": env_id }))
+        .send();
+
+    assert_eq!(
+        result,
+        serde_json::json!({
+            "data": {"groupUpdate": {"group": {"id": group_id, "environment": null}}}
+        })
+    );
+
+    let result = client
+        .gql::<Value>(
+            r#"
+            query GetGroup($groupId: ID!) {
+                group(by: {id: $groupId}) {
+                    id
+                    environment {
+                        id
+                    }
+                }
+            }
+        "#,
+        )
+        .variables(serde_json::json!({ "groupId": group_id }))
+        .send();
+
+    assert_eq!(
+        result,
+        serde_json::json!({
+            "data": {"group": {"id": group_id, "environment": null}}
+        })
+    );
+}
+
+#[test]
+fn test_relation_unlink_and_create() {
+    const SCHEMA: &str = r#"
+        type Environment @model {
+            groups: [Group]
+        }
+        type Group @model {
+            environment: Environment
+        }
+    "#;
+
+    let mut env = Environment::init();
+
+    env.grafbase_init();
+
+    env.write_schema(SCHEMA);
+
+    env.grafbase_dev_watch();
+
+    let client = env.create_client().with_api_key();
+
+    // wait for node to be ready
+    client.poll_endpoint(30, 300);
+
+    let value = client
+        .gql::<Value>(
+            r#"
+            mutation CreateEnv {
+                environmentCreate(input: {groups: {create: {}}}) {
+                    environment {
+                        id
+                        groups(first: 10) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        )
+        .send();
+
+    let env_id = dot_get!(value, "data.environmentCreate.environment.id", String);
+    let group_id = dot_get!(
+        value,
+        "data.environmentCreate.environment.groups.edges.0.node.id",
+        String
+    );
+
+    let result = client
+        .gql::<Value>(
+            r#"
+            mutation EnvUpdate($groupId: ID!, $envId: ID) {
+                environmentUpdate(
+                  by: {
+                    id: $envId
+                  }
+                  input: { groups: [{ unlink: $groupId }, {create: {}}] }
+                ) {
+                    environment {
+                        id
+                        groups(first: 10) {
+                            edges {
+                                node {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        "#,
+        )
+        .variables(serde_json::json!({ "groupId": group_id, "envId": env_id }))
+        .send();
+
+    let groups = dot_get!(result, "data.environmentUpdate.environment.groups.edges", Vec<Value>);
+    assert_eq!(groups.len(), 1);
+
+    let new_group_id = dot_get!(
+        result,
+        "data.environmentUpdate.environment.groups.edges.0.node.id",
+        String
+    );
+
+    assert_ne!(new_group_id, group_id);
+
+    let result = client
+        .gql::<Value>(
+            r#"
+            query GetGroup($groupId: ID!) {
+                group(by: {id: $groupId}) {
+                    id
+                    environment {
+                        id
+                    }
+                }
+            }
+        "#,
+        )
+        .variables(serde_json::json!({ "groupId": new_group_id }))
+        .send();
+
+    assert_eq!(
+        result,
+        serde_json::json!({
+            "data": {"group": {"id": new_group_id, "environment": {"id": env_id}}}
+        })
+    );
+}
