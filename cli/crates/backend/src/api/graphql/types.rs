@@ -1,17 +1,16 @@
-#[cynic::schema_for_derives(file = r#"src/api/graphql/api.graphql"#, module = "schema")]
 pub mod mutations {
     use super::schema;
 
     #[derive(cynic::InputObject, Clone, Debug)]
-    pub struct ProjectCreateInput {
+    pub struct ProjectCreateInput<'a> {
         pub account_id: cynic::Id,
-        pub project_slug: String,
-        pub database_regions: Vec<String>,
+        pub project_slug: &'a str,
+        pub database_regions: &'a [String],
     }
 
     #[derive(cynic::QueryVariables)]
-    pub struct ProjectCreateArguments {
-        pub input: ProjectCreateInput,
+    pub struct ProjectCreateArguments<'a> {
+        pub input: ProjectCreateInput<'a>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -118,15 +117,15 @@ pub mod mutations {
 
     #[derive(cynic::InputObject, Clone, Debug)]
     #[cynic(rename_all = "camelCase")]
-    pub struct DeploymentCreateInput {
+    pub struct DeploymentCreateInput<'a> {
         pub archive_file_size: i32,
-        pub branch: Option<String>,
+        pub branch: Option<&'a str>,
         pub project_id: cynic::Id,
     }
 
     #[derive(cynic::QueryVariables)]
-    pub struct DeploymentCreateArguments {
-        pub input: DeploymentCreateInput,
+    pub struct DeploymentCreateArguments<'a> {
+        pub input: DeploymentCreateInput<'a>,
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -166,7 +165,6 @@ pub mod mutations {
 }
 
 pub mod queries {
-    #[cynic::schema_for_derives(file = r#"src/api/graphql/api.graphql"#, module = "schema")]
     pub mod viewer_and_regions {
         use super::super::schema;
 
@@ -218,7 +216,6 @@ pub mod queries {
         }
     }
 
-    #[cynic::schema_for_derives(file = r#"src/api/graphql/api.graphql"#, module = "schema")]
     pub mod viewer {
         use super::super::schema;
 
@@ -285,7 +282,5 @@ pub mod queries {
     }
 }
 
-#[allow(non_snake_case, non_camel_case_types)]
-mod schema {
-    cynic::use_schema!(r#"src/api/graphql/api.graphql"#);
-}
+#[cynic::schema("grafbase")]
+mod schema {}
