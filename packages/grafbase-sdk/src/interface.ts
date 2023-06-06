@@ -14,14 +14,14 @@ export type InterfaceFields = Record<string, InterfaceFieldShape>
 export type InterfaceFieldShape = ScalarDefinition | ListDefinition
 
 export class Interface {
-  name: string
-  fields: Field[]
+  private _name: string
+  private _fields: Field[]
 
   constructor(name: string) {
     validateIdentifier(name)
 
-    this.name = name
-    this.fields = []
+    this._name = name
+    this._fields = []
   }
 
   /**
@@ -34,6 +34,20 @@ export class Interface {
     this.fields.push(new Field(name, definition))
 
     return this
+  }
+
+  /**
+   * All fields that belong to the interface.
+   */
+  public get fields(): Field[] {
+    return this._fields
+  }
+
+  /**
+   * The name of the interface.
+   */
+  public get name(): string {
+    return this._name
   }
 
   public toString(): string {

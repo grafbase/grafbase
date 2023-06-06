@@ -21,10 +21,10 @@ export type JWKSParams = {
 }
 
 export class JWKSAuth {
-  issuer?: string
-  jwksEndpoint?: string
-  clientId?: string
-  groupsClaim?: string
+  private issuer?: string
+  private jwksEndpoint?: string
+  private clientId?: string
+  private groupsClaim?: string
 
   constructor(
     params: RequireAtLeastOne<JWKSParams, 'issuer' | 'jwksEndpoint'>

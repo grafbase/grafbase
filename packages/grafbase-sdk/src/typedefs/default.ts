@@ -16,8 +16,8 @@ export type DefaultFieldShape =
   | EnumDefinition<any, any>
 
 export class DefaultDefinition {
-  defaultValue: DefaultValueType
-  scalar: DefaultFieldShape
+  private defaultValue: DefaultValueType
+  private scalar: DefaultFieldShape
 
   constructor(scalar: DefaultFieldShape, defaultValue: DefaultValueType) {
     this.defaultValue = defaultValue

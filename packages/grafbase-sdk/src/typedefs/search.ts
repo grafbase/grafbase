@@ -22,7 +22,7 @@ export type Searchable =
   | EnumDefinition<any, any>
 
 export class SearchDefinition {
-  field: Searchable
+  private field: Searchable
 
   constructor(field: Searchable) {
     this.field = field

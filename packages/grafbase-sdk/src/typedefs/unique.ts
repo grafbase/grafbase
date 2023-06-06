@@ -19,8 +19,8 @@ type UniqueScalarType =
   | EnumDefinition<any, any>
 
 export class UniqueDefinition {
-  compoundScope?: string[]
-  scalar: UniqueScalarType
+  private compoundScope?: string[]
+  private scalar: UniqueScalarType
 
   constructor(scalar: UniqueScalarType, scope?: string[]) {
     this.scalar = scalar

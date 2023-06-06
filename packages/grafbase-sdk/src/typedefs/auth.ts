@@ -23,8 +23,8 @@ export type Authenticable =
   | EnumDefinition<any, any>
 
 export class AuthDefinition {
-  field: Authenticable
-  authRules: AuthRules
+  private field: Authenticable
+  private authRules: AuthRules
 
   constructor(field: Authenticable, rules: AuthRuleF) {
     const authRules = new AuthRules()

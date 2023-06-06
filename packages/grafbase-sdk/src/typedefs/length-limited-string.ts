@@ -15,8 +15,8 @@ export interface FieldLength {
 }
 
 export class LengthLimitedStringDefinition {
-  fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  scalar: StringDefinition
+  private fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
+  private scalar: StringDefinition
 
   constructor(
     scalar: StringDefinition,

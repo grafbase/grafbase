@@ -4,8 +4,8 @@ export type HeaderGenerator = (headers: Headers) => any
  * Header used in connector calls.
  */
 export class Header {
-  name: string
-  value: string
+  private name: string
+  private value: string
 
   constructor(name: string, value: string) {
     this.name = name
@@ -22,16 +22,30 @@ export class Header {
  * introspection headers.
  */
 export class Headers {
-  headers: Header[]
-  introspectionHeaders: Header[]
+  private _headers: Header[]
+  private _introspectionHeaders: Header[]
 
   constructor() {
-    this.headers = []
-    this.introspectionHeaders = []
+    this._headers = []
+    this._introspectionHeaders = []
   }
 
   /**
-   * Creates a header used in client and introspection requests.
+   * All headers used in client requests.
+   */
+  public get headers(): Header[] {
+    return this._headers
+  }
+
+  /**
+   * All headers used in introspection requests.
+   */
+  public get introspectionHeaders(): Header[] {
+    return this._introspectionHeaders
+  }
+
+  /**
+   * Creates a header used in client requests.
    *
    * @param name - The name of the header
    * @param value - The value of the header
@@ -41,7 +55,7 @@ export class Headers {
   }
 
   /**
-   * Creates a header used only in introspection requests.
+   * Creates a header used in introspection requests.
    *
    * @param name - The name of the header
    * @param value - The value of the header

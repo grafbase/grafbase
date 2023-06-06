@@ -1,10 +1,11 @@
+import { InputDefinition } from './typedefs/input'
 import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { validateIdentifier } from './validation'
 
 /** The possible types of an input parameters of a query. */
-export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
+export type InputType = ScalarDefinition | ListDefinition | InputDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
@@ -22,8 +23,8 @@ export interface QueryInput {
  * An input argument shape of a query.
  */
 export class QueryArgument {
-  name: string
-  type: InputType
+  private name: string
+  private type: InputType
 
   constructor(name: string, type: InputType) {
     validateIdentifier(name)
@@ -41,10 +42,10 @@ export class QueryArgument {
  * An edge resolver query definition.
  */
 export class Query {
-  name: string
-  arguments: QueryArgument[]
-  returns: OutputType
-  resolver: string
+  private name: string
+  private arguments: QueryArgument[]
+  private returns: OutputType
+  private resolver: string
 
   constructor(name: string, returnType: OutputType, resolverName: string) {
     validateIdentifier(name)

@@ -17,12 +17,14 @@ import {
 } from './typedefs/scalar'
 import { FieldType } from './typedefs'
 import { EnumDefinition } from './typedefs/enum'
+import { Input, InputFields } from './input_type'
+import { InputDefinition } from './typedefs/input'
 
 export type PartialDatasource = PartialOpenAPI | PartialGraphQLAPI
 export type Datasource = OpenAPI | GraphQLAPI
 
 export class Datasources {
-  inner: Datasource[]
+  private inner: Datasource[]
 
   constructor() {
     this.inner = []
@@ -49,15 +51,16 @@ export interface IntrospectParams {
 }
 
 export class GrafbaseSchema {
-  enums: Enum<any, any>[]
-  types: Type[]
-  unions: Union[]
-  models: Model[]
-  interfaces: Interface[]
-  queries?: TypeExtension
-  mutations?: TypeExtension
-  datasources: Datasources
-  extendedTypes: TypeExtension[]
+  private enums: Enum<any, any>[]
+  private types: Type[]
+  private unions: Union[]
+  private models: Model[]
+  private interfaces: Interface[]
+  private queries?: TypeExtension
+  private mutations?: TypeExtension
+  private datasources: Datasources
+  private extendedTypes: TypeExtension[]
+  private inputs: Input[]
 
   constructor() {
     this.enums = []
@@ -67,6 +70,7 @@ export class GrafbaseSchema {
     this.interfaces = []
     this.datasources = new Datasources()
     this.extendedTypes = []
+    this.inputs = []
   }
 
   /**
@@ -194,6 +198,24 @@ export class GrafbaseSchema {
     this.mutations.query(query)
 
     return query
+  }
+
+  /**
+   * Add a new input to the schema.
+   *
+   * @param name = The name of the input.
+   * @param fields = The input definition.
+   */
+  public input(name: string, definition: InputFields): Input {
+    var input = new Input(name)
+
+    Object.entries(definition).forEach(([name, type]) => {
+      input.field(name, type)
+    })
+
+    this.inputs.push(input)
+
+    return input
   }
 
   /**
@@ -333,6 +355,15 @@ export class GrafbaseSchema {
   }
 
   /**
+   * Create a new field from an input object reference.
+   *
+   * @param input - The input object reference.
+   */
+  public inputRef(input: Input): InputDefinition {
+    return new InputDefinition(input)
+  }
+
+  /**
    * Extends an existing type with the given queries.
    *
    * @param type - Either a type if the given type is directly in the schema,
@@ -371,12 +402,14 @@ export class GrafbaseSchema {
     this.models = []
     this.datasources = new Datasources()
     this.extendedTypes = []
+    this.inputs = []
   }
 
   public toString(): string {
     const datasources = this.datasources.toString()
     const interfaces = this.interfaces.map(String).join('\n\n')
     const types = this.types.map(String).join('\n\n')
+    const inputs = this.inputs.map(String).join('\n\n')
     const queries = this.queries ? this.queries.toString() : ''
     const mutations = this.mutations ? this.mutations.toString() : ''
     const extendedTypes = this.extendedTypes.map(String).join('\n\n')
@@ -388,6 +421,7 @@ export class GrafbaseSchema {
       datasources,
       interfaces,
       enums,
+      inputs,
       types,
       extendedTypes,
       queries,

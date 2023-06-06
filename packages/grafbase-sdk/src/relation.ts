@@ -22,21 +22,21 @@ type RelationF = () => Model
 export class RelationDefinition {
   // For ambivalent relations, a name makes them distinct.
   // Rendered as `@relation(name: "relationName")`.
-  relationName?: string
+  private _relationName?: string
   // The model we refer from this field.
-  referencedModel: RelationRef
+  private _referencedModel: RelationRef
   // True, if the field can hold a null value.
-  isOptional: boolean
+  private _isOptional: boolean
 
   /** @param {RelationRef} referencedModel */
   constructor(referencedModel: RelationRef) {
-    this.referencedModel = referencedModel
-    this.isOptional = false
+    this._referencedModel = referencedModel
+    this._isOptional = false
   }
 
   /** Make the field nullable. */
   public optional(): RelationDefinition {
-    this.isOptional = true
+    this._isOptional = true
 
     return this
   }
@@ -52,7 +52,7 @@ export class RelationDefinition {
    * @param name - The name of the relation.
    */
   public name(name: string): RelationDefinition {
-    this.relationName = name
+    this._relationName = name
 
     return this
   }
@@ -66,18 +66,36 @@ export class RelationDefinition {
     return new AuthDefinition(this, rules)
   }
 
+  /**
+   * Gets the relations name
+   */
+  public get relationName(): string | undefined {
+    return this._relationName
+  }
+
+  /**
+   * Gets the referenced model
+   */
+  public get referencedModel(): RelationRef {
+    return this._referencedModel
+  }
+
+  public get isOptional(): boolean {
+    return this._isOptional
+  }
+
   public toString(): string {
     let modelName
 
-    if (typeof this.referencedModel === 'function') {
-      modelName = this.referencedModel().name
+    if (typeof this._referencedModel === 'function') {
+      modelName = this._referencedModel().name
     } else {
-      modelName = this.referencedModel.name
+      modelName = this._referencedModel.name
     }
 
     const required = this.isOptional ? '' : '!'
-    const relationAttribute = this.relationName
-      ? ` @relation(name: "${this.relationName}")`
+    const relationAttribute = this._relationName
+      ? ` @relation(name: "${this._relationName}")`
       : ''
 
     return `${modelName}${required}${relationAttribute}`

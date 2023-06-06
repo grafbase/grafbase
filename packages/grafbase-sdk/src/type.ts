@@ -31,17 +31,24 @@ export type TypeFieldShape =
  * A composite type definition (e.g. not a model).
  */
 export class Type {
-  name: string
-  fields: Field[]
-  interfaces: Interface[]
-  cacheDirective?: TypeLevelCache
+  private _name: string
+  private fields: Field[]
+  private interfaces: Interface[]
+  private cacheDirective?: TypeLevelCache
 
   constructor(name: string) {
     validateIdentifier(name)
 
-    this.name = name
+    this._name = name
     this.fields = []
     this.interfaces = []
+  }
+
+  /**
+   * The name of the type.
+   */
+  public get name(): string {
+    return this._name
   }
 
   /**
@@ -97,8 +104,8 @@ export class Type {
 }
 
 export class TypeExtension {
-  name: string
-  queries: Query[]
+  private name: string
+  private queries: Query[]
 
   constructor(type: string | Type) {
     if (type instanceof Type) {

@@ -7,15 +7,29 @@ import { validateIdentifier } from './validation'
 export type EnumShape<T> = [T, ...Array<T>]
 
 export class Enum<T extends string, U extends EnumShape<T>> {
-  name: string
-  variants: U
+  private _name: string
+  private _variants: U
 
   constructor(name: string, variants: U) {
     validateIdentifier(name)
     variants.forEach((variant) => validateIdentifier(variant))
 
-    this.name = name
-    this.variants = variants
+    this._name = name
+    this._variants = variants
+  }
+
+  /**
+   * The name of the enum.
+   */
+  public get name(): string {
+    return this._name
+  }
+
+  /**
+   * A list of variants in the enum.
+   */
+  public get variants(): U {
+    return this._variants
   }
 
   public toString(): string {
