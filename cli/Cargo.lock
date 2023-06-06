@@ -1700,6 +1700,7 @@ dependencies = [
  "tower-http",
  "url",
  "urlencoding",
+ "walkdir",
  "webbrowser",
 ]
 
