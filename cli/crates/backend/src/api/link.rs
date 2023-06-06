@@ -86,6 +86,13 @@ pub async fn get_viewer_data_for_link() -> Result<Vec<AccountWithProjects>, ApiE
 #[allow(clippy::module_name_repetitions)]
 pub async fn link_project(account_id: String, project_id: String) -> Result<(), ApiError> {
     let project = Project::get();
+    match project.dot_grafbase_directory_path.try_exists() {
+        Ok(true) => {}
+        Ok(false) => tokio::fs::create_dir_all(&project.dot_grafbase_directory_path)
+            .await
+            .map_err(ApiError::CreateProjectDotGrafbaseFolder)?,
+        Err(error) => return Err(ApiError::ReadProjectDotGrafbaseFolder(error)),
+    }
     let project_metadata_path = project.dot_grafbase_directory_path.join(PROJECT_METADATA_FILE);
     tokio::fs::write(
         &project_metadata_path,
