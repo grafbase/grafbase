@@ -35,12 +35,12 @@ async-recursion = "1"
 async-stream = "0.3"
 async-trait = "0.1"
 bytes = { version = "1", features = ["serde"] }
-cached = { version = "0.43" }
+cached = { version = "0.44" }
 chrono = { version = "0.4", default-features = false, features = [
   "clock",
   "std",
 ] }
-cynic-introspection = "3.0.0-beta.3"
+cynic-introspection = "3.0.0"
 derivative = "2"
 dynomite = "0.10"
 fast_chemail = "0.9"
