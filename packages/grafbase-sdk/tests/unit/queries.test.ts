@@ -103,17 +103,17 @@ describe('Query generator', () => {
   })
 
   it('generates a mutation resolver with required input and output', () => {
-    const input = g.type('CheckoutSessionInput', { name: g.string() })
+    const input = g.input('CheckoutSessionInput', { name: g.string() })
     const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
 
     g.mutation('checkout', {
-      args: { input: g.ref(input) },
+      args: { input: g.inputRef(input) },
       returns: g.ref(output),
       resolver: 'checkout'
     })
 
     expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
-      "type CheckoutSessionInput {
+      "input CheckoutSessionInput {
         name: String!
       }
 
@@ -217,5 +217,91 @@ describe('Query generator', () => {
     ).toThrow(
       'Given name "!@#$%^&*()+|~`=-" is not a valid TypeScript identifier.'
     )
+  })
+
+  it('generates a basic input type', () => {
+    g.input('Point2D', {
+      x: g.float(),
+      y: g.float()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "input Point2D {
+        x: Float!
+        y: Float!
+      }"
+    `)
+  })
+
+  it('generates an input type with an enum field', () => {
+    const color = g.enum('Color', ['Red', 'Green', 'Blue'])
+
+    g.input('Data', {
+      color: g.enumRef(color).optional()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "enum Color {
+        Red,
+        Green,
+        Blue
+      }
+
+      input Data {
+        color: Color
+      }"
+    `)
+  })
+
+  it('generates an input type with a list field', () => {
+    g.input('Data', {
+      color: g.int().list()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "input Data {
+        color: [Int!]!
+      }"
+    `)
+  })
+
+  it('generates an input type with a nested input field', () => {
+    const nested = g.input('Nested', {
+      x: g.boolean()
+    })
+
+    g.input('Data', {
+      color: g.inputRef(nested)
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "input Nested {
+        x: Boolean!
+      }
+
+      input Data {
+        color: Nested!
+      }"
+    `)
+  })
+
+  it('generates an input type with a nested list input field', () => {
+    const nested = g.input('Nested', {
+      x: g.boolean()
+    })
+
+    g.input('Data', {
+      color: g.inputRef(nested).list()
+    })
+
+    expect(renderGraphQL(config({ schema: g }))).toMatchInlineSnapshot(`
+      "input Nested {
+        x: Boolean!
+      }
+
+      input Data {
+        color: [Nested!]!
+      }"
+    `)
   })
 })

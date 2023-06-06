@@ -110,11 +110,11 @@ g.query('greet', {
   resolver: 'hello'
 })
 
-const input = g.type('CheckoutSessionInput', { name: g.string() })
+const input = g.input('CheckoutSessionInput', { name: g.string() })
 const output = g.type('CheckoutSessionOutput', { successful: g.boolean() })
 
 g.mutation('checkout', {
-  args: { input: g.ref(input) },
+  args: { input: g.inputRef(input) },
   returns: g.ref(output),
   resolver: 'checkout'
 })

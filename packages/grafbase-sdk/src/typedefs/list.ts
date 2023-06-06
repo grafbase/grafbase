@@ -12,12 +12,14 @@ import {
 import { SearchDefinition } from './search'
 import { FieldType } from '../typedefs'
 import { EnumDefinition } from './enum'
+import { InputDefinition } from './input'
 
 export type ListScalarType =
   | ScalarDefinition
   | RelationDefinition
   | ReferenceDefinition
   | EnumDefinition<any, any>
+  | InputDefinition
 
 export class ListDefinition {
   fieldDefinition: ListScalarType

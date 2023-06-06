@@ -1,10 +1,11 @@
+import { InputDefinition } from './typedefs/input'
 import { ListDefinition } from './typedefs/list'
 import { ReferenceDefinition } from './typedefs/reference'
 import { ScalarDefinition } from './typedefs/scalar'
 import { validateIdentifier } from './validation'
 
 /** The possible types of an input parameters of a query. */
-export type InputType = ScalarDefinition | ListDefinition | ReferenceDefinition
+export type InputType = ScalarDefinition | ListDefinition | InputDefinition
 
 /** The possible types of an output parameters of a query. */
 export type OutputType = ScalarDefinition | ListDefinition | ReferenceDefinition
