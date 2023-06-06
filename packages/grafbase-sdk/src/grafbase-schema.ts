@@ -218,7 +218,6 @@ export class GrafbaseSchema {
     return input
   }
 
-
   /**
    * Add a new enum to the schema.
    *

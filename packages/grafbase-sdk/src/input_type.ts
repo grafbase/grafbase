@@ -1,12 +1,13 @@
-import { EnumDefinition } from "./typedefs/enum";
-import { InputDefinition } from "./typedefs/input";
-import { ListDefinition } from "./typedefs/list";
-import { ScalarDefinition } from "./typedefs/scalar";
-import { validateIdentifier } from "./validation";
+import { EnumDefinition } from './typedefs/enum'
+import { InputDefinition } from './typedefs/input'
+import { ListDefinition } from './typedefs/list'
+import { ScalarDefinition } from './typedefs/scalar'
+import { validateIdentifier } from './validation'
 
 export type InputFields = Record<string, InputFieldShape>
 
-export type InputFieldShape = ScalarDefinition
+export type InputFieldShape =
+  | ScalarDefinition
   | ListDefinition
   | EnumDefinition<any, any>
   | InputDefinition
@@ -31,7 +32,7 @@ export class Input {
   public get name(): string {
     return this._name
   }
- 
+
   /**
    * Pushes a field to the input definition.
    *

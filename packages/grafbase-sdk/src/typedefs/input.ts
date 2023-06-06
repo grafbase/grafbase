@@ -1,5 +1,5 @@
-import { Input } from "../input_type"
-import { ListDefinition } from "./list"
+import { Input } from '../input_type'
+import { ListDefinition } from './list'
 
 /**
  * Defines a reference to an input object
