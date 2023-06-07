@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     outputs:
       packages: ${{ steps.filter.outputs.packages }}
     steps:
@@ -37,7 +37,7 @@ jobs:
     name: Lint
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.packages == 'true' }}
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -77,7 +77,7 @@ jobs:
   build-and-test:
     name: Build and test
     needs: [lint]
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3

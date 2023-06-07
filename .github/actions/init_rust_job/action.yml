@@ -50,10 +50,10 @@ runs:
         rustup target list
 
     - name: Install cargo-nextest & libs linux
-      if: ${{ inputs.platform == 'linux' }}
+      if: ${{ startsWith(inputs.platform, 'linux') }}
       shell: bash
       run: |
-        curl -LsSf https://get.nexte.st/latest/linux | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
+        curl -LsSf https://get.nexte.st/latest/${{ inputs.platform }} | tar zxf - -C ${CARGO_HOME:-~/.cargo}/bin
         sudo apt-get install musl-tools
 
     - name: Install cargo-nextest windows

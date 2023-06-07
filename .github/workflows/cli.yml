@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   detect-change-type:
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     outputs:
       build: ${{ steps.filter.outputs.build }}
     steps:
@@ -51,7 +51,7 @@ jobs:
   prettier:
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -65,7 +65,7 @@ jobs:
   lint:
     needs: [detect-change-type]
     if: ${{ needs.detect-change-type.outputs.build == 'true' || startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -95,7 +95,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [common, server, backend, cli]
-    runs-on: ubuntu-latest-8-cores
+    runs-on: buildjet-8vcpu-ubuntu-2204
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -177,7 +177,14 @@ jobs:
 
   linux:
     needs: [lint]
-    runs-on: ubuntu-latest-8-cores
+    strategy:
+      fail-fast: false
+      matrix:
+        archs: [
+          { runner: buildjet-8vcpu-ubuntu-2204, target: x86_64-unknown-linux-musl, platform: linux },
+          { runner: buildjet-8vcpu-ubuntu-2204-arm, target: aarch64-unknown-linux-musl, platform: linux-arm }
+        ]
+    runs-on: ${{ matrix.archs.runner }}
     steps:
       - name: Get sources
         uses: actions/checkout@v3
@@ -185,7 +192,7 @@ jobs:
       - name: Rust job init
         uses: ./.github/actions/init_rust_job
         with:
-          platform: linux
+          platform: ${{ matrix.archs.platform }}
           cache-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release-${{ hashFiles('cli/Cargo.lock') }}
           restore-key: ${{ runner.os }}-${{ runner.arch }}-cargo-release
 
@@ -204,7 +211,7 @@ jobs:
       - name: Build release
         run: |
           cd cli
-          cargo build --release --target x86_64-unknown-linux-musl --timings
+          cargo build --release --target ${{ matrix.archs.target }} --timings
 
       - uses: actions/upload-artifact@v3
         with:
@@ -224,7 +231,7 @@ jobs:
         with:
           name: ${{ env.VERSION_BUMP }}-linux
           path: |
-            cli/target/x86_64-unknown-linux-musl/release/grafbase
+            cli/target/${{ matrix.archs.target }}/release/grafbase
 
   darwin:
     needs: [lint]
