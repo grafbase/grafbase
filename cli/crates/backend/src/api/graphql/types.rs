@@ -125,7 +125,7 @@ pub mod mutations {
         DuplicateDatabaseRegionsError(DuplicateDatabaseRegionsError),
         EmptyDatabaseRegionsError(EmptyDatabaseRegionsError),
         #[cynic(fallback)]
-        Unknown,
+        Unknown(String),
     }
 
     #[derive(cynic::QueryFragment, Debug)]
@@ -178,7 +178,7 @@ pub mod mutations {
         ArchiveFileSizeLimitExceededError(ArchiveFileSizeLimitExceededError),
         DailyDeploymentCountLimitExceededError(DailyDeploymentCountLimitExceededError),
         #[cynic(fallback)]
-        Unknown,
+        Unknown(String),
     }
 }
 

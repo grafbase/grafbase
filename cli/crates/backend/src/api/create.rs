@@ -141,6 +141,6 @@ pub async fn create(
             Err(CreateError::EnvironmentVariableCountLimitExceeded.into())
         }
         ProjectCreatePayload::DisabledAccountError(_) => Err(CreateError::DisabledAccount.into()),
-        ProjectCreatePayload::Unknown => Err(CreateError::Unknown.into()),
+        ProjectCreatePayload::Unknown(error) => Err(CreateError::Unknown(error).into()),
     }
 }

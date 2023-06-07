@@ -172,8 +172,8 @@ pub enum CreateError {
     DisabledAccount,
 
     /// returned if an unknown error occurs
-    #[error("could not create a new project, encountered an unknown error")]
-    Unknown,
+    #[error("could not create a new project, encountered an unknown error\ncaused by: {0}")]
+    Unknown(String),
 }
 
 #[derive(Error, Debug)]
@@ -191,8 +191,8 @@ pub enum DeployError {
     DailyDeploymentCountLimitExceeded { limit: i32 },
 
     /// returned if an unknown error occurs
-    #[error("could not deploy, encountered an unknown error")]
-    Unknown,
+    #[error("could not deploy, encountered an unknown error\ncaused by: {0}")]
+    Unknown(String),
 }
 
 #[derive(Error, Debug)]
