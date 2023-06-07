@@ -46,8 +46,8 @@ pub enum CliError {
     CompilationError(String),
 }
 
-#[cfg(target_family = "windows")]
-const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
+// #[cfg(target_family = "windows")]
+// const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
 
 impl CliError {
     /// returns the appropriate hint for a [`CliError`]
@@ -59,13 +59,13 @@ impl CliError {
                 match error.kind() {
                     ErrorKind::NotFound => Some("this may be caused by the project previously being reset or by running 'grafbase reset' on a new project".to_owned()),
                     ErrorKind::PermissionDenied => Some("it appears that you do not have sufficient permissions to delete '.grafbase/database', try modifying its permissions".to_owned()),
-                    // TODO: replace with ErrorKind::DirectoryNotEmpty once stable 
-                    #[cfg(target_family="windows")] 
+                    // TODO: replace with ErrorKind::DirectoryNotEmpty once stable
+                    #[cfg(target_family="windows")]
                     _ => error
                             .raw_os_error()
                             .filter(|raw| raw == &WINDOWS_DIR_NOT_EMPTY_CODE)
                             .map(|_| "this may be caused by '.grafbase/database' being in use by another instance of 'grafbase'".to_owned()),
-                    #[cfg(target_family="unix")] 
+                    #[cfg(target_family="unix")]
                     _ => None
                 }
             }
@@ -79,9 +79,11 @@ impl CliError {
             Self::CommonError(CommonError::FindGrafbaseDirectory) => Some("try running the CLI in your Grafbase project or any nested directory".to_owned()),
             Self::ServerError(ServerError::NodeInPath) => Some("please install Node.js and make sure it is in your $PATH to continue (https://nodejs.org/en/download/)".to_owned()),
             Self::ServerError(ServerError::OutdatedNode(_, min_version)) => Some(format!("please update your Node.js version to {min_version} or higher to continue (https://nodejs.org/en/download)")),
-            Self::BackendApiError(ApiError::RequestError |
-            ApiError::CreateError(CreateError::Unknown(_)) |
-            ApiError::DeployError(DeployError::Unknown(_))) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
+            Self::BackendApiError(
+                ApiError::RequestError
+                | ApiError::CreateError(CreateError::Unknown(_))
+                | ApiError::DeployError(DeployError::Unknown(_)),
+            ) => Some("you may be using an older version of the Grafbase CLI, try updating".to_owned()),
             Self::BackendApiError(ApiError::NotLoggedIn | ApiError::CorruptCredentialsFile) => Some("try running 'grafbase login'".to_owned()),
             Self::BackendApiError(ApiError::ProjectAlreadyLinked) => Some("try running 'grafbase deploy'".to_owned()),
             Self::BackendApiError(ApiError::CorruptProjectMetadataFile | ApiError::UnlinkedProject) => Some("try running 'grafbase link'".to_owned()),
