@@ -72,7 +72,6 @@ pub async fn deploy() -> Result<(), ApiError> {
         );
         let entry_metadata = entry.metadata().map_err(ApiError::ReadProjectFile)?;
         if entry_metadata.is_file() {
-            println!("appending file {entry:#?}");
             tar.append_path_with_name(entry_path, path_in_tar)
                 .await
                 .map_err(ApiError::AppendToArchive)?;
