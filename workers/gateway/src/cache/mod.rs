@@ -120,7 +120,7 @@ impl Cacheable for dynaql::Response {
     }
 
     fn should_cache(&self) -> bool {
-        self.operation_type != OperationType::Mutation
+        self.operation_type != OperationType::Mutation && self.errors.is_empty() && self.cache_control.max_age != 0
     }
 }
 
