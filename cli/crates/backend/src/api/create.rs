@@ -134,6 +134,13 @@ pub async fn create(
         ProjectCreatePayload::InvalidDatabaseRegionsError(InvalidDatabaseRegionsError { invalid, .. }) => {
             Err(CreateError::InvalidDatabaseRegions { invalid }.into())
         }
+        ProjectCreatePayload::InvalidEnvironmentVariablesError(_) => {
+            Err(CreateError::InvalidEnvironmentVariables.into())
+        }
+        ProjectCreatePayload::EnvironmentVariableCountLimitExceededError(_) => {
+            Err(CreateError::EnvironmentVariableCountLimitExceeded.into())
+        }
+        ProjectCreatePayload::DisabledAccountError(_) => Err(CreateError::DisabledAccount.into()),
         ProjectCreatePayload::Unknown => Err(CreateError::Unknown.into()),
     }
 }

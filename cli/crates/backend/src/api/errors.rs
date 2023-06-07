@@ -159,6 +159,18 @@ pub enum CreateError {
     #[error("could not create a new project as invalid regions were selected")]
     InvalidDatabaseRegions { invalid: Vec<String> },
 
+    /// returned if invalid environment variables are used
+    #[error("could not create a new project as invalid environment variables were supplied")]
+    InvalidEnvironmentVariables,
+
+    /// returned if the amount of enrionment variables supplied is over the allowed limit
+    #[error("could not create a new project as the amount of environment variables exceeded the allowed limit")]
+    EnvironmentVariableCountLimitExceeded,
+
+    /// returned if the account selected for project creation is disaled
+    #[error("could not create a new project as the selected account is disabled")]
+    DisabledAccount,
+
     /// returned if an unknown error occurs
     #[error("could not create a new project, encountered an unknown error")]
     Unknown,
