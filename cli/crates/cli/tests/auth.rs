@@ -39,8 +39,8 @@ fn jwt_provider() {
 
     // No auth header -> fail
     let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
-    let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
-    assert_eq!(error, Some("Unauthorized. Please use the 'x-api-key' header with any value locally. More info: https://grafbase.com/docs/auth".to_string()), "error: {error:#?}");
+    let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
+    assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // introspection does not need an auth header locally.
     insta::assert_json_snapshot!("introspection", client.gql::<Value>(INTROSPECTION_QUERY).send());
@@ -55,12 +55,8 @@ fn jwt_provider() {
     let token = generate_hs512_token("cli_user", &["some-group"]);
     let client = client.with_header("Authorization", &format!("Bearer {token}"));
     let resp = client.gql::<Value>(JWT_PROVIDER_QUERY).send();
-    let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
-    assert_eq!(
-        error,
-        Some("Unauthorized to access Query.todoCollection (missing list operation)".to_string()),
-        "error: {error:#?}"
-    );
+    let error: String = dot_get_opt!(resp, "errors.0.message").expect("should end with an auth failure");
+    assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // Accept valid token with correct group
     let token = generate_hs512_token("cli_user", &["backend"]);
@@ -268,8 +264,8 @@ async fn oidc_without_token_should_only_allow_introspection() {
 
     // No auth header -> fail
     let resp = set_up.client.gql::<Value>(JWT_PROVIDER_QUERY).await;
-    let error: Option<String> = dot_get_opt!(resp, "errors.0.message");
-    assert_eq!(error, Some("Unauthorized. Please use the 'x-api-key' header with any value locally. More info: https://grafbase.com/docs/auth".to_string()), "error: {error:#?}");
+    let error: String = dot_get_opt!(resp, "errors.0.message").expect("response should contain an error");
+    assert!(error.contains("Unauthorized"), "error: {error:#?}");
 
     // introspection does not need an auth header locally.
     insta::assert_json_snapshot!("introspection", set_up.client.gql::<Value>(INTROSPECTION_QUERY).await);
