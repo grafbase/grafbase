@@ -1,9 +1,9 @@
 use crate::constant::{OWNED_BY, PK, RELATION_NAMES, SK, TYPE};
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryResult;
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, DynamoDBRequestedIndex};
 use crate::{OperationAuthorization, OperationAuthorizationError};
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{Attribute, DynamoDbExt};
 use futures_util::TryStreamExt;
 use graph_entities::{NodeID, ID};

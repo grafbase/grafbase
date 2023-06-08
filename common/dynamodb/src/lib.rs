@@ -55,7 +55,6 @@ use std::time::Duration;
 use transaction::{get_loader_transaction, TransactionLoader};
 
 pub mod constant;
-pub mod dataloader;
 mod retry;
 
 pub mod export {

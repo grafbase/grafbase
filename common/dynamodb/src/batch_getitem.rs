@@ -1,3 +1,4 @@
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use quick_error::quick_error;
 use rusoto_dynamodb::{BatchGetItemInput, DynamoDb, KeysAndAttributes};
@@ -8,7 +9,6 @@ use std::time::Duration;
 use tracing::{info_span, Instrument};
 
 use crate::constant::{OWNED_BY, PK, SK};
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
 

@@ -16,17 +16,14 @@ chrono = { version = "0.4", default-features = false, features = [
 derivative = "2.2"
 dynamodb-utils = { path = "../dynamodb-utils" }
 dynomite = "0.10"
-fnv = "1"
 futures = "0.3"
-futures-channel = { version = "0.3" }
-futures-timer = { version = "3", features = ["wasm-bindgen"] }
 futures-util = { workspace = true, features = ["std", "async-await"] }
 grafbase = { path = "../grafbase", features = ["json"] }
+dataloader = { path = "../dataloader" }
 graph-entities = { path = "../graph-entities" }
 indexmap = { git = "https://github.com/bluss/indexmap.git", rev = "eedabaca9f84e520eab01325b305c08f3773e66c" }
 itertools = { workspace = true }
 log = { path = "../log", features = ["with-worker"] }
-lru = { version = "0.10" }
 quick-error = "2"
 rusoto_core = { workspace = true }
 rusoto_dynamodb = { workspace = true }
@@ -59,14 +56,6 @@ reqwest = { version = "0.11", default-features = false, optional = true, feature
 reqwest = { version = "0.11", default-features = false, optional = true, features = [
   "json",
   "rustls-tls",
-] }
-
-[dev-dependencies]
-tokio = { version = "1", features = [
-  "macros",
-  "rt-multi-thread",
-  "sync",
-  "time",
 ] }
 
 [features]

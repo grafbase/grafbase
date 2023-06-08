@@ -1,3 +1,4 @@
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::{attr_map, AttributeValue};
 use graph_entities::ID;
 use indexmap::IndexMap;
@@ -7,7 +8,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::ParentEdge;
 use crate::runtime::Runtime;
 use crate::{

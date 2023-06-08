@@ -1,9 +1,9 @@
 use super::bridge_api;
 use super::types::{Operation, Record, Sql, SqlValue};
 use crate::constant::OWNED_BY;
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::{DynamoDBContext, LocalContext, OperationAuthorization, OperationAuthorizationError, RequestedOperation};
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use maplit::hashmap;
 use quick_error::quick_error;

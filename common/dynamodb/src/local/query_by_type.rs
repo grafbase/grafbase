@@ -1,7 +1,7 @@
 use super::bridge_api;
 use super::types::{Operation, Sql, SqlValue};
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::{DynamoDBRequestedIndex, LocalContext};
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use graph_entities::ID;
 use indexmap::IndexMap;

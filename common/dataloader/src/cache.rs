@@ -1,8 +1,11 @@
-use std::borrow::Cow;
-use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
-use std::hash::{BuildHasher, Hash};
-use std::marker::PhantomData;
+#![allow(clippy::module_name_repetitions)]
+
+use std::{
+    borrow::Cow,
+    collections::{hash_map::RandomState, HashMap},
+    hash::{BuildHasher, Hash},
+    marker::PhantomData,
+};
 
 /// Factory for creating cache storage.
 pub trait CacheFactory: Send + Sync + 'static {
@@ -15,7 +18,7 @@ pub trait CacheFactory: Send + Sync + 'static {
         V: Send + Sync + Clone + 'static;
 }
 
-/// Cache storage for [DataLoader].
+/// Cache storage for [`DataLoader`](crate::dataloader::DataLoader).
 pub trait CacheStorage: Send + Sync + 'static {
     /// The key type of the record.
     type Key: Send + Sync + Clone + Eq + Hash + 'static;
@@ -23,10 +26,12 @@ pub trait CacheStorage: Send + Sync + 'static {
     /// The value type of the record.
     type Value: Send + Sync + Clone + 'static;
 
-    /// Returns a reference to the value of the key in the cache or None if it is not present in the cache.
+    /// Returns a reference to the value of the key in the cache or None if it
+    /// is not present in the cache.
     fn get(&mut self, key: &Self::Key) -> Option<&Self::Value>;
 
-    /// Puts a key-value pair into the cache. If the key already exists in the cache, then it updates the key's value.
+    /// Puts a key-value pair into the cache. If the key already exists in the
+    /// cache, then it updates the key's value.
     fn insert(&mut self, key: Cow<'_, Self::Key>, val: Cow<'_, Self::Value>);
 
     /// Removes the value corresponding to the key from the cache.
@@ -80,14 +85,15 @@ where
     fn clear(&mut self) {}
 }
 
-/// [std::collections::HashMap] cache.
+/// [`std::collections::HashMap`] cache.
 pub struct HashMapCache<S = RandomState> {
     _mark: PhantomData<S>,
 }
 
 impl<S: Send + Sync + BuildHasher + Default + 'static> HashMapCache<S> {
     /// Use specified `S: BuildHasher` to create a `HashMap` cache.
-    pub const fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self { _mark: PhantomData }
     }
 }
@@ -147,6 +153,7 @@ pub struct LruCache {
 
 impl LruCache {
     /// Creates a new LRU Cache that holds at most `cap` items.
+    #[must_use]
     pub fn new(cap: usize) -> Self {
         Self {
             cap: std::num::NonZeroUsize::new(cap).expect("must be positive"),

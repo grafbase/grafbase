@@ -1,0 +1,22 @@
+[package]
+name = "dataloader"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+async-trait = { version = "0.1", default-features = false }
+fnv = { version = "1", default-features = false, features = ["std"] }
+futures-channel = { version = "0.3", default-features = false }
+futures-timer = { version = "3", default-features = false, features = ["wasm-bindgen"] }
+futures-util = { workspace = true, features = ["io", "sink"] }
+lru = { version = "0.10", default-features = false }
+
+[dev-dependencies]
+tokio = { version = "1.28", features = [
+  "macros",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
+async-graphql = "5"

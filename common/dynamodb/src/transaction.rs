@@ -1,6 +1,6 @@
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::runtime::Runtime;
 use crate::DynamoDBContext;
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use futures_util::TryFutureExt;
 use log::debug;

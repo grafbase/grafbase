@@ -1,3 +1,4 @@
+use dataloader::{DataLoader, Loader, LruCache};
 use dynomite::AttributeValue;
 use quick_error::quick_error;
 use std::collections::HashMap;
@@ -6,7 +7,6 @@ use std::time::Duration;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, Instrument};
 
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::{DynamoDbExtPaginated, PaginatedCursor, PaginationOrdering, QueryResult};
 use crate::runtime::Runtime;
 use crate::{

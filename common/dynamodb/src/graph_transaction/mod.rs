@@ -1,5 +1,4 @@
 use crate::constant::{PK, RELATION_NAMES, SK};
-use crate::dataloader::{DataLoader, Loader, LruCache};
 use crate::paginated::QueryValue;
 use crate::runtime::Runtime;
 use crate::utils::ConvertExtension;
@@ -7,6 +6,7 @@ use crate::{constant, CurrentDateTime, OperationAuthorizationError, QueryKey};
 use crate::{BatchGetItemLoaderError, TransactionError};
 use crate::{DynamoDBBatchersData, DynamoDBContext};
 
+use dataloader::{DataLoader, Loader, LruCache};
 use derivative::Derivative;
 use dynomite::AttributeValue;
 use futures::Future;
