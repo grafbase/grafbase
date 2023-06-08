@@ -10,30 +10,60 @@ pub struct Quoted(Cow<'static, str>);
 pub struct Identifier(Cow<'static, str>);
 
 #[derive(Debug)]
-pub enum TypeKind {
+pub enum TypeName {
     Ident(Identifier),
     String(Quoted),
+}
+
+impl fmt::Display for TypeName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TypeName::Ident(ref i) => i.fmt(f),
+            TypeName::String(ref i) => i.fmt(f),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum TypeKind {
+    Static(StaticType),
+    Mapped(MappedType),
+}
+
+impl From<StaticType> for TypeKind {
+    fn from(value: StaticType) -> Self {
+        Self::Static(value)
+    }
+}
+
+impl From<MappedType> for TypeKind {
+    fn from(value: MappedType) -> Self {
+        Self::Mapped(value)
+    }
 }
 
 impl fmt::Display for TypeKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TypeKind::Ident(ref i) => i.fmt(f),
-            TypeKind::String(ref i) => i.fmt(f),
+            TypeKind::Static(s) => s.fmt(f),
+            TypeKind::Mapped(m) => m.fmt(f),
         }
     }
 }
 
 #[derive(Debug)]
 pub struct TypeCondition {
-    left: TypeIdentifier,
-    right: TypeIdentifier,
+    left: TypeKind,
+    right: TypeKind,
 }
 
 impl TypeCondition {
     #[must_use]
-    pub fn new(left: TypeIdentifier, right: TypeIdentifier) -> Self {
-        Self { left, right }
+    pub fn new(left: impl Into<TypeKind>, right: impl Into<TypeKind>) -> Self {
+        Self {
+            left: left.into(),
+            right: right.into(),
+        }
     }
 }
 
@@ -44,19 +74,19 @@ impl fmt::Display for TypeCondition {
 }
 
 #[derive(Debug)]
-pub struct TypeIdentifier {
-    name: TypeKind,
-    params: Vec<TypeIdentifier>,
-    or: Vec<TypeIdentifier>,
-    extends: Option<Box<TypeIdentifier>>,
+pub struct StaticType {
+    name: TypeName,
+    params: Vec<StaticType>,
+    or: Vec<StaticType>,
+    extends: Option<Box<StaticType>>,
     condition: Option<Box<TypeCondition>>,
     keyof: bool,
 }
 
-impl TypeIdentifier {
+impl StaticType {
     pub fn ident(name: impl Into<Cow<'static, str>>) -> Self {
         Self {
-            name: TypeKind::Ident(Identifier::new(name)),
+            name: TypeName::Ident(Identifier::new(name)),
             params: Vec::new(),
             or: Vec::new(),
             extends: None,
@@ -67,7 +97,7 @@ impl TypeIdentifier {
 
     pub fn string(name: impl Into<Cow<'static, str>>) -> Self {
         Self {
-            name: TypeKind::String(Quoted::new(name)),
+            name: TypeName::String(Quoted::new(name)),
             params: Vec::new(),
             or: Vec::new(),
             extends: None,
@@ -77,13 +107,13 @@ impl TypeIdentifier {
     }
 
     #[must_use]
-    pub fn extends(mut self, ident: TypeIdentifier) -> Self {
+    pub fn extends(mut self, ident: StaticType) -> Self {
         self.extends = Some(Box::new(ident));
         self
     }
 
     #[must_use]
-    pub fn or(mut self, ident: TypeIdentifier) -> Self {
+    pub fn or(mut self, ident: StaticType) -> Self {
         self.or.push(ident);
         self
     }
@@ -100,12 +130,12 @@ impl TypeIdentifier {
         self
     }
 
-    pub fn push_param(&mut self, param: TypeIdentifier) {
+    pub fn push_param(&mut self, param: StaticType) {
         self.params.push(param);
     }
 }
 
-impl fmt::Display for TypeIdentifier {
+impl fmt::Display for StaticType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.keyof {
             f.write_str("keyof ")?;
@@ -177,14 +207,14 @@ impl fmt::Display for Identifier {
 
 #[derive(Debug)]
 pub enum ImportItems {
-    All,
+    All { alias: Cow<'static, str> },
     Set(Vec<Identifier>),
 }
 
 impl fmt::Display for ImportItems {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ImportItems::All => f.write_char('*'),
+            ImportItems::All { alias } => write!(f, "* as {alias}"),
             ImportItems::Set(ref identifiers) => {
                 if identifiers.len() > 1 {
                     f.write_str("{ ")?;
@@ -215,16 +245,23 @@ pub struct Import {
 }
 
 impl Import {
-    pub fn new(import_location: impl Into<Cow<'static, str>>) -> Self {
+    pub fn all_as(import_location: impl Into<Cow<'static, str>>, alias: impl Into<Cow<'static, str>>) -> Self {
         Self {
             import_location: Quoted::new(import_location),
-            items: ImportItems::All,
+            items: ImportItems::All { alias: alias.into() },
+        }
+    }
+
+    pub fn items(import_location: impl Into<Cow<'static, str>>, items: &[&'static str]) -> Self {
+        Self {
+            import_location: Quoted::new(import_location),
+            items: ImportItems::Set(items.iter().map(|i| Identifier::new(*i)).collect()),
         }
     }
 
     pub fn push_item(&mut self, identifier: Identifier) {
         match self.items {
-            ImportItems::All => self.items = ImportItems::Set(vec![identifier]),
+            ImportItems::All { .. } => self.items = ImportItems::Set(vec![identifier]),
             ImportItems::Set(ref mut items) => items.push(identifier),
         }
     }
@@ -282,12 +319,12 @@ impl fmt::Display for ObjectTypeDef {
 
 #[derive(Debug)]
 pub enum PropertyValue {
-    Type(TypeIdentifier),
+    Type(StaticType),
     Object(ObjectTypeDef),
 }
 
-impl From<TypeIdentifier> for PropertyValue {
-    fn from(value: TypeIdentifier) -> Self {
+impl From<StaticType> for PropertyValue {
+    fn from(value: StaticType) -> Self {
         Self::Type(value)
     }
 }
@@ -339,14 +376,14 @@ impl fmt::Display for Property {
 
 #[derive(Debug)]
 pub struct Interface {
-    identifier: TypeIdentifier,
+    identifier: StaticType,
     properties: Vec<Property>,
 }
 
 impl Interface {
     pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         Self {
-            identifier: TypeIdentifier::ident(name),
+            identifier: StaticType::ident(name),
             properties: Vec::new(),
         }
     }
@@ -361,18 +398,40 @@ impl fmt::Display for Interface {
         writeln!(f, "interface {} {{", self.identifier)?;
 
         for prop in &self.properties {
-            writeln!(f, "  {prop}")?;
+            writeln!(f, "  {prop};")?;
         }
 
-        f.write_char('}')?;
+        f.write_str("};")?;
 
         Ok(())
     }
 }
 
 #[derive(Debug)]
+pub struct Type {
+    identifier: StaticType,
+    definition: TypeKind,
+}
+
+impl Type {
+    pub fn new(identifier: StaticType, definition: impl Into<TypeKind>) -> Self {
+        Self {
+            identifier,
+            definition: definition.into(),
+        }
+    }
+}
+
+impl fmt::Display for Type {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "type {} = {}", self.identifier, self.definition)
+    }
+}
+
+#[derive(Debug)]
 pub enum ExportKind {
     Interface(Interface),
+    Type(Type),
 }
 
 impl From<Interface> for ExportKind {
@@ -381,10 +440,17 @@ impl From<Interface> for ExportKind {
     }
 }
 
+impl From<Type> for ExportKind {
+    fn from(value: Type) -> Self {
+        ExportKind::Type(value)
+    }
+}
+
 impl fmt::Display for ExportKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ExportKind::Interface(i) => i.fmt(f),
+            ExportKind::Type(t) => t.fmt(f),
         }
     }
 }
@@ -407,12 +473,12 @@ impl fmt::Display for Export {
 #[derive(Debug)]
 pub struct TypeGenerator {
     param: Identifier,
-    source: TypeIdentifier,
+    source: StaticType,
 }
 
 impl TypeGenerator {
     #[must_use]
-    pub fn new(param: Identifier, source: TypeIdentifier) -> Self {
+    pub fn new(param: Identifier, source: StaticType) -> Self {
         Self { param, source }
     }
 }
@@ -424,43 +490,43 @@ impl fmt::Display for TypeGenerator {
 }
 
 #[derive(Debug)]
-pub enum TypeSource {
+pub enum TypeMapSource {
     Generator(TypeGenerator),
     Static(Property),
 }
 
-impl From<TypeGenerator> for TypeSource {
+impl From<TypeGenerator> for TypeMapSource {
     fn from(value: TypeGenerator) -> Self {
         Self::Generator(value)
     }
 }
 
-impl From<Property> for TypeSource {
+impl From<Property> for TypeMapSource {
     fn from(value: Property) -> Self {
         Self::Static(value)
     }
 }
 
-impl fmt::Display for TypeSource {
+impl fmt::Display for TypeMapSource {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            TypeSource::Generator(g) => g.fmt(f),
-            TypeSource::Static(s) => s.fmt(f),
+            TypeMapSource::Generator(g) => g.fmt(f),
+            TypeMapSource::Static(s) => s.fmt(f),
         }
     }
 }
 
 #[derive(Debug)]
 pub struct MappedType {
-    source: TypeSource,
-    definition: TypeIdentifier,
+    source: TypeMapSource,
+    definition: Box<TypeKind>,
 }
 
 impl MappedType {
-    pub fn new(source: impl Into<TypeSource>, definition: TypeIdentifier) -> Self {
+    pub fn new(source: impl Into<TypeMapSource>, definition: impl Into<TypeKind>) -> Self {
         Self {
             source: source.into(),
-            definition,
+            definition: Box::new(definition.into()),
         }
     }
 }
@@ -471,206 +537,359 @@ impl fmt::Display for MappedType {
     }
 }
 
+#[derive(Debug)]
+pub enum BlockItem {
+    Export(Export),
+    Type(Type),
+    Interface(Interface),
+    Block(Box<Block>),
+}
+
+impl fmt::Display for BlockItem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            BlockItem::Export(e) => e.fmt(f),
+            BlockItem::Type(t) => t.fmt(f),
+            BlockItem::Interface(i) => i.fmt(f),
+            BlockItem::Block(b) => b.fmt(f),
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Block {
+    contents: Vec<BlockItem>,
+}
+
+impl Block {
+    #[must_use] pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn push_content(&mut self, content: impl Into<BlockItem>) {
+        self.contents.push(content.into())
+    }
+}
+
+impl fmt::Display for Block {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("{\n")?;
+
+        for item in &self.contents {
+            writeln!(f, "{item}")?;
+        }
+
+        f.write_char('}')?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug)]
+pub struct Function {
+    name: Cow<'static, str>,
+    params: Vec<Property>,
+    returns: Option<TypeKind>,
+    body: Block,
+}
+
 #[cfg(test)]
 mod tests {
+    use std::sync::OnceLock;
+
     use super::*;
-    use expect_test::expect;
+    use dprint_plugin_typescript::configuration::{
+        Configuration, ConfigurationBuilder, QuoteStyle, SemiColons, TrailingCommas,
+    };
+    use expect_test::{expect, Expect};
+    use tempfile::NamedTempFile;
+
+    static TS_CONFIG: OnceLock<Configuration> = OnceLock::new();
+
+    #[track_caller]
+    fn expect_ts(result: impl ToString, expected: &Expect) {
+        let config = TS_CONFIG.get_or_init(|| {
+            ConfigurationBuilder::new()
+                .line_width(80)
+                .prefer_hanging(true)
+                .prefer_single_line(false)
+                .trailing_commas(TrailingCommas::Never)
+                .quote_style(QuoteStyle::PreferSingle)
+                .indent_width(2)
+                .semi_colons(SemiColons::Asi)
+                .build()
+        });
+
+        let tmp = NamedTempFile::new().unwrap();
+
+        let result = dprint_plugin_typescript::format_text(tmp.path(), &result.to_string(), config)
+            .unwrap()
+            .unwrap();
+
+        expect_raw_ts(result, expected);
+    }
+
+    fn expect_raw_ts(result: impl ToString, expected: &Expect) {
+        expected.assert_eq(&result.to_string());
+    }
 
     #[test]
     fn property_type_map() {
-        let source = Property::new("key", TypeIdentifier::ident("string"));
-        let definition = TypeIdentifier::ident("boolean").or(TypeIdentifier::ident("Horse"));
+        let source = Property::new("key", StaticType::ident("string"));
+        let definition = StaticType::ident("boolean").or(StaticType::ident("Horse"));
         let map = MappedType::new(source, definition);
 
         let expected = expect!["{ [key: string]: boolean | Horse }"];
 
-        expected.assert_eq(&map.to_string());
+        expect_raw_ts(&map, &expected);
     }
 
     #[test]
     fn generator_type_map() {
-        let mut ident = TypeIdentifier::ident("TruthyKeys");
-        ident.push_param(TypeIdentifier::ident("S"));
+        let mut ident = StaticType::ident("TruthyKeys");
+        ident.push_param(StaticType::ident("S"));
 
         let source = TypeGenerator::new(Identifier::new("P"), ident);
-        let definition = TypeIdentifier::ident("boolean").or(TypeIdentifier::ident("Horse"));
+        let definition = StaticType::ident("boolean").or(StaticType::ident("Horse"));
         let map = MappedType::new(source, definition);
 
         let expected = expect!["{ [P in TruthyKeys<S>]: boolean | Horse }"];
 
-        expected.assert_eq(&map.to_string());
+        expect_raw_ts(&map, &expected);
     }
 
     #[test]
     fn keyof_generator_type_map() {
-        let ident = TypeIdentifier::ident("Type").keyof();
+        let ident = StaticType::ident("Type").keyof();
         let source = TypeGenerator::new(Identifier::new("Property"), ident);
-        let definition = TypeIdentifier::ident("boolean");
+        let definition = StaticType::ident("boolean");
         let map = MappedType::new(source, definition);
 
         let expected = expect!["{ [Property in keyof Type]: boolean }"];
 
-        expected.assert_eq(&map.to_string());
+        expect_raw_ts(&map, &expected);
+    }
+
+    #[test]
+    fn type_map_in_condition() {
+        let ident = StaticType::ident("Type").keyof();
+        let source = TypeGenerator::new(Identifier::new("Property"), ident);
+        let definition = StaticType::ident("boolean");
+        let map = MappedType::new(source, definition);
+
+        let mut record = StaticType::ident("Record");
+
+        record.push_param(StaticType::ident("string"));
+        record.push_param(StaticType::ident("string"));
+
+        let u = StaticType::ident("U")
+            .extends(record)
+            .condition(TypeCondition::new(map, StaticType::ident("number")));
+
+        let expected = expect!["U extends Record<string, string> ? { [Property in keyof Type]: boolean } : number"];
+
+        expect_raw_ts(&u, &expected);
     }
 
     #[test]
     fn basic_type_generator() {
-        let mut ident = TypeIdentifier::ident("TruthyKeys");
-        ident.push_param(TypeIdentifier::ident("S"));
+        let mut ident = StaticType::ident("TruthyKeys");
+        ident.push_param(StaticType::ident("S"));
 
         let gen = TypeGenerator::new(Identifier::new("P"), ident);
 
         let expected = expect!["P in TruthyKeys<S>"];
 
-        expected.assert_eq(&gen.to_string());
+        expect_raw_ts(&gen, &expected);
     }
 
     #[test]
     fn simple_type_ident() {
-        let ident = TypeIdentifier::ident("BlogNode");
-        let expected = expect!["BlogNode"];
+        let ident = StaticType::ident("BlogNode");
+        let expected = expect![[r#"
+            BlogNode
+        "#]];
 
-        expected.assert_eq(&ident.to_string());
+        expect_ts(&ident, &expected);
     }
 
     #[test]
     fn type_ident_with_or() {
-        let ident = TypeIdentifier::ident("string").or(TypeIdentifier::string("foo"));
+        let ident = StaticType::ident("string").or(StaticType::string("foo"));
 
-        let expected = expect!["string | 'foo'"];
+        let expected = expect![[r#"
+            string | 'foo'
+        "#]];
 
-        expected.assert_eq(&ident.to_string());
+        expect_ts(&ident, &expected);
     }
 
     #[test]
     fn type_ident_with_params() {
-        let mut ident = TypeIdentifier::ident("BlogNode");
-        ident.push_param(TypeIdentifier::ident("T"));
-        ident.push_param(TypeIdentifier::ident("U"));
+        let mut ident = StaticType::ident("BlogNode");
+        ident.push_param(StaticType::ident("T"));
+        ident.push_param(StaticType::ident("U"));
 
         let expected = expect!["BlogNode<T, U>"];
 
-        expected.assert_eq(&ident.to_string());
+        expect_raw_ts(&ident, &expected);
     }
 
     #[test]
     fn type_ident_with_extends() {
-        let mut record = TypeIdentifier::ident("Record");
+        let mut record = StaticType::ident("Record");
 
-        let key = TypeIdentifier::ident("string");
+        let key = StaticType::ident("string");
 
-        let val = TypeIdentifier::ident("null")
-            .or(TypeIdentifier::ident("boolean"))
-            .or(TypeIdentifier::ident("object"));
+        let val = StaticType::ident("null")
+            .or(StaticType::ident("boolean"))
+            .or(StaticType::ident("object"));
 
         record.push_param(key);
         record.push_param(val);
 
-        let u = TypeIdentifier::ident("U").extends(record);
+        let u = StaticType::ident("U").extends(record);
         let expected = expect!["U extends Record<string, null | boolean | object>"];
 
-        expected.assert_eq(&u.to_string());
+        expect_raw_ts(&u, &expected);
     }
 
     #[test]
     fn extends_keyof() {
-        let blog_node = TypeIdentifier::ident("BlogNode").keyof();
-        let u = TypeIdentifier::ident("P").extends(blog_node);
+        let blog_node = StaticType::ident("BlogNode").keyof();
+        let u = StaticType::ident("P").extends(blog_node);
 
         let expected = expect!["P extends keyof BlogNode"];
 
-        expected.assert_eq(&u.to_string());
+        expect_raw_ts(&u, &expected);
     }
 
     #[test]
     fn type_ident_with_extends_condition() {
-        let mut record = TypeIdentifier::ident("Record");
+        let mut record = StaticType::ident("Record");
 
-        record.push_param(TypeIdentifier::ident("string"));
+        record.push_param(StaticType::ident("string"));
 
-        let u = TypeIdentifier::ident("U").extends(record).condition(TypeCondition::new(
-            TypeIdentifier::ident("string"),
-            TypeIdentifier::ident("number"),
+        let u = StaticType::ident("U").extends(record).condition(TypeCondition::new(
+            StaticType::ident("string"),
+            StaticType::ident("number"),
         ));
 
         let expected = expect!["U extends Record<string> ? string : number"];
 
-        expected.assert_eq(&u.to_string());
+        expect_raw_ts(&u, &expected);
     }
 
     #[test]
     fn import_all() {
-        let import = Import::new("graphql-request");
-        let expected = expect!["import * from 'graphql-request'"];
+        let import = Import::all_as("graphql-request", "gql");
 
-        expected.assert_eq(&import.to_string());
+        let expected = expect![[r#"
+            import * as gql from 'graphql-request'
+        "#]];
+
+        expect_ts(import, &expected);
     }
 
     #[test]
     fn import_one() {
-        let mut import = Import::new("graphql-request");
-        import.push_item(Identifier::new("gql"));
+        let import = Import::items("graphql-request", &["gql"]);
 
-        let expected = expect!["import gql from 'graphql-request'"];
-        expected.assert_eq(&import.to_string());
+        let expected = expect![[r#"
+            import gql from 'graphql-request'
+        "#]];
+
+        expect_ts(import, &expected);
     }
 
     #[test]
     fn import_many() {
-        let mut import = Import::new("graphql-request");
-        import.push_item(Identifier::new("gql"));
-        import.push_item(Identifier::new("GraphQLClient"));
+        let import = Import::items("graphql-request", &["gql", "GraphQLClient"]);
 
-        let expected = expect!["import { gql, GraphQLClient } from 'graphql-request'"];
-        expected.assert_eq(&import.to_string());
+        let expected = expect![[r#"
+            import { gql, GraphQLClient } from 'graphql-request'
+        "#]];
+
+        expect_ts(import, &expected);
     }
 
     #[test]
     fn quoted() {
         let quoted = Quoted::new("test");
-        let expected = expect!["'test'"];
 
-        expected.assert_eq(&quoted.to_string());
+        let expected = expect![[r#"
+            'test'
+        "#]];
+
+        expect_ts(quoted, &expected);
     }
 
     #[test]
     fn identifier() {
-        let quoted = Identifier::new("test");
-        let expected = expect![[r#"test"#]];
+        let identifier = Identifier::new("test");
 
-        expected.assert_eq(&quoted.to_string());
+        let expected = expect![[r#"
+            test
+        "#]];
+
+        expect_ts(identifier, &expected);
     }
 
     #[test]
     fn simple_interface() {
         let mut interface = Interface::new("BlogNode");
-        interface.push_property(Property::new("id", TypeIdentifier::ident("string")));
-        interface.push_property(Property::new("name", TypeIdentifier::ident("string")));
-        interface.push_property(Property::new("owner", TypeIdentifier::ident("UserNode")));
-        interface.push_property(Property::new("createdAt", TypeIdentifier::ident("Date")));
-        interface.push_property(Property::new("updatedAt", TypeIdentifier::ident("Date")).optional());
+        interface.push_property(Property::new("id", StaticType::ident("string")));
+        interface.push_property(Property::new("name", StaticType::ident("string")));
+        interface.push_property(Property::new("owner", StaticType::ident("UserNode")));
+        interface.push_property(Property::new("createdAt", StaticType::ident("Date")));
+        interface.push_property(Property::new("updatedAt", StaticType::ident("Date")).optional());
 
         let expected = expect![[r#"
             interface BlogNode {
               id: string
               name: string
-              owner: UserNode
+              owner: number
               createdAt: Date
               updatedAt?: Date
             }"#]];
 
-        expected.assert_eq(&interface.to_string());
+        expect_ts(&interface, &expected);
+    }
+
+    #[test]
+    fn simple_type_definition() {
+        let r#type = Type::new(
+            StaticType::ident("OrderByDirection"),
+            StaticType::string("ASC").or(StaticType::string("DESC")),
+        );
+
+        let expected = expect![[r#"type OrderByDirection = 'ASC' | 'DESC'"#]];
+
+        expect_ts(&r#type, &expected);
+    }
+
+    #[test]
+    fn export_type_definition() {
+        let r#type = Type::new(
+            StaticType::ident("OrderByDirection"),
+            StaticType::string("ASC").or(StaticType::string("DESC")),
+        );
+
+        let r#type = Export::new(r#type);
+
+        let expected = expect![[r#"export type OrderByDirection = 'ASC' | 'DESC'"#]];
+        expected.assert_eq(&r#type.to_string());
     }
 
     #[test]
     fn interface_with_nested_object() {
         let mut object = ObjectTypeDef::new();
-        object.push_property(Property::new("node", TypeIdentifier::ident("BlogSelect")));
-        object.push_property(Property::new("age", TypeIdentifier::ident("number")));
+        object.push_property(Property::new("node", StaticType::ident("BlogSelect")));
+        object.push_property(Property::new("age", StaticType::ident("number")));
 
         let mut interface = Interface::new("BlogCollectionSelect");
         interface.push_property(Property::new("fields", object));
-        interface.push_property(Property::new("name", TypeIdentifier::ident("string")));
+        interface.push_property(Property::new("name", StaticType::ident("string")));
 
         let expected = expect![[r#"
             interface BlogCollectionSelect {
@@ -678,19 +897,19 @@ mod tests {
               name: string
             }"#]];
 
-        expected.assert_eq(&interface.to_string());
+        expect_ts(&interface, &expected);
     }
 
     #[test]
     fn export_interface() {
         let mut interface = Interface::new("User");
-        interface.push_property(Property::new("id", TypeIdentifier::ident("string")));
+        interface.push_property(Property::new("id", StaticType::ident("string")));
 
         let expected = expect![[r#"
             export interface User {
               id: string
             }"#]];
 
-        expected.assert_eq(&Export::new(interface).to_string());
+        expect_ts(&Export::new(interface), &expected);
     }
 }
