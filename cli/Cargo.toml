@@ -1,6 +1,15 @@
 [workspace]
 members = ["crates/*"]
 
+[workspace.package]
+version = "0.22.0"
+edition = "2021"
+license = "Apache-2.0"
+homepage = "https://grafbase.com"
+keywords = ["grafbase"]
+readme = "README.md"
+repository = "https://github.com/grafbase/grafbase"
+
 [profile.release]
 strip = "symbols"
 lto = false
