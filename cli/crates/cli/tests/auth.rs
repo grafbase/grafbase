@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
 use jwt_compact::alg::{Hs512, Hs512Key};

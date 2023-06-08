@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
 use crate::utils::consts::{DEFAULT_DIRECTIVE_CREATE_USER1, DEFAULT_DIRECTIVE_CREATE_USER2, DEFAULT_DIRECTIVE_SCHEMA};

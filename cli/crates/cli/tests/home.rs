@@ -1,3 +1,4 @@
+#![allow(unused_crate_dependencies)]
 mod utils;
 
 use std::path::PathBuf;
@@ -9,7 +10,7 @@ use utils::environment::Environment;
 fn flag(#[case] case_path: PathBuf) {
     let mut env = Environment::init().with_home(PathBuf::from(&case_path));
     env.write_schema(
-        r#" 
+        r#"
         type Post @model {
             title: String @resolver(name: "return-title")
         }
@@ -37,7 +38,7 @@ fn env_var(#[case] case_path: PathBuf) {
     let mut env = Environment::init();
     env.grafbase_init();
     env.write_schema(
-        r#" 
+        r#"
         type Post @model {
             title: String @resolver(name: "return-title")
         }

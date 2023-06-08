@@ -12,12 +12,10 @@ repository.workspace = true
 
 [dependencies]
 backtrace = "0.3"
-cfg-if = "1"
 clap = { version = "4", features = ["cargo", "wrap_help", "derive"] }
 clap_complete = "4"
 colored = "2"
 ctrlc = "3"
-fslock = "0.2"
 indicatif = "0.17"
 inquire = "0.6"
 exitcode = "1"
@@ -40,10 +38,12 @@ backend = { package = "grafbase-local-backend", path = "../backend", version = "
 common = { package = "grafbase-local-common", path = "../common", version = "0.22.0" }
 
 [dev-dependencies]
+cfg-if = "1"
 chrono = "0.4"
 crossbeam-channel = "0.5"
 dirs = "5"
 duct = "0.13"
+fslock = "0.2"
 insta = { version = "1.28", features = ["json", "redactions", "yaml"] }
 json_dotpath = "1"
 jwt-compact = { version = "0.7", default-features = false, features = [
