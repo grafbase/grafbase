@@ -33,7 +33,7 @@ pub enum CliError {
     #[error("could not show an interactive prompt due to the input device not being a TTY")]
     PromptNotTTY,
     /// returned if an IO error is encountered when trying to display an interactive prompt
-    #[error("encountered an IO error while showing an interactive prompt\ncaused by: {0}")]
+    #[error("encountered an IO error while showing an interactive prompt\nCaused by: {0}")]
     PromptIoError(io::Error),
     /// returned if an account selected for linking a project has no projects
     #[error("the selected account has no projects")]

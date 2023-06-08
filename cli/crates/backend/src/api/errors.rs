@@ -13,27 +13,27 @@ pub enum ApiError {
     NotLoggedIn,
 
     /// returned if ~/.grafbase/credentials.json could not be deleted
-    #[error("could not delete '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    #[error("could not delete '~/.grafbase/credentials.json'\nCaused by: {0}")]
     DeleteCredentialsFile(io::Error),
 
     /// returned if ~/.grafbase/project.json could not be deleted
-    #[error("could not delete '~/.grafbase/project.json'\ncaused by: {0}")]
+    #[error("could not delete '~/.grafbase/project.json'\nCaused by: {0}")]
     DeleteProjectMetadataFile(io::Error),
 
     /// returned if ~/.grafbase/credentials.json could not be read
-    #[error("could not read '~/.grafbase/credentials.json'\ncaused by: {0}")]
+    #[error("could not read '~/.grafbase/credentials.json'\nCaused by: {0}")]
     ReadCredentialsFile(io::Error),
 
     /// returned if .grafbase/project.json could not be read
-    #[error("could not read '.grafbase/project.json'\ncaused by: {0}")]
+    #[error("could not read '.grafbase/project.json'\nCaused by: {0}")]
     ReadProjectMetadataFile(io::Error),
 
     /// returned if ~/.grafbase could not be read
-    #[error("could not read '~/.grafbase'\ncaused by: {0}")]
+    #[error("could not read '~/.grafbase'\nCaused by: {0}")]
     ReadUserDotGrafbaseFolder(io::Error),
 
     /// returned if .grafbase could not be read
-    #[error("could not read '.grafbase'\ncaused by: {0}")]
+    #[error("could not read '.grafbase'\nCaused by: {0}")]
     ReadProjectDotGrafbaseFolder(io::Error),
 
     /// returned if an operation failed due to the project not being linked
@@ -65,7 +65,7 @@ pub enum ApiError {
     ReadSchema,
 
     /// returned if the project metadata file could not be written
-    #[error("could not write the project metadata file\ncaused by: {0}")]
+    #[error("could not write the project metadata file\nCaused by: {0}")]
     WriteProjectMetadataFile(io::Error),
 
     /// returned if a cynic request could not be completed
@@ -85,11 +85,11 @@ pub enum ApiError {
     FindUserDotGrafbaseFolder,
 
     /// returned if ~/.grafbase could not be created
-    #[error("could not create '~/.grafbase'\ncaused by: {0}")]
+    #[error("could not create '~/.grafbase'\nCaused by: {0}")]
     CreateUserDotGrafbaseFolder(io::Error),
 
     /// returned if .grafbase could not be created
-    #[error("could not create '.grafbase'\ncaused by: {0}")]
+    #[error("could not create '.grafbase'\nCaused by: {0}")]
     CreateProjectDotGrafbaseFolder(io::Error),
 
     /// returned if an available port could not be find
@@ -101,19 +101,19 @@ pub enum ApiError {
     UploadError,
 
     /// returned if the upload archive metadata could not be read
-    #[error("could not read the upload archive metadata\ncaused by: {0}")]
+    #[error("could not read the upload archive metadata\nCaused by: {0}")]
     ReadArchiveMetadata(io::Error),
 
     /// returned if the upload archive could not be read
-    #[error("could not read the upload archive\ncaused by: {0}")]
+    #[error("could not read the upload archive\nCaused by: {0}")]
     ReadArchive(io::Error),
 
     /// returned if a file or directory could not be appended to the upload archive
-    #[error("could not append a file or directory to the upload archive\ncaused by: {0}")]
+    #[error("could not append a file or directory to the upload archive\nCaused by: {0}")]
     AppendToArchive(io::Error),
 
     /// returned if a temporary file for the upload archive could not be created
-    #[error("could not create a temporary file\ncaused by: {0}")]
+    #[error("could not create a temporary file\nCaused by: {0}")]
     CreateTempFile(io::Error),
 
     /// wraps a [`CreateError`]
@@ -172,7 +172,7 @@ pub enum CreateError {
     DisabledAccount,
 
     /// returned if an unknown error occurs
-    #[error("could not create a new project, encountered an unknown error\ncaused by: {0}")]
+    #[error("could not create a new project, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
 }
 
@@ -191,7 +191,7 @@ pub enum DeployError {
     DailyDeploymentCountLimitExceeded { limit: i32 },
 
     /// returned if an unknown error occurs
-    #[error("could not deploy, encountered an unknown error\ncaused by: {0}")]
+    #[error("could not deploy, encountered an unknown error\nCaused by: {0}")]
     Unknown(String),
 }
 
