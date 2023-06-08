@@ -13,7 +13,6 @@ repository.workspace = true
 chrono = "0.4.24"
 derivative = "2.2.0"
 dirs = "5"
-exitcode = "1"
 rudderanalytics = { version = "1", features = [
     "rustls-tls",
 ], default-features = false }
