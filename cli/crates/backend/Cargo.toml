@@ -1,12 +1,12 @@
 [package]
 name = "grafbase-local-backend"
 description = "The local backend for grafbase developer tools"
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
-readme.workspace = true
 repository.workspace = true
 
 [dependencies]

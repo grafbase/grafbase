@@ -2,12 +2,12 @@
 name = "grafbase-local-server"
 description = "A wrapper for the grafbase worker"
 include = ["/src", "/assets/assets.tar.gz"]
+readme = "README.md"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 keywords.workspace = true
-readme.workspace = true
 repository.workspace = true
 
 [dependencies]
