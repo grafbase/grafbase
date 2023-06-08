@@ -1,14 +1,14 @@
 [package]
 name = "grafbase-local-server"
-version = "0.22.0"
-edition = "2021"
 description = "A wrapper for the grafbase worker"
-license = "Apache-2.0"
-homepage = "https://grafbase.com"
-keywords = ["grafbase"]
-readme = "README.md"
-repository = "https://github.com/grafbase/grafbase"
 include = ["/src", "/assets/assets.tar.gz"]
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+repository.workspace = true
 
 [dependencies]
 anyhow = "1"
