@@ -55,5 +55,5 @@ pub async fn enum_value_node<'a, T: EnumType>(
     let item = T::items().iter().find(|item| item.value == value).unwrap();
 
     let mut response_graph = ctx.response_graph.write().await;
-    response_graph.new_node_unchecked(CompactValue::Enum(ArcIntern::new(item.name.to_string())))
+    response_graph.insert_node(CompactValue::Enum(ArcIntern::new(item.name.to_string())))
 }

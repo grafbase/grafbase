@@ -217,5 +217,5 @@ pub async fn resolve_scalar_native<'a>(
     value: Value,
 ) -> ServerResult<ResponseNodeId> {
     let mut response_graph = ctx.response_graph.write().await;
-    Ok(response_graph.new_node_unchecked(ResponsePrimitive::new(value.into())))
+    Ok(response_graph.insert_node(ResponsePrimitive::new(value.into())))
 }

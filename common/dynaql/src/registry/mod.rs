@@ -547,7 +547,7 @@ impl MetaField {
                     .response_graph
                     .write()
                     .await
-                    .new_node_unchecked(ResponsePrimitive::new(result.into())))
+                    .insert_node(ResponsePrimitive::new(result.into())))
             }
             CurrentResolverType::CONTAINER => {
                 // If there is a resolver associated to the container we execute it before
@@ -574,7 +574,7 @@ impl MetaField {
                                 .response_graph
                                 .write()
                                 .await
-                                .new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)));
+                                .insert_node(ResponsePrimitive::new(CompactValue::Null)));
                         }
                     }
                     Some(resolved_value)
@@ -634,7 +634,7 @@ impl MetaField {
                                 .response_graph
                                 .write()
                                 .await
-                                .new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)))
+                                .insert_node(ResponsePrimitive::new(CompactValue::Null)))
                         }
                     }
                 }
@@ -672,7 +672,7 @@ impl MetaField {
                                 .response_graph
                                 .write()
                                 .await
-                                .new_node_unchecked(CompactValue::Null));
+                                .insert_node(CompactValue::Null));
                         }
                     }
                     serde_json::Value::Array(arr) => {
@@ -704,7 +704,7 @@ impl MetaField {
                                 .response_graph
                                 .write()
                                 .await
-                                .new_node_unchecked(CompactValue::Null))
+                                .insert_node(CompactValue::Null))
                         }
                     }
                 }

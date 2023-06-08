@@ -10,17 +10,17 @@ impl QueryResponse {
     /// be used.
     pub fn from_serde_value(&mut self, value: Value) -> ResponseNodeId {
         match value {
-            Value::Null => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Null)),
-            Value::Bool(boo) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Boolean(boo))),
-            Value::Number(n) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::Number(n))),
-            Value::String(s) => self.new_node_unchecked(ResponsePrimitive::new(CompactValue::String(s))),
+            Value::Null => self.insert_node(ResponsePrimitive::new(CompactValue::Null)),
+            Value::Bool(boo) => self.insert_node(ResponsePrimitive::new(CompactValue::Boolean(boo))),
+            Value::Number(n) => self.insert_node(ResponsePrimitive::new(CompactValue::Number(n))),
+            Value::String(s) => self.insert_node(ResponsePrimitive::new(CompactValue::String(s))),
             Value::Array(val) => {
                 let nodes = val
                     .into_iter()
                     .map(|x| self.from_serde_value(x))
                     .collect::<Vec<ResponseNodeId>>();
 
-                self.new_node_unchecked(ResponseList::with_children(nodes))
+                self.insert_node(ResponseList::with_children(nodes))
             }
             Value::Object(val) => {
                 let nodes = val
@@ -33,7 +33,7 @@ impl QueryResponse {
                     })
                     .collect::<Vec<(ResponseNodeRelation, ResponseNodeId)>>();
 
-                self.new_node_unchecked(ResponseContainer::with_children(nodes))
+                self.insert_node(ResponseContainer::with_children(nodes))
             }
         }
     }
@@ -74,7 +74,7 @@ impl serde::Serialize for NodeSerializer<'_> {
     {
         let node = self
             .graph
-            .get_node(&self.node_id)
+            .get_node(self.node_id)
             .expect("node presence to be checked before NodeSerializer");
 
         match node {

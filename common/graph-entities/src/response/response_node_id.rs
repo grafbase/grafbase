@@ -32,31 +32,3 @@ impl ToEntityId for ArcIntern<String> {
         self.clone().into()
     }
 }
-
-pub trait ToResponseNodeId {
-    fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId>;
-}
-
-impl ToResponseNodeId for ResponseNodeId {
-    fn response_node_id(&self, _response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        Some(*self)
-    }
-}
-
-impl ToResponseNodeId for NodeID<'_> {
-    fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(&self.entity_id()).copied()
-    }
-}
-
-impl ToResponseNodeId for EntityId {
-    fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(self).copied()
-    }
-}
-
-impl ToResponseNodeId for ArcIntern<String> {
-    fn response_node_id(&self, response: &super::QueryResponse) -> Option<ResponseNodeId> {
-        response.entity_ids.get(&self.entity_id()).copied()
-    }
-}

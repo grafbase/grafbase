@@ -21,7 +21,7 @@ pub async fn selection_set_into_node<'a>(
             ctx.response_graph
                 .write()
                 .await
-                .new_node_unchecked(Box::new(container))
+                .insert_node(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -44,14 +44,11 @@ pub async fn selection_set_into_node<'a>(
                 };
                 container.insert(rel, id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(container)
+            ctx.response_graph.write().await.insert_node(container)
         }
         rest => {
             let node = ResponsePrimitive::new(rest.into());
-            ctx.response_graph.write().await.new_node_unchecked(node)
+            ctx.response_graph.write().await.insert_node(node)
         }
     }
 }
@@ -69,7 +66,7 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
             ctx.response_graph
                 .write()
                 .await
-                .new_node_unchecked(Box::new(container))
+                .insert_node(Box::new(container))
         }
         ConstValue::Object(value) => {
             let mut container = ResponseContainer::new_container();
@@ -82,14 +79,11 @@ pub async fn field_into_node<'a>(value: ConstValue, ctx: &Context<'a>) -> Respon
                 };
                 container.insert(rel, id);
             }
-            ctx.response_graph
-                .write()
-                .await
-                .new_node_unchecked(container)
+            ctx.response_graph.write().await.insert_node(container)
         }
         rest => {
             let node = ResponsePrimitive::new(rest.into());
-            ctx.response_graph.write().await.new_node_unchecked(node)
+            ctx.response_graph.write().await.insert_node(node)
         }
     }
 }

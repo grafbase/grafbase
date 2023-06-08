@@ -80,6 +80,6 @@ impl OutputType for str {
         _field: &Positioned<Field>,
     ) -> ServerResult<ResponseNodeId> {
         let mut graph = ctx.response_graph.write().await;
-        Ok(graph.new_node_unchecked(CompactValue::String(self.to_string())))
+        Ok(graph.insert_node(CompactValue::String(self.to_string())))
     }
 }

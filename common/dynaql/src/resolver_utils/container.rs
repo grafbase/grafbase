@@ -209,11 +209,7 @@ async fn resolve_container_inner<'a>(
                 );
             }
         }
-        Ok(ctx
-            .response_graph
-            .write()
-            .await
-            .new_node_unchecked(container))
+        Ok(ctx.response_graph.write().await.insert_node(container))
     } else {
         let mut container = ResponseContainer::new_container();
         for ((alias, name), value) in results {
@@ -240,11 +236,7 @@ async fn resolve_container_inner<'a>(
                 );
             }
         }
-        Ok(ctx
-            .response_graph
-            .write()
-            .await
-            .new_node_unchecked(container))
+        Ok(ctx.response_graph.write().await.insert_node(container))
     }
 }
 
@@ -273,11 +265,7 @@ async fn resolve_container_inner_native<'a, T: ContainerType + ?Sized>(
         )
     }));
 
-    Ok(ctx
-        .response_graph
-        .write()
-        .await
-        .new_node_unchecked(container))
+    Ok(ctx.response_graph.write().await.insert_node(container))
 }
 
 /// We take individual selections from our selection set and convert those into futures.
@@ -308,7 +296,7 @@ async fn response_id_unwrap_or_null(
         ctx.response_graph
             .write()
             .await
-            .new_node_unchecked(CompactValue::Null)
+            .insert_node(CompactValue::Null)
     }
 }
 
@@ -340,11 +328,7 @@ impl<'a> FieldsGraph<'a> {
                                 );
                                 Ok(GraphFutureOutput::Field(
                                     (alias, field_name),
-                                    ctx_field
-                                        .response_graph
-                                        .write()
-                                        .await
-                                        .new_node_unchecked(node),
+                                    ctx_field.response_graph.write().await.insert_node(node),
                                 ))
                             }
                         }));
@@ -701,11 +685,7 @@ impl<'a> Fields<'a> {
                             let node = CompactValue::String(typename);
                             Ok((
                                 field_name,
-                                ctx_field
-                                    .response_graph
-                                    .write()
-                                    .await
-                                    .new_node_unchecked(node),
+                                ctx_field.response_graph.write().await.insert_node(node),
                             ))
                         }));
                         continue;

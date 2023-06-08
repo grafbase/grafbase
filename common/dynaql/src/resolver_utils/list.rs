@@ -55,34 +55,35 @@ pub async fn resolve_list<'a>(
                         input_values: args_values,
                     };
 
-                    let resolve_fut =
-                        async {
-                            match ty {
-                                MetaType::Scalar { .. } | MetaType::Enum { .. } => {
-                                    let mut result = Value::try_from(item).map_err(|err| {
-                                        ctx_idx.set_error_path(ServerError::new(
-                                            format!("{err:?}"),
-                                            Some(field.pos),
-                                        ))
-                                    })?;
-                                    // Yes it's ugly...
-                                    if let MetaType::Scalar { .. } = ty {
-                                        result = resolve_scalar(result, type_name)
-                                            .map_err(|err| err.into_server_error(field.pos))?;
-                                    }
-                                    Ok(Some(
-                                        ctx_idx.response_graph.write().await.new_node_unchecked(
-                                            ResponsePrimitive::new(result.into()),
-                                        ),
+                    let resolve_fut = async {
+                        match ty {
+                            MetaType::Scalar { .. } | MetaType::Enum { .. } => {
+                                let mut result = Value::try_from(item).map_err(|err| {
+                                    ctx_idx.set_error_path(ServerError::new(
+                                        format!("{err:?}"),
+                                        Some(field.pos),
                                     ))
+                                })?;
+                                // Yes it's ugly...
+                                if let MetaType::Scalar { .. } = ty {
+                                    result = resolve_scalar(result, type_name)
+                                        .map_err(|err| err.into_server_error(field.pos))?;
                                 }
-                                // TODO: node_step
-                                _ => resolve_container(&ctx_idx, ty, None)
-                                    .await
-                                    .map(Option::Some)
-                                    .map_err(|err| ctx_idx.set_error_path(err)),
+                                Ok(Some(
+                                    ctx_idx
+                                        .response_graph
+                                        .write()
+                                        .await
+                                        .insert_node(ResponsePrimitive::new(result.into())),
+                                ))
                             }
-                        };
+                            // TODO: node_step
+                            _ => resolve_container(&ctx_idx, ty, None)
+                                .await
+                                .map(Option::Some)
+                                .map_err(|err| ctx_idx.set_error_path(err)),
+                        }
+                    };
                     futures_util::pin_mut!(resolve_fut);
                     extensions
                         .resolve(resolve_info, &mut resolve_fut)
@@ -93,7 +94,7 @@ pub async fn resolve_list<'a>(
         }
         let node = ResponseList::with_children(futures_util::future::try_join_all(futures).await?);
 
-        Ok(ctx.response_graph.write().await.new_node_unchecked(node))
+        Ok(ctx.response_graph.write().await.insert_node(node))
     } else {
         let mut futures = Vec::with_capacity(values.len());
         for (idx, item) in values.into_iter().enumerate() {
@@ -112,7 +113,7 @@ pub async fn resolve_list<'a>(
                             .response_graph
                             .write()
                             .await
-                            .new_node_unchecked(ResponsePrimitive::new(result.into())))
+                            .insert_node(ResponsePrimitive::new(result.into())))
                     }
                     // TODO: node_step
                     _ => resolve_container(&ctx_idx, ty, None)
@@ -124,7 +125,7 @@ pub async fn resolve_list<'a>(
 
         let node = ResponseList::with_children(futures_util::future::try_join_all(futures).await?);
 
-        Ok(ctx.response_graph.write().await.new_node_unchecked(node))
+        Ok(ctx.response_graph.write().await.insert_node(node))
     }
 }
 
@@ -202,7 +203,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(ResponseList::with_children(children));
+            .insert_node(ResponseList::with_children(children));
 
         Ok(node_id)
     } else {
@@ -222,7 +223,7 @@ pub async fn resolve_list_native<'a, T: OutputType + 'a>(
             .response_graph
             .write()
             .await
-            .new_node_unchecked(ResponseList::with_children(children));
+            .insert_node(ResponseList::with_children(children));
 
         Ok(node_id)
     }

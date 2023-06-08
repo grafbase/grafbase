@@ -37,7 +37,7 @@ mod into_response_node;
 mod response_node_id;
 mod se;
 
-use self::response_node_id::{ToEntityId, ToResponseNodeId};
+use self::response_node_id::ToEntityId;
 
 pub use self::{entity_id::EntityId, into_response_node::IntoResponseNode, response_node_id::ResponseNodeId};
 pub use se::GraphQlResponseSerializer;
@@ -49,8 +49,10 @@ pub struct QueryResponse {
     /// Storage of every nodes
     #[serde(with = "vectorize")]
     data: HashMap<ResponseNodeId, QueryResponseNode>,
-    /// Map of database NodeId to the ID used in data
-    entity_ids: HashMap<EntityId, ResponseNodeId>,
+    /// Map of database NodeId to the ID used in the data
+    ///
+    /// Database entities can appear more than once in a response, so we need to keep a list here.
+    entity_ids: HashMap<EntityId, Vec<ResponseNodeId>>,
     /// The next id we can use when we add a node.
     next_id: u32,
     /// Cache tags
@@ -88,7 +90,7 @@ impl<'a> Iterator for Children<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.nodes.pop().and_then(|id| {
-            self.response.get_node(&id).map(|node| {
+            self.response.get_node(id).map(|node| {
                 match &node {
                     QueryResponseNode::Container(container) => {
                         container.children.iter().for_each(|(_, elt)| {
@@ -216,12 +218,12 @@ impl QueryResponse {
             next_id: 0,
             cache_tags: HashSet::new(),
         };
-        this.new_node_unchecked(node);
+        this.insert_node(node);
         this
     }
 
-    pub fn id_for_node(&self, node: &EntityId) -> Option<ResponseNodeId> {
-        self.entity_ids.get(node).copied()
+    pub fn ids_for_entity<T: ToEntityId>(&self, entity: &T) -> Vec<ResponseNodeId> {
+        self.entity_ids.get(&entity.entity_id()).cloned().unwrap_or_default()
     }
 
     fn next_id(&mut self) -> ResponseNodeId {
@@ -236,48 +238,56 @@ impl QueryResponse {
         self.root = Some(id);
     }
 
-    /// Create a new node, replace if the node already exist
-    /// (A new node is not in the response)
-    pub fn new_node_unchecked<T>(&mut self, node: T) -> ResponseNodeId
+    /// Create a new node
+    pub fn insert_node<T>(&mut self, node: T) -> ResponseNodeId
     where
         T: IntoResponseNode,
     {
         let entity_id = node.entity_id();
-        let node_id = entity_id
-            .as_ref()
-            .and_then(|entity_id| self.entity_ids.get(entity_id))
-            .copied()
-            .unwrap_or_else(|| {
-                let next_id = self.next_id();
-                if let Some(entity_id) = entity_id {
-                    self.entity_ids.insert(entity_id, next_id);
-                }
-                next_id
-            });
+        let node_id = self.next_id();
+        if let Some(entity_id) = entity_id {
+            self.entity_ids.entry(entity_id).or_default().push(node_id);
+        }
 
         self.data.insert(node_id, node.into_node());
         node_id
     }
 
     /// Get a Node by his ID
-    pub fn get_node<S: ToResponseNodeId>(&self, id: &S) -> Option<&QueryResponseNode> {
-        self.data.get(&id.response_node_id(self)?)
+    pub fn get_node(&self, id: ResponseNodeId) -> Option<&QueryResponseNode> {
+        self.data.get(&id)
     }
 
     /// Get a Node by his ID
-    pub fn get_node_mut<S: ToResponseNodeId>(&mut self, id: &S) -> Option<&mut QueryResponseNode> {
-        self.data.get_mut(&id.response_node_id(self)?)
+    pub fn get_node_mut(&mut self, id: ResponseNodeId) -> Option<&mut QueryResponseNode> {
+        self.data.get_mut(&id)
+    }
+
+    pub fn get_entity_nodes<T: ToEntityId>(&self, entity_id: &T) -> impl Iterator<Item = &QueryResponseNode> {
+        self.ids_for_entity(entity_id)
+            .into_iter()
+            .filter_map(|node_id| self.data.get(&node_id))
     }
 
     /// Delete a Node by entity ID
-    pub fn delete_entity<S: ToEntityId>(&mut self, id: S) -> Result<QueryResponseNode, QueryResponseErrors> {
+    pub fn delete_entity<S: ToEntityId>(&mut self, id: S) -> Result<(), QueryResponseErrors> {
         let entity_id = id.entity_id();
-        let node_id = self
+        let node_ids = self
             .entity_ids
             .remove(&entity_id)
             .ok_or(QueryResponseErrors::NodeNotFound)?;
 
-        self.data.remove(&node_id).ok_or(QueryResponseErrors::NodeNotFound)
+        let mut error = None;
+        for id in node_ids {
+            if matches!(self.data.remove(&id), None) {
+                error = Some(QueryResponseErrors::NodeNotFound);
+            }
+        }
+
+        match error {
+            None => Ok(()),
+            Some(error) => Err(error),
+        }
     }
 
     // /// Delete a Node by node ID
@@ -296,8 +306,8 @@ impl QueryResponse {
     where
         T: IntoResponseNode,
     {
-        let id = self.new_node_unchecked(to);
-        let from_node = self.get_node_mut(&from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
+        let id = self.insert_node(to);
+        let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::Container(container) = from_node {
             container.insert(relation, id);
@@ -313,8 +323,8 @@ impl QueryResponse {
     where
         T: IntoResponseNode,
     {
-        let id = self.new_node_unchecked(to);
-        let from_node = self.get_node_mut(&from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
+        let id = self.insert_node(to);
+        let from_node = self.get_node_mut(from_id).ok_or(QueryResponseErrors::NodeNotFound)?;
 
         if let QueryResponseNode::List(list) = from_node {
             list.children.push(id);
@@ -376,7 +386,7 @@ impl QueryResponse {
     }
 
     fn node_exists(&self, id: ResponseNodeId) -> bool {
-        self.get_node(&id).is_some()
+        self.get_node(id).is_some()
     }
 
     pub fn add_cache_tag(&mut self, tag: String) {
@@ -885,22 +895,22 @@ mod tests {
     }
 
     #[test]
-    fn test_new_node_unchecked_doesnt_duplicate_if_same_id() {
+    fn test_insert_node_duplicates_if_same_entity_id() {
         let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
         let container = ResponseContainer::new_node(node_id.clone());
 
         let mut response = QueryResponse::default();
 
-        let id_one = response.new_node_unchecked(container.clone());
-        let id_two = response.new_node_unchecked(container);
+        let id_one = response.insert_node(container.clone());
+        let id_two = response.insert_node(container);
 
-        assert_eq!(id_one, id_two);
-        assert_eq!(response.data.len(), 1);
+        assert_ne!(id_one, id_two);
+        assert_eq!(response.data.len(), 2);
         assert_eq!(response.entity_ids.len(), 1);
     }
 
     #[test]
-    fn test_new_node_unchecked_handles_different_ids() {
+    fn test_insert_node_handles_different_entity_ids() {
         let node_id = NodeID::new_owned("todo".into(), ulid::Ulid::new().to_string());
         let node = ResponseContainer::new_node(node_id.clone());
 
@@ -909,8 +919,8 @@ mod tests {
 
         let mut response = QueryResponse::default();
 
-        let id_one = response.new_node_unchecked(node);
-        let id_two = response.new_node_unchecked(node_two);
+        let id_one = response.insert_node(node);
+        let id_two = response.insert_node(node_two);
 
         assert!(id_one != id_two);
         assert_eq!(response.data.len(), 2);
