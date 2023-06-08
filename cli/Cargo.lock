@@ -1788,7 +1788,6 @@ dependencies = [
  "dprint-plugin-typescript",
  "expect-test",
  "indoc",
- "tempfile",
 ]
 
 [[package]]
