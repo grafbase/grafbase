@@ -2,7 +2,7 @@ use crate::consts::{
     ASSET_VERSION_FILE, CONFIG_PARSER_SCRIPT, GENERATED_SCHEMAS_DIR, GIT_IGNORE_CONTENTS, GIT_IGNORE_FILE,
     MIN_NODE_VERSION, SCHEMA_PARSER_DIR, SCHEMA_PARSER_INDEX, TS_NODE_SCRIPT_PATH,
 };
-use crate::custom_resolvers::build_resolvers;
+use crate::custom_resolvers::maybe_install_wrangler;
 use crate::error_server;
 use crate::event::{wait_for_event, wait_for_event_and_match, Event};
 use crate::file_watcher::start_watcher;
@@ -60,7 +60,7 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
 
         create_project_dot_grafbase_directory()?;
 
-        let bridge_port = get_bridge_port(port)?;
+        let bridge_port = find_available_port_for_internal_use(port)?;
 
         // manual implementation of #[tokio::main] due to a rust analyzer issue
         Builder::new_current_thread()
@@ -78,10 +78,10 @@ pub fn start(port: u16, watch: bool, tracing: bool) -> (JoinHandle<Result<(), Se
                             let relative_path = path.strip_prefix(&project.path).expect("must succeed by definition").to_owned();
                             watch_event_bus.send(Event::Reload(relative_path)).expect("cannot fail");
                         }) => { result }
-                        result = server_loop(port, bridge_port, watch, sender, event_bus.clone(), tracing) => { result }
+                        result = server_loop(port, bridge_port, watch, sender, event_bus, tracing) => { result }
                     }
                 } else {
-                    Ok(spawn_servers(port, bridge_port, watch, sender, event_bus, None, tracing).await?)
+                    server_loop(port, bridge_port, watch, sender, event_bus, tracing).await
                 }
             })
     });
@@ -104,18 +104,25 @@ async fn server_loop(
             result = spawn_servers(worker_port, bridge_port, watch, sender.clone(), event_bus.clone(), path_changed.as_deref(), tracing) => {
                 result?;
             }
-            path = wait_for_event_and_match(receiver, |event| match event {
-                Event::Reload(path) => Some(path),
-                Event::BridgeReady => None,
+            event = wait_for_event_and_match(receiver, |event| match event {
+                Event::Reload(_) => Some(event),
+                Event::BridgeReady => None
             }) => {
-                trace!("reload");
-                path_changed = Some(path.clone());
-                let _: Result<_, _> = sender.send(ServerMessage::Reload(path));
+                match event {
+                    Event::Reload(path) => {
+                        trace!("reload");
+                        let _: Result<_, _> = sender.send(ServerMessage::Reload(path.clone()));
+                        path_changed = Some(path);
+                    }
+                    Event::BridgeReady => unreachable!()
+                }
+
             }
         }
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(level = "trace")]
 async fn spawn_servers(
     worker_port: u16,
@@ -165,25 +172,24 @@ async fn spawn_servers(
     let environment = Environment::get();
     let project = Project::get();
 
-    let resolver_paths = match build_resolvers(&sender, environment, &environment_variables, resolvers, tracing).await {
-        Ok(resolver_paths) => resolver_paths,
-        Err(error) => {
-            let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
-            // TODO consider disabling colored output from wrangler
-            let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
-                .ok()
-                .and_then(|stripped| String::from_utf8(stripped).ok())
-                .unwrap_or_else(|| error.to_string());
-            tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
-            return Ok(());
-        }
-    };
+    if let Err(error) = maybe_install_wrangler(environment, resolvers, tracing).await {
+        let _: Result<_, _> = sender.send(ServerMessage::CompilationError(error.to_string()));
+        // TODO consider disabling colored output from wrangler
+        let error = strip_ansi_escapes::strip(error.to_string().as_bytes())
+            .ok()
+            .and_then(|stripped| String::from_utf8(stripped).ok())
+            .unwrap_or_else(|| error.to_string());
+        tokio::spawn(async move { error_server::start(worker_port, error, bridge_event_bus).await }).await??;
+        return Ok(());
+    }
 
     let (bridge_sender, mut bridge_receiver) = tokio::sync::mpsc::channel(128);
 
     let mut bridge_handle =
-        tokio::spawn(async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus).await })
-            .fuse();
+        tokio::spawn(
+            async move { bridge::start(bridge_port, worker_port, bridge_sender, bridge_event_bus, tracing).await },
+        )
+        .fuse();
 
     let sender_cloned = sender.clone();
     tokio::spawn(async move {
@@ -207,7 +213,7 @@ async fn spawn_servers(
     let bridge_port_binding_string = format!("BRIDGE_PORT={bridge_port}");
     let registry_text_blob_string = format!("REGISTRY={registry_path}");
 
-    let mut miniflare_arguments: Vec<_> = [
+    let miniflare_arguments = &[
         // used by miniflare when running normally as well
         "--experimental-vm-modules",
         "./node_modules/miniflare/dist/src/cli.js",
@@ -227,21 +233,7 @@ async fn spawn_servers(
         &registry_text_blob_string,
         "--mount",
         "stream-router=./stream-router",
-    ]
-    .into_iter()
-    .map(std::borrow::Cow::Borrowed)
-    .collect();
-    miniflare_arguments.extend(resolver_paths.into_iter().flat_map(|(resolver_name, resolver_path)| {
-        [
-            "--mount".into(),
-            format!(
-                "{resolver_name}={resolver_path}",
-                resolver_name = slug::slugify(resolver_name),
-                resolver_path = resolver_path.display()
-            )
-            .into(),
-        ]
-    }));
+    ];
 
     #[cfg(feature = "dynamodb")]
     {
@@ -270,11 +262,11 @@ async fn spawn_servers(
     miniflare
         // Unbounded worker limit
         .env("MINIFLARE_SUBREQUEST_LIMIT", "1000")
-        .args(miniflare_arguments.iter().map(std::convert::AsRef::as_ref))
+        .args(miniflare_arguments)
         .stdout(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .stderr(if tracing { Stdio::inherit() } else { Stdio::piped() })
         .current_dir(&environment.user_dot_grafbase_path)
-        .kill_on_drop(watch);
+        .kill_on_drop(true);
     trace!("Spawning {miniflare:?}");
     let miniflare = miniflare.spawn().map_err(ServerError::MiniflareCommandError)?;
 
@@ -576,7 +568,7 @@ async fn validate_dependencies() -> Result<(), ServerError> {
 // to avoid issues when starting multiple CLIs simultainiously,
 // we segment the ephemeral port range into 100 segments and select a segment based on the last two digits of the process ID.
 // this allows for simultainious start of up to 100 CLIs
-fn get_bridge_port(http_port: u16) -> Result<u16, ServerError> {
+pub fn find_available_port_for_internal_use(http_port: u16) -> Result<u16, ServerError> {
     // must be 0-99, will fit in u16
     #[allow(clippy::cast_possible_truncation)]
     let segment = http_port % 100;

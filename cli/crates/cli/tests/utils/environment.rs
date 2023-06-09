@@ -137,8 +137,12 @@ impl Environment {
         }
     }
 
+    pub fn create_client_with_longer_timeout(&self) -> Client {
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), 60)
+    }
+
     pub fn create_client(&self) -> Client {
-        Client::new(self.endpoint.clone(), self.playground_endpoint.clone())
+        Client::new(self.endpoint.clone(), self.playground_endpoint.clone(), 5)
     }
 
     pub fn create_async_client(&self) -> AsyncClient {
@@ -322,7 +326,15 @@ impl Environment {
     }
 
     pub fn grafbase_dev_watch(&mut self) {
-        let command = cmd!(cargo_bin("grafbase"), "dev", "--port", self.port.to_string()).dir(&self.directory);
+        let command = cmd!(
+            cargo_bin("grafbase"),
+            "--trace",
+            "2",
+            "dev",
+            "--port",
+            self.port.to_string()
+        )
+        .dir(&self.directory);
         #[cfg(feature = "dynamodb")]
         let command = command.env("DYNAMODB_TABLE_NAME", &self.dynamodb_env.table_name);
         let command = command.start().unwrap();

@@ -18,14 +18,14 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(endpoint: String, playground_endpoint: String) -> Self {
+    pub fn new(endpoint: String, playground_endpoint: String, timeout_in_seconds: u64) -> Self {
         Self {
             endpoint,
             playground_endpoint,
             headers: HeaderMap::new(),
             client: reqwest::blocking::Client::builder()
                 .connect_timeout(Duration::from_secs(1))
-                .timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(timeout_in_seconds))
                 .build()
                 .unwrap(),
             snapshot: None,
