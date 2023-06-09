@@ -96,7 +96,7 @@ pub enum ServerError {
     ParseSchema(String),
 
     /// returned if the typescript config parser command exits unsuccessfully
-    #[error("could not load grafbase/grafbase.config.ts\ncaused by: {0}")]
+    #[error("could not load grafbase/grafbase.config.ts\nCaused by: {0}")]
     LoadTsConfig(String),
 
     #[error("could not find a resolver referenced in the schema under the path {0}.{{js,ts}}")]
@@ -127,11 +127,11 @@ pub enum ServerError {
     CreateCacheDir,
 
     /// returned if the `.grafbase/database` directory cannot be created
-    #[error("could not create a project database directory\ncaused by: {0}")]
+    #[error("could not create a project database directory\nCaused by: {0}")]
     CreateDatabaseDir(IoError),
 
     /// returned if the `.grafbase/database` directory cannot be read
-    #[error("could not read the project database directory\ncaused by: {0}")]
+    #[error("could not read the project database directory\nCaused by: {0}")]
     ReadDatabaseDir(IoError),
 
     /// returned if an available port cannot be found for the bridge server
@@ -155,7 +155,7 @@ pub enum ServerError {
     CheckNodeVersion,
 
     /// returned if a file watcher could not be initialized or was stopped due to an error
-    #[error("A file watcher encountered an error\ncaused by: {0}")]
+    #[error("A file watcher encountered an error\nCaused by: {0}")]
     FileWatcher(#[from] NotifyError),
 
     #[error("Could not create a lock for the wrangler installation: {0}")]

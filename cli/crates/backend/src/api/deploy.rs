@@ -108,6 +108,6 @@ pub async fn deploy() -> Result<(), ApiError> {
             limit,
             ..
         }) => Err(DeployError::DailyDeploymentCountLimitExceeded { limit }.into()),
-        DeploymentCreatePayload::Unknown => Err(DeployError::Unknown.into()),
+        DeploymentCreatePayload::Unknown(error) => Err(DeployError::Unknown(error).into()),
     }
 }
