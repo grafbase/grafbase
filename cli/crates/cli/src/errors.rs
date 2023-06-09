@@ -46,8 +46,8 @@ pub enum CliError {
     CompilationError(String),
 }
 
-// #[cfg(target_family = "windows")]
-// const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
+#[cfg(target_family = "windows")]
+const WINDOWS_DIR_NOT_EMPTY_CODE: i32 = 145;
 
 impl CliError {
     /// returns the appropriate hint for a [`CliError`]
