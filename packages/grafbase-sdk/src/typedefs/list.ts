@@ -13,6 +13,9 @@ import { SearchDefinition } from './search'
 import { FieldType } from '../typedefs'
 import { EnumDefinition } from './enum'
 import { InputDefinition } from './input'
+import { RequireAtLeastOne } from 'type-fest'
+import { FieldLength } from './length-limited-string'
+import { LengthLimitedStringDefinition } from './length-limited-string'
 
 export type ListScalarType =
   | ScalarDefinition
@@ -146,19 +149,19 @@ export class RelationListDefinition {
 }
 
 class ListWithDefaultDefinition extends ListDefinition {
-  private fieldType: FieldType
+  protected _fieldType: FieldType
 
   constructor(fieldDefinition: ScalarDefinition) {
     super(fieldDefinition)
 
-    this.fieldType = fieldDefinition.fieldType as FieldType
+    this._fieldType = fieldDefinition.fieldType as FieldType
   }
 
   public toString(): string {
     const defaultValue =
       this.defaultValue != null
         ? ` @default(value: [${this.defaultValue
-            .map((v) => renderDefault(v, this.fieldType))
+            .map((v) => renderDefault(v, this._fieldType))
             .join(', ')}])`
         : ''
 
@@ -169,6 +172,25 @@ class ListWithDefaultDefinition extends ListDefinition {
 export class StringListDefinition extends ListWithDefaultDefinition {
   constructor(fieldDefinition: StringDefinition) {
     super(fieldDefinition)
+  }
+
+  /**
+   * The type of the field
+   */
+  public get fieldType(): FieldType {
+    return this._fieldType
+  }
+
+
+  /**
+   * Specify a minimum or a maximum (or both) length of the field.
+   *
+   * @param fieldLength - Either `min`, `max` or both.
+   */
+  public length(
+    fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
+  ): LengthLimitedStringDefinition {
+    return new LengthLimitedStringDefinition(this, fieldLength)
   }
 
   /**

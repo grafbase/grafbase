@@ -8,18 +8,21 @@ import { SearchDefinition } from './search'
 import { AuthRuleF } from '../auth'
 import { AuthDefinition } from './auth'
 import { CacheDefinition, FieldCacheParams, FieldLevelCache } from './cache'
+import { StringListDefinition } from './list'
 
 export interface FieldLength {
   min?: number
   max?: number
 }
 
+export type LengthLimitedField = StringDefinition | StringListDefinition
+
 export class LengthLimitedStringDefinition {
   private fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
-  private scalar: StringDefinition
+  private scalar: LengthLimitedField
 
   constructor(
-    scalar: StringDefinition,
+    scalar: LengthLimitedField,
     fieldLength: RequireAtLeastOne<FieldLength, 'min' | 'max'>
   ) {
     this.fieldLength = fieldLength
