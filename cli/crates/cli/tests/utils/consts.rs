@@ -76,6 +76,16 @@ pub const JWKS_PROVIDER_WITH_ENDPOINT_SCHEMA: &str = include_str!("../graphql/au
 pub const JWKS_PROVIDER_WITH_ISSUER_ENDPOINT_SCHEMA: &str =
     include_str!("../graphql/auth/jwks-issuer-endpoint.graphql");
 
+pub const AUTH_PUBLIC_GLOBAL_SCHEMA: &str = include_str!("../graphql/auth/public-global.graphql");
+pub const AUTH_PUBLIC_TYPE_SCHEMA: &str = include_str!("../graphql/auth/public-type.graphql");
+pub const AUTH_TYPE_FIELD_RESOLVER_SCHEMA: &str = include_str!("../graphql/auth/type-field-resolver.graphql");
+pub const AUTH_CREATE_MUTATION: &str = include_str!("../graphql/auth/create.graphql");
+pub const AUTH_QUERY_WITH_TEXT: &str = include_str!("../graphql/auth/query-with-text.graphql");
+pub const AUTH_ENTRYPOINT_FIELD_RESOLVER_SCHEMA: &str =
+    include_str!("../graphql/auth/entrypoint-field-resolver.graphql");
+pub const AUTH_ENTRYPOINT_QUERY_TEXT: &str = include_str!("../graphql/auth/entrypoint-query-text.graphql");
+pub const AUTH_ENTRYPOINT_MUTATION_TEXT: &str = include_str!("../graphql/auth/entrypoint-mutation-text.graphql");
+
 pub const INTROSPECTION_QUERY: &str = include_str!("../graphql/introspection.graphql");
 
 pub const RESERVED_DATES_SCHEMA: &str = include_str!("../graphql/reserved_dates/schema.graphql");

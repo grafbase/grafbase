@@ -1,0 +1,8 @@
+schema @auth(rules: [{ allow: public }]) {
+  query: Query
+}
+
+type Todo @model {
+  id: ID!
+  title: String!
+}
