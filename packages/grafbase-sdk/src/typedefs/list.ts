@@ -181,7 +181,6 @@ export class StringListDefinition extends ListWithDefaultDefinition {
     return this._fieldType
   }
 
-
   /**
    * Specify a minimum or a maximum (or both) length of the field.
    *
