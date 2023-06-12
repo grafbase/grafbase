@@ -179,6 +179,7 @@ impl Extension for AuthExtension {
             let field_ops = auth_fn(Some(auth), Operations::empty());
             trace!(self.trace_id, "Field level auth. field_ops:{field_ops}");
             if !field_ops.intersects(Operations::READ) {
+                // FIXME: Field rule should not have operations configurable.
                 let msg = format!(
                     "Unauthorized to access {type_name}.{field_name}",
                     type_name = info.parent_type,
