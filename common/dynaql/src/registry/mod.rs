@@ -1402,6 +1402,18 @@ impl SchemaIDGenerator {
     }
 }
 
+#[derive(Default)]
+pub struct ConnectorIdGenerator {
+    cur: AtomicU16,
+}
+
+impl ConnectorIdGenerator {
+    /// Generate a new connector ID.
+    pub fn new_id(&self) -> u16 {
+        self.cur.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
 // TODO(@miaxos): Remove this to a separate create as we'll need to use it outside dynaql
 // for a LogicalQuery
 #[derive(Clone, Default, Debug, serde::Serialize, serde::Deserialize)]

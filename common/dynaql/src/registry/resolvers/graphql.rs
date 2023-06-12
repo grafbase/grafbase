@@ -49,6 +49,9 @@ use super::ResolvedValue;
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize, Hash, PartialEq, Eq)]
 pub struct Resolver {
+    /// A unique ID for the given GraphQL resolver instance.
+    pub id: u16,
+
     /// The name of this GraphQL resolver instance.
     ///
     /// Each instance is expected to have a unique name, as the name of the instance is used as the
@@ -258,6 +261,7 @@ mod tests {
             .await;
 
         let resolver = Resolver {
+            id: 0,
             api_name: "myApi".to_owned(),
             url: Url::parse(&server.uri()).unwrap(),
         };

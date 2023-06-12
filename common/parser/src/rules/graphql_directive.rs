@@ -11,6 +11,13 @@ use super::{
 #[derive(Debug, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphqlDirective {
+    /// A unique identifier for the given directive.
+    ///
+    /// This ID *MUST NOT* be persisted (and defaults to `None` when deserializing), as the ID is
+    /// re-generated whenever the schema is parsed.
+    #[serde(skip)]
+    pub id: Option<u16>,
+
     pub name: String,
     pub url: Url,
     #[serde(default)]
@@ -130,6 +137,9 @@ mod tests {
         insta::assert_debug_snapshot!(connector_parsers.graphql_directives.lock().unwrap(), @r###"
         [
             GraphqlDirective {
+                id: Some(
+                    0,
+                ),
                 name: "countries",
                 url: Url {
                     scheme: "https",
