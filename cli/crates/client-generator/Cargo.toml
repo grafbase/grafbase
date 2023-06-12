@@ -15,6 +15,6 @@ categories = ["command-line-utilities"]
 [dev-dependencies]
 expect-test = "1.4.1"
 indoc = "2.0.1"
+dprint-plugin-typescript = "0.85.0"
 
 [dependencies]
-dprint-plugin-typescript = "0.85.0"

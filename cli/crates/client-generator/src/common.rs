@@ -6,7 +6,7 @@ pub struct Quoted {
 }
 
 impl Quoted {
-    pub(crate) fn new(name: impl Into<Cow<'static, str>>) -> Self {
+    pub fn new(name: impl Into<Cow<'static, str>>) -> Self {
         Self { inner: name.into() }
     }
 }

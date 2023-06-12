@@ -1,6 +1,7 @@
 use crate::common::{expect, expect_ts};
 use grafbase_client_generator::{
-    class::{ClassProperty, Constructor, Method},
+    class::{ClassProperty, Construct, Constructor, Method},
+    expression::{Object, Value},
     r#type::{StaticType, TypeIdentifier},
     statement::{Assignment, Return},
     Block, Class, Identifier,
@@ -54,4 +55,20 @@ fn basic_class() {
     "#]];
 
     expect_ts(&class, &expected);
+}
+
+#[test]
+fn construct_new_instance() {
+    let mut input = Object::new();
+    input.entry("id", Value::from(1));
+
+    let mut construct = Construct::new("Query");
+    construct.push_param(Value::from("user"));
+    construct.push_param(input);
+
+    let expected = expect![[r#"
+        new Query('user', { id: 1 })
+    "#]];
+
+    expect_ts(&construct, &expected);
 }

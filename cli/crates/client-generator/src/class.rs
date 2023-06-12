@@ -1,3 +1,4 @@
+mod construct;
 mod constructor;
 mod method;
 mod privacy;
@@ -5,6 +6,7 @@ mod property;
 
 use std::fmt;
 
+pub use construct::Construct;
 pub use constructor::Constructor;
 pub use method::Method;
 pub use privacy::Privacy;
