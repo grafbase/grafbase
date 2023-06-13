@@ -390,6 +390,22 @@ export class GrafbaseSchema {
   }
 
   /**
+   * Returns the environment variable with the given variableName.
+   * Throws, if the variable is not set.
+   *
+   * @param variableName - The name of the environment variable.
+   */
+  public env(variableName: string): string {
+    const value = process.env[variableName]
+
+    if (value === undefined || value === null) {
+      throw `Environment variable ${variableName} is not set`
+    }
+
+    return value
+  }
+
+  /**
    * Empty the schema.
    */
   public clear() {

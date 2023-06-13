@@ -62,7 +62,7 @@ export class GraphQLAPI {
       .map((header) => `      ${header}`)
       .join('\n')
 
-    introspectionHeaders = headers
+    introspectionHeaders = introspectionHeaders
       ? `    introspectionHeaders: [\n${introspectionHeaders}\n    ]\n`
       : ''
 
